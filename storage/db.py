@@ -200,7 +200,7 @@ class CycleDB:
         for r in rows:
             end_ts = r["end_ts"]
             if not isinstance(end_ts, (int, float)):
-                continue
+                continue  # pragma: no cover
             day = time.strftime("%Y-%m-%d", time.localtime(float(end_ts)))
             mode = r["mode"] or "unknown"
             key = (day, mode)

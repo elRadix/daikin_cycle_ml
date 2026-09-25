@@ -132,3 +132,30 @@ async def test_run_maintenance_null_end_ts(tmp_path):
         )
     finally:
         await db.async_close()
+
+
+async def test_daily_summary_zero_cycles(tmp_path):
+    import time as _t
+    db = CycleDB(tmp_path / 'zz.db')
+    await db.async_initialize()
+    try:
+        await db._conn.execute(
+            'INSERT INTO daily_summary '
+            '(day, mode, cycles, total_duration_s, '
+            'quality_sum, dt_max_sum, rps_sum, '
+            'buh_count, defrost_count, updated_ts) '
+            'VALUES (?, ?, 0, 0, 0, 0.0, 0.0, 0, 0, ?)',
+            ('2026-01-01', 'heating', _t.time()),
+        )
+        await db._conn.commit()
+        rows = await db.async_daily_summary(days=400)
+        hit = [r for r in rows if r['day'] == '2026-01-01']
+        assert len(hit) == 1
+        r = hit[0]
+        assert r['duration_avg'] is None
+        assert r['quality_avg'] is None
+        assert r['dt_max_avg'] is None
+        assert r['rps_avg'] is None
+    finally:
+        await db.async_close()
+
