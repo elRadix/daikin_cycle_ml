@@ -18,6 +18,17 @@ Released 2026-09-25. Highlights:
 - [x] SOP.md (install + troubleshoot + release)
 - [x] Branding (Daikin icon + logo)
 
+## v0.4.0 (released 2026-09-25)
+
+Scope: COP analysis + stooklijn advice. No cost tracking,
+no setpoint writes.
+
+- [x] 14a - cop_analyzer module (pure parser + advice engine)
+- [x] 14b-1 - cop_samples table + coordinator sample collector
+- [x] 14b-2 - 2 sensors (stooklijn_advies, cop_vandaag) + attrs
+- [x] 14b-3 - daily 04:00 scheduler + 2 alerts + diagnostics
+- [ ] 14c - ML feature-vector 8->11 dims (deferred, no data yet)
+
 ## v0.3.0 (released 2026-09-25)
 
 Scope: self-learning only. No COP, no cost tracking, no HACS, no supervised ML.

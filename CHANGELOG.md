@@ -13,6 +13,45 @@ Versioning: https://semver.org/spec/v2.0.0.html
 
 
 
+## [0.4.0] - 2026-09-25
+
+### Added
+- engine/cop_analyzer.py: pure parser for global_cop attributes
+  (string->float with unit stripping), 2C outdoor-temp bucketing,
+  stooklijn advice engine (verlaag/verhoog/behoud), bucket_summary
+- storage/schema.sql: cop_samples table + 2 indices
+- storage/db.py: async_ensure_cop_samples_table, async_insert_cop_sample,
+  async_fetch_cop_samples, async_count_cop_samples; cop_retention_days
+  (default 365) in async_run_maintenance
+- coordinator: _maybe_collect_cop_sample (10min debounce, skip on
+  cop<=0, defrost, quality!=Good, power_stable=False),
+  _refresh_cop_today, _maybe_refresh_stooklijn (1h cache + force),
+  async_setup_stooklijn (daily 04:00), async_run_stooklijn_analysis,
+  _maybe_notify_cop_low (20h dedup), _maybe_notify_stooklijn (20h dedup)
+- const.py: COP_SENSOR_ENTITY + 5 defaults
+- DataSnapshot: stooklijn_advies, cop_today dict fields
+- sensor.py: attr_fn parameter + extra_state_attributes property;
+  2 new sensors: stooklijn_advies (with bucket table attrs),
+  cop_vandaag (with samples/min/max/loss attrs)
+- diagnostics.py: cop_analysis section (bucket table, today COP,
+  baseline loss), DB_TABLES + cop_samples
+- translations EN + NL for 2 new sensors
+- 54 new tests across batches 14a/14b-1/14b-2/14b-3
+
+### Changed
+- __init__.py: setup_stooklijn added to setup_entry, _stooklijn_unsub
+  cancelled on unload
+- Entity count: 48 -> 50 (31 sensors + 19 binary sensors)
+
+### Scope
+- COP analysis in scope. No cost tracking, no setpoint writes,
+  ML feature-vector unchanged (integration deferred to 14c).
+
+### Notes
+- Total tests: 716, coverage 96.69%
+- Samples collect at 10min intervals, 365 days retention (~2 MB/year)
+- Analysis window: 30 days, min 5 samples/bucket for advice
+
 ## [0.3.0] - 2026-09-25
 
 ### Changed

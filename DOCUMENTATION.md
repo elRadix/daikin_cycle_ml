@@ -186,7 +186,7 @@ status updates   | configurable     | opt-in, persistent + notify (12c)
 ## DB
 
 Path: /config/.storage/daikin_cycle_ml.db
-Tables: cycles, features, model_state, alerts, daily_summary
+Tables: cycles, features, model_state, alerts, daily_summary, cop_samples
 
 model_state keys:
 - last_maintenance_ts  (float, written by async_run_maintenance)
@@ -206,6 +206,27 @@ async_run_maintenance(cycle_retention_days, alert_retention_days, vacuum):
 
 daily_summary is ONLY filled by this method.
 async_daily_summary() reads from it.
+
+## COP analysis (batch 14)
+
+engine/cop_analyzer.py parses sensor.altherma_global_cop attributes
+(string -> float with unit stripping), buckets samples by 2C outdoor
+temperature, and produces stooklijn advice:
+- verlaag_lwt_2c: current LWT above bucket average, comfort-safe
+- verhoog_lwt_2c: current LWT below bucket average
+- behoud: within +/- 1.5C or comfort-guard triggered
+
+Samples are collected every 10 min while COP > 0, quality=Good,
+power_stable, no defrost. Retention 365 days (~2 MB/year).
+Analysis uses last 30 days, min 5 samples/bucket.
+
+2 sensors expose results:
+- sensor.daikin_cycle_ml_stooklijn_advies (state + bucket table attrs)
+- sensor.daikin_cycle_ml_cop_vandaag (state + samples/min/max attrs)
+
+Daily scheduler at 04:00 evaluates alerts:
+- cop_low: day COP < 2.5 with >= 3 samples (20h dedup)
+- stooklijn_advies: saving >= 5% COP, confidence >= 0.7 (20h dedup)
 
 ## Known limitations (v0.3)
 

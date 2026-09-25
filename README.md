@@ -12,7 +12,8 @@ pendulum behaviour for Daikin Altherma heat pumps. Local-only ML, no cloud.
 - Adaptive thresholds: percentile-based self-learning per mode (opt-in)
 - Weekly k-means clustering + per-cycle cluster assignment
 - Actionable advice per pattern
-- 29 sensors + 19 binary sensors
+- 31 sensors + 19 binary sensors
+- COP stooklijn analysis (batch 14): daily advice + bucket table
 - SQLite persistence with retention + daily rollups + auto-migration
 
 IoT class: calculated.

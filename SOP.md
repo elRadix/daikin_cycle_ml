@@ -8,7 +8,8 @@ Local-only Home Assistant integration that detects compressor cycles on
 Daikin Altherma heat pumps, classifies pendulum behaviour, scores cycle
 quality, and advises on configuration. No cloud. No setpoint writes.
 
-Out of scope (v0.3): COP, cost tracking, HACS publication, supervised ML.
+Out of scope: cost tracking, HACS publication, supervised ML,
+COP calculation (provided by external package).
 
 ## 2. Install
 
