@@ -12,7 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 
 TO_REDACT: set[str] = {"notify_service"}
 ATTRS_SAMPLE_CAP = 20
-DB_TABLES = ("cycles", "features", "model_state", "alerts", "daily_summary")
+DB_TABLES = ("cycles", "features", "model_state", "alerts", "daily_summary", "cop_samples")
 
 
 async def _db_counts(db: Any) -> dict[str, int]:
@@ -93,6 +93,31 @@ async def _cluster_summary(coord: Any) -> dict[str, Any]:  # pragma: no cover
     return out
 
 
+async def _cop_summary(coord: Any) -> dict[str, Any]:
+    out: dict[str, Any] = {
+        'state': 'unknown',
+        'betrouwbaarheid': 0.0,
+        'bucket_current': None,
+        'buckets': {},
+        'cop_today': {},
+        'total_samples': 0,
+    }
+    try:
+        cache = getattr(coord, '_stooklijn_cache', {}) or {}
+        if cache:
+            out['state'] = cache.get('state') or 'unknown'
+            out['betrouwbaarheid'] = cache.get('betrouwbaarheid') or 0.0
+            out['bucket_current'] = cache.get('bucket')
+            out['buckets'] = cache.get('buckets') or {}
+        out['cop_today'] = getattr(coord, '_cop_today_cache', {}) or {}
+        db = getattr(coord, 'db', None)
+        if db is not None and hasattr(db, 'async_count_cop_samples'):
+            out['total_samples'] = await db.async_count_cop_samples()
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
@@ -138,6 +163,7 @@ async def async_get_config_entry_diagnostics(
         "baseline": _baseline_summary(coord),
         "adaptive": _adaptive_summary(coord),
         "clusters": await _cluster_summary(coord),
+        "cop_analysis": await _cop_summary(coord),
         "database": {
             "path": getattr(db, "path", None),
             "is_open": bool(getattr(db, "is_open", False)),

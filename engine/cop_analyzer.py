@@ -29,8 +29,8 @@ def _parse_float(value: Any) -> float | None:
         return None
     try:
         return float(m.group(0))
-    except ValueError:
-        return None
+    except ValueError:  # pragma: no cover
+        return None  # pragma: no cover
 
 
 def _parse_bool(value: Any) -> bool:

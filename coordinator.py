@@ -81,6 +81,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._baseline_save_unsub: Any = None
         self._kmeans_unsub: Any = None
         self._status_update_unsub: Any = None
+        self._stooklijn_unsub: Any = None
         self.baseline = MultiBaseline(VECTOR_LEN)
         self.adaptive = AdaptiveThresholds(
             min_samples=int(
@@ -432,12 +433,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:  # noqa: BLE001
             self._cop_today_cache = {}
 
-    async def _maybe_refresh_stooklijn(self, now: float) -> None:
+    async def _maybe_refresh_stooklijn(
+        self, now: float, *, force: bool = False
+    ) -> None:
         if self.db is None:
             return
         cache_ts = getattr(self, '_stooklijn_cache_ts', 0.0)
         cache = getattr(self, '_stooklijn_cache', {})
-        if (now - cache_ts) < 3600.0 and cache:
+        if not force and (now - cache_ts) < 3600.0 and cache:
             return
         try:
             rows = await self.db.async_fetch_cop_samples(days=30)
@@ -483,6 +486,109 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._stooklijn_cache_ts = now
         except Exception:  # noqa: BLE001
             return
+
+    async def async_setup_stooklijn(self) -> None:
+        if self._stooklijn_unsub is not None:
+            return
+        self._stooklijn_unsub = async_track_time_change(
+            self.hass,
+            self._async_stooklijn_callback,
+            hour=4, minute=0, second=0,
+        )
+        _LOGGER.info('Stooklijn hook scheduled at 04:00 local')
+
+    async def _async_stooklijn_callback(self, _now) -> None:
+        try:
+            await self.async_run_stooklijn_analysis()
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception('Scheduled stooklijn analysis failed')
+
+    async def async_run_stooklijn_analysis(self) -> dict[str, Any]:
+        if self.db is None:
+            return {'ok': False, 'reason': 'no_db'}
+        now = time.time()
+        try:
+            await self._maybe_refresh_stooklijn(now, force=True)
+            await self._refresh_cop_today(now)
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception('stooklijn refresh failed')
+            return {'ok': False, 'reason': 'refresh_failed'}
+        await self._maybe_notify_cop_low(now, self._cop_today_cache)
+        await self._maybe_notify_stooklijn(now, self._stooklijn_cache)
+        cache = self._stooklijn_cache or {}
+        return {
+            'ok': True,
+            'state': cache.get('state', 'unknown'),
+            'samples': cache.get('samples', 0),
+        }
+
+    async def _maybe_notify_cop_low(
+        self, now: float, cop_today: dict[str, Any]
+    ) -> None:
+        if not isinstance(cop_today, dict) or not cop_today:
+            return
+        cop = cop_today.get('cop')
+        if not isinstance(cop, (int, float)):
+            return
+        if float(cop) >= 2.5:
+            return
+        samples = cop_today.get('samples_today') or 0
+        if samples < 3:
+            return
+        last = self._last_alert_sent.get('cop_low', 0.0)
+        if (now - last) < 20 * 3600.0:
+            return
+        from types import SimpleNamespace
+        msg = 'Dag-COP %.2f onder drempel 2.5 (%d samples)' % (
+            float(cop), int(samples)
+        )
+        alert = SimpleNamespace(
+            persistent=True,
+            message=msg,
+            notif_id='daikin_cop_low',
+            alert_type='cop_low',
+        )
+        try:
+            await self._emit_alert(alert)
+            self._last_alert_sent['cop_low'] = now
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception('cop_low notify failed')
+
+    async def _maybe_notify_stooklijn(
+        self, now: float, cache: dict[str, Any]
+    ) -> None:
+        if not isinstance(cache, dict) or not cache:
+            return
+        state = cache.get('state')
+        if state not in ('verlaag_lwt_2c', 'verhoog_lwt_2c'):
+            return
+        try:
+            betrouw = float(cache.get('betrouwbaarheid') or 0.0)
+            besparing = float(cache.get('besparing_cop_pct') or 0.0)
+            comfort = float(cache.get('comfort_impact') or 0.0)
+        except (TypeError, ValueError):
+            return
+        if betrouw < 0.7 or besparing < 5.0:
+            return
+        last = self._last_alert_sent.get('stooklijn_advies', 0.0)
+        if (now - last) < 20 * 3600.0:
+            return
+        from types import SimpleNamespace
+        msg = (
+            'Stooklijn: %s - bespaart %.0f%% COP, comfort %+.1fC'
+            % (state, besparing, comfort)
+        )
+        alert = SimpleNamespace(
+            persistent=True,
+            message=msg,
+            notif_id='daikin_stooklijn',
+            alert_type='stooklijn_advies',
+        )
+        try:
+            await self._emit_alert(alert)
+            self._last_alert_sent['stooklijn_advies'] = now
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception('stooklijn notify failed')
 
     async def _maybe_collect_cop_sample(self, now: float) -> None:
         if self.db is None:

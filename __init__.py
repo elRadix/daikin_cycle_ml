@@ -64,6 +64,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await coordinator.async_setup_status_updates()
     except Exception:  # noqa: BLE001
         _LOGGER.exception('Failed to setup status updates')
+    try:
+        await coordinator.async_setup_stooklijn()
+    except Exception:  # noqa: BLE001
+        _LOGGER.exception('Failed to setup stooklijn scheduler')
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _LOGGER.info(
         "Daikin Cycle ML %s setup for entry %s", VERSION, entry.entry_id
@@ -83,6 +87,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "_baseline_save_unsub",
             "_kmeans_unsub",
             "_status_update_unsub",
+            "_stooklijn_unsub",
         ):
             _unsub = getattr(coordinator, _attr, None)
             if _unsub is not None:
