@@ -37,6 +37,7 @@ from .const import (
     DEFAULT_QUIET_HOURS_ENABLED,
     DEFAULT_QUIET_HOURS_START,
     DEFAULT_QUIET_HOURS_END,
+    DEFAULT_INDOOR_TEMP_SENSOR,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -186,6 +187,12 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             pse_key: selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor")
             ),
+            vol.Optional(
+                "indoor_temp_sensor",
+                default=self._options.get(
+                    "indoor_temp_sensor", DEFAULT_INDOOR_TEMP_SENSOR
+                ) or "",
+            ): str,
             vol.Required(
                 "fallback_power_threshold_w",
                 default=self._options.get(

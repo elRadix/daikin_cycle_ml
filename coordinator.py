@@ -62,6 +62,13 @@ class DataSnapshot:
 class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     """Reads the source sensor every UPDATE_INTERVAL_SECONDS."""
 
+    # Batch 14c-2 class-level defaults (R52)
+    indoor_temp_entity: str | None = None
+    _cycle_lwt_sum: float = 0.0
+    _cycle_lwt_count: int = 0
+    _cycle_indoor_sum: float = 0.0
+    _cycle_indoor_count: int = 0
+
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.entry = entry
         self.source_entity: str = entry.data.get(
@@ -73,6 +80,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             **dict(entry.options or {}),
         }
         self.power_sensor: str | None = self.options.get("power_sensor_entity")
+        self.indoor_temp_entity: str | None = self.options.get(
+            "indoor_temp_sensor"
+        ) or None
+        self._cycle_lwt_sum: float = 0.0
+        self._cycle_lwt_count: int = 0
+        self._cycle_indoor_sum: float = 0.0
+        self._cycle_indoor_count: int = 0
         self.detector = CycleDetector(self.options)
         self.store = CycleStore()
         self._errors_total = 0
@@ -311,6 +325,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             record = self.detector.update(
                 attrs, now=now, power_w=self._read_power()
             )
+            self._accumulate_cycle_samples(attrs)
             if record is not None:
                 self.store.add_cycle(record)
                 snap.last_record = record
@@ -337,14 +352,78 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.exception("Coordinator update failed: %s", err)
         return snap
 
-    # ---------- Batch 7c ML pipeline ----------
+    def _accumulate_cycle_samples(self, attrs: dict[str, Any]) -> None:
+        """Add LWT + indoor temp to running sums while cycle is active."""
+        try:
+            is_active = self.detector.state != "idle"
+        except Exception:  # noqa: BLE001
+            return
+        if not is_active:
+            return
+        lwt = None
+        for k in ("lwt", "leaving_water_temp", "leaving_temp", "R2T"):
+            v = attrs.get(k)
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                lwt = float(v)
+                break
+        if lwt is not None:
+            self._cycle_lwt_sum += lwt
+            self._cycle_lwt_count += 1
+        if self.indoor_temp_entity:
+            st = self.hass.states.get(self.indoor_temp_entity)
+            if st is not None:
+                try:
+                    v = float(st.state)
+                    self._cycle_indoor_sum += v
+                    self._cycle_indoor_count += 1
+                except (TypeError, ValueError):
+                    pass
 
+    async def _collect_cycle_averages(
+        self, record: dict[str, Any]
+    ) -> tuple[float | None, float | None, float | None]:
+        """Return (cop_avg, lwt_avg, indoor_temp_avg) for a closed cycle."""
+        lwt_avg: float | None = None
+        if self._cycle_lwt_count > 0:
+            lwt_avg = self._cycle_lwt_sum / float(self._cycle_lwt_count)
+        indoor_avg: float | None = None
+        if self._cycle_indoor_count > 0:
+            indoor_avg = self._cycle_indoor_sum / float(self._cycle_indoor_count)
+        self._cycle_lwt_sum = 0.0
+        self._cycle_lwt_count = 0
+        self._cycle_indoor_sum = 0.0
+        self._cycle_indoor_count = 0
+        cop_avg: float | None = None
+        if self.db is not None:
+            start_ts = record.get("start_ts")
+            end_ts = record.get("end_ts")
+            if isinstance(start_ts, (int, float)) and isinstance(
+                end_ts, (int, float)
+            ):
+                try:
+                    if hasattr(self.db, "async_avg_cop_between"):
+                        cop_avg = await self.db.async_avg_cop_between(
+                            float(start_ts), float(end_ts)
+                        )
+                except Exception:  # noqa: BLE001
+                    _LOGGER.debug(
+                        "cop_avg lookup failed", exc_info=True
+                    )
+        return cop_avg, lwt_avg, indoor_avg
+
+    # ---------- Batch 7c ML pipeline ----------
     async def _process_new_cycle(
         self, record: dict[str, Any], snap: DataSnapshot
     ) -> None:
         """Update baseline, detect anomaly, generate advice, persist."""
+        cop_avg, lwt_avg, indoor_avg = await self._collect_cycle_averages(record)
         try:
-            vector = extract_feature_vector(record)
+            vector = extract_feature_vector(
+                record,
+                cop_avg=cop_avg,
+                lwt_avg=lwt_avg,
+                indoor_temp_avg=indoor_avg,
+            )
             mode = record.get("mode") or snap.mode or "unknown"
             try:
                 self.adaptive.observe_cycle(
@@ -369,7 +448,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         try:
             cid = await self.db.async_insert_cycle(record)
             if cid is not None:
-                vec = extract_feature_vector(record)
+                vec = extract_feature_vector(
+                    record,
+                    cop_avg=cop_avg,
+                    lwt_avg=lwt_avg,
+                    indoor_temp_avg=indoor_avg,
+                )
                 await self.db.async_insert_features(cid, vec)
                 try:
                     cid_val = self._assign_cluster(vec)

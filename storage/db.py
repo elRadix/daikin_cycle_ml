@@ -530,6 +530,32 @@ class CycleDB:
             rows = await cur.fetchall()
         return [dict(r) for r in rows]
 
+
+    async def async_fetch_cop_samples_between(
+        self, start_ts: float, end_ts: float
+    ) -> list[dict[str, Any]]:
+        """Return cop_samples with start_ts <= ts <= end_ts."""
+        await self.async_ensure_cop_samples_table()
+        conn = self._require()
+        async with conn.execute(
+            "SELECT ts, cop, lwt, outdoor, flow_lmin, power_stable "
+            "FROM cop_samples WHERE ts >= ? AND ts <= ? "
+            "ORDER BY ts ASC",
+            (float(start_ts), float(end_ts)),
+        ) as cur:
+            rows = await cur.fetchall()
+        return [dict(r) for r in rows]
+
+    async def async_avg_cop_between(
+        self, start_ts: float, end_ts: float
+    ) -> float | None:
+        """Return mean cop over [start_ts, end_ts], or None if empty."""
+        rows = await self.async_fetch_cop_samples_between(start_ts, end_ts)
+        cops = [r.get("cop") for r in rows if isinstance(r.get("cop"), (int, float))]
+        if not cops:
+            return None
+        return sum(cops) / float(len(cops))
+
     async def async_count_cop_samples(self) -> int:
         await self.async_ensure_cop_samples_table()
         conn = self._require()

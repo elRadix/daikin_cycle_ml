@@ -19,9 +19,13 @@ FEATURE_NAMES: tuple[str, ...] = (
     "outdoor_temp",
     "buh_used",
     "defrost_used",
+    "cop_avg",
+    "lwt_avg",
+    "indoor_temp_avg",
 )
 
 VECTOR_LEN = len(FEATURE_NAMES)
+VECTOR_LEN_LEGACY = 8
 
 REQUIRED_FOR_VALID: tuple[str, ...] = (
     "duration_s",
@@ -38,12 +42,26 @@ def _as_float(value: Any) -> float | None:
     return None
 
 
-def extract_feature_vector(record: Mapping[str, Any]) -> list[float]:
+def extract_feature_vector(
+    record: Mapping[str, Any],
+    *,
+    cop_avg: float | None = None,
+    lwt_avg: float | None = None,
+    indoor_temp_avg: float | None = None,
+) -> list[float]:
     """Return fixed-length vector (VECTOR_LEN). Missing -> 0.0."""
     out: list[float] = []
+    overrides = {
+        "cop_avg": cop_avg,
+        "lwt_avg": lwt_avg,
+        "indoor_temp_avg": indoor_temp_avg,
+    }
     for name in FEATURE_NAMES:
-        v = _as_float(record.get(name))
-        out.append(v if v is not None else 0.0)
+        if name in overrides and overrides[name] is not None:
+            out.append(float(overrides[name]))
+        else:
+            v = _as_float(record.get(name))
+            out.append(v if v is not None else 0.0)
     return out
 
 
