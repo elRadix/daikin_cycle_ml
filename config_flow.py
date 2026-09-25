@@ -1,0 +1,483 @@
+"""Config flow for Daikin Cycle ML."""
+from __future__ import annotations
+
+import json
+import logging
+from typing import Any
+
+import voluptuous as vol
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
+from homeassistant.core import callback
+from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers import selector
+
+from .const import (
+    DOMAIN,
+    NAME,
+    SOURCE_SENSOR_ENTITY,
+    REQUIRED_ATTRIBUTES,
+    RECOMMENDED_ATTRIBUTES,
+    OPTIONAL_ATTRIBUTES,
+    MODEL_CHOICES,
+    MODEL_CUSTOM,
+    MODEL_EPRA12EAV3,
+    MODEL_LABELS,
+    DEFAULT_COMPRESSOR_RPS_THRESHOLD,
+    DEFAULT_FALLBACK_POWER_THRESHOLD_W,
+    DEFAULT_SHORT_RUN_MIN,
+    DEFAULT_SHORT_OFF_MIN,
+    DEFAULT_PENDULUM_CPD,
+    DEFAULT_DHW_PENDULUM_CPH,
+    DEFAULT_GOOD_RUN_MIN,
+    DEFAULT_GOOD_DT_K,
+    DEFAULT_GOOD_OFF_MIN,
+    DEFAULT_TARGET_CYCLES_PER_DAY,
+    DEFAULT_PERSISTENT_ENABLED,
+    DEFAULT_NOTIFY_SERVICE,
+    DEFAULT_QUIET_HOURS_ENABLED,
+    DEFAULT_QUIET_HOURS_START,
+    DEFAULT_QUIET_HOURS_END,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+_MODEL_SELECTOR = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=[
+            selector.SelectOptionDict(value=m, label=MODEL_LABELS[m])
+            for m in MODEL_CHOICES
+        ],
+        mode=selector.SelectSelectorMode.DROPDOWN,
+    )
+)
+
+_ENTITY_SELECTOR = selector.EntitySelector(
+    selector.EntitySelectorConfig(domain="sensor")
+)
+
+
+def _num(min_v: float, max_v: float, step: float, unit: str | None = None):
+    kwargs = {
+        "min": min_v,
+        "max": max_v,
+        "step": step,
+        "mode": selector.NumberSelectorMode.BOX,
+    }
+    if unit is not None:
+        kwargs["unit_of_measurement"] = unit
+    return selector.NumberSelector(selector.NumberSelectorConfig(**kwargs))
+
+
+class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
+    """8-step config wizard. Supports fresh setup + full reconfigure."""
+
+    VERSION = 1
+
+    def __init__(self) -> None:
+        self._data: dict[str, Any] = {}
+        self._options: dict[str, Any] = {}
+        self._reconfigure_entry: ConfigEntry | None = None
+
+    # ---------- initial setup ----------
+
+    async def async_step_user(self, user_input=None) -> FlowResult:
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            entity_id = user_input["source_sensor"]
+            state = self.hass.states.get(entity_id)
+            if state is None:
+                errors["source_sensor"] = "entity_not_found"
+            else:
+                missing = [
+                    k for k in REQUIRED_ATTRIBUTES if k not in state.attributes
+                ]
+                if missing:
+                    _LOGGER.warning("Missing required attrs: %s", missing)
+                    errors["source_sensor"] = "missing_attributes"
+                else:
+                    self._data.update(user_input)
+                    if user_input["model"] == MODEL_CUSTOM:
+                        return await self.async_step_model_custom()
+                    return await self.async_step_attributes()
+        schema = vol.Schema({
+            vol.Required(
+                "source_sensor",
+                default=self._data.get("source_sensor", SOURCE_SENSOR_ENTITY),
+            ): _ENTITY_SELECTOR,
+            vol.Required(
+                "model",
+                default=self._data.get("model", MODEL_EPRA12EAV3),
+            ): _MODEL_SELECTOR,
+        })
+        return self.async_show_form(
+            step_id="user", data_schema=schema, errors=errors
+        )
+
+    async def async_step_model_custom(self, user_input=None) -> FlowResult:
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            raw = user_input.get("custom_attribute_map") or ""
+            try:
+                mapping = json.loads(raw) if raw else None
+                if mapping is not None and not isinstance(mapping, dict):
+                    raise ValueError("not a dict")
+            except (ValueError, json.JSONDecodeError):
+                errors["custom_attribute_map"] = "invalid_json"
+            else:
+                self._data["custom_attribute_map"] = mapping
+                return await self.async_step_attributes()
+        schema = vol.Schema({
+            vol.Optional(
+                "custom_attribute_map",
+                default=self._data.get("custom_attribute_map", "") or "",
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(multiline=True)
+            ),
+        })
+        return self.async_show_form(
+            step_id="model_custom", data_schema=schema, errors=errors
+        )
+
+    async def async_step_attributes(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            self._options["selected_attributes"] = list(
+                user_input["selected_attributes"]
+            )
+            return await self.async_step_cycle()
+        default_attrs = self._options.get(
+            "selected_attributes", list(RECOMMENDED_ATTRIBUTES)
+        )
+        schema = vol.Schema({
+            vol.Required(
+                "selected_attributes",
+                default=list(default_attrs),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=(
+                        list(RECOMMENDED_ATTRIBUTES)
+                        + list(OPTIONAL_ATTRIBUTES)
+                    ),
+                    multiple=True,
+                    mode=selector.SelectSelectorMode.LIST,
+                )
+            ),
+        })
+        return self.async_show_form(step_id="attributes", data_schema=schema)
+
+    async def async_step_cycle(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            self._options.update(user_input)
+            return await self.async_step_pendulum()
+        pse_key = vol.Optional("power_sensor_entity")
+        pse_val = self._options.get("power_sensor_entity")
+        if pse_val:
+            pse_key = vol.Optional(
+                "power_sensor_entity",
+                description={"suggested_value": pse_val},
+            )
+        schema = vol.Schema({
+            vol.Required(
+                "compressor_rps_threshold",
+                default=self._options.get(
+                    "compressor_rps_threshold",
+                    DEFAULT_COMPRESSOR_RPS_THRESHOLD,
+                ),
+            ): _num(0, 100, 1, "rps"),
+            pse_key: selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
+            ),
+            vol.Required(
+                "fallback_power_threshold_w",
+                default=self._options.get(
+                    "fallback_power_threshold_w",
+                    DEFAULT_FALLBACK_POWER_THRESHOLD_W,
+                ),
+            ): _num(0, 10000, 10, "W"),
+        })
+        return self.async_show_form(step_id="cycle", data_schema=schema)
+
+    async def async_step_pendulum(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            self._options.update(user_input)
+            return await self.async_step_quality()
+        schema = vol.Schema({
+            vol.Required(
+                "short_run_threshold_min",
+                default=self._options.get(
+                    "short_run_threshold_min", DEFAULT_SHORT_RUN_MIN
+                ),
+            ): _num(1, 240, 1, "min"),
+            vol.Required(
+                "short_off_threshold_min",
+                default=self._options.get(
+                    "short_off_threshold_min", DEFAULT_SHORT_OFF_MIN
+                ),
+            ): _num(1, 120, 1, "min"),
+            vol.Required(
+                "pendulum_cycles_per_day",
+                default=self._options.get(
+                    "pendulum_cycles_per_day", DEFAULT_PENDULUM_CPD
+                ),
+            ): _num(1, 200, 1),
+            vol.Required(
+                "dhw_pendulum_cycles_per_hour",
+                default=self._options.get(
+                    "dhw_pendulum_cycles_per_hour", DEFAULT_DHW_PENDULUM_CPH
+                ),
+            ): _num(1, 20, 1),
+        })
+        return self.async_show_form(step_id="pendulum", data_schema=schema)
+
+    async def async_step_quality(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            self._options.update(user_input)
+            return await self.async_step_notifications()
+        schema = vol.Schema({
+            vol.Required(
+                "good_run_threshold_min",
+                default=self._options.get(
+                    "good_run_threshold_min", DEFAULT_GOOD_RUN_MIN
+                ),
+            ): _num(1, 240, 1, "min"),
+            vol.Required(
+                "good_dt_threshold_k",
+                default=self._options.get(
+                    "good_dt_threshold_k", DEFAULT_GOOD_DT_K
+                ),
+            ): _num(0.0, 20.0, 0.5, "K"),
+            vol.Required(
+                "good_off_threshold_min",
+                default=self._options.get(
+                    "good_off_threshold_min", DEFAULT_GOOD_OFF_MIN
+                ),
+            ): _num(1, 240, 1, "min"),
+            vol.Required(
+                "target_cycles_per_day",
+                default=self._options.get(
+                    "target_cycles_per_day", DEFAULT_TARGET_CYCLES_PER_DAY
+                ),
+            ): _num(1, 100, 1),
+        })
+        return self.async_show_form(step_id="quality", data_schema=schema)
+
+    async def async_step_notifications(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            self._options.update(user_input)
+            return await self.async_step_finalize()
+        schema = vol.Schema({
+            vol.Required(
+                "persistent_enabled",
+                default=self._options.get(
+                    "persistent_enabled", DEFAULT_PERSISTENT_ENABLED
+                ),
+            ): bool,
+            vol.Optional(
+                "notify_service",
+                default=(
+                    self._options.get("notify_service")
+                    or DEFAULT_NOTIFY_SERVICE
+                ),
+            ): str,
+            vol.Required(
+                "quiet_hours_enabled",
+                default=self._options.get(
+                    "quiet_hours_enabled", DEFAULT_QUIET_HOURS_ENABLED
+                ),
+            ): bool,
+            vol.Optional(
+                "quiet_hours_start",
+                default=self._options.get(
+                    "quiet_hours_start", DEFAULT_QUIET_HOURS_START
+                ),
+            ): str,
+            vol.Optional(
+                "quiet_hours_end",
+                default=self._options.get(
+                    "quiet_hours_end", DEFAULT_QUIET_HOURS_END
+                ),
+            ): str,
+        })
+        return self.async_show_form(
+            step_id="notifications", data_schema=schema
+        )
+
+    async def async_step_finalize(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            if self._reconfigure_entry is not None:
+                return self.async_update_reload_and_abort(
+                    self._reconfigure_entry,
+                    data_updates=self._data,
+                    options=self._options,
+                    reason="reconfigure_successful",
+                )
+            model = self._data.get("model", "")
+            source = self._data.get("source_sensor", "")
+            return self.async_create_entry(
+                title=f"{NAME} - {model} ({source})",
+                data=self._data,
+                options=self._options,
+            )
+        return self.async_show_form(
+            step_id="finalize",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "model": str(self._data.get("model", "?")),
+                "source": str(self._data.get("source_sensor", "?")),
+            },
+        )
+
+    # ---------- reconfigure menu ----------
+
+    async def async_step_reconfigure(self, user_input=None) -> FlowResult:
+        return self.async_show_menu(
+            step_id="reconfigure",
+            menu_options=["reconfigure_basic", "reconfigure_full"],
+        )
+
+    async def async_step_reconfigure_basic(
+        self, user_input=None
+    ) -> FlowResult:
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            entity_id = user_input["source_sensor"]
+            state = self.hass.states.get(entity_id)
+            if state is None:
+                errors["source_sensor"] = "entity_not_found"
+            else:
+                missing = [
+                    k for k in REQUIRED_ATTRIBUTES
+                    if k not in state.attributes
+                ]
+                if missing:
+                    _LOGGER.warning(
+                        "Reconfigure missing attrs: %s", missing
+                    )
+                    errors["source_sensor"] = "missing_attributes"
+                else:
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        data_updates=dict(user_input),
+                        reason="reconfigure_successful",
+                    )
+        current = entry.data or {}
+        schema = vol.Schema({
+            vol.Required(
+                "source_sensor",
+                default=current.get(
+                    "source_sensor", SOURCE_SENSOR_ENTITY
+                ),
+            ): _ENTITY_SELECTOR,
+            vol.Required(
+                "model",
+                default=current.get("model", MODEL_EPRA12EAV3),
+            ): _MODEL_SELECTOR,
+        })
+        return self.async_show_form(
+            step_id="reconfigure_basic", data_schema=schema, errors=errors
+        )
+
+    async def async_step_reconfigure_full(
+        self, user_input=None
+    ) -> FlowResult:
+        entry = self._get_reconfigure_entry()
+        self._reconfigure_entry = entry
+        self._data = dict(entry.data)
+        self._options = dict(entry.options or {})
+        return await self.async_step_user()
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        return DaikinCycleMLOptionsFlow()
+
+
+class DaikinCycleMLOptionsFlow(OptionsFlow):
+    """Single-screen options editor."""
+
+    async def async_step_init(self, user_input=None) -> FlowResult:
+        from .const import (
+            DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED,
+            DEFAULT_NOTIFY_EMOJI_ENABLED,
+            DEFAULT_STATUS_UPDATE_ENABLED,
+            DEFAULT_STATUS_UPDATE_INTERVAL_HOURS,
+        )
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+        current = self.config_entry.options or {}
+        schema = vol.Schema({
+            vol.Required(
+                "compressor_rps_threshold",
+                default=current.get(
+                    "compressor_rps_threshold",
+                    DEFAULT_COMPRESSOR_RPS_THRESHOLD,
+                ),
+            ): _num(0, 100, 1, "rps"),
+            vol.Required(
+                "short_run_threshold_min",
+                default=current.get(
+                    "short_run_threshold_min", DEFAULT_SHORT_RUN_MIN
+                ),
+            ): _num(1, 240, 1, "min"),
+            vol.Required(
+                "pendulum_cycles_per_day",
+                default=current.get(
+                    "pendulum_cycles_per_day", DEFAULT_PENDULUM_CPD
+                ),
+            ): _num(1, 200, 1),
+            vol.Required(
+                "good_run_threshold_min",
+                default=current.get(
+                    "good_run_threshold_min", DEFAULT_GOOD_RUN_MIN
+                ),
+            ): _num(1, 240, 1, "min"),
+            vol.Required(
+                "persistent_enabled",
+                default=current.get(
+                    "persistent_enabled", DEFAULT_PERSISTENT_ENABLED
+                ),
+            ): bool,
+            vol.Required(
+                "retention_enabled",
+                default=current.get("retention_enabled", True),
+            ): bool,
+            vol.Required(
+                "cycle_retention_days",
+                default=current.get("cycle_retention_days", 90),
+            ): _num(1, 3650, 1, "d"),
+            vol.Required(
+                "alert_retention_days",
+                default=current.get("alert_retention_days", 30),
+            ): _num(1, 365, 1, "d"),
+            vol.Required(
+                "vacuum_enabled",
+                default=current.get("vacuum_enabled", True),
+            ): bool,
+            vol.Required(
+                "status_update_enabled",
+                default=current.get(
+                    "status_update_enabled", DEFAULT_STATUS_UPDATE_ENABLED
+                ),
+            ): bool,
+            vol.Required(
+                "status_update_interval_hours",
+                default=current.get(
+                    "status_update_interval_hours",
+                    DEFAULT_STATUS_UPDATE_INTERVAL_HOURS,
+                ),
+            ): _num(1, 168, 1, "h"),
+            vol.Required(
+                "notify_emoji_enabled",
+                default=current.get(
+                    "notify_emoji_enabled", DEFAULT_NOTIFY_EMOJI_ENABLED
+                ),
+            ): bool,
+            vol.Required(
+                "adaptive_thresholds_enabled",
+                default=current.get(
+                    "adaptive_thresholds_enabled",
+                    DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED,
+                ),
+            ): bool,
+        })
+        return self.async_show_form(step_id="init", data_schema=schema)

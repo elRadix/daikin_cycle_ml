@@ -1,0 +1,335 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Daikin Cycle ML setup",
+        "description": "Choose the ESPAltherma source sensor and your heat-pump model.\n\n- **Source sensor**: must expose the 13 required ESPAltherma attributes. Typical: `sensor.althermasensors`.\n- **Model**: determines default thresholds. Pick 'Custom' to supply your own attribute map.",
+        "data": {
+          "source_sensor": "Source sensor",
+          "model": "Heat-pump model"
+        },
+        "data_description": {
+          "source_sensor": "ESPAltherma sensor that exposes the 13 required heat-pump attributes. Typical: sensor.althermasensors.",
+          "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map."
+        }
+      },
+      "model_custom": {
+        "title": "Custom attribute mapping",
+        "description": "Optional JSON mapping from standard keys to your attribute names. Example: `{\"INV frequency (rps)\": \"my_rps\"}`. Leave empty to use defaults.",
+        "data": {
+          "custom_attribute_map": "Custom attribute map (JSON)"
+        },
+        "data_description": {
+          "custom_attribute_map": "JSON object mapping standard keys to attribute names, e.g. {\"INV frequency (rps)\": \"my_rps\"}."
+        }
+      },
+      "attributes": {
+        "title": "Attributes to track",
+        "description": "Pick which attributes to track.\n\n- **Recommended** (preselected): needed for normal operation.\n- **Optional**: extra diagnostics; only enable if your ESPAltherma actually exposes them.",
+        "data": {
+          "selected_attributes": "Selected attributes"
+        },
+        "data_description": {
+          "selected_attributes": "Recommended (default) covers normal operation. Optional adds diagnostics but only works if the sensor exposes them."
+        }
+      },
+      "cycle": {
+        "title": "Cycle detection",
+        "description": "Thresholds that decide when the compressor counts as ON.\n\n- **Compressor RPS threshold** (default 3): ON when RPS ≥ this. Increase to ignore brief spikes.\n- **Power sensor** (optional): used as fallback when RPS is unavailable.\n- **Fallback power threshold** (default 200 W): lower = more sensitive.",
+        "data": {
+          "compressor_rps_threshold": "Compressor RPS threshold",
+          "power_sensor_entity": "Power sensor (optional fallback)",
+          "fallback_power_threshold_w": "Fallback power threshold"
+        },
+        "data_description": {
+          "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3. Increase to ignore brief spikes.",
+          "power_sensor_entity": "Optional. Used as fallback when RPS is unavailable or zero. Leave empty to disable.",
+          "fallback_power_threshold_w": "Power threshold (W) for the fallback sensor. Default 200. Lower = more sensitive."
+        }
+      },
+      "pendulum": {
+        "title": "Pendulum thresholds",
+        "data": {
+          "short_run_threshold_min": "Short run threshold",
+          "short_off_threshold_min": "Short off threshold",
+          "pendulum_cycles_per_day": "Pendulum cycles per day",
+          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour"
+        },
+        "description": "Values below mark a cycle as 'short' (pendelen). Lower = stricter, more alerts.\n\n- **Short run** (default 20 min): cycles shorter than this are flagged.\n- **Short off** (default 5 min): off-times shorter than this are flagged.\n- **Pendulum cycles/day** (default 35-40): daily count that triggers an alert.\n- **DHW cycles/hour** (default 3): DHW-specific pendulum trigger.",
+        "data_description": {
+          "short_run_threshold_min": "Cycles shorter than this are 'short runs'. Default 20 min. Lower = stricter.",
+          "short_off_threshold_min": "Off-times shorter than this are 'short offs'. Default 5 min. Lower = stricter.",
+          "pendulum_cycles_per_day": "Daily cycle count that triggers a pendulum alert. Default 35-40. Lower = more alerts.",
+          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour that trigger a DHW pendulum alert. Default 3."
+        }
+      },
+      "quality": {
+        "title": "Quality thresholds",
+        "data": {
+          "good_run_threshold_min": "Good run threshold",
+          "good_dt_threshold_k": "Good dT threshold",
+          "good_off_threshold_min": "Good off threshold",
+          "target_cycles_per_day": "Target cycles per day"
+        },
+        "description": "Thresholds used to score a cycle 0-100. Meeting a threshold avoids a penalty.\n\n- **Good run** (default 45 min): runtime ≥ this scores full marks. Below: −30 points.\n- **Good dT** (default 5.0 K): minimum dT for full marks. Below: −20 points.\n- **Good off** (default 20 min): minimum off-time for full marks. Below: −20 points.\n- **Target cycles/day** (default 8): efficiency target, used in ratio-based advice.",
+        "data_description": {
+          "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min. Below = -30 points.",
+          "good_dt_threshold_k": "Minimum dT (K) for full marks. Default 5.0 K. Below = -20 points.",
+          "good_off_threshold_min": "Minimum off-time for full marks. Default 20 min. Below = -20 points.",
+          "target_cycles_per_day": "Target cycles per day for efficient operation. Default 8. Used for ratio-based advice."
+        }
+      },
+      "notifications": {
+        "title": "Notifications",
+        "data": {
+          "persistent_enabled": "Persistent notifications",
+          "status_update_enabled": "Periodic status updates",
+          "status_update_interval_hours": "Status interval (hours)",
+          "notify_emoji_enabled": "Emoji in notifications",
+          "notify_service": "Notify service",
+          "quiet_hours_enabled": "Quiet hours",
+          "quiet_hours_start": "Quiet hours start",
+          "quiet_hours_end": "Quiet hours end"
+        },
+        "description": "How and when alerts are delivered.\n\n- **Persistent notifications**: sidebar alerts.\n- **Notify service** (optional): e.g. `notify.telegram_rachid`.\n- **Quiet hours**: suppress non-critical alerts during the window (default 22:00–07:00).",
+        "data_description": {
+          "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
+          "notify_service": "Optional notify service, e.g. notify.telegram_rachid. Leave empty to disable push notifications.",
+          "quiet_hours_enabled": "Suppress non-critical alerts during the quiet window.",
+          "quiet_hours_start": "Start of quiet hours, HH:MM (24h). Default 22:00.",
+          "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00."
+        }
+      },
+      "finalize": {
+        "title": "Confirm",
+        "description": "Model: {model}. Source: {source}. Submit to create the entry."
+      },
+      "reconfigure": {
+        "title": "Reconfigure Daikin Cycle ML",
+        "description": "Choose how much to change.\n\n- **Quick**: only source and model.\n- **Full wizard**: all settings with current values prefilled.",
+        "menu_options": {
+          "reconfigure_basic": "Source sensor and model only (quick)",
+          "reconfigure_full": "Full wizard (all settings)"
+        }
+      },
+      "reconfigure_basic": {
+        "title": "Source sensor and model",
+        "description": "Change the source sensor or heat-pump model. Other settings stay untouched.",
+        "data": {
+          "source_sensor": "Source sensor",
+          "model": "Heat-pump model"
+        },
+        "data_description": {
+          "source_sensor": "ESPAltherma sensor that exposes the 13 required heat-pump attributes. Typical: sensor.althermasensors.",
+          "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map."
+        }
+      },
+      "reconfigure_full": {
+        "title": "Full wizard",
+        "description": "Rerun the full wizard. All current values are prefilled as defaults."
+      }
+    },
+    "error": {
+      "entity_not_found": "Sensor not found",
+      "missing_attributes": "Sensor is missing required ESPAltherma attributes",
+      "invalid_json": "Invalid JSON"
+    },
+    "abort": {
+      "already_configured": "Already configured",
+      "reconfigure_successful": "Reconfiguration successful"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Daikin Cycle ML options",
+        "data": {
+          "compressor_rps_threshold": "Compressor RPS threshold",
+          "short_run_threshold_min": "Short run threshold",
+          "pendulum_cycles_per_day": "Pendulum cycles per day",
+          "good_run_threshold_min": "Good run threshold",
+          "persistent_enabled": "Persistent notifications",
+          "retention_enabled": "Retention enabled",
+          "cycle_retention_days": "Cycle retention (days)",
+          "alert_retention_days": "Alert retention (days)",
+          "vacuum_enabled": "VACUUM after prune"
+        },
+        "data_description": {
+          "compressor_rps_threshold": "RPS at or above which the compressor counts as ON. Default 3.",
+          "short_run_threshold_min": "Runs shorter than this trigger 'short run'. Default 20 min.",
+          "pendulum_cycles_per_day": "Daily cycle count triggering a pendulum alert. Default 35-40.",
+          "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min.",
+          "persistent_enabled": "Show alerts as persistent sidebar notifications.",
+          "status_update_enabled": "Send a periodic summary of cycle activity.",
+          "status_update_interval_hours": "How often the summary is sent (1-168 hours).",
+          "notify_emoji_enabled": "Prefix messages with emoji for quick scanning.",
+          "retention_enabled": "Run daily maintenance at 03:00 local time.",
+          "cycle_retention_days": "Cycles older than N days are rolled up and pruned. Default 90.",
+          "alert_retention_days": "Alerts older than N days are deleted. Default 30.",
+          "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning."
+        },
+        "description": "Quick editor for the most-used thresholds.\n\n- **Compressor RPS** (default 3)\n- **Short run** (default 20 min)\n- **Pendulum cycles/day** (default 35-40)\n- **Good run** (default 45 min)\n- **Persistent notifications**\n\nFor all settings: use 'Reconfigure' -> Full wizard."
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "cycle_state": {
+        "name": "Cycle state"
+      },
+      "current_cycle_duration": {
+        "name": "Current cycle duration"
+      },
+      "current_cycle_mode": {
+        "name": "Current cycle mode"
+      },
+      "current_dt": {
+        "name": "Current dT"
+      },
+      "current_rps": {
+        "name": "Current RPS"
+      },
+      "last_cycle_duration": {
+        "name": "Last cycle duration"
+      },
+      "last_cycle_mode": {
+        "name": "Last cycle mode"
+      },
+      "last_cycle_dt_max": {
+        "name": "Last cycle dT max"
+      },
+      "last_cycle_quality": {
+        "name": "Last cycle quality"
+      },
+      "cycles_today": {
+        "name": "Cycles today"
+      },
+      "cycles_last_hour": {
+        "name": "Cycles last hour"
+      },
+      "short_runs_today": {
+        "name": "Short runs today"
+      },
+      "short_offs_today": {
+        "name": "Short offs today"
+      },
+      "short_cycle_ratio": {
+        "name": "Short cycle ratio"
+      },
+      "avg_cycle_duration_today": {
+        "name": "Average cycle duration today"
+      },
+      "avg_off_time_today": {
+        "name": "Average off time today"
+      },
+      "longest_cycle_today": {
+        "name": "Longest cycle today"
+      },
+      "shortest_cycle_today": {
+        "name": "Shortest cycle today"
+      },
+      "avg_quality_today": {
+        "name": "Average quality today"
+      },
+      "good_cycles_today": {
+        "name": "Good cycles today"
+      },
+      "bad_cycles_today": {
+        "name": "Bad cycles today"
+      },
+      "good_cycle_ratio": {
+        "name": "Good cycle ratio"
+      },
+      "source_age": {
+        "name": "Source age"
+      },
+      "missing_attrs_count": {
+        "name": "Missing attributes"
+      },
+      "last_sample_age": {
+        "name": "Last sample age"
+      },
+      "coordinator_errors": {
+        "name": "Coordinator errors"
+      },
+      "learned_short_run_min": {
+        "name": "Learned short run (min)"
+      },
+      "learned_good_off_min": {
+        "name": "Learned good off (min)"
+      },
+      "learned_target_cycles_per_day": {
+        "name": "Learned target cycles/day"
+      }
+    },
+    "binary_sensor": {
+      "compressor_running": {
+        "name": "Compressor running"
+      },
+      "pendulum_hourly": {
+        "name": "Pendulum hourly"
+      },
+      "pendulum_daily": {
+        "name": "Pendulum daily"
+      },
+      "short_run": {
+        "name": "Short run"
+      },
+      "short_off": {
+        "name": "Short off"
+      },
+      "defrost_active": {
+        "name": "Defrost active"
+      },
+      "buh_step1_active": {
+        "name": "BUH step 1 active"
+      },
+      "buh_step2_active": {
+        "name": "BUH step 2 active"
+      },
+      "dhw_active": {
+        "name": "DHW active"
+      },
+      "heating_active": {
+        "name": "Heating active"
+      },
+      "cooling_active": {
+        "name": "Cooling active"
+      },
+      "source_stale": {
+        "name": "Source stale"
+      },
+      "missing_attrs": {
+        "name": "Missing attributes"
+      },
+      "setpoint_oscillating": {
+        "name": "Setpoint oscillating"
+      },
+      "dhw_pendulum": {
+        "name": "DHW pendulum"
+      },
+      "high_cycle_rate": {
+        "name": "High cycle rate"
+      },
+      "cluster_pendulum": {
+        "name": "Cluster: pendulum"
+      },
+      "cluster_normal": {
+        "name": "Cluster: normal"
+      },
+      "cluster_dhw_like": {
+        "name": "Cluster: DHW-like"
+      }
+    }
+  },
+  "issues": {
+    "source_stale": {
+      "title": "Source sensor is stale",
+      "description": "The ESPAltherma source sensor has not produced fresh data. Check the ESP device and Wi-Fi connection."
+    },
+    "missing_attrs": {
+      "title": "Missing required attributes",
+      "description": "The source sensor is missing {count} required attribute(s). Verify that ESPAltherma is publishing all fields."
+    }
+  }
+}

@@ -1,0 +1,128 @@
+reset_counters:
+  name: Reset counters
+  description: Reset daily counters (all or a subset).
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID.
+      required: true
+      selector:
+        text:
+    counters:
+      name: Counters
+      description: List of counter keys (leave empty for all).
+      required: false
+      selector:
+        object:
+
+export_cycles:
+  name: Export cycles
+  description: Export cached cycles as JSON or CSV.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID.
+      required: true
+      selector:
+        text:
+    days:
+      name: Days
+      description: Look-back window in days.
+      required: false
+      default: 30
+      selector:
+        number:
+          min: 1
+          max: 3650
+          mode: box
+    format:
+      name: Format
+      description: Output format.
+      required: false
+      default: json
+      selector:
+        select:
+          options:
+            - json
+            - csv
+
+label_cycle:
+  name: Label cycle
+  description: Attach a user label to a stored cycle (ML training).
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID.
+      required: true
+      selector:
+        text:
+    cycle_id:
+      name: Cycle ID
+      description: Database ID of the cycle.
+      required: true
+      selector:
+        number:
+          min: 1
+          mode: box
+    label:
+      name: Label
+      description: Label string.
+      required: true
+      selector:
+        text:
+
+recompute_baseline:
+  name: Recompute baseline
+  description: Recompute ML baseline (deferred to Batch 7).
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID.
+      required: true
+      selector:
+        text:
+    days:
+      name: Days
+      description: Baseline window in days.
+      required: false
+      default: 7
+      selector:
+        number:
+          min: 1
+          max: 365
+          mode: box
+
+run_maintenance:
+  name: Run maintenance
+  description: Aggregate and prune old cycles/alerts, optionally VACUUM.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID.
+      required: true
+      selector:
+        text:
+    cycle_retention_days:
+      name: Cycle retention (days)
+      description: Delete cycles older than N days.
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 3650
+          mode: box
+    alert_retention_days:
+      name: Alert retention (days)
+      description: Delete alerts older than N days.
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 365
+          mode: box
+    vacuum:
+      name: Vacuum
+      description: Run SQLite VACUUM after prune.
+      required: false
+      selector:
+        boolean:

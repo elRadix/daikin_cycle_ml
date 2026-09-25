@@ -1,0 +1,236 @@
+"""Binary sensor platform for Daikin Cycle ML (Batch 5b-2)."""
+from __future__ import annotations
+
+import logging
+import time
+from typing import Any, Callable
+
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntity,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
+from .const import (
+    ATTR_3WAY_VALVE,
+    ATTR_BUH_STEP1,
+    ATTR_BUH_STEP2,
+    ATTR_DEFROST_OPERATION,
+    ATTR_IU_OPERATION_MODE,
+    OP_MODE_COOLING,
+    OP_MODE_DHW,
+    OP_MODE_HEATING,
+    UPDATE_INTERVAL_SECONDS,
+)
+from .coordinator import DataSnapshot, DaikinCycleMLCoordinator
+from .entity import DaikinCycleMLEntity
+
+_LOGGER = logging.getLogger(__name__)
+
+SOURCE_STALE_FACTOR = 2.0
+
+
+def _now() -> float:
+    return time.time()
+
+
+def _attr_on(attrs: dict[str, Any], key: str) -> bool:
+    v = attrs.get(key)
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        return v.strip().upper() == "ON"
+    return False
+
+
+def _is_short_run(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    last = c.store.last_cycle()
+    if not last:
+        return False
+    dur = last.get("duration_s")
+    if not isinstance(dur, (int, float)):
+        return False
+    return float(dur) < int(c.options.get("short_run_threshold_min", 20)) * 60
+
+
+def _is_short_off(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    off = c.store.off_time_since_last(_now())
+    if off is None:
+        return False
+    return off < int(c.options.get("short_off_threshold_min", 5)) * 60
+
+
+def _is_source_stale(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    if s.last_success_ts <= 0:
+        return False
+    age = _now() - s.last_success_ts
+    return age > SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS
+
+
+def _is_pendulum_hourly(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    threshold = int(c.options.get("pendulum_cycles_per_hour", 4))
+    return c.store.cycles_in_window(_now(), 3600) >= threshold
+
+
+def _is_pendulum_daily(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    threshold = int(c.options.get("pendulum_cycles_per_day", 40))
+    return len(c.store.cycles_today(_now())) >= threshold
+
+
+def _is_dhw_pendulum(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    threshold = int(c.options.get("dhw_pendulum_cycles_per_hour", 3))
+    return c.store.cycles_in_window_mode(_now(), 3600, OP_MODE_DHW) >= threshold
+
+
+def _is_high_cycle_rate(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    base = int(c.options.get("pendulum_cycles_per_hour", 4))
+    return c.store.cycles_in_window(_now(), 3600) > base * 1.5
+
+
+def _is_dhw_active(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    if s.attrs.get(ATTR_IU_OPERATION_MODE) == OP_MODE_DHW:
+        return True
+    return _attr_on(s.attrs, ATTR_3WAY_VALVE)
+
+
+StateFn = Callable[[DataSnapshot, DaikinCycleMLCoordinator], bool]
+
+
+class DaikinCycleMLBinarySensor(DaikinCycleMLEntity, BinarySensorEntity):
+    """Binary sensor backed by coordinator snapshot + cycle store."""
+
+    def __init__(
+        self,
+        coordinator: DaikinCycleMLCoordinator,
+        key: str,
+        name: str,
+        state_fn: StateFn,
+        *,
+        device_class: BinarySensorDeviceClass | None = None,
+        icon: str | None = None,
+    ) -> None:
+        super().__init__(coordinator, key, name)
+        self._state_fn = state_fn
+        if device_class is not None:
+            self._attr_device_class = device_class
+        if icon is not None:
+            self._attr_icon = icon
+
+    @property
+    def is_on(self) -> bool:
+        snap = self.snapshot()
+        if snap is None:
+            return False
+        try:
+            return bool(self._state_fn(snap, self.coordinator))
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Binary sensor %s state_fn failed", self._key)
+            return False
+
+
+BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
+    {"key": "compressor_running", "name": "Compressor running",
+     "device_class": BinarySensorDeviceClass.RUNNING,
+     "icon": "mdi:heat-pump",
+     "state_fn": lambda s, c: s.state == "running"},
+    {"key": "pendulum_hourly", "name": "Pendulum hourly",
+     "device_class": BinarySensorDeviceClass.PROBLEM,
+     "state_fn": _is_pendulum_hourly},
+    {"key": "pendulum_daily", "name": "Pendulum daily",
+     "device_class": BinarySensorDeviceClass.PROBLEM,
+     "state_fn": _is_pendulum_daily},
+    {"key": "short_run", "name": "Short run",
+     "device_class": BinarySensorDeviceClass.PROBLEM,
+     "icon": "mdi:timer-alert-outline",
+     "state_fn": _is_short_run},
+    {"key": "short_off", "name": "Short off",
+     "device_class": BinarySensorDeviceClass.PROBLEM,
+     "icon": "mdi:timer-alert-outline",
+     "state_fn": _is_short_off},
+    {"key": "defrost_active", "name": "Defrost active",
+     "device_class": BinarySensorDeviceClass.RUNNING,
+     "state_fn": lambda s, c: _attr_on(s.attrs, ATTR_DEFROST_OPERATION)},
+    {"key": "buh_step1_active", "name": "BUH step 1 active",
+     "device_class": BinarySensorDeviceClass.HEAT,
+     "state_fn": lambda s, c: _attr_on(s.attrs, ATTR_BUH_STEP1)},
+    {"key": "buh_step2_active", "name": "BUH step 2 active",
+     "device_class": BinarySensorDeviceClass.HEAT,
+     "state_fn": lambda s, c: _attr_on(s.attrs, ATTR_BUH_STEP2)},
+    {"key": "dhw_active", "name": "DHW active",
+     "icon": "mdi:water-boiler",
+     "state_fn": _is_dhw_active},
+    {"key": "heating_active", "name": "Heating active",
+     "device_class": BinarySensorDeviceClass.HEAT,
+     "state_fn": lambda s, c: s.mode == OP_MODE_HEATING},
+    {"key": "cooling_active", "name": "Cooling active",
+     "device_class": BinarySensorDeviceClass.COLD,
+     "state_fn": lambda s, c: s.mode == OP_MODE_COOLING},
+    {"key": "source_stale", "name": "Source stale",
+     "device_class": BinarySensorDeviceClass.PROBLEM,
+     "state_fn": _is_source_stale},
+    {"key": "missing_attrs", "name": "Missing attributes",
+     "device_class": BinarySensorDeviceClass.PROBLEM,
+     "state_fn": lambda s, c: len(s.missing_attrs) > 0},
+    {"key": "setpoint_oscillating", "name": "Setpoint oscillating",
+     "device_class": BinarySensorDeviceClass.PROBLEM,
+     "icon": "mdi:sine-wave",
+     "state_fn": lambda s, c: False},  # stub -> Batch 7
+    {"key": "dhw_pendulum", "name": "DHW pendulum",
+     "device_class": BinarySensorDeviceClass.PROBLEM,
+     "icon": "mdi:water-boiler-alert",
+     "state_fn": _is_dhw_pendulum},
+    {"key": "high_cycle_rate", "name": "High cycle rate",
+     "device_class": BinarySensorDeviceClass.PROBLEM,
+     "icon": "mdi:speedometer",
+     "state_fn": _is_high_cycle_rate},
+]
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    coord = getattr(entry, "runtime_data", None)
+    if coord is None:
+        _LOGGER.error("Coordinator not found for %s", entry.entry_id)
+        return
+    entities = [
+        DaikinCycleMLBinarySensor(
+            coord,
+            key=spec["key"],
+            name=spec["name"],
+            state_fn=spec["state_fn"],
+            device_class=spec.get("device_class"),
+            icon=spec.get("icon"),
+        )
+        for spec in BINARY_SENSOR_DEFS
+    ]
+    entities.extend(_build_cluster_binaries(coord))
+    async_add_entities(entities)
+
+
+class DaikinCycleMLClusterBinary(DaikinCycleMLEntity, BinarySensorEntity):
+    """Binary sensor: is this cycle in the given cluster?"""
+
+    def __init__(self, coordinator, key: str, cluster_id: int) -> None:
+        super().__init__(coordinator, key)
+        self._cluster_id = cluster_id
+        self._attr_translation_key = key
+
+    @property
+    def is_on(self) -> bool:
+        snap = self.coordinator.data
+        if snap is None:
+            return False
+        return getattr(snap, "cluster_id", None) == self._cluster_id
+
+
+def _build_cluster_binaries(coord) -> list:
+    return [
+        DaikinCycleMLClusterBinary(coord, "cluster_pendulum", 0),
+        DaikinCycleMLClusterBinary(coord, "cluster_normal", 1),
+        DaikinCycleMLClusterBinary(coord, "cluster_dhw_like", 2),
+    ]

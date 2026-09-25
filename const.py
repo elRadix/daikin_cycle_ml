@@ -1,0 +1,225 @@
+"""Constants for the Daikin Cycle ML integration."""
+from __future__ import annotations
+
+DOMAIN = "daikin_cycle_ml"
+NAME = "Daikin Cycle ML"
+VERSION = "0.3.0"
+
+# --- Coordinator ---
+UPDATE_INTERVAL_SECONDS = 30
+
+# --- Source sensor ---
+SOURCE_SENSOR_ENTITY = "sensor.althermasensors"
+
+# --- Defaults: cycle detection ---
+DEFAULT_COMPRESSOR_RPS_THRESHOLD = 3
+DEFAULT_FALLBACK_POWER_THRESHOLD_W = 200
+DEFAULT_MAX_CYCLE_DURATION_MIN = 240
+DEFAULT_TIMER_RECONCILE_ON_START = True
+
+# --- Defaults: pendulum thresholds ---
+DEFAULT_SHORT_RUN_MIN = 20
+DEFAULT_SHORT_OFF_MIN = 5
+DEFAULT_SHORT_CYCLE_RATIO = 50
+DEFAULT_PENDULUM_CPH = 4
+DEFAULT_PENDULUM_CPD = 40
+DEFAULT_DHW_PENDULUM_CPH = 3
+DEFAULT_DEFROST_INTERVAL_MIN = 30
+DEFAULT_SETPOINT_OSC_THRESHOLD = 6
+
+# --- Defaults: quality thresholds ---
+DEFAULT_GOOD_RUN_MIN = 45
+DEFAULT_GOOD_DT_K = 5.0
+DEFAULT_GOOD_OFF_MIN = 20
+DEFAULT_TARGET_CYCLES_PER_DAY = 8
+DEFAULT_GOOD_CYCLE_RATIO = 60
+
+# --- Defaults: notifications ---
+DEFAULT_PERSISTENT_ENABLED = True
+DEFAULT_NOTIFY_SERVICE = "notify.telegram_rachid"
+DEFAULT_QUIET_HOURS_ENABLED = False
+DEFAULT_QUIET_HOURS_START = "22:00"
+DEFAULT_QUIET_HOURS_END = "07:00"
+DEFAULT_ALERT_AGGREGATION_MIN = 30
+DEFAULT_ACTION_ADVICE_ENABLED = True
+DEFAULT_RETENTION_ENABLED = True
+DEFAULT_CYCLE_RETENTION_DAYS = 90
+DEFAULT_ALERT_RETENTION_DAYS = 30
+DEFAULT_VACUUM_ENABLED = True
+
+# --- Model identifiers ---
+MODEL_BASISPROFIEL = "basisprofiel"
+MODEL_EPRA12EAV3 = "epra12eav3"
+MODEL_EPRA08EAV3 = "epra08eav3"
+MODEL_ERLA11DAV3 = "erla11dav3"
+MODEL_CUSTOM = "custom"
+
+MODEL_CHOICES = [
+    MODEL_BASISPROFIEL,
+    MODEL_EPRA12EAV3,
+    MODEL_EPRA08EAV3,
+    MODEL_ERLA11DAV3,
+    MODEL_CUSTOM,
+]
+
+MODEL_LABELS = {
+    MODEL_BASISPROFIEL: "Basic profile (safe defaults)",
+    MODEL_EPRA12EAV3: "Daikin Altherma 3 H MT - EPRA12EAV3",
+    MODEL_EPRA08EAV3: "Daikin Altherma 3 H MT - EPRA08EAV3",
+    MODEL_ERLA11DAV3: "Daikin Altherma 3 R - ERLA11DAV3",
+    MODEL_CUSTOM: "Custom (own attribute mapping)",
+}
+
+# --- Attribute keys: required (must be present for full operation) ---
+ATTR_INV_FREQUENCY_RPS = "INV frequency (rps)"
+ATTR_OPERATION_MODE = "Operation Mode"
+ATTR_IU_OPERATION_MODE = "I/U operation mode"
+ATTR_3WAY_VALVE = "3way valve(On:DHW_Off:Space)"
+ATTR_DEFROST_OPERATION = "Defrost Operation"
+ATTR_LEAVING_WATER_AFTER_BUH = "Leaving water temp. after BUH (R2T)"
+ATTR_INLET_WATER_R4T = "Inlet water temp.(R4T)"
+ATTR_FLOW_SENSOR = "Flow sensor (l/min)"
+ATTR_WATER_PUMP_OPERATION = "Water pump operation"
+ATTR_OUTDOOR_AIR_R1T = "Outdoor air temp.(R1T)"
+ATTR_DHW_TANK_R5T = "DHW tank temp. (R5T)"
+ATTR_BUH_STEP1 = "BUH Step1"
+ATTR_BUH_STEP2 = "BUH Step2"
+
+REQUIRED_ATTRIBUTES = [
+    ATTR_INV_FREQUENCY_RPS,
+    ATTR_OPERATION_MODE,
+    ATTR_IU_OPERATION_MODE,
+    ATTR_3WAY_VALVE,
+    ATTR_DEFROST_OPERATION,
+    ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_INLET_WATER_R4T,
+    ATTR_FLOW_SENSOR,
+    ATTR_WATER_PUMP_OPERATION,
+    ATTR_OUTDOOR_AIR_R1T,
+    ATTR_DHW_TANK_R5T,
+    ATTR_BUH_STEP1,
+    ATTR_BUH_STEP2,
+]
+
+# --- Attribute keys: recommended (default on in wizard) ---
+ATTR_DISCHARGE_PIPE_TEMP = "Discharge pipe temp."
+ATTR_SUCTION_PIPE_TEMP = "Suction pipe temp."
+ATTR_INV_PRIMARY_CURRENT = "INV primary current (A)"
+ATTR_TARGET_COND_TEMP = "Target Cond. Temp."
+ATTR_LW_SETPOINT = "LW setpoint (main)"
+ATTR_DHW_SETPOINT = "DHW setpoint"
+
+RECOMMENDED_ATTRIBUTES = [
+    ATTR_DISCHARGE_PIPE_TEMP,
+    ATTR_SUCTION_PIPE_TEMP,
+    ATTR_INV_PRIMARY_CURRENT,
+    ATTR_TARGET_COND_TEMP,
+    ATTR_LW_SETPOINT,
+    ATTR_DHW_SETPOINT,
+]
+
+# --- Attribute keys: optional (default off in wizard) ---
+ATTR_HEAT_EXCHANGER_MID = "Heat exchanger mid-temp."
+ATTR_LIQUID_PIPE_R6T = "Liquid pipe temp.(R6T)"
+ATTR_EXPANSION_VALVE = "Expansion valve (pls)"
+ATTR_CRANKCASE_HEATER = "Crank case heater 1"
+ATTR_PRESSURE_EQUALIZING = "Pressure equalizing operation"
+ATTR_FOUR_WAY_VALVE = "4 Way Valve 1"
+ATTR_SOLENOID_VALVE = "Solenoid Valve 1"
+ATTR_TARGET_EVAP_TEMP = "Target Evap. Temp."
+ATTR_RT_SETPOINT = "RT setpoint"
+ATTR_HIGH_PRESSURE = "High Pressure"
+ATTR_WATER_PRESSURE = "Water pressure"
+ATTR_BRINE_INLET = "Brine inlet temp."
+ATTR_BRINE_OUTLET = "Brine outlet temp."
+
+OPTIONAL_ATTRIBUTES = [
+    ATTR_HEAT_EXCHANGER_MID,
+    ATTR_LIQUID_PIPE_R6T,
+    ATTR_EXPANSION_VALVE,
+    ATTR_CRANKCASE_HEATER,
+    ATTR_PRESSURE_EQUALIZING,
+    ATTR_FOUR_WAY_VALVE,
+    ATTR_SOLENOID_VALVE,
+    ATTR_TARGET_EVAP_TEMP,
+    ATTR_RT_SETPOINT,
+    ATTR_HIGH_PRESSURE,
+    ATTR_WATER_PRESSURE,
+    ATTR_BRINE_INLET,
+    ATTR_BRINE_OUTLET,
+]
+
+# --- Operation-mode values (from ESPAltherma) ---
+OP_MODE_FAN_ONLY = "Fan Only"
+OP_MODE_HEATING = "Heating"
+OP_MODE_COOLING = "Cooling"
+OP_MODE_DHW = "DHW"
+
+# --- Tracker states ---
+STATE_IDLE = "idle"
+STATE_RUNNING = "running"
+
+# --- Notification IDs (fixed -> overwrite, no spam) ---
+NOTIF_ID_PENDULUM = f"{DOMAIN}_pendulum"
+NOTIF_ID_SHORT_RUN = f"{DOMAIN}_short_run"
+NOTIF_ID_SHORT_OFF = f"{DOMAIN}_short_off"
+NOTIF_ID_ML_ANOMALY = f"{DOMAIN}_ml_anomaly"
+NOTIF_ID_SETPOINT_OSC = f"{DOMAIN}_setpoint_osc"
+
+# --- Brine exclusion (confirmed absent on EPRA12: always 0) ---
+BRINE_ALWAYS_ZERO = True
+
+# --- 12c: notifications v2 + status updates ---
+# Emoji constants: source uses backslash-U escapes to stay ASCII-only.
+EMOJI_CRITICAL = "\U0001F534"
+EMOJI_WARNING = "\U0001F7E0"
+EMOJI_WATCH = "\U0001F7E1"
+EMOJI_INFO = "\U0001F535"
+EMOJI_OK = "\U0001F7E2"
+EMOJI_STATUS = "\U0001F4CA"
+EMOJI_PENDULUM = "\U0001F501"
+EMOJI_SHORT_RUN = "\u23F1"
+EMOJI_SHORT_OFF = "\U0001F4A4"
+EMOJI_ML_ANOMALY = "\U0001F9E0"
+EMOJI_SETPOINT = "\U0001F3AF"
+
+SEVERITY_EMOJI = {
+    "critical": EMOJI_CRITICAL,
+    "warning": EMOJI_WARNING,
+    "watch": EMOJI_WATCH,
+    "info": EMOJI_INFO,
+    "ok": EMOJI_OK,
+    "status": EMOJI_STATUS,
+}
+
+ALERT_TYPE_EMOJI = {
+    "pendulum": EMOJI_PENDULUM,
+    "short_run": EMOJI_SHORT_RUN,
+    "short_off": EMOJI_SHORT_OFF,
+    "ml_anomaly": EMOJI_ML_ANOMALY,
+    "setpoint_osc": EMOJI_SETPOINT,
+}
+
+# Status update (periodic summary) - opt-in, default off
+DEFAULT_NOTIFY_EMOJI_ENABLED = True
+DEFAULT_STATUS_UPDATE_ENABLED = False
+DEFAULT_STATUS_UPDATE_INTERVAL_HOURS = 24
+NOTIF_ID_STATUS = f"{DOMAIN}_status"
+
+# --- 12a: adaptive thresholds ---
+DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED = False
+DEFAULT_ADAPTIVE_MIN_SAMPLES = 20
+ADAPTIVE_MIN_SAMPLES_LOWER_BOUND = 5
+ADAPTIVE_MIN_SAMPLES_UPPER_BOUND = 500
+ADAPTIVE_SHORT_RUN_PERCENTILE = 20
+ADAPTIVE_GOOD_OFF_PERCENTILE = 50
+ADAPTIVE_TARGET_CPD_PERCENTILE = 50
+ADAPTIVE_MIN_RUN_MIN = 2
+ADAPTIVE_MAX_RUN_MIN = 240
+ADAPTIVE_MIN_OFF_MIN = 0
+ADAPTIVE_MAX_OFF_MIN = 240
+ADAPTIVE_MIN_TARGET_CPD = 1
+ADAPTIVE_MAX_TARGET_CPD = 100
+
+# model_state key for adaptive thresholds persistence
+MODEL_STATE_ADAPTIVE = "adaptive_thresholds"
