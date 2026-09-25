@@ -16,6 +16,7 @@ from homeassistant.helpers.event import (
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
+    COP_SENSOR_ENTITY,
     DOMAIN,
     MODEL_BASISPROFIEL,
     SOURCE_SENSOR_ENTITY,
@@ -86,6 +87,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         )
         self._kmeans_centroids: list[list[float]] = []
         self._cluster_labels: dict[int, str] = {}
+        self.cop_sensor_entity: str = self.options.get(
+            "cop_sensor_entity", COP_SENSOR_ENTITY
+        )
+        self._last_cop_sample_ts: float = 0.0
         self.db: Any = None
         super().__init__(
             hass,
@@ -309,6 +314,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.cycle_start_ts = float(
                 self.detector.snapshot().get("start_ts") or 0.0
             )
+            await self._maybe_collect_cop_sample(now)
             snap.errors_total = self._errors_total
             await self._async_dispatch_alerts(snap)
             await async_check_repairs(
@@ -366,6 +372,42 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     _LOGGER.debug("cluster assign failed", exc_info=True)
         except Exception:  # noqa: BLE001
             _LOGGER.exception("DB persist failed")
+
+    async def _maybe_collect_cop_sample(self, now: float) -> None:
+        if self.db is None:
+            return
+        interval = 600.0
+        if (now - self._last_cop_sample_ts) < interval:
+            return
+        state = self.hass.states.get(self.cop_sensor_entity)
+        if state is None:
+            return
+        raw = state.state
+        if raw in (None, 'unknown', 'unavailable', '', '0.0', '0'):
+            return
+        attrs = dict(state.attributes or {})
+        attrs['state'] = raw
+        from .engine.cop_analyzer import parse_global_cop_attrs
+        sample = parse_global_cop_attrs(attrs)
+        if sample is None or sample.cop <= 0.0:
+            return
+        if sample.defrost:
+            return
+        if sample.data_quality != 'Good':
+            return
+        if not sample.power_stable:
+            return
+        row = {
+            'ts': now,
+            'cop': sample.cop,
+            'lwt': sample.lwt,
+            'outdoor': sample.outdoor,
+            'flow_lmin': sample.flow_lmin,
+            'power_stable': True,
+        }
+        ok = await self.db.async_insert_cop_sample(row)
+        if ok:
+            self._last_cop_sample_ts = now
 
     # ---------- Batch 6b-3b alert dispatch ----------
 

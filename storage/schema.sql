@@ -60,3 +60,16 @@ CREATE TABLE IF NOT EXISTS daily_summary (
 );
 
 CREATE INDEX IF NOT EXISTS idx_daily_summary_day ON daily_summary(day);
+
+CREATE TABLE IF NOT EXISTS cop_samples (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts REAL NOT NULL,
+    cop REAL NOT NULL,
+    lwt REAL,
+    outdoor REAL,
+    flow_lmin REAL,
+    power_stable INTEGER DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_cop_samples_ts ON cop_samples(ts);
+CREATE INDEX IF NOT EXISTS idx_cop_samples_outdoor ON cop_samples(outdoor);

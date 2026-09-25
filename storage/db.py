@@ -178,6 +178,7 @@ class CycleDB:
         *,
         cycle_retention_days: int = 90,
         alert_retention_days: int = 30,
+        cop_retention_days: int = 365,
         vacuum: bool = True,
     ) -> dict[str, int]:
         """Aggregate old cycles, prune, optionally vacuum. Atomic rollup+prune."""
@@ -301,6 +302,18 @@ class CycleDB:
         alerts_deleted = cur.rowcount or 0
         await cur.close()
 
+        cop_cutoff = time.time() - float(cop_retention_days) * 86400.0
+        cop_deleted = 0
+        try:
+            await self.async_ensure_cop_samples_table()
+            cur = await conn.execute(
+                "DELETE FROM cop_samples WHERE ts < ?", (cop_cutoff,)
+            )
+            cop_deleted = cur.rowcount or 0
+            await cur.close()
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("cop_samples prune failed")
+
         await conn.commit()
 
         # 5. VACUUM outside any transaction
@@ -313,6 +326,7 @@ class CycleDB:
             "cycles_deleted": cycles_deleted,
             "features_deleted": features_deleted,
             "alerts_deleted": alerts_deleted,
+            "cop_deleted": cop_deleted,
         }
 
     async def async_vacuum(self) -> bool:
@@ -447,10 +461,80 @@ class CycleDB:
         conn = self._require()
         allowed = (
             "cycles", "features", "model_state", "alerts",
-            "daily_summary",
+            "daily_summary", "cop_samples",
         )
         if table not in allowed:
             raise ValueError(f"unknown table: {table}")
         async with conn.execute(f"SELECT COUNT(*) FROM {table}") as cur:
+            row = await cur.fetchone()
+        return int(row[0]) if row else 0
+
+    async def async_ensure_cop_samples_table(self) -> None:
+        conn = self._require()
+        await conn.execute(
+            "CREATE TABLE IF NOT EXISTS cop_samples ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "ts REAL NOT NULL,"
+            "cop REAL NOT NULL,"
+            "lwt REAL,"
+            "outdoor REAL,"
+            "flow_lmin REAL,"
+            "power_stable INTEGER DEFAULT 0)"
+        )
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cop_samples_ts "
+            "ON cop_samples(ts)"
+        )
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cop_samples_outdoor "
+            "ON cop_samples(outdoor)"
+        )
+        await conn.commit()
+
+    async def async_insert_cop_sample(
+        self, sample: dict[str, Any]
+    ) -> bool:
+        try:
+            await self.async_ensure_cop_samples_table()
+            conn = self._require()
+            await conn.execute(
+                "INSERT INTO cop_samples "
+                "(ts, cop, lwt, outdoor, flow_lmin, power_stable) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    float(sample["ts"]),
+                    float(sample["cop"]),
+                    sample.get("lwt"),
+                    sample.get("outdoor"),
+                    sample.get("flow_lmin"),
+                    1 if sample.get("power_stable") else 0,
+                ),
+            )
+            await conn.commit()
+            return True
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("cop_sample insert failed")
+            return False
+
+    async def async_fetch_cop_samples(
+        self, days: int = 30
+    ) -> list[dict[str, Any]]:
+        await self.async_ensure_cop_samples_table()
+        conn = self._require()
+        cutoff = time.time() - float(days) * 86400.0
+        async with conn.execute(
+            "SELECT ts, cop, lwt, outdoor, flow_lmin, power_stable "
+            "FROM cop_samples WHERE ts >= ? ORDER BY ts ASC",
+            (cutoff,),
+        ) as cur:
+            rows = await cur.fetchall()
+        return [dict(r) for r in rows]
+
+    async def async_count_cop_samples(self) -> int:
+        await self.async_ensure_cop_samples_table()
+        conn = self._require()
+        async with conn.execute(
+            "SELECT COUNT(*) FROM cop_samples"
+        ) as cur:
             row = await cur.fetchone()
         return int(row[0]) if row else 0
