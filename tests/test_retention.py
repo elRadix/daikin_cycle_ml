@@ -1,6 +1,7 @@
 """Tests for retention / daily_summary (Batch 11b-1)."""
 from __future__ import annotations
 
+import asyncio
 import time
 
 import pytest
@@ -17,6 +18,8 @@ async def db(tmp_path):
         yield d
     finally:
         await d.async_close()
+        # R51: aiosqlite worker thread can outlive close()
+        await asyncio.sleep(0.05)
 
 
 def _rec(days_ago: float, mode: str = "Heating", quality: int = 80) -> dict:
