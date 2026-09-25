@@ -17,6 +17,10 @@ async def db(tmp_path):
         yield database
     finally:
         await database.async_close()
+        # R51: aiosqlite worker-thread may outlive close() briefly.
+        # Yield to event loop so the thread joins before phcc checks.
+        import asyncio as _asyncio
+        await _asyncio.sleep(0.05)
 
 
 def _rec(start_ts: float = 1000.0, **extra):
