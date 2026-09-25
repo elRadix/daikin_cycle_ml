@@ -32,7 +32,11 @@ config_entry -> DaikinCycleMLCoordinator -> CycleDetector
 
 ## ML flow (per closed cycle)
 
-  record --+-> extract_feature_vector -> 8-dim vector
+  record --+-> extract_feature_vector -> 11-dim vector
+           |     dims 0-7: duration, dT_max, dT_avg, rps_max,
+           |              rps_avg, outdoor, buh_used, defrost_used
+           |     dims 8-10: cop_avg, lwt_avg, indoor_temp_avg
+           |              (0.0 if unavailable; batch 14c)
            |
            +-> MultiBaseline.update(mode, vector)
            |     mode in {heating,dhw,cooling,defrost,unknown}

@@ -804,6 +804,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             centroids = data.get("centroids") or []
             if not centroids:
                 return False
+            _raw_centroids = data.get('centroids') or []
+            if _raw_centroids and len(_raw_centroids[0]) == 8:
+                _LOGGER.warning(
+                    'kmeans_state is legacy 8-dim, resetting (retrain on Sunday)'
+                )
+                self._kmeans_centroids = []
+                return False
             self._kmeans_centroids = [
                 [float(x) for x in c] for c in centroids
             ]

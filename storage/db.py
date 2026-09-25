@@ -91,6 +91,32 @@ class CycleDB:
             return None
         return int(lastrowid) if lastrowid else None
 
+
+    async def async_migrate_features_to_v11(self) -> int:
+        """Pad 8-dim feature vectors with [0.0, 0.0, 0.0]. Idempotent."""
+        conn = self._require()
+        async with conn.execute(
+            "SELECT cycle_id, vector_json FROM features"
+        ) as cur:
+            rows = await cur.fetchall()
+        changed = 0
+        for row in rows:
+            cycle_id = int(row[0])
+            try:
+                vec = json.loads(row[1])
+            except (TypeError, ValueError):
+                continue
+            if not isinstance(vec, list) or len(vec) != 8:
+                continue
+            padded = list(vec) + [0.0, 0.0, 0.0]
+            await conn.execute(
+                "UPDATE features SET vector_json=? WHERE cycle_id=?",
+                (json.dumps(padded), cycle_id),
+            )
+            changed += 1
+        if changed:
+            await conn.commit()
+        return changed
     async def async_insert_features(
         self, cycle_id: int, vector: list[float]
     ) -> None:

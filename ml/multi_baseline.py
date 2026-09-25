@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Mapping
 
+from .features import VECTOR_LEN, VECTOR_LEN_LEGACY
 from .baseline import (
     AdaptiveBaseline,
     DEFAULT_ALPHA,
@@ -102,6 +103,13 @@ class MultiBaseline:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "MultiBaseline":
+        legacy_dim = data.get("dim")
+        if isinstance(legacy_dim, int) and legacy_dim == VECTOR_LEN_LEGACY:
+            _LOGGER.warning(
+                "MultiBaseline state is legacy %d-dim, resetting to %d-dim",
+                VECTOR_LEN_LEGACY, VECTOR_LEN,
+            )
+            return cls(VECTOR_LEN)
         mb = cls(
             int(data["dim"]),
             alpha=float(data.get("alpha", DEFAULT_ALPHA)),

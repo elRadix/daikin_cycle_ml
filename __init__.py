@@ -35,6 +35,15 @@ async def _async_setup_database(
         db = CycleDB(db_path)
         await db.async_open()
         await db.async_initialize()
+        try:
+            migrated = await db.async_migrate_features_to_v11()
+            if migrated > 0:
+                _LOGGER.info(
+                    'Migrated %d legacy feature vectors to 11-dim',
+                    migrated,
+                )
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception('feature vector migration failed')
         coordinator.db = db
         _LOGGER.info("Cycle DB ready at %s", db_path)
     except Exception:  # noqa: BLE001

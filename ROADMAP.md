@@ -1,5 +1,18 @@
 # Roadmap - Daikin Cycle ML
 
+## v0.5.0-dev (in progress, 2026-09-26)
+
+Scope: ML feature-vector expansion (COP + LWT + indoor).
+No version bump to 0.5.0 until runtime verified in production.
+
+- [x] 14c-1 - ml/features.py 8 -> 11 dims (FEATURE_NAMES, VECTOR_LEN)
+- [x] 14c-2 - coordinator wiring (accumulators + cop_avg post-hoc)
+- [x] 14c-3 - DB migration + MultiBaseline/kmeans state reset
+- [x] 14c-4 - version bump 0.5.0-dev + docs sync
+- [ ] 14c-runtime - verify 11-dim vectors in production DB
+
+## v0.4.0 (released 2026-09-25)
+
 ## v0.2.0 (current)
 
 Released 2026-09-25. Highlights:
@@ -27,7 +40,7 @@ no setpoint writes.
 - [x] 14b-1 - cop_samples table + coordinator sample collector
 - [x] 14b-2 - 2 sensors (stooklijn_advies, cop_vandaag) + attrs
 - [x] 14b-3 - daily 04:00 scheduler + 2 alerts + diagnostics
-- [ ] 14c - ML feature-vector 8->11 dims (deferred, no data yet)
+- [x] 14c - ML feature-vector 8->11 dims (see v0.5.0-dev below)
 
 ## v0.3.0 (released 2026-09-25)
 

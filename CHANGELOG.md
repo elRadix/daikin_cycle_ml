@@ -13,6 +13,34 @@ Versioning: https://semver.org/spec/v2.0.0.html
 
 
 
+## [0.5.0-dev] - 2026-09-26
+
+### Added
+- ML feature-vector extended 8 -> 11 dims (batch 14c):
+  cop_avg, lwt_avg, indoor_temp_avg
+- ml/features.py: FEATURE_NAMES +3 names, VECTOR_LEN=11,
+  VECTOR_LEN_LEGACY=8, extract_feature_vector accepts
+  keyword-only cop_avg/lwt_avg/indoor_temp_avg
+- coordinator.py: _accumulate_cycle_samples (LWT + indoor
+  running sums), _collect_cycle_averages (post-hoc cop_avg
+  from cop_samples between start_ts and end_ts); class-level
+  defaults for bare-constructed test instances (R52)
+- storage/db.py: async_fetch_cop_samples_between,
+  async_avg_cop_between, async_migrate_features_to_v11
+- const.py: DEFAULT_INDOOR_TEMP_SENSOR, DEFAULT_COP_AVG_LOOKBACK_DAYS
+- config_flow.py: indoor_temp_sensor option in cycle-step
+- __init__.py: fail-soft feature-vector migration call after DB init
+- ml/multi_baseline.py: dim-guard in from_dict, resets 8-dim
+  legacy state to 11-dim
+- coordinator._load_kmeans_state: dim-guard, resets 8-dim
+  legacy centroids (retrain on Sunday)
+- 51 new tests: test_features_v11 (9), test_14c_coordinator_wiring
+  (14), test_14c_migration (10); 814 tests total
+- Coverage: 96.19% (features.py 100%, multi_baseline.py 100%)
+
+### Changed
+- VERSION 0.4.0 -> 0.5.0-dev (manifest.json, pyproject.toml, const.py)
+
 ## [0.4.0] - 2026-09-25
 
 ### Added

@@ -11,6 +11,8 @@ pendulum behaviour for Daikin Altherma heat pumps. Local-only ML, no cloud.
 - Per-mode adaptive ML baseline (EWMA) with persistent state
 - Adaptive thresholds: percentile-based self-learning per mode (opt-in)
 - Weekly k-means clustering + per-cycle cluster assignment
+- 11-dim feature-vector: duration, dT, RPS, outdoor, BUH,
+  defrost + cop_avg, lwt_avg, indoor_temp_avg (batch 14c)
 - Actionable advice per pattern
 - 31 sensors + 19 binary sensors
 - COP stooklijn analysis (batch 14): daily advice + bucket table
