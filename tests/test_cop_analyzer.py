@@ -151,9 +151,9 @@ def test_analyze_comfort_guard():
     assert a.comfort_impact < 0
 
 
-def test_analyze_besparing_eur():
+def test_analyze_besparing_cop_pct():
     samples = [_mk_sample(3.0, 32.0, 7.0) for _ in range(10)]
     samples.append(_mk_sample(2.5, 36.0, 7.0))
-    a = analyze_stooklijn(samples, daily_kwh=15.0, price_eur_per_kwh=0.30)
-    assert a.besparing_eur_dag > 0
-    assert a.besparing_eur_dag < 10.0
+    a = analyze_stooklijn(samples)
+    assert a.besparing_cop_pct > 0
+    assert a.besparing_cop_pct <= 15.0

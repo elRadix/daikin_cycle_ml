@@ -71,7 +71,6 @@ class StooklijnAdvies:
     huidige_lwt: float | None = None
     optimale_lwt: float | None = None
     besparing_cop_pct: float = 0.0
-    besparing_eur_dag: float = 0.0
     comfort_impact: float = 0.0
     betrouwbaarheid: float = 0.0
     bucket: str = ''
@@ -138,8 +137,6 @@ def _avg(xs: list[float]) -> float | None:
 
 def analyze_stooklijn(
     samples: list[CopSample],
-    daily_kwh: float = 0.0,
-    price_eur_per_kwh: float = 0.25,
     comfort_min: float = 20.0,
     indoor_avg: float | None = None,
 ) -> StooklijnAdvies:
@@ -191,11 +188,6 @@ def analyze_stooklijn(
     # Besparing schatting: ~2% COP-winst per 1C LWT-daling (koud water)
     if advies.state == 'verlaag_lwt_2c':
         advies.besparing_cop_pct = min(abs(diff) * 2.0, 15.0)
-        elec_kwh = daily_kwh / max(avg_cop, 1.0)
-        elec_new = elec_kwh * (1 - advies.besparing_cop_pct / 100.0)
-        advies.besparing_eur_dag = round(
-            (elec_kwh - elec_new) * price_eur_per_kwh, 3
-        )
     if indoor_avg is not None:
         advies.comfort_impact = round(-abs(diff) * 0.3, 2)
     return advies
