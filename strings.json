@@ -86,7 +86,7 @@
           "status_update_enabled": "Periodic status updates",
           "status_update_interval_hours": "Status interval (hours)",
           "notify_emoji_enabled": "Emoji in notifications",
-          "notify_service": "Notify service",
+          "notify_service": "Notify target",
           "quiet_hours_enabled": "Quiet hours",
           "quiet_hours_start": "Quiet hours start",
           "quiet_hours_end": "Quiet hours end"
@@ -94,7 +94,7 @@
         "description": "How and when alerts are delivered.\n\n- **Persistent notifications**: sidebar alerts.\n- **Notify service** (optional): e.g. `notify.telegram_rachid`.\n- **Quiet hours**: suppress non-critical alerts during the window (default 22:00–07:00).",
         "data_description": {
           "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
-          "notify_service": "Optional notify service, e.g. notify.telegram_rachid. Leave empty to disable push notifications.",
+          "notify_service": "Pick a notify entity (recommended) or a legacy notify service. Leave empty to disable push notifications.",
           "quiet_hours_enabled": "Suppress non-critical alerts during the quiet window.",
           "quiet_hours_start": "Start of quiet hours, HH:MM (24h). Default 22:00.",
           "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00."
@@ -312,6 +312,26 @@
     "missing_attrs": {
       "title": "Missing required attributes",
       "description": "The source sensor is missing {count} required attribute(s). Verify that ESPAltherma is publishing all fields."
+    }
+  },
+  "services": {
+    "send_test_notification": {
+      "name": "Send test notification",
+      "description": "Send a test message via the configured notify target.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "message": {
+          "name": "Message",
+          "description": "Optional custom message body."
+        },
+        "target": {
+          "name": "Target override",
+          "description": "Optional override of the configured notify target."
+        }
+      }
     }
   }
 }

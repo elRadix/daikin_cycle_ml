@@ -23,6 +23,9 @@ SERVICE_EXPORT_CYCLES = "export_cycles"
 SERVICE_LABEL_CYCLE = "label_cycle"
 SERVICE_RECOMPUTE_BASELINE = "recompute_baseline"
 SERVICE_RUN_MAINTENANCE = "run_maintenance"
+SERVICE_SEND_TEST_NOTIFICATION = "send_test_notification"
+ATTR_MESSAGE = "message"
+ATTR_TARGET = "target"
 ATTR_CYCLE_RETENTION_DAYS = "cycle_retention_days"
 ATTR_ALERT_RETENTION_DAYS = "alert_retention_days"
 ATTR_VACUUM = "vacuum"
@@ -62,6 +65,13 @@ SCHEMA_RUN_MAINTENANCE = vol.Schema({
     vol.Optional(ATTR_CYCLE_RETENTION_DAYS): int,
     vol.Optional(ATTR_ALERT_RETENTION_DAYS): int,
     vol.Optional(ATTR_VACUUM): bool,
+})
+
+
+SCHEMA_SEND_TEST = vol.Schema({
+    vol.Required(ATTR_ENTRY_ID): str,
+    vol.Optional(ATTR_MESSAGE): str,
+    vol.Optional(ATTR_TARGET): str,
 })
 
 
@@ -185,9 +195,23 @@ async def _handle_run_maintenance(hass: HomeAssistant, call: ServiceCall) -> dic
     )
 
 
+async def _handle_send_test_notification(
+    hass: HomeAssistant, call: ServiceCall
+) -> dict[str, Any]:
+    coord = _resolve_coordinator(hass, call.data[ATTR_ENTRY_ID])
+    from .engine.notification_engine import async_send_notification
+    opts = getattr(coord, "options", None) or {}
+    target = call.data.get(ATTR_TARGET) or opts.get("notify_service") or ""
+    msg = (
+        call.data.get(ATTR_MESSAGE)
+        or "Daikin Cycle ML: test notification"
+    )
+    ok = await async_send_notification(hass, target, msg)
+    return {"ok": bool(ok), "target": target, "message": msg}
+
 async def async_register_services(hass: HomeAssistant) -> None:
     """Idempotent registration at DOMAIN level."""
-    if hass.services.has_service(DOMAIN, SERVICE_RUN_MAINTENANCE):
+    if hass.services.has_service(DOMAIN, SERVICE_SEND_TEST_NOTIFICATION):
         return
     hass.services.async_register(
         DOMAIN, SERVICE_RESET_COUNTERS,
@@ -208,5 +232,10 @@ async def async_register_services(hass: HomeAssistant) -> None:
     hass.services.async_register(
         DOMAIN, SERVICE_RUN_MAINTENANCE,
         partial(_handle_run_maintenance, hass), schema=SCHEMA_RUN_MAINTENANCE,
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_SEND_TEST_NOTIFICATION,
+        partial(_handle_send_test_notification, hass),
+        schema=SCHEMA_SEND_TEST,
     )
     _LOGGER.info("Daikin Cycle ML services registered")

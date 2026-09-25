@@ -261,3 +261,50 @@ def build_status_message(
 
     return chr(10).join(lines)
 
+
+NOTIFY_DOMAIN = "notify"
+NOTIFY_SEND_MESSAGE = "send_message"
+
+
+async def async_send_notification(
+    hass: Any, target: str, message: str
+) -> bool:
+    """Route a message to a notify entity or legacy notify service.
+
+    Returns True on successful dispatch, False otherwise.
+    """
+    if not isinstance(target, str):
+        return False
+    tgt = target.strip()
+    if not tgt or "." not in tgt:
+        return False
+    if hass.states.get(tgt) is not None:
+        try:
+            await hass.services.async_call(
+                NOTIFY_DOMAIN,
+                NOTIFY_SEND_MESSAGE,
+                {"message": message},
+                target={"entity_id": tgt},
+                blocking=False,
+            )
+            return True
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception(
+                "notify.send_message failed for %s", tgt
+            )
+            return False
+    domain, _, service = tgt.partition(".")
+    if not domain or not service:
+        return False
+    services = hass.services.async_services().get(domain, {})
+    if service not in services:
+        _LOGGER.warning("notify target not registered: %s", tgt)
+        return False
+    try:
+        await hass.services.async_call(
+            domain, service, {"message": message}, blocking=False
+        )
+        return True
+    except Exception:  # noqa: BLE001
+        _LOGGER.exception("Legacy notify %s failed", tgt)
+        return False

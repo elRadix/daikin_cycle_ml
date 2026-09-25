@@ -126,3 +126,26 @@ run_maintenance:
       required: false
       selector:
         boolean:
+
+send_test_notification:
+  name: Send test notification
+  description: Send a test message via the configured notify target.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID.
+      required: true
+      selector:
+        text:
+    message:
+      name: Message
+      description: Optional custom message body.
+      required: false
+      selector:
+        text:
+    target:
+      name: Target override
+      description: Optional override of the configured notify target.
+      required: false
+      selector:
+        text:

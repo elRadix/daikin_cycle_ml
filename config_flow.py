@@ -69,6 +69,65 @@ def _num(min_v: float, max_v: float, step: float, unit: str | None = None):
     return selector.NumberSelector(selector.NumberSelectorConfig(**kwargs))
 
 
+def _legacy_notify_options(hass) -> list:
+    """List legacy notify services (excludes generic send_message)."""
+    try:
+        svcs = hass.services.async_services().get("notify", {})
+    except Exception:  # noqa: BLE001
+        svcs = {}
+    return sorted(
+        f"notify.{svc}" for svc in svcs if svc != "send_message"
+    )
+
+
+def _build_notify_selector(hass) -> selector.ChooseSelector:
+    """Two-path selector: notify entity (recommended) or legacy service."""
+    return selector.ChooseSelector(
+        selector.ChooseSelectorConfig(
+            choices={
+                "entity": selector.ChooseSelectorChoiceConfig(
+                    selector=selector.EntitySelector(
+                        selector.EntitySelectorConfig(domain="notify")
+                    )
+                ),
+                "service": selector.ChooseSelectorChoiceConfig(
+                    selector=selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=_legacy_notify_options(hass),
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                            custom_value=True,
+                        )
+                    )
+                ),
+            }
+        )
+    )
+
+
+def _default_notify_choice(hass, current):
+    if not current or "." not in str(current):
+        return None
+    if hass.states.get(str(current)) is not None:
+        return {"active_choice": "entity", "entity": str(current)}
+    return {"active_choice": "service", "service": str(current)}
+
+
+def _flatten_notify_choice(value) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        active = value.get("active_choice")
+        if active in ("entity", "service"):
+            inner = value.get(active)
+            return inner if isinstance(inner, str) else ""
+        for k in ("entity", "service"):
+            inner = value.get(k)
+            if isinstance(inner, str):
+                return inner
+    return ""
+
 class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
     """8-step config wizard. Supports fresh setup + full reconfigure."""
 
@@ -269,8 +328,22 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_notifications(self, user_input=None) -> FlowResult:
         if user_input is not None:
+            if "notify_service" in user_input:
+                user_input["notify_service"] = _flatten_notify_choice(
+                    user_input["notify_service"]
+                )
             self._options.update(user_input)
             return await self.async_step_finalize()
+        _current_ns = (
+            self._options.get("notify_service") or DEFAULT_NOTIFY_SERVICE
+        )
+        _default_ns = _default_notify_choice(self.hass, _current_ns)
+        if _default_ns is not None:
+            _ns_key = vol.Optional(
+                "notify_service", default=_default_ns
+            )
+        else:
+            _ns_key = vol.Optional("notify_service")
         schema = vol.Schema({
             vol.Required(
                 "persistent_enabled",
@@ -278,13 +351,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                     "persistent_enabled", DEFAULT_PERSISTENT_ENABLED
                 ),
             ): bool,
-            vol.Optional(
-                "notify_service",
-                default=(
-                    self._options.get("notify_service")
-                    or DEFAULT_NOTIFY_SERVICE
-                ),
-            ): str,
+            _ns_key: _build_notify_selector(self.hass),
             vol.Required(
                 "quiet_hours_enabled",
                 default=self._options.get(
@@ -410,8 +477,22 @@ class DaikinCycleMLOptionsFlow(OptionsFlow):
             DEFAULT_STATUS_UPDATE_INTERVAL_HOURS,
         )
         if user_input is not None:
+            if "notify_service" in user_input:
+                user_input["notify_service"] = _flatten_notify_choice(
+                    user_input["notify_service"]
+                )
             return self.async_create_entry(title="", data=user_input)
         current = self.config_entry.options or {}
+        _current_ns = (
+            current.get("notify_service") or DEFAULT_NOTIFY_SERVICE
+        )
+        _default_ns = _default_notify_choice(self.hass, _current_ns)
+        if _default_ns is not None:
+            _ns_key_opts = vol.Optional(
+                "notify_service", default=_default_ns
+            )
+        else:
+            _ns_key_opts = vol.Optional("notify_service")
         schema = vol.Schema({
             vol.Required(
                 "compressor_rps_threshold",
@@ -473,6 +554,7 @@ class DaikinCycleMLOptionsFlow(OptionsFlow):
                     DEFAULT_STATUS_UPDATE_INTERVAL_HOURS,
                 ),
             ): _num(1, 168, 1, "h"),
+            _ns_key_opts: _build_notify_selector(self.hass),
             vol.Required(
                 "notify_emoji_enabled",
                 default=current.get(
