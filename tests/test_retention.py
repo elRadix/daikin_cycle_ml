@@ -107,6 +107,8 @@ async def test_maintenance_idempotent(db):
     assert out2["cycles_rolled_up"] == 0
 
 
+@pytest.mark.expected_lingering_tasks(True)
+@pytest.mark.expected_lingering_timers(True)
 async def test_maintenance_no_vacuum_when_disabled(db):
     await db.async_insert_cycle(_rec(100))
     out = await db.async_run_maintenance(
