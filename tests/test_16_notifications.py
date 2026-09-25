@@ -80,22 +80,11 @@ def test_flatten_variants():
     assert cf._flatten_notify_choice({}) == ""
 
 
-def test_default_choice_entity():
+def test_default_choice_string():
     h = MagicMock()
-    h.states.get = MagicMock(return_value=MagicMock())
-    assert cf._default_notify_choice(h, "notify.a") == {
-        "active_choice": "entity",
-        "entity": "notify.a",
-    }
-
-
-def test_default_choice_legacy():
-    h = MagicMock()
-    h.states.get = MagicMock(return_value=None)
-    assert cf._default_notify_choice(h, "notify.b") == {
-        "active_choice": "service",
-        "service": "notify.b",
-    }
+    assert cf._default_notify_choice(h, "notify.a") == "notify.a"
+    assert cf._default_notify_choice(h, "") is None
+    assert cf._default_notify_choice(h, None) is None
 
 
 def test_default_choice_empty():

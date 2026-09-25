@@ -80,36 +80,22 @@ def _legacy_notify_options(hass) -> list:
     )
 
 
-def _build_notify_selector(hass) -> selector.ChooseSelector:
-    """Two-path selector: notify entity (recommended) or legacy service."""
-    return selector.ChooseSelector(
-        selector.ChooseSelectorConfig(
-            choices={
-                "entity": selector.ChooseSelectorChoiceConfig(
-                    selector=selector.EntitySelector(
-                        selector.EntitySelectorConfig(domain="notify")
-                    )
-                ),
-                "service": selector.ChooseSelectorChoiceConfig(
-                    selector=selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=_legacy_notify_options(hass),
-                            mode=selector.SelectSelectorMode.DROPDOWN,
-                            custom_value=True,
-                        )
-                    )
-                ),
-            }
+def _build_notify_selector(hass) -> selector.SelectSelector:
+    """Dropdown of notify targets with free-text fallback."""
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=_legacy_notify_options(hass),
+            mode=selector.SelectSelectorMode.DROPDOWN,
+            custom_value=True,
         )
     )
 
 
 def _default_notify_choice(hass, current):
-    if not current or "." not in str(current):
+    """Return current notify target as a plain string, or None."""
+    if not current:
         return None
-    if hass.states.get(str(current)) is not None:
-        return {"active_choice": "entity", "entity": str(current)}
-    return {"active_choice": "service", "service": str(current)}
+    return str(current)
 
 
 def _flatten_notify_choice(value) -> str:
