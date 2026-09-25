@@ -191,3 +191,34 @@ def analyze_stooklijn(
     if indoor_avg is not None:
         advies.comfort_impact = round(-abs(diff) * 0.3, 2)
     return advies
+
+
+def _bucket_sort_key(k: str) -> int:
+    if k == 'unknown':
+        return 9999
+    if k == '20+':
+        return 20
+    if k == '-10-':
+        return -10
+    m = re.match(r'(-?\d+)', k)
+    return int(m.group(1)) if m else 0
+
+
+def bucket_summary(
+    samples: list[CopSample],
+) -> dict[str, dict[str, Any]]:
+    grouped = _group_by_bucket(samples)
+    items: list[tuple[int, str, dict[str, Any]]] = []
+    for k, group in grouped.items():
+        cops = [s.cop for s in group]
+        lwts = [s.lwt for s in group if s.lwt is not None]
+        items.append((
+            _bucket_sort_key(k), k, {
+                'cop': round(sum(cops) / len(cops), 2),
+                'n': len(group),
+                'lwt': round(sum(lwts) / len(lwts), 1) if lwts else None,
+            },
+        ))
+    items.sort(key=lambda t: t[0])
+    return {k: v for _, k, v in items}
+

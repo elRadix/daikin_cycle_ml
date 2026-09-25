@@ -26,6 +26,8 @@ EXPECTED_KEYS = {
     "learned_short_run_min",
     "learned_good_off_min",
     "learned_target_cycles_per_day",
+    "stooklijn_advies",
+    "cop_vandaag",
 }
 
 

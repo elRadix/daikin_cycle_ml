@@ -88,6 +88,9 @@ def _avg_off_time(cycles: list[dict[str, Any]]) -> float | None:
 
 
 ValueFn = Callable[[DataSnapshot, DaikinCycleMLCoordinator], Any]
+AttrFn = Callable[
+    [DataSnapshot, DaikinCycleMLCoordinator], dict[str, Any] | None
+]
 
 
 class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
@@ -100,6 +103,7 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
         name: str,
         value_fn: ValueFn,
         *,
+        attr_fn: AttrFn | None = None,
         device_class: SensorDeviceClass | None = None,
         state_class: SensorStateClass | None = None,
         unit: str | None = None,
@@ -107,6 +111,7 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
     ) -> None:
         super().__init__(coordinator, key, name)
         self._value_fn = value_fn
+        self._attr_fn = attr_fn
         if device_class is not None:
             self._attr_device_class = device_class
         if state_class is not None:
@@ -130,9 +135,52 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
             return round(value, 2)
         return value
 
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        if self._attr_fn is None:
+            return None
+        snap = self.snapshot()
+        if snap is None:
+            return None
+        try:
+            return self._attr_fn(snap, self.coordinator)
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception(
+                'Sensor %s attr_fn failed', self._key
+            )
+            return None
+
 
 def _last(c) -> dict[str, Any]:
     return c.store.last_cycle() or {}
+
+
+def _stooklijn_attrs(data: Any) -> dict[str, Any]:
+    if not isinstance(data, dict) or not data:
+        return {}
+    return {
+        'optimale_lwt': data.get('optimale_lwt'),
+        'huidige_lwt': data.get('huidige_lwt'),
+        'besparing_cop_pct': data.get('besparing_cop_pct'),
+        'comfort_impact': data.get('comfort_impact'),
+        'betrouwbaarheid': data.get('betrouwbaarheid'),
+        'bucket': data.get('bucket'),
+        'samples': data.get('samples'),
+        'buckets': data.get('buckets') or {},
+    }
+
+
+def _cop_today_attrs(data: Any) -> dict[str, Any]:
+    if not isinstance(data, dict) or not data:
+        return {}
+    return {
+        'samples_today': data.get('samples_today'),
+        'cop_min': data.get('cop_min'),
+        'cop_max': data.get('cop_max'),
+        'baseline_cop_verlies_pct': data.get(
+            'baseline_cop_verlies_pct'
+        ),
+    }
 
 
 SENSOR_DEFS: list[dict[str, Any]] = [
@@ -264,6 +312,17 @@ SENSOR_DEFS: list[dict[str, Any]] = [
      "state_class": SensorStateClass.TOTAL_INCREASING,
      "icon": "mdi:alert-octagon-outline",
      "value_fn": lambda s, c: s.errors_total},
+    {"key": "stooklijn_advies", "name": "Stooklijn advies",
+     "icon": "mdi:chart-line",
+     "value_fn": lambda s, c: (
+         (s.stooklijn_advies or {}).get("state", "unknown")
+     ),
+     "attr_fn": lambda s, c: _stooklijn_attrs(s.stooklijn_advies)},
+    {"key": "cop_vandaag", "name": "COP vandaag",
+     "state_class": SensorStateClass.MEASUREMENT, "unit": "COP",
+     "icon": "mdi:heat-pump",
+     "value_fn": lambda s, c: (s.cop_today or {}).get("cop"),
+     "attr_fn": lambda s, c: _cop_today_attrs(s.cop_today)},
 ]
 
 

@@ -55,6 +55,8 @@ class DataSnapshot:
     anomaly: Any = None
     advice: list[Any] = field(default_factory=list)
     cluster_id: int | None = None
+    stooklijn_advies: dict[str, Any] = field(default_factory=dict)
+    cop_today: dict[str, Any] = field(default_factory=dict)
 
 
 class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
@@ -91,6 +93,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "cop_sensor_entity", COP_SENSOR_ENTITY
         )
         self._last_cop_sample_ts: float = 0.0
+        self._stooklijn_cache: dict[str, Any] = {}
+        self._stooklijn_cache_ts: float = 0.0
+        self._cop_today_cache: dict[str, Any] = {}
         self.db: Any = None
         super().__init__(
             hass,
@@ -315,6 +320,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 self.detector.snapshot().get("start_ts") or 0.0
             )
             await self._maybe_collect_cop_sample(now)
+            await self._refresh_cop_today(now)
+            await self._maybe_refresh_stooklijn(now)
+            snap.cop_today = self._cop_today_cache
+            snap.stooklijn_advies = self._stooklijn_cache
             snap.errors_total = self._errors_total
             await self._async_dispatch_alerts(snap)
             await async_check_repairs(
@@ -372,6 +381,108 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     _LOGGER.debug("cluster assign failed", exc_info=True)
         except Exception:  # noqa: BLE001
             _LOGGER.exception("DB persist failed")
+
+    async def _refresh_cop_today(self, now: float) -> None:
+        if self.db is None:
+            return
+        try:
+            rows = await self.db.async_fetch_cop_samples(days=1)
+        except Exception:  # noqa: BLE001
+            return
+        if not isinstance(rows, list) or not rows:
+            self._cop_today_cache = {}
+            return
+        try:
+            lt = time.localtime(now)
+            today_start = time.mktime(
+                (lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1)
+            )
+            todays = [
+                r for r in rows
+                if isinstance(r.get('ts'), (int, float))
+                and float(r['ts']) >= today_start
+                and isinstance(r.get('cop'), (int, float))
+                and float(r['cop']) > 0.0
+            ]
+            if not todays:
+                self._cop_today_cache = {}
+                return
+            cops = [float(r['cop']) for r in todays]
+            avg = sum(cops) / len(cops)
+            try:
+                week = await self.db.async_fetch_cop_samples(days=7)
+            except Exception:  # noqa: BLE001
+                week = rows
+            week_cops = [
+                float(r['cop']) for r in week
+                if isinstance(r.get('cop'), (int, float))
+                and float(r['cop']) > 0.0
+            ]
+            base = sum(week_cops) / len(week_cops) if week_cops else avg
+            loss = 0.0
+            if base > 0:
+                loss = round(max(0.0, (base - avg) / base * 100.0), 1)
+            self._cop_today_cache = {
+                'cop': round(avg, 2),
+                'samples_today': len(cops),
+                'cop_min': round(min(cops), 2),
+                'cop_max': round(max(cops), 2),
+                'baseline_cop_verlies_pct': loss,
+            }
+        except Exception:  # noqa: BLE001
+            self._cop_today_cache = {}
+
+    async def _maybe_refresh_stooklijn(self, now: float) -> None:
+        if self.db is None:
+            return
+        cache_ts = getattr(self, '_stooklijn_cache_ts', 0.0)
+        cache = getattr(self, '_stooklijn_cache', {})
+        if (now - cache_ts) < 3600.0 and cache:
+            return
+        try:
+            rows = await self.db.async_fetch_cop_samples(days=30)
+        except Exception:  # noqa: BLE001
+            return
+        if not isinstance(rows, list):
+            return
+        try:
+            from .engine.cop_analyzer import (
+                CopSample, analyze_stooklijn, bucket_summary,
+            )
+            samples: list[CopSample] = []
+            for r in rows:
+                if not isinstance(r.get('cop'), (int, float)):
+                    continue
+                if float(r['cop']) <= 0.0:
+                    continue
+                samples.append(CopSample(
+                    cop=float(r['cop']),
+                    lwt=r.get('lwt'),
+                    outdoor=r.get('outdoor'),
+                    flow_lmin=r.get('flow_lmin'),
+                    defrost=False,
+                    data_quality='Good',
+                    power_stable=bool(r.get('power_stable')),
+                ))
+            comfort_min = float(
+                self.options.get('comfort_min_c', 20.0)
+            )
+            advies = analyze_stooklijn(samples, comfort_min=comfort_min)
+            buckets = bucket_summary(samples)
+            self._stooklijn_cache = {
+                'state': advies.state,
+                'optimale_lwt': advies.optimale_lwt,
+                'huidige_lwt': advies.huidige_lwt,
+                'besparing_cop_pct': advies.besparing_cop_pct,
+                'comfort_impact': advies.comfort_impact,
+                'betrouwbaarheid': advies.betrouwbaarheid,
+                'bucket': advies.bucket,
+                'samples': advies.samples,
+                'buckets': buckets,
+            }
+            self._stooklijn_cache_ts = now
+        except Exception:  # noqa: BLE001
+            return
 
     async def _maybe_collect_cop_sample(self, now: float) -> None:
         if self.db is None:

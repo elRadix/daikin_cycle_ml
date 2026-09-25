@@ -254,6 +254,12 @@
       },
       "learned_target_cycles_per_day": {
         "name": "Geleerde doel cycli/dag"
+      },
+      "stooklijn_advies": {
+        "name": "Stooklijn advies"
+      },
+      "cop_vandaag": {
+        "name": "COP vandaag"
       }
     },
     "binary_sensor": {
