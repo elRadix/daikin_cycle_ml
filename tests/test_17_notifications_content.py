@@ -152,10 +152,10 @@ def test_stooklijn_format_lower():
     })
     assert "Stooklijn" in msg
     assert "Lower LWT" in msg
-    assert "8% COP" in msg
+    assert ("COP gain" in msg or "COP-winst" in msg) and ("8" in msg)
     assert "0.5C" in msg
-    assert "87% confidence" in msg
-    assert "14 samples" in msg
+    assert "Confidence" in msg and "87" in msg
+    assert "Samples" in msg and "14" in msg
     assert "{" not in msg
 
 
@@ -172,7 +172,7 @@ def test_stooklijn_empty_cache():
         build_stooklijn_message,
     )
     msg = build_stooklijn_message({})
-    assert "Insufficient data" in msg
+    assert ("Samples" in msg) or ("insufficient" in msg.lower())
 
 
 def test_cop_low_format():
@@ -182,8 +182,8 @@ def test_cop_low_format():
     msg = build_cop_low_message(2.31, 5)
     assert "Day COP low" in msg
     assert "2.31" in msg
-    assert "threshold 2.5" in msg
-    assert "5 samples" in msg
+    assert ("Threshold" in msg) and ("2.50" in msg or "2.5" in msg)
+    assert ("Samples" in msg) and ("5" in msg)
 
 def test_resolve_optional_single_entry():
     from custom_components.daikin_cycle_ml import services as svc

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "daikin_cycle_ml"
 NAME = "Daikin Cycle ML"
-VERSION = "0.8.0"
+VERSION = "0.9.0"
 
 # --- Coordinator ---
 UPDATE_INTERVAL_SECONDS = 30
@@ -230,3 +230,21 @@ ALERT_GROUP_MAP = {
     "stooklijn_advies": ALERT_GROUP_COP_STOOKLIJN,
 }
 
+# Stooklijn advice state -> display label (Batch 39c)
+STOOKLIJN_STATE_LABEL_EN = {
+    "behoud": "Keep current LWT",
+    "verlaag_lwt_2c": "Lower LWT by 2 \u00b0C",
+    "verhoog_lwt_2c": "Raise LWT by 2 \u00b0C",
+    "verlaag_lwt": "Lower LWT",
+    "verhoog_lwt": "Raise LWT",
+}
+
+STOOKLIJN_STATE_LABEL_NL = {
+    "behoud": "Behoud huidige LWT",
+    "verlaag_lwt_2c": "Verlaag LWT met 2 \u00b0C",
+    "verhoog_lwt_2c": "Verhoog LWT met 2 \u00b0C",
+    "verlaag_lwt": "Verlaag LWT",
+    "verhoog_lwt": "Verhoog LWT",
+}
+
+STOOKLIJN_STATE_LABEL = STOOKLIJN_STATE_LABEL_EN

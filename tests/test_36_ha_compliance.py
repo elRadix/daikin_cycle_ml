@@ -39,9 +39,9 @@ def test_result_step_present():
 
 def test_version_bumped():
     const = (ROOT / "const.py").read_text()
-    assert "0.8.0" in const
+    assert "0.9.0" in const
     mf = json.loads((ROOT / "manifest.json").read_text())
-    assert mf["version"] == "0.8.0"
+    assert mf["version"] == "0.9.0"
 
 
 @pytest.mark.parametrize("rel", JSON_FILES)

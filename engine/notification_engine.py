@@ -5,6 +5,14 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from .status_report import (
+    ALERT_SCHEMA,
+    build_cop_low_report,
+    build_rich_alert,
+    build_status_report,
+    build_stooklijn_report,
+)
+
 from ..const import (
     ALERT_TYPE_EMOJI,
     NOTIF_ID_ML_ANOMALY,
@@ -298,8 +306,14 @@ def evaluate_alerts(
             continue
         notif_id = NOTIF_ID_BY_TYPE.get(alert_type, f"daikin_cycle_ml_{alert_type}")
         ctx = context.get(alert_type) if context else None
-        msg = _format_message(tmpl, ctx)
-        msg = _prefix_emoji(msg, alert_type, severity, emoji_enabled)
+        if alert_type in ALERT_SCHEMA:
+            msg = build_rich_alert(
+                alert_type, severity, ctx,
+                language=_lang, emoji_enabled=emoji_enabled,
+            )
+        else:
+            msg = _format_message(tmpl, ctx)
+            msg = _prefix_emoji(msg, alert_type, severity, emoji_enabled)
         emitted[alert_type] = AlertSpec(
             alert_type=alert_type,
             severity=severity,
@@ -316,141 +330,35 @@ def build_status_message(
     snapshot: Mapping[str, Any],
     context: Mapping[str, Any] | None = None,
     emoji_enabled: bool = True,
+    language: str | None = None,
 ) -> str:
-    """Build a periodic status summary with optional emoji prefix."""
-    ctx = dict(context or {})
-    prefix = (SEVERITY_EMOJI['status'] + ' ') if emoji_enabled else ''
-    title = str(ctx.get('title', 'Daikin Cycle ML status'))
-    lines = [prefix + title]
-
-    mode = snapshot.get('mode') or 'unknown'
-    state = snapshot.get('state') or 'idle'
-    lines.append(f'Mode: {mode} ({state})')
-
-    cyc = snapshot.get('cycles_today')
-    tgt = snapshot.get('target_cpd')
-    if cyc is not None and tgt is not None:
-        lines.append(f'Cycles today: {cyc} / target {tgt}')
-    elif cyc is not None:
-        lines.append(f'Cycles today: {cyc}')
-
-    q = snapshot.get('quality_last')
-    ago = snapshot.get('last_cycle_ago_min')
-    if ago is not None and q is not None:
-        lines.append(f'Last cycle: {ago} min ago (quality {q})')
-    elif ago is not None:
-        lines.append(f'Last cycle: {ago} min ago')
-
-    sev = snapshot.get('anomaly_severity')
-    if sev:
-        s_emoji = SEVERITY_EMOJI.get(sev, '') if emoji_enabled else ''
-        lead = (s_emoji + ' ') if s_emoji else ''
-        lines.append(f'{lead}Anomaly: {sev}')
-
-    samples = snapshot.get('baseline_samples')
-    modes = snapshot.get('baseline_modes')
-    if samples is not None:
-        modes_str = (' (' + ', '.join(modes) + ')') if modes else ''
-        lines.append(f'Baseline: {samples} samples{modes_str}')
-
-    advice = snapshot.get('top_advice')
-    if advice:
-        lines.append(f'Advice: {advice}')
-
-    return chr(10).join(lines)
-
-
-NOTIFY_DOMAIN = "notify"
-NOTIFY_SEND_MESSAGE = "send_message"
-
-
-async def async_send_notification(
-    hass: Any, target: str, message: str
-) -> bool:
-    """Route a message to a notify entity or legacy notify service.
-
-    Returns True on successful dispatch, False otherwise.
-    """
-    if not isinstance(target, str):
-        return False
-    tgt = target.strip()
-    if not tgt or "." not in tgt:
-        return False
-    if hass.states.get(tgt) is not None:
-        try:
-            await hass.services.async_call(
-                NOTIFY_DOMAIN,
-                NOTIFY_SEND_MESSAGE,
-                {"message": message},
-                target={"entity_id": tgt},
-                blocking=False,
-            )
-            return True
-        except Exception:  # noqa: BLE001
-            _LOGGER.exception(
-                "notify.send_message failed for %s", tgt
-            )
-            return False
-    domain, _, service = tgt.partition(".")
-    if not domain or not service:
-        return False
-    services = hass.services.async_services().get(domain, {})
-    if service not in services:
-        _LOGGER.warning("notify target not registered: %s", tgt)
-        return False
-    try:
-        await hass.services.async_call(
-            domain, service, {"message": message}, blocking=False
-        )
-        return True
-    except Exception:  # noqa: BLE001
-        _LOGGER.exception("Legacy notify %s failed", tgt)
-        return False
-
-
-STOOKLIJN_STATE_LABEL = {
-    "verlaag_lwt_2c": "Lower LWT by 2C",
-    "verhoog_lwt_2c": "Raise LWT by 2C",
-    "behoud": "Keep current LWT",
-    "unknown": "Insufficient data",
-}
-
-
-def build_stooklijn_message(cache: Mapping[str, Any]) -> str:
-    """Uniform stooklijn advice message."""
-    if not isinstance(cache, Mapping):
-        return "\U0001F4C9 Stooklijn advies\nNo data"
-    state = str(cache.get("state") or "unknown")
-    label = STOOKLIJN_STATE_LABEL.get(state, state)
-    try:
-        besparing = float(cache.get("besparing_cop_pct") or 0.0)
-    except (TypeError, ValueError):
-        besparing = 0.0
-    try:
-        comfort = float(cache.get("comfort_impact") or 0.0)
-    except (TypeError, ValueError):
-        comfort = 0.0
-    try:
-        betrouw = float(cache.get("betrouwbaarheid") or 0.0)
-    except (TypeError, ValueError):
-        betrouw = 0.0
-    try:
-        samples = int(cache.get("samples") or 0)
-    except (TypeError, ValueError):
-        samples = 0
-    lines = [
-        "\U0001F4C9 Stooklijn advies",
-        label,
-        "+%.0f%% COP \u00b7 comfort %+.1fC \u00b7 %d%% confidence \u00b7 %d samples"
-        % (besparing, comfort, int(betrouw * 100.0), samples),
-    ]
-    return "\n".join(lines)
-
-
-def build_cop_low_message(cop: float, samples: int) -> str:
-    """Uniform low-COP message."""
-    return (
-        "\U0001F4C9 Day COP low\n"
-        "%.2f (threshold 2.5) \u00b7 %d samples" % (float(cop), int(samples))
+    """Rich sectioned status report (Batch 37)."""
+    lang = language or (context.get('language') if context else None) or 'en'
+    return build_status_report(
+        snapshot, language=lang, emoji_enabled=bool(emoji_enabled)
     )
+
+
+def build_stooklijn_message(
+    cache: Mapping[str, Any],
+    language: str | None = None,
+    emoji_enabled: bool = True,
+) -> str:
+    """Bilingual stooklijn report (Batch 37)."""
+    return build_stooklijn_report(
+        cache, language=(language or 'en'), emoji_enabled=bool(emoji_enabled)
+    )
+
+
+def build_cop_low_message(
+    cop: float,
+    samples: int,
+    language: str | None = None,
+    emoji_enabled: bool = True,
+) -> str:
+    """Bilingual low-COP report (Batch 37)."""
+    return build_cop_low_report(
+        cop, samples, language=(language or 'en'), emoji_enabled=bool(emoji_enabled)
+    )
+
 

@@ -944,14 +944,86 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:  # noqa: BLE001
             _LOGGER.exception("Scheduled status update failed")
 
+    async def _build_rich_status_snapshot(self) -> dict:
+        """Extended snapshot for the rich status report."""
+        base = self._build_status_snapshot()
+        snap = self.data
+        opts = self.options or {}
+        base['target_cph'] = int(opts.get('pendulum_cycles_per_hour', 4) or 4)
+        base['target_cpd'] = int(opts.get('target_cycles_per_day', 8) or 8)
+        try:
+            import time as _t
+            now = _t.time()
+            if self.store is not None and hasattr(self.store, 'cycles_in_window'):
+                base['cycles_per_hour'] = int(self.store.cycles_in_window(now, 3600))
+        except Exception:  # noqa: BLE001
+            base['cycles_per_hour'] = None
+        try:
+            if self.store is not None and hasattr(self.store, 'counters_snapshot'):
+                c = self.store.counters_snapshot() or {}
+                base['short_runs_today'] = c.get('short_runs')
+                base['good_cycles_today'] = c.get('good_cycles')
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            attrs = getattr(snap, 'attributes', None) or {}
+            base['lwt'] = attrs.get('leaving_water_temp')
+            base['indoor'] = attrs.get('indoor_temp')
+            base['outdoor'] = attrs.get('outdoor_temp')
+            base['flow_lmin'] = attrs.get('flow_lmin')
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            last = getattr(snap, 'last_cycle', None)
+            if isinstance(last, dict):
+                base['thermal_kw'] = last.get('thermal_kw_avg')
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            base['cop_today'] = getattr(self, '_cop_today_value', None)
+            base['cop_today_samples'] = getattr(self, '_cop_today_samples', None)
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            if self.db is not None:
+                base.update(await self._db_cycle_stats())
+        except Exception:  # noqa: BLE001
+            pass
+        return base
+
+    async def _db_cycle_stats(self) -> dict:
+        """Return DB aggregates for status report (defensive)."""
+        import time as _t
+        out = {'db_total': None, 'db_7d': None, 'db_30d': None, 'db_avg_duration_min': None}
+        if self.db is None:
+            return out
+        now = _t.time()
+        try:
+            getter = getattr(self.db, 'async_count_cycles_since', None)
+            if callable(getter):
+                out['db_total'] = await getter(0)
+                out['db_7d'] = await getter(now - 7 * 86400)
+                out['db_30d'] = await getter(now - 30 * 86400)
+            avg_getter = getattr(self.db, 'async_avg_duration_since', None)
+            if callable(avg_getter):
+                avg_s = await avg_getter(now - 7 * 86400)
+                if avg_s is not None:
+                    out['db_avg_duration_min'] = float(avg_s) / 60.0
+        except Exception:  # noqa: BLE001
+            pass
+        return out
+
     async def async_emit_status_update(self) -> str:
         """Build and dispatch one status summary. Returns message."""
         from .const import NOTIF_ID_STATUS
 
-        snap_dict = self._build_status_snapshot()
+        snap_dict = await self._build_rich_status_snapshot()
         opts = self.options or {}
         emoji = bool(opts.get("notify_emoji_enabled", True))
-        msg = build_status_message(snap_dict, emoji_enabled=emoji)
+        lang = opts.get("notification_language", "en")
+        msg = build_status_message(
+            snap_dict, emoji_enabled=emoji, language=lang
+        )
 
         try:
             await self.hass.services.async_call(

@@ -605,3 +605,35 @@ class CycleDB:
         ) as cur:
             row = await cur.fetchone()
         return int(row[0]) if row else 0
+
+    async def async_count_cycles_since(self, since_ts: float) -> int:
+        """Count cycles with end_ts >= since_ts."""
+        if self._conn is None:
+            return 0
+        try:
+            cur = await self._conn.execute(
+                "SELECT COUNT(*) FROM cycles WHERE end_ts >= ?", (float(since_ts),)
+            )
+            row = await cur.fetchone()
+            await cur.close()
+            return int(row[0]) if row else 0
+        except Exception:  # noqa: BLE001
+            return 0
+
+    async def async_avg_duration_since(self, since_ts: float):
+        """Average duration_s of cycles with end_ts >= since_ts, or None."""
+        if self._conn is None:
+            return None
+        try:
+            cur = await self._conn.execute(
+                "SELECT AVG(duration_s) FROM cycles WHERE end_ts >= ?",
+                (float(since_ts),),
+            )
+            row = await cur.fetchone()
+            await cur.close()
+            if not row or row[0] is None:
+                return None
+            return float(row[0])
+        except Exception:  # noqa: BLE001
+            return None
+
