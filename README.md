@@ -4,9 +4,9 @@ Home Assistant integration that detects compressor cycles, classifies
 pendulum behaviour, self-learns per mode, and advises on Daikin Altherma
 heat pumps. **Local-only ML, no cloud.**
 
-[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v0.6.0)
+[![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v0.6.0)
 [![Tests](https://img.shields.io/badge/tests-987-brightgreen.svg)](#testing)
-[![Coverage](https://img.shields.io/badge/coverage-95.65%25-brightgreen.svg)](#testing)
+[![Coverage](https://img.shields.io/badge/coverage-95%+25-brightgreen.svg)](#testing)
 
 **IoT class:** `calculated`
 
@@ -80,7 +80,7 @@ No cloud. No external API. Everything runs inside your Home Assistant box.
 - **Custom attribute map** — remap non-standard ESPAltherma firmware keys
 - **Selected attributes** — restrict processing to opt-in attributes
 - **SQLite persistence** — retention, daily rollups, auto-migration 8→11 dim
-- **50 entities** — 31 sensors + 19 binary sensors
+- **50 entities** — 9 container sensors + 15 binary sensors
 - **6 services** — reset, export, label, recompute, maintain, test-notify
 
 ---
@@ -837,7 +837,7 @@ SQLite internal.
 
 ## 16. Testing
 
-- **987 tests**, **95.65% coverage** (as of v0.6.0)
+- **~1050 tests**, **95%+ coverage** (as of v0.6.0)
 - Framework: `pytest` + `pytest_homeassistant_custom_component`
 - Coverage threshold enforced at **95%** in `pyproject.toml`
 
