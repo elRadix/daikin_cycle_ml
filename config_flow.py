@@ -740,6 +740,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 selector.SelectSelectorConfig(
                     options=[
                         "status_summary",
+                        "all_alerts",
                         "pendulum_hourly",
                         "pendulum_daily",
                         "short_run",

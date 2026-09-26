@@ -305,14 +305,14 @@
       },
       "test_notification": {
         "title": "Testmelding",
-        "description": "Stuur een voorbeeldmelding naar het geconfigureerde melding-doel. Gebruik de filters-negeren-toggle om alert_group_*-schakelaars, stille uren en dedup-vensters alleen voor deze test te omzeilen.",
+        "description": "Stuur **één voorbeeldmelding** naar het geconfigureerde melding-doel.\n\n• **Type melding** — welk alert je simuleert (of *Alle meldingen* voor alles tegelijk)\n• **Forceer verzenden** — omzeil alert-groep-schakelaars, stille uren en anti-spam-venster alleen voor deze test\n\nDit gebruikt de huidige opties (notify_service + persistent_enabled) en wijzigt ze niet.",
         "data": {
           "alert_kind": "Type melding",
-          "ignore_group_filters": "Groepfilters negeren"
+          "ignore_group_filters": "Forceer verzenden (omzeil filters)"
         },
         "data_description": {
-          "alert_kind": "Welk type melding als test verstuurd wordt.",
-          "ignore_group_filters": "Omzeil alert_group_*-schakelaars, stille uren en dedup-vensters alleen voor deze test."
+          "alert_kind": "Welk type melding als test verstuurd wordt. Kies 'Alle meldingen' om elk alert-type in één keer te versturen.",
+          "ignore_group_filters": "Meldingen worden normaal onderdrukt als hun alert-groep uit staat, tijdens stille uren, of binnen het anti-spam-venster (dedup). Zet dit aan om de testmelding alsnog te versturen."
         }
       },
       "test_notification_result": {
@@ -441,7 +441,8 @@
         "ml_anomaly": "ML-anomalie",
         "setpoint_osc": "Setpoint oscilleert",
         "cop_low": "Lage dag-COP",
-        "stooklijn_advies": "Stooklijn-advies"
+        "stooklijn_advies": "Stooklijn-advies",
+        "all_alerts": "Alle meldingen (alles testen)"
       }
     }
   }

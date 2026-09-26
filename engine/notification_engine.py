@@ -306,9 +306,9 @@ def evaluate_alerts(
             continue
         notif_id = NOTIF_ID_BY_TYPE.get(alert_type, f"daikin_cycle_ml_{alert_type}")
         ctx = context.get(alert_type) if context else None
-        if alert_type in ALERT_SCHEMA:
+        if bkey in ALERT_SCHEMA:
             msg = build_rich_alert(
-                alert_type, severity, ctx,
+                bkey, severity, ctx,
                 language=_lang, emoji_enabled=emoji_enabled,
             )
         else:

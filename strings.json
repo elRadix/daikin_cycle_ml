@@ -305,14 +305,14 @@
       },
       "test_notification": {
         "title": "Test notification",
-        "description": "Send one sample alert to the configured notify target. Use the ignore-filters toggle to bypass alert_group_* toggles, quiet hours and dedup windows for this test only.",
+        "description": "Send **one sample alert** to your configured notify target.\n\n• **Alert type** — which alert to simulate (or *All alerts* to send everything)\n• **Force send** — bypass alert-group toggles, quiet hours and anti-spam window just for this test\n\nThis uses the current options (notify_service + persistent_enabled) and does not change them.",
         "data": {
           "alert_kind": "Alert type",
-          "ignore_group_filters": "Ignore group filters"
+          "ignore_group_filters": "Force send (bypass filters)"
         },
         "data_description": {
-          "alert_kind": "Which alert kind to send as a test.",
-          "ignore_group_filters": "Bypass alert_group_* toggles, quiet hours and dedup windows for this test only."
+          "alert_kind": "Which alert type to send as a test. Choose 'All alerts' to send every alert type at once.",
+          "ignore_group_filters": "Normally alerts are suppressed if their alert group is disabled, during quiet hours, or within the anti-spam (dedup) window. Enable this to send the test alert anyway."
         }
       },
       "test_notification_result": {
@@ -441,7 +441,8 @@
         "ml_anomaly": "ML anomaly",
         "setpoint_osc": "Setpoint oscillating",
         "cop_low": "Low day COP",
-        "stooklijn_advies": "Stooklijn advice"
+        "stooklijn_advies": "Stooklijn advice",
+        "all_alerts": "All alerts (test everything)"
       }
     }
   }

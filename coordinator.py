@@ -1210,6 +1210,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if alert_kind == "status_summary":
             return await self.async_emit_status_update()
 
+        if alert_kind == "all_alerts":
+            return await self._emit_all_test_alerts(ignore_filters=ignore_filters)
+
         opts = dict(self.options or {})
         if ignore_filters:
             opts["quiet_hours_enabled"] = False
@@ -1284,7 +1287,83 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             parts.append(a.message)
         return "\n---\n".join(parts)
 
+    async def _emit_all_test_alerts(self, *, ignore_filters: bool = False) -> str:
+        """Emit one of each alert type for verification."""
+        import time as _t
+        from .engine.notification_engine import (
+            AlertSpec,
+            BINARY_ALERT_MAP,
+        )
+        from .engine.status_report import (
+            build_cop_low_report,
+            build_rich_alert,
+            build_stooklijn_report,
+        )
+
+        opts = dict(self.options or {})
+        if ignore_filters:
+            opts["quiet_hours_enabled"] = False
+            opts["alert_aggregation_minutes"] = 0
+            for k in list(opts.keys()):
+                if k.startswith("alert_group_"):
+                    opts[k] = True
+        persistent = bool(opts.get("persistent_enabled", True))
+        emoji = bool(opts.get("notify_emoji_enabled", True))
+        lang = opts.get("notification_language", "en")
+        ctx_all = self._build_alert_context(self.data)
+
+        parts: list[str] = []
+        seen: set[str] = set()
+        for bkey, spec_tuple in BINARY_ALERT_MAP.items():
+            if bkey in seen:
+                continue
+            seen.add(bkey)
+            alert_type, severity, _ = spec_tuple
+            ctx = ctx_all.get(bkey) or ctx_all.get(alert_type) or {}
+            msg = build_rich_alert(
+                bkey, severity, ctx,
+                language=lang, emoji_enabled=emoji,
+            )
+            spec = AlertSpec(
+                alert_type=alert_type,
+                severity=severity,
+                message=msg,
+                notif_id="daikin_cycle_ml_test_" + bkey,
+                dedupe_key="test_" + bkey,
+                persistent=persistent,
+            )
+            await self._emit_alert(spec)
+            parts.append("=== " + bkey + " ===\n" + msg)
+
+        cop_msg = build_cop_low_report(2.10, 8, language=lang, emoji_enabled=emoji)
+        await self._emit_alert(AlertSpec(
+            alert_type="cop_low", severity="warning",
+            message=cop_msg,
+            notif_id="daikin_cycle_ml_test_cop_low",
+            dedupe_key="test_cop_low", persistent=persistent,
+        ))
+        parts.append("=== cop_low ===\n" + cop_msg)
+
+        fake_stook = {
+            "state": "verlaag_lwt_2c",
+            "besparing_cop_pct": 12.0,
+            "comfort_impact": -0.3,
+            "betrouwbaarheid": 0.75,
+            "samples": 42,
+        }
+        stook_msg = build_stooklijn_report(fake_stook, language=lang, emoji_enabled=emoji)
+        await self._emit_alert(AlertSpec(
+            alert_type="stooklijn_advies", severity="warning",
+            message=stook_msg,
+            notif_id="daikin_cycle_ml_test_stooklijn",
+            dedupe_key="test_stooklijn", persistent=persistent,
+        ))
+        parts.append("=== stooklijn_advies ===\n" + stook_msg)
+
+        return "\n\n".join(parts)
+
     async def _async_dispatch_alerts(self, snap: DataSnapshot) -> None:
+
 
         """Evaluate + emit alerts. Never raises."""
         try:
