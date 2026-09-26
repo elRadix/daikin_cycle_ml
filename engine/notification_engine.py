@@ -13,6 +13,7 @@ from ..const import (
     NOTIF_ID_SHORT_OFF,
     NOTIF_ID_SHORT_RUN,
     SEVERITY_EMOJI,
+    ALERT_GROUP_MAP,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -282,6 +283,11 @@ def evaluate_alerts(
         alert_type, severity, default_tmpl = spec
         tmpl = _lang_templates.get(bkey, default_tmpl)
         if alert_type in emitted:
+            continue
+        _grp = ALERT_GROUP_MAP.get(alert_type)
+        if _grp and options.get(f"alert_group_{_grp}", True) is False:
+            _LOGGER.debug("group disabled: %s (%s)", alert_type, _grp)
+            continue
             continue
         if severity != SEV_CRITICAL and quiet:
             _LOGGER.debug("quiet hours: suppressing %s", alert_type)
