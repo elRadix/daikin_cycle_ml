@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.ml import features as F
 
-
 CYCLE_BASE = {
     "duration_s": 600,
     "dT_max": 5.0,

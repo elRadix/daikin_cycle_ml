@@ -4,13 +4,15 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator, DataSnapshot,
+    DaikinCycleMLCoordinator,
 )
 from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
-    CopSample, bucket_summary,
+    CopSample,
+    bucket_summary,
 )
 from custom_components.daikin_cycle_ml.sensor import (
-    _cop_today_attrs, _stooklijn_attrs,
+    _cop_today_attrs,
+    _stooklijn_attrs,
 )
 
 

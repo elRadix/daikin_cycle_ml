@@ -38,9 +38,7 @@ class DaikinCycleMLEntity(CoordinatorEntity[DaikinCycleMLCoordinator]):
 
     @property
     def available(self) -> bool:
-        if self.coordinator.data is None:
-            return False
-        return True
+        return self.coordinator.data is not None
 
     def snapshot(self) -> Any:
         return self.coordinator.data

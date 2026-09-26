@@ -6,7 +6,6 @@ from unittest.mock import MagicMock
 
 import pytest
 import voluptuous as vol
-from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.daikin_cycle_ml.services import (
     ATTR_COUNTERS,
@@ -29,6 +28,7 @@ from custom_components.daikin_cycle_ml.services import (
     _do_reset_counters,
 )
 from custom_components.daikin_cycle_ml.storage.store import CycleStore
+from homeassistant.exceptions import HomeAssistantError
 
 
 def _coord(store: CycleStore | None = None, db=None):

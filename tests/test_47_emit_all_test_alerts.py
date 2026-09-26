@@ -132,6 +132,6 @@ def test_async_emit_test_alert_unknown_kind():
     c = _bare()
     try:
         asyncio.run(c.async_emit_test_alert('nonsense_kind'))
-        assert False, 'should have raised'
+        raise AssertionError("unreachable")
     except ValueError as e:
         assert 'nonsense_kind' in str(e)

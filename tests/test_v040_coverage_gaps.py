@@ -1,18 +1,24 @@
 from __future__ import annotations
 
-import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-from custom_components.daikin_cycle_ml.sensor import (
-    DaikinCycleMLSensor, _avg, _avg_off_time,
-    async_setup_entry as sensor_setup,
+from custom_components.daikin_cycle_ml.binary_sensor import (
+    DaikinCycleMLBinarySensor,  # removed-class-ref,
+    _attr_on,
+    _is_short_run,
+    _is_source_stale,
 )
 from custom_components.daikin_cycle_ml.binary_sensor import (
-    DaikinCycleMLBinarySensor, # removed-class-ref,
-    _attr_on, _is_short_run, _is_source_stale,
     async_setup_entry as bs_setup,
 )
-from custom_components.daikin_cycle_ml.storage.db import CycleDB
+from custom_components.daikin_cycle_ml.sensor import (
+    DaikinCycleMLSensor,
+    _avg,
+    _avg_off_time,
+)
+from custom_components.daikin_cycle_ml.sensor import (
+    async_setup_entry as sensor_setup,
+)
 
 
 def test_avg_rounded():

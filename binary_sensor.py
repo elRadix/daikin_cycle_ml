@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -30,6 +31,9 @@ from .const import (
 )
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
 from .entity import DaikinCycleMLEntity
+
+PARALLEL_UPDATES = 0  # read-only platform, HA serializes updates
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -154,7 +158,7 @@ class DaikinCycleMLBinarySensor(DaikinCycleMLEntity, BinarySensorEntity):
             return False
         try:
             return bool(self._state_fn(snap, self.coordinator))
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("Binary sensor %s state_fn failed", self._key)
             return False
 
@@ -167,7 +171,7 @@ class DaikinCycleMLBinarySensor(DaikinCycleMLEntity, BinarySensorEntity):
             return None
         try:
             return self._attr_fn(snap, self.coordinator)
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("Binary sensor %s attr_fn failed", self._key)
             return None
 

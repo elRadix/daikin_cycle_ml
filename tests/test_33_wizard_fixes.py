@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT = Path(__file__).parent.parent
 JSON_FILES = [
     "strings.json",
@@ -17,7 +16,7 @@ JSON_FILES = [
 
 def _walk(node):
     if isinstance(node, dict):
-        for k, v in node.items():
+        for _k, v in node.items():
             if isinstance(v, str):
                 yield v
             elif isinstance(v, (dict, list)):

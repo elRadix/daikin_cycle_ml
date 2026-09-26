@@ -2,13 +2,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from ..const import (
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
     ATTR_DEFROST_OPERATION,
-    ATTR_WATER_PUMP_OPERATION,
     ATTR_FLOW_SENSOR,
     ATTR_INLET_WATER_R4T,
     ATTR_INV_FREQUENCY_RPS,
@@ -16,6 +16,7 @@ from ..const import (
     ATTR_LEAVING_WATER_AFTER_BUH,
     ATTR_OPERATION_MODE,
     ATTR_OUTDOOR_AIR_R1T,
+    ATTR_WATER_PUMP_OPERATION,
     DEFAULT_COMPRESSOR_RPS_THRESHOLD,
     DEFAULT_FALLBACK_POWER_THRESHOLD_W,
     OP_MODE_COOLING,
@@ -59,9 +60,7 @@ def detect_compressor_on(
     rps = _safe_float(attrs.get(ATTR_INV_FREQUENCY_RPS))
     if rps is not None and rps > rps_thr:
         return True
-    if power_w is not None and power_w > pwr_thr:
-        return True
-    return False
+    return bool(power_w is not None and power_w > pwr_thr)
 
 
 def classify_mode(attrs: Mapping[str, Any]) -> str:

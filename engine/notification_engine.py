@@ -2,18 +2,12 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
-
-from .status_report import (
-    ALERT_SCHEMA,
-    build_cop_low_report,
-    build_rich_alert,
-    build_status_report,
-    build_stooklijn_report,
-)
+from typing import Any
 
 from ..const import (
+    ALERT_GROUP_MAP,
     ALERT_TYPE_EMOJI,
     NOTIF_ID_ML_ANOMALY,
     NOTIF_ID_PENDULUM,
@@ -21,7 +15,13 @@ from ..const import (
     NOTIF_ID_SHORT_OFF,
     NOTIF_ID_SHORT_RUN,
     SEVERITY_EMOJI,
-    ALERT_GROUP_MAP,
+)
+from .status_report import (
+    ALERT_SCHEMA,
+    build_cop_low_report,
+    build_rich_alert,
+    build_status_report,
+    build_stooklijn_report,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -189,7 +189,7 @@ def _format_message(
         return template
     try:
         return template.format_map(_SafeDict(context))
-    except Exception:  # noqa: BLE001
+    except Exception:
         return template
 
 

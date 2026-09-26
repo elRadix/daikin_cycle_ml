@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import datetime as _dt
-from typing import Any, Mapping
+from collections.abc import Mapping
+
 try:
     from ..const import (
         STOOKLIJN_STATE_LABEL_EN,
@@ -126,10 +127,10 @@ def build_status_report(snapshot, *, language="en", emoji_enabled=True):
                       L["status"], state, emojis=emoji_enabled))
     lines.append(_row("\U0001F501", L["mode"], mode_str, emojis=emoji_enabled))
     ago = snapshot.get("last_cycle_ago_min")
-    v = ("%d min" % int(ago)) if ago is not None else "\u2014"
+    v = f"{int(ago)} min" if ago is not None else "\u2014"
     lines.append(_row("\u23F1\uFE0F", L["last"], v, emojis=emoji_enabled))
     q = snapshot.get("quality_last")
-    v = ("%d / 100" % int(q)) if q is not None else "\u2014"
+    v = f"{int(q)} / 100" if q is not None else "\u2014"
     lines.append(_row("\U0001F4CA", L["quality"], v, emojis=emoji_enabled))
     lines.append(DIV)
 
@@ -149,7 +150,7 @@ def build_status_report(snapshot, *, language="en", emoji_enabled=True):
     cyc_today = snapshot.get("cycles_today")
     tgt = snapshot.get("target_cpd")
     if cyc_today is not None:
-        v = ("%d / %d" % (int(cyc_today), int(tgt))) if tgt else str(int(cyc_today))
+        v = f"{int(cyc_today)} / {int(tgt)}" if tgt else str(int(cyc_today))
     else:
         v = "\u2014"
     lines.append(_row("\U0001F4C8", L["cycles_today"], v, emojis=emoji_enabled))
@@ -162,7 +163,7 @@ def build_status_report(snapshot, *, language="en", emoji_enabled=True):
     cph = snapshot.get("cycles_per_hour")
     tgt_cph = snapshot.get("target_cph")
     if cph is not None:
-        v = ("%d / \u2264%d" % (int(cph), int(tgt_cph))) if tgt_cph else str(int(cph))
+        v = f"{int(cph)} / \u2264{int(tgt_cph)}" if tgt_cph else str(int(cph))
         lines.append(_row("\U0001F501", L["per_hour"], v, emojis=emoji_enabled))
     lines.append(DIV)
 
@@ -171,7 +172,7 @@ def build_status_report(snapshot, *, language="en", emoji_enabled=True):
     if samples is not None:
         modes_str = (" \u00b7 " + ", ".join(modes)) if modes else ""
         lines.append(_row("\U0001F393", L["baseline"],
-                          "%d samples%s" % (int(samples), modes_str),
+                          f"{int(samples)} samples{modes_str}",
                           emojis=emoji_enabled))
     sev = snapshot.get("anomaly_severity") or "normal"
     sev_e = SEVERITY_EMOJI.get(sev, "") if emoji_enabled else ""
@@ -181,7 +182,7 @@ def build_status_report(snapshot, *, language="en", emoji_enabled=True):
     cop = snapshot.get("cop_today")
     cop_n = snapshot.get("cop_today_samples")
     if cop is not None:
-        v = ("%.2f (%d samples)" % (float(cop), int(cop_n))) if cop_n else ("%.2f" % float(cop))
+        v = f"{float(cop):.2f} ({int(cop_n)} samples)" if cop_n else (f"{float(cop):.2f}")
         lines.append(_row("\U0001F4C9", L["cop_today"], v, emojis=emoji_enabled))
     lines.append(DIV)
 
@@ -243,9 +244,9 @@ def build_stooklijn_report(cache, *, language="en", emoji_enabled=True):
     lbl_conf = "Vertrouwen" if is_nl else "Confidence"
     lbl_smp = "Samples"
     lines.append(_row("\U0001F3AF", lbl_state, state, emojis=emoji_enabled))
-    lines.append(_row("\U0001F4C8", lbl_besp, ("+%.0f%%" % besparing), emojis=emoji_enabled))
-    lines.append(_row("\U0001F321\uFE0F", lbl_cmf, ("%+.1f \u00b0C" % comfort), emojis=emoji_enabled))
-    lines.append(_row("\U0001F3AF", lbl_conf, ("%d%%" % int(betrouw * 100)), emojis=emoji_enabled))
+    lines.append(_row("\U0001F4C8", lbl_besp, (f"+{besparing:.0f}%"), emojis=emoji_enabled))
+    lines.append(_row("\U0001F321\uFE0F", lbl_cmf, (f"{comfort:+.1f} \u00b0C"), emojis=emoji_enabled))
+    lines.append(_row("\U0001F3AF", lbl_conf, f"{int(betrouw * 100)}%", emojis=emoji_enabled))
     lines.append(_row("\U0001F4E6", lbl_smp, str(samples), emojis=emoji_enabled))
     lines.append(DIV)
     return "\n".join(lines)
@@ -265,7 +266,7 @@ def build_cop_low_report(cop, samples, *, language="en", emoji_enabled=True):
                  "\U0001F550 " + ts, DIV]
     else:
         lines = ["Daikin Cycle ML \u2014 " + title, ts, DIV]
-    lines.append(_row("\U0001F4C9", lbl_cop, ("%.2f" % float(cop)), emojis=emoji_enabled))
+    lines.append(_row("\U0001F4C9", lbl_cop, (f"{float(cop):.2f}"), emojis=emoji_enabled))
     lines.append(_row("\U0001F3AF", lbl_th, "2.50", emojis=emoji_enabled))
     lines.append(_row("\U0001F4E6", lbl_smp, str(int(samples)), emojis=emoji_enabled))
     lines.append(DIV)

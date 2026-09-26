@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT = Path(__file__).parent.parent
 JSON_FILES = [
     "strings.json",

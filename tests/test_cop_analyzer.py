@@ -2,8 +2,12 @@
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
-    CopSample, StooklijnAdvies, _parse_bool, _parse_float,
-    analyze_stooklijn, bucket_for_outdoor, parse_global_cop_attrs,
+    CopSample,
+    _parse_bool,
+    _parse_float,
+    analyze_stooklijn,
+    bucket_for_outdoor,
+    parse_global_cop_attrs,
 )
 
 

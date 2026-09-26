@@ -1,8 +1,6 @@
 """Tests for config_flow."""
 from __future__ import annotations
 
-import pytest
-
 from custom_components.daikin_cycle_ml.const import (
     DOMAIN,
     MODEL_CUSTOM,
@@ -16,7 +14,7 @@ def _set_valid_state(hass):
     hass.states.async_set(
         SOURCE_SENSOR_ENTITY,
         "ok",
-        {k: 0 for k in REQUIRED_ATTRIBUTES},
+        dict.fromkeys(REQUIRED_ATTRIBUTES, 0),
     )
 
 

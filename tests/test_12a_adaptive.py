@@ -17,7 +17,7 @@ def test_percentile_empty_raises():
         _percentile([], 50.0)
     except ValueError:
         return
-    assert False, 'expected ValueError'
+    raise AssertionError("unreachable")
 
 
 def test_percentile_edges():

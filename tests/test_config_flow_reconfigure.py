@@ -19,7 +19,7 @@ DB_PATCH = "custom_components.daikin_cycle_ml._async_setup_database"
 
 
 def _valid_attrs():
-    return {k: 0 for k in REQUIRED_ATTRIBUTES}
+    return dict.fromkeys(REQUIRED_ATTRIBUTES, 0)
 
 
 def _add_entry(hass, options=None):

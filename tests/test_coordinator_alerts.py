@@ -128,9 +128,6 @@ async def test_dispatch_never_raises_on_service_error():
 
 
 async def test_dispatch_quiet_hours_suppresses():
-    from custom_components.daikin_cycle_ml.engine.notification_engine import (
-        _in_quiet_hours,
-    )
     # Just assert integration: quiet true blocks warning alerts
     st = CycleStore()
     st.add_cycle({"start_ts": 100, "duration_s": 300})

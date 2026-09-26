@@ -202,7 +202,7 @@ def test_resolve_optional_zero_entries():
     h.config_entries.async_entries = MagicMock(return_value=[])
     try:
         svc._resolve_optional_coordinator(h, None)
-        assert False, "should have raised"
+        raise AssertionError("unreachable")
     except svc.HomeAssistantError:
         pass
 
@@ -214,7 +214,7 @@ def test_resolve_optional_multiple_entries():
     h.config_entries.async_entries = MagicMock(return_value=[e1, e2])
     try:
         svc._resolve_optional_coordinator(h, None)
-        assert False, "should have raised"
+        raise AssertionError("unreachable")
     except svc.HomeAssistantError:
         pass
 

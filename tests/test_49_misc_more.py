@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 import custom_components.daikin_cycle_ml as mod
-from custom_components.daikin_cycle_ml import services as svc
-from custom_components.daikin_cycle_ml import sensor as sm
 from custom_components.daikin_cycle_ml import binary_sensor as bs
+from custom_components.daikin_cycle_ml import sensor as sm
+from custom_components.daikin_cycle_ml import services as svc
 
 
 @pytest.mark.asyncio
@@ -59,7 +59,7 @@ async def test_setup_entry_missing_source():
             await asyncio.wait_for(
                 mod.async_setup_entry(hass, entry), timeout=3,
             )
-        except (Exception, asyncio.TimeoutError):
+        except (TimeoutError, Exception):
             pass
 
 

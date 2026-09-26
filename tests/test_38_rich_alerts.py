@@ -14,7 +14,6 @@ from custom_components.daikin_cycle_ml.engine.status_report import (
     build_rich_alert,
 )
 
-
 ALL_TYPES = (
     "pendulum_hourly", "pendulum_daily", "short_run",
     "short_off", "ml_anomaly", "setpoint_osc",

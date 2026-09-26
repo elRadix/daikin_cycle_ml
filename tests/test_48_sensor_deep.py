@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from custom_components.daikin_cycle_ml import sensor as sensor_mod
 from custom_components.daikin_cycle_ml import binary_sensor as bs_mod
+from custom_components.daikin_cycle_ml import sensor as sensor_mod
 
 
 def _mock_coord():

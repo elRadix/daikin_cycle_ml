@@ -1,15 +1,13 @@
 """Tests for AdaptiveBaseline (Batch 11a)."""
 from __future__ import annotations
 
-import math
-
 import pytest
 
 from custom_components.daikin_cycle_ml.ml.baseline import (
-    AdaptiveBaseline,
-    Baseline,
     MAX_ALPHA,
     MIN_ALPHA,
+    AdaptiveBaseline,
+    Baseline,
     baseline_from_dict,
 )
 

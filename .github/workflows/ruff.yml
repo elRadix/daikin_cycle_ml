@@ -1,0 +1,17 @@
+name: Ruff
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ruff check
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: check --select E,F,W --ignore E501,E402,F401 --exclude tests

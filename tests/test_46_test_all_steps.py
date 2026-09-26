@@ -3,8 +3,6 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
 from custom_components.daikin_cycle_ml import config_flow as cf
 
 
@@ -48,7 +46,7 @@ def test_submit_calls_coordinator():
 def test_no_coordinator():
     import asyncio
     flow = _flow_with_coordinator(None)
-    r = asyncio.run(flow.async_step_test_all_notifications(user_input={}))
+    asyncio.run(flow.async_step_test_all_notifications(user_input={}))
     assert flow._test_all_result['status'] == 'no_coordinator'
 
 
@@ -57,7 +55,7 @@ def test_coordinator_raises():
     coord = MagicMock()
     coord.async_emit_test_alert = AsyncMock(side_effect=RuntimeError('boom'))
     flow = _flow_with_coordinator(coord)
-    r = asyncio.run(flow.async_step_test_all_notifications(user_input={}))
+    asyncio.run(flow.async_step_test_all_notifications(user_input={}))
     assert flow._test_all_result['status'] == 'failed'
     assert 'boom' in flow._test_all_result['preview']
 
@@ -74,5 +72,5 @@ def test_result_step_submit_returns_init():
     import asyncio
     flow = _flow_with_coordinator(None)
     flow.async_step_init = AsyncMock(return_value={'type': 'menu'})
-    r = asyncio.run(flow.async_step_test_all_notifications_result(user_input={'back': True}))
+    asyncio.run(flow.async_step_test_all_notifications_result(user_input={'back': True}))
     flow.async_step_init.assert_awaited_once()

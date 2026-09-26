@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import Any
 
-from ..ml.baseline import Baseline, DEFAULT_Z_THRESHOLD
+from ..ml.baseline import DEFAULT_Z_THRESHOLD, Baseline
 
 _LOGGER = logging.getLogger(__name__)
 

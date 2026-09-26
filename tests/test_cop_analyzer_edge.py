@@ -1,8 +1,6 @@
 """Batch 15: cop_analyzer edge-case coverage."""
 from __future__ import annotations
 
-import pytest
-
 from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
     CopSample,
     StooklijnAdvies,

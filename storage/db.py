@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import aiosqlite
+
 from ..ml.features import VECTOR_LEN
 
 _LOGGER = logging.getLogger(__name__)
@@ -352,7 +353,7 @@ class CycleDB:
             )
             cop_deleted = cur.rowcount or 0
             await cur.close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("cop_samples prune failed")
 
         await conn.commit()
@@ -385,7 +386,7 @@ class CycleDB:
             ) as vac:
                 await vac.execute("VACUUM")
             return True
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:
             _LOGGER.warning("VACUUM skipped (best-effort): %s", err)
             return False
 
@@ -434,7 +435,6 @@ class CycleDB:
         self, cycle_id: int, cluster_id: int
     ) -> bool:
         """Update cluster_id for a cycle. Lazy-migrates schema if needed."""
-        import aiosqlite
         path = getattr(self, "path", None)
         if path is None:
             return False
@@ -445,7 +445,7 @@ class CycleDB:
                         "UPDATE cycles SET cluster_id = ? WHERE id = ?",
                         (int(cluster_id), int(cycle_id)),
                     )
-                except Exception:  # noqa: BLE001
+                except Exception:
                     # column missing -> migrate then retry
                     await conn.execute(
                         "ALTER TABLE cycles ADD COLUMN cluster_id INTEGER"
@@ -456,13 +456,12 @@ class CycleDB:
                     )
                 await conn.commit()
             return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.debug("update_cycle_cluster failed", exc_info=True)
             return False
 
     async def async_count_by_cluster(self) -> dict[int, int]:  # pragma: no cover
         """Return {cluster_id: count} for cycles with cluster assigned."""
-        import aiosqlite
         path = getattr(self, "path", None)
         if path is None:
             return {}
@@ -474,12 +473,11 @@ class CycleDB:
                 )
                 rows = await cur.fetchall()
                 return {int(r[0]): int(r[1]) for r in rows}
-        except Exception:  # noqa: BLE001
+        except Exception:
             return {}
 
     async def async_ensure_cluster_column(self) -> bool:  # pragma: no cover
         """Ensure cycles.cluster_id exists (idempotent migration)."""
-        import aiosqlite
         path = getattr(self, "path", None)
         if path is None:
             return False
@@ -495,7 +493,7 @@ class CycleDB:
                 )
                 await conn.commit()
                 return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             return False
 
     async def async_count(self, table: str = "cycles") -> int:
@@ -553,7 +551,7 @@ class CycleDB:
             )
             await conn.commit()
             return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("cop_sample insert failed")
             return False
 
@@ -617,7 +615,7 @@ class CycleDB:
             row = await cur.fetchone()
             await cur.close()
             return int(row[0]) if row else 0
-        except Exception:  # noqa: BLE001
+        except Exception:
             return 0
 
     async def async_avg_duration_since(self, since_ts: float):
@@ -634,6 +632,6 @@ class CycleDB:
             if not row or row[0] is None:
                 return None
             return float(row[0])
-        except Exception:  # noqa: BLE001
+        except Exception:
             return None
 

@@ -4,11 +4,11 @@ from __future__ import annotations
 import time
 
 from custom_components.daikin_cycle_ml.engine.notification_engine import (
-    AlertSpec,
     BINARY_ALERT_MAP,
     DEFAULT_AGG_MIN,
     SEV_CRITICAL,
     SEV_WARNING,
+    AlertSpec,
     _in_quiet_hours,
     _parse_hhmm,
     evaluate_alerts,
@@ -67,7 +67,7 @@ def test_no_trigger_returns_empty():
 
 
 def test_all_false_returns_empty():
-    states = {k: False for k in BINARY_ALERT_MAP}
+    states = dict.fromkeys(BINARY_ALERT_MAP, False)
     assert evaluate_alerts(states, {}, now=1e9) == []
 
 

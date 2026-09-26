@@ -4,8 +4,6 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
 from custom_components.daikin_cycle_ml.engine.notification_engine import (
     async_send_notification,
 )

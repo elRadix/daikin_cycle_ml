@@ -25,8 +25,7 @@ def test_services_module_has_handler():
 
 
 def test_handler_no_target(monkeypatch):
-    import asyncio
-    h = _hass()
+    _hass()
     # Config entry resolution path skipped; direct call with empty target
     call = MagicMock()
     call.data = {'target': '', 'message': 'hi'}

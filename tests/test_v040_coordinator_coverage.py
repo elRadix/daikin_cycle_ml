@@ -5,7 +5,8 @@ from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator, DataSnapshot,
+    DaikinCycleMLCoordinator,
+    DataSnapshot,
 )
 from custom_components.daikin_cycle_ml.ml.features import VECTOR_LEN
 from custom_components.daikin_cycle_ml.ml.multi_baseline import (

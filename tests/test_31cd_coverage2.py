@@ -2,15 +2,12 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import time
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from custom_components.daikin_cycle_ml.engine import notification_engine as ne
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
-
 
 # ────────────────────────────────────────────────────────────
 # notification_engine — severity + quiet hours + dedup branches
@@ -260,7 +257,9 @@ def test_services_module_exports():
 
 def test_init_module_exports():
     from custom_components.daikin_cycle_ml import (
-        async_setup, async_setup_entry, async_unload_entry,
+        async_setup,
+        async_setup_entry,
+        async_unload_entry,
     )
     assert callable(async_setup)
     assert callable(async_setup_entry)

@@ -1,9 +1,9 @@
 """Batch 22 tests: i18n + alert groups + setpoint_osc options."""
 from __future__ import annotations
 
+import inspect
 import json
 import os
-import inspect
 
 from custom_components.daikin_cycle_ml import config_flow as cf
 from custom_components.daikin_cycle_ml import const

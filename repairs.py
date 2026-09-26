@@ -26,7 +26,7 @@ async def async_check_repairs(
     try:
         _check_stale(hass, entry_id, snap)
         _check_missing_attrs(hass, entry_id, snap)
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.exception("Repairs check failed for %s", entry_id)
 
 

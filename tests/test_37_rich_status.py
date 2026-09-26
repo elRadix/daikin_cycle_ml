@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import datetime as _dt
 
-import pytest
-
 from custom_components.daikin_cycle_ml.engine.status_report import (
     DIV,
     LABELS,

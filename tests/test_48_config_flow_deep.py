@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 from custom_components.daikin_cycle_ml import config_flow as cf
 
@@ -56,14 +56,7 @@ def test_user_step_missing_attributes():
 
 def test_user_step_custom_model_redirects():
     src = MagicMock()
-    src.attributes = {k: 1 for k in (
-        'INV frequency (rps)', 'Operation Mode', 'I/U operation mode',
-        '3way valve(On:DHW_Off:Space)', 'Defrost Operation',
-        'Leaving water temp. after BUH (R2T)', 'Inlet water temp.(R4T)',
-        'Outdoor air temp.(R1T)', 'Flow sensor (l/min)',
-        'Water pump operation', 'BUH Step1', 'BUH Step2',
-        'LW setpoint (main)',
-    )}
+    src.attributes = dict.fromkeys(('INV frequency (rps)', 'Operation Mode', 'I/U operation mode', '3way valve(On:DHW_Off:Space)', 'Defrost Operation', 'Leaving water temp. after BUH (R2T)', 'Inlet water temp.(R4T)', 'Outdoor air temp.(R1T)', 'Flow sensor (l/min)', 'Water pump operation', 'BUH Step1', 'BUH Step2', 'LW setpoint (main)'), 1)
     flow = _wizard(src)
     r = asyncio.run(flow.async_step_user(user_input={
         'source_sensor': 'sensor.x',
@@ -75,14 +68,7 @@ def test_user_step_custom_model_redirects():
 
 def test_user_step_valid_redirects_to_attributes():
     src = MagicMock()
-    src.attributes = {k: 1 for k in (
-        'INV frequency (rps)', 'Operation Mode', 'I/U operation mode',
-        '3way valve(On:DHW_Off:Space)', 'Defrost Operation',
-        'Leaving water temp. after BUH (R2T)', 'Inlet water temp.(R4T)',
-        'Outdoor air temp.(R1T)', 'Flow sensor (l/min)',
-        'Water pump operation', 'BUH Step1', 'BUH Step2',
-        'LW setpoint (main)',
-    )}
+    src.attributes = dict.fromkeys(('INV frequency (rps)', 'Operation Mode', 'I/U operation mode', '3way valve(On:DHW_Off:Space)', 'Defrost Operation', 'Leaving water temp. after BUH (R2T)', 'Inlet water temp.(R4T)', 'Outdoor air temp.(R1T)', 'Flow sensor (l/min)', 'Water pump operation', 'BUH Step1', 'BUH Step2', 'LW setpoint (main)'), 1)
     flow = _wizard(src)
     r = asyncio.run(flow.async_step_user(user_input={
         'source_sensor': 'sensor.x',
@@ -102,14 +88,7 @@ def test_model_custom_invalid_json():
 
 def test_attributes_step_form():
     src = MagicMock()
-    src.attributes = {k: 1 for k in (
-        'INV frequency (rps)', 'Operation Mode', 'I/U operation mode',
-        '3way valve(On:DHW_Off:Space)', 'Defrost Operation',
-        'Leaving water temp. after BUH (R2T)', 'Inlet water temp.(R4T)',
-        'Outdoor air temp.(R1T)', 'Flow sensor (l/min)',
-        'Water pump operation', 'BUH Step1', 'BUH Step2',
-        'LW setpoint (main)',
-    )}
+    src.attributes = dict.fromkeys(('INV frequency (rps)', 'Operation Mode', 'I/U operation mode', '3way valve(On:DHW_Off:Space)', 'Defrost Operation', 'Leaving water temp. after BUH (R2T)', 'Inlet water temp.(R4T)', 'Outdoor air temp.(R1T)', 'Flow sensor (l/min)', 'Water pump operation', 'BUH Step1', 'BUH Step2', 'LW setpoint (main)'), 1)
     flow = _wizard(src)
     flow._data = {'source_sensor': 'sensor.x', 'model': 'epra12eav3'}
     r = asyncio.run(flow.async_step_attributes())

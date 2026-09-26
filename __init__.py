@@ -7,7 +7,8 @@ from pathlib import Path
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, VERSION
+from .const import DOMAIN as DOMAIN
+from .const import VERSION as VERSION
 from .coordinator import DaikinCycleMLCoordinator
 from .services import async_register_services
 from .storage.db import CycleDB
@@ -42,11 +43,11 @@ async def _async_setup_database(
                     'Migrated %d legacy feature vectors to 11-dim',
                     migrated,
                 )
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception('feature vector migration failed')
         coordinator.db = db
         _LOGGER.info("Cycle DB ready at %s", db_path)
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.exception("Failed to initialize Cycle DB at %s", db_path)
         coordinator.db = None
 
@@ -59,23 +60,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.runtime_data = coordinator
     try:
         await coordinator.async_setup_maintenance()
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.exception('Failed to setup maintenance hook')
     try:
         await coordinator.async_setup_baseline_persistence()
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.exception('Failed to setup baseline persistence')
     try:
         await coordinator.async_setup_kmeans()
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.exception('Failed to setup kmeans scheduler')
     try:
         await coordinator.async_setup_status_updates()
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.exception('Failed to setup status updates')
     try:
         await coordinator.async_setup_stooklijn()
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.exception('Failed to setup stooklijn scheduler')
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     _LOGGER.info(
@@ -102,14 +103,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if _unsub is not None:
                 try:
                     _unsub()
-                except Exception:  # noqa: BLE001
+                except Exception:
                     _LOGGER.exception('Failed to unsub %s', _attr)
                 setattr(coordinator, _attr, None)
     db = getattr(coordinator, "db", None) if coordinator is not None else None
     if db is not None:
         try:
             await db.async_close()
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("Failed closing Cycle DB")
     _LOGGER.info("Daikin Cycle ML unloaded entry %s", entry.entry_id)
     return True

@@ -6,7 +6,9 @@ import logging
 from typing import Any
 
 import voluptuous as vol
+
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
+
 try:
     from homeassistant.config_entries import OptionsFlowWithReload
     _OPTIONS_FLOW_BASE = OptionsFlowWithReload
@@ -18,50 +20,48 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
 from .const import (
-
+    CORE_ATTRIBUTES,
+    DEFAULT_ACTION_ADVICE_ENABLED,
+    DEFAULT_ADAPTIVE_MIN_SAMPLES,
+    DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED,
+    DEFAULT_ALERT_AGGREGATION_MIN,
+    DEFAULT_ALERT_RETENTION_DAYS,
+    DEFAULT_COMPRESSOR_RPS_THRESHOLD,
+    DEFAULT_CYCLE_RETENTION_DAYS,
+    DEFAULT_DHW_PENDULUM_CPH,
+    DEFAULT_FALLBACK_POWER_THRESHOLD_W,
+    DEFAULT_GOOD_DT_K,
+    DEFAULT_GOOD_OFF_MIN,
+    DEFAULT_GOOD_RUN_MIN,
+    DEFAULT_NOTIFICATION_LANGUAGE,
+    DEFAULT_NOTIFY_EMOJI_ENABLED,
+    DEFAULT_NOTIFY_SERVICE,
+    DEFAULT_PENDULUM_CPD,
+    DEFAULT_PENDULUM_CPH,
+    DEFAULT_PERSISTENT_ENABLED,
+    DEFAULT_QUIET_HOURS_ENABLED,
+    DEFAULT_QUIET_HOURS_END,
+    DEFAULT_QUIET_HOURS_START,
+    DEFAULT_RETENTION_ENABLED,
+    DEFAULT_SETPOINT_OSC_MIN_DELTA,
+    DEFAULT_SETPOINT_OSC_THRESHOLD,
+    DEFAULT_SETPOINT_OSC_WINDOW_MIN,
+    DEFAULT_SHORT_OFF_MIN,
+    DEFAULT_SHORT_RUN_MIN,
+    DEFAULT_STATUS_UPDATE_ENABLED,
+    DEFAULT_STATUS_UPDATE_INTERVAL_HOURS,
+    DEFAULT_TARGET_CYCLES_PER_DAY,
+    DEFAULT_VACUUM_ENABLED,
     DOMAIN,
-    NAME,
-    SOURCE_SENSOR_ENTITY,
-    REQUIRED_ATTRIBUTES,
+    LANG_EN,
+    LANG_NL,
     MODEL_CHOICES,
     MODEL_CUSTOM,
     MODEL_EPRA12EAV3,
     MODEL_LABELS,
-    DEFAULT_COMPRESSOR_RPS_THRESHOLD,
-    DEFAULT_FALLBACK_POWER_THRESHOLD_W,
-    DEFAULT_SHORT_RUN_MIN,
-    DEFAULT_SHORT_OFF_MIN,
-    DEFAULT_PENDULUM_CPD,
-    DEFAULT_DHW_PENDULUM_CPH,
-    DEFAULT_GOOD_RUN_MIN,
-    DEFAULT_GOOD_DT_K,
-    DEFAULT_GOOD_OFF_MIN,
-    DEFAULT_TARGET_CYCLES_PER_DAY,
-    DEFAULT_PERSISTENT_ENABLED,
-    DEFAULT_NOTIFY_SERVICE,
-    DEFAULT_QUIET_HOURS_ENABLED,
-    DEFAULT_QUIET_HOURS_START,
-    DEFAULT_QUIET_HOURS_END,
-    DEFAULT_INDOOR_TEMP_SENSOR,
-    DEFAULT_SETPOINT_OSC_THRESHOLD,
-    DEFAULT_SETPOINT_OSC_WINDOW_MIN,
-    DEFAULT_SETPOINT_OSC_MIN_DELTA,
-    DEFAULT_NOTIFICATION_LANGUAGE,
-    LANG_EN,
-    LANG_NL,
-    DEFAULT_PENDULUM_CPH,
-    DEFAULT_ALERT_AGGREGATION_MIN,
-    DEFAULT_ACTION_ADVICE_ENABLED,
-    DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED,
-    DEFAULT_ADAPTIVE_MIN_SAMPLES,
-    DEFAULT_NOTIFY_EMOJI_ENABLED,
-    DEFAULT_STATUS_UPDATE_ENABLED,
-    DEFAULT_STATUS_UPDATE_INTERVAL_HOURS,
-    DEFAULT_RETENTION_ENABLED,
-    DEFAULT_CYCLE_RETENTION_DAYS,
-    DEFAULT_ALERT_RETENTION_DAYS,
-    DEFAULT_VACUUM_ENABLED,
-    CORE_ATTRIBUTES,
+    NAME,
+    REQUIRED_ATTRIBUTES,
+    SOURCE_SENSOR_ENTITY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ def _legacy_notify_options(hass) -> list:
     """List legacy notify services (excludes generic send_message)."""
     try:
         svcs = hass.services.async_services().get("notify", {})
-    except Exception:  # noqa: BLE001
+    except Exception:
         svcs = {}
     return sorted(
         f"notify.{svc}" for svc in svcs if svc != "send_message"
@@ -731,7 +731,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                     msg = await coord.async_emit_test_alert(kind, ignore_filters=ignore)
                     status = "sent"
                     preview = (msg or "")[:600]
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 status = "failed"
                 preview = str(exc)[:600]
             self._test_result = {"status": status, "kind": kind, "preview": preview}
@@ -795,7 +795,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                     status = "sent"
                     count = (msg or "").count("=== ")
                     preview = (msg or "")[:600]
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 status = "failed"
                 preview = str(exc)[:600]
             self._test_all_result = {

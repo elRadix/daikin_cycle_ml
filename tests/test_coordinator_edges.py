@@ -1,13 +1,13 @@
 """Tests for coordinator edge branches (Batch 8d)."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,
 )
-from custom_components.daikin_cycle_ml.ml.features import VECTOR_LEN
 from custom_components.daikin_cycle_ml.ml.baseline import Baseline
+from custom_components.daikin_cycle_ml.ml.features import VECTOR_LEN
 from custom_components.daikin_cycle_ml.storage.store import CycleStore
 
 

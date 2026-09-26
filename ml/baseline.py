@@ -11,7 +11,8 @@ from __future__ import annotations
 import json
 import logging
 import math
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ class Baseline:
             return [0.0] * self._dim
         return [math.sqrt(max(0.0, m2 / (self._n - 1))) for m2 in self._m2]
 
-    def fit(self, vectors: list[list[float]]) -> "Baseline":
+    def fit(self, vectors: list[list[float]]) -> Baseline:
         self._n = 0
         self._mean = [0.0] * self._dim
         self._m2 = [0.0] * self._dim
@@ -121,7 +122,7 @@ class Baseline:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "Baseline":
+    def from_dict(cls, data: Mapping[str, Any]) -> Baseline:
         b = cls(int(data["dim"]))
         b._n = int(data.get("n", 0))
         b._mean = [float(x) for x in data.get("mean", [])] or [0.0] * b._dim
@@ -132,7 +133,7 @@ class Baseline:
         return json.dumps(self.to_dict())
 
     @classmethod
-    def from_json(cls, raw: str) -> "Baseline":
+    def from_json(cls, raw: str) -> Baseline:
         return cls.from_dict(json.loads(raw))
 
 
@@ -172,7 +173,7 @@ class AdaptiveBaseline(Baseline):
             return [0.0] * self._dim
         return [math.sqrt(max(0.0, m2)) for m2 in self._m2]
 
-    def fit(self, vectors: list[list[float]]) -> "AdaptiveBaseline":
+    def fit(self, vectors: list[list[float]]) -> AdaptiveBaseline:
         self._n = 0
         self._mean = [0.0] * self._dim
         self._m2 = [0.0] * self._dim
@@ -226,7 +227,7 @@ class AdaptiveBaseline(Baseline):
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "AdaptiveBaseline":
+    def from_dict(cls, data: Mapping[str, Any]) -> AdaptiveBaseline:
         b = cls(
             int(data["dim"]),
             alpha=float(data.get("alpha", DEFAULT_ALPHA)),

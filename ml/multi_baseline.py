@@ -7,15 +7,16 @@ mode switch. MultiBaseline keeps one AdaptiveBaseline per mode.
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
-from .features import VECTOR_LEN, VECTOR_LEN_LEGACY
 from .baseline import (
-    AdaptiveBaseline,
     DEFAULT_ALPHA,
     DEFAULT_MIN_SAMPLES_OUTLIER_SKIP,
     DEFAULT_OUTLIER_Z,
+    AdaptiveBaseline,
 )
+from .features import VECTOR_LEN, VECTOR_LEN_LEGACY
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -105,7 +106,7 @@ class MultiBaseline:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "MultiBaseline":
+    def from_dict(cls, data: Mapping[str, Any]) -> MultiBaseline:
         saved_dim = data.get("dim")
         # Only reset for KNOWN obsolete dims. Other dims (small test baselines
         # or future-proof values) load normally.
@@ -132,14 +133,14 @@ class MultiBaseline:
         for key, sub in (data.get("baselines") or {}).items():
             mb._baselines[key] = AdaptiveBaseline.from_dict(sub)
         return mb
-    
-    
+
+
 
     def to_json(self) -> str:
         import json
         return json.dumps(self.to_dict())
 
     @classmethod
-    def from_json(cls, raw: str) -> "MultiBaseline":
+    def from_json(cls, raw: str) -> MultiBaseline:
         import json
         return cls.from_dict(json.loads(raw))

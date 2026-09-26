@@ -6,7 +6,6 @@ from custom_components.daikin_cycle_ml.const import (
     MODEL_BASISPROFIEL,
     MODEL_CHOICES,
     MODEL_EPRA12EAV3,
-    REQUIRED_ATTRIBUTES,
 )
 from custom_components.daikin_cycle_ml.engine.model_profiles import (
     MODEL_PROFILES,

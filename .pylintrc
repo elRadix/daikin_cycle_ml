@@ -1,0 +1,14 @@
+[MASTER]
+ignore = tests
+ignore-patterns = ^tests/
+
+[MESSAGES CONTROL]
+disable =
+    R0904,  # too-many-public-methods (DB CRUD)
+    C0103, C0114, C0115, C0116,
+    C0209, C0301, C0415, C1803,
+    R0801, R0902, R0903, R0912, R0913, R0914, R0915, R0917,
+    W0108, W0201, W0212, W0613, W0621, W0718
+
+[FORMAT]
+max-line-length = 120

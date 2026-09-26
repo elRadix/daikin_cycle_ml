@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from ..const import (
+    CORE_ATTRIBUTES,
     DEFAULT_COMPRESSOR_RPS_THRESHOLD,
     DEFAULT_DEFROST_INTERVAL_MIN,
     DEFAULT_DHW_PENDULUM_CPH,
@@ -22,13 +23,10 @@ from ..const import (
     DEFAULT_SHORT_RUN_MIN,
     DEFAULT_TARGET_CYCLES_PER_DAY,
     MODEL_BASISPROFIEL,
-    MODEL_CHOICES,
     MODEL_CUSTOM,
     MODEL_EPRA08EAV3,
     MODEL_EPRA12EAV3,
     MODEL_ERLA11DAV3,
-    REQUIRED_ATTRIBUTES,
-    CORE_ATTRIBUTES,
 )
 
 _LOGGER = logging.getLogger(__name__)

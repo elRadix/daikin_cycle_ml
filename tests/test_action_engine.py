@@ -7,15 +7,14 @@ from custom_components.daikin_cycle_ml.engine.action_engine import (
     CAT_PATTERN,
     PRIORITY_HIGH,
     PRIORITY_LOW,
-    PRIORITY_MED,
     ActionAdvice,
     generate_advice,
 )
 from custom_components.daikin_cycle_ml.engine.anomaly_engine import (
-    AnomalyResult,
     SEV_CRITICAL,
     SEV_NORMAL,
     SEV_WARN,
+    AnomalyResult,
 )
 
 

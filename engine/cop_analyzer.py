@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
-
 
 _NUM_RE = re.compile(r'-?\d+(?:\.\d+)?')
 
@@ -116,7 +115,7 @@ def bucket_for_outdoor(temp: float | None) -> str:
         return '-10-'
     if lo >= 20:
         return '20+'
-    return '%d-%d' % (lo, lo + 2)
+    return f"{lo}-{lo + 2}"
 
 
 def _group_by_bucket(samples: list[CopSample]) -> dict[str, list[CopSample]]:

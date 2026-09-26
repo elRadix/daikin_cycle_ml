@@ -6,7 +6,8 @@ default to 0.0 to preserve vector shape.
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,10 +73,7 @@ def is_valid_record(record: Mapping[str, Any]) -> bool:
     """True iff all REQUIRED_FOR_VALID are numeric (not None, not str)."""
     if not record:
         return False
-    for name in REQUIRED_FOR_VALID:
-        if _as_float(record.get(name)) is None:
-            return False
-    return True
+    return all(_as_float(record.get(name)) is not None for name in REQUIRED_FOR_VALID)
 
 
 def extract_many(records: list[Mapping[str, Any]]) -> list[list[float]]:

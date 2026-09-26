@@ -3,13 +3,11 @@ from __future__ import annotations
 
 import asyncio
 import time
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from custom_components.daikin_cycle_ml.engine import notification_engine as ne
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
-
 
 # ────────────────────────────────────────────────────────────
 # notification_engine public builders

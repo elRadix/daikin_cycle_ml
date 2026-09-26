@@ -1,7 +1,7 @@
 """Tests for stooklijn scheduler + notify (14b-3)."""
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,

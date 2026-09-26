@@ -18,7 +18,6 @@ from custom_components.daikin_cycle_ml.ml.baseline import (
 from custom_components.daikin_cycle_ml.ml.features import VECTOR_LEN
 from custom_components.daikin_cycle_ml.ml.multi_baseline import MultiBaseline
 
-
 # ---------- baseline.py ----------
 
 def test_baseline_z_scores_dim_mismatch_raises():
@@ -139,8 +138,8 @@ async def test_recompute_set_state_exception_swallowed():
 
 async def test_handle_run_maintenance_not_supported():
     from custom_components.daikin_cycle_ml.services import (
-        _handle_run_maintenance,
         ATTR_ENTRY_ID,
+        _handle_run_maintenance,
     )
     coord = MagicMock(spec=[])
     hass = MagicMock()
@@ -226,6 +225,7 @@ async def test_db_run_maintenance_empty(tmp_path):
 
 async def test_db_insert_cycles_and_daily_summary(tmp_path):
     import time as _t
+
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
     db = CycleDB(tmp_path / "s.db")
     await db.async_open()

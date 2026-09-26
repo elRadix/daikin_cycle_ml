@@ -22,7 +22,7 @@ async def _db_counts(db: Any) -> dict[str, int]:
     for table in DB_TABLES:
         try:
             counts[table] = await db.async_count(table)
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.debug("diagnostics: count(%s) failed", table)
     return counts
 
@@ -33,12 +33,12 @@ async def _db_extra(db: Any) -> dict[str, Any]:  # pragma: no cover
         return out
     try:
         out["daily_summary"] = await db.async_daily_summary(days=7)
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.debug("diagnostics: daily_summary failed")
     for key in ("last_maintenance_ts", "kmeans_state", "baseline_state"):
         try:
             out[key] = await db.async_get_model_state(key)
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.debug("diagnostics: get_model_state(%s) failed", key)
     return out
 
@@ -54,7 +54,7 @@ def _baseline_summary(coord: Any) -> dict[str, Any]:  # pragma: no cover
             summary["modes"][mode] = {
                 "sample_count": baseline.sample_count(mode),
             }
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.debug("diagnostics: baseline summary failed")
     return summary
 
@@ -72,7 +72,7 @@ def _adaptive_summary(coord: Any) -> dict[str, Any]:  # pragma: no cover
                 "adaptive_thresholds_enabled", False
             )
         )
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.debug("diagnostics: adaptive summary failed")
     return out
 
@@ -88,7 +88,7 @@ async def _cluster_summary(coord: Any) -> dict[str, Any]:  # pragma: no cover
         if db is not None and hasattr(db, "async_count_by_cluster"):
             counts = await db.async_count_by_cluster()
             out["counts"] = {str(k): int(v) for k, v in counts.items()}
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
     return out
 
@@ -113,7 +113,7 @@ async def _cop_summary(coord: Any) -> dict[str, Any]:
         db = getattr(coord, 'db', None)
         if db is not None and hasattr(db, 'async_count_cop_samples'):
             out['total_samples'] = await db.async_count_cop_samples()
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
     return out
 

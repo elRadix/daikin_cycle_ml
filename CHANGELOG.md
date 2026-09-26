@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.0.0] - 2026-09-26
+
+### Added
+- quality_scale.yaml (IQS manifest, Bronze+Silver+Gold)
+- PARALLEL_UPDATES = 0 in sensor/binary_sensor platforms
+- codeowners in manifest.json
+
+### Changed
+- HA ruff 2026+ config (line-length 100, target py313, I/UP/B/C4/SIM/...)
+- Coverage threshold 94.5 -> 95.0
+- Pylint workflow: scoped to integration code, Python 3.13
+- Ruff workflow toegevoegd (ruff-action@v3)
+
+### Fixed
+- E1102 not-callable in coordinator.py (4 defensieve getter-calls)
+- B905 zip strict= expliciet (ml/clustering.py)
+- F401 explicit re-export (__init__.py)
+- Versie-asserts in tests bijgewerkt naar 1.0.0
+
+
+
 All notable changes to Daikin Cycle ML.
 
 Format: https://keepachangelog.com/en/1.1.0/

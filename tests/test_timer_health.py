@@ -9,7 +9,6 @@ from custom_components.daikin_cycle_ml.engine.timer_health import (
     reconcile,
 )
 
-
 # ---------- clamp_cycle_duration ----------
 
 def test_clamp_none_returns_zero():

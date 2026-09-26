@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.const import (
+    ATTR_INLET_WATER_R4T,
     ATTR_INV_FREQUENCY_RPS,
     ATTR_IU_OPERATION_MODE,
     ATTR_LEAVING_WATER_AFTER_BUH,
-    ATTR_INLET_WATER_R4T,
     DOMAIN,
     MODEL_EPRA12EAV3,
     OP_MODE_HEATING,
@@ -31,7 +31,7 @@ def _make_entry(hass):
 
 def _valid_attrs(rps=0.0, mode=OP_MODE_HEATING):
     return {
-        **{k: 0.0 for k in REQUIRED_ATTRIBUTES},
+        **dict.fromkeys(REQUIRED_ATTRIBUTES, 0.0),
         ATTR_INV_FREQUENCY_RPS: rps,
         ATTR_IU_OPERATION_MODE: mode,
         ATTR_LEAVING_WATER_AFTER_BUH: 35.0,

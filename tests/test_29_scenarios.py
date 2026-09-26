@@ -1,10 +1,9 @@
 """Batch 29 tests: semantic end-to-end scenarios."""
 from __future__ import annotations
 
-import asyncio
 import time
 from collections import deque
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.daikin_cycle_ml.const import (
     ATTR_BUH_STEP1,
@@ -20,15 +19,15 @@ from custom_components.daikin_cycle_ml.const import (
     OP_MODE_DHW,
     OP_MODE_HEATING,
 )
+from custom_components.daikin_cycle_ml.coordinator import (
+    DaikinCycleMLCoordinator,
+    DataSnapshot,
+)
 from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
 from custom_components.daikin_cycle_ml.engine.notification_engine import (
     evaluate_alerts,
 )
 from custom_components.daikin_cycle_ml.engine.quality_scorer import score_cycle
-from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator,
-    DataSnapshot,
-)
 from custom_components.daikin_cycle_ml.storage.store import CycleStore
 
 
@@ -296,6 +295,7 @@ def test_scenario_cycles_rollup_math():
 def test_scenario_adaptive_thresholds_shifts():
     """AdaptiveThresholds.observe_cycle API survives multiple call forms."""
     import inspect
+
     from custom_components.daikin_cycle_ml.ml.adaptive_thresholds import (
         AdaptiveThresholds,
     )

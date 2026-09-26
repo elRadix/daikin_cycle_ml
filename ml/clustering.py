@@ -37,7 +37,7 @@ class ClusteringResult:
 
 
 def _euclidean(a: list[float], b: list[float]) -> float:
-    return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
+    return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b, strict=True)))
 
 
 def _mean_vector(vectors: list[list[float]], dim: int) -> list[float]:
@@ -109,7 +109,7 @@ def _update_centroids(
     vectors: list[list[float]], labels: list[int], k: int, dim: int
 ) -> list[list[float]]:
     buckets: list[list[list[float]]] = [[] for _ in range(k)]
-    for v, lbl in zip(vectors, labels):
+    for v, lbl in zip(vectors, labels, strict=True):
         buckets[lbl].append(v)
     out: list[list[float]] = []
     for i in range(k):
@@ -122,7 +122,7 @@ def _update_centroids(
 
 def _max_shift(a: list[list[float]], b: list[list[float]]) -> float:
     return max(
-        (_euclidean(x, y) for x, y in zip(a, b)),
+        (_euclidean(x, y) for x, y in zip(a, b, strict=True)),
         default=0.0,
     )
 
@@ -197,7 +197,7 @@ def nearest_centroid(vector: list[float], centroids: list[list[float]]) -> int |
         if not isinstance(c, (list, tuple)) or len(c) != len(vector):
             continue
         d = 0.0
-        for a, b in zip(vector, c):
+        for a, b in zip(vector, c, strict=True):
             d += (float(a) - float(b)) ** 2
         if d < best_d:
             best_d = d

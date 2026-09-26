@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -164,7 +165,7 @@ class AdaptiveThresholds:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any] | None) -> 'AdaptiveThresholds':
+    def from_dict(cls, data: Mapping[str, Any] | None) -> AdaptiveThresholds:
         if not data:
             return cls()
         ms = int(data.get('min_samples', 20) or 20)

@@ -1,9 +1,6 @@
 """Batch 31b tests: water pump guard + thermal_kW + VECTOR_LEN 12."""
 from __future__ import annotations
 
-import time
-from unittest.mock import MagicMock
-
 from custom_components.daikin_cycle_ml.const import (
     ATTR_FLOW_SENSOR,
     ATTR_INLET_WATER_R4T,

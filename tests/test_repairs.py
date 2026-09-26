@@ -35,7 +35,7 @@ async def test_stale_creates_issue(hass):
 async def test_fresh_deletes_stale_issue(hass):
     import time
     snap = DataSnapshot(last_success_ts=time.time())
-    with patch(f"{_MOD}.ir.async_create_issue") as m_create, \
+    with patch(f"{_MOD}.ir.async_create_issue"), \
          patch(f"{_MOD}.ir.async_delete_issue") as m_delete:
         await async_check_repairs(hass, "e1", snap)
         delete_ids = [c.args[2] for c in m_delete.call_args_list]

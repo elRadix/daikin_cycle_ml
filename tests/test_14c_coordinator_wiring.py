@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import time
 from unittest.mock import AsyncMock, MagicMock
-
-from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
 
 import pytest
 
 from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
-from custom_components.daikin_cycle_ml.ml.features import VECTOR_LEN
+from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
 
 
 @pytest.fixture

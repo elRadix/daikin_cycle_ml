@@ -8,7 +8,6 @@ sensors to be permanently off.
 from __future__ import annotations
 
 from collections import deque
-from unittest.mock import MagicMock
 
 from custom_components.daikin_cycle_ml.const import (
     ATTR_INV_FREQUENCY_RPS,
@@ -22,13 +21,12 @@ from custom_components.daikin_cycle_ml.const import (
     OP_MODE_DHW,
     OP_MODE_HEATING,
 )
+from custom_components.daikin_cycle_ml.coordinator import (
+    DaikinCycleMLCoordinator,
+)
 from custom_components.daikin_cycle_ml.engine.cycle_detector import (
     CycleDetector,
     classify_mode,
-)
-from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator,
-    DataSnapshot,
 )
 
 
@@ -77,6 +75,7 @@ def test_snap_mode_matches_binary_sensor_comparison():
 def test_binary_sensor_module_uses_MODE_constants():
     """Static check: binary_sensor.py must not compare against OP_MODE_*."""
     import inspect
+
     from custom_components.daikin_cycle_ml import binary_sensor as bs_mod
     src = inspect.getsource(bs_mod)
     # OP_MODE_* imports should be absent

@@ -86,7 +86,7 @@ def test_missing_required_reports_all_missing():
 
 
 def test_missing_required_empty_when_complete():
-    attrs = {k: 0.0 for k in REQUIRED_ATTRIBUTES}
+    attrs = dict.fromkeys(REQUIRED_ATTRIBUTES, 0.0)
     assert missing_required(attrs) == []
 
 def test_read_preserves_string_mode():

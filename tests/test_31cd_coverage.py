@@ -2,23 +2,20 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.daikin_cycle_ml import sensor as s_mod
 from custom_components.daikin_cycle_ml import binary_sensor as bs_mod
+from custom_components.daikin_cycle_ml import sensor as s_mod
 from custom_components.daikin_cycle_ml.ml import clustering as cl
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
-
 
 # ────────────────────────────────────────────────────────────
 # Clustering module (correct API: kmeans returns ClusteringResult)
 # ────────────────────────────────────────────────────────────
 
 def test_kmeans_empty_raises_value_error():
-    import pytest
     with pytest.raises(ValueError):
         cl.kmeans([], 2)
 
@@ -176,7 +173,8 @@ def test_dt_from_attrs_missing():
 
 def test_dt_from_attrs_computes():
     from custom_components.daikin_cycle_ml.const import (
-        ATTR_INLET_WATER_R4T, ATTR_LEAVING_WATER_AFTER_BUH,
+        ATTR_INLET_WATER_R4T,
+        ATTR_LEAVING_WATER_AFTER_BUH,
     )
     v = s_mod._dt_from_attrs({
         ATTR_LEAVING_WATER_AFTER_BUH: 40.0,

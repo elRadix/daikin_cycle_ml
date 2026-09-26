@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -19,7 +20,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, UnitOfTime
+from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -31,6 +32,9 @@ from .const import (
 )
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
 from .entity import DaikinCycleMLEntity
+
+PARALLEL_UPDATES = 0  # read-only platform, HA serializes updates
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -106,7 +110,7 @@ def _cluster_label(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> str:
         return "unknown"
     try:
         return c.cluster_label(cid) or "unknown"
-    except Exception:  # noqa: BLE001
+    except Exception:
         return "unknown"
 
 
@@ -193,11 +197,11 @@ def _attrs_source_health(s, c):
 def _attrs_learned(s, c):
     try:
         good_off = c.adaptive.learn_good_off_min(s.mode)
-    except Exception:  # noqa: BLE001
+    except Exception:
         good_off = None
     try:
         target_cpd = c.adaptive.learn_target_cycles_per_day()
-    except Exception:  # noqa: BLE001
+    except Exception:
         target_cpd = None
     return {
         "good_off_min": good_off,
@@ -269,7 +273,7 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
             return None
         try:
             value = self._value_fn(snap, self.coordinator)
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("Sensor %s value_fn failed", self._key)
             return None
         if isinstance(value, float):
@@ -285,7 +289,7 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
             return None
         try:
             return self._attr_fn(snap, self.coordinator)
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("Sensor %s attr_fn failed", self._key)
             return None
 

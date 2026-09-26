@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from ..ml.features import FEATURE_NAMES
 
@@ -116,7 +117,7 @@ def generate_advice(
     """Return ordered advice list (highest priority first). Never raises."""
     try:
         return _generate(anomaly, record or {}, mode, options or {})
-    except Exception:  # noqa: BLE001
+    except Exception:
         _LOGGER.exception("generate_advice failed")
         return []
 

@@ -1,6 +1,7 @@
 """DataUpdateCoordinator for Daikin Cycle ML."""
 from __future__ import annotations
 
+import contextlib
 import logging
 import time
 from collections import deque
@@ -18,11 +19,11 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import (
     COP_SENSOR_ENTITY,
+    DEFAULT_COMFORT_MIN_C,
     DOMAIN,
     MODEL_BASISPROFIEL,
     SOURCE_SENSOR_ENTITY,
     UPDATE_INTERVAL_SECONDS,
-    DEFAULT_COMFORT_MIN_C,
 )
 from .engine.action_engine import generate_advice
 from .engine.anomaly_engine import evaluate as evaluate_anomaly
@@ -31,9 +32,9 @@ from .engine.cycle_detector import CycleDetector
 from .engine.model_profiles import defaults_for
 from .engine.notification_engine import build_status_message, evaluate_alerts
 from .ml.adaptive_thresholds import AdaptiveThresholds
-from .ml.multi_baseline import MultiBaseline
 from .ml.clustering import classify_clusters, nearest_centroid
 from .ml.features import VECTOR_LEN, extract_feature_vector
+from .ml.multi_baseline import MultiBaseline
 from .repairs import async_check_repairs
 from .storage.store import CycleStore
 
@@ -145,7 +146,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     async def _async_maintenance_callback(self, _now) -> None:
         try:
             await self.async_run_maintenance()
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception('Scheduled maintenance failed')
 
     async def async_run_maintenance(
@@ -166,7 +167,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         last = None
         try:
             last = await self.db.async_get_model_state('last_maintenance_ts')
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception('model_state read failed')
         if (
             not force
@@ -200,12 +201,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 alert_retention_days=adays,
                 vacuum=dovac,
             )
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:
             _LOGGER.exception('Maintenance failed: %s', err)
             return {'ok': False, 'reason': 'exception', 'error': str(err)}
         try:
             await self.db.async_set_model_state('last_maintenance_ts', now)
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception('model_state write failed')
         out = {'ok': True, 'ts': now}
         if isinstance(result, dict):
@@ -242,7 +243,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 ):
                     await self.db.async_ensure_cluster_column()
                 await self._load_kmeans_state()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.debug("cluster state setup failed", exc_info=True)
         if self._baseline_save_unsub is None:
             self._baseline_save_unsub = async_track_time_interval(
@@ -294,8 +295,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         """Cluster last N days of cycles into 3 groups."""
         if self.db is None:
             return {"ok": False, "reason": "no_db"}
-        from .ml.features import extract_many
         from .ml.clustering import kmeans, labels_to_dict
+        from .ml.features import extract_many
         try:
             cycles = await self.db.async_fetch_cycles(days=days)
         except Exception:
@@ -364,7 +365,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await async_check_repairs(
                 self.hass, self.entry.entry_id, snap
             )
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:
             snap.errors = 1
             self._errors_total += 1
             snap.errors_total = self._errors_total
@@ -375,7 +376,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         """Add LWT + indoor temp to running sums while cycle is active."""
         try:
             is_active = self.detector.state != "idle"
-        except Exception:  # noqa: BLE001
+        except Exception:
             return
         if not is_active:
             return
@@ -424,7 +425,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                         cop_avg = await self.db.async_avg_cop_between(
                             float(start_ts), float(end_ts)
                         )
-                except Exception:  # noqa: BLE001
+                except Exception:
                     _LOGGER.debug(
                         "cop_avg lookup failed", exc_info=True
                     )
@@ -449,7 +450,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     record.get("duration_s"),
                     record.get("off_s"),
                 )
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.debug("adaptive observe_cycle failed", exc_info=True)
             per_mode = self.baseline.get(mode)
             per_mode.update(vector)
@@ -459,7 +460,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 snap.advice = generate_advice(
                     result, record, mode=snap.mode, options=self.options
                 )
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("ML pipeline failed")
 
         if self.db is None:
@@ -481,9 +482,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                         await self.db.async_update_cycle_cluster(
                             cid, cid_val
                         )
-                except Exception:  # noqa: BLE001
+                except Exception:
                     _LOGGER.debug("cluster assign failed", exc_info=True)
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("DB persist failed")
 
     async def _refresh_cop_today(self, now: float) -> None:
@@ -491,7 +492,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return
         try:
             rows = await self.db.async_fetch_cop_samples(days=1)
-        except Exception:  # noqa: BLE001
+        except Exception:
             return
         if not isinstance(rows, list) or not rows:
             self._cop_today_cache = {}
@@ -515,7 +516,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             avg = sum(cops) / len(cops)
             try:
                 week = await self.db.async_fetch_cop_samples(days=7)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 week = rows
             week_cops = [
                 float(r['cop']) for r in week
@@ -533,7 +534,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 'cop_max': round(max(cops), 2),
                 'baseline_cop_verlies_pct': loss,
             }
-        except Exception:  # noqa: BLE001
+        except Exception:
             self._cop_today_cache = {}
 
     async def _maybe_refresh_stooklijn(
@@ -547,13 +548,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return
         try:
             rows = await self.db.async_fetch_cop_samples(days=30)
-        except Exception:  # noqa: BLE001
+        except Exception:
             return
         if not isinstance(rows, list):
             return
         try:
             from .engine.cop_analyzer import (
-                CopSample, analyze_stooklijn, bucket_summary,
+                CopSample,
+                analyze_stooklijn,
+                bucket_summary,
             )
             samples: list[CopSample] = []
             for r in rows:
@@ -587,7 +590,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 'buckets': buckets,
             }
             self._stooklijn_cache_ts = now
-        except Exception:  # noqa: BLE001
+        except Exception:
             return
 
     async def async_setup_stooklijn(self) -> None:
@@ -603,7 +606,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     async def _async_stooklijn_callback(self, _now) -> None:
         try:
             await self.async_run_stooklijn_analysis()
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception('Scheduled stooklijn analysis failed')
 
     async def async_run_stooklijn_analysis(self) -> dict[str, Any]:
@@ -613,7 +616,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         try:
             await self._maybe_refresh_stooklijn(now, force=True)
             await self._refresh_cop_today(now)
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception('stooklijn refresh failed')
             return {'ok': False, 'reason': 'refresh_failed'}
         await self._maybe_notify_cop_low(now, self._cop_today_cache)
@@ -642,6 +645,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if (now - last) < 20 * 3600.0:
             return
         from types import SimpleNamespace
+
         from .engine.notification_engine import build_cop_low_message
         msg = build_cop_low_message(float(cop), int(samples))
         alert = SimpleNamespace(
@@ -653,7 +657,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         try:
             await self._emit_alert(alert)
             self._last_alert_sent['cop_low'] = now
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception('cop_low notify failed')
 
     async def _maybe_notify_stooklijn(
@@ -667,7 +671,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         try:
             betrouw = float(cache.get('betrouwbaarheid') or 0.0)
             besparing = float(cache.get('besparing_cop_pct') or 0.0)
-            comfort = float(cache.get('comfort_impact') or 0.0)
+            float(cache.get('comfort_impact') or 0.0)
         except (TypeError, ValueError):
             return
         if betrouw < 0.7 or besparing < 5.0:
@@ -676,6 +680,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if (now - last) < 20 * 3600.0:
             return
         from types import SimpleNamespace
+
         from .engine.notification_engine import build_stooklijn_message
         msg = build_stooklijn_message(cache)
         alert = SimpleNamespace(
@@ -687,7 +692,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         try:
             await self._emit_alert(alert)
             self._last_alert_sent['stooklijn_advies'] = now
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception('stooklijn notify failed')
 
     async def _maybe_collect_cop_sample(self, now: float) -> None:
@@ -736,7 +741,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         mode = getattr(self.data, "mode", None) or "unknown"
         try:
             learned = self.adaptive.suggest(mode)
-        except Exception:  # noqa: BLE001
+        except Exception:
             return default
         return int(learned.get(key, default))
 
@@ -749,7 +754,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 MODEL_STATE_ADAPTIVE, self.adaptive.to_dict()
             )
             return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("adaptive save failed")
             return False
 
@@ -762,7 +767,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             if data:
                 self.adaptive = AdaptiveThresholds.from_dict(data)
                 return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("adaptive load failed")
         return False
 
@@ -807,9 +812,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             min_delta = DEFAULT_SETPOINT_OSC_MIN_DELTA
 
         now = time.time()
-        if val is not None and self._last_setpoint is not None:
-            if abs(val - self._last_setpoint) >= min_delta:
-                self._setpoint_history.append((now, val))
+        if (val is not None and self._last_setpoint is not None
+                and abs(val - self._last_setpoint) >= min_delta):
+            self._setpoint_history.append((now, val))
         if val is not None:
             self._last_setpoint = val
 
@@ -880,7 +885,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return None
         try:
             return nearest_centroid(vector, self._kmeans_centroids)
-        except Exception:  # noqa: BLE001
+        except Exception:
             return None
 
     def cluster_label(self, cluster_id: int | None) -> str | None:  # pragma: no cover
@@ -912,7 +917,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 self._kmeans_centroids
             )
             return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.debug("load kmeans_state failed", exc_info=True)
             return False
 
@@ -941,7 +946,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     async def _async_status_update_callback(self, _now) -> None:
         try:
             await self.async_emit_status_update()
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("Scheduled status update failed")
 
     async def _build_rich_status_snapshot(self) -> dict:
@@ -956,14 +961,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             now = _t.time()
             if self.store is not None and hasattr(self.store, 'cycles_in_window'):
                 base['cycles_per_hour'] = int(self.store.cycles_in_window(now, 3600))
-        except Exception:  # noqa: BLE001
+        except Exception:
             base['cycles_per_hour'] = None
         try:
             if self.store is not None and hasattr(self.store, 'counters_snapshot'):
                 c = self.store.counters_snapshot() or {}
                 base['short_runs_today'] = c.get('short_runs')
                 base['good_cycles_today'] = c.get('good_cycles')
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         try:
             attrs = getattr(snap, 'attributes', None) or {}
@@ -971,23 +976,23 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             base['indoor'] = attrs.get('indoor_temp')
             base['outdoor'] = attrs.get('outdoor_temp')
             base['flow_lmin'] = attrs.get('flow_lmin')
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         try:
             last = getattr(snap, 'last_cycle', None)
             if isinstance(last, dict):
                 base['thermal_kw'] = last.get('thermal_kw_avg')
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         try:
             base['cop_today'] = getattr(self, '_cop_today_value', None)
             base['cop_today_samples'] = getattr(self, '_cop_today_samples', None)
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         try:
             if self.db is not None:
                 base.update(await self._db_cycle_stats())
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         return base
 
@@ -1001,15 +1006,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         try:
             getter = getattr(self.db, 'async_count_cycles_since', None)
             if callable(getter):
-                out['db_total'] = await getter(0)
-                out['db_7d'] = await getter(now - 7 * 86400)
-                out['db_30d'] = await getter(now - 30 * 86400)
+                out['db_total'] = await getter(0)  # pylint: disable=not-callable
+                out['db_7d'] = await getter(now - 7 * 86400)  # pylint: disable=not-callable
+                out['db_30d'] = await getter(now - 30 * 86400)  # pylint: disable=not-callable
             avg_getter = getattr(self.db, 'async_avg_duration_since', None)
             if callable(avg_getter):
-                avg_s = await avg_getter(now - 7 * 86400)
+                avg_s = await avg_getter(now - 7 * 86400)  # pylint: disable=not-callable
                 if avg_s is not None:
                     out['db_avg_duration_min'] = float(avg_s) / 60.0
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         return out
 
@@ -1036,7 +1041,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 },
                 blocking=False,
             )
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("status persistent_notification failed")
 
         svc = opts.get("notify_service")
@@ -1046,7 +1051,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 await self.hass.services.async_call(
                     dom, name, {"message": msg}, blocking=False
                 )
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.exception("status notify service failed")
 
         return msg
@@ -1059,13 +1064,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if store is not None and hasattr(store, "counters_snapshot"):
             try:
                 counters = store.counters_snapshot()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 counters = {}
         last = None
         if store is not None and hasattr(store, "last_cycle"):
             try:
                 last = store.last_cycle()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 last = None
         opts = self.options or {}
         cyc_today = counters.get("cycles_today") or counters.get("total_today")
@@ -1163,7 +1168,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 d = last.get("duration_s")
                 if d is not None:
                     return int(float(d) / 60)
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         return None
 
@@ -1172,14 +1177,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         now = time.time()
         cph = 0
         cyc_today = 0
-        try:
+        with contextlib.suppress(Exception):
             cph = int(self.store.cycles_in_window(now, 3600))
-        except Exception:  # noqa: BLE001
-            pass
-        try:
+        with contextlib.suppress(Exception):
             cyc_today = len(self.store.cycles_today(now))
-        except Exception:  # noqa: BLE001
-            pass
         advice_text = ""
         advice_list = (getattr(snap, "advice", None) or []) if snap else []
         if advice_list:
@@ -1264,25 +1265,21 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if isinstance(last, dict):
             dur = last.get("duration_s")
             if dur is not None:
-                try:
+                with contextlib.suppress(TypeError, ValueError):
                     ctx["short_run"]["duration_min"] = int(float(dur) / 60)
-                except (TypeError, ValueError):
-                    pass
         try:
             off = self.store.off_time_since_last(now)
             if off is not None:
                 ctx["short_off"]["off_min"] = int(off / 60)
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         anomaly = getattr(snap, "anomaly", None) if snap else None
         if anomaly is not None:
             z = getattr(anomaly, "max_abs_z", None)
             td = getattr(anomaly, "top_dim", None)
             if z is not None:
-                try:
+                with contextlib.suppress(TypeError, ValueError):
                     ctx["ml_anomaly"]["z_max"] = round(float(z), 2)
-                except (TypeError, ValueError):
-                    pass
             if td is not None:
                 try:
                     from .ml.features import FEATURE_NAMES
@@ -1291,7 +1288,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                         ctx["ml_anomaly"]["top_dim"] = FEATURE_NAMES[_idx]
                     else:
                         ctx["ml_anomaly"]["top_dim"] = "dim " + str(td)
-                except Exception:  # noqa: BLE001
+                except Exception:
                     pass
             if getattr(anomaly, "severity", None):
                 ctx["ml_anomaly"]["mode"] = str(
@@ -1304,9 +1301,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     ) -> str:
         """Dispatch one sample alert for the OptionsFlow test button."""
         import time as _t
+
         from .engine.notification_engine import (
-            AlertSpec,
             BINARY_ALERT_MAP,
+            AlertSpec,
             build_cop_low_message,
             build_stooklijn_message,
             evaluate_alerts,
@@ -1370,7 +1368,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not target_bkeys:
             raise ValueError("unknown alert_kind: " + str(alert_kind))
 
-        states = {bkey: True for bkey in target_bkeys}
+        states = dict.fromkeys(target_bkeys, True)
         ctx = self._build_alert_context(self.data)
         alerts = evaluate_alerts(
             states,
@@ -1394,10 +1392,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
     async def _emit_all_test_alerts(self, *, ignore_filters: bool = False) -> str:
         """Emit one of each alert type for verification."""
-        import time as _t
         from .engine.notification_engine import (
-            AlertSpec,
             BINARY_ALERT_MAP,
+            AlertSpec,
         )
         from .engine.status_report import (
             build_cop_low_report,
@@ -1482,7 +1479,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             for alert in alerts:
                 await self._emit_alert(alert)
                 self._last_alert_sent[alert.alert_type] = now
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("Alert dispatch failed")
 
     async def _emit_alert(self, alert: Any) -> None:
@@ -1499,7 +1496,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     },
                     blocking=False,
                 )
-            except Exception:  # noqa: BLE001
+            except Exception:
                 _LOGGER.exception("persistent_notification failed")
         svc = self.options.get("notify_service")
         if not (isinstance(svc, str) and "." in svc):
@@ -1509,5 +1506,5 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self.hass.services.async_call(
                 domain, service, {"message": alert.message}, blocking=False,
             )
-        except Exception:  # noqa: BLE001
+        except Exception:
             _LOGGER.exception("notify service %s failed", svc)

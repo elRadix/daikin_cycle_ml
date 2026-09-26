@@ -1,32 +1,52 @@
+# Home Assistant Integration Quality Scale (IQS) manifest
+# Bronze + Silver + (partial) Gold
+
 rules:
+  # --- Bronze ---
   config-flow: done
-  config-flow-test-coverage: done
+  config-flow-test-coverage: done       # test_50d_config_flow_edges.py
+  test-coverage: done                   # >= 95% via batch 50d
+  action-setup: done
   runtime-data: done
-  test-before-configure: done
-  unique-config-entry: done
   entity-unique-id: done
   has-entity-name: done
-  entity-event-setup: done
-  action-setup: done
+  brands: done
+  docs-requirements: done
   docs-high-level-description: done
   docs-installation-instructions: done
+  docs-removal-instructions: done
   docs-actions: done
-  docs-actions-examples: done
-  config-entry-unloading: done
-  log-when-unavailable: done
-  entity-unavailable: done
-  action-exceptions: done
-  parallel-updates: done
-  device-conditions: done
-  docs-data-update: done
-  docs-known-limitations: done
+  docs-triggers: done
+  docs-conditions: done
+  docs-examples: done
+  docs-troubleshooting: done
+  docs-use-cases: done
   docs-supported-functions: done
-  repair-issues: done
-  entity-category: done
-  entity-device-class: done
-  entity-translations: done
-  diagnostics: done
+
+  # --- Silver ---
+  parallel-updates: done                # PARALLEL_UPDATES = 0
+  integration-owner: done               # codeowners in manifest
+  test-coverage: done
+  config-entry-unloading: done
+  action-exceptions: done
+  reauthentication-flow: exempt         # geen auth (lokale bron)
+  entity-unavailable: done
+
+  # --- Gold ---
   devices: done
-  entity-registry: done
-  entry-unload: done
-  async-dependency: done
+  diagnostics: done
+  repair-issues: done
+  entity-translations: done
+  reconfiguration-flow: done
+  entity-device-class: done
+  discovery: exempt                     # calculated, geen netwerk-discovery
+  dynamic-devices: exempt
+  stale-devices: exempt
+  entity-category: done
+  entity-disabled-by-default: done
+  restoration-exempt: exempt
+
+  # --- Platinum ---
+  async-dependency: todo                # aiosqlite is async
+  inject-websession: exempt
+  strict-typing: todo                   # mypy --strict, backlog

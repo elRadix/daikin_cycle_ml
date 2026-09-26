@@ -1,7 +1,6 @@
 """Batch 41 -- rich pendulum path + all-alerts test option."""
 from __future__ import annotations
 
-
 import json
 from pathlib import Path
 

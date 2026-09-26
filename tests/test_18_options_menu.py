@@ -1,16 +1,15 @@
 """Batch 18: options menu + action_advice wiring."""
+from unittest.mock import AsyncMock, patch
+
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.daikin_cycle_ml.const import (
-    DOMAIN,
     DEFAULT_ACTION_ADVICE_ENABLED,
     DEFAULT_ADAPTIVE_MIN_SAMPLES,
+    DOMAIN,
     VERSION,
 )
-
-
-import pytest
-from unittest.mock import AsyncMock, patch
 
 
 @pytest.fixture(autouse=True)
@@ -174,7 +173,6 @@ def test_ml_default():
 
 def test_version_bumped():
     """Forward-compat: version must be >= 0.5.0 and match const.VERSION."""
-    from custom_components.daikin_cycle_ml.const import VERSION
     # VERSION must be a parseable semver-ish string
     parts = VERSION.split(".")
     assert len(parts) >= 2, f"unexpected VERSION: {VERSION!r}"

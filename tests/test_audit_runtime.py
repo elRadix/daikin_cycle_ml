@@ -5,8 +5,6 @@ import time
 from collections import deque
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from custom_components.daikin_cycle_ml.const import (
     ATTR_LW_SETPOINT,
 )
@@ -15,7 +13,6 @@ from custom_components.daikin_cycle_ml.coordinator import (
     DataSnapshot,
 )
 from custom_components.daikin_cycle_ml.engine.cycle_detector import (
-    CycleDetector,
     classify_mode,
     detect_compressor_on,
 )
@@ -284,7 +281,8 @@ async def test_a35_adaptive_save_load_roundtrip():
 # ============================================================
 def test_a37_feature_vector_length_12():
     from custom_components.daikin_cycle_ml.ml.features import (
-        VECTOR_LEN, extract_feature_vector,
+        VECTOR_LEN,
+        extract_feature_vector,
     )
     assert VECTOR_LEN == 12
     rec = {"duration_s": 1800, "dT_max": 5.0, "dT_avg": 3.0,

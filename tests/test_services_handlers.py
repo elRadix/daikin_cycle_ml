@@ -4,11 +4,8 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
-from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.daikin_cycle_ml.services import (
-    SCHEMA_RESET,
-    SERVICE_RESET_COUNTERS,
     _handle_export_cycles,
     _handle_label_cycle,
     _handle_recompute_baseline,
@@ -17,6 +14,7 @@ from custom_components.daikin_cycle_ml.services import (
     async_register_services,
 )
 from custom_components.daikin_cycle_ml.storage.store import CycleStore
+from homeassistant.exceptions import HomeAssistantError
 
 
 def _hass_with_entry(entry):

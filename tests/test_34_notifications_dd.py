@@ -7,14 +7,13 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT = Path(__file__).parent.parent
 JSON_FILES = [
     "strings.json",
     "translations/en.json",
     "translations/nl.json",
 ]
-NEW_VER = "0.9.0"
+NEW_VER = "1.0.0"
 
 
 @pytest.mark.parametrize("rel", JSON_FILES)
