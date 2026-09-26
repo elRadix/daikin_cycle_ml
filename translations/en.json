@@ -192,7 +192,8 @@
           "pendulum_cycles_per_day": "Cycles per day",
           "setpoint_oscillation_threshold": "Setpoint oscillation threshold",
           "setpoint_osc_window_min": "Setpoint window (min)",
-          "setpoint_osc_min_delta": "Minimum setpoint change (°C)"
+          "setpoint_osc_min_delta": "Minimum setpoint change (°C)",
+          "dhw_pendulum_cycles_per_hour": "DHW pendulum cycles per hour"
         },
         "data_description": {
           "short_run_threshold_min": "Cycles shorter than this are flagged. Default 20 min.",
@@ -201,7 +202,8 @@
           "pendulum_cycles_per_day": "Daily cycle count triggering a pendulum alert. Default 40.",
           "setpoint_oscillation_threshold": "Number of setpoint changes in the window before an alert fires. Default 6 — filters normal thermostat tuning, warns on real oscillation.",
           "setpoint_osc_window_min": "Rolling window in minutes. Default 30.",
-          "setpoint_osc_min_delta": "Minimum °C change to count as a setpoint change. Default 0.5 — filters floating-point noise."
+          "setpoint_osc_min_delta": "Minimum °C change to count as a setpoint change. Default 0.5 — filters floating-point noise.",
+          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour triggering a pendulum alert. Default 3."
         }
       },
       "quality": {

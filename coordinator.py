@@ -22,6 +22,7 @@ from .const import (
     MODEL_BASISPROFIEL,
     SOURCE_SENSOR_ENTITY,
     UPDATE_INTERVAL_SECONDS,
+    DEFAULT_COMFORT_MIN_C,
 )
 from .engine.action_engine import generate_advice
 from .engine.anomaly_engine import evaluate as evaluate_anomaly
@@ -327,7 +328,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             state = self.hass.states.get(self.source_entity)
             if state is None:
                 return snap
-            attrs = read(state)
+            attrs = read(state,
+            custom_map=self.options.get("custom_attribute_map"),
+            selected=self.options.get("selected_attributes"),
+        )
             snap.attrs = attrs
             snap.missing_attrs = missing_required(attrs)
             snap.last_success_ts = now
@@ -562,7 +566,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     power_stable=bool(r.get('power_stable')),
                 ))
             comfort_min = float(
-                self.options.get('comfort_min_c', 20.0)
+                self.options.get('comfort_min_c', DEFAULT_COMFORT_MIN_C)
             )
             advies = analyze_stooklijn(samples, comfort_min=comfort_min)
             buckets = bucket_summary(samples)

@@ -192,7 +192,8 @@
           "pendulum_cycles_per_day": "Cycli per dag",
           "setpoint_oscillation_threshold": "Setpoint-oscillatiedrempel",
           "setpoint_osc_window_min": "Setpoint-venster (min)",
-          "setpoint_osc_min_delta": "Minimale setpointwijziging (°C)"
+          "setpoint_osc_min_delta": "Minimale setpointwijziging (°C)",
+          "dhw_pendulum_cycles_per_hour": "SWW-pendel cycli per uur"
         },
         "data_description": {
           "short_run_threshold_min": "Cycli korter dan dit worden gemarkeerd. Standaard 20 min.",
@@ -201,7 +202,8 @@
           "pendulum_cycles_per_day": "Cycli per dag die een pendelmelding triggeren. Standaard 40.",
           "setpoint_oscillation_threshold": "Aantal setpointwijzigingen in het venster voordat een melding klinkt. Standaard 6 — filtert normale thermostaat-tuning, waarschuwt bij echte oscillatie.",
           "setpoint_osc_window_min": "Rollend venster in minuten. Standaard 30.",
-          "setpoint_osc_min_delta": "Minimale °C-wijziging om als setpointwijziging te tellen. Standaard 0.5 — filtert floating-point ruis."
+          "setpoint_osc_min_delta": "Minimale °C-wijziging om als setpointwijziging te tellen. Standaard 0.5 — filtert floating-point ruis.",
+          "dhw_pendulum_cycles_per_hour": "SWW-cycli per uur die een pendelmelding triggeren. Standaard 3."
         }
       },
       "quality": {
