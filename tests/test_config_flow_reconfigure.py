@@ -139,7 +139,7 @@ async def test_reconfigure_full_completes(hass, no_db):
     )
     assert result["step_id"] == "attributes"
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"selected_attributes": []}
+        result["flow_id"], {}
     )
     assert result["step_id"] == "cycle"
     result = await hass.config_entries.flow.async_configure(
@@ -195,7 +195,7 @@ async def test_reconfigure_full_preserves_options(hass, no_db):
         {"source_sensor": SOURCE_SENSOR_ENTITY, "model": MODEL_EPRA08EAV3},
     )
     await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"selected_attributes": []}
+        result["flow_id"], {}
     )
     await hass.config_entries.flow.async_configure(
         result["flow_id"],

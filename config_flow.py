@@ -12,12 +12,11 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
 from .const import (
+
     DOMAIN,
     NAME,
     SOURCE_SENSOR_ENTITY,
     REQUIRED_ATTRIBUTES,
-    RECOMMENDED_ATTRIBUTES,
-    OPTIONAL_ATTRIBUTES,
     MODEL_CHOICES,
     MODEL_CUSTOM,
     MODEL_EPRA12EAV3,
@@ -56,6 +55,7 @@ from .const import (
     DEFAULT_CYCLE_RETENTION_DAYS,
     DEFAULT_ALERT_RETENTION_DAYS,
     DEFAULT_VACUUM_ENABLED,
+    CORE_ATTRIBUTES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -216,30 +216,46 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_attributes(self, user_input=None) -> FlowResult:
+        """Show core attribute status. Warning-only, does not block."""
         if user_input is not None:
-            self._options["selected_attributes"] = list(
-                user_input["selected_attributes"]
-            )
             return await self.async_step_cycle()
-        default_attrs = self._options.get(
-            "selected_attributes", list(RECOMMENDED_ATTRIBUTES)
+
+        source_id = (
+            self._data.get("source_sensor")
+            or self._options.get("source_sensor")
         )
-        schema = vol.Schema({
-            vol.Required(
-                "selected_attributes",
-                default=list(default_attrs),
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=(
-                        list(RECOMMENDED_ATTRIBUTES)
-                        + list(OPTIONAL_ATTRIBUTES)
-                    ),
-                    multiple=True,
-                    mode=selector.SelectSelectorMode.LIST,
-                )
-            ),
-        })
-        return self.async_show_form(step_id="attributes", data_schema=schema)
+        cmap = self._data.get("custom_attribute_map") or {}
+        state = self.hass.states.get(source_id) if source_id else None
+
+        present: list[str] = []
+        missing: list[str] = []
+        if state is None:
+            missing = list(CORE_ATTRIBUTES)
+        else:
+            attrs = state.attributes
+            normalized = {cmap.get(k, k): v for k, v in attrs.items()}
+            for key in CORE_ATTRIBUTES:
+                if normalized.get(key) is None:
+                    missing.append(key)
+                else:
+                    present.append(key)
+
+        return self.async_show_form(
+            step_id="attributes",
+            data_schema=vol.Schema({}, extra=vol.ALLOW_EXTRA),
+            description_placeholders={
+                "present": str(len(present)),
+                "total": str(len(CORE_ATTRIBUTES)),
+                "missing_list": (
+                    "\n".join(f"\u2022 {m}" for m in missing)
+                    if missing else "none"
+                ),
+                "present_list": (
+                    "\n".join(f"\u2022 {m}" for m in present)
+                    if present else "none"
+                ),
+            },
+        )
 
     async def async_step_cycle(self, user_input=None) -> FlowResult:
         if user_input is not None:
@@ -410,7 +426,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             )
         return self.async_show_form(
             step_id="finalize",
-            data_schema=vol.Schema({}),
+            data_schema=vol.Schema({}, extra=vol.ALLOW_EXTRA),
             description_placeholders={
                 "model": str(self._data.get("model", "?")),
                 "source": str(self._data.get("source_sensor", "?")),

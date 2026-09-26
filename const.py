@@ -69,7 +69,7 @@ MODEL_LABELS = {
     MODEL_CUSTOM: "Custom (own attribute mapping)",
 }
 
-# --- Attribute keys: required (must be present for full operation) ---
+# --- Core attribute keys (fixed set, not user-selectable) ---
 ATTR_INV_FREQUENCY_RPS = "INV frequency (rps)"
 ATTR_OPERATION_MODE = "Operation Mode"
 ATTR_IU_OPERATION_MODE = "I/U operation mode"
@@ -77,14 +77,14 @@ ATTR_3WAY_VALVE = "3way valve(On:DHW_Off:Space)"
 ATTR_DEFROST_OPERATION = "Defrost Operation"
 ATTR_LEAVING_WATER_AFTER_BUH = "Leaving water temp. after BUH (R2T)"
 ATTR_INLET_WATER_R4T = "Inlet water temp.(R4T)"
+ATTR_OUTDOOR_AIR_R1T = "Outdoor air temp.(R1T)"
 ATTR_FLOW_SENSOR = "Flow sensor (l/min)"
 ATTR_WATER_PUMP_OPERATION = "Water pump operation"
-ATTR_OUTDOOR_AIR_R1T = "Outdoor air temp.(R1T)"
-ATTR_DHW_TANK_R5T = "DHW tank temp. (R5T)"
 ATTR_BUH_STEP1 = "BUH Step1"
 ATTR_BUH_STEP2 = "BUH Step2"
+ATTR_LW_SETPOINT = "LW setpoint (main)"
 
-REQUIRED_ATTRIBUTES = [
+CORE_ATTRIBUTES = [
     ATTR_INV_FREQUENCY_RPS,
     ATTR_OPERATION_MODE,
     ATTR_IU_OPERATION_MODE,
@@ -92,61 +92,16 @@ REQUIRED_ATTRIBUTES = [
     ATTR_DEFROST_OPERATION,
     ATTR_LEAVING_WATER_AFTER_BUH,
     ATTR_INLET_WATER_R4T,
+    ATTR_OUTDOOR_AIR_R1T,
     ATTR_FLOW_SENSOR,
     ATTR_WATER_PUMP_OPERATION,
-    ATTR_OUTDOOR_AIR_R1T,
-    ATTR_DHW_TANK_R5T,
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
-]
-
-# --- Attribute keys: recommended (default on in wizard) ---
-ATTR_DISCHARGE_PIPE_TEMP = "Discharge pipe temp."
-ATTR_SUCTION_PIPE_TEMP = "Suction pipe temp."
-ATTR_INV_PRIMARY_CURRENT = "INV primary current (A)"
-ATTR_TARGET_COND_TEMP = "Target Cond. Temp."
-ATTR_LW_SETPOINT = "LW setpoint (main)"
-ATTR_DHW_SETPOINT = "DHW setpoint"
-
-RECOMMENDED_ATTRIBUTES = [
-    ATTR_DISCHARGE_PIPE_TEMP,
-    ATTR_SUCTION_PIPE_TEMP,
-    ATTR_INV_PRIMARY_CURRENT,
-    ATTR_TARGET_COND_TEMP,
     ATTR_LW_SETPOINT,
-    ATTR_DHW_SETPOINT,
 ]
 
-# --- Attribute keys: optional (default off in wizard) ---
-ATTR_HEAT_EXCHANGER_MID = "Heat exchanger mid-temp."
-ATTR_LIQUID_PIPE_R6T = "Liquid pipe temp.(R6T)"
-ATTR_EXPANSION_VALVE = "Expansion valve (pls)"
-ATTR_CRANKCASE_HEATER = "Crank case heater 1"
-ATTR_PRESSURE_EQUALIZING = "Pressure equalizing operation"
-ATTR_FOUR_WAY_VALVE = "4 Way Valve 1"
-ATTR_SOLENOID_VALVE = "Solenoid Valve 1"
-ATTR_TARGET_EVAP_TEMP = "Target Evap. Temp."
-ATTR_RT_SETPOINT = "RT setpoint"
-ATTR_HIGH_PRESSURE = "High Pressure"
-ATTR_WATER_PRESSURE = "Water pressure"
-ATTR_BRINE_INLET = "Brine inlet temp."
-ATTR_BRINE_OUTLET = "Brine outlet temp."
-
-OPTIONAL_ATTRIBUTES = [
-    ATTR_HEAT_EXCHANGER_MID,
-    ATTR_LIQUID_PIPE_R6T,
-    ATTR_EXPANSION_VALVE,
-    ATTR_CRANKCASE_HEATER,
-    ATTR_PRESSURE_EQUALIZING,
-    ATTR_FOUR_WAY_VALVE,
-    ATTR_SOLENOID_VALVE,
-    ATTR_TARGET_EVAP_TEMP,
-    ATTR_RT_SETPOINT,
-    ATTR_HIGH_PRESSURE,
-    ATTR_WATER_PRESSURE,
-    ATTR_BRINE_INLET,
-    ATTR_BRINE_OUTLET,
-]
+# Legacy alias — kept for backwards-compatible imports.
+REQUIRED_ATTRIBUTES = CORE_ATTRIBUTES
 
 # --- Operation-mode values (from ESPAltherma) ---
 OP_MODE_FAN_ONLY = "Fan Only"

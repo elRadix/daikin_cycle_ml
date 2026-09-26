@@ -27,8 +27,8 @@ from ..const import (
     MODEL_EPRA08EAV3,
     MODEL_EPRA12EAV3,
     MODEL_ERLA11DAV3,
-    RECOMMENDED_ATTRIBUTES,
     REQUIRED_ATTRIBUTES,
+    CORE_ATTRIBUTES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ def get_profile(model: str) -> dict[str, Any]:
 def expected_attributes(model: str) -> list[str]:
     """Required + recommended attribute keys for this model."""
     _ = get_profile(model)
-    return list(REQUIRED_ATTRIBUTES) + list(RECOMMENDED_ATTRIBUTES)
+    return list(CORE_ATTRIBUTES)
 
 
 def defaults_for(model: str) -> dict[str, Any]:

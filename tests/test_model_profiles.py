@@ -6,7 +6,6 @@ from custom_components.daikin_cycle_ml.const import (
     MODEL_BASISPROFIEL,
     MODEL_CHOICES,
     MODEL_EPRA12EAV3,
-    RECOMMENDED_ATTRIBUTES,
     REQUIRED_ATTRIBUTES,
 )
 from custom_components.daikin_cycle_ml.engine.model_profiles import (
@@ -43,10 +42,10 @@ def test_no_model_expects_brine():
         assert get_profile(m)["expects_brine"] is False
 
 
-def test_expected_attributes_returns_required_plus_recommended():
+def test_expected_attributes_returns_core():
+    from custom_components.daikin_cycle_ml.const import CORE_ATTRIBUTES
     attrs = expected_attributes(MODEL_EPRA12EAV3)
-    assert len(attrs) == len(REQUIRED_ATTRIBUTES) + len(RECOMMENDED_ATTRIBUTES)
-
+    assert set(attrs) == set(CORE_ATTRIBUTES)
 
 def test_defaults_for_excludes_expects_brine():
     d = defaults_for(MODEL_EPRA12EAV3)

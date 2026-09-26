@@ -24,14 +24,8 @@
         }
       },
       "attributes": {
-        "title": "Attributes to track",
-        "description": "Pick which attributes to track.\n\n- **Recommended** (preselected): needed for normal operation.\n- **Optional**: extra diagnostics; only enable if your ESPAltherma actually exposes them.",
-        "data": {
-          "selected_attributes": "Selected attributes"
-        },
-        "data_description": {
-          "selected_attributes": "Recommended (default) covers normal operation. Optional adds diagnostics but only works if the sensor exposes them."
-        }
+        "title": "Attribute check",
+        "description": "Core attributes on the source sensor: **{present} / {total}** present.\\n\\n**Present:**\\n{present_list}\\n\\n**Missing:**\\n{missing_list}"
       },
       "cycle": {
         "title": "Cycle detection",

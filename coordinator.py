@@ -330,7 +330,6 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 return snap
             attrs = read(state,
             custom_map=self.options.get("custom_attribute_map"),
-            selected=self.options.get("selected_attributes"),
         )
             snap.attrs = attrs
             snap.missing_attrs = missing_required(attrs)

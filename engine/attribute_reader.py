@@ -5,7 +5,7 @@ import logging
 import re
 from typing import Any, Mapping
 
-from ..const import REQUIRED_ATTRIBUTES
+from ..const import CORE_ATTRIBUTES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -79,15 +79,11 @@ def read(
     state: Any,
     *,
     custom_map: Mapping[str, str] | None = None,
-    selected: list[str] | None = None,
 ) -> dict[str, Any]:
     """Return a normalized copy of state.attributes (or {} if no state).
 
-    custom_map: {standard_key: actual_attribute_name}. Renames actual to
-    standard in the result so the rest of the code sees the canonical keys.
-
-    selected: list of attribute keys the user opted into. REQUIRED_ATTRIBUTES
-    are always kept (cycle detection depends on them).
+    custom_map: {standard_key: actual_attribute_name}. Renames the actual
+    attribute to the standard key so downstream code sees the canonical keys.
     """
     if state is None:
         return {}
@@ -101,13 +97,9 @@ def read(
             if isinstance(actual, str) and actual in result and actual != standard:
                 result[standard] = result.pop(actual)
 
-    if selected is not None:
-        allowed = set(selected) | set(REQUIRED_ATTRIBUTES)
-        result = {k: v for k, v in result.items() if k in allowed}
-
     return result
 
 
 def missing_required(attrs: Mapping[str, Any]) -> list[str]:
     """Return required attribute keys that are absent or None."""
-    return [key for key in REQUIRED_ATTRIBUTES if attrs.get(key) is None]
+    return [key for key in CORE_ATTRIBUTES if attrs.get(key) is None]

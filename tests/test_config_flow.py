@@ -63,7 +63,7 @@ async def test_full_flow_creates_entry(hass):
     )
     assert result["step_id"] == "attributes"
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"selected_attributes": []}
+        result["flow_id"], {}
     )
     assert result["step_id"] == "cycle"
     result = await hass.config_entries.flow.async_configure(
