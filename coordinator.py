@@ -221,6 +221,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 data = await self.db.async_get_model_state("baseline_state")
                 if data:
                     self.baseline = MultiBaseline.from_dict(data)
+                    if getattr(self.baseline, "_migrated_from_dim", None) is not None:
+                        _LOGGER.info(
+                            "MultiBaseline migrated from dim=%s to %d; persisting now",
+                            self.baseline._migrated_from_dim,
+                            self.baseline.dim,
+                        )
+                        await self.async_save_baseline_state()
                     _LOGGER.info(
                         "Baseline restored: modes=%s samples=%s",
                         self.baseline.modes(),

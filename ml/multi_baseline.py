@@ -25,6 +25,9 @@ MODE_UNKNOWN = "unknown"
 class MultiBaseline:
     """One AdaptiveBaseline per operation mode."""
 
+    # R52: class-level default for runtime attr set in from_dict.
+    _migrated_from_dim: int | None = None
+
     def __init__(
         self,
         dim: int,
@@ -107,12 +110,16 @@ class MultiBaseline:
         # Only reset for KNOWN obsolete dims. Other dims (small test baselines
         # or future-proof values) load normally.
         if not isinstance(saved_dim, int) or saved_dim in (VECTOR_LEN_LEGACY, 11):
-            _LOGGER.warning(
+            _LOGGER.info(
                 "MultiBaseline state has dim=%s (obsolete/missing), "
                 "resetting to %d-dim",
                 saved_dim, VECTOR_LEN,
             )
-            return cls(VECTOR_LEN)
+            mb = cls(VECTOR_LEN)
+            mb._migrated_from_dim = (
+                saved_dim if isinstance(saved_dim, int) else None
+            )
+            return mb
         mb = cls(
             saved_dim,
             alpha=float(data.get("alpha", DEFAULT_ALPHA)),
