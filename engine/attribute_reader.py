@@ -75,14 +75,37 @@ def _normalize(value: Any) -> float | bool | str | None:
     return cleaned
 
 
-def read(state: Any) -> dict[str, Any]:
-    """Return a normalized copy of state.attributes (or {} if no state)."""
+def read(
+    state: Any,
+    *,
+    custom_map: Mapping[str, str] | None = None,
+    selected: list[str] | None = None,
+) -> dict[str, Any]:
+    """Return a normalized copy of state.attributes (or {} if no state).
+
+    custom_map: {standard_key: actual_attribute_name}. Renames actual to
+    standard in the result so the rest of the code sees the canonical keys.
+
+    selected: list of attribute keys the user opted into. REQUIRED_ATTRIBUTES
+    are always kept (cycle detection depends on them).
+    """
     if state is None:
         return {}
     raw = getattr(state, "attributes", None)
     if not isinstance(raw, Mapping):
         return {}
-    return {key: _normalize(val) for key, val in raw.items()}
+    result = {key: _normalize(val) for key, val in raw.items()}
+
+    if custom_map:
+        for standard, actual in custom_map.items():
+            if isinstance(actual, str) and actual in result and actual != standard:
+                result[standard] = result.pop(actual)
+
+    if selected is not None:
+        allowed = set(selected) | set(REQUIRED_ATTRIBUTES)
+        result = {k: v for k, v in result.items() if k in allowed}
+
+    return result
 
 
 def missing_required(attrs: Mapping[str, Any]) -> list[str]:

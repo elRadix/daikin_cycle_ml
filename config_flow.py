@@ -52,6 +52,10 @@ from .const import (
     DEFAULT_NOTIFY_EMOJI_ENABLED,
     DEFAULT_STATUS_UPDATE_ENABLED,
     DEFAULT_STATUS_UPDATE_INTERVAL_HOURS,
+    DEFAULT_RETENTION_ENABLED,
+    DEFAULT_CYCLE_RETENTION_DAYS,
+    DEFAULT_ALERT_RETENTION_DAYS,
+    DEFAULT_VACUUM_ENABLED,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -560,6 +564,10 @@ class DaikinCycleMLOptionsFlow(OptionsFlow):
             vol.Required("pendulum_cycles_per_day",
                 default=c.get("pendulum_cycles_per_day", DEFAULT_PENDULUM_CPD)
             ): _num(1, 200, 1),
+            vol.Required("dhw_pendulum_cycles_per_hour",
+                default=c.get("dhw_pendulum_cycles_per_hour",
+                    DEFAULT_DHW_PENDULUM_CPH),
+            ): _num(1, 20, 1, "cyc/h"),
             vol.Required("setpoint_oscillation_threshold",
                 default=c.get("setpoint_oscillation_threshold",
                     DEFAULT_SETPOINT_OSC_THRESHOLD),
@@ -681,16 +689,16 @@ class DaikinCycleMLOptionsFlow(OptionsFlow):
         c = self.config_entry.options or {}
         schema = vol.Schema({
             vol.Required("retention_enabled",
-                default=c.get("retention_enabled", True)
+                default=c.get("retention_enabled", DEFAULT_RETENTION_ENABLED)
             ): bool,
             vol.Required("cycle_retention_days",
-                default=c.get("cycle_retention_days", 90)
+                default=c.get("cycle_retention_days", DEFAULT_CYCLE_RETENTION_DAYS)
             ): _num(1, 3650, 1, "d"),
             vol.Required("alert_retention_days",
-                default=c.get("alert_retention_days", 30)
+                default=c.get("alert_retention_days", DEFAULT_ALERT_RETENTION_DAYS)
             ): _num(1, 365, 1, "d"),
             vol.Required("vacuum_enabled",
-                default=c.get("vacuum_enabled", True)
+                default=c.get("vacuum_enabled", DEFAULT_VACUUM_ENABLED)
             ): bool,
         })
         return self.async_show_form(step_id="maintenance", data_schema=schema)
