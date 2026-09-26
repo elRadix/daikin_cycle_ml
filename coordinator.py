@@ -1020,7 +1020,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "top_advice": top_advice,
         }
 
-    def _build_alert_context(self, snap) -> dict:  # pragma: no cover
+    def _build_alert_context(self, snap) -> dict:
         opts = self.options or {}
         now = time.time()
         cph = 0
@@ -1040,7 +1040,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _t = (getattr(_first, 'title', None)
                   or getattr(_first, 'text', None) or '')
             if _t:
-                advice_text = "\n\U0001F4A1 " + str(_t)
+                advice_text = "\n\u2022 " + str(_t)
         ctx = {
             "pendulum": {
                 "target_cph": opts.get("pendulum_cycles_per_hour", 4),
@@ -1068,6 +1068,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "setpoint_osc": {
                 "osc_count": len(self._setpoint_history),
                 "window_min": int(self.options.get("setpoint_osc_window_min", 30) or 30),
+                "threshold": int(self.options.get("setpoint_oscillation_threshold", 6) or 6),
                 "advice": advice_text,
             },
         }
@@ -1118,6 +1119,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             alerts = evaluate_alerts(
                 states, self.options, now, self._last_alert_sent,
                 context=self._build_alert_context(snap),
+                language=self.options.get("notification_language", "en"),
             )
             for alert in alerts:
                 await self._emit_alert(alert)

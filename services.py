@@ -154,26 +154,33 @@ async def _do_recompute_baseline(coordinator: Any, days: int) -> dict[str, Any]:
     from .ml.features import extract_feature_vector, is_valid_record
     try:
         mb.reset()
-    except Exception:
-        pass
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("baseline reset failed: %s", err)
     fed = 0
     for rec in cycles:
         if not is_valid_record(rec):
             continue
         try:
             vec = extract_feature_vector(rec)
-        except Exception:
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug(
+                "feature extraction failed for cycle %s: %s",
+                rec.get("id"), err,
+            )
             continue
         mode = rec.get("mode") or "unknown"
         try:
             mb.update(mode, vec)
             fed += 1
-        except Exception:
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug(
+                "baseline update failed for mode %s: %s", mode, err,
+            )
             continue
     try:
         await db.async_set_model_state("baseline_state", mb.to_dict())
-    except Exception:
-        pass
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.warning("Failed to persist baseline state: %s", err)
     return {"computed": True, "days": days, "samples": fed}
 
 
