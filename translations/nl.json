@@ -25,7 +25,7 @@
       },
       "attributes": {
         "title": "Attribuut-controle",
-        "description": "Kern-attributen op de bronsensor: **{present} / {total}** aanwezig.\\n\\n**Aanwezig:**\\n{present_list}\\n\\n**Ontbrekend:**\\n{missing_list}"
+        "description": "Kern-attributen op de bronsensor: **{present} / {total}** aanwezig.\n\n**Aanwezig:**\n{present_list}\n\n**Ontbrekend:**\n{missing_list}"
       },
       "cycle": {
         "title": "Cyclusdetectie",
@@ -33,12 +33,14 @@
         "data": {
           "compressor_rps_threshold": "Compressor RPS threshold",
           "power_sensor_entity": "Power sensor (optional fallback)",
-          "fallback_power_threshold_w": "Fallback power threshold"
+          "fallback_power_threshold_w": "Fallback power threshold",
+          "indoor_temp_sensor": "Binnentemperatuur-sensor"
         },
         "data_description": {
           "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3. Increase to ignore brief spikes.",
           "power_sensor_entity": "Optional. Used as fallback when RPS is unavailable or zero. Leave empty to disable.",
-          "fallback_power_threshold_w": "Power threshold (W) for the fallback sensor. Default 200. Lower = more sensitive."
+          "fallback_power_threshold_w": "Power threshold (W) for the fallback sensor. Default 200. Lower = more sensitive.",
+          "indoor_temp_sensor": "Optionele sensor voor binnentemperatuur (gebruikt voor ML-feature indoor_temp_avg)."
         }
       },
       "pendulum": {

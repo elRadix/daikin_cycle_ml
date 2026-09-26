@@ -281,10 +281,14 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
             vol.Optional(
                 "indoor_temp_sensor",
-                default=self._options.get(
-                    "indoor_temp_sensor", DEFAULT_INDOOR_TEMP_SENSOR
-                ) or "",
-            ): str,
+                description={
+                    "suggested_value": self._options.get(
+                        "indoor_temp_sensor"
+                    ) or None
+                },
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
+            ),
             vol.Required(
                 "fallback_power_threshold_w",
                 default=self._options.get(
