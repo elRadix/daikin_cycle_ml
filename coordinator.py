@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
@@ -69,6 +70,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _cycle_indoor_sum: float = 0.0
     _cycle_indoor_count: int = 0
 
+    # R52: class-level defaults so __new__-style tests find these attrs
+    _setpoint_history: deque | None = None
+    _last_setpoint: float | None = None
+
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.entry = entry
         self.source_entity: str = entry.data.get(
@@ -91,6 +96,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self.store = CycleStore()
         self._errors_total = 0
         self._last_alert_sent: dict[str, float] = {}
+        self._setpoint_history: deque[tuple[float, float]] = deque()
+        self._last_setpoint: float | None = None
         self._maintenance_unsub: Any = None
         self._baseline_save_unsub: Any = None
         self._kmeans_unsub: Any = None
@@ -748,8 +755,80 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.exception("adaptive load failed")
         return False
 
+    def _track_setpoint(self, attrs: dict[str, Any]) -> int:
+        """Track LW-setpoint changes within a rolling window.
+
+        Returns the number of changes currently inside the window.
+        """
+        if self._setpoint_history is None:
+            self._setpoint_history = deque()
+        from .const import (
+            ATTR_LW_SETPOINT,
+            DEFAULT_SETPOINT_OSC_MIN_DELTA,
+            DEFAULT_SETPOINT_OSC_WINDOW_MIN,
+        )
+        raw = attrs.get(ATTR_LW_SETPOINT)
+        val = None
+        if raw is not None:
+            try:
+                val = float(raw)
+            except (TypeError, ValueError):
+                val = None
+
+        try:
+            window_min = int(self.options.get(
+                "setpoint_osc_window_min",
+                DEFAULT_SETPOINT_OSC_WINDOW_MIN,
+            ))
+        except (TypeError, ValueError):
+            window_min = DEFAULT_SETPOINT_OSC_WINDOW_MIN
+        if window_min <= 0:
+            window_min = DEFAULT_SETPOINT_OSC_WINDOW_MIN
+
+        try:
+            min_delta = float(self.options.get(
+                "setpoint_osc_min_delta",
+                DEFAULT_SETPOINT_OSC_MIN_DELTA,
+            ))
+        except (TypeError, ValueError):
+            min_delta = DEFAULT_SETPOINT_OSC_MIN_DELTA
+        if min_delta <= 0:
+            min_delta = DEFAULT_SETPOINT_OSC_MIN_DELTA
+
+        now = time.time()
+        if val is not None and self._last_setpoint is not None:
+            if abs(val - self._last_setpoint) >= min_delta:
+                self._setpoint_history.append((now, val))
+        if val is not None:
+            self._last_setpoint = val
+
+        cutoff = now - (window_min * 60)
+        hist = self._setpoint_history
+        while hist and hist[0][0] < cutoff:
+            hist.popleft()
+
+        return len(hist)
+
+    def _compute_setpoint_oscillating(self) -> bool:
+        """Return True if setpoint changes in window exceed threshold."""
+        from .const import DEFAULT_SETPOINT_OSC_THRESHOLD
+        try:
+            th = int(self.options.get(
+                "setpoint_oscillation_threshold",
+                DEFAULT_SETPOINT_OSC_THRESHOLD,
+            ))
+        except (TypeError, ValueError):
+            th = DEFAULT_SETPOINT_OSC_THRESHOLD
+        if th <= 0:
+            th = DEFAULT_SETPOINT_OSC_THRESHOLD
+        hist = self._setpoint_history
+        if hist is None:
+            return False
+        return len(hist) >= th
+
     def _alert_binary_states(self, snap: DataSnapshot) -> dict[str, bool]:
         """Snapshot the 4 alert-relevant binary states."""
+        self._track_setpoint(snap.attrs)
         now = time.time()
         short_run_th = self._effective_threshold(
             "short_run_threshold_min",
@@ -782,6 +861,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "pendulum_hourly": bool(is_pend_h),
             "pendulum_daily": bool(is_pend_d),
             "ml_anomaly": is_ml_anom,
+            "setpoint_osc": self._compute_setpoint_oscillating(),
         }
 
     def _assign_cluster(self, vector: list[float]) -> int | None:  # pragma: no cover
@@ -986,8 +1066,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "advice": advice_text,
             },
             "setpoint_osc": {
-                "osc_count": "?",
-                "window_min": "?",
+                "osc_count": len(self._setpoint_history),
+                "window_min": int(self.options.get("setpoint_osc_window_min", 30) or 30),
                 "advice": advice_text,
             },
         }

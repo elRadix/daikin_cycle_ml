@@ -166,11 +166,16 @@ def test_missing_attrs_off_when_empty():
     assert _make_bs("missing_attrs", _make_coord(snap)).is_on is False
 
 
-def test_setpoint_oscillating_is_stub_false():
-    assert _make_bs("setpoint_oscillating").is_on is False
-
-
-# ---------- pendulum / rate ----------
+def test_setpoint_oscillating_follows_coordinator():
+    """Batch 21b: stub removed; state now delegates to coordinator."""
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator,
+    )
+    c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
+    c.options = {}
+    c._setpoint_history = None
+    c._last_setpoint = None
+    assert c._compute_setpoint_oscillating() is False
 
 def test_pendulum_hourly_on_when_threshold_hit(monkeypatch):
     monkeypatch.setattr(bs_mod, "_now", lambda: 10000.0)
