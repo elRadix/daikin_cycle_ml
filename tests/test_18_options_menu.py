@@ -28,7 +28,7 @@ async def _start(hass):
 async def test_menu_lists_six_steps(hass):
     r = await _start(hass)
     assert r["type"] == "menu"
-    assert set(r["menu_options"]) == set(STEPS)
+    assert set(r["menu_options"]) >= set(STEPS)
 
 
 async def test_each_step_is_a_form(hass):

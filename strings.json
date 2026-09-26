@@ -149,7 +149,8 @@
           "quality": "Quality",
           "notifications": "Notifications",
           "ml": "ML learning",
-          "maintenance": "Maintenance"
+          "maintenance": "Maintenance",
+          "test_notification": "Send test notification now"
         },
         "data_description": {
           "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3.",
@@ -287,6 +288,16 @@
           "cycle_retention_days": "Cycles older than N days are rolled up and pruned. Default 90.",
           "alert_retention_days": "Alerts older than N days are deleted. Default 30.",
           "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning."
+        }
+      },
+      "test_notification": {
+        "title": "Test notification",
+        "description": "Result: **{status}**\n\nPreview (first 500 chars):\n```\n{preview}\n```\n\nThis uses the current options (notify_service + persistent_enabled). The same message is also emitted by the scheduled status update.",
+        "data": {
+          "back": "Back to menu"
+        },
+        "data_description": {
+          "back": "Return to the options menu."
         }
       }
     }

@@ -149,7 +149,8 @@
           "quality": "Kwaliteit",
           "notifications": "Meldingen",
           "ml": "ML leren",
-          "maintenance": "Onderhoud"
+          "maintenance": "Onderhoud",
+          "test_notification": "Testmelding nu versturen"
         },
         "data_description": {
           "compressor_rps_threshold": "Compressor AAN wanneer RPS >= deze waarde. Standaard 3.",
@@ -287,6 +288,16 @@
           "cycle_retention_days": "Cycli ouder dan N dagen worden gerold. Standaard 90.",
           "alert_retention_days": "Meldingen ouder dan N dagen verwijderd. Standaard 30.",
           "vacuum_enabled": "SQLite VACUUM om ruimte vrij te maken."
+        }
+      },
+      "test_notification": {
+        "title": "Testmelding",
+        "description": "Resultaat: **{status}**\n\nVoorbeeld (eerste 500 tekens):\n```\n{preview}\n```\n\nDit gebruikt de huidige opties (notify_service + persistent_enabled). Hetzelfde bericht wordt ook periodiek verstuurd door de status-update.",
+        "data": {
+          "back": "Terug naar menu"
+        },
+        "data_description": {
+          "back": "Terug naar het optiemenu."
         }
       }
     }

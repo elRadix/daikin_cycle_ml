@@ -516,6 +516,7 @@ class DaikinCycleMLOptionsFlow(OptionsFlow):
                 "notifications",
                 "ml",
                 "maintenance",
+                "test_notification",
             ],
         )
 
@@ -688,7 +689,56 @@ class DaikinCycleMLOptionsFlow(OptionsFlow):
         })
         return self.async_show_form(step_id="notifications", data_schema=schema)
 
+    def _get_coordinator_handle(self):
+        """Resolve coordinator across runtime_data and hass.data patterns."""
+        from .const import DOMAIN
+        entry = self.config_entry
+        coord = getattr(entry, "runtime_data", None)
+        if coord is not None and hasattr(coord, "async_emit_status_update"):
+            return coord
+        data = self.hass.data.get(DOMAIN)
+        if isinstance(data, dict):
+            coord = data.get(entry.entry_id)
+            if coord is not None and hasattr(coord, "async_emit_status_update"):
+                return coord
+            for v in data.values():
+                if hasattr(v, "async_emit_status_update"):
+                    return v
+        if data is not None and hasattr(data, "async_emit_status_update"):
+            return data
+        return None
+
+    async def async_step_test_notification(self, user_input=None) -> FlowResult:
+        """Send current daily summary to the configured notify target."""
+        if user_input is not None:
+            return await self.async_step_init()
+        status = "unknown"
+        preview = ""
+        try:
+            coord = self._get_coordinator_handle()
+            if coord is None:
+                status = "no_coordinator"
+                preview = "Integration is not loaded. Reload the entry first."
+            else:
+                msg = await coord.async_emit_status_update()
+                status = "sent"
+                preview = (msg or "")[:500]
+        except Exception as exc:  # noqa: BLE001
+            status = "failed"
+            preview = str(exc)[:500]
+        return self.async_show_form(
+            step_id="test_notification",
+            data_schema=vol.Schema({
+                vol.Optional("back", default=True): bool,
+            }),
+            description_placeholders={
+                "status": status,
+                "preview": preview,
+            },
+        )
+
     async def async_step_ml(self, user_input=None) -> FlowResult:
+
         if user_input is not None:
             return self._save(user_input)
         c = self.config_entry.options or {}
