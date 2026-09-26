@@ -1,5 +1,6 @@
 """Batch 17a: notification content consistency."""
 import re
+from unittest.mock import MagicMock
 
 from custom_components.daikin_cycle_ml.engine.notification_engine import (
     BINARY_ALERT_MAP,
@@ -183,3 +184,42 @@ def test_cop_low_format():
     assert "2.31" in msg
     assert "threshold 2.5" in msg
     assert "5 samples" in msg
+
+def test_resolve_optional_single_entry():
+    from custom_components.daikin_cycle_ml import services as svc
+    h = MagicMock()
+    e = MagicMock()
+    e.entry_id = "abc"
+    e.runtime_data = "COORD"
+    h.config_entries.async_entries = MagicMock(return_value=[e])
+    h.config_entries.async_get_entry = MagicMock(return_value=e)
+    assert svc._resolve_optional_coordinator(h, None) == "COORD"
+
+
+def test_resolve_optional_zero_entries():
+    from custom_components.daikin_cycle_ml import services as svc
+    h = MagicMock()
+    h.config_entries.async_entries = MagicMock(return_value=[])
+    try:
+        svc._resolve_optional_coordinator(h, None)
+        assert False, "should have raised"
+    except svc.HomeAssistantError:
+        pass
+
+
+def test_resolve_optional_multiple_entries():
+    from custom_components.daikin_cycle_ml import services as svc
+    h = MagicMock()
+    e1, e2 = MagicMock(), MagicMock()
+    h.config_entries.async_entries = MagicMock(return_value=[e1, e2])
+    try:
+        svc._resolve_optional_coordinator(h, None)
+        assert False, "should have raised"
+    except svc.HomeAssistantError:
+        pass
+
+
+def test_schema_entry_id_optional():
+    from custom_components.daikin_cycle_ml import services as svc
+    parsed = svc.SCHEMA_SEND_TEST({})
+    assert parsed == {}

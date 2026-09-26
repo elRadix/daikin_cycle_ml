@@ -133,8 +133,8 @@ send_test_notification:
   fields:
     entry_id:
       name: Config entry
-      description: Config entry ID.
-      required: true
+      description: Config entry ID. Omit when only one Daikin entry is loaded.
+      required: false
       selector:
         text:
     message:

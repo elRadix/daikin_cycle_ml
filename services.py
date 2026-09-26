@@ -69,7 +69,7 @@ SCHEMA_RUN_MAINTENANCE = vol.Schema({
 
 
 SCHEMA_SEND_TEST = vol.Schema({
-    vol.Required(ATTR_ENTRY_ID): str,
+    vol.Optional(ATTR_ENTRY_ID): str,
     vol.Optional(ATTR_MESSAGE): str,
     vol.Optional(ATTR_TARGET): str,
 })
@@ -83,6 +83,23 @@ def _resolve_coordinator(hass: HomeAssistant, entry_id: str) -> Any:
     if coord is None:
         raise HomeAssistantError(f"Coordinator not ready for entry {entry_id}")
     return coord
+
+
+def _resolve_optional_coordinator(
+    hass: HomeAssistant, entry_id: str | None
+) -> Any:
+    """Resolve coord; auto-pick if only one Daikin entry is loaded."""
+    if entry_id:
+        return _resolve_coordinator(hass, entry_id)
+    entries = hass.config_entries.async_entries(DOMAIN)
+    if not entries:
+        raise HomeAssistantError("No Daikin Cycle ML config entry loaded")
+    if len(entries) > 1:
+        raise HomeAssistantError(
+            "Multiple config entries; specify entry_id "
+            f"({len(entries)} found)"
+        )
+    return _resolve_coordinator(hass, entries[0].entry_id)
 
 
 # ---------- pure do-functions (unit-testable) ----------
@@ -198,7 +215,9 @@ async def _handle_run_maintenance(hass: HomeAssistant, call: ServiceCall) -> dic
 async def _handle_send_test_notification(
     hass: HomeAssistant, call: ServiceCall
 ) -> dict[str, Any]:
-    coord = _resolve_coordinator(hass, call.data[ATTR_ENTRY_ID])
+    coord = _resolve_optional_coordinator(
+        hass, call.data.get(ATTR_ENTRY_ID)
+    )
     from .engine.notification_engine import async_send_notification
     opts = getattr(coord, "options", None) or {}
     target = call.data.get(ATTR_TARGET) or opts.get("notify_service") or ""
