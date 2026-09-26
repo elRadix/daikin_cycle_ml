@@ -13,6 +13,45 @@ Versioning: https://semver.org/spec/v2.0.0.html
 
 
 
+## [Unreleased] — since v0.5.0
+
+### Added
+- **i18n alert templates (EN + NL)** via `notification_language` option (default EN). Full-sentence messages with actionable advice, selected per-alert. Replaces hardcoded English templates.
+- **Per-group alert toggles (5):** `alert_group_pendulum`, `alert_group_short_cycle`, `alert_group_ml`, `alert_group_setpoint`, `alert_group_cop_stooklijn`. All default on.
+- **`setpoint_osc` alert fully implemented** — was scaffold-only since v0.5.0 (state_fn hardcoded False, no tracker). Now: deque-based rolling window, min-delta filter, threshold against `setpoint_oscillation_threshold` (model-profile default 6).
+- **3 new Pendulum options:** `setpoint_oscillation_threshold` (default 6), `setpoint_osc_window_min` (default 30), `setpoint_osc_min_delta` (default 0.5°C). All with `data_description` explaining the rationale.
+- **Logging in silent except paths** in `services.py` `recompute_baseline` — 4 spots now emit `_LOGGER.debug/warning`.
+
+### Fixed
+- `binary_sensor.setpoint_oscillating` now derives state from coordinator (was always False via stub).
+- `_alert_binary_states` includes `setpoint_osc` key (was missing, alert never fired).
+- `_build_alert_context["setpoint_osc"]` fills real `osc_count` / `window_min` / `threshold` (was `"?"` placeholders).
+- `AlertSpec` templates render correctly; emoji handled by `_prefix_emoji` (not baked in).
+- `DEFAULT_SETPOINT_OSC_THRESHOLD` resolved from model_profiles at runtime (default 6).
+- 4 stale `except Exception: pass` in `recompute_baseline` no longer silent.
+
+### Changed
+- `evaluate_alerts()` gains `language` param (overrides option; falls back to `options["notification_language"]`, then `"en"`).
+- `coordinator._async_dispatch_alerts` passes `language=self.options.get("notification_language", "en")`.
+- `pytest.ini_options.markers` registered: `expected_lingering_tasks`, `expected_lingering_timers` (kills `PytestUnknownMarkWarning`).
+- Status-update advice prefix changed from `💡` emoji to `•` bullet (templates carry their own 💡 in advice block).
+
+### Internal
+- **7 `# pragma: no cover` removed** from coordinator runtime functions:
+  `async_setup_status_updates`, `_async_status_update_callback`, `async_emit_status_update`, `_build_status_snapshot`, `async_save_adaptive_state`, `async_load_adaptive_state`, `_load_kmeans_state`.
+- **39 new tests** for the above (14 `_build_alert_context` + 25 runtime coordinator).
+- **R52 class-level defaults** on coordinator: `_setpoint_history`, `_last_setpoint`, `_status_update_unsub`, `_kmeans_centroids`, `_cluster_labels`. `__new__`-style test fixtures no longer crash.
+- Lazy init in `_track_setpoint` / `_compute_setpoint_oscillating` (defensive against partial init).
+- `notification_engine.evaluate_alerts` template lookup now per-language (`ALERT_TEMPLATES[lang][bkey]`) with fallback to default map.
+
+### Test suite
+- 880 → **958 tests** (+78)
+- Coverage: 95.39% → **95.57%**
+- `coordinator.py`: 92% → 94%
+- `engine/notification_engine.py`: 88% → 89%
+
+---
+
 ## [0.5.0] - 2026-09-26
 
 ### Added
