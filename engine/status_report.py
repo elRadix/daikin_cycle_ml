@@ -285,32 +285,30 @@ ALERT_TITLES = {
 
 ALERT_LABELS = {
     "en": {
-        "cycles_hour":   "Cycles / hour",
-        "target_hour":   "Target",
-        "cycles_today":  "Cycles today",
-        "target_day":    "Target",
-        "duration":      "Duration",
-        "threshold":     "Threshold",
-        "off_time":      "Off-time",
-        "mode":          "Mode",
-        "zscore":        "Z-score",
-        "top_dim":       "Top dim",
-        "changes":       "Changes",
-        "window":        "Window",
+        "cycles_hour": "Cycles / hour", "target_hour": "Target",
+        "cycles_today": "Cycles today", "target_day": "Target",
+        "duration": "Duration", "threshold": "Threshold",
+        "off_time": "Off-time", "mode": "Mode",
+        "zscore": "Z-score", "top_dim": "Top dim",
+        "changes": "Changes", "window": "Window",
+        "lwt_setpoint": "LWT setpoint", "lwt_target": "LWT target",
+        "lwt_actual": "LWT actual", "outdoor": "Outdoor",
+        "avg_duration": "Avg duration", "delta_max": "Setpoint swing",
+        "cop": "COP", "severity": "Severity",
+        "indoor": "Indoor", "flow": "Flow",
     },
     "nl": {
-        "cycles_hour":   "Cycli / uur",
-        "target_hour":   "Doel",
-        "cycles_today":  "Cycli vandaag",
-        "target_day":    "Doel",
-        "duration":      "Duur",
-        "threshold":     "Drempel",
-        "off_time":      "Off-tijd",
-        "mode":          "Modus",
-        "zscore":        "Z-score",
-        "top_dim":       "Top-dimensie",
-        "changes":       "Wijzigingen",
-        "window":        "Venster",
+        "cycles_hour": "Cycli / uur", "target_hour": "Doel",
+        "cycles_today": "Cycli vandaag", "target_day": "Doel",
+        "duration": "Duur", "threshold": "Drempel",
+        "off_time": "Off-tijd", "mode": "Modus",
+        "zscore": "Z-score", "top_dim": "Top-dimensie",
+        "changes": "Wijzigingen", "window": "Venster",
+        "lwt_setpoint": "LWT setpoint", "lwt_target": "LWT doel",
+        "lwt_actual": "LWT actueel", "outdoor": "Buiten",
+        "avg_duration": "Gem. duur", "delta_max": "Setpoint-swing",
+        "cop": "COP", "severity": "Ernst",
+        "indoor": "Binnen", "flow": "Flow",
     },
 }
 
@@ -329,28 +327,54 @@ ALERT_SCHEMA = {
     "pendulum_hourly": [
         ("\U0001F4C8", "cycles_hour", "{cph}"),
         ("\U0001F3AF", "target_hour", "\u2264 {target_cph}"),
+        ("\U0001F501", "mode", "{mode}"),
+        ("\U0001F321\uFE0F", "lwt_setpoint", "{lwt_setpoint} \u00b0C"),
+        ("\u23F1\uFE0F", "avg_duration", "{avg_duration_min} min"),
+        ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
     ],
     "pendulum_daily": [
         ("\U0001F4C8", "cycles_today", "{cycles_today}"),
         ("\U0001F3AF", "target_day", "\u2264 {target_cpd}"),
+        ("\U0001F501", "mode", "{mode}"),
+        ("\U0001F321\uFE0F", "lwt_setpoint", "{lwt_setpoint} \u00b0C"),
+        ("\u23F1\uFE0F", "avg_duration", "{avg_duration_min} min"),
+        ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
     ],
     "short_run": [
         ("\u23F1\uFE0F", "duration", "{duration_min} min"),
         ("\U0001F3AF", "threshold", "{threshold_min} min"),
+        ("\U0001F501", "mode", "{mode}"),
+        ("\U0001F321\uFE0F", "lwt_setpoint", "{lwt_setpoint} \u00b0C"),
+        ("\U0001F321\uFE0F", "lwt_actual", "{lwt_actual} \u00b0C"),
+        ("\U0001F321\uFE0F", "indoor", "{indoor} \u00b0C"),
+        ("\U0001F4A7", "flow", "{flow} l/min"),
+        ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
     ],
     "short_off": [
         ("\u23F1\uFE0F", "off_time", "{off_min} min"),
         ("\U0001F3AF", "threshold", "{threshold_min} min"),
+        ("\U0001F501", "mode", "{mode}"),
+        ("\U0001F321\uFE0F", "lwt_setpoint", "{lwt_setpoint} \u00b0C"),
+        ("\U0001F321\uFE0F", "indoor", "{indoor} \u00b0C"),
+        ("\U0001F4A7", "flow", "{flow} l/min"),
+        ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
     ],
     "ml_anomaly": [
+        ("\u26A0\uFE0F", "severity", "{severity_label}"),
         ("\U0001F501", "mode", "{mode}"),
         ("\U0001F4C8", "zscore", "{z_max}"),
         ("\U0001F3AF", "top_dim", "{top_dim}"),
+        ("\u23F1\uFE0F", "avg_duration", "{avg_duration_min} min"),
+        ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
     ],
     "setpoint_osc": [
+        ("\U0001F3AF", "lwt_setpoint", "{lwt_setpoint} \u00b0C"),
+        ("\U0001F3AF", "lwt_target", "{lwt_target} \u00b0C"),
+        ("\U0001F4C8", "delta_max", "\u0394 {delta_max} \u00b0C"),
         ("\U0001F501", "changes", "{osc_count} \u00d7"),
         ("\u23F1\uFE0F", "window", "{window_min} min"),
         ("\U0001F3AF", "threshold", "{threshold} \u00d7"),
+        ("\U0001F501", "mode", "{mode}"),
     ],
 }
 
@@ -368,6 +392,15 @@ def build_rich_alert(alert_type, severity, context, *, language="en", emoji_enab
     now = _dt.datetime.now()
     ts = now.strftime("%Y-%m-%d %H:%M")
     ctx = dict(context or {})
+    if "mode" in ctx:
+        ctx["mode"] = MODE_LABELS.get(language, MODE_LABELS["en"]).get(
+            ctx["mode"], ctx["mode"]
+        )
+    sev_e = SEVERITY_EMOJI.get(severity, "")
+    sev_lbl = SEVERITY_LABELS.get(language, SEVERITY_LABELS["en"]).get(
+        severity, severity
+    )
+    ctx["severity_label"] = (sev_e + " " + sev_lbl).strip()
     lines = []
     if emoji_enabled:
         lines.append(head_e + " Daikin Cycle ML \u2014 " + title)
@@ -384,9 +417,48 @@ def build_rich_alert(alert_type, severity, context, *, language="en", emoji_enab
         except (KeyError, IndexError, ValueError):
             val = "\u2014"
         lines.append(_row(emoji, label, val, emojis=emoji_enabled))
-    advice = ctx.get("advice")
+    builtin = ALERT_ADVICE.get(language, {}).get(alert_type)
+    advice = ctx.get("advice") or builtin
     if advice:
         lines.append(DIV)
         lines.append(str(advice).strip())
     lines.append(DIV)
     return "\n".join(lines)
+
+SEVERITY_LABELS = {
+    "en": {"critical": "critical", "warning": "warning",
+           "watch": "watch", "normal": "normal"},
+    "nl": {"critical": "kritiek", "warning": "waarschuwing",
+           "watch": "let op", "normal": "normaal"},
+}
+
+ALERT_ADVICE = {
+    "en": {
+        "pendulum_hourly": ("\u2022 Check setpoint delta, hysteresis and heat "
+            "curve \u2014 the pump is cycling too often."),
+        "pendulum_daily": ("\u2022 Check setpoint delta, hysteresis and heat "
+            "curve \u2014 the pump is cycling too often."),
+        "short_run": ("\u2022 Cycle shorter than threshold: raise minimum "
+            "run time or lower the LWT setpoint."),
+        "short_off": ("\u2022 Off-time too short: check heating demand or "
+            "increase minimum off time."),
+        "ml_anomaly": ("\u2022 Behaviour deviates from learned baseline. "
+            "Check recent setpoint / weather / DHW changes."),
+        "setpoint_osc": ("\u2022 Lock the LWT setpoint or raise thermostat "
+            "hysteresis."),
+    },
+    "nl": {
+        "pendulum_hourly": ("\u2022 Controleer setpoint-delta, hysterese en "
+            "stooklijn \u2014 de pomp pendelt te vaak."),
+        "pendulum_daily": ("\u2022 Controleer setpoint-delta, hysterese en "
+            "stooklijn \u2014 de pomp pendelt te vaak."),
+        "short_run": ("\u2022 Cyclus korter dan drempel: verhoog "
+            "minimumlooptijd of verlaag de LWT-setpoint."),
+        "short_off": ("\u2022 Off-tijd te kort: check warmtevraag of "
+            "verhoog minimum off-tijd."),
+        "ml_anomaly": ("\u2022 Gedrag wijkt af van de geleerde baseline. "
+            "Controleer recente setpoint / weer / SWW-wijzigingen."),
+        "setpoint_osc": ("\u2022 Vergrendel het LWT-setpoint of verhoog "
+            "de thermostaat-hysterese."),
+    },
+}

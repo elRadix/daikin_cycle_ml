@@ -1103,6 +1103,70 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "top_advice": top_advice,
         }
 
+    def _snap_attr(self, snap, *keys):
+        attrs = {}
+        if snap is not None:
+            a = getattr(snap, "attributes", None)
+            if isinstance(a, dict):
+                attrs = a
+            elif hasattr(snap, "raw_attrs"):
+                a2 = getattr(snap, "raw_attrs", None)
+                if isinstance(a2, dict):
+                    attrs = a2
+        for k in keys:
+            v = attrs.get(k)
+            if v is not None:
+                return v
+        return None
+
+    def _setpoint_current(self, snap):
+        v = self._snap_attr(snap,
+            "lwt_setpoint", "target_lwt", "lw_setpoint",
+            "ATTR_LWT_SETPOINT", "setpoint")
+        if v is not None:
+            return v
+        hist = getattr(self, "_setpoint_history", None) or []
+        if hist:
+            last = hist[-1]
+            if isinstance(last, (list, tuple)) and len(last) >= 2:
+                return last[1]
+            return last
+        return None
+
+    def _setpoint_target(self, snap):
+        return self._snap_attr(snap,
+            "target_lwt", "lwt_target", "calculated_lwt",
+            "ATTR_TARGET_LWT", "target_cond_temp")
+
+    def _setpoint_delta(self, snap):
+        hist = getattr(self, "_setpoint_history", None) or []
+        vals = []
+        for item in hist:
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                try:
+                    vals.append(float(item[1]))
+                except (TypeError, ValueError):
+                    continue
+            else:
+                try:
+                    vals.append(float(item))
+                except (TypeError, ValueError):
+                    continue
+        if len(vals) < 2:
+            return None
+        return max(vals) - min(vals)
+
+    def _avg_duration_min(self):
+        try:
+            last = self.store.last_cycle()
+            if isinstance(last, dict):
+                d = last.get("duration_s")
+                if d is not None:
+                    return int(float(d) / 60)
+        except Exception:  # noqa: BLE001
+            pass
+        return None
+
     def _build_alert_context(self, snap) -> dict:
         opts = self.options or {}
         now = time.time()
@@ -1124,34 +1188,75 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                   or getattr(_first, 'text', None) or '')
             if _t:
                 advice_text = "\n\u2022 " + str(_t)
+        mode_str = str(getattr(snap, "mode", "unknown") or "unknown") if snap is not None else "unknown"
+        lwt_set = self._setpoint_current(snap)
+        lwt_tgt = self._setpoint_target(snap)
+        delta = self._setpoint_delta(snap)
+        out_t = self._snap_attr(snap, "outdoor_temp", "outdoor", "ATTR_OUTDOOR")
+        lwt_act = self._snap_attr(snap, "leaving_water_temp", "lwt", "ATTR_LWT")
+        in_t = self._snap_attr(snap, "indoor_temp", "indoor", "ATTR_INDOOR")
+        flow = self._snap_attr(snap, "flow_lmin", "flow", "ATTR_FLOW")
+        avg_dur = self._avg_duration_min()
+
+        def _f(v, digits=1):
+            if v is None:
+                return "\u2014"
+            try:
+                return ("%." + str(digits) + "f") % float(v)
+            except (TypeError, ValueError):
+                return "\u2014"
+
         ctx = {
             "pendulum": {
                 "target_cph": opts.get("pendulum_cycles_per_hour", 4),
                 "target_cpd": opts.get("pendulum_cycles_per_day", 40),
-                "cph": cph,
-                "cycles_today": cyc_today,
-                "advice": advice_text,
+                "cph": cph, "cycles_today": cyc_today,
+                "mode": mode_str, "lwt_setpoint": _f(lwt_set),
+                "avg_duration_min": avg_dur if avg_dur is not None else "\u2014",
+                "outdoor": _f(out_t), "advice": advice_text,
+            },
+            "pendulum_hourly": {
+                "target_cph": opts.get("pendulum_cycles_per_hour", 4),
+                "target_cpd": opts.get("pendulum_cycles_per_day", 40),
+                "cph": cph, "cycles_today": cyc_today,
+                "mode": mode_str, "lwt_setpoint": _f(lwt_set),
+                "avg_duration_min": avg_dur if avg_dur is not None else "\u2014",
+                "outdoor": _f(out_t), "advice": advice_text,
+            },
+            "pendulum_daily": {
+                "target_cph": opts.get("pendulum_cycles_per_hour", 4),
+                "target_cpd": opts.get("pendulum_cycles_per_day", 40),
+                "cph": cph, "cycles_today": cyc_today,
+                "mode": mode_str, "lwt_setpoint": _f(lwt_set),
+                "avg_duration_min": avg_dur if avg_dur is not None else "\u2014",
+                "outdoor": _f(out_t), "advice": advice_text,
             },
             "short_run": {
                 "threshold_min": opts.get("short_run_threshold_min", 20),
-                "duration_min": "?",
-                "advice": advice_text,
+                "duration_min": "\u2014", "mode": mode_str,
+                "lwt_setpoint": _f(lwt_set), "lwt_actual": _f(lwt_act),
+                "indoor": _f(in_t), "flow": _f(flow),
+                "outdoor": _f(out_t), "advice": advice_text,
             },
             "short_off": {
                 "threshold_min": opts.get("short_off_threshold_min", 5),
-                "off_min": "?",
-                "advice": advice_text,
+                "off_min": "\u2014", "mode": mode_str,
+                "lwt_setpoint": _f(lwt_set),
+                "indoor": _f(in_t), "flow": _f(flow),
+                "outdoor": _f(out_t), "advice": advice_text,
             },
             "ml_anomaly": {
-                "mode": "?",
-                "z_max": "?",
-                "top_dim": "?",
-                "advice": advice_text,
+                "mode": mode_str, "z_max": "\u2014", "top_dim": "\u2014",
+                "avg_duration_min": avg_dur if avg_dur is not None else "\u2014",
+                "outdoor": _f(out_t), "advice": advice_text,
             },
             "setpoint_osc": {
                 "osc_count": len(self._setpoint_history),
                 "window_min": int(self.options.get("setpoint_osc_window_min", 30) or 30),
                 "threshold": int(self.options.get("setpoint_oscillation_threshold", 6) or 6),
+                "lwt_setpoint": _f(lwt_set),
+                "lwt_target": _f(lwt_tgt if lwt_tgt is not None else lwt_set),
+                "delta_max": _f(delta), "mode": mode_str,
                 "advice": advice_text,
             },
         }
