@@ -13,7 +13,7 @@ Versioning: https://semver.org/spec/v2.0.0.html
 
 
 
-## [0.5.0-dev] - 2026-09-26
+## [0.5.0] - 2026-09-26
 
 ### Added
 - ML feature-vector extended 8 -> 11 dims (batch 14c):

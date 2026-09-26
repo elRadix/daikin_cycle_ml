@@ -38,6 +38,14 @@ from .const import (
     DEFAULT_QUIET_HOURS_START,
     DEFAULT_QUIET_HOURS_END,
     DEFAULT_INDOOR_TEMP_SENSOR,
+    DEFAULT_PENDULUM_CPH,
+    DEFAULT_ALERT_AGGREGATION_MIN,
+    DEFAULT_ACTION_ADVICE_ENABLED,
+    DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED,
+    DEFAULT_ADAPTIVE_MIN_SAMPLES,
+    DEFAULT_NOTIFY_EMOJI_ENABLED,
+    DEFAULT_STATUS_UPDATE_ENABLED,
+    DEFAULT_STATUS_UPDATE_INTERVAL_HOURS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -453,106 +461,187 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class DaikinCycleMLOptionsFlow(OptionsFlow):
-    """Single-screen options editor."""
+    """Menu-driven options editor (batch 18)."""
 
     async def async_step_init(self, user_input=None) -> FlowResult:
-        from .const import (
-            DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED,
-            DEFAULT_NOTIFY_EMOJI_ENABLED,
-            DEFAULT_STATUS_UPDATE_ENABLED,
-            DEFAULT_STATUS_UPDATE_INTERVAL_HOURS,
+        return self.async_show_menu(
+            step_id="init",
+            menu_options=[
+                "device",
+                "pendulum",
+                "quality",
+                "notifications",
+                "ml",
+                "maintenance",
+            ],
         )
+
+    def _save(self, user_input):
+        merged = {**(self.config_entry.options or {}), **user_input}
+        return self.async_create_entry(title="", data=merged)
+
+    async def async_step_device(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            return self._save(user_input)
+        c = self.config_entry.options or {}
+        d = self.config_entry.data or {}
+        schema = vol.Schema({
+            vol.Required(
+                "compressor_rps_threshold",
+                default=c.get("compressor_rps_threshold",
+                    DEFAULT_COMPRESSOR_RPS_THRESHOLD),
+            ): _num(0, 100, 1, "rps"),
+            vol.Optional(
+                "power_sensor_entity",
+                description={"suggested_value": c.get("power_sensor_entity")},
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
+            ),
+            vol.Required(
+                "fallback_power_threshold_w",
+                default=c.get("fallback_power_threshold_w",
+                    DEFAULT_FALLBACK_POWER_THRESHOLD_W),
+            ): _num(0, 10000, 10, "W"),
+            vol.Optional(
+                "indoor_temp_sensor",
+                description={"suggested_value": c.get("indoor_temp_sensor")},
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
+            ),
+            vol.Optional(
+                "cop_sensor_entity",
+                description={"suggested_value": c.get("cop_sensor_entity")},
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="sensor")
+            ),
+        })
+        return self.async_show_form(
+            step_id="device",
+            data_schema=schema,
+            description_placeholders={
+                "source_sensor": str(d.get("source_sensor", "?")),
+                "model": str(d.get("model", "?")),
+            },
+        )
+
+    async def async_step_pendulum(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            return self._save(user_input)
+        c = self.config_entry.options or {}
+        schema = vol.Schema({
+            vol.Required("short_run_threshold_min",
+                default=c.get("short_run_threshold_min", DEFAULT_SHORT_RUN_MIN)
+            ): _num(1, 240, 1, "min"),
+            vol.Required("short_off_threshold_min",
+                default=c.get("short_off_threshold_min", DEFAULT_SHORT_OFF_MIN)
+            ): _num(1, 120, 1, "min"),
+            vol.Required("pendulum_cycles_per_hour",
+                default=c.get("pendulum_cycles_per_hour", DEFAULT_PENDULUM_CPH)
+            ): _num(1, 100, 1),
+            vol.Required("pendulum_cycles_per_day",
+                default=c.get("pendulum_cycles_per_day", DEFAULT_PENDULUM_CPD)
+            ): _num(1, 200, 1),
+        })
+        return self.async_show_form(step_id="pendulum", data_schema=schema)
+
+    async def async_step_quality(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            return self._save(user_input)
+        c = self.config_entry.options or {}
+        schema = vol.Schema({
+            vol.Required("good_run_threshold_min",
+                default=c.get("good_run_threshold_min", DEFAULT_GOOD_RUN_MIN)
+            ): _num(1, 240, 1, "min"),
+            vol.Required("good_dt_threshold_k",
+                default=c.get("good_dt_threshold_k", DEFAULT_GOOD_DT_K)
+            ): _num(0.0, 20.0, 0.5, "K"),
+            vol.Required("good_off_threshold_min",
+                default=c.get("good_off_threshold_min", DEFAULT_GOOD_OFF_MIN)
+            ): _num(1, 240, 1, "min"),
+            vol.Required("target_cycles_per_day",
+                default=c.get("target_cycles_per_day", DEFAULT_TARGET_CYCLES_PER_DAY)
+            ): _num(1, 100, 1),
+        })
+        return self.async_show_form(step_id="quality", data_schema=schema)
+
+    async def async_step_notifications(self, user_input=None) -> FlowResult:
         if user_input is not None:
             if "notify_service" in user_input:
                 user_input["notify_service"] = _flatten_notify_choice(
                     user_input["notify_service"]
                 )
-            return self.async_create_entry(title="", data=user_input)
-        current = self.config_entry.options or {}
-        _current_ns = (
-            current.get("notify_service") or DEFAULT_NOTIFY_SERVICE
-        )
-        _default_ns = _default_notify_choice(self.hass, _current_ns)
-        if _default_ns is not None:
-            _ns_key_opts = vol.Optional(
-                "notify_service", default=_default_ns
-            )
+            return self._save(user_input)
+        c = self.config_entry.options or {}
+        _cur_ns = c.get("notify_service") or DEFAULT_NOTIFY_SERVICE
+        _def_ns = _default_notify_choice(self.hass, _cur_ns)
+        if _def_ns is not None:
+            _ns_key = vol.Optional("notify_service", default=_def_ns)
         else:
-            _ns_key_opts = vol.Optional("notify_service")
+            _ns_key = vol.Optional("notify_service")
         schema = vol.Schema({
-            vol.Required(
-                "compressor_rps_threshold",
-                default=current.get(
-                    "compressor_rps_threshold",
-                    DEFAULT_COMPRESSOR_RPS_THRESHOLD,
-                ),
-            ): _num(0, 100, 1, "rps"),
-            vol.Required(
-                "short_run_threshold_min",
-                default=current.get(
-                    "short_run_threshold_min", DEFAULT_SHORT_RUN_MIN
-                ),
-            ): _num(1, 240, 1, "min"),
-            vol.Required(
-                "pendulum_cycles_per_day",
-                default=current.get(
-                    "pendulum_cycles_per_day", DEFAULT_PENDULUM_CPD
-                ),
-            ): _num(1, 200, 1),
-            vol.Required(
-                "good_run_threshold_min",
-                default=current.get(
-                    "good_run_threshold_min", DEFAULT_GOOD_RUN_MIN
-                ),
-            ): _num(1, 240, 1, "min"),
-            vol.Required(
-                "persistent_enabled",
-                default=current.get(
-                    "persistent_enabled", DEFAULT_PERSISTENT_ENABLED
-                ),
+            vol.Required("persistent_enabled",
+                default=c.get("persistent_enabled", DEFAULT_PERSISTENT_ENABLED)
             ): bool,
-            vol.Required(
-                "retention_enabled",
-                default=current.get("retention_enabled", True),
+            _ns_key: _build_notify_selector(self.hass),
+            vol.Required("notify_emoji_enabled",
+                default=c.get("notify_emoji_enabled", DEFAULT_NOTIFY_EMOJI_ENABLED)
             ): bool,
-            vol.Required(
-                "cycle_retention_days",
-                default=current.get("cycle_retention_days", 90),
-            ): _num(1, 3650, 1, "d"),
-            vol.Required(
-                "alert_retention_days",
-                default=current.get("alert_retention_days", 30),
-            ): _num(1, 365, 1, "d"),
-            vol.Required(
-                "vacuum_enabled",
-                default=current.get("vacuum_enabled", True),
+            vol.Required("action_advice_enabled",
+                default=c.get("action_advice_enabled", DEFAULT_ACTION_ADVICE_ENABLED)
             ): bool,
-            vol.Required(
-                "status_update_enabled",
-                default=current.get(
-                    "status_update_enabled", DEFAULT_STATUS_UPDATE_ENABLED
-                ),
+            vol.Required("quiet_hours_enabled",
+                default=c.get("quiet_hours_enabled", DEFAULT_QUIET_HOURS_ENABLED)
             ): bool,
-            vol.Required(
-                "status_update_interval_hours",
-                default=current.get(
-                    "status_update_interval_hours",
-                    DEFAULT_STATUS_UPDATE_INTERVAL_HOURS,
-                ),
+            vol.Optional("quiet_hours_start",
+                default=c.get("quiet_hours_start", DEFAULT_QUIET_HOURS_START)
+            ): str,
+            vol.Optional("quiet_hours_end",
+                default=c.get("quiet_hours_end", DEFAULT_QUIET_HOURS_END)
+            ): str,
+            vol.Required("alert_aggregation_minutes",
+                default=c.get("alert_aggregation_minutes", DEFAULT_ALERT_AGGREGATION_MIN)
+            ): _num(1, 1440, 1, "min"),
+            vol.Required("status_update_enabled",
+                default=c.get("status_update_enabled", DEFAULT_STATUS_UPDATE_ENABLED)
+            ): bool,
+            vol.Required("status_update_interval_hours",
+                default=c.get("status_update_interval_hours",
+                    DEFAULT_STATUS_UPDATE_INTERVAL_HOURS),
             ): _num(1, 168, 1, "h"),
-            _ns_key_opts: _build_notify_selector(self.hass),
-            vol.Required(
-                "notify_emoji_enabled",
-                default=current.get(
-                    "notify_emoji_enabled", DEFAULT_NOTIFY_EMOJI_ENABLED
-                ),
+        })
+        return self.async_show_form(step_id="notifications", data_schema=schema)
+
+    async def async_step_ml(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            return self._save(user_input)
+        c = self.config_entry.options or {}
+        schema = vol.Schema({
+            vol.Required("adaptive_thresholds_enabled",
+                default=c.get("adaptive_thresholds_enabled",
+                    DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED),
             ): bool,
-            vol.Required(
-                "adaptive_thresholds_enabled",
-                default=current.get(
-                    "adaptive_thresholds_enabled",
-                    DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED,
-                ),
+            vol.Required("adaptive_min_samples",
+                default=c.get("adaptive_min_samples", DEFAULT_ADAPTIVE_MIN_SAMPLES)
+            ): _num(5, 500, 1),
+        })
+        return self.async_show_form(step_id="ml", data_schema=schema)
+
+    async def async_step_maintenance(self, user_input=None) -> FlowResult:
+        if user_input is not None:
+            return self._save(user_input)
+        c = self.config_entry.options or {}
+        schema = vol.Schema({
+            vol.Required("retention_enabled",
+                default=c.get("retention_enabled", True)
+            ): bool,
+            vol.Required("cycle_retention_days",
+                default=c.get("cycle_retention_days", 90)
+            ): _num(1, 3650, 1, "d"),
+            vol.Required("alert_retention_days",
+                default=c.get("alert_retention_days", 30)
+            ): _num(1, 365, 1, "d"),
+            vol.Required("vacuum_enabled",
+                default=c.get("vacuum_enabled", True)
             ): bool,
         })
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(step_id="maintenance", data_schema=schema)

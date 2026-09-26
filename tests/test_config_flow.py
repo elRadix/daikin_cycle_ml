@@ -135,7 +135,9 @@ async def test_options_flow_shows_form(hass):
     )
     entry.add_to_hass(hass)
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["type"] == "form"
+    # Batch 18: OptionsFlow is now a menu, not a single form
+    assert result["type"] == "menu"
+    assert "device" in result["menu_options"]
     assert result["step_id"] == "init"
 
 
@@ -147,10 +149,11 @@ async def test_options_flow_saves(hass):
     entry.add_to_hass(hass)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(
+        result["flow_id"], user_input={"next_step_id": "device"}
+    )
+    result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        {"compressor_rps_threshold": 5, "short_run_threshold_min": 15,
-         "pendulum_cycles_per_day": 30, "good_run_threshold_min": 40,
-         "persistent_enabled": False},
+        {"compressor_rps_threshold": 5},
     )
     assert result["type"] == "create_entry"
     assert result["data"]["compressor_rps_threshold"] == 5

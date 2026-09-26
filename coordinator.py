@@ -437,9 +437,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             per_mode.update(vector)
             result = evaluate_anomaly(vector, per_mode, self.options)
             snap.anomaly = result
-            snap.advice = generate_advice(
-                result, record, mode=snap.mode, options=self.options
-            )
+            if self.options.get("action_advice_enabled", True):
+                snap.advice = generate_advice(
+                    result, record, mode=snap.mode, options=self.options
+                )
         except Exception:  # noqa: BLE001
             _LOGGER.exception("ML pipeline failed")
 

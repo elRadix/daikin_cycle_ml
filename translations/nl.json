@@ -3,10 +3,10 @@
     "step": {
       "user": {
         "title": "Daikin Cycle ML installatie",
-        "description": "Kies de ESPAltherma-bronsensor en je warmtepompmodel.\n\n- **Bronsensor**: moet de 13 verplichte ESPAltherma-attributen bevatten. Meestal: `sensor.althermasensors`.\n- **Model**: bepaalt de standaarddrempels. Kies 'Custom' voor een eigen attribuut-mapping.",
+        "description": "Choose the ESPAltherma source sensor and your heat-pump model.\n\n- **Source sensor**: must expose the 13 required ESPAltherma attributes. Typical: `sensor.althermasensors`.\n- **Model**: determines default thresholds. Pick 'Custom' to supply your own attribute map.",
         "data": {
-          "source_sensor": "Bronsensor",
-          "model": "Warmtepomp-model"
+          "source_sensor": "Source sensor",
+          "model": "Heat-pump model"
         },
         "data_description": {
           "source_sensor": "ESPAltherma sensor that exposes the 13 required heat-pump attributes. Typical: sensor.althermasensors.",
@@ -14,10 +14,10 @@
         }
       },
       "model_custom": {
-        "title": "Eigen attribuut-mapping",
-        "description": "Optionele JSON-mapping van standaard-keys naar jouw attribuutnamen. Bijvoorbeeld: `{\"INV frequency (rps)\": \"my_rps\"}`. Laat leeg voor standaardwaarden.",
+        "title": "Aangepaste attribuutkoppeling",
+        "description": "Optional JSON mapping from standard keys to your attribute names. Example: `{\"INV frequency (rps)\": \"my_rps\"}`. Leave empty to use defaults.",
         "data": {
-          "custom_attribute_map": "Eigen attribuutmap (JSON)"
+          "custom_attribute_map": "Custom attribute map (JSON)"
         },
         "data_description": {
           "custom_attribute_map": "JSON object mapping standard keys to attribute names, e.g. {\"INV frequency (rps)\": \"my_rps\"}."
@@ -25,21 +25,21 @@
       },
       "attributes": {
         "title": "Attributen om te volgen",
-        "description": "Kies welke attributen gevolgd worden.\n\n- **Aanbevolen** (voorgeselecteerd): nodig voor normaal gebruik.\n- **Optioneel**: extra diagnostiek; alleen aanzetten als je ESPAltherma ze écht publiceert.",
+        "description": "Pick which attributes to track.\n\n- **Recommended** (preselected): needed for normal operation.\n- **Optional**: extra diagnostics; only enable if your ESPAltherma actually exposes them.",
         "data": {
-          "selected_attributes": "Geselecteerde attributen"
+          "selected_attributes": "Selected attributes"
         },
         "data_description": {
           "selected_attributes": "Recommended (default) covers normal operation. Optional adds diagnostics but only works if the sensor exposes them."
         }
       },
       "cycle": {
-        "title": "Cyclus-detectie",
-        "description": "Drempels die bepalen wanneer de compressor als AAN telt.\n\n- **Compressor RPS-drempel** (standaard 3): AAN bij RPS ≥ deze waarde. Verhoog om korte pieken te negeren.\n- **Vermogenssensor** (optioneel): fallback als RPS ontbreekt.\n- **Fallback-vermogensdrempel** (standaard 200 W): lager = gevoeliger.",
+        "title": "Cyclusdetectie",
+        "description": "Thresholds that decide when the compressor counts as ON.\n\n- **Compressor RPS threshold** (default 3): ON when RPS ≥ this. Increase to ignore brief spikes.\n- **Power sensor** (optional): used as fallback when RPS is unavailable.\n- **Fallback power threshold** (default 200 W): lower = more sensitive.",
         "data": {
-          "compressor_rps_threshold": "Compressor RPS-drempel",
-          "power_sensor_entity": "Vermogenssensor (optionele fallback)",
-          "fallback_power_threshold_w": "Fallback vermogensdrempel"
+          "compressor_rps_threshold": "Compressor RPS threshold",
+          "power_sensor_entity": "Power sensor (optional fallback)",
+          "fallback_power_threshold_w": "Fallback power threshold"
         },
         "data_description": {
           "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3. Increase to ignore brief spikes.",
@@ -50,12 +50,12 @@
       "pendulum": {
         "title": "Pendel-drempels",
         "data": {
-          "short_run_threshold_min": "Korte-run drempel",
-          "short_off_threshold_min": "Korte-off drempel",
-          "pendulum_cycles_per_day": "Pendel-cycli per dag",
-          "dhw_pendulum_cycles_per_hour": "DHW-cycli per uur"
+          "short_run_threshold_min": "Short run threshold",
+          "short_off_threshold_min": "Short off threshold",
+          "pendulum_cycles_per_day": "Pendulum cycles per day",
+          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour"
         },
-        "description": "Waarden hieronder markeren een cyclus als 'kort' (pendelen). Lager = strenger, meer meldingen.\n\n- **Korte run** (standaard 20 min): kortere cycli worden gemarkeerd.\n- **Korte pauze** (standaard 5 min): kortere pauzes worden gemarkeerd.\n- **Pendelcycli/dag** (standaard 35-40): dagelijkse telling die een melding triggert.\n- **SWW-cycli/uur** (standaard 3): SWW-specifieke pendeltrigger.",
+        "description": "Values below mark a cycle as 'short' (pendelen). Lower = stricter, more alerts.\n\n- **Short run** (default 20 min): cycles shorter than this are flagged.\n- **Short off** (default 5 min): off-times shorter than this are flagged.\n- **Pendulum cycles/day** (default 35-40): daily count that triggers an alert.\n- **DHW cycles/hour** (default 3): DHW-specific pendulum trigger.",
         "data_description": {
           "short_run_threshold_min": "Cycles shorter than this are 'short runs'. Default 20 min. Lower = stricter.",
           "short_off_threshold_min": "Off-times shorter than this are 'short offs'. Default 5 min. Lower = stricter.",
@@ -64,14 +64,14 @@
         }
       },
       "quality": {
-        "title": "Kwaliteits-drempels",
+        "title": "Kwaliteitsdrempels",
         "data": {
-          "good_run_threshold_min": "Goede-run drempel",
-          "good_dt_threshold_k": "Goede-dT drempel",
-          "good_off_threshold_min": "Goede-off drempel",
-          "target_cycles_per_day": "Doel-cycli per dag"
+          "good_run_threshold_min": "Good run threshold",
+          "good_dt_threshold_k": "Good dT threshold",
+          "good_off_threshold_min": "Good off threshold",
+          "target_cycles_per_day": "Target cycles per day"
         },
-        "description": "Drempels voor de kwaliteitsscore 0-100. Een drempel halen voorkomt een aftrek.\n\n- **Goede run** (standaard 45 min): looptijd ≥ deze waarde geeft volledige score. Eronder: −30 punten.\n- **Goede dT** (standaard 5,0 K): minimale dT voor volledige score. Eronder: −20 punten.\n- **Goede pauze** (standaard 20 min): minimale pauzetijd voor volledige score. Eronder: −20 punten.\n- **Doelcycli/dag** (standaard 8): efficiëntiedoel, gebruikt in ratio-advies.",
+        "description": "Thresholds used to score a cycle 0-100. Meeting a threshold avoids a penalty.\n\n- **Good run** (default 45 min): runtime ≥ this scores full marks. Below: −30 points.\n- **Good dT** (default 5.0 K): minimum dT for full marks. Below: −20 points.\n- **Good off** (default 20 min): minimum off-time for full marks. Below: −20 points.\n- **Target cycles/day** (default 8): efficiency target, used in ratio-based advice.",
         "data_description": {
           "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min. Below = -30 points.",
           "good_dt_threshold_k": "Minimum dT (K) for full marks. Default 5.0 K. Below = -20 points.",
@@ -80,18 +80,21 @@
         }
       },
       "notifications": {
-        "title": "Notificaties",
+        "title": "Meldingen",
         "data": {
-          "persistent_enabled": "Persistente notificaties",
-          "notify_service": "Notificatie-service",
-          "quiet_hours_enabled": "Stille uren",
-          "quiet_hours_start": "Stille uren start",
-          "quiet_hours_end": "Stille uren einde"
+          "persistent_enabled": "Persistent notifications",
+          "status_update_enabled": "Periodic status updates",
+          "status_update_interval_hours": "Status interval (hours)",
+          "notify_emoji_enabled": "Emoji in notifications",
+          "notify_service": "Notify target",
+          "quiet_hours_enabled": "Quiet hours",
+          "quiet_hours_start": "Quiet hours start",
+          "quiet_hours_end": "Quiet hours end"
         },
-        "description": "Hoe en wanneer meldingen worden verstuurd.\n\n- **Persistente meldingen**: meldingen in de zijbalk.\n- **Notify-service** (optioneel): bijv. `notify.telegram_rachid`.\n- **Stille uren**: onderdrukt niet-kritieke meldingen in het venster (standaard 22:00–07:00).",
+        "description": "How and when alerts are delivered.\n\n- **Persistent notifications**: sidebar alerts.\n- **Notify service** (optional): e.g. `notify.telegram_rachid`.\n- **Quiet hours**: suppress non-critical alerts during the window (default 22:00–07:00).",
         "data_description": {
           "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
-          "notify_service": "Optional notify service, e.g. notify.telegram_rachid. Leave empty to disable push notifications.",
+          "notify_service": "Pick a notify entity (recommended) or a legacy notify service. Leave empty to disable push notifications.",
           "quiet_hours_enabled": "Suppress non-critical alerts during the quiet window.",
           "quiet_hours_start": "Start of quiet hours, HH:MM (24h). Default 22:00.",
           "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00."
@@ -99,19 +102,19 @@
       },
       "finalize": {
         "title": "Bevestigen",
-        "description": "Model: {model}. Bron: {source}. Verzenden om de entry aan te maken."
+        "description": "Model: {model}. Source: {source}. Submit to create the entry."
       },
       "reconfigure": {
-        "title": "Reconfigure Daikin Cycle ML",
-        "description": "Kies hoeveel je wilt wijzigen.\n\n- **Snel**: alleen bron en model.\n- **Volledige wizard**: alle instellingen met huidige waarden voorgevuld.",
+        "title": "Daikin Cycle ML opnieuw configureren",
+        "description": "Choose how much to change.\n\n- **Quick**: only source and model.\n- **Full wizard**: all settings with current values prefilled.",
         "menu_options": {
           "reconfigure_basic": "Source sensor and model only (quick)",
           "reconfigure_full": "Full wizard (all settings)"
         }
       },
       "reconfigure_basic": {
-        "title": "Source sensor and model",
-        "description": "Wijzig de bronsensor of het warmtepompmodel. Andere instellingen blijven ongewijzigd.",
+        "title": "Bronsensor en model",
+        "description": "Change the source sensor or heat-pump model. Other settings stay untouched.",
         "data": {
           "source_sensor": "Source sensor",
           "model": "Heat-pump model"
@@ -122,47 +125,150 @@
         }
       },
       "reconfigure_full": {
-        "title": "Full wizard",
-        "description": "Doorloop de volledige wizard. Alle huidige waarden zijn voorgevuld."
+        "title": "Volledige wizard",
+        "description": "Rerun the full wizard. All current values are prefilled as defaults."
       }
     },
     "error": {
       "entity_not_found": "Sensor niet gevonden",
-      "missing_attributes": "Sensor mist verplichte ESPAltherma-attributen",
+      "missing_attributes": "Sensor mist vereiste ESPAltherma-attributen",
       "invalid_json": "Ongeldige JSON"
     },
     "abort": {
       "already_configured": "Al geconfigureerd",
-      "reconfigure_successful": "Reconfiguration successful"
+      "reconfigure_successful": "Herconfiguratie geslaagd"
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Daikin Cycle ML opties",
+        "description": "Kies een sectie om te bewerken.",
+        "menu_options": {
+          "device": "Apparaat",
+          "pendulum": "Pendelen",
+          "quality": "Kwaliteit",
+          "notifications": "Meldingen",
+          "ml": "ML leren",
+          "maintenance": "Onderhoud"
+        },
+        "data_description": {
+          "compressor_rps_threshold": "Compressor AAN wanneer RPS >= deze waarde. Standaard 3.",
+          "short_run_threshold_min": "Cycli korter dan dit worden gemarkeerd. Standaard 20 min.",
+          "pendulum_cycles_per_day": "Aantal cycli per dag dat een pendelmelding triggert. Standaard 40.",
+          "good_run_threshold_min": "Looptijd op of boven deze waarde scoort volledig. Standaard 45 min.",
+          "persistent_enabled": "Toon meldingen als blijvende meldingen in de zijbalk.",
+          "retention_enabled": "Voer dagelijks onderhoud uit om 03:00 lokale tijd.",
+          "cycle_retention_days": "Cycli ouder dan N dagen worden gerold en opgeschoond. Standaard 90.",
+          "alert_retention_days": "Meldingen ouder dan N dagen worden verwijderd. Standaard 30.",
+          "vacuum_enabled": "Voer SQLite VACUUM uit om ruimte terug te winnen na opschonen."
+        }
+      },
+      "device": {
+        "title": "Apparaat",
+        "description": "Sensoren en detectiedrempels.\n\nBronsensor: {source_sensor}\nModel: {model}\n\nGebruik Reconfigure om bron of model te wijzigen.",
         "data": {
           "compressor_rps_threshold": "Compressor RPS-drempel",
-          "short_run_threshold_min": "Korte-run drempel",
-          "pendulum_cycles_per_day": "Pendel-cycli per dag",
-          "good_run_threshold_min": "Goede-run drempel",
-          "persistent_enabled": "Persistente notificaties",
+          "power_sensor_entity": "Vermogensensor (fallback)",
+          "fallback_power_threshold_w": "Fallback vermogensdrempel",
+          "indoor_temp_sensor": "Binnentemperatuur sensor",
+          "cop_sensor_entity": "COP-sensor"
+        },
+        "data_description": {
+          "compressor_rps_threshold": "Compressor AAN wanneer RPS >= deze waarde. Standaard 3.",
+          "power_sensor_entity": "Optioneel. Fallback wanneer RPS niet beschikbaar is.",
+          "fallback_power_threshold_w": "Vermogensdrempel (W) voor de fallback-sensor. Standaard 200.",
+          "indoor_temp_sensor": "Optioneel. Voor de indoor_temp_avg feature (dim #10).",
+          "cop_sensor_entity": "Globale COP-sensor, b.v. sensor.altherma_global_cop."
+        }
+      },
+      "pendulum": {
+        "title": "Pendelen",
+        "description": "Wat telt als een slechte cyclus.",
+        "data": {
+          "short_run_threshold_min": "Korte run-drempel",
+          "short_off_threshold_min": "Korte off-drempel",
+          "pendulum_cycles_per_hour": "Cycli per uur",
+          "pendulum_cycles_per_day": "Cycli per dag"
+        },
+        "data_description": {
+          "short_run_threshold_min": "Cycli korter dan dit worden gemarkeerd. Standaard 20 min.",
+          "short_off_threshold_min": "Off-tijden korter dan dit worden gemarkeerd. Standaard 5 min.",
+          "pendulum_cycles_per_hour": "Cycli per uur die een pendelmelding triggeren. Standaard 4.",
+          "pendulum_cycles_per_day": "Cycli per dag die een pendelmelding triggeren. Standaard 40."
+        }
+      },
+      "quality": {
+        "title": "Kwaliteit",
+        "description": "Kwaliteitsscore van cycli (0-100).",
+        "data": {
+          "good_run_threshold_min": "Goede run-drempel",
+          "good_dt_threshold_k": "Goede dT-drempel",
+          "good_off_threshold_min": "Goede off-drempel",
+          "target_cycles_per_day": "Doelcycli per dag"
+        },
+        "data_description": {
+          "good_run_threshold_min": "Looptijd >= deze waarde scoort volledig. Standaard 45 min.",
+          "good_dt_threshold_k": "Minimale dT (K) voor volledige score. Standaard 5.0 K.",
+          "good_off_threshold_min": "Minimale off-tijd voor volledige score. Standaard 20 min.",
+          "target_cycles_per_day": "Efficientiedoel voor ratio-advies. Standaard 8."
+        }
+      },
+      "notifications": {
+        "title": "Meldingen",
+        "description": "Hoe en wanneer meldingen worden verzonden.",
+        "data": {
+          "persistent_enabled": "Blijvende meldingen",
+          "notify_service": "Meldingsdoel",
+          "notify_emoji_enabled": "Emoji in meldingen",
+          "action_advice_enabled": "Inclusief actie-advies",
+          "quiet_hours_enabled": "Stille uren",
+          "quiet_hours_start": "Start stille uren",
+          "quiet_hours_end": "Einde stille uren",
+          "alert_aggregation_minutes": "Melding-aggregatie (minuten)",
+          "status_update_enabled": "Periodieke statusupdates",
+          "status_update_interval_hours": "Status-interval (uren)"
+        },
+        "data_description": {
+          "persistent_enabled": "Toon meldingen als blijvende meldingen in de zijbalk.",
+          "notify_service": "Notify-entiteit of legacy service. Leeg = push uit.",
+          "notify_emoji_enabled": "Emoji voor berichten voor snelle herkenning.",
+          "action_advice_enabled": "Voeg actiegericht advies toe aan meldingen.",
+          "quiet_hours_enabled": "Onderdruk niet-kritieke meldingen tijdens het stille venster.",
+          "quiet_hours_start": "Start stille uren, HH:MM (24u). Standaard 22:00.",
+          "quiet_hours_end": "Einde stille uren, HH:MM (24u). Standaard 07:00.",
+          "alert_aggregation_minutes": "Onderdruk dubbele meldingen binnen dit venster. Standaard 30.",
+          "status_update_enabled": "Stuur periodiek een samenvatting.",
+          "status_update_interval_hours": "Hoe vaak (1-168 uur)."
+        }
+      },
+      "ml": {
+        "title": "ML leren",
+        "description": "Adaptieve drempels en anomaliedetectie.",
+        "data": {
+          "adaptive_thresholds_enabled": "Adaptieve drempels",
+          "adaptive_min_samples": "Minimum aantal samples"
+        },
+        "data_description": {
+          "adaptive_thresholds_enabled": "Drempels automatisch bijstellen op basis van cycli.",
+          "adaptive_min_samples": "Aantal cycli voor adaptieve tuning. Standaard 20."
+        }
+      },
+      "maintenance": {
+        "title": "Onderhoud",
+        "description": "Retentie en database-onderhoud.",
+        "data": {
           "retention_enabled": "Retentie ingeschakeld",
           "cycle_retention_days": "Cyclus-retentie (dagen)",
-          "alert_retention_days": "Alert-retentie (dagen)",
+          "alert_retention_days": "Melding-retentie (dagen)",
           "vacuum_enabled": "VACUUM na opschonen"
         },
         "data_description": {
-          "compressor_rps_threshold": "RPS at or above which the compressor counts as ON. Default 3.",
-          "short_run_threshold_min": "Runs shorter than this trigger 'short run'. Default 20 min.",
-          "pendulum_cycles_per_day": "Daily cycle count triggering a pendulum alert. Default 35-40.",
-          "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min.",
-          "persistent_enabled": "Show alerts as persistent sidebar notifications.",
-          "retention_enabled": "Dagelijkse opschoning om 03:00 lokale tijd.",
-          "cycle_retention_days": "Cycli ouder dan N dagen worden gearchiveerd en verwijderd. Default 90.",
-          "alert_retention_days": "Alerts ouder dan N dagen worden verwijderd. Default 30.",
-          "vacuum_enabled": "Voer SQLite VACUUM uit na opschonen om ruimte vrij te maken."
-        },
-        "description": "Snel-editor voor de meest gebruikte drempels.\n\n- **Compressor RPS** (standaard 3)\n- **Korte run** (standaard 20 min)\n- **Pendelcycli/dag** (standaard 35-40)\n- **Goede run** (standaard 45 min)\n- **Persistente meldingen**\n\nVoor alle instellingen: gebruik 'Opnieuw configureren' -> Volledige wizard."
+          "retention_enabled": "Dagelijks onderhoud om 03:00 lokale tijd.",
+          "cycle_retention_days": "Cycli ouder dan N dagen worden gerold. Standaard 90.",
+          "alert_retention_days": "Meldingen ouder dan N dagen verwijderd. Standaard 30.",
+          "vacuum_enabled": "SQLite VACUUM om ruimte vrij te maken."
+        }
       }
     }
   },
@@ -184,37 +290,37 @@
         "name": "Huidige RPS"
       },
       "last_cycle_duration": {
-        "name": "Vorige cyclusduur"
+        "name": "Laatste cyclusduur"
       },
       "last_cycle_mode": {
-        "name": "Vorige cyclusmodus"
+        "name": "Laatste cyclusmodus"
       },
       "last_cycle_dt_max": {
-        "name": "Vorige cyclus dT max"
+        "name": "Laatste cyclus dT max"
       },
       "last_cycle_quality": {
-        "name": "Vorige cycluskwaliteit"
+        "name": "Laatste cycluskwaliteit"
       },
       "cycles_today": {
         "name": "Cycli vandaag"
       },
       "cycles_last_hour": {
-        "name": "Cycli afgelopen uur"
+        "name": "Cycli laatste uur"
       },
       "short_runs_today": {
         "name": "Korte runs vandaag"
       },
       "short_offs_today": {
-        "name": "Korte pauzes vandaag"
+        "name": "Korte offs vandaag"
       },
       "short_cycle_ratio": {
-        "name": "Aandeel korte cycli"
+        "name": "Korte-cyclusratio"
       },
       "avg_cycle_duration_today": {
-        "name": "Gemiddelde cyclusduur vandaag"
+        "name": "Gem. cyclusduur vandaag"
       },
       "avg_off_time_today": {
-        "name": "Gemiddelde pauzetijd vandaag"
+        "name": "Gem. off-tijd vandaag"
       },
       "longest_cycle_today": {
         "name": "Langste cyclus vandaag"
@@ -223,7 +329,7 @@
         "name": "Kortste cyclus vandaag"
       },
       "avg_quality_today": {
-        "name": "Gemiddelde kwaliteit vandaag"
+        "name": "Gem. kwaliteit vandaag"
       },
       "good_cycles_today": {
         "name": "Goede cycli vandaag"
@@ -232,16 +338,16 @@
         "name": "Slechte cycli vandaag"
       },
       "good_cycle_ratio": {
-        "name": "Aandeel goede cycli"
+        "name": "Goede-cyclusratio"
       },
       "source_age": {
-        "name": "Leeftijd bron"
+        "name": "Bronleeftijd"
       },
       "missing_attrs_count": {
         "name": "Ontbrekende attributen"
       },
       "last_sample_age": {
-        "name": "Leeftijd laatste meting"
+        "name": "Leeftijd laatste sample"
       },
       "coordinator_errors": {
         "name": "Coordinator-fouten"
@@ -253,7 +359,7 @@
         "name": "Geleerde goede off (min)"
       },
       "learned_target_cycles_per_day": {
-        "name": "Geleerde doel cycli/dag"
+        "name": "Geleerd doelcycli/dag"
       },
       "stooklijn_advies": {
         "name": "Stooklijn advies"
@@ -276,7 +382,7 @@
         "name": "Korte run"
       },
       "short_off": {
-        "name": "Korte pauze"
+        "name": "Korte off"
       },
       "defrost_active": {
         "name": "Ontdooien actief"
@@ -291,10 +397,10 @@
         "name": "SWW actief"
       },
       "heating_active": {
-        "name": "Verwarming actief"
+        "name": "Verwarmen actief"
       },
       "cooling_active": {
-        "name": "Koeling actief"
+        "name": "Koelen actief"
       },
       "source_stale": {
         "name": "Bron verouderd"
@@ -309,27 +415,47 @@
         "name": "SWW pendelen"
       },
       "high_cycle_rate": {
-        "name": "Hoog cyclusritme"
+        "name": "Hoge cyclusfrequentie"
       },
       "cluster_pendulum": {
-        "name": "Cluster: pendel"
+        "name": "Cluster: pendelen"
       },
       "cluster_normal": {
         "name": "Cluster: normaal"
       },
       "cluster_dhw_like": {
-        "name": "Cluster: DHW-achtig"
+        "name": "Cluster: SWW-achtig"
       }
     }
   },
   "issues": {
     "source_stale": {
       "title": "Bronsensor is verouderd",
-      "description": "De ESPAltherma bronsensor levert geen recente data meer. Controleer het ESP-apparaat en de Wi-Fi verbinding."
+      "description": "De ESPAltherma-bronsensor produceert geen verse data. Controleer het ESP-apparaat en de wifi-verbinding."
     },
     "missing_attrs": {
-      "title": "Verplichte attributen ontbreken",
-      "description": "De bronsensor mist {count} verplichte attribu(u)t(en). Controleer of ESPAltherma alle velden publiceert."
+      "title": "Vereiste attributen ontbreken",
+      "description": "De bronsensor mist {count} vereiste attribu(u)t(en). Controleer of ESPAltherma alle velden publiceert."
+    }
+  },
+  "services": {
+    "send_test_notification": {
+      "name": "Send test notification",
+      "description": "Send a test message via the configured notify target.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "message": {
+          "name": "Message",
+          "description": "Optional custom message body."
+        },
+        "target": {
+          "name": "Target override",
+          "description": "Optional override of the configured notify target."
+        }
+      }
     }
   }
 }

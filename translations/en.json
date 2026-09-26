@@ -143,32 +143,132 @@
     "step": {
       "init": {
         "title": "Daikin Cycle ML options",
+        "description": "Choose a section to edit.",
+        "menu_options": {
+          "device": "Device",
+          "pendulum": "Pendulum",
+          "quality": "Quality",
+          "notifications": "Notifications",
+          "ml": "ML learning",
+          "maintenance": "Maintenance"
+        },
+        "data_description": {
+          "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3.",
+          "short_run_threshold_min": "Cycles shorter than this are flagged. Default 20 min.",
+          "pendulum_cycles_per_day": "Daily cycle count triggering a pendulum alert. Default 40.",
+          "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min.",
+          "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
+          "retention_enabled": "Run daily maintenance at 03:00 local time.",
+          "cycle_retention_days": "Cycles older than N days are rolled up and pruned. Default 90.",
+          "alert_retention_days": "Alerts older than N days are deleted. Default 30.",
+          "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning."
+        }
+      },
+      "device": {
+        "title": "Device",
+        "description": "Sensors and detection thresholds.\n\nSource sensor: {source_sensor}\nModel: {model}\n\nTo change source or model, use Reconfigure.",
         "data": {
           "compressor_rps_threshold": "Compressor RPS threshold",
+          "power_sensor_entity": "Power sensor (fallback)",
+          "fallback_power_threshold_w": "Fallback power threshold",
+          "indoor_temp_sensor": "Indoor temperature sensor",
+          "cop_sensor_entity": "COP sensor"
+        },
+        "data_description": {
+          "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3.",
+          "power_sensor_entity": "Optional. Used as fallback when RPS is unavailable.",
+          "fallback_power_threshold_w": "Power threshold (W) for the fallback sensor. Default 200.",
+          "indoor_temp_sensor": "Optional. Used for the indoor_temp_avg feature (dim #10).",
+          "cop_sensor_entity": "Global COP sensor, e.g. sensor.altherma_global_cop. Used for cop_samples."
+        }
+      },
+      "pendulum": {
+        "title": "Pendulum",
+        "description": "What counts as a bad cycle.",
+        "data": {
           "short_run_threshold_min": "Short run threshold",
-          "pendulum_cycles_per_day": "Pendulum cycles per day",
+          "short_off_threshold_min": "Short off threshold",
+          "pendulum_cycles_per_hour": "Cycles per hour",
+          "pendulum_cycles_per_day": "Cycles per day"
+        },
+        "data_description": {
+          "short_run_threshold_min": "Cycles shorter than this are flagged. Default 20 min.",
+          "short_off_threshold_min": "Off-times shorter than this are flagged. Default 5 min.",
+          "pendulum_cycles_per_hour": "Hourly cycle count triggering a pendulum alert. Default 4.",
+          "pendulum_cycles_per_day": "Daily cycle count triggering a pendulum alert. Default 40."
+        }
+      },
+      "quality": {
+        "title": "Quality",
+        "description": "Cycle quality scoring (0-100).",
+        "data": {
           "good_run_threshold_min": "Good run threshold",
+          "good_dt_threshold_k": "Good dT threshold",
+          "good_off_threshold_min": "Good off threshold",
+          "target_cycles_per_day": "Target cycles per day"
+        },
+        "data_description": {
+          "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min.",
+          "good_dt_threshold_k": "Minimum dT (K) for full marks. Default 5.0 K.",
+          "good_off_threshold_min": "Minimum off-time for full marks. Default 20 min.",
+          "target_cycles_per_day": "Efficiency target used in ratio-based advice. Default 8."
+        }
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "How and when alerts are delivered.",
+        "data": {
           "persistent_enabled": "Persistent notifications",
+          "notify_service": "Notify target",
+          "notify_emoji_enabled": "Emoji in notifications",
+          "action_advice_enabled": "Include action advice",
+          "quiet_hours_enabled": "Quiet hours",
+          "quiet_hours_start": "Quiet hours start",
+          "quiet_hours_end": "Quiet hours end",
+          "alert_aggregation_minutes": "Alert aggregation (minutes)",
+          "status_update_enabled": "Periodic status updates",
+          "status_update_interval_hours": "Status interval (hours)"
+        },
+        "data_description": {
+          "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
+          "notify_service": "Notify entity or legacy service. Empty disables push.",
+          "notify_emoji_enabled": "Prefix messages with emoji for quick scanning.",
+          "action_advice_enabled": "Include actionable advice in alert messages.",
+          "quiet_hours_enabled": "Suppress non-critical alerts during the quiet window.",
+          "quiet_hours_start": "Start of quiet hours, HH:MM (24h). Default 22:00.",
+          "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00.",
+          "alert_aggregation_minutes": "Suppress duplicate alerts within this window. Default 30.",
+          "status_update_enabled": "Send a periodic summary of cycle activity.",
+          "status_update_interval_hours": "How often the summary is sent (1-168 hours)."
+        }
+      },
+      "ml": {
+        "title": "ML learning",
+        "description": "Adaptive thresholds and anomaly detection.",
+        "data": {
+          "adaptive_thresholds_enabled": "Adaptive thresholds",
+          "adaptive_min_samples": "Minimum samples"
+        },
+        "data_description": {
+          "adaptive_thresholds_enabled": "Auto-tune thresholds from observed cycles.",
+          "adaptive_min_samples": "Cycles needed before adaptive tuning activates. Default 20."
+        }
+      },
+      "maintenance": {
+        "title": "Maintenance",
+        "description": "Retention and database maintenance.",
+        "data": {
           "retention_enabled": "Retention enabled",
           "cycle_retention_days": "Cycle retention (days)",
           "alert_retention_days": "Alert retention (days)",
           "vacuum_enabled": "VACUUM after prune"
         },
         "data_description": {
-          "compressor_rps_threshold": "RPS at or above which the compressor counts as ON. Default 3.",
-          "short_run_threshold_min": "Runs shorter than this trigger 'short run'. Default 20 min.",
-          "pendulum_cycles_per_day": "Daily cycle count triggering a pendulum alert. Default 35-40.",
-          "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min.",
-          "persistent_enabled": "Show alerts as persistent sidebar notifications.",
-          "status_update_enabled": "Send a periodic summary of cycle activity.",
-          "status_update_interval_hours": "How often the summary is sent (1-168 hours).",
-          "notify_emoji_enabled": "Prefix messages with emoji for quick scanning.",
           "retention_enabled": "Run daily maintenance at 03:00 local time.",
           "cycle_retention_days": "Cycles older than N days are rolled up and pruned. Default 90.",
           "alert_retention_days": "Alerts older than N days are deleted. Default 30.",
           "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning."
-        },
-        "description": "Quick editor for the most-used thresholds.\n\n- **Compressor RPS** (default 3)\n- **Short run** (default 20 min)\n- **Pendulum cycles/day** (default 35-40)\n- **Good run** (default 45 min)\n- **Persistent notifications**\n\nFor all settings: use 'Reconfigure' -> Full wizard."
+        }
       }
     }
   },
