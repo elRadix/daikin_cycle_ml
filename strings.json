@@ -93,7 +93,10 @@
           "notify_service": "Pick a notify entity (recommended) or a legacy notify service. Leave empty to disable push notifications.",
           "quiet_hours_enabled": "Suppress non-critical alerts during the quiet window.",
           "quiet_hours_start": "Start of quiet hours, HH:MM (24h). Default 22:00.",
-          "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00."
+          "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00.",
+          "status_update_enabled": "Enable periodic status-update notifications (multi-line summary).",
+          "status_update_interval_hours": "Hours between status updates (1-168).",
+          "notify_emoji_enabled": "Prefix notifications with a status/severity emoji."
         }
       },
       "finalize": {
