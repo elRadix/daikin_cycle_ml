@@ -10,7 +10,7 @@ from typing import Any, Mapping
 
 _LOGGER = logging.getLogger(__name__)
 
-FEATURE_NAMES: tuple[str, ...] = (
+FEATURE_NAMES: tuple[str, ...] =(
     "duration_s",
     "dT_max",
     "dT_avg",
@@ -22,6 +22,7 @@ FEATURE_NAMES: tuple[str, ...] = (
     "cop_avg",
     "lwt_avg",
     "indoor_temp_avg",
+    "thermal_kw_avg",
 )
 
 VECTOR_LEN = len(FEATURE_NAMES)
@@ -48,6 +49,7 @@ def extract_feature_vector(
     cop_avg: float | None = None,
     lwt_avg: float | None = None,
     indoor_temp_avg: float | None = None,
+    thermal_kw_avg: float = 0.0,
 ) -> list[float]:
     """Return fixed-length vector (VECTOR_LEN). Missing -> 0.0."""
     out: list[float] = []
@@ -55,7 +57,8 @@ def extract_feature_vector(
         "cop_avg": cop_avg,
         "lwt_avg": lwt_avg,
         "indoor_temp_avg": indoor_temp_avg,
-    }
+        "thermal_kw_avg": thermal_kw_avg,
+}
     for name in FEATURE_NAMES:
         if name in overrides and overrides[name] is not None:
             out.append(float(overrides[name]))

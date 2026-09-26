@@ -282,17 +282,17 @@ async def test_a35_adaptive_save_load_roundtrip():
 # ============================================================
 # A3.7 — ML pipeline: feature -> baseline -> adaptive
 # ============================================================
-def test_a37_feature_vector_length_11():
+def test_a37_feature_vector_length_12():
     from custom_components.daikin_cycle_ml.ml.features import (
         VECTOR_LEN, extract_feature_vector,
     )
-    assert VECTOR_LEN == 11
+    assert VECTOR_LEN == 12
     rec = {"duration_s": 1800, "dT_max": 5.0, "dT_avg": 3.0,
            "rps_max": 50, "rps_avg": 35.0, "outdoor_temp": 8.0,
            "buh_used": 0, "defrost_used": 0}
     v = extract_feature_vector(rec, cop_avg=3.5, lwt_avg=35.0,
                                 indoor_temp_avg=20.0)
-    assert len(v) == 11
+    assert len(v) == 12
     assert v[8] == 3.5
     assert v[9] == 35.0
     assert v[10] == 20.0

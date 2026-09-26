@@ -8,6 +8,8 @@ from ..const import (
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
     ATTR_DEFROST_OPERATION,
+    ATTR_WATER_PUMP_OPERATION,
+    ATTR_FLOW_SENSOR,
     ATTR_INLET_WATER_R4T,
     ATTR_INV_FREQUENCY_RPS,
     ATTR_IU_OPERATION_MODE,
@@ -109,6 +111,7 @@ class CycleDetector:
         self._outdoor_samples: list[float] = []
         self._buh_used = False
         self._defrost_used = False
+        self._thermal_kw_samples: list[float] = []
 
     @property
     def state(self) -> str:
@@ -134,6 +137,7 @@ class CycleDetector:
         self._outdoor_samples = []
         self._buh_used = False
         self._defrost_used = False
+        self._thermal_kw_samples = []
 
     def _accumulate(self, attrs: Mapping[str, Any]) -> None:
         rps = _safe_float(attrs.get(ATTR_INV_FREQUENCY_RPS))
@@ -149,6 +153,11 @@ class CycleDetector:
             self._buh_used = True
         if _is_on(attrs, ATTR_DEFROST_OPERATION):
             self._defrost_used = True
+        flow = _safe_float(attrs.get(ATTR_FLOW_SENSOR))
+        if flow is not None and dt is not None and dt > 0:
+            # P = m_dot * cp * dT ; m_dot = flow_lmin/60 kg/s ; cp = 4.18 kJ/kgK
+            kw = (flow / 60.0) * 4.18 * dt
+            self._thermal_kw_samples.append(kw)
 
     def _close(self, now: float) -> dict[str, Any]:
         start = self._start_ts or now
@@ -169,6 +178,10 @@ class CycleDetector:
             "end_ts": now,
             "duration_s": duration,
             "mode": self._mode,
+            "thermal_kw_avg": (
+                sum(self._thermal_kw_samples) / len(self._thermal_kw_samples)
+                if self._thermal_kw_samples else None
+            ),
             "rps_max": max(self._rps_samples) if self._rps_samples else None,
             "rps_avg": rps_avg,
             "dT_max": max(self._dt_samples) if self._dt_samples else None,
@@ -187,6 +200,11 @@ class CycleDetector:
         power_w: float | None = None,
     ) -> dict[str, Any] | None:
         """Process one sample. Returns cycle record on close, else None."""
+        pump = attrs.get(ATTR_WATER_PUMP_OPERATION)
+        if pump is False:
+            # Water pump off while compressor claims to run: data glitch.
+            # Ignore this sample entirely (no cycle start, no accumulation).
+            return None
         if self._start_ts is not None and now < self._start_ts:
             _LOGGER.debug("Clock skew detected (now < start_ts), ignoring sample")
             return None

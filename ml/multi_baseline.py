@@ -103,15 +103,18 @@ class MultiBaseline:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "MultiBaseline":
-        legacy_dim = data.get("dim")
-        if isinstance(legacy_dim, int) and legacy_dim == VECTOR_LEN_LEGACY:
+        saved_dim = data.get("dim")
+        # Only reset for KNOWN obsolete dims. Other dims (small test baselines
+        # or future-proof values) load normally.
+        if not isinstance(saved_dim, int) or saved_dim in (VECTOR_LEN_LEGACY, 11):
             _LOGGER.warning(
-                "MultiBaseline state is legacy %d-dim, resetting to %d-dim",
-                VECTOR_LEN_LEGACY, VECTOR_LEN,
+                "MultiBaseline state has dim=%s (obsolete/missing), "
+                "resetting to %d-dim",
+                saved_dim, VECTOR_LEN,
             )
             return cls(VECTOR_LEN)
         mb = cls(
-            int(data["dim"]),
+            saved_dim,
             alpha=float(data.get("alpha", DEFAULT_ALPHA)),
             outlier_skip_z=float(data.get("outlier_skip_z", DEFAULT_OUTLIER_Z)),
             min_samples_before_skip=int(
@@ -122,6 +125,8 @@ class MultiBaseline:
         for key, sub in (data.get("baselines") or {}).items():
             mb._baselines[key] = AdaptiveBaseline.from_dict(sub)
         return mb
+    
+    
 
     def to_json(self) -> str:
         import json

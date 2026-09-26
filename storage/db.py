@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import aiosqlite
+from ..ml.features import VECTOR_LEN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -92,6 +93,20 @@ class CycleDB:
         return int(lastrowid) if lastrowid else None
 
 
+    async def async_migrate_features_to_v12(self) -> int:
+        """Add v11 column if absent and backfill 0.0. Idempotent."""
+        conn = self._require()
+        cur = await conn.execute("PRAGMA table_info(features)")
+        cols = {row[1] for row in await cur.fetchall()}
+        await cur.close()
+        if "v11" not in cols:
+            await conn.execute(
+                "ALTER TABLE features ADD COLUMN v11 REAL DEFAULT 0.0"
+            )
+        await conn.execute("UPDATE features SET v11 = 0.0 WHERE v11 IS NULL")
+        await conn.commit()
+        return 0
+
     async def async_migrate_features_to_v11(self) -> int:
         """Pad 8-dim feature vectors with [0.0, 0.0, 0.0]. Idempotent."""
         conn = self._require()
@@ -108,7 +123,7 @@ class CycleDB:
                 continue
             if not isinstance(vec, list) or len(vec) != 8:
                 continue
-            padded = list(vec) + [0.0, 0.0, 0.0]
+            padded = list(vec) + [0.0] * (VECTOR_LEN - len(vec))
             await conn.execute(
                 "UPDATE features SET vector_json=? WHERE cycle_id=?",
                 (json.dumps(padded), cycle_id),

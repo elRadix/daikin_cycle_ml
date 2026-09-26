@@ -430,12 +430,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         """Update baseline, detect anomaly, generate advice, persist."""
         cop_avg, lwt_avg, indoor_avg = await self._collect_cycle_averages(record)
         try:
-            vector = extract_feature_vector(
-                record,
-                cop_avg=cop_avg,
+            vector = extract_feature_vector(record, cop_avg=cop_avg,
                 lwt_avg=lwt_avg,
                 indoor_temp_avg=indoor_avg,
-            )
+            thermal_kw_avg=record.get("thermal_kw_avg") or 0.0,
+        )
             mode = record.get("mode") or snap.mode or "unknown"
             try:
                 self.adaptive.observe_cycle(

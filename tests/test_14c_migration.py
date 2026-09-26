@@ -16,7 +16,7 @@ from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
 
 def test_feature_len_constants():
-    assert VECTOR_LEN == 11
+    assert VECTOR_LEN == 12
     assert VECTOR_LEN_LEGACY == 8
 
 
@@ -60,7 +60,7 @@ async def test_migrate_legacy_8dim(tmp_path):
         ) as cur:
             r = await cur.fetchone()
         vec = json.loads(r[0])
-        assert len(vec) == 11
+        assert len(vec) == 12
         assert vec[8] == 0.0 and vec[9] == 0.0 and vec[10] == 0.0
     finally:
         await db.async_close()
@@ -103,10 +103,10 @@ def test_multibaseline_resets_on_legacy_dim():
         'baselines': {},
     }
     mb = MultiBaseline.from_dict(legacy_state)
-    assert mb.dim == 11
+    assert mb.dim == 12
 
 
-def test_multibaseline_accepts_11dim():
+def test_multibaseline_accepts_current_dim():
     state = {
         'dim': 11,
         'alpha': 0.1,
@@ -115,12 +115,12 @@ def test_multibaseline_accepts_11dim():
         'baselines': {},
     }
     mb = MultiBaseline.from_dict(state)
-    assert mb.dim == 11
+    assert mb.dim == 12
 
 
-def test_multibaseline_new_instance_is_11dim():
+def test_multibaseline_new_instance_is_12dim():
     mb = MultiBaseline(VECTOR_LEN)
-    assert mb.dim == 11
+    assert mb.dim == 12
 
 
 def test_dummy_prod_db_migration_path():

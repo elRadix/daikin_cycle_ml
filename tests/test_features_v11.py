@@ -17,8 +17,8 @@ CYCLE_BASE = {
 }
 
 
-def test_vector_len_is_11():
-    assert F.VECTOR_LEN == 11
+def test_vector_len_is_12():
+    assert F.VECTOR_LEN == 12
 
 
 def test_vector_len_legacy_is_8():
@@ -33,7 +33,7 @@ def test_feature_names_contains_new_dims():
 
 def test_extract_legacy_call_zero_fills():
     v = F.extract_feature_vector(dict(CYCLE_BASE))
-    assert len(v) == 11
+    assert len(v) == 12
     assert v[8] == 0.0
     assert v[9] == 0.0
     assert v[10] == 0.0
@@ -86,4 +86,4 @@ def test_extract_many_length():
     rows = [dict(CYCLE_BASE), dict(CYCLE_BASE)]
     out = F.extract_many(rows)
     assert len(out) == 2
-    assert len(out[0]) == 11
+    assert len(out[0]) == 12
