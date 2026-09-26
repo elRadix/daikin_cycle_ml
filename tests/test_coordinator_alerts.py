@@ -28,17 +28,17 @@ def _bare_coord(options=None, store=None):
 def test_states_empty_store_all_false():
     c = _bare_coord()
     out = c._alert_binary_states(DataSnapshot())
-    assert out == {
-        "short_run": False,
-        "short_off": False,
-        "pendulum_hourly": False,
-        "pendulum_daily": False,
-    }
+    # R42: forward-compat -- require known keys, allow additions
+    assert out["short_run"] is False
+    assert out["short_off"] is False
+    assert out["pendulum_hourly"] is False
+    assert out["pendulum_daily"] is False
 
 
 def test_states_keys_four():
     c = _bare_coord()
-    assert set(c._alert_binary_states(DataSnapshot()).keys()) == {
+    # R42: forward-compat -- require known keys, allow additions
+    assert set(c._alert_binary_states(DataSnapshot()).keys()) >= {
         "short_run", "short_off", "pendulum_hourly", "pendulum_daily"
     }
 

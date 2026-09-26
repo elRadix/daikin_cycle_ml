@@ -42,32 +42,32 @@ BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
     "pendulum_hourly": (
         "pendulum",
         SEV_WARNING,
-        "Pendulum: {cph} cycles/h (target <= {target_cph})",
+        "Pendulum hourly\n{cph} cycles/h (target \u2264 {target_cph}){advice}",
     ),
     "pendulum_daily": (
         "pendulum",
         SEV_WARNING,
-        "Pendulum: {cycles_today} cycles today (target <= {target_cpd})",
+        "Pendulum daily\n{cycles_today} cycles today (target \u2264 {target_cpd}){advice}",
     ),
     "short_run": (
         "short_run",
         SEV_WARNING,
-        "Short run: {duration_min} min (threshold {threshold_min} min)",
+        "Short run detected\n{duration_min} min (threshold {threshold_min} min){advice}",
     ),
     "short_off": (
         "short_off",
         SEV_WARNING,
-        "Short off: {off_min} min (threshold {threshold_min} min)",
+        "Short off detected\n{off_min} min (threshold {threshold_min} min){advice}",
     ),
     "ml_anomaly": (
         "ml_anomaly",
         SEV_WARNING,
-        "ML anomaly in mode {mode}: z={z_max} (top: {top_dim})",
+        "ML anomaly ({mode})\nz={z_max} \u00b7 top: {top_dim}{advice}",
     ),
     "setpoint_osc": (
         "setpoint_osc",
         SEV_WARNING,
-        "Setpoint oscillation: {osc_count} changes in {window_min} min",
+        "Setpoint oscillation\n{osc_count} changes in {window_min} min{advice}",
     ),
 }
 
@@ -308,3 +308,51 @@ async def async_send_notification(
     except Exception:  # noqa: BLE001
         _LOGGER.exception("Legacy notify %s failed", tgt)
         return False
+
+
+STOOKLIJN_STATE_LABEL = {
+    "verlaag_lwt_2c": "Lower LWT by 2C",
+    "verhoog_lwt_2c": "Raise LWT by 2C",
+    "behoud": "Keep current LWT",
+    "unknown": "Insufficient data",
+}
+
+
+def build_stooklijn_message(cache: Mapping[str, Any]) -> str:
+    """Uniform stooklijn advice message."""
+    if not isinstance(cache, Mapping):
+        return "\U0001F4C9 Stooklijn advies\nNo data"
+    state = str(cache.get("state") or "unknown")
+    label = STOOKLIJN_STATE_LABEL.get(state, state)
+    try:
+        besparing = float(cache.get("besparing_cop_pct") or 0.0)
+    except (TypeError, ValueError):
+        besparing = 0.0
+    try:
+        comfort = float(cache.get("comfort_impact") or 0.0)
+    except (TypeError, ValueError):
+        comfort = 0.0
+    try:
+        betrouw = float(cache.get("betrouwbaarheid") or 0.0)
+    except (TypeError, ValueError):
+        betrouw = 0.0
+    try:
+        samples = int(cache.get("samples") or 0)
+    except (TypeError, ValueError):
+        samples = 0
+    lines = [
+        "\U0001F4C9 Stooklijn advies",
+        label,
+        "+%.0f%% COP \u00b7 comfort %+.1fC \u00b7 %d%% confidence \u00b7 %d samples"
+        % (besparing, comfort, int(betrouw * 100.0), samples),
+    ]
+    return "\n".join(lines)
+
+
+def build_cop_low_message(cop: float, samples: int) -> str:
+    """Uniform low-COP message."""
+    return (
+        "\U0001F4C9 Day COP low\n"
+        "%.2f (threshold 2.5) \u00b7 %d samples" % (float(cop), int(samples))
+    )
+

@@ -623,9 +623,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if (now - last) < 20 * 3600.0:
             return
         from types import SimpleNamespace
-        msg = 'Dag-COP %.2f onder drempel 2.5 (%d samples)' % (
-            float(cop), int(samples)
-        )
+        from .engine.notification_engine import build_cop_low_message
+        msg = build_cop_low_message(float(cop), int(samples))
         alert = SimpleNamespace(
             persistent=True,
             message=msg,
@@ -658,10 +657,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if (now - last) < 20 * 3600.0:
             return
         from types import SimpleNamespace
-        msg = (
-            'Stooklijn: %s - bespaart %.0f%% COP, comfort %+.1fC'
-            % (state, besparing, comfort)
-        )
+        from .engine.notification_engine import build_stooklijn_message
+        msg = build_stooklijn_message(cache)
         alert = SimpleNamespace(
             persistent=True,
             message=msg,
@@ -774,11 +771,16 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         is_short_off = off is not None and off < short_off_th
         is_pend_h = self.store.cycles_in_window(now, 3600) >= pend_hour
         is_pend_d = len(self.store.cycles_today(now)) >= pend_day
+        is_ml_anom = bool(
+            getattr(snap, "anomaly", None)
+            and getattr(snap.anomaly, "is_anomaly", False)
+        )
         return {
             "short_run": bool(is_short_run),
             "short_off": bool(is_short_off),
             "pendulum_hourly": bool(is_pend_h),
             "pendulum_daily": bool(is_pend_d),
+            "ml_anomaly": is_ml_anom,
         }
 
     def _assign_cluster(self, vector: list[float]) -> int | None:  # pragma: no cover
@@ -919,7 +921,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         top_advice = None
         if advice_list:
             first = advice_list[0]
-            top_advice = getattr(first, "text", None) or str(first)
+            top_advice = (
+                getattr(first, "title", None)
+                or getattr(first, "text", None)
+                or str(first)
+            )
         return {
             "mode": getattr(snap, "mode", "unknown"),
             "state": getattr(snap, "state", "idle"),
@@ -935,20 +941,53 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
     def _build_alert_context(self, snap) -> dict:  # pragma: no cover
         opts = self.options or {}
+        now = time.time()
+        cph = 0
+        cyc_today = 0
+        try:
+            cph = int(self.store.cycles_in_window(now, 3600))
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            cyc_today = len(self.store.cycles_today(now))
+        except Exception:  # noqa: BLE001
+            pass
+        advice_text = ""
+        advice_list = (getattr(snap, "advice", None) or []) if snap else []
+        if advice_list:
+            _first = advice_list[0]
+            _t = (getattr(_first, 'title', None)
+                  or getattr(_first, 'text', None) or '')
+            if _t:
+                advice_text = "\n\U0001F4A1 " + str(_t)
         ctx = {
             "pendulum": {
                 "target_cph": opts.get("pendulum_cycles_per_hour", 4),
                 "target_cpd": opts.get("pendulum_cycles_per_day", 40),
-                "cph": "?",
-                "cycles_today": "?",
+                "cph": cph,
+                "cycles_today": cyc_today,
+                "advice": advice_text,
             },
             "short_run": {
                 "threshold_min": opts.get("short_run_threshold_min", 20),
                 "duration_min": "?",
+                "advice": advice_text,
             },
             "short_off": {
                 "threshold_min": opts.get("short_off_threshold_min", 5),
                 "off_min": "?",
+                "advice": advice_text,
+            },
+            "ml_anomaly": {
+                "mode": "?",
+                "z_max": "?",
+                "top_dim": "?",
+                "advice": advice_text,
+            },
+            "setpoint_osc": {
+                "osc_count": "?",
+                "window_min": "?",
+                "advice": advice_text,
             },
         }
         last = getattr(snap, "last_record", None) if snap is not None else None
@@ -959,6 +998,35 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     ctx["short_run"]["duration_min"] = int(float(dur) / 60)
                 except (TypeError, ValueError):
                     pass
+        try:
+            off = self.store.off_time_since_last(now)
+            if off is not None:
+                ctx["short_off"]["off_min"] = int(off / 60)
+        except Exception:  # noqa: BLE001
+            pass
+        anomaly = getattr(snap, "anomaly", None) if snap else None
+        if anomaly is not None:
+            z = getattr(anomaly, "max_abs_z", None)
+            td = getattr(anomaly, "top_dim", None)
+            if z is not None:
+                try:
+                    ctx["ml_anomaly"]["z_max"] = round(float(z), 2)
+                except (TypeError, ValueError):
+                    pass
+            if td is not None:
+                try:
+                    from .ml.features import FEATURE_NAMES
+                    _idx = int(td)
+                    if 0 <= _idx < len(FEATURE_NAMES):
+                        ctx["ml_anomaly"]["top_dim"] = FEATURE_NAMES[_idx]
+                    else:
+                        ctx["ml_anomaly"]["top_dim"] = "dim " + str(td)
+                except Exception:  # noqa: BLE001
+                    pass
+            if getattr(anomaly, "severity", None):
+                ctx["ml_anomaly"]["mode"] = str(
+                    getattr(snap, "mode", "unknown")
+                )
         return ctx
 
     async def _async_dispatch_alerts(self, snap: DataSnapshot) -> None:

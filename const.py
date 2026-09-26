@@ -186,9 +186,11 @@ EMOJI_SETPOINT = "\U0001F3AF"
 SEVERITY_EMOJI = {
     "critical": EMOJI_CRITICAL,
     "warning": EMOJI_WARNING,
+    "warn": EMOJI_WARNING,
     "watch": EMOJI_WATCH,
     "info": EMOJI_INFO,
     "ok": EMOJI_OK,
+    "normal": EMOJI_OK,
     "status": EMOJI_STATUS,
 }
 
