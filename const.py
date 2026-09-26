@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "daikin_cycle_ml"
 NAME = "Daikin Cycle ML"
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 
 # --- Coordinator ---
 UPDATE_INTERVAL_SECONDS = 30
@@ -15,7 +15,6 @@ SOURCE_SENSOR_ENTITY = "sensor.althermasensors"
 DEFAULT_COMPRESSOR_RPS_THRESHOLD = 3
 DEFAULT_FALLBACK_POWER_THRESHOLD_W = 200
 DEFAULT_MAX_CYCLE_DURATION_MIN = 240
-DEFAULT_TIMER_RECONCILE_ON_START = True
 
 # --- Defaults: pendulum thresholds ---
 DEFAULT_SHORT_RUN_MIN = 20
@@ -276,4 +275,3 @@ ALERT_GROUP_MAP = {
     "stooklijn_advies": ALERT_GROUP_COP_STOOKLIJN,
 }
 
-DEFAULT_ALERT_GROUP_ENABLED = True

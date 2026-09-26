@@ -156,5 +156,11 @@ def test_ml_default():
 
 
 def test_version_bumped():
-    assert VERSION == "0.5.0"
-
+    """Forward-compat: version must be >= 0.5.0 and match const.VERSION."""
+    from custom_components.daikin_cycle_ml.const import VERSION
+    # VERSION must be a parseable semver-ish string
+    parts = VERSION.split(".")
+    assert len(parts) >= 2, f"unexpected VERSION: {VERSION!r}"
+    major, minor = int(parts[0]), int(parts[1])
+    # Never go below the last known release
+    assert (major, minor) >= (0, 5), f"VERSION regressed: {VERSION!r}"

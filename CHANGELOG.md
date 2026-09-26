@@ -13,7 +13,7 @@ Versioning: https://semver.org/spec/v2.0.0.html
 
 
 
-## [Unreleased] — since v0.5.0
+## [0.6.0] - 2026-09-26
 
 ### Added
 - **i18n alert templates (EN + NL)** via `notification_language` option (default EN). Full-sentence messages with actionable advice, selected per-alert. Replaces hardcoded English templates.
