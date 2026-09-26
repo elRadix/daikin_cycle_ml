@@ -189,13 +189,19 @@
           "short_run_threshold_min": "Short run threshold",
           "short_off_threshold_min": "Short off threshold",
           "pendulum_cycles_per_hour": "Cycles per hour",
-          "pendulum_cycles_per_day": "Cycles per day"
+          "pendulum_cycles_per_day": "Cycles per day",
+          "setpoint_oscillation_threshold": "Setpoint oscillation threshold",
+          "setpoint_osc_window_min": "Setpoint window (min)",
+          "setpoint_osc_min_delta": "Minimum setpoint change (°C)"
         },
         "data_description": {
           "short_run_threshold_min": "Cycles shorter than this are flagged. Default 20 min.",
           "short_off_threshold_min": "Off-times shorter than this are flagged. Default 5 min.",
           "pendulum_cycles_per_hour": "Hourly cycle count triggering a pendulum alert. Default 4.",
-          "pendulum_cycles_per_day": "Daily cycle count triggering a pendulum alert. Default 40."
+          "pendulum_cycles_per_day": "Daily cycle count triggering a pendulum alert. Default 40.",
+          "setpoint_oscillation_threshold": "Number of setpoint changes in the window before an alert fires. Default 6 — filters normal thermostat tuning, warns on real oscillation.",
+          "setpoint_osc_window_min": "Rolling window in minutes. Default 30.",
+          "setpoint_osc_min_delta": "Minimum °C change to count as a setpoint change. Default 0.5 — filters floating-point noise."
         }
       },
       "quality": {
@@ -227,7 +233,13 @@
           "quiet_hours_end": "Quiet hours end",
           "alert_aggregation_minutes": "Alert aggregation (minutes)",
           "status_update_enabled": "Periodic status updates",
-          "status_update_interval_hours": "Status interval (hours)"
+          "status_update_interval_hours": "Status interval (hours)",
+          "notification_language": "Notification language",
+          "alert_group_pendulum": "Alert: pendulum",
+          "alert_group_short_cycle": "Alert: short cycle",
+          "alert_group_ml": "Alert: ML anomaly",
+          "alert_group_setpoint": "Alert: setpoint oscillation",
+          "alert_group_cop_stooklijn": "Alert: COP / heat curve"
         },
         "data_description": {
           "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
@@ -239,7 +251,13 @@
           "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00.",
           "alert_aggregation_minutes": "Suppress duplicate alerts within this window. Default 30.",
           "status_update_enabled": "Send a periodic summary of cycle activity.",
-          "status_update_interval_hours": "How often the summary is sent (1-168 hours)."
+          "status_update_interval_hours": "How often the summary is sent (1-168 hours).",
+          "notification_language": "Language for alert messages. Default English.",
+          "alert_group_pendulum": "Hourly/daily pendulum alerts.",
+          "alert_group_short_cycle": "Short-run and short-off alerts.",
+          "alert_group_ml": "ML anomaly alerts (z-score).",
+          "alert_group_setpoint": "LWT setpoint oscillation alerts.",
+          "alert_group_cop_stooklijn": "Daily COP and heat-curve advice alerts."
         }
       },
       "ml": {

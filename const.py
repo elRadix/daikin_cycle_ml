@@ -234,3 +234,39 @@ ADAPTIVE_MAX_TARGET_CPD = 100
 
 # model_state key for adaptive thresholds persistence
 MODEL_STATE_ADAPTIVE = "adaptive_thresholds"
+
+DEFAULT_SETPOINT_OSC_WINDOW_MIN = 30
+
+DEFAULT_SETPOINT_OSC_MIN_DELTA = 0.5
+
+# --- Batch 22: notification language + alert groups + setpoint_osc options ---
+LANG_EN = "en"
+LANG_NL = "nl"
+NOTIFICATION_LANGUAGES = [LANG_EN, LANG_NL]
+DEFAULT_NOTIFICATION_LANGUAGE = LANG_EN
+
+ALERT_GROUP_PENDULUM = "pendulum"
+ALERT_GROUP_SHORT_CYCLE = "short_cycle"
+ALERT_GROUP_ML = "ml"
+ALERT_GROUP_SETPOINT = "setpoint"
+ALERT_GROUP_COP_STOOKLIJN = "cop_stooklijn"
+
+ALERT_GROUPS = [
+    ALERT_GROUP_PENDULUM,
+    ALERT_GROUP_SHORT_CYCLE,
+    ALERT_GROUP_ML,
+    ALERT_GROUP_SETPOINT,
+    ALERT_GROUP_COP_STOOKLIJN,
+]
+
+ALERT_GROUP_MAP = {
+    "pendulum": ALERT_GROUP_PENDULUM,
+    "short_run": ALERT_GROUP_SHORT_CYCLE,
+    "short_off": ALERT_GROUP_SHORT_CYCLE,
+    "ml_anomaly": ALERT_GROUP_ML,
+    "setpoint_osc": ALERT_GROUP_SETPOINT,
+    "cop_low": ALERT_GROUP_COP_STOOKLIJN,
+    "stooklijn_advies": ALERT_GROUP_COP_STOOKLIJN,
+}
+
+DEFAULT_ALERT_GROUP_ENABLED = True

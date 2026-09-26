@@ -189,13 +189,19 @@
           "short_run_threshold_min": "Korte run-drempel",
           "short_off_threshold_min": "Korte off-drempel",
           "pendulum_cycles_per_hour": "Cycli per uur",
-          "pendulum_cycles_per_day": "Cycli per dag"
+          "pendulum_cycles_per_day": "Cycli per dag",
+          "setpoint_oscillation_threshold": "Setpoint-oscillatiedrempel",
+          "setpoint_osc_window_min": "Setpoint-venster (min)",
+          "setpoint_osc_min_delta": "Minimale setpointwijziging (°C)"
         },
         "data_description": {
           "short_run_threshold_min": "Cycli korter dan dit worden gemarkeerd. Standaard 20 min.",
           "short_off_threshold_min": "Off-tijden korter dan dit worden gemarkeerd. Standaard 5 min.",
           "pendulum_cycles_per_hour": "Cycli per uur die een pendelmelding triggeren. Standaard 4.",
-          "pendulum_cycles_per_day": "Cycli per dag die een pendelmelding triggeren. Standaard 40."
+          "pendulum_cycles_per_day": "Cycli per dag die een pendelmelding triggeren. Standaard 40.",
+          "setpoint_oscillation_threshold": "Aantal setpointwijzigingen in het venster voordat een melding klinkt. Standaard 6 — filtert normale thermostaat-tuning, waarschuwt bij echte oscillatie.",
+          "setpoint_osc_window_min": "Rollend venster in minuten. Standaard 30.",
+          "setpoint_osc_min_delta": "Minimale °C-wijziging om als setpointwijziging te tellen. Standaard 0.5 — filtert floating-point ruis."
         }
       },
       "quality": {
@@ -227,7 +233,13 @@
           "quiet_hours_end": "Einde stille uren",
           "alert_aggregation_minutes": "Melding-aggregatie (minuten)",
           "status_update_enabled": "Periodieke statusupdates",
-          "status_update_interval_hours": "Status-interval (uren)"
+          "status_update_interval_hours": "Status-interval (uren)",
+          "notification_language": "Meldings taal",
+          "alert_group_pendulum": "Melding: pendelen",
+          "alert_group_short_cycle": "Melding: korte cyclus",
+          "alert_group_ml": "Melding: ML-anomalie",
+          "alert_group_setpoint": "Melding: setpoint-oscillatie",
+          "alert_group_cop_stooklijn": "Melding: COP / stooklijn"
         },
         "data_description": {
           "persistent_enabled": "Toon meldingen als blijvende meldingen in de zijbalk.",
@@ -239,7 +251,13 @@
           "quiet_hours_end": "Einde stille uren, HH:MM (24u). Standaard 07:00.",
           "alert_aggregation_minutes": "Onderdruk dubbele meldingen binnen dit venster. Standaard 30.",
           "status_update_enabled": "Stuur periodiek een samenvatting.",
-          "status_update_interval_hours": "Hoe vaak (1-168 uur)."
+          "status_update_interval_hours": "Hoe vaak (1-168 uur).",
+          "notification_language": "Taal van meldingen. Standaard Engels.",
+          "alert_group_pendulum": "Pendelmeldingen per uur en per dag.",
+          "alert_group_short_cycle": "Korte run en korte off-tijd meldingen.",
+          "alert_group_ml": "ML-anomalie meldingen (z-score).",
+          "alert_group_setpoint": "LWT-setpoint oscillatie meldingen.",
+          "alert_group_cop_stooklijn": "Dagelijkse COP- en stooklijn-advies meldingen."
         }
       },
       "ml": {

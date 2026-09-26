@@ -38,6 +38,12 @@ from .const import (
     DEFAULT_QUIET_HOURS_START,
     DEFAULT_QUIET_HOURS_END,
     DEFAULT_INDOOR_TEMP_SENSOR,
+    DEFAULT_SETPOINT_OSC_THRESHOLD,
+    DEFAULT_SETPOINT_OSC_WINDOW_MIN,
+    DEFAULT_SETPOINT_OSC_MIN_DELTA,
+    DEFAULT_NOTIFICATION_LANGUAGE,
+    LANG_EN,
+    LANG_NL,
     DEFAULT_PENDULUM_CPH,
     DEFAULT_ALERT_AGGREGATION_MIN,
     DEFAULT_ACTION_ADVICE_ENABLED,
@@ -75,6 +81,19 @@ def _num(min_v: float, max_v: float, step: float, unit: str | None = None):
     if unit is not None:
         kwargs["unit_of_measurement"] = unit
     return selector.NumberSelector(selector.NumberSelectorConfig(**kwargs))
+
+
+def _build_language_selector() -> selector.SelectSelector:
+    """Dropdown: EN / NL. Default EN."""
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[
+                selector.SelectOptionDict(value=LANG_EN, label="English"),
+                selector.SelectOptionDict(value=LANG_NL, label="Nederlands"),
+            ],
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
 
 
 def _legacy_notify_options(hass) -> list:
@@ -541,6 +560,18 @@ class DaikinCycleMLOptionsFlow(OptionsFlow):
             vol.Required("pendulum_cycles_per_day",
                 default=c.get("pendulum_cycles_per_day", DEFAULT_PENDULUM_CPD)
             ): _num(1, 200, 1),
+            vol.Required("setpoint_oscillation_threshold",
+                default=c.get("setpoint_oscillation_threshold",
+                    DEFAULT_SETPOINT_OSC_THRESHOLD),
+            ): _num(1, 100, 1, "changes"),
+            vol.Required("setpoint_osc_window_min",
+                default=c.get("setpoint_osc_window_min",
+                    DEFAULT_SETPOINT_OSC_WINDOW_MIN),
+            ): _num(5, 180, 1, "min"),
+            vol.Required("setpoint_osc_min_delta",
+                default=c.get("setpoint_osc_min_delta",
+                    DEFAULT_SETPOINT_OSC_MIN_DELTA),
+            ): _num(0.1, 2.0, 0.1, "\u00b0C"),
         })
         return self.async_show_form(step_id="pendulum", data_schema=schema)
 
@@ -608,6 +639,24 @@ class DaikinCycleMLOptionsFlow(OptionsFlow):
                 default=c.get("status_update_interval_hours",
                     DEFAULT_STATUS_UPDATE_INTERVAL_HOURS),
             ): _num(1, 168, 1, "h"),
+            vol.Required("notification_language",
+                default=c.get("notification_language", DEFAULT_NOTIFICATION_LANGUAGE)
+            ): _build_language_selector(),
+            vol.Required("alert_group_pendulum",
+                default=c.get("alert_group_pendulum", True)
+            ): bool,
+            vol.Required("alert_group_short_cycle",
+                default=c.get("alert_group_short_cycle", True)
+            ): bool,
+            vol.Required("alert_group_ml",
+                default=c.get("alert_group_ml", True)
+            ): bool,
+            vol.Required("alert_group_setpoint",
+                default=c.get("alert_group_setpoint", True)
+            ): bool,
+            vol.Required("alert_group_cop_stooklijn",
+                default=c.get("alert_group_cop_stooklijn", True)
+            ): bool,
         })
         return self.async_show_form(step_id="notifications", data_schema=schema)
 
