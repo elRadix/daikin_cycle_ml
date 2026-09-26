@@ -155,6 +155,13 @@ OP_MODE_HEATING = "Heating"
 OP_MODE_COOLING = "Cooling"
 OP_MODE_DHW = "DHW"
 
+# Internal normalized mode strings (lowercase, match classify_mode())
+MODE_HEATING = "heating"
+MODE_COOLING = "cooling"
+MODE_DHW = "dhw"
+MODE_DEFROST = "defrost"
+MODE_UNKNOWN = "unknown"
+
 # --- Tracker states ---
 STATE_IDLE = "idle"
 STATE_RUNNING = "running"

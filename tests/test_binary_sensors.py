@@ -106,12 +106,12 @@ def test_compressor_running_off_when_idle():
 
 
 def test_heating_active_on():
-    snap = DataSnapshot(mode="Heating")
+    snap = DataSnapshot(mode="heating")
     assert _make_bs("heating_active", _make_coord(snap)).is_on is True
 
 
 def test_cooling_active_on():
-    snap = DataSnapshot(mode="Cooling")
+    snap = DataSnapshot(mode="cooling")
     assert _make_bs("cooling_active", _make_coord(snap)).is_on is True
 
 
@@ -228,7 +228,7 @@ def test_dhw_pendulum_on(monkeypatch):
     monkeypatch.setattr(bs_mod, "_now", lambda: 10000.0)
     store = CycleStore()
     for i in range(3):
-        store.add_cycle({"start_ts": 9990 - i, "mode": "DHW", "duration_s": 60})
+        store.add_cycle({"start_ts": 9990 - i, "mode": "dhw", "duration_s": 60})
     coord = _make_coord(store=store, options={"dhw_pendulum_cycles_per_hour": 3})
     assert _make_bs("dhw_pendulum", coord).is_on is True
 

@@ -19,9 +19,9 @@ from .const import (
     ATTR_BUH_STEP2,
     ATTR_DEFROST_OPERATION,
     ATTR_IU_OPERATION_MODE,
-    OP_MODE_COOLING,
-    OP_MODE_DHW,
-    OP_MODE_HEATING,
+    MODE_COOLING,
+    MODE_DHW,
+    MODE_HEATING,
     UPDATE_INTERVAL_SECONDS,
 )
 from .coordinator import DataSnapshot, DaikinCycleMLCoordinator
@@ -30,6 +30,18 @@ from .entity import DaikinCycleMLEntity
 _LOGGER = logging.getLogger(__name__)
 
 SOURCE_STALE_FACTOR = 2.0
+
+
+def _attr_is_mode(attrs: dict[str, Any], key: str, mode_lower: str) -> bool:
+    """Case-insensitive comparison for raw ESPAltherma mode strings.
+
+    ESPAltherma sends "Heating"/"DHW"/"Cooling" (capitalized) while
+    classify_mode() and snap.mode return lowercase. Compare case-insensitively.
+    """
+    raw = attrs.get(key)
+    if isinstance(raw, str):
+        return raw.strip().lower() == mode_lower
+    return False
 
 
 def _now() -> float:
@@ -81,7 +93,7 @@ def _is_pendulum_daily(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
 
 def _is_dhw_pendulum(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     threshold = int(c.options.get("dhw_pendulum_cycles_per_hour", 3))
-    return c.store.cycles_in_window_mode(_now(), 3600, OP_MODE_DHW) >= threshold
+    return c.store.cycles_in_window_mode(_now(), 3600, MODE_DHW) >= threshold
 
 
 def _is_high_cycle_rate(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
@@ -90,7 +102,7 @@ def _is_high_cycle_rate(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
 
 
 def _is_dhw_active(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
-    if s.attrs.get(ATTR_IU_OPERATION_MODE) == OP_MODE_DHW:
+    if _attr_is_mode(s.attrs, ATTR_IU_OPERATION_MODE, MODE_DHW):
         return True
     return _attr_on(s.attrs, ATTR_3WAY_VALVE)
 
@@ -163,10 +175,10 @@ BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
      "state_fn": _is_dhw_active},
     {"key": "heating_active", "name": "Heating active",
      "device_class": BinarySensorDeviceClass.HEAT,
-     "state_fn": lambda s, c: s.mode == OP_MODE_HEATING},
+     "state_fn": lambda s, c: s.mode == MODE_HEATING},
     {"key": "cooling_active", "name": "Cooling active",
      "device_class": BinarySensorDeviceClass.COLD,
-     "state_fn": lambda s, c: s.mode == OP_MODE_COOLING},
+     "state_fn": lambda s, c: s.mode == MODE_COOLING},
     {"key": "source_stale", "name": "Source stale",
      "device_class": BinarySensorDeviceClass.PROBLEM,
      "state_fn": _is_source_stale},
@@ -176,7 +188,7 @@ BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
     {"key": "setpoint_oscillating", "name": "Setpoint oscillating",
      "device_class": BinarySensorDeviceClass.PROBLEM,
      "icon": "mdi:sine-wave",
-     "state_fn": lambda s, c: False},  # stub -> Batch 7
+     "state_fn": lambda s, c: c._compute_setpoint_oscillating()},
     {"key": "dhw_pendulum", "name": "DHW pendulum",
      "device_class": BinarySensorDeviceClass.PROBLEM,
      "icon": "mdi:water-boiler-alert",
