@@ -38,6 +38,91 @@ class AlertSpec:
 
 
 # trigger binary key -> (alert_type, severity, message template)
+# --- Batch 22b: language-specific alert templates ---
+ALERT_TEMPLATES_EN: dict[str, str] = {
+    "pendulum_hourly": (
+        "**Pendulum detected (hourly)**\n"
+        "**{cph} cycles** in the last hour (target \u2264 {target_cph}).\n"
+        "\U0001F4A1 Widen thermostat hysteresis, or lower the heat curve "
+        "so cycles run longer.{advice}"
+    ),
+    "pendulum_daily": (
+        "**Pendulum detected (daily)**\n"
+        "**{cycles_today} cycles** today (target \u2264 {target_cpd}).\n"
+        "\U0001F4A1 Check setpoint delta, hysteresis and heat curve \u2014 "
+        "the pump is cycling too often.{advice}"
+    ),
+    "short_run": (
+        "**Short run detected**\n"
+        "Last cycle ran **{duration_min} min** (threshold {threshold_min} min).\n"
+        "\U0001F4A1 Increase minimum runtime or smooth heat demand so the "
+        "pump can stabilize.{advice}"
+    ),
+    "short_off": (
+        "**Short off detected**\n"
+        "Off time was only **{off_min} min** (threshold {threshold_min} min).\n"
+        "\U0001F4A1 The pump restarts too quickly \u2014 check heat curve "
+        "and hysteresis.{advice}"
+    ),
+    "ml_anomaly": (
+        "**ML anomaly ({mode})**\n"
+        "z-score **{z_max}** on **\"{top_dim}\"**.\n"
+        "\U0001F4A1 Behavior deviates from learned baseline. Review recent "
+        "setpoint / weather / DHW changes.{advice}"
+    ),
+    "setpoint_osc": (
+        "**LWT setpoint oscillating**\n"
+        "Changed **{osc_count}\u00D7** in the last **{window_min} min** "
+        "(threshold {threshold}).\n"
+        "\U0001F4A1 Lock the LWT setpoint, or increase thermostat hysteresis "
+        "so the heat pump can settle.{advice}"
+    ),
+}
+
+ALERT_TEMPLATES_NL: dict[str, str] = {
+    "pendulum_hourly": (
+        "**Pendelen gedetecteerd (per uur)**\n"
+        "**{cph} cycli** in het laatste uur (doel \u2264 {target_cph}).\n"
+        "\U0001F4A1 Verhoog de thermostaat-hysterese, of verlaag de stooklijn "
+        "zodat cycli langer duren.{advice}"
+    ),
+    "pendulum_daily": (
+        "**Pendelen gedetecteerd (dagelijks)**\n"
+        "**{cycles_today} cycli** vandaag (doel \u2264 {target_cpd}).\n"
+        "\U0001F4A1 Controleer setpoint-delta, hysterese en stooklijn \u2014 "
+        "de pomp pendelt te vaak.{advice}"
+    ),
+    "short_run": (
+        "**Korte run gedetecteerd**\n"
+        "Laatste cyclus duurde **{duration_min} min** (drempel {threshold_min} min).\n"
+        "\U0001F4A1 Verhoog de minimum looptijd of demp de warmtevraag.{advice}"
+    ),
+    "short_off": (
+        "**Korte off-tijd gedetecteerd**\n"
+        "Off-tijd was slechts **{off_min} min** (drempel {threshold_min} min).\n"
+        "\U0001F4A1 De pomp herstart te snel \u2014 controleer stooklijn "
+        "en hysterese.{advice}"
+    ),
+    "ml_anomaly": (
+        "**ML-anomalie ({mode})**\n"
+        "z-score **{z_max}** op **\"{top_dim}\"**.\n"
+        "\U0001F4A1 Gedrag wijkt af van de geleerde baseline. Controleer "
+        "recente setpoint / weer / SWW-wijzigingen.{advice}"
+    ),
+    "setpoint_osc": (
+        "**LWT-setpoint oscilleert**\n"
+        "Wijzigde **{osc_count}\u00D7** in de laatste **{window_min} min** "
+        "(drempel {threshold}).\n"
+        "\U0001F4A1 Vergrendel het LWT-setpoint, of verhoog de "
+        "thermostaat-hysterese.{advice}"
+    ),
+}
+
+ALERT_TEMPLATES: dict[str, dict[str, str]] = {
+    "en": ALERT_TEMPLATES_EN,
+    "nl": ALERT_TEMPLATES_NL,
+}
+
 BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
     "pendulum_hourly": (
         "pendulum",
@@ -157,6 +242,7 @@ def evaluate_alerts(
     *,
     context: Mapping[str, Mapping[str, Any]] | None = None,
     emoji_enabled: bool | None = None,
+    language: str | None = None,
 ) -> list[AlertSpec]:
     """Return alerts to dispatch now.
 
@@ -173,6 +259,11 @@ def evaluate_alerts(
     if emoji_enabled is None:
         emoji_enabled = bool(options.get("notify_emoji_enabled", True))
 
+    _lang = language or (options.get("notification_language") if options else None) or "en"
+    if _lang not in ALERT_TEMPLATES:
+        _lang = "en"
+    _lang_templates = ALERT_TEMPLATES[_lang]
+
     quiet_enabled = bool(options.get("quiet_hours_enabled", False))
     agg_min = _opt_float(options, "alert_aggregation_minutes", DEFAULT_AGG_MIN)
     persistent_enabled = bool(options.get("persistent_enabled", True))
@@ -188,7 +279,8 @@ def evaluate_alerts(
     for bkey, spec in BINARY_ALERT_MAP.items():
         if not binary_states.get(bkey, False):
             continue
-        alert_type, severity, tmpl = spec
+        alert_type, severity, default_tmpl = spec
+        tmpl = _lang_templates.get(bkey, default_tmpl)
         if alert_type in emitted:
             continue
         if severity != SEV_CRITICAL and quiet:

@@ -34,7 +34,7 @@ def test_pendulum_hourly_real_numbers():
         }
     }
     msg = _first_msg("pendulum_hourly", ctx)
-    assert "Pendulum hourly" in msg
+    assert "hourly" in msg.lower()
     assert "6" in msg and "4" in msg
     assert "?" not in msg
     assert "{" not in msg
@@ -110,7 +110,7 @@ def test_multiline_all_templates():
                 "duration_min": 5, "threshold_min": 6,
                 "off_min": 7,
                 "mode": "H", "z_max": 1.0, "top_dim": "x",
-                "osc_count": 8, "window_min": 9,
+                "osc_count": 8, "window_min": 9, "threshold": 10,
                 "advice": "",
             }
         }
