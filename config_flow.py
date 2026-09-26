@@ -7,6 +7,12 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
+try:
+    from homeassistant.config_entries import OptionsFlowWithReload
+    _OPTIONS_FLOW_BASE = OptionsFlowWithReload
+except ImportError:  # pragma: no cover
+    _OPTIONS_FLOW_BASE = OptionsFlow
+
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
@@ -503,7 +509,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         return DaikinCycleMLOptionsFlow()
 
 
-class DaikinCycleMLOptionsFlow(OptionsFlow):
+class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
     """Menu-driven options editor (batch 18)."""
 
     async def async_step_init(self, user_input=None) -> FlowResult:
@@ -522,7 +528,7 @@ class DaikinCycleMLOptionsFlow(OptionsFlow):
 
     def _save(self, user_input):
         merged = {**(self.config_entry.options or {}), **user_input}
-        return self.async_create_entry(title="", data=merged)
+        return self.async_create_entry(data=merged)
 
     async def async_step_device(self, user_input=None) -> FlowResult:
         if user_input is not None:
@@ -709,31 +715,63 @@ class DaikinCycleMLOptionsFlow(OptionsFlow):
         return None
 
     async def async_step_test_notification(self, user_input=None) -> FlowResult:
-        """Send current daily summary to the configured notify target."""
+        """Pick an alert kind and dispatch one sample."""
         if user_input is not None:
-            return await self.async_step_init()
-        status = "unknown"
-        preview = ""
-        try:
-            coord = self._get_coordinator_handle()
-            if coord is None:
-                status = "no_coordinator"
-                preview = "Integration is not loaded. Reload the entry first."
-            else:
-                msg = await coord.async_emit_status_update()
-                status = "sent"
-                preview = (msg or "")[:500]
-        except Exception as exc:  # noqa: BLE001
-            status = "failed"
-            preview = str(exc)[:500]
+            kind = str(user_input.get("alert_kind") or "status_summary")
+            ignore = bool(user_input.get("ignore_group_filters", False))
+            status = "unknown"
+            preview = ""
+            try:
+                coord = self._get_coordinator_handle()
+                if coord is None:
+                    status = "no_coordinator"
+                    preview = "Integration not loaded. Reload the config entry first."
+                else:
+                    msg = await coord.async_emit_test_alert(kind, ignore_filters=ignore)
+                    status = "sent"
+                    preview = (msg or "")[:600]
+            except Exception as exc:  # noqa: BLE001
+                status = "failed"
+                preview = str(exc)[:600]
+            self._test_result = {"status": status, "kind": kind, "preview": preview}
+            return await self.async_step_test_notification_result()
+        schema = vol.Schema({
+            vol.Required("alert_kind", default="status_summary"): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        "status_summary",
+                        "pendulum_hourly",
+                        "pendulum_daily",
+                        "short_run",
+                        "short_off",
+                        "ml_anomaly",
+                        "setpoint_osc",
+                        "cop_low",
+                        "stooklijn_advies",
+                    ],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                    translation_key="alert_kind",
+                ),
+            ),
+            vol.Optional("ignore_group_filters", default=False): bool,
+        })
         return self.async_show_form(
             step_id="test_notification",
-            data_schema=vol.Schema({
-                vol.Optional("back", default=True): bool,
-            }),
+            data_schema=schema,
+        )
+
+    async def async_step_test_notification_result(self, user_input=None) -> FlowResult:
+        """Show test result; Submit returns to menu."""
+        if user_input is not None:
+            return await self.async_step_init()
+        res = getattr(self, "_test_result", None) or {}
+        return self.async_show_form(
+            step_id="test_notification_result",
+            data_schema=vol.Schema({}, extra=vol.ALLOW_EXTRA),
             description_placeholders={
-                "status": status,
-                "preview": preview,
+                "status": str(res.get("status", "unknown")),
+                "kind": str(res.get("kind", "?")),
+                "preview": str(res.get("preview", "")),
             },
         )
 

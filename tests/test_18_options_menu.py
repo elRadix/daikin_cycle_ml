@@ -9,6 +9,23 @@ from custom_components.daikin_cycle_ml.const import (
 )
 
 
+import pytest
+from unittest.mock import AsyncMock, patch
+
+
+@pytest.fixture(autouse=True)
+def _disable_options_reload(hass):
+    """OptionsFlowWithReload triggers reload; skip in unit tests."""
+    with patch.object(
+        hass.config_entries, "async_reload",
+        new=AsyncMock(return_value=True),
+    ), patch.object(
+        hass.config_entries, "async_schedule_reload",
+        new=lambda *a, **k: None,
+    ):
+        yield
+
+
 STEPS = (
     "device", "pendulum", "quality",
     "notifications", "ml", "maintenance",

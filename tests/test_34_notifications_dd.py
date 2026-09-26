@@ -14,7 +14,7 @@ JSON_FILES = [
     "translations/en.json",
     "translations/nl.json",
 ]
-NEW_VER = "0.7.1"
+NEW_VER = "0.8.0"
 
 
 @pytest.mark.parametrize("rel", JSON_FILES)

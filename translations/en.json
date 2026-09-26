@@ -25,7 +25,8 @@
       },
       "attributes": {
         "title": "Attribute check",
-        "description": "Core attributes on the source sensor: **{present} / {total}** present.\n\n**Present:**\n{present_list}\n\n**Missing:**\n{missing_list}"
+        "description": "Core attributes on the source sensor: **{present} / {total}** present.\n\n**Present:**\n{present_list}\n\n**Missing:**\n{missing_list}",
+        "data_description": {}
       },
       "cycle": {
         "title": "Cycle detection",
@@ -101,7 +102,8 @@
       },
       "finalize": {
         "title": "Confirm",
-        "description": "Model: {model}. Source: {source}. Submit to create the entry."
+        "description": "Model: {model}. Source: {source}. Submit to create the entry.",
+        "data_description": {}
       },
       "reconfigure": {
         "title": "Reconfigure Daikin Cycle ML",
@@ -109,7 +111,8 @@
         "menu_options": {
           "reconfigure_basic": "Source sensor and model only (quick)",
           "reconfigure_full": "Full wizard (all settings)"
-        }
+        },
+        "data_description": {}
       },
       "reconfigure_basic": {
         "title": "Source sensor and model",
@@ -125,7 +128,8 @@
       },
       "reconfigure_full": {
         "title": "Full wizard",
-        "description": "Rerun the full wizard. All current values are prefilled as defaults."
+        "description": "Rerun the full wizard. All current values are prefilled as defaults.",
+        "data_description": {}
       }
     },
     "error": {
@@ -162,6 +166,15 @@
           "cycle_retention_days": "Cycles older than N days are rolled up and pruned. Default 90.",
           "alert_retention_days": "Alerts older than N days are deleted. Default 30.",
           "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning."
+        },
+        "menu_option_descriptions": {
+          "device": "Sensors and cycle-detection thresholds",
+          "pendulum": "Pendulum and setpoint-oscillation detection",
+          "quality": "Quality scoring thresholds",
+          "notifications": "Notify target, quiet hours, alert groups, language",
+          "ml": "Adaptive thresholds and ML learning",
+          "maintenance": "Retention, daily rollup, VACUUM",
+          "test_notification": "Send one sample alert to the notify target"
         }
       },
       "device": {
@@ -292,13 +305,20 @@
       },
       "test_notification": {
         "title": "Test notification",
-        "description": "Result: **{status}**\n\nPreview (first 500 chars):\n```\n{preview}\n```\n\nThis uses the current options (notify_service + persistent_enabled). The same message is also emitted by the scheduled status update.",
+        "description": "Send one sample alert to the configured notify target. Use the ignore-filters toggle to bypass alert_group_* toggles, quiet hours and dedup windows for this test only.",
         "data": {
-          "back": "Back to menu"
+          "alert_kind": "Alert type",
+          "ignore_group_filters": "Ignore group filters"
         },
         "data_description": {
-          "back": "Return to the options menu."
+          "alert_kind": "Which alert kind to send as a test.",
+          "ignore_group_filters": "Bypass alert_group_* toggles, quiet hours and dedup windows for this test only."
         }
+      },
+      "test_notification_result": {
+        "title": "Test result",
+        "description": "Kind: **{kind}**\n\nResult: **{status}**\n\nPreview:\n```\n{preview}\n```\n\nSubmit to return to the options menu.",
+        "data_description": {}
       }
     }
   },
@@ -407,6 +427,21 @@
           "name": "Target override",
           "description": "Optional override of the configured notify target."
         }
+      }
+    }
+  },
+  "selector": {
+    "alert_kind": {
+      "options": {
+        "status_summary": "Daily status summary",
+        "pendulum_hourly": "Pendulum (hourly)",
+        "pendulum_daily": "Pendulum (daily)",
+        "short_run": "Short run",
+        "short_off": "Short off",
+        "ml_anomaly": "ML anomaly",
+        "setpoint_osc": "Setpoint oscillating",
+        "cop_low": "Low day COP",
+        "stooklijn_advies": "Stooklijn advice"
       }
     }
   }

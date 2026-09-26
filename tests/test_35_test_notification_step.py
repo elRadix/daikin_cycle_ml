@@ -34,7 +34,7 @@ def test_cf_test_step_uses_emit_status_update():
     start = src.index("async def async_step_test_notification(")
     end = src.index("async def async_step_ml(", start)
     block = src[start:end]
-    assert "async_emit_status_update" in block
+    assert ("async_emit_test_alert" in block or "async_emit_status_update" in block)
     assert "description_placeholders" in block
 
 

@@ -25,7 +25,8 @@
       },
       "attributes": {
         "title": "Attribuut-controle",
-        "description": "Kern-attributen op de bronsensor: **{present} / {total}** aanwezig.\n\n**Aanwezig:**\n{present_list}\n\n**Ontbrekend:**\n{missing_list}"
+        "description": "Kern-attributen op de bronsensor: **{present} / {total}** aanwezig.\n\n**Aanwezig:**\n{present_list}\n\n**Ontbrekend:**\n{missing_list}",
+        "data_description": {}
       },
       "cycle": {
         "title": "Cyclusdetectie",
@@ -101,7 +102,8 @@
       },
       "finalize": {
         "title": "Bevestigen",
-        "description": "Model: {model}. Source: {source}. Submit to create the entry."
+        "description": "Model: {model}. Source: {source}. Submit to create the entry.",
+        "data_description": {}
       },
       "reconfigure": {
         "title": "Daikin Cycle ML opnieuw configureren",
@@ -109,7 +111,8 @@
         "menu_options": {
           "reconfigure_basic": "Source sensor and model only (quick)",
           "reconfigure_full": "Full wizard (all settings)"
-        }
+        },
+        "data_description": {}
       },
       "reconfigure_basic": {
         "title": "Bronsensor en model",
@@ -125,7 +128,8 @@
       },
       "reconfigure_full": {
         "title": "Volledige wizard",
-        "description": "Rerun the full wizard. All current values are prefilled as defaults."
+        "description": "Rerun the full wizard. All current values are prefilled as defaults.",
+        "data_description": {}
       }
     },
     "error": {
@@ -162,6 +166,15 @@
           "cycle_retention_days": "Cycli ouder dan N dagen worden gerold en opgeschoond. Standaard 90.",
           "alert_retention_days": "Meldingen ouder dan N dagen worden verwijderd. Standaard 30.",
           "vacuum_enabled": "Voer SQLite VACUUM uit om ruimte terug te winnen na opschonen."
+        },
+        "menu_option_descriptions": {
+          "device": "Sensoren en cyclusdetectie-drempels",
+          "pendulum": "Pendel- en setpoint-oscillatiedetectie",
+          "quality": "Kwaliteitsscore-drempels",
+          "notifications": "Melding-doel, stille uren, alert-groepen, taal",
+          "ml": "Adaptieve drempels en ML-leren",
+          "maintenance": "Retentie, dagelijkse rollup, VACUUM",
+          "test_notification": "Stuur één voorbeeldmelding naar het melding-doel"
         }
       },
       "device": {
@@ -292,13 +305,20 @@
       },
       "test_notification": {
         "title": "Testmelding",
-        "description": "Resultaat: **{status}**\n\nVoorbeeld (eerste 500 tekens):\n```\n{preview}\n```\n\nDit gebruikt de huidige opties (notify_service + persistent_enabled). Hetzelfde bericht wordt ook periodiek verstuurd door de status-update.",
+        "description": "Stuur een voorbeeldmelding naar het geconfigureerde melding-doel. Gebruik de filters-negeren-toggle om alert_group_*-schakelaars, stille uren en dedup-vensters alleen voor deze test te omzeilen.",
         "data": {
-          "back": "Terug naar menu"
+          "alert_kind": "Type melding",
+          "ignore_group_filters": "Groepfilters negeren"
         },
         "data_description": {
-          "back": "Terug naar het optiemenu."
+          "alert_kind": "Welk type melding als test verstuurd wordt.",
+          "ignore_group_filters": "Omzeil alert_group_*-schakelaars, stille uren en dedup-vensters alleen voor deze test."
         }
+      },
+      "test_notification_result": {
+        "title": "Testresultaat",
+        "description": "Type: **{kind}**\n\nResultaat: **{status}**\n\nVoorbeeld:\n```\n{preview}\n```\n\nBevestig om terug te keren naar het optiemenu.",
+        "data_description": {}
       }
     }
   },
@@ -407,6 +427,21 @@
           "name": "Target override",
           "description": "Optional override of the configured notify target."
         }
+      }
+    }
+  },
+  "selector": {
+    "alert_kind": {
+      "options": {
+        "status_summary": "Dagelijkse status-samenvatting",
+        "pendulum_hourly": "Pendelen (per uur)",
+        "pendulum_daily": "Pendelen (per dag)",
+        "short_run": "Korte run",
+        "short_off": "Korte off-tijd",
+        "ml_anomaly": "ML-anomalie",
+        "setpoint_osc": "Setpoint oscilleert",
+        "cop_low": "Lage dag-COP",
+        "stooklijn_advies": "Stooklijn-advies"
       }
     }
   }

@@ -1122,7 +1122,98 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 )
         return ctx
 
+    async def async_emit_test_alert(
+        self, alert_kind: str, *, ignore_filters: bool = False
+    ) -> str:
+        """Dispatch one sample alert for the OptionsFlow test button."""
+        import time as _t
+        from .engine.notification_engine import (
+            AlertSpec,
+            BINARY_ALERT_MAP,
+            build_cop_low_message,
+            build_stooklijn_message,
+            evaluate_alerts,
+        )
+
+        if alert_kind == "status_summary":
+            return await self.async_emit_status_update()
+
+        opts = dict(self.options or {})
+        if ignore_filters:
+            opts["quiet_hours_enabled"] = False
+            opts["alert_aggregation_minutes"] = 0
+            for k in list(opts.keys()):
+                if k.startswith("alert_group_"):
+                    opts[k] = True
+
+        now = _t.time()
+        persistent = bool(opts.get("persistent_enabled", True))
+
+        if alert_kind == "cop_low":
+            msg = build_cop_low_message(2.1, 8)
+            spec = AlertSpec(
+                alert_type="cop_low",
+                severity="warning",
+                message=msg,
+                notif_id="daikin_cycle_ml_cop_low",
+                dedupe_key="cop_low",
+                persistent=persistent,
+            )
+            await self._emit_alert(spec)
+            return msg
+
+        if alert_kind == "stooklijn_advies":
+            fake = {
+                "state": "ok",
+                "besparing_cop_pct": 12.0,
+                "comfort_impact": -0.3,
+                "betrouwbaarheid": 0.75,
+                "samples": 42,
+            }
+            msg = build_stooklijn_message(fake)
+            spec = AlertSpec(
+                alert_type="stooklijn_advies",
+                severity="warning",
+                message=msg,
+                notif_id="daikin_cycle_ml_stooklijn_advies",
+                dedupe_key="stooklijn_advies",
+                persistent=persistent,
+            )
+            await self._emit_alert(spec)
+            return msg
+
+        target_bkeys = [
+            bkey
+            for bkey, spec_tuple in BINARY_ALERT_MAP.items()
+            if spec_tuple[0] == alert_kind or bkey == alert_kind
+        ]
+        if not target_bkeys:
+            raise ValueError("unknown alert_kind: " + str(alert_kind))
+
+        states = {bkey: True for bkey in target_bkeys}
+        ctx = self._build_alert_context(self.data)
+        alerts = evaluate_alerts(
+            states,
+            opts,
+            now,
+            {},
+            context=ctx,
+            language=opts.get("notification_language", "en"),
+        )
+        if not alerts:
+            return (
+                "[filtered] No alert produced. Use the ignore-filters "
+                "toggle or check alert_group_* / quiet_hours / "
+                "aggregation options."
+            )
+        parts = []
+        for a in alerts:
+            await self._emit_alert(a)
+            parts.append(a.message)
+        return "\n---\n".join(parts)
+
     async def _async_dispatch_alerts(self, snap: DataSnapshot) -> None:
+
         """Evaluate + emit alerts. Never raises."""
         try:
             states = self._alert_binary_states(snap)
