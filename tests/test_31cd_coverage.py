@@ -330,15 +330,22 @@ def test_attr_is_mode_case_insensitive():
 
 
 def test_is_dhw_active_3way_valve_fallback():
+    # Batch 52a: 3-way valve rests in DHW-position on Daikin units
+    # (fail-safe for boiler priority on power loss). Valve alone is
+    # no longer a valid DHW signal; compressor or BUH must run.
     s = MagicMock(attrs={"3way valve(On:DHW_Off:Space)": "ON"})
+    s.state = "idle"
     c = MagicMock()
-    assert bs_mod._is_dhw_active(s, c) is True
+    assert bs_mod._is_dhw_active(s, c) is False
 
 
 def test_is_dhw_active_iu_mode():
+    # Batch 52a: I/U=DHW alone is not enough; compressor or BUH
+    # must actually be running. Here state=idle, BUH=off -> False.
     s = MagicMock(attrs={"I/U operation mode": "DHW"})
+    s.state = "idle"
     c = MagicMock()
-    assert bs_mod._is_dhw_active(s, c) is True
+    assert bs_mod._is_dhw_active(s, c) is False
 
 
 def test_is_dhw_active_neither():

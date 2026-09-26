@@ -117,12 +117,13 @@ def _cluster_label(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> str:
 # --- attr builders -----------------------------------------------------
 
 def _attrs_current_cycle(s, c):
+    running = s.state == "running"
     dur_min = None
-    if s.state == "running" and s.cycle_start_ts > 0:
+    if running and s.cycle_start_ts > 0:
         dur_min = round(max(0.0, _now() - s.cycle_start_ts) / 60.0, 2)
     return {
         "duration_min": dur_min,
-        "dt_k": _dt_from_attrs(s.attrs),
+        "dt_k": _dt_from_attrs(s.attrs) if running else None,
         "rps": _rps_from_attrs(s.attrs),
         "started_at": s.cycle_start_ts or None,
     }

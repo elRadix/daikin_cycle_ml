@@ -104,9 +104,17 @@ def _is_high_cycle_rate(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
 
 
 def _is_dhw_active(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
-    if _attr_is_mode(s.attrs, ATTR_IU_OPERATION_MODE, MODE_DHW):
+    """DHW active requires I/U mode == DHW AND (compressor or BUH).
+
+    The 3-way valve default-rests in DHW position on Daikin units
+    (fail-safe for boiler priority on power loss). Valve state alone
+    is therefore NOT a valid DHW signal.
+    """
+    if not _attr_is_mode(s.attrs, ATTR_IU_OPERATION_MODE, MODE_DHW):
+        return False
+    if s.state == "running":
         return True
-    return _attr_on(s.attrs, ATTR_3WAY_VALVE)
+    return _is_buh_active(s, c)
 
 
 def _is_buh_active(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
