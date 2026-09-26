@@ -71,6 +71,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _cycle_indoor_count: int = 0
 
     # R52: class-level defaults so __new__-style tests find these attrs
+    _kmeans_centroids: list = []
+    _cluster_labels: dict = {}
     _setpoint_history: deque | None = None
     _last_setpoint: float | None = None
 
@@ -729,7 +731,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return default
         return int(learned.get(key, default))
 
-    async def async_save_adaptive_state(self) -> bool:  # pragma: no cover
+    async def async_save_adaptive_state(self) -> bool:
         if self.db is None:
             return False
         try:
@@ -742,7 +744,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.exception("adaptive save failed")
             return False
 
-    async def async_load_adaptive_state(self) -> bool:  # pragma: no cover
+    async def async_load_adaptive_state(self) -> bool:
         if self.db is None:
             return False
         try:
@@ -877,7 +879,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return None
         return self._cluster_labels.get(cluster_id)
 
-    async def _load_kmeans_state(self) -> bool:  # pragma: no cover
+    async def _load_kmeans_state(self) -> bool:
         if self.db is None:
             return False
         try:
@@ -905,7 +907,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.debug("load kmeans_state failed", exc_info=True)
             return False
 
-    async def async_setup_status_updates(self) -> None:  # pragma: no cover
+    async def async_setup_status_updates(self) -> None:
         """Schedule periodic status summaries (opt-in)."""
         if self._status_update_unsub is not None:
             return
@@ -927,13 +929,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         )
         _LOGGER.info("status updates scheduled every %sh", hours)
 
-    async def _async_status_update_callback(self, _now) -> None:  # pragma: no cover
+    async def _async_status_update_callback(self, _now) -> None:
         try:
             await self.async_emit_status_update()
         except Exception:  # noqa: BLE001
             _LOGGER.exception("Scheduled status update failed")
 
-    async def async_emit_status_update(self) -> str:  # pragma: no cover
+    async def async_emit_status_update(self) -> str:
         """Build and dispatch one status summary. Returns message."""
         from .const import NOTIF_ID_STATUS
 
@@ -968,7 +970,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
         return msg
 
-    def _build_status_snapshot(self) -> dict:  # pragma: no cover
+    def _build_status_snapshot(self) -> dict:
         import time as _t
         snap = self.data
         store = self.store
