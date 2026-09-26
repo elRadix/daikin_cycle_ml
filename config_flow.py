@@ -523,6 +523,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 "ml",
                 "maintenance",
                 "test_notification",
+                "test_all_notifications",
             ],
         )
 
@@ -775,6 +776,52 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 "preview": str(res.get("preview", "")),
             },
         )
+
+    async def async_step_test_all_notifications(self, user_input=None) -> FlowResult:
+        """One click -- send one of every alert type (filters bypassed)."""
+        if user_input is not None:
+            status = "unknown"
+            count = 0
+            preview = ""
+            try:
+                coord = self._get_coordinator_handle()
+                if coord is None:
+                    status = "no_coordinator"
+                    preview = "Integration not loaded. Reload the config entry first."
+                else:
+                    msg = await coord.async_emit_test_alert(
+                        "all_alerts", ignore_filters=True
+                    )
+                    status = "sent"
+                    count = (msg or "").count("=== ")
+                    preview = (msg or "")[:600]
+            except Exception as exc:  # noqa: BLE001
+                status = "failed"
+                preview = str(exc)[:600]
+            self._test_all_result = {
+                "status": status, "count": count, "preview": preview,
+            }
+            return await self.async_step_test_all_notifications_result()
+        return self.async_show_form(
+            step_id="test_all_notifications",
+            data_schema=vol.Schema({}, extra=vol.ALLOW_EXTRA),
+        )
+
+    async def async_step_test_all_notifications_result(self, user_input=None) -> FlowResult:
+        """Show test-all result; Submit returns to options menu."""
+        if user_input is not None:
+            return await self.async_step_init()
+        res = getattr(self, "_test_all_result", None) or {}
+        return self.async_show_form(
+            step_id="test_all_notifications_result",
+            data_schema=vol.Schema({}, extra=vol.ALLOW_EXTRA),
+            description_placeholders={
+                "status": str(res.get("status", "unknown")),
+                "count": str(res.get("count", 0)),
+                "preview": str(res.get("preview", "")),
+            },
+        )
+
 
     async def async_step_ml(self, user_input=None) -> FlowResult:
 

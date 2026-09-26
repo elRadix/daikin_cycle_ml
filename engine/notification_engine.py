@@ -361,4 +361,47 @@ def build_cop_low_message(
         cop, samples, language=(language or 'en'), emoji_enabled=bool(emoji_enabled)
     )
 
-
+async def async_send_notification(hass, target, message) -> bool:
+    """Send to a notify target. Entity first, legacy fallback."""
+    if not isinstance(target, str) or "." not in target:
+        return False
+    _domain, _name = target.split(".", 1)
+    if not _name:
+        return False
+    try:
+        _state = hass.states.get(target)
+    except Exception:
+        _state = None
+    if _state is not None:
+        try:
+            await hass.services.async_call(
+                "notify", "send_message",
+                {"message": message},
+                target={"entity_id": target},
+                blocking=False,
+            )
+            return True
+        except Exception:
+            return False
+    try:
+        _svcs = hass.services.async_services()
+        if isinstance(_svcs, dict):
+            _notify_svcs = _svcs.get("notify") or {}
+            if _name in _notify_svcs:
+                await hass.services.async_call(
+                    "notify", _name, {"message": message},
+                    blocking=False,
+                )
+                return True
+    except Exception:
+        pass
+    if _domain != "notify":
+        try:
+            await hass.services.async_call(
+                _domain, _name, {"message": message},
+                blocking=False,
+            )
+            return True
+        except Exception:
+            return False
+    return False

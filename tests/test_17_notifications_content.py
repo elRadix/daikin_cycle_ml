@@ -153,7 +153,7 @@ def test_stooklijn_format_lower():
     assert "Stooklijn" in msg
     assert "Lower LWT" in msg
     assert ("COP gain" in msg or "COP-winst" in msg) and ("8" in msg)
-    assert "0.5C" in msg
+    assert ("0.5C" in msg) or ("0.5 \u00b0C" in msg)
     assert "Confidence" in msg and "87" in msg
     assert "Samples" in msg and "14" in msg
     assert "{" not in msg

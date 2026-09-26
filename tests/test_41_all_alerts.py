@@ -1,10 +1,17 @@
 """Batch 41 -- rich pendulum path + all-alerts test option."""
 from __future__ import annotations
 
+
 import json
 from pathlib import Path
 
 import pytest
+
+from custom_components.daikin_cycle_ml.engine.status_report import (
+    ALERT_SCHEMA,
+    DIV,
+    build_rich_alert,
+)
 
 ROOT = Path(__file__).parent.parent
 JSON_FILES = [
@@ -21,9 +28,6 @@ def test_ne_uses_bkey_for_schema_lookup():
 
 
 def test_pendulum_rich_output():
-    from custom_components.daikin_cycle_ml.engine.status_report import (
-        ALERT_SCHEMA, DIV, build_rich_alert,
-    )
     ctx = {"cph": 6, "target_cph": 4, "cycles_today": 12, "target_cpd": 40,
            "advice": "\u2022 advice"}
     for bkey in ("pendulum_hourly", "pendulum_daily"):

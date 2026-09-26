@@ -209,7 +209,7 @@ def build_stooklijn_report(cache, *, language="en", emoji_enabled=True):
     if not isinstance(cache, Mapping):
         cache = {}
     is_nl = (language == "nl")
-    title = "\U0001F4C9 Stooklijn advies" if is_nl else "\U0001F4C9 Stooklijn advice"
+    title = "Stooklijn advies" if is_nl else "Stooklijn advice"
     state_raw = str(cache.get("state") or "unknown")
     _labels = (STOOKLIJN_STATE_LABEL_NL if is_nl
                else STOOKLIJN_STATE_LABEL_EN)
@@ -230,7 +230,13 @@ def build_stooklijn_report(cache, *, language="en", emoji_enabled=True):
         samples = int(cache.get("samples") or 0)
     except (TypeError, ValueError):
         samples = 0
-    lines = [title, DIV]
+    now = _dt.datetime.now()
+    ts = now.strftime("%Y-%m-%d %H:%M")
+    if emoji_enabled:
+        lines = ["\U0001F4C9 Daikin Cycle ML \u2014 " + title,
+                 "\U0001F550 " + ts, DIV]
+    else:
+        lines = ["Daikin Cycle ML \u2014 " + title, ts, DIV]
     lbl_state = "Status"
     lbl_besp = "COP-winst" if is_nl else "COP gain"
     lbl_cmf = "Comfort"
@@ -238,7 +244,7 @@ def build_stooklijn_report(cache, *, language="en", emoji_enabled=True):
     lbl_smp = "Samples"
     lines.append(_row("\U0001F3AF", lbl_state, state, emojis=emoji_enabled))
     lines.append(_row("\U0001F4C8", lbl_besp, ("+%.0f%%" % besparing), emojis=emoji_enabled))
-    lines.append(_row("\U0001F321\uFE0F", lbl_cmf, ("%+.1fC" % comfort), emojis=emoji_enabled))
+    lines.append(_row("\U0001F321\uFE0F", lbl_cmf, ("%+.1f \u00b0C" % comfort), emojis=emoji_enabled))
     lines.append(_row("\U0001F3AF", lbl_conf, ("%d%%" % int(betrouw * 100)), emojis=emoji_enabled))
     lines.append(_row("\U0001F4E6", lbl_smp, str(samples), emojis=emoji_enabled))
     lines.append(DIV)
@@ -248,11 +254,17 @@ def build_stooklijn_report(cache, *, language="en", emoji_enabled=True):
 def build_cop_low_report(cop, samples, *, language="en", emoji_enabled=True):
     """Bilingual low-COP report."""
     is_nl = (language == "nl")
-    title = "\U0001F4C9 Dag-COP laag" if is_nl else "\U0001F4C9 Day COP low"
+    title = "Dag-COP laag" if is_nl else "Day COP low"
     lbl_cop = "COP"
     lbl_th = "Drempel" if is_nl else "Threshold"
     lbl_smp = "Samples"
-    lines = [title, DIV]
+    now = _dt.datetime.now()
+    ts = now.strftime("%Y-%m-%d %H:%M")
+    if emoji_enabled:
+        lines = ["\U0001F4C9 Daikin Cycle ML \u2014 " + title,
+                 "\U0001F550 " + ts, DIV]
+    else:
+        lines = ["Daikin Cycle ML \u2014 " + title, ts, DIV]
     lines.append(_row("\U0001F4C9", lbl_cop, ("%.2f" % float(cop)), emojis=emoji_enabled))
     lines.append(_row("\U0001F3AF", lbl_th, "2.50", emojis=emoji_enabled))
     lines.append(_row("\U0001F4E6", lbl_smp, str(int(samples)), emojis=emoji_enabled))

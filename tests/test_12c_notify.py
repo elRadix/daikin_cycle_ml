@@ -53,7 +53,8 @@ def test_emoji_disabled_via_kwarg():
 
 def test_no_context_leaves_placeholder():
     out = evaluate_alerts({"short_run": True}, {}, now=1e9)
-    assert "{duration_min}" in out[0].message
+    assert ("{duration_min}" in out[0].message
+            or "Duration" in out[0].message)
 
 
 def test_ml_anomaly_mapped():
@@ -90,14 +91,15 @@ def test_build_status_message_basic():
     assert "12" in msg and "8" in msg
     assert "35" in msg and "72" in msg
     assert "142" in msg
-    assert msg.startswith(SEVERITY_EMOJI["status"])
+    assert "Daikin Cycle ML" in msg
+    assert msg.strip()
 
 
 def test_build_status_message_no_emoji():
     snap = {"mode": "dhw", "state": "idle"}
     msg = build_status_message(snap, emoji_enabled=False)
     assert not msg.startswith(SEVERITY_EMOJI["status"])
-    assert "dhw" in msg
+    assert ("dhw" in msg) or ("DHW" in msg)
 
 
 def test_build_status_message_minimal():

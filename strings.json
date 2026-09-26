@@ -154,7 +154,8 @@
           "notifications": "Notifications",
           "ml": "ML learning",
           "maintenance": "Maintenance",
-          "test_notification": "Send test notification now"
+          "test_notification": "Send test notification now",
+          "test_all_notifications": "Send ALL test notifications"
         },
         "data_description": {
           "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3.",
@@ -174,7 +175,8 @@
           "notifications": "Notify target, quiet hours, alert groups, language",
           "ml": "Adaptive thresholds and ML learning",
           "maintenance": "Retention, daily rollup, VACUUM",
-          "test_notification": "Send one sample alert to the notify target"
+          "test_notification": "Send one sample alert to the notify target",
+          "test_all_notifications": "One click — sends one of each alert type (filters bypassed)"
         }
       },
       "device": {
@@ -319,6 +321,14 @@
         "title": "Test result",
         "description": "Kind: **{kind}**\n\nResult: **{status}**\n\nPreview:\n```\n{preview}\n```\n\nSubmit to return to the options menu.",
         "data_description": {}
+      },
+      "test_all_notifications": {
+        "title": "Send all test notifications",
+        "description": "Sends **one of each alert type** to the configured notify target with filters bypassed (alert groups, quiet hours, dedup window).\n\nSubmit to send."
+      },
+      "test_all_notifications_result": {
+        "title": "All-notifications result",
+        "description": "Result: **{status}**\n\nAlerts sent: **{count}**\n\nPreview:\n```\n{preview}\n```\n\nSubmit to return to the menu."
       }
     }
   },

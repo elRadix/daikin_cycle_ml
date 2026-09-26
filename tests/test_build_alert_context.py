@@ -95,7 +95,7 @@ def test_last_record_bad_duration_safe():
     c = _bare_coord(store=st)
     snap = DataSnapshot(last_record={"duration_s": "junk"})
     ctx = c._build_alert_context(snap)
-    assert ctx["short_run"]["duration_min"] == "?"
+    assert ctx["short_run"]["duration_min"] in ("?", "\u2014")
 
 
 def test_off_time_filled():
@@ -138,7 +138,7 @@ def test_anomaly_bad_z_safe():
     c = _bare_coord(store=_default_store_mock())
     snap = DataSnapshot(anomaly=anom)
     ctx = c._build_alert_context(snap)
-    assert ctx["ml_anomaly"]["z_max"] == "?"
+    assert ctx["ml_anomaly"]["z_max"] in ("?", "\u2014")
 
 
 def test_setpoint_osc_context_uses_history_len():

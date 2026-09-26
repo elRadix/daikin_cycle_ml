@@ -154,7 +154,8 @@
           "notifications": "Meldingen",
           "ml": "ML leren",
           "maintenance": "Onderhoud",
-          "test_notification": "Testmelding nu versturen"
+          "test_notification": "Testmelding nu versturen",
+          "test_all_notifications": "Verstuur ALLE testmeldingen"
         },
         "data_description": {
           "compressor_rps_threshold": "Compressor AAN wanneer RPS >= deze waarde. Standaard 3.",
@@ -174,7 +175,8 @@
           "notifications": "Melding-doel, stille uren, alert-groepen, taal",
           "ml": "Adaptieve drempels en ML-leren",
           "maintenance": "Retentie, dagelijkse rollup, VACUUM",
-          "test_notification": "Stuur één voorbeeldmelding naar het melding-doel"
+          "test_notification": "Stuur één voorbeeldmelding naar het melding-doel",
+          "test_all_notifications": "Eén klik — stuurt elk alert-type in één keer (filters omzeild)"
         }
       },
       "device": {
@@ -319,6 +321,14 @@
         "title": "Testresultaat",
         "description": "Type: **{kind}**\n\nResultaat: **{status}**\n\nVoorbeeld:\n```\n{preview}\n```\n\nBevestig om terug te keren naar het optiemenu.",
         "data_description": {}
+      },
+      "test_all_notifications": {
+        "title": "Alle testmeldingen versturen",
+        "description": "Stuurt **één exemplaar van elk alert-type** naar het geconfigureerde melding-doel, met filters omzeild (alert-groepen, stille uren, dedup-venster).\n\nBevestig om te versturen."
+      },
+      "test_all_notifications_result": {
+        "title": "Resultaat alle meldingen",
+        "description": "Resultaat: **{status}**\n\nVerzonden alerts: **{count}**\n\nVoorbeeld:\n```\n{preview}\n```\n\nBevestig om terug te keren naar het menu."
       }
     }
   },
