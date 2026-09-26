@@ -8,6 +8,10 @@ version = "0.5.0"
 requires-python = ">=3.12"
 
 [tool.pytest.ini_options]
+markers = [
+    "expected_lingering_tasks: mark test that expects lingering tasks (phcc)",
+    "expected_lingering_timers: mark test that expects lingering timers (phcc)",
+]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 addopts = "-q --cov=custom_components.daikin_cycle_ml --cov-fail-under=95"
