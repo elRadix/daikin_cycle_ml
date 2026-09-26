@@ -418,6 +418,18 @@
     "missing_attrs": {
       "title": "Vereiste attributen ontbreken",
       "description": "De bronsensor mist {count} vereiste attribu(u)t(en). Controleer of ESPAltherma alle velden publiceert."
+    },
+    "db_corrupt": {
+      "title": "Database-integriteitscheck mislukt",
+      "description": "De Cycle-DB is niet door de integriteitscheck gekomen. Data kan inconsistent zijn. Overweeg cycli te exporteren en onderhoud opnieuw uit te voeren."
+    },
+    "notify_failed": {
+      "title": "Notificatieservice faalt",
+      "description": "{count} opeenvolgende fouten bij verzenden naar {target}. Controleer de configuratie van de notificatieservice."
+    },
+    "migration_failed": {
+      "title": "Feature-vector-migratie mislukt",
+      "description": "Migratiefout: {error}. Historische feature-vectors zijn mogelijk niet compatibel met het huidige model."
     }
   },
   "services": {

@@ -43,8 +43,21 @@ async def _async_setup_database(
                     'Migrated %d legacy feature vectors to 11-dim',
                     migrated,
                 )
-        except Exception:
+            coordinator._migration_error = None
+        except Exception as err:
             _LOGGER.exception('feature vector migration failed')
+            coordinator._migration_error = str(err)
+        try:
+            await db.async_migrate_features_to_v12()
+        except Exception as err:
+            _LOGGER.exception('v12 migration failed')
+            if coordinator._migration_error is None:
+                coordinator._migration_error = str(err)
+        try:
+            coordinator._db_integrity_ok = await db.async_integrity_check()
+        except Exception:
+            coordinator._db_integrity_ok = False
+            _LOGGER.debug('initial integrity check failed', exc_info=True)
         coordinator.db = db
         _LOGGER.info("Cycle DB ready at %s", db_path)
     except Exception:

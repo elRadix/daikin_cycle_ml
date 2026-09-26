@@ -418,6 +418,18 @@
     "missing_attrs": {
       "title": "Missing required attributes",
       "description": "The source sensor is missing {count} required attribute(s). Verify that ESPAltherma is publishing all fields."
+    },
+    "db_corrupt": {
+      "title": "Database integrity check failed",
+      "description": "The Cycle DB failed its integrity check. Data may be inconsistent. Consider exporting cycles and re-running maintenance."
+    },
+    "notify_failed": {
+      "title": "Notify service failing",
+      "description": "{count} consecutive failures sending to {target}. Check the notify service configuration."
+    },
+    "migration_failed": {
+      "title": "Feature vector migration failed",
+      "description": "Migration error: {error}. Historical feature vectors may be incompatible with the current model."
     }
   },
   "services": {

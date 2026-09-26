@@ -394,7 +394,7 @@ async def async_send_notification(hass, target, message) -> bool:
                 )
                 return True
     except Exception:
-        pass
+        _LOGGER.debug("notify entity path failed", exc_info=True)
     if _domain != "notify":
         try:
             await hass.services.async_call(

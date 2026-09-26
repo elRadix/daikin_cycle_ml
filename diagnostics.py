@@ -89,7 +89,7 @@ async def _cluster_summary(coord: Any) -> dict[str, Any]:  # pragma: no cover
             counts = await db.async_count_by_cluster()
             out["counts"] = {str(k): int(v) for k, v in counts.items()}
     except Exception:
-        pass
+        _LOGGER.debug("cluster_summary failed", exc_info=True)
     return out
 
 
@@ -114,7 +114,7 @@ async def _cop_summary(coord: Any) -> dict[str, Any]:
         if db is not None and hasattr(db, 'async_count_cop_samples'):
             out['total_samples'] = await db.async_count_cop_samples()
     except Exception:
-        pass
+        _LOGGER.debug("cop_summary failed", exc_info=True)
     return out
 
 

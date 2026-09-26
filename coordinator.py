@@ -78,6 +78,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _setpoint_history: deque | None = None
     _last_setpoint: float | None = None
 
+    _notify_fail_streak: int = 0
+    _notify_fail_target: str = ""
+    _db_integrity_ok: bool = True
+    _migration_error: str | None = None
+
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.entry = entry
         self.source_entity: str = entry.data.get(
@@ -99,6 +104,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self.detector = CycleDetector(self.options)
         self.store = CycleStore()
         self._errors_total = 0
+        self._notify_fail_streak: int = 0
+        self._notify_fail_target: str = ""
+        self._db_integrity_ok: bool = True
+        self._migration_error: str | None = None
         self._last_alert_sent: dict[str, float] = {}
         self._setpoint_history: deque[tuple[float, float]] = deque()
         self._last_setpoint: float | None = None
@@ -208,6 +217,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self.db.async_set_model_state('last_maintenance_ts', now)
         except Exception:
             _LOGGER.exception('model_state write failed')
+        if self.db is not None:
+            try:
+                self._db_integrity_ok = await self.db.async_integrity_check()
+            except Exception:
+                self._db_integrity_ok = False
+                _LOGGER.debug("integrity_check post-maintenance failed", exc_info=True)
         out = {'ok': True, 'ts': now}
         if isinstance(result, dict):
             out.update(result)
@@ -363,7 +378,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.errors_total = self._errors_total
             await self._async_dispatch_alerts(snap)
             await async_check_repairs(
-                self.hass, self.entry.entry_id, snap
+                self.hass, self.entry.entry_id, snap, self
             )
         except Exception as err:
             snap.errors = 1
@@ -397,7 +412,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     self._cycle_indoor_sum += v
                     self._cycle_indoor_count += 1
                 except (TypeError, ValueError):
-                    pass
+                    _LOGGER.debug("indoor cast failed", exc_info=True)
 
     async def _collect_cycle_averages(
         self, record: dict[str, Any]
@@ -969,7 +984,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 base['short_runs_today'] = c.get('short_runs')
                 base['good_cycles_today'] = c.get('good_cycles')
         except Exception:
-            pass
+            _LOGGER.debug("snapshot counters failed", exc_info=True)
         try:
             attrs = getattr(snap, 'attributes', None) or {}
             base['lwt'] = attrs.get('leaving_water_temp')
@@ -977,23 +992,23 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             base['outdoor'] = attrs.get('outdoor_temp')
             base['flow_lmin'] = attrs.get('flow_lmin')
         except Exception:
-            pass
+            _LOGGER.debug("snapshot attrs failed", exc_info=True)
         try:
             last = getattr(snap, 'last_cycle', None)
             if isinstance(last, dict):
                 base['thermal_kw'] = last.get('thermal_kw_avg')
         except Exception:
-            pass
+            _LOGGER.debug("snapshot last_cycle failed", exc_info=True)
         try:
             base['cop_today'] = getattr(self, '_cop_today_value', None)
             base['cop_today_samples'] = getattr(self, '_cop_today_samples', None)
         except Exception:
-            pass
+            _LOGGER.debug("snapshot cop_today failed", exc_info=True)
         try:
             if self.db is not None:
                 base.update(await self._db_cycle_stats())
         except Exception:
-            pass
+            _LOGGER.debug("snapshot db_stats failed", exc_info=True)
         return base
 
     async def _db_cycle_stats(self) -> dict:
@@ -1015,7 +1030,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 if avg_s is not None:
                     out['db_avg_duration_min'] = float(avg_s) / 60.0
         except Exception:
-            pass
+            _LOGGER.warning("db_cycle_stats failed", exc_info=True)
         return out
 
     async def async_emit_status_update(self) -> str:
@@ -1169,7 +1184,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 if d is not None:
                     return int(float(d) / 60)
         except Exception:
-            pass
+            _LOGGER.debug("avg_duration_min failed", exc_info=True)
         return None
 
     def _build_alert_context(self, snap) -> dict:
@@ -1272,7 +1287,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             if off is not None:
                 ctx["short_off"]["off_min"] = int(off / 60)
         except Exception:
-            pass
+            _LOGGER.debug("alert ctx short_off failed", exc_info=True)
         anomaly = getattr(snap, "anomaly", None) if snap else None
         if anomaly is not None:
             z = getattr(anomaly, "max_abs_z", None)
@@ -1289,7 +1304,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     else:
                         ctx["ml_anomaly"]["top_dim"] = "dim " + str(td)
                 except Exception:
-                    pass
+                    _LOGGER.debug("alert ctx top_dim failed", exc_info=True)
             if getattr(anomaly, "severity", None):
                 ctx["ml_anomaly"]["mode"] = str(
                     getattr(snap, "mode", "unknown")
@@ -1506,5 +1521,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self.hass.services.async_call(
                 domain, service, {"message": alert.message}, blocking=False,
             )
+            self._notify_fail_streak = 0
         except Exception:
+            self._notify_fail_streak += 1
+            self._notify_fail_target = str(svc)
             _LOGGER.exception("notify service %s failed", svc)

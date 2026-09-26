@@ -108,6 +108,23 @@ class CycleDB:
         await conn.commit()
         return 0
 
+    async def async_integrity_check(self) -> bool:
+        """Run PRAGMA integrity_check + foreign_key_check. True if healthy."""
+        try:
+            conn = self._require()
+            cur = await conn.execute("PRAGMA integrity_check")
+            rows = await cur.fetchall()
+            await cur.close()
+            if not rows or rows[0][0] != "ok":
+                return False
+            cur = await conn.execute("PRAGMA foreign_key_check")
+            fk_rows = await cur.fetchall()
+            await cur.close()
+            return len(fk_rows) == 0
+        except Exception:
+            _LOGGER.debug("integrity_check failed", exc_info=True)
+            return False
+
     async def async_migrate_features_to_v11(self) -> int:
         """Pad 8-dim feature vectors with [0.0, 0.0, 0.0]. Idempotent."""
         conn = self._require()
