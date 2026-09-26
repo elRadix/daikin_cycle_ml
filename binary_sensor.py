@@ -1,4 +1,8 @@
-"""Binary sensor platform for Daikin Cycle ML (Batch 5b-2)."""
+"""Binary sensor platform for Daikin Cycle ML (Batch 31d).
+
+15 binary sensors. BUH step1/2 merged into buh_active with step attribute.
+Cluster binaries removed (see sensor.last_cycle attribute "cluster").
+"""
 from __future__ import annotations
 
 import logging
@@ -24,24 +28,12 @@ from .const import (
     MODE_HEATING,
     UPDATE_INTERVAL_SECONDS,
 )
-from .coordinator import DataSnapshot, DaikinCycleMLCoordinator
+from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
 from .entity import DaikinCycleMLEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 SOURCE_STALE_FACTOR = 2.0
-
-
-def _attr_is_mode(attrs: dict[str, Any], key: str, mode_lower: str) -> bool:
-    """Case-insensitive comparison for raw ESPAltherma mode strings.
-
-    ESPAltherma sends "Heating"/"DHW"/"Cooling" (capitalized) while
-    classify_mode() and snap.mode return lowercase. Compare case-insensitively.
-    """
-    raw = attrs.get(key)
-    if isinstance(raw, str):
-        return raw.strip().lower() == mode_lower
-    return False
 
 
 def _now() -> float:
@@ -54,6 +46,13 @@ def _attr_on(attrs: dict[str, Any], key: str) -> bool:
         return v
     if isinstance(v, str):
         return v.strip().upper() == "ON"
+    return False
+
+
+def _attr_is_mode(attrs: dict[str, Any], key: str, mode_lower: str) -> bool:
+    raw = attrs.get(key)
+    if isinstance(raw, str):
+        return raw.strip().lower() == mode_lower
     return False
 
 
@@ -77,8 +76,7 @@ def _is_short_off(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
 def _is_source_stale(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     if s.last_success_ts <= 0:
         return False
-    age = _now() - s.last_success_ts
-    return age > SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS
+    return (_now() - s.last_success_ts) > SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS
 
 
 def _is_pendulum_hourly(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
@@ -107,7 +105,24 @@ def _is_dhw_active(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     return _attr_on(s.attrs, ATTR_3WAY_VALVE)
 
 
+def _is_buh_active(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    return _attr_on(s.attrs, ATTR_BUH_STEP1) or _attr_on(s.attrs, ATTR_BUH_STEP2)
+
+
+def _buh_step(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> int:
+    if _attr_on(s.attrs, ATTR_BUH_STEP2):
+        return 2
+    if _attr_on(s.attrs, ATTR_BUH_STEP1):
+        return 1
+    return 0
+
+
+def _buh_attrs(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict:
+    return {"step": _buh_step(s, c)}
+
+
 StateFn = Callable[[DataSnapshot, DaikinCycleMLCoordinator], bool]
+AttrFn = Callable[[DataSnapshot, DaikinCycleMLCoordinator], dict]
 
 
 class DaikinCycleMLBinarySensor(DaikinCycleMLEntity, BinarySensorEntity):
@@ -120,11 +135,13 @@ class DaikinCycleMLBinarySensor(DaikinCycleMLEntity, BinarySensorEntity):
         name: str,
         state_fn: StateFn,
         *,
+        attr_fn: AttrFn | None = None,
         device_class: BinarySensorDeviceClass | None = None,
         icon: str | None = None,
     ) -> None:
         super().__init__(coordinator, key, name)
         self._state_fn = state_fn
+        self._attr_fn = attr_fn
         if device_class is not None:
             self._attr_device_class = device_class
         if icon is not None:
@@ -140,6 +157,19 @@ class DaikinCycleMLBinarySensor(DaikinCycleMLEntity, BinarySensorEntity):
         except Exception:  # noqa: BLE001
             _LOGGER.exception("Binary sensor %s state_fn failed", self._key)
             return False
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        if self._attr_fn is None:
+            return None
+        snap = self.snapshot()
+        if snap is None:
+            return None
+        try:
+            return self._attr_fn(snap, self.coordinator)
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Binary sensor %s attr_fn failed", self._key)
+            return None
 
 
 BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
@@ -164,12 +194,11 @@ BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
     {"key": "defrost_active", "name": "Defrost active",
      "device_class": BinarySensorDeviceClass.RUNNING,
      "state_fn": lambda s, c: _attr_on(s.attrs, ATTR_DEFROST_OPERATION)},
-    {"key": "buh_step1_active", "name": "BUH step 1 active",
+    {"key": "buh_active", "name": "BUH active",
      "device_class": BinarySensorDeviceClass.HEAT,
-     "state_fn": lambda s, c: _attr_on(s.attrs, ATTR_BUH_STEP1)},
-    {"key": "buh_step2_active", "name": "BUH step 2 active",
-     "device_class": BinarySensorDeviceClass.HEAT,
-     "state_fn": lambda s, c: _attr_on(s.attrs, ATTR_BUH_STEP2)},
+     "icon": "mdi:fire",
+     "state_fn": _is_buh_active,
+     "attr_fn": _buh_attrs},
     {"key": "dhw_active", "name": "DHW active",
      "icon": "mdi:water-boiler",
      "state_fn": _is_dhw_active},
@@ -215,34 +244,10 @@ async def async_setup_entry(
             key=spec["key"],
             name=spec["name"],
             state_fn=spec["state_fn"],
+            attr_fn=spec.get("attr_fn"),
             device_class=spec.get("device_class"),
             icon=spec.get("icon"),
         )
         for spec in BINARY_SENSOR_DEFS
     ]
-    entities.extend(_build_cluster_binaries(coord))
     async_add_entities(entities)
-
-
-class DaikinCycleMLClusterBinary(DaikinCycleMLEntity, BinarySensorEntity):
-    """Binary sensor: is this cycle in the given cluster?"""
-
-    def __init__(self, coordinator, key: str, cluster_id: int) -> None:
-        super().__init__(coordinator, key)
-        self._cluster_id = cluster_id
-        self._attr_translation_key = key
-
-    @property
-    def is_on(self) -> bool:
-        snap = self.coordinator.data
-        if snap is None:
-            return False
-        return getattr(snap, "cluster_id", None) == self._cluster_id
-
-
-def _build_cluster_binaries(coord) -> list:
-    return [
-        DaikinCycleMLClusterBinary(coord, "cluster_pendulum", 0),
-        DaikinCycleMLClusterBinary(coord, "cluster_normal", 1),
-        DaikinCycleMLClusterBinary(coord, "cluster_dhw_like", 2),
-    ]

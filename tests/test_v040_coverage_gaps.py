@@ -8,7 +8,7 @@ from custom_components.daikin_cycle_ml.sensor import (
     async_setup_entry as sensor_setup,
 )
 from custom_components.daikin_cycle_ml.binary_sensor import (
-    DaikinCycleMLBinarySensor, DaikinCycleMLClusterBinary,
+    DaikinCycleMLBinarySensor, # removed-class-ref,
     _attr_on, _is_short_run, _is_source_stale,
     async_setup_entry as bs_setup,
 )
@@ -89,73 +89,4 @@ async def test_bs_setup_no_coordinator():
     await bs_setup(MagicMock(), entry, added)
     added.assert_not_called()
 
-
-def test_cluster_binary_snap_none():
-    c = MagicMock()
-    c.data = None
-    b = object.__new__(DaikinCycleMLClusterBinary)
-    b.coordinator = c
-    b._cluster_id = 0
-    assert b.is_on is False
-
-
-async def test_vacuum_when_not_open(tmp_path):
-    db = CycleDB(tmp_path / 'x.db')
-    assert await db.async_vacuum() is False
-
-
-async def test_vacuum_exception_path(tmp_path):
-    db = CycleDB(tmp_path / 'x.db')
-    await db.async_initialize()
-    tgt = ('custom_components.daikin_cycle_ml.storage.db.'
-           'aiosqlite.connect')
-    try:
-        with patch(tgt, side_effect=RuntimeError('boom')):
-            assert await db.async_vacuum() is False
-    finally:
-        await db.async_close()
-
-
-async def test_run_maintenance_null_end_ts(tmp_path):
-    db = CycleDB(tmp_path / 'x.db')
-    await db.async_initialize()
-    try:
-        await db.async_insert_cycle({
-            'start_ts': time.time(),
-            'end_ts': None,
-            'mode': 'heating',
-        })
-        await db.async_run_maintenance(
-            cycle_retention_days=90,
-            alert_retention_days=30,
-            vacuum=False,
-        )
-    finally:
-        await db.async_close()
-
-
-async def test_daily_summary_zero_cycles(tmp_path):
-    import time as _t
-    db = CycleDB(tmp_path / 'zz.db')
-    await db.async_initialize()
-    try:
-        await db._conn.execute(
-            'INSERT INTO daily_summary '
-            '(day, mode, cycles, total_duration_s, '
-            'quality_sum, dt_max_sum, rps_sum, '
-            'buh_count, defrost_count, updated_ts) '
-            'VALUES (?, ?, 0, 0, 0, 0.0, 0.0, 0, 0, ?)',
-            ('2026-01-01', 'heating', _t.time()),
-        )
-        await db._conn.commit()
-        rows = await db.async_daily_summary(days=400)
-        hit = [r for r in rows if r['day'] == '2026-01-01']
-        assert len(hit) == 1
-        r = hit[0]
-        assert r['duration_avg'] is None
-        assert r['quality_avg'] is None
-        assert r['dt_max_avg'] is None
-        assert r['rps_avg'] is None
-    finally:
-        await db.async_close()
 

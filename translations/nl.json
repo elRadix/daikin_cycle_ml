@@ -289,97 +289,31 @@
   "entity": {
     "sensor": {
       "cycle_state": {
-        "name": "Cyclusstatus"
+        "name": "Cyclus-status"
       },
-      "current_cycle_duration": {
-        "name": "Huidige cyclusduur"
+      "current_cycle": {
+        "name": "Huidige cyclus"
       },
-      "current_cycle_mode": {
-        "name": "Huidige cyclusmodus"
+      "last_cycle": {
+        "name": "Laatste cyclus"
       },
-      "current_dt": {
-        "name": "Huidige dT"
+      "today": {
+        "name": "Vandaag"
       },
-      "current_rps": {
-        "name": "Huidige RPS"
+      "quality_today": {
+        "name": "Kwaliteit vandaag"
       },
-      "last_cycle_duration": {
-        "name": "Laatste cyclusduur"
+      "source_health": {
+        "name": "Bron-gezondheid"
       },
-      "last_cycle_mode": {
-        "name": "Laatste cyclusmodus"
-      },
-      "last_cycle_dt_max": {
-        "name": "Laatste cyclus dT max"
-      },
-      "last_cycle_quality": {
-        "name": "Laatste cycluskwaliteit"
-      },
-      "cycles_today": {
-        "name": "Cycli vandaag"
-      },
-      "cycles_last_hour": {
-        "name": "Cycli laatste uur"
-      },
-      "short_runs_today": {
-        "name": "Korte runs vandaag"
-      },
-      "short_offs_today": {
-        "name": "Korte offs vandaag"
-      },
-      "short_cycle_ratio": {
-        "name": "Korte-cyclusratio"
-      },
-      "avg_cycle_duration_today": {
-        "name": "Gem. cyclusduur vandaag"
-      },
-      "avg_off_time_today": {
-        "name": "Gem. off-tijd vandaag"
-      },
-      "longest_cycle_today": {
-        "name": "Langste cyclus vandaag"
-      },
-      "shortest_cycle_today": {
-        "name": "Kortste cyclus vandaag"
-      },
-      "avg_quality_today": {
-        "name": "Gem. kwaliteit vandaag"
-      },
-      "good_cycles_today": {
-        "name": "Goede cycli vandaag"
-      },
-      "bad_cycles_today": {
-        "name": "Slechte cycli vandaag"
-      },
-      "good_cycle_ratio": {
-        "name": "Goede-cyclusratio"
-      },
-      "source_age": {
-        "name": "Bronleeftijd"
-      },
-      "missing_attrs_count": {
-        "name": "Ontbrekende attributen"
-      },
-      "last_sample_age": {
-        "name": "Leeftijd laatste sample"
-      },
-      "coordinator_errors": {
-        "name": "Coordinator-fouten"
-      },
-      "learned_short_run_min": {
-        "name": "Geleerde korte run (min)"
-      },
-      "learned_good_off_min": {
-        "name": "Geleerde goede off (min)"
-      },
-      "learned_target_cycles_per_day": {
-        "name": "Geleerd doelcycli/dag"
-      },
-      "stooklijn_advies": {
-        "name": "Stooklijn advies"
+      "learned_thresholds": {
+        "name": "Geleerde drempels"
       },
       "cop_vandaag": {
         "name": "COP vandaag"
+      },
+      "stooklijn_advies": {
+        "name": "Stooklijn advies"
       }
     },
     "binary_sensor": {
@@ -396,25 +330,22 @@
         "name": "Korte run"
       },
       "short_off": {
-        "name": "Korte off"
+        "name": "Korte off-tijd"
       },
       "defrost_active": {
-        "name": "Ontdooien actief"
+        "name": "Defrost actief"
       },
-      "buh_step1_active": {
-        "name": "BUH stap 1 actief"
-      },
-      "buh_step2_active": {
-        "name": "BUH stap 2 actief"
+      "buh_active": {
+        "name": "BUH actief"
       },
       "dhw_active": {
         "name": "SWW actief"
       },
       "heating_active": {
-        "name": "Verwarmen actief"
+        "name": "Verwarming actief"
       },
       "cooling_active": {
-        "name": "Koelen actief"
+        "name": "Koeling actief"
       },
       "source_stale": {
         "name": "Bron verouderd"
@@ -430,15 +361,6 @@
       },
       "high_cycle_rate": {
         "name": "Hoge cyclusfrequentie"
-      },
-      "cluster_pendulum": {
-        "name": "Cluster: pendelen"
-      },
-      "cluster_normal": {
-        "name": "Cluster: normaal"
-      },
-      "cluster_dhw_like": {
-        "name": "Cluster: SWW-achtig"
       }
     }
   },

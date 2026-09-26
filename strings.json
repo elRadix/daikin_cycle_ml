@@ -291,80 +291,29 @@
       "cycle_state": {
         "name": "Cycle state"
       },
-      "current_cycle_duration": {
-        "name": "Current cycle duration"
+      "current_cycle": {
+        "name": "Current cycle"
       },
-      "current_cycle_mode": {
-        "name": "Current cycle mode"
+      "last_cycle": {
+        "name": "Last cycle"
       },
-      "current_dt": {
-        "name": "Current dT"
+      "today": {
+        "name": "Today"
       },
-      "current_rps": {
-        "name": "Current RPS"
+      "quality_today": {
+        "name": "Quality today"
       },
-      "last_cycle_duration": {
-        "name": "Last cycle duration"
+      "source_health": {
+        "name": "Source health"
       },
-      "last_cycle_mode": {
-        "name": "Last cycle mode"
+      "learned_thresholds": {
+        "name": "Learned thresholds"
       },
-      "last_cycle_dt_max": {
-        "name": "Last cycle dT max"
+      "cop_vandaag": {
+        "name": "COP vandaag"
       },
-      "last_cycle_quality": {
-        "name": "Last cycle quality"
-      },
-      "cycles_today": {
-        "name": "Cycles today"
-      },
-      "cycles_last_hour": {
-        "name": "Cycles last hour"
-      },
-      "short_runs_today": {
-        "name": "Short runs today"
-      },
-      "short_offs_today": {
-        "name": "Short offs today"
-      },
-      "short_cycle_ratio": {
-        "name": "Short cycle ratio"
-      },
-      "avg_cycle_duration_today": {
-        "name": "Average cycle duration today"
-      },
-      "avg_off_time_today": {
-        "name": "Average off time today"
-      },
-      "longest_cycle_today": {
-        "name": "Longest cycle today"
-      },
-      "shortest_cycle_today": {
-        "name": "Shortest cycle today"
-      },
-      "avg_quality_today": {
-        "name": "Average quality today"
-      },
-      "good_cycles_today": {
-        "name": "Good cycles today"
-      },
-      "bad_cycles_today": {
-        "name": "Bad cycles today"
-      },
-      "good_cycle_ratio": {
-        "name": "Good cycle ratio"
-      },
-      "source_age": {
-        "name": "Source age"
-      },
-      "missing_attrs_count": {
-        "name": "Missing attributes"
-      },
-      "last_sample_age": {
-        "name": "Last sample age"
-      },
-      "coordinator_errors": {
-        "name": "Coordinator errors"
+      "stooklijn_advies": {
+        "name": "Stooklijn advies"
       }
     },
     "binary_sensor": {
@@ -386,11 +335,8 @@
       "defrost_active": {
         "name": "Defrost active"
       },
-      "buh_step1_active": {
-        "name": "BUH step 1 active"
-      },
-      "buh_step2_active": {
-        "name": "BUH step 2 active"
+      "buh_active": {
+        "name": "BUH active"
       },
       "dhw_active": {
         "name": "DHW active"
