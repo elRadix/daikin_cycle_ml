@@ -561,6 +561,24 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         cache = getattr(self, '_stooklijn_cache', {})
         if not force and (now - cache_ts) < 3600.0 and cache:
             return
+        # 52b2: no stooklijn advice while DHW active
+        if not force:
+            _data = getattr(self, 'data', None)
+            _mode = getattr(_data, 'mode', None) if _data is not None else None
+            if _mode == 'dhw':
+                self._stooklijn_cache = {
+                    'state': 'geen_data',
+                    'reason': 'dhw_active',
+                    'huidige_lwt': None,
+                    'optimale_lwt': None,
+                    'besparing_cop_pct': 0.0,
+                    'comfort_impact': 0.0,
+                    'betrouwbaarheid': 0.0,
+                    'bucket': '',
+                    'samples': 0,
+                    'buckets': {},
+                }
+                return
         try:
             rows = await self.db.async_fetch_cop_samples(days=30)
         except Exception:
@@ -588,6 +606,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     data_quality='Good',
                     power_stable=bool(r.get('power_stable')),
                     mode=str(r.get('mode') or 'unknown'),
+                    ts=float(r.get('ts') or 0.0),
                 ))
             comfort_min = float(
                 self.options.get('comfort_min_c', DEFAULT_COMFORT_MIN_C)
@@ -596,6 +615,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             buckets = bucket_summary(samples)
             self._stooklijn_cache = {
                 'state': advies.state,
+                'reason': advies.reason,
                 'optimale_lwt': advies.optimale_lwt,
                 'huidige_lwt': advies.huidige_lwt,
                 'besparing_cop_pct': advies.besparing_cop_pct,

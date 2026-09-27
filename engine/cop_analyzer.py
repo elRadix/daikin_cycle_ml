@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import re
+import time
 from dataclasses import dataclass
 from typing import Any
 
 _NUM_RE = re.compile(r'-?\d+(?:\.\d+)?')
+STOOKLIJN_RECENT_WINDOW_S = 48 * 3600
 
 
 def _parse_float(value: Any) -> float | None:
@@ -55,6 +57,7 @@ class CopSample:
     power_stable: bool = False
     data_quality: str = 'unknown'
     mode: str = 'unknown'
+    ts: float = 0.0
 
     @property
     def valid(self) -> bool:
@@ -75,6 +78,7 @@ class StooklijnAdvies:
     betrouwbaarheid: float = 0.0
     bucket: str = ''
     samples: int = 0
+    reason: str = ''
 
 
 def parse_global_cop_attrs(attrs: dict[str, Any] | None) -> CopSample | None:
@@ -141,19 +145,33 @@ def analyze_stooklijn(
     samples: list[CopSample],
     comfort_min: float = 20.0,
     indoor_avg: float | None = None,
+    *,
+    now: float | None = None,
 ) -> StooklijnAdvies:
     advies = StooklijnAdvies()
+    _input_len = len(samples)
     samples = [s for s in samples if s.mode in ('heating', 'unknown')]
+    if _input_len > 0 and not samples:
+        advies.state = 'geen_data'
+        advies.reason = 'no_recent_heating'
+        return advies
     grouped = _group_by_bucket(samples)
     if not grouped:
         return advies
-    # huidige bucket = de bucket met meeste recente sample
-    recent = samples[-1]
-    if not recent.valid:
-        for s in reversed(samples):
-            if s.valid:
-                recent = s
-                break
+    # 52b2: recent selection = laatste 'heating' binnen 48u window
+    now_ts = now if now is not None else time.time()
+    recent = None
+    for s in reversed(samples):
+        if not s.valid:
+            continue
+        if s.ts > 0 and (now_ts - s.ts) > STOOKLIJN_RECENT_WINDOW_S:
+            continue
+        recent = s
+        break
+    if recent is None:
+        advies.state = 'geen_data'
+        advies.reason = 'no_recent_heating'
+        return advies
     current_bucket = bucket_for_outdoor(recent.outdoor)
     advies.bucket = current_bucket
     advies.huidige_lwt = recent.lwt
