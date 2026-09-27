@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  PYTHONPATH: ${{ github.workspace }}
+
 jobs:
   coverage:
     runs-on: ubuntu-latest
@@ -22,10 +25,11 @@ jobs:
           pip install pytest-homeassistant-custom-component
           pip install homeassistant aiosqlite
       - name: Run pytest with coverage gate
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+        working-directory: ${{ github.workspace }}
         run: |
           python -m pytest -q --no-header \
+            --rootdir=${{ github.workspace }} \
+            -o pythonpath=. \
             --cov=custom_components.daikin_cycle_ml \
             --cov-fail-under=95 \
             --cov-report=term-missing
