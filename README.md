@@ -5,8 +5,8 @@ pendulum behaviour, self-learns per mode, and advises on Daikin Altherma
 heat pumps. **Local-only ML, no cloud.**
 
 [![Version](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.0.2)
-[![Tests](https://img.shields.io/badge/tests-1400%2B-brightgreen.svg)](#16-testing)
-[![Coverage](https://img.shields.io/badge/coverage-97.40%25-brightgreen.svg)](#16-testing)
+[![Tests](https://img.shields.io/badge/tests-1466-brightgreen.svg)](#16-testing)
+[![Coverage](https://img.shields.io/badge/coverage-97.16%25-brightgreen.svg)](#16-testing)
 [![Ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)
 [![Pylint](https://img.shields.io/badge/pylint-10.00%2F10-brightgreen.svg)](https://pylint.readthedocs.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.9%2B-blue.svg)](https://www.home-assistant.io/)
@@ -734,7 +734,7 @@ See quality_scale.yaml for the full status.
 - **Coverage threshold enforced at 95%** (--cov-fail-under=95)
 - **Ruff clean** — HA 2026+ config (line-length 100, py313,
   select E/W/F/I/UP/B/SIM/RET/PIE/C4/RUF)
-- **Pylint 9.94/10** — --fail-under=8.0 gate, integration code only
+- **Pylint 10.00/10** — --fail-under=8.0 gate, integration code only
 - **Import smoke** — 130 modules via importlib.import_module()
 - **SQLite integrity** — PRAGMA integrity_check in CI
 

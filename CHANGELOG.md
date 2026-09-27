@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- `tests/test_52e3_adaptive_coverage.py`: 5 edge-case tests for
+  `AdaptiveThresholds.observe_cycle` / `observe_day`.
+  `ml/adaptive_thresholds.py` coverage 94% -> 100%.
+- `assets/buy-me-a-coffee.png` + README Support section.
+- SOP rules R111-R118 (Ruff CI-aligned invocation, symlink manifest
+  path, version-agnostic tests, `import re`, `pyproject fix=true`
+  risk, HA stubs in CI, HA Python version pin, aiosqlite stub variance).
+
+### Changed
+- README badges: coverage 97.16%, tests 1466, Pylint 10.00/10.
+- README Support section rewritten for this project's context.
+
+### Verified
+- Runtime smoke v1.0.2 in production HA 2026.9.3: 24 entities loaded,
+  DB integrity OK, `cop_samples.mode` populated
+  (`dhw=9, unknown=5, None=13`), no `daikin_cycle_ml` errors in log.
+
 ## [1.0.2] - 2026-09-27
 
 ### Added
