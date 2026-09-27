@@ -126,12 +126,12 @@ class CycleDB:
         try:
             conn = self._require()
             cur = await conn.execute("PRAGMA integrity_check")
-            rows = await cur.fetchall()
+            rows = list(await cur.fetchall())
             await cur.close()
             if not rows or rows[0][0] != "ok":
                 return False
             cur = await conn.execute("PRAGMA foreign_key_check")
-            fk_rows = await cur.fetchall()
+            fk_rows = list(await cur.fetchall())
             await cur.close()
             return len(fk_rows) == 0
         except Exception:
@@ -277,7 +277,7 @@ class CycleDB:
             day = time.strftime("%Y-%m-%d", time.localtime(float(end_ts)))
             mode = r["mode"] or "unknown"
             key = (day, mode)
-            a = agg.get(key)
+            a: dict[str, Any] | None = agg.get(key)
             if a is None:
                 a = {
                     "cycles": 0,
@@ -394,7 +394,7 @@ class CycleDB:
 
         return {
             "days_rolled_up": len(agg),
-            "cycles_rolled_up": len(rows),
+            "cycles_rolled_up": len(list(rows)),
             "cycles_deleted": cycles_deleted,
             "features_deleted": features_deleted,
             "alerts_deleted": alerts_deleted,
@@ -433,7 +433,7 @@ class CycleDB:
                 "SELECT * FROM daily_summary WHERE day >= ? AND mode = ? "
                 "ORDER BY day ASC"
             )
-            params = (cutoff_day, mode)
+            params: tuple[Any, ...] = (cutoff_day, mode)
         else:
             sql = (
                 "SELECT * FROM daily_summary WHERE day >= ? "
@@ -621,7 +621,11 @@ class CycleDB:
     ) -> float | None:
         """Return mean cop over [start_ts, end_ts], or None if empty."""
         rows = await self.async_fetch_cop_samples_between(start_ts, end_ts)
-        cops = [r.get("cop") for r in rows if isinstance(r.get("cop"), (int, float))]
+        cops: list[float] = []
+        for r in rows:
+            c = r.get("cop")
+            if isinstance(c, (int, float)):
+                cops.append(float(c))
         if not cops:
             return None
         return sum(cops) / float(len(cops))
@@ -649,7 +653,7 @@ class CycleDB:
         except Exception:
             return 0
 
-    async def async_avg_duration_since(self, since_ts: float):
+    async def async_avg_duration_since(self, since_ts: float) -> float | None:
         """Average duration_s of cycles with end_ts >= since_ts, or None."""
         if self._conn is None:
             return None
