@@ -152,7 +152,7 @@ def kmeans(
 
     rng = random.Random(seed)
     centroids = _kmeans_plusplus_init(vectors, k_eff, rng)
-    labels: list[int] = [0] * n
+    labels = [0] * n
     inertia = 0.0
     iters = 0
 

@@ -175,7 +175,7 @@ NOTIF_ID_BY_TYPE = {
 }
 
 
-class _SafeDict(dict):
+class _SafeDict(dict[str, Any]):
     """Leave {unknown_key} intact instead of raising KeyError."""
 
     def __missing__(self, key: str) -> str:
@@ -308,7 +308,7 @@ def evaluate_alerts(
         ctx = context.get(alert_type) if context else None
         if bkey in ALERT_SCHEMA:
             msg = build_rich_alert(
-                bkey, severity, ctx,
+                bkey, severity, ctx or {},
                 language=_lang, emoji_enabled=emoji_enabled,
             )
         else:
@@ -361,7 +361,9 @@ def build_cop_low_message(
         cop, samples, language=(language or 'en'), emoji_enabled=bool(emoji_enabled)
     )
 
-async def async_send_notification(hass, target, message) -> bool:
+async def async_send_notification(
+    hass: Any, target: str, message: str
+) -> bool:
     """Send to a notify target. Entity first, legacy fallback."""
     if not isinstance(target, str) or "." not in target:
         return False

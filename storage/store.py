@@ -74,13 +74,14 @@ class CycleStore:
 
     def daily_reset_if_needed(self, now: float) -> bool:
         day = time.strftime("%Y-%m-%d", time.localtime(float(now)))
-        prev = self._counters.get("_day_key")
+        counters: dict[str, Any] = self._counters
+        prev = counters.get("_day_key")
         if prev == day:
             return False
-        self._counters["_day_key"] = day
-        for key in list(self._counters.keys()):
+        counters["_day_key"] = day
+        for key in list(counters.keys()):
             if key.endswith("_today"):
-                self._counters.pop(key, None)
+                counters.pop(key, None)
         return True
 
     def record_short_run(self) -> int:

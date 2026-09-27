@@ -69,19 +69,21 @@ class MultiBaseline:
     def update(self, mode: str | None, vector: list[float]) -> bool:
         return self.get(mode).update(vector)
 
-    def z_scores(self, mode, vector):
+    def z_scores(self, mode: str | None, vector: list[float]) -> Any:
         return self.get(mode).z_scores(vector)
 
-    def max_abs_z(self, mode, vector):
+    def max_abs_z(self, mode: str | None, vector: list[float]) -> Any:
         return self.get(mode).max_abs_z(vector)
 
-    def is_anomaly(self, mode, vector, threshold: float = 3.0) -> bool:
+    def is_anomaly(
+        self, mode: str | None, vector: list[float], threshold: float = 3.0
+    ) -> bool:
         return self.get(mode).is_anomaly(vector, threshold)
 
-    def top_dim(self, mode, vector):
+    def top_dim(self, mode: str | None, vector: list[float]) -> Any:
         return self.get(mode).top_dim(vector)
 
-    def sample_count(self, mode) -> int:
+    def sample_count(self, mode: str | None) -> int:
         return self.get(mode).sample_count
 
     def reset(self, mode: str | None = None) -> None:

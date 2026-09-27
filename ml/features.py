@@ -61,8 +61,9 @@ def extract_feature_vector(
         "thermal_kw_avg": thermal_kw_avg,
 }
     for name in FEATURE_NAMES:
-        if name in overrides and overrides[name] is not None:
-            out.append(float(overrides[name]))
+        ov = overrides.get(name)
+        if ov is not None:
+            out.append(float(ov))
         else:
             v = _as_float(record.get(name))
             out.append(v if v is not None else 0.0)
