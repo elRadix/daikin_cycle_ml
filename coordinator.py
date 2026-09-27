@@ -557,28 +557,32 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     ) -> None:
         if self.db is None:
             return
-        cache_ts = getattr(self, '_stooklijn_cache_ts', 0.0)
-        cache = getattr(self, '_stooklijn_cache', {})
-        if not force and (now - cache_ts) < 3600.0 and cache:
-            return
-        # 52b2: no stooklijn advice while DHW active
+        # 52b3: DHW-check FIRST -- must run before cache-check,
+        # otherwise the 1-hour cache short-circuits the DHW skip.
         if not force:
             _data = getattr(self, 'data', None)
             _mode = getattr(_data, 'mode', None) if _data is not None else None
             if _mode == 'dhw':
-                self._stooklijn_cache = {
-                    'state': 'geen_data',
-                    'reason': 'dhw_active',
-                    'huidige_lwt': None,
-                    'optimale_lwt': None,
-                    'besparing_cop_pct': 0.0,
-                    'comfort_impact': 0.0,
-                    'betrouwbaarheid': 0.0,
-                    'bucket': '',
-                    'samples': 0,
-                    'buckets': {},
-                }
+                cache = getattr(self, '_stooklijn_cache', {})
+                if cache.get('reason') != 'dhw_active':
+                    self._stooklijn_cache = {
+                        'state': 'geen_data',
+                        'reason': 'dhw_active',
+                        'huidige_lwt': None,
+                        'optimale_lwt': None,
+                        'besparing_cop_pct': 0.0,
+                        'comfort_impact': 0.0,
+                        'betrouwbaarheid': 0.0,
+                        'bucket': '',
+                        'samples': 0,
+                        'buckets': {},
+                    }
+                    self._stooklijn_cache_ts = now
                 return
+        cache_ts = getattr(self, '_stooklijn_cache_ts', 0.0)
+        cache = getattr(self, '_stooklijn_cache', {})
+        if not force and (now - cache_ts) < 3600.0 and cache:
+            return
         try:
             rows = await self.db.async_fetch_cop_samples(days=30)
         except Exception:
