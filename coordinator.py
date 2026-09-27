@@ -750,6 +750,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     return norm
         attrs = getattr(data, 'attrs', None) if data is not None else None
         if attrs:
+            # 52b7b: direct I/U lookup -- classify_mode gates on
+            # compressor state and returns 'unknown' during DHW-off.
+            for key in ('I/U operation mode', 'iu_operation_mode',
+                        'ATTR_IU_OPERATION_MODE'):
+                iu = attrs.get(key)
+                if isinstance(iu, str):
+                    n = iu.strip().lower()
+                    if n in ('dhw', 'heating', 'cooling'):
+                        return n
             try:
                 from .engine.cycle_detector import classify_mode
                 cm = classify_mode(attrs)

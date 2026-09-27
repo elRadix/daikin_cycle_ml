@@ -38,3 +38,13 @@ def test_resolve_unknown_when_nothing():
 def test_snap_mode_wins_over_attrs():
     c = _mk(mode="cooling", attrs={"I/U operation mode": "DHW"})
     assert c._resolve_cop_sample_mode() == "cooling"
+
+def test_iu_dhw_via_standard_key():
+    """Direct I/U lookup for DHW (52b7b)."""
+    c = _mk(mode="unknown", attrs={"I/U operation mode": "DHW"})
+    assert c._resolve_cop_sample_mode() == "dhw"
+
+
+def test_iu_heating_via_standard_key():
+    c = _mk(mode="unknown", attrs={"I/U operation mode": "Heating"})
+    assert c._resolve_cop_sample_mode() == "heating"
