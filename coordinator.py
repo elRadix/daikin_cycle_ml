@@ -73,9 +73,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _cycle_indoor_count: int = 0
 
     # R52: class-level defaults so __new__-style tests find these attrs
-    _kmeans_centroids: list = []
-    _cluster_labels: dict = {}
-    _setpoint_history: deque | None = None
+    _kmeans_centroids: list[Any] = []
+    _cluster_labels: dict[int, str] = {}
+    _setpoint_history: deque[Any] | None = None
     _last_setpoint: float | None = None
 
     _notify_fail_streak: int = 0
@@ -152,7 +152,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         )
         _LOGGER.info('Maintenance hook scheduled at 03:00 local')
 
-    async def _async_maintenance_callback(self, _now) -> None:
+    async def _async_maintenance_callback(self, _now: Any) -> None:
         try:
             await self.async_run_maintenance()
         except Exception:
@@ -267,7 +267,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 timedelta(hours=6),
             )
 
-    async def _async_baseline_save_callback(self, _now) -> None:
+    async def _async_baseline_save_callback(self, _now: Any) -> None:
         try:
             await self.async_save_baseline_state()
         except Exception:
@@ -297,7 +297,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             second=0,
         )
 
-    async def _async_kmeans_callback(self, _now) -> None:
+    async def _async_kmeans_callback(self, _now: Any) -> None:
         # R46: async_track_time_change has no day_of_week; filter to Sunday here.
         try:
             if _now.weekday() != 6:
@@ -643,7 +643,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         )
         _LOGGER.info('Stooklijn hook scheduled at 04:00 local')
 
-    async def _async_stooklijn_callback(self, _now) -> None:
+    async def _async_stooklijn_callback(self, _now: Any) -> None:
         try:
             await self.async_run_stooklijn_analysis()
         except Exception:
@@ -1021,13 +1021,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         )
         _LOGGER.info("status updates scheduled every %sh", hours)
 
-    async def _async_status_update_callback(self, _now) -> None:
+    async def _async_status_update_callback(self, _now: Any) -> None:
         try:
             await self.async_emit_status_update()
         except Exception:
             _LOGGER.exception("Scheduled status update failed")
 
-    async def _build_rich_status_snapshot(self) -> dict:
+    async def _build_rich_status_snapshot(self) -> dict[str, Any]:
         """Extended snapshot for the rich status report."""
         base = self._build_status_snapshot()
         snap = self.data
@@ -1074,10 +1074,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.debug("snapshot db_stats failed", exc_info=True)
         return base
 
-    async def _db_cycle_stats(self) -> dict:
+    async def _db_cycle_stats(self) -> dict[str, Any]:
         """Return DB aggregates for status report (defensive)."""
         import time as _t
-        out = {'db_total': None, 'db_7d': None, 'db_30d': None, 'db_avg_duration_min': None}
+        out: dict[str, Any] = {'db_total': None, 'db_7d': None, 'db_30d': None, 'db_avg_duration_min': None}
         if self.db is None:
             return out
         now = _t.time()
@@ -1134,7 +1134,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
         return msg
 
-    def _build_status_snapshot(self) -> dict:
+    def _build_status_snapshot(self) -> dict[str, Any]:
         import time as _t
         snap = self.data
         store = self.store
@@ -1186,7 +1186,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "top_advice": top_advice,
         }
 
-    def _snap_attr(self, snap, *keys):
+    def _snap_attr(self, snap: Any, *keys: str) -> Any:
         attrs = {}
         if snap is not None:
             a = getattr(snap, "attributes", None)
@@ -1202,7 +1202,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 return v
         return None
 
-    def _setpoint_current(self, snap):
+    def _setpoint_current(self, snap: Any) -> Any:
         v = self._snap_attr(snap,
             "lwt_setpoint", "target_lwt", "lw_setpoint",
             "ATTR_LWT_SETPOINT", "setpoint")
@@ -1216,12 +1216,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return last
         return None
 
-    def _setpoint_target(self, snap):
+    def _setpoint_target(self, snap: Any) -> Any:
         return self._snap_attr(snap,
             "target_lwt", "lwt_target", "calculated_lwt",
             "ATTR_TARGET_LWT", "target_cond_temp")
 
-    def _setpoint_delta(self, snap):
+    def _setpoint_delta(self, snap: Any) -> Any:
         hist = getattr(self, "_setpoint_history", None) or []
         vals = []
         for item in hist:
@@ -1239,7 +1239,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return None
         return max(vals) - min(vals)
 
-    def _avg_duration_min(self):
+    def _avg_duration_min(self) -> int | None:
         try:
             last = self.store.last_cycle()
             if isinstance(last, dict):
@@ -1250,7 +1250,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.debug("avg_duration_min failed", exc_info=True)
         return None
 
-    def _build_alert_context(self, snap) -> dict:
+    def _build_alert_context(self, snap: Any) -> dict[str, Any]:
         opts = self.options or {}
         now = time.time()
         cph = 0
@@ -1290,7 +1290,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         flow = self._snap_attr(snap, "flow_lmin", "flow", "ATTR_FLOW")
         avg_dur = self._avg_duration_min()
 
-        def _f(v, digits=1):
+        def _f(v: Any, digits: int = 1) -> str:
             if v is None:
                 return "\u2014"
             try:
@@ -1343,7 +1343,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "setpoint_osc": {
-                "osc_count": len(self._setpoint_history),
+                "osc_count": len(self._setpoint_history or []),
                 "window_min": int(self.options.get("setpoint_osc_window_min", 30) or 30),
                 "threshold": int(self.options.get("setpoint_oscillation_threshold", 6) or 6),
                 "lwt_setpoint": _f(lwt_set),
