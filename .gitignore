@@ -12,3 +12,29 @@ venv/
 *.bak-v*
 *.log
 MagicMock/
+
+# Deployment symlink bridge (prod-path only, never committed).
+# The homeassistant container creates these top-level symlinks so HA
+# finds integration files at /config/custom_components/daikin_cycle_ml/.
+# HACS layout keeps the real files one level deeper under
+# custom_components/daikin_cycle_ml/. These symlinks are runtime-only.
+/__init__.py
+/binary_sensor.py
+/brand
+/config_flow.py
+/const.py
+/coordinator.py
+/diagnostics.py
+/engine
+/entity.py
+/manifest.json
+/ml
+/py.typed
+/quality_scale.yaml
+/repairs.py
+/sensor.py
+/services.py
+/services.yaml
+/storage
+/strings.json
+/translations
