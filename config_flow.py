@@ -3,20 +3,32 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 
-try:
-    from homeassistant.config_entries import OptionsFlowWithReload
-    _OPTIONS_FLOW_BASE = OptionsFlowWithReload
-except ImportError:  # pragma: no cover
-    _OPTIONS_FLOW_BASE = OptionsFlow
+if TYPE_CHECKING:
+    from homeassistant.config_entries import (
+        OptionsFlowWithReload as _OPTIONS_FLOW_BASE,
+    )
+else:
+    try:
+        from homeassistant.config_entries import (
+            OptionsFlowWithReload as _OPTIONS_FLOW_BASE,
+        )
+    except ImportError:  # pragma: no cover
+        from homeassistant.config_entries import (
+            OptionsFlow as _OPTIONS_FLOW_BASE,
+        )
 
-from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import selector
 
 from .const import (
@@ -81,16 +93,18 @@ _ENTITY_SELECTOR = selector.EntitySelector(
 )
 
 
-def _num(min_v: float, max_v: float, step: float, unit: str | None = None):
-    kwargs = {
+def _num(
+    min_v: float, max_v: float, step: float, unit: str | None = None
+) -> selector.NumberSelector:
+    config: selector.NumberSelectorConfig = {
         "min": min_v,
         "max": max_v,
         "step": step,
         "mode": selector.NumberSelectorMode.BOX,
     }
     if unit is not None:
-        kwargs["unit_of_measurement"] = unit
-    return selector.NumberSelector(selector.NumberSelectorConfig(**kwargs))
+        config["unit_of_measurement"] = unit
+    return selector.NumberSelector(config)
 
 
 def _build_language_selector() -> selector.SelectSelector:
@@ -106,7 +120,7 @@ def _build_language_selector() -> selector.SelectSelector:
     )
 
 
-def _legacy_notify_options(hass) -> list:
+def _legacy_notify_options(hass: HomeAssistant) -> list[str]:
     """List legacy notify services (excludes generic send_message)."""
     try:
         svcs = hass.services.async_services().get("notify", {})
@@ -117,7 +131,7 @@ def _legacy_notify_options(hass) -> list:
     )
 
 
-def _build_notify_selector(hass) -> selector.SelectSelector:
+def _build_notify_selector(hass: HomeAssistant) -> selector.SelectSelector:
     """Dropdown of notify targets with free-text fallback."""
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
@@ -128,14 +142,14 @@ def _build_notify_selector(hass) -> selector.SelectSelector:
     )
 
 
-def _default_notify_choice(hass, current):
+def _default_notify_choice(hass: HomeAssistant, current: Any) -> str | None:
     """Return current notify target as a plain string, or None."""
     if not current:
         return None
     return str(current)
 
 
-def _flatten_notify_choice(value) -> str:
+def _flatten_notify_choice(value: Any) -> str:
     if value is None:
         return ""
     if isinstance(value, str):
@@ -163,7 +177,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
 
     # ---------- initial setup ----------
 
-    async def async_step_user(self, user_input=None) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
             entity_id = user_input["source_sensor"]
@@ -196,7 +210,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=schema, errors=errors
         )
 
-    async def async_step_model_custom(self, user_input=None) -> FlowResult:
+    async def async_step_model_custom(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
             raw = user_input.get("custom_attribute_map") or ""
@@ -221,7 +235,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="model_custom", data_schema=schema, errors=errors
         )
 
-    async def async_step_attributes(self, user_input=None) -> FlowResult:
+    async def async_step_attributes(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Show core attribute status. Warning-only, does not block."""
         if user_input is not None:
             return await self.async_step_cycle()
@@ -263,7 +277,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_cycle(self, user_input=None) -> FlowResult:
+    async def async_step_cycle(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             self._options.update(user_input)
             return await self.async_step_pendulum()
@@ -305,7 +319,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         })
         return self.async_show_form(step_id="cycle", data_schema=schema)
 
-    async def async_step_pendulum(self, user_input=None) -> FlowResult:
+    async def async_step_pendulum(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             self._options.update(user_input)
             return await self.async_step_quality()
@@ -337,7 +351,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         })
         return self.async_show_form(step_id="pendulum", data_schema=schema)
 
-    async def async_step_quality(self, user_input=None) -> FlowResult:
+    async def async_step_quality(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             self._options.update(user_input)
             return await self.async_step_notifications()
@@ -369,7 +383,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         })
         return self.async_show_form(step_id="quality", data_schema=schema)
 
-    async def async_step_notifications(self, user_input=None) -> FlowResult:
+    async def async_step_notifications(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             if "notify_service" in user_input:
                 user_input["notify_service"] = _flatten_notify_choice(
@@ -418,7 +432,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="notifications", data_schema=schema
         )
 
-    async def async_step_finalize(self, user_input=None) -> FlowResult:
+    async def async_step_finalize(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             if self._reconfigure_entry is not None:
                 return self.async_update_reload_and_abort(
@@ -445,15 +459,15 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
 
     # ---------- reconfigure menu ----------
 
-    async def async_step_reconfigure(self, user_input=None) -> FlowResult:
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(
             step_id="reconfigure",
             menu_options=["reconfigure_basic", "reconfigure_full"],
         )
 
     async def async_step_reconfigure_basic(
-        self, user_input=None
-    ) -> FlowResult:
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         entry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -477,7 +491,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                         data_updates=dict(user_input),
                         reason="reconfigure_successful",
                     )
-        current = entry.data or {}
+        current: dict[str, Any] = dict(entry.data or {})
         schema = vol.Schema({
             vol.Required(
                 "source_sensor",
@@ -495,8 +509,8 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_reconfigure_full(
-        self, user_input=None
-    ) -> FlowResult:
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
         entry = self._get_reconfigure_entry()
         self._reconfigure_entry = entry
         self._data = dict(entry.data)
@@ -512,7 +526,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
 class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
     """Menu-driven options editor (batch 18)."""
 
-    async def async_step_init(self, user_input=None) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(
             step_id="init",
             menu_options=[
@@ -527,15 +541,15 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             ],
         )
 
-    def _save(self, user_input):
-        merged = {**(self.config_entry.options or {}), **user_input}
+    def _save(self, user_input: dict[str, Any]) -> ConfigFlowResult:
+        merged = {**dict(self.config_entry.options or {}), **user_input}
         return self.async_create_entry(data=merged)
 
-    async def async_step_device(self, user_input=None) -> FlowResult:
+    async def async_step_device(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self._save(user_input)
-        c = self.config_entry.options or {}
-        d = self.config_entry.data or {}
+        c: dict[str, Any] = dict(self.config_entry.options or {})
+        d: dict[str, Any] = dict(self.config_entry.data or {})
         schema = vol.Schema({
             vol.Required(
                 "compressor_rps_threshold",
@@ -575,10 +589,10 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             },
         )
 
-    async def async_step_pendulum(self, user_input=None) -> FlowResult:
+    async def async_step_pendulum(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self._save(user_input)
-        c = self.config_entry.options or {}
+        c: dict[str, Any] = dict(self.config_entry.options or {})
         schema = vol.Schema({
             vol.Required("short_run_threshold_min",
                 default=c.get("short_run_threshold_min", DEFAULT_SHORT_RUN_MIN)
@@ -611,10 +625,10 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         })
         return self.async_show_form(step_id="pendulum", data_schema=schema)
 
-    async def async_step_quality(self, user_input=None) -> FlowResult:
+    async def async_step_quality(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self._save(user_input)
-        c = self.config_entry.options or {}
+        c: dict[str, Any] = dict(self.config_entry.options or {})
         schema = vol.Schema({
             vol.Required("good_run_threshold_min",
                 default=c.get("good_run_threshold_min", DEFAULT_GOOD_RUN_MIN)
@@ -631,14 +645,14 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         })
         return self.async_show_form(step_id="quality", data_schema=schema)
 
-    async def async_step_notifications(self, user_input=None) -> FlowResult:
+    async def async_step_notifications(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             if "notify_service" in user_input:
                 user_input["notify_service"] = _flatten_notify_choice(
                     user_input["notify_service"]
                 )
             return self._save(user_input)
-        c = self.config_entry.options or {}
+        c: dict[str, Any] = dict(self.config_entry.options or {})
         _cur_ns = c.get("notify_service") or DEFAULT_NOTIFY_SERVICE
         _def_ns = _default_notify_choice(self.hass, _cur_ns)
         if _def_ns is not None:
@@ -696,7 +710,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         })
         return self.async_show_form(step_id="notifications", data_schema=schema)
 
-    def _get_coordinator_handle(self):
+    def _get_coordinator_handle(self) -> Any:
         """Resolve coordinator across runtime_data and hass.data patterns."""
         from .const import DOMAIN
         entry = self.config_entry
@@ -715,7 +729,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             return data
         return None
 
-    async def async_step_test_notification(self, user_input=None) -> FlowResult:
+    async def async_step_test_notification(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Pick an alert kind and dispatch one sample."""
         if user_input is not None:
             kind = str(user_input.get("alert_kind") or "status_summary")
@@ -762,7 +776,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             data_schema=schema,
         )
 
-    async def async_step_test_notification_result(self, user_input=None) -> FlowResult:
+    async def async_step_test_notification_result(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Show test result; Submit returns to menu."""
         if user_input is not None:
             return await self.async_step_init()
@@ -777,7 +791,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             },
         )
 
-    async def async_step_test_all_notifications(self, user_input=None) -> FlowResult:
+    async def async_step_test_all_notifications(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """One click -- send one of every alert type (filters bypassed)."""
         if user_input is not None:
             status = "unknown"
@@ -807,7 +821,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             data_schema=vol.Schema({}, extra=vol.ALLOW_EXTRA),
         )
 
-    async def async_step_test_all_notifications_result(self, user_input=None) -> FlowResult:
+    async def async_step_test_all_notifications_result(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Show test-all result; Submit returns to options menu."""
         if user_input is not None:
             return await self.async_step_init()
@@ -823,11 +837,11 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         )
 
 
-    async def async_step_ml(self, user_input=None) -> FlowResult:
+    async def async_step_ml(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
 
         if user_input is not None:
             return self._save(user_input)
-        c = self.config_entry.options or {}
+        c: dict[str, Any] = dict(self.config_entry.options or {})
         schema = vol.Schema({
             vol.Required("adaptive_thresholds_enabled",
                 default=c.get("adaptive_thresholds_enabled",
@@ -839,10 +853,10 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         })
         return self.async_show_form(step_id="ml", data_schema=schema)
 
-    async def async_step_maintenance(self, user_input=None) -> FlowResult:
+    async def async_step_maintenance(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self._save(user_input)
-        c = self.config_entry.options or {}
+        c: dict[str, Any] = dict(self.config_entry.options or {})
         schema = vol.Schema({
             vol.Required("retention_enabled",
                 default=c.get("retention_enabled", DEFAULT_RETENTION_ENABLED)
