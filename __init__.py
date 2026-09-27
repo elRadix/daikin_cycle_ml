@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -20,7 +21,7 @@ PLATFORMS: list[str] = ["sensor", "binary_sensor"]
 DB_RELATIVE = Path(".storage") / "daikin_cycle_ml.db"
 
 
-async def async_setup(hass: HomeAssistant, _config: dict) -> bool:
+async def async_setup(hass: HomeAssistant, _config: dict[str, Any]) -> bool:
     """Register integration-wide services once per HA lifecycle."""
     await async_register_services(hass)
     return True

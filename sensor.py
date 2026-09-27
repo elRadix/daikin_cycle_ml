@@ -51,17 +51,17 @@ def _safe_float(v: Any) -> float | None:
     return None
 
 
-def _avg(values: list) -> float | None:
+def _avg(values: list[Any]) -> float | None:
     xs = [v for v in (_safe_float(x) for x in values) if v is not None]
     return sum(xs) / len(xs) if xs else None
 
 
-def _max_or_none(values: list) -> float | None:
+def _max_or_none(values: list[Any]) -> float | None:
     xs = [v for v in (_safe_float(x) for x in values) if v is not None]
     return max(xs) if xs else None
 
 
-def _min_or_none(values: list) -> float | None:
+def _min_or_none(values: list[Any]) -> float | None:
     xs = [v for v in (_safe_float(x) for x in values) if v is not None]
     return min(xs) if xs else None
 
@@ -87,7 +87,7 @@ def _rps_from_attrs(attrs: dict[str, Any]) -> float | None:
     return _safe_float(attrs.get(ATTR_INV_FREQUENCY_RPS))
 
 
-def _avg_off_time(cycles: list) -> float | None:
+def _avg_off_time(cycles: list[Any]) -> float | None:
     if len(cycles) < 2:
         return None
     sorted_cycles = sorted(cycles, key=lambda c: c.get("end_ts") or 0)
@@ -116,7 +116,7 @@ def _cluster_label(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> str:
 
 # --- attr builders -----------------------------------------------------
 
-def _attrs_current_cycle(s, c):
+def _attrs_current_cycle(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     running = s.state == "running"
     dur_min = None
     if running and s.cycle_start_ts > 0:
@@ -129,7 +129,7 @@ def _attrs_current_cycle(s, c):
     }
 
 
-def _attrs_last_cycle(s, c):
+def _attrs_last_cycle(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     r = _last(c)
     dur = _safe_float(r.get("duration_s"))
     return {
@@ -149,7 +149,7 @@ def _attrs_last_cycle(s, c):
     }
 
 
-def _attrs_today(s, c):
+def _attrs_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     cycles = c.store.cycles_today(_now())
     durations = [cy.get("duration_s") for cy in cycles]
     short_runs = c.store.get("short_runs_today", 0)
@@ -169,7 +169,7 @@ def _attrs_today(s, c):
     }
 
 
-def _attrs_quality_today(s, c):
+def _attrs_quality_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     good = c.store.get("good_cycles_today", 0)
     bad = c.store.get("bad_cycles_today", 0)
     return {
@@ -179,7 +179,7 @@ def _attrs_quality_today(s, c):
     }
 
 
-def _attrs_source_health(s, c):
+def _attrs_source_health(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     stale = False
     if s.last_success_ts > 0:
         stale = (_now() - s.last_success_ts) > 2.0 * UPDATE_INTERVAL_SECONDS
@@ -195,7 +195,7 @@ def _attrs_source_health(s, c):
     }
 
 
-def _attrs_learned(s, c):
+def _attrs_learned(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     try:
         good_off = c.adaptive.learn_good_off_min(s.mode)
     except Exception:
@@ -211,7 +211,7 @@ def _attrs_learned(s, c):
     }
 
 
-def _attrs_cop_today(s, c):
+def _attrs_cop_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     data = s.cop_today or {}
     return {
         "samples_today": data.get("samples_today"),
@@ -221,7 +221,7 @@ def _attrs_cop_today(s, c):
     }
 
 
-def _attrs_stooklijn(s, c):
+def _attrs_stooklijn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     data = s.stooklijn_advies or {}
     return {
         "optimale_lwt": data.get("optimale_lwt"),
@@ -237,7 +237,7 @@ def _attrs_stooklijn(s, c):
 
 
 ValueFn = Callable[[DataSnapshot, DaikinCycleMLCoordinator], Any]
-AttrFn = Callable[[DataSnapshot, DaikinCycleMLCoordinator], dict]
+AttrFn = Callable[[DataSnapshot, DaikinCycleMLCoordinator], dict[str, Any]]
 
 
 class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):

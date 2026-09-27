@@ -142,12 +142,12 @@ def _buh_step(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> int:
     return 0
 
 
-def _buh_attrs(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict:
+def _buh_attrs(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     return {"step": _buh_step(s, c)}
 
 
 StateFn = Callable[[DataSnapshot, DaikinCycleMLCoordinator], bool]
-AttrFn = Callable[[DataSnapshot, DaikinCycleMLCoordinator], dict]
+AttrFn = Callable[[DataSnapshot, DaikinCycleMLCoordinator], dict[str, Any]]
 
 
 class DaikinCycleMLBinarySensor(DaikinCycleMLEntity, BinarySensorEntity):

@@ -211,12 +211,13 @@ async def _handle_run_maintenance(hass: HomeAssistant, call: ServiceCall) -> dic
     runner = getattr(coord, "async_run_maintenance", None)
     if runner is None:
         return {"ok": False, "reason": "not_supported"}
-    return await runner(
+    result: dict[str, Any] = await runner(
         cycle_retention_days=call.data.get(ATTR_CYCLE_RETENTION_DAYS),
         alert_retention_days=call.data.get(ATTR_ALERT_RETENTION_DAYS),
         vacuum=call.data.get(ATTR_VACUUM),
         force=True,
     )
+    return result
 
 
 async def _handle_send_test_notification(
