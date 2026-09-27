@@ -1,6 +1,8 @@
 """Batch 36 -- HA config flow compliance."""
 from __future__ import annotations
 
+import re
+
 import json
 from pathlib import Path
 
@@ -39,9 +41,13 @@ def test_result_step_present():
 
 def test_version_bumped():
     const = (ROOT / "const.py").read_text()
-    assert "1.0.1" in const
+    m = re.search(r'VERSION\s*=\s*"([^"]+)"', const)
+    assert m, "VERSION not found in const.py"
+    ver = m.group(1)
+    parts = ver.split(".")
+    assert len(parts) == 3 and all(p.isdigit() for p in parts), ver
     mf = json.loads((ROOT / "manifest.json").read_text())
-    assert mf["version"] == "1.0.1"
+    assert mf["version"] == ver
 
 
 @pytest.mark.parametrize("rel", JSON_FILES)

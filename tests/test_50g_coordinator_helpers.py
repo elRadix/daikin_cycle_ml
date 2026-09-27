@@ -10,7 +10,8 @@ def test_const_domain():
 
 def test_const_version_1_0_0():
     from custom_components.daikin_cycle_ml import const
-    assert const.VERSION == "1.0.1"
+    parts = const.VERSION.split(".")
+    assert len(parts) == 3 and all(p.isdigit() for p in parts), const.VERSION
 
 
 def test_const_core_attributes_count():

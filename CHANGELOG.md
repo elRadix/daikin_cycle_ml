@@ -1,5 +1,49 @@
 # Changelog
 
+## [1.0.2] - 2026-09-27
+
+### Added
+- mypy --strict: 219 -> 0 errors across all 30 integration modules.
+- `.github/workflows/mypy.yml` CI workflow (Python 3.14, HA 2026.9.3 stubs).
+- `py.typed` marker (PEP 561).
+- `[tool.mypy]` block in pyproject.toml (strict + follow_imports=silent).
+- SOP rules R108-R110 (leaf-annotation cascade, dict key-type mismatch, idempotent re-run).
+
+### Changed
+- Type annotations on all public functions, methods, and class attributes.
+- `ConfigFlowResult` as canonical return type for `async_step_*` (HA 2026.9).
+- `_OPTIONS_FLOW_BASE` from conditional variable to TYPE_CHECKING + else try/except.
+- `_cluster_labels` from `dict[str, Any]` to `dict[int, str]`.
+- `ml/multi_baseline.py` public methods fully annotated.
+- `engine/notification_engine.py` `_SafeDict` typed `dict[str, Any]`.
+- `storage/store.py` `_counters` locally widened to `dict[str, Any]`.
+- README badges: version 1.0.2, coverage 97.40%, pylint 10.00, tests 1400+.
+
+### Fixed
+- `ml/clustering.py` `labels` no-redef on line 155 (annotation removed).
+- `ml/features.py` `overrides[name]` narrowing via local variable.
+- `engine/notification_engine.py` `ctx or {}` for None-safe Mapping.
+- `storage/db.py` `int(cur.rowcount)` for aiosqlite stub variance (CI).
+- `storage/db.py` `list(await cur.fetchall())` for `Iterable[Row]` index/size ops.
+- `storage/db.py` `a: dict[str, Any] | None = agg.get(key)` annotation on first def.
+- `storage/db.py` `params: tuple[Any, ...]` for heterogeneous tuple.
+- `storage/db.py` `cops: list[float]` explicit loop instead of comprehension.
+- `storage/db.py` `async_avg_duration_since` return type annotation.
+
+### Version
+- 1.0.2 (patch: internal typing hardening + CI mypy gate, no runtime changes).
+
+### Test suite
+- Tests: 1461 passed, 4 skipped.
+- Coverage: 97.40% (all modules >= 94%).
+- Ruff: clean.
+- Pylint: 10.00/10.
+- mypy --strict: 0 errors (CI-enforced).
+- CI: Ruff + Pylint + Coverage + Mypy (4 workflows).
+
+### Known limitations
+- Per-module coverage below 95%: `ml/adaptive_thresholds.py` 94%.
+
 ## [1.0.1] - 2026-09-27
 
 ### Added

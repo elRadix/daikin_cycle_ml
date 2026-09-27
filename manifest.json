@@ -1,7 +1,7 @@
 {
   "domain": "daikin_cycle_ml",
   "name": "Daikin Cycle ML",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "documentation": "https://github.com/elRadix/daikin_cycle_ml",
   "issue_tracker": "https://github.com/elRadix/daikin_cycle_ml/issues",
   "dependencies": [],
