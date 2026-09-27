@@ -42,10 +42,13 @@ Key options:
 
 ## 4. Daily operation
 
-Sensors (26): state, mode, quality, last_cycle_*, pendulum counters,
-baseline stats, etc.
-Binary sensors (16): short_run, short_off, pendulum_hourly, pendulum_daily,
-dhw_pendulum, defrost_short, setpoint_osc, ml_anomaly, ...
+Sensors (9): cycle_state, current_cycle, last_cycle, today,
+quality_today, source_health, learned_thresholds, cop_vandaag,
+stooklijn_advies.
+Binary sensors (15): compressor_running, defrost_active, buh_active,
+dhw_active, heating_active, cooling_active, pendulum_hourly,
+pendulum_daily, short_run, short_off, source_stale,
+missing_attributes, setpoint_oscillating, dhw_pendulum, high_cycle_rate.
 
 Services:
 - daikin_cycle_ml.reset_counters
@@ -138,6 +141,41 @@ For each release:
 
 ### Current total
 
-- 29 sensors + 19 binary sensors = 48 entities.
-- Coverage gate: >=95% (currently ~95.5%).
+- 9 sensors + 15 binary sensors = 24 entities.
+- Coverage gate: >=95% (currently ~95.1%).
 - Old DBs auto-migrate on first cluster write.
+- Repairs (5): source_stale, missing_attrs, db_corrupt,
+  notify_failed, migration_failed.
+- Services (6): reset_counters, export_cycles, label_cycle,
+  recompute_baseline, run_maintenance, send_test_notification.
+- DB tables (7): cycles, features, alerts, daily_summary,
+  cop_samples, model_state, sqlite_sequence.
+
+
+## 10. Run.py regels (R83-R92)
+
+Aanvulling op DEEL 2 van de handoff. Toegevoegd in batch 52c.
+
+| Regel | Inhoud |
+|-------|--------|
+| R83 | Bootstrap P0: verifieer ruff + sqlite3 + pylint aanwezig voor gebruik |
+| R84 | Fragile test-files: async setup_entry altijd asyncio.wait_for(timeout=3); OptionsFlow tests altijd conftest autouse reload-mock |
+| R85 | Wall-time tracking. Full suite >90s -> flag voor refactor |
+| R86 | Version bump = een commit. Versie + CHANGELOG + README + tag + push in een batch |
+| R87 | Context oranje 80%+ en >3 iteraties op dezelfde batch: STOP, handoff, verse chat |
+| R88 | CI compliance. Pylint + ruff beide groen. .pylintrc scope = integratie-code |
+| R89 | Pytest exit code via pipe onbetrouwbaar. Gebruik subprocess.run(cmd, capture_output=True) zonder shell-pipe, dan Python-side tail |
+| R90 | File Editor faalt stil bij bestanden >5 KB. Fallback: heredoc chunks via SSH addon (cat > /config/run.py << 'RUNEOF'). Verifieer altijd met marker-grep + wc -l |
+| R91 | Amend + reset --soft: hash-bewust. Bij batch-mix: git commit --amend -m "<nieuwe boodschap>". Force-with-lease verwacht na amend |
+| R92 | Amend-fix mag niet committen bij rode pytest. P5->P6 sequentie hard stoppen als pytest faalt. Geen try/except rond commit-stap |
+
+## 11. Correcties op eerdere notities
+
+- README executable bit: was 100644 (correct). Geen chmod nodig. Handoff-notitie was fout.
+- Entity binary_sensor.daikin_cycle_ml_missing_attributes (niet _attrs).
+  Repair issue-id blijft missing_attrs (interne identifier).
+- Stooklijn advies states: verlaag_lwt_2c, verhoog_lwt_2c, behoud, unknown.
+- Entity counts: 9 sensors + 15 binary sensors = 24 (niet 26+16 of 29+19).
+- Repairs (5): source_stale, missing_attrs, db_corrupt, notify_failed, migration_failed.
+- Services (6): reset_counters, export_cycles, label_cycle, recompute_baseline, run_maintenance, send_test_notification.
+- DB tables (7): cycles, features, alerts, daily_summary, cop_samples, model_state, sqlite_sequence.

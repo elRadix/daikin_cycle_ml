@@ -366,7 +366,7 @@ Two paths, via **Settings → Devices & Services → Reconfigure**:
 | sensor.daikin_cycle_ml_source_health | s | Seconds since last source update |
 | sensor.daikin_cycle_ml_learned_thresholds | min | Adaptive threshold (if enabled) |
 | sensor.daikin_cycle_ml_cop_vandaag | COP | Today's average COP |
-| sensor.daikin_cycle_ml_stooklijn_advies | — | verlaag_lwt / verhoog_lwt / behoud / unknown |
+| sensor.daikin_cycle_ml_stooklijn_advies | — | verlaag_lwt_2c / verhoog_lwt_2c / behoud / unknown |
 
 Cluster membership: state_attr('sensor.daikin_cycle_ml_last_cycle', 'cluster').
 
@@ -385,7 +385,7 @@ Cluster membership: state_attr('sensor.daikin_cycle_ml_last_cycle', 'cluster').
 | heating_active | HEAT | Currently in heating mode |
 | cooling_active | COLD | Currently in cooling mode |
 | source_stale | PROBLEM | Source sensor not fresh |
-| missing_attrs | PROBLEM | Required attributes missing |
+| missing_attributes | PROBLEM | Required attributes missing |
 | setpoint_oscillating | PROBLEM | Setpoint changes ≥ threshold |
 | dhw_pendulum | PROBLEM | DHW cycles/h ≥ DHW threshold |
 | high_cycle_rate | PROBLEM | Cycles/h > 1.5 × target |
@@ -729,13 +729,13 @@ See quality_scale.yaml for the full status.
 
 ## 16. Testing
 
-- **~1300 tests**, **95.09% coverage**
+- **~1310 tests**, **95.11% coverage**
 - Framework: pytest + pytest_homeassistant_custom_component (phcc)
 - **Coverage threshold enforced at 95%** (--cov-fail-under=95)
 - **Ruff clean** — HA 2026+ config (line-length 100, py313,
   select E/W/F/I/UP/B/SIM/RET/PIE/C4/RUF)
 - **Pylint 9.94/10** — --fail-under=8.0 gate, integration code only
-- **Import smoke** — 122 modules via importlib.import_module()
+- **Import smoke** — 130 modules via importlib.import_module()
 - **SQLite integrity** — PRAGMA integrity_check in CI
 
 Per-module coverage (v1.0.0):
@@ -768,7 +768,7 @@ Per-module coverage (v1.0.0):
 | engine/attribute_reader.py | 93% |
 | sensor.py | 93% |
 | coordinator.py | 92% |
-| __init__.py | 82% |
+| __init__.py | 83% |
 
 Run locally:
 

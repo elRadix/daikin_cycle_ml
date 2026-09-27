@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- Bug A (52a): `dhw_active` triggerde op 3-way valve rustpositie (fail-safe DHW).
+  Vereist nu `I/U == DHW` EN (`state=="running"` OR BUH actief).
+- Bug B (52b): stooklijn-analyse mengde DHW-samples met heating-samples.
+  `cop_samples.mode` kolom (v13-migratie, idempotent). `analyze_stooklijn`
+  en `_group_by_bucket` filteren op `mode in (heating, unknown)`.
+  `_maybe_collect_cop_sample` slaat mode op.
+- Bug C (52a): `sensor.current_cycle.dt_k` gaf stale waarde bij idle.
+  Geeft nu `None` als state != "running".
+
+### Docs
+- README: `verlaag_lwt` -> `verlaag_lwt_2c` (Bug E).
+- README: entity `missing_attrs` -> `missing_attributes` (Bug D).
+- README: test count + coverage bijgewerkt (1310, 95.11%).
+- CHANGELOG: [Unreleased] sectie met 52a/52b fixes.
+- SOP.md: run.py regels R83-R92 toegevoegd; entity counts gecorrigeerd.
+
+
 ## [1.0.0] - 2026-09-26
 
 ### Added
