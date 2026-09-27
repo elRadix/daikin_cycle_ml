@@ -1,5 +1,5 @@
 # Home Assistant Integration Quality Scale (IQS) manifest
-# Bronze + Silver + (partial) Gold
+# Bronze + Silver + Gold
 
 rules:
   # --- Bronze ---
@@ -39,7 +39,12 @@ rules:
   entity-translations: done
   reconfiguration-flow: done
   entity-device-class: done
-  discovery: exempt                     # calculated, geen netwerk-discovery
+  discovery:
+    status: exempt
+    comment: |
+      Integration has no discoverable device. It is a calculated
+      helper that analyzes an existing sensor entity (ESPAltherma).
+      No mDNS, SSDP, DHCP or USB discovery applies.
   dynamic-devices: exempt
   stale-devices: exempt
   entity-category: done

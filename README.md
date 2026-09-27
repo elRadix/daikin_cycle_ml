@@ -10,7 +10,7 @@ heat pumps. **Local-only ML, no cloud.**
 [![Ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)
 [![Pylint](https://img.shields.io/badge/pylint-9.94%2F10-brightgreen.svg)](https://pylint.readthedocs.io/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.9%2B-blue.svg)](https://www.home-assistant.io/)
-[![IQS](https://img.shields.io/badge/IQS-Bronze%20%2B%20Silver-orange.svg)](quality_scale.yaml)
+[![IQS](https://img.shields.io/badge/IQS-Bronze%20%2B%20Silver%20%2B%20Gold-orange.svg)](quality_scale.yaml)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 **IoT class:** `calculated`
@@ -672,7 +672,7 @@ SQLite internal.
 
 ## 15. Integration Quality Scale
 
-Status: **Bronze ✅ + Silver ✅** (Gold partial).
+Status: **Bronze ✅ + Silver ✅ + Gold ✅**.
 
 See quality_scale.yaml for the full status.
 
@@ -702,7 +702,7 @@ See quality_scale.yaml for the full status.
 | reauthentication-flow | exempt (local source) |
 | entity-unavailable | ✅ |
 
-### Gold (partial)
+### Gold
 
 | Rule | Status |
 |---|---|

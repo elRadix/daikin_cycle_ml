@@ -59,7 +59,6 @@
   `engine/attribute_reader.py` 93%, `engine/action_engine.py` 93%,
   `ml/adaptive_thresholds.py` 94%.
 - `CoverageWarning: module-not-measured` (cosmetic, dual-path import).
-- IQS Gold: MQTT-discovery missing.
 - `mypy --strict` not yet done (Platinum blocker).
 
 ## [1.0.0] - 2026-09-26

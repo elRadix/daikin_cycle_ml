@@ -10,7 +10,8 @@
   ],
   "requirements": [],
   "iot_class": "calculated",
-  "integration_type": "hub",
+  "integration_type": "helper",
+  "quality_scale": "gold",
   "config_flow": true,
   "loggers": [
     "custom_components.daikin_cycle_ml"
