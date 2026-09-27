@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-27
+
+### Added
+- **HACS-compliant repo layout**: integration now lives at
+  `custom_components/daikin_cycle_ml/` (was: repo-root + symlink workaround).
+- `.github/workflows/hacs.yml`: HACS Action validation (`category: integration`).
+- `.github/workflows/hassfest.yml`: official Home Assistant Hassfest validation.
+- GitHub repo description + topics (HACS discovery).
+- README section 4.1 "Via HACS (recommended)" + My Home Assistant button.
+- SOP candidates R125-R128 (HACS restructuring lessons).
+
 ### Added
 - `tests/test_52e3_adaptive_coverage.py`: 5 edge-case tests for
   `AdaptiveThresholds.observe_cycle` / `observe_day`.
@@ -12,10 +23,35 @@
   risk, HA stubs in CI, HA Python version pin, aiosqlite stub variance).
 
 ### Changed
+- Repo restructured: integration files moved from repo-root to
+  `custom_components/daikin_cycle_ml/` (breaking for existing installs).
+- `hacs.json`: `homeassistant` minimum 2025.1.0 -> 2026.9.0.
+- `.gitignore`: removed `custom_components/daikin_cycle_ml` exclude,
+  added `MagicMock/`.
+- `.github/workflows/coverage.yml`: removed symlink-setup step.
+- `.github/workflows/mypy.yml`: directory-based invocation.
+- `manifest.json`: keys reordered alphabetically after `domain, name` (Hassfest).
+- `strings.json` / `translations/*.json`: escaped JSON examples in
+  `model_custom` step as `{{...}}` (Hassfest placeholder rule).
+- Removed empty `data_description` on `attributes`, `finalize`,
+  `reconfigure`, `reconfigure_full`, `test_notification_result` steps.
+- Added `data` block to `options.step.init` (Hassfest data/data_description pairing).
+- `__init__.py`: added `CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)`
+  (Hassfest config_schema warning).
+- README version badge: 1.0.2 -> 1.1.0.
+- 11 test files: `ROOT` is now `_PROJECT_ROOT / "custom_components" /
+  "daikin_cycle_ml"`; inline `Path(__file__).parent.parent / X` replaced
+  with `_INTEG / X`.
 - README badges: coverage 97.16%, tests 1466, Pylint 10.00/10.
 - README Support section rewritten for this project's context.
 
 ### Verified
+- CI: 6/6 workflows green (Ruff, Pylint, Coverage, Mypy, HACS Validation, Hassfest).
+- 1466 tests passed, 4 skipped.
+- Coverage 97.16% (all modules >= 95%).
+- `mypy --strict`: 0 errors in 30 source files (directory-based).
+- Import smoke: 130 modules OK.
+- `git ls-files` no longer contains `120000` (symlink) entries.
 - Runtime smoke v1.0.2 in production HA 2026.9.3: 24 entities loaded,
   DB integrity OK, `cop_samples.mode` populated
   (`dhw=9, unknown=5, None=13`), no `daikin_cycle_ml` errors in log.
