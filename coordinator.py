@@ -1229,7 +1229,20 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                   or getattr(_first, 'text', None) or '')
             if _t:
                 advice_text = "\n\u2022 " + str(_t)
-        mode_str = str(getattr(snap, "mode", "unknown") or "unknown") if snap is not None else "unknown"
+        mode_str = "unknown"
+        if snap is not None:
+            _m = str(getattr(snap, "mode", "") or "").strip()
+            if _m and _m.lower() != "unknown":
+                mode_str = _m
+        if mode_str == "unknown":
+            try:
+                _last = self.store.last_cycle()
+                if isinstance(_last, dict):
+                    _lm = str(_last.get("mode", "") or "").strip()
+                    if _lm and _lm.lower() != "unknown":
+                        mode_str = _lm
+            except Exception:
+                pass
         lwt_set = self._setpoint_current(snap)
         lwt_tgt = self._setpoint_target(snap)
         delta = self._setpoint_delta(snap)

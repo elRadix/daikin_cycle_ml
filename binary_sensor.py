@@ -63,6 +63,9 @@ def _is_short_run(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     last = c.store.last_cycle()
     if not last:
         return False
+    # 52b5: skip DHW cycles -- short bursts are normal during DHW
+    if str(last.get("mode", "")).strip().lower() == "dhw":
+        return False
     dur = last.get("duration_s")
     if not isinstance(dur, (int, float)):
         return False
@@ -70,6 +73,12 @@ def _is_short_run(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
 
 
 def _is_short_off(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    # 52b5: skip DHW -- off-times during DHW are not meaningful
+    last = c.store.last_cycle()
+    if last and str(last.get("mode", "")).strip().lower() == "dhw":
+        return False
+    if str(getattr(s, "mode", "")).strip().lower() == "dhw":
+        return False
     off = c.store.off_time_since_last(_now())
     if off is None:
         return False
@@ -84,7 +93,12 @@ def _is_source_stale(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
 
 def _is_pendulum_hourly(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     threshold = int(c.options.get("pendulum_cycles_per_hour", 4))
-    return c.store.cycles_in_window(_now(), 3600) >= threshold
+    all_n = c.store.cycles_in_window(_now(), 3600)
+    try:
+        dhw_n = c.store.cycles_in_window_mode(_now(), 3600, MODE_DHW)
+    except Exception:
+        dhw_n = 0
+    return (all_n - dhw_n) >= threshold
 
 
 def _is_pendulum_daily(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
