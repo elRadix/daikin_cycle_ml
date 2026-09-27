@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime as _dt
 from collections.abc import Mapping
+from typing import Any
 
 try:
     from ..const import (
@@ -76,13 +77,13 @@ def hour_bucket(hour: int) -> str:
     return "night"
 
 
-def _row(emoji, label, value, width=15, emojis=True):
+def _row(emoji: str, label: str, value: Any, width: int = 15, emojis: bool = True) -> str:
     pre = (emoji + " ") if (emoji and emojis) else ""
     pad = " " * max(1, width - len(label))
     return pre + label + pad + str(value)
 
 
-def _fmt_float(v, digits=1, suffix=""):
+def _fmt_float(v: Any, digits: int = 1, suffix: str = "") -> str:
     if v is None:
         return "\u2014"
     try:
@@ -91,7 +92,7 @@ def _fmt_float(v, digits=1, suffix=""):
         return "\u2014"
 
 
-def _fmt_int(v):
+def _fmt_int(v: Any) -> str:
     if v is None:
         return "\u2014"
     try:
@@ -100,7 +101,7 @@ def _fmt_int(v):
         return "\u2014"
 
 
-def build_status_report(snapshot, *, language="en", emoji_enabled=True):
+def build_status_report(snapshot: Mapping[str, Any], *, language: str = "en", emoji_enabled: bool = True) -> str:
     """Assemble the rich multi-section status report."""
     if language not in LABELS:
         language = "en"
@@ -205,7 +206,7 @@ def build_status_report(snapshot, *, language="en", emoji_enabled=True):
     return "\n".join(lines)
 
 
-def build_stooklijn_report(cache, *, language="en", emoji_enabled=True):
+def build_stooklijn_report(cache: Any, *, language: str = "en", emoji_enabled: bool = True) -> str:
     """Bilingual stooklijn advice report."""
     if not isinstance(cache, Mapping):
         cache = {}
@@ -252,7 +253,7 @@ def build_stooklijn_report(cache, *, language="en", emoji_enabled=True):
     return "\n".join(lines)
 
 
-def build_cop_low_report(cop, samples, *, language="en", emoji_enabled=True):
+def build_cop_low_report(cop: Any, samples: Any, *, language: str = "en", emoji_enabled: bool = True) -> str:
     """Bilingual low-COP report."""
     is_nl = language == "nl"
     title = "Dag-COP laag" if is_nl else "Day COP low"
@@ -392,7 +393,7 @@ ALERT_SCHEMA = {
 }
 
 
-def build_rich_alert(alert_type, severity, context, *, language="en", emoji_enabled=True):
+def build_rich_alert(alert_type: str, severity: str, context: Mapping[str, Any], *, language: str = "en", emoji_enabled: bool = True) -> str:
     """Build a sectioned rich-alert message for any alert type."""
     if language not in ALERT_LABELS:
         language = "en"
