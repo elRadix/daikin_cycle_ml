@@ -1,5 +1,27 @@
 # Roadmap - Daikin Cycle ML
 
+### Open questions (must resolve before Phase A)
+
+- [ ] Verify `features.vector_json[9]` is actually `lwt_avg`. **BLOCKING.**
+- [ ] `features` table: archive (`features_archive`, compressed, 180d) or drop?
+      Current recommendation: **archive**.
+- [ ] **BLOCKING — COP sampling resolution mismatch.** `cop_samples` fires
+      every 10 min; cycles are variable-length. An 8-min cycle can produce
+      ZERO samples → `avg_cop = NULL` in bin → Welford drift → bins biased
+      toward long healthy cycles → **false negatives** on degradation alert.
+      This is worse than missing data: it silently corrupts the baseline.
+
+      Required resolution before Phase A:
+      1. Sample-on-cycle-close hook in coordinator (fallback, min 1 sample)
+      2. 30s-tick power+flow integration as PRIMARY (physically correct)
+      3. Store per-cycle `cop_sample_count` + `cop_sample_stdev` in `cycles`
+      4. Bin Welford weights contributions by `sample_count`
+      5. Reject cycle contribution to `avg_cop` if `sample_count < 2`
+         (bin still accumulates duration/rps/dT from that cycle)
+
+      Without (2), Phase A COP data is unreliable. If power+flow sensors
+      absent, fall back to (1)+(4)+(5) and mark bin COP as `confidence: low`
+      until sample density improves.
 ## v0.5.0-dev (in progress, 2026-09-26)
 
 Scope: ML feature-vector expansion (COP + LWT + indoor).
@@ -67,3 +89,4 @@ Scope: self-learning only. No COP, no cost tracking, no HACS, no supervised ML.
 - [ ] Weather-compensation advisor
 - [ ] Export to InfluxDB / Prometheus
 - [ ] Cluster-based dynamic advice tuning
+
