@@ -218,3 +218,34 @@ Zonder deze fix kunnen coverage-drops ongemerkt door glippen (batch 52b5:
 
 Do not re-attempt without a hardware or Python-version change.
 Re-measure first (probe recipe: sequential vs xdist on subset AND full).
+
+## 12. Handoff + multi-repo regels (R133-R145)
+
+Toegevoegd 2026-09-27 na HACS default store indiening (PR #11345).
+Volledige context: zie HANDOFF_SOP.md.
+
+| Regel | Inhoud |
+|-------|--------|
+| R133 | Handoff wanneer context ORANGE, YELLOW + mijlpaal, of RED verplicht |
+| R134 | Handoff-versienummer = +1 major (v16.0 -> v17.0), nooit minor |
+| R135 | Handoff is self-contained - verse chat moet alles kunnen terugvinden |
+| R136 | Handoff markeert onbekende zaken als TE VERIFIEREN |
+| R137 | Handoff markeert VERVALLEN regels expliciet, verwijdert ze niet |
+| R138 | Handoff checkt eerst: git status, CI status, PR status, containers |
+| R139 | Handoff-versie = volledige git-commit-hash + tag-referentie |
+| R140 | Handoff genereren via chat, opslaan via heredoc (R90-veilig) |
+| R141 | Twee repos: daikin_cycle_ml (dev) + default (HACS-fork). Nooit verwarren |
+| R142 | Fork default: nooit naar branch pushen na PR-open (HACS-bot sluit PR) |
+| R143 | Nieuwe HACS PR = nieuwe branch vanaf verse upstream/master |
+| R144 | Fork-master syncen voor nieuwe PR: git reset --hard upstream/master + --force-with-lease |
+| R145 | Fork git identity lokaal (--no-global), nooit --global in container |
+
+### Gap-note: R93-R132 ontbreken in dit document
+
+SOP.md bevat momenteel alleen R83-R92 (sectie 10) en R96, R102 (sectie 11).
+Regels R93, R94, R95, R97-R101, R103-R132 leven alleen in handoff-chat-historie
+(handoff v15.0-v17.0 DEEL 2.8).
+
+Backfill naar SOP.md is een openstaande taak (niet docs-triviaal - vereist
+per-regel recon + format-matching). Zie handoff v17.0 DEEL 15.1 #2.
+
