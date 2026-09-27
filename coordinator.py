@@ -735,6 +735,30 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception('stooklijn notify failed')
 
+    def _resolve_cop_sample_mode(self) -> str:
+        """Return mode string for cop_samples row.
+
+        Bug I (batch 52b7): snap.mode is 'unknown' during active DHW cycles.
+        Fall back to classify_mode(snap.attrs), which reads I/U operation mode.
+        """
+        data = getattr(self, 'data', None)
+        if data is not None:
+            raw = getattr(data, 'mode', None)
+            if raw is not None:
+                norm = str(raw).strip().lower()
+                if norm and norm != 'unknown':
+                    return norm
+        attrs = getattr(data, 'attrs', None) if data is not None else None
+        if attrs:
+            try:
+                from .engine.cycle_detector import classify_mode
+                cm = classify_mode(attrs)
+            except Exception:
+                cm = 'unknown'
+            if cm and cm != 'unknown':
+                return cm
+        return 'unknown'
+
     async def _maybe_collect_cop_sample(self, now: float) -> None:
         if self.db is None:
             return
@@ -759,7 +783,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return
         if not sample.power_stable:
             return
-        _mode = getattr(getattr(self, 'data', None), 'mode', None) or 'unknown'
+        _mode = self._resolve_cop_sample_mode()
         row = {
             'ts': now,
             'cop': sample.cop,
