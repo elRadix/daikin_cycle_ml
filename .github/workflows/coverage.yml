@@ -20,6 +20,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest pytest-asyncio pytest-cov
           pip install pytest-homeassistant-custom-component
+          pip install aiosqlite
       - name: Run pytest with coverage gate
         run: |
           python -m pytest -q --no-header \
