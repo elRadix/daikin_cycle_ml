@@ -179,3 +179,20 @@ Supplement to DEEL 2 of the handoff. Added in batch 52c.
 - Repairs (5): source_stale, missing_attrs, db_corrupt, notify_failed, migration_failed.
 - Services (6): reset_counters, export_cycles, label_cycle, recompute_baseline, run_maintenance, send_test_notification.
 - DB tables (7): cycles, features, alerts, daily_summary, cop_samples, model_state, sqlite_sequence.
+
+
+### R96 (batch 52b6)
+
+**pytest-cov fail_under valkuil.** `[tool.coverage.report] fail_under=95`
+in pyproject.toml blokkeert pytest NIET. pytest-cov print
+"FAIL Required test coverage of 95% not reached" maar returnt rc=0.
+
+**Fix:** voeg `--cov-fail-under=95` expliciet toe aan pytest-args in P5:
+
+    python3 -m pytest -q --no-header --cov-fail-under=95
+
+Alternatief: CI-workflow die `coverage report --fail-under=95` draait
+na pytest.
+
+Zonder deze fix kunnen coverage-drops ongemerkt door glippen (batch 52b5:
+94.99% gemerkt door handmatige inspectie).
