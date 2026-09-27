@@ -46,3 +46,8 @@ addopts = "-q --cov=custom_components.daikin_cycle_ml --cov-fail-under=95"
 
 [tool.coverage.report]
 fail_under = 95
+
+[tool.mypy]
+strict = true
+follow_imports = "silent"
+ignore_missing_imports = true
