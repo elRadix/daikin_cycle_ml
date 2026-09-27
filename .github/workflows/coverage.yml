@@ -1,19 +1,37 @@
 name: Coverage
 
-# Batch 52b8h: disabled after 7 iterations failing on CI-only sys.path
-# rewrite by pytest-homeassistant-custom-component. Coverage gate
-# remains enforced LOCALLY via pyproject.toml [tool.coverage.report]
-# fail_under=95 and pytest addopts --cov-fail-under=95 (R96).
-
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Coverage gate is local-only
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install test dependencies
         run: |
-          echo "Coverage gate is enforced locally."
-          echo "Run: PYTHONPATH=/workspace pytest -q"
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio pytest-cov
+          pip install pytest-homeassistant-custom-component
+          pip install homeassistant aiosqlite
+      - name: Setup custom_components symlink (mirror local dev)
+        run: |
+          mkdir -p custom_components
+          ln -sfn "$(pwd)" custom_components/daikin_cycle_ml
+          ls -la custom_components/
+          ls -la custom_components/daikin_cycle_ml/ | head -10
+      - name: Run pytest with coverage gate
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python -m pytest -q --no-header \
+            --cov=custom_components.daikin_cycle_ml \
+            --cov-fail-under=95 \
+            --cov-report=term-missing
