@@ -196,3 +196,25 @@ na pytest.
 
 Zonder deze fix kunnen coverage-drops ongemerkt door glippen (batch 52b5:
 94.99% gemerkt door handmatige inspectie).
+
+
+### R102 (batch 52g) - performance-tooling verdict
+
+**Rejected on 2-core + Python 3.14 environment** (measured 2026-09-27):
+
+- **pytest-xdist** (`-n 2 --dist loadscope`):
+  - Full suite: 64s -> 45s (-30%)
+  - But: 2 tests in `test_18_options_menu.py` fail in full-suite
+    xdist context (cross-file state contamination; not xdist's fault)
+  - Fix cost: 1-3h bisect; win: 19s per run - not worth on 2 cores
+  - Revisit if CI runner goes >=4 cores (2-3x win would justify fix)
+
+- **pytest-testmon 2.2.0**:
+  - Incompatible with Python 3.14 (uses sys.monitoring / PEP 669)
+  - Selects 0 tests even on real content changes
+  - Revisit when upstream adds 3.14 support
+
+- **Baseline (accepted)**: sequential full suite ~64s local, ~65s CI
+
+Do not re-attempt without a hardware or Python-version change.
+Re-measure first (probe recipe: sequential vs xdist on subset AND full).
