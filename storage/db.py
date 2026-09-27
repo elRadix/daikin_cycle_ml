@@ -135,7 +135,7 @@ class CycleDB:
             await cur.close()
             return len(fk_rows) == 0
         except Exception:
-            _LOGGER.debug("integrity_check failed", exc_info=True)
+            _LOGGER.warning("integrity_check failed", exc_info=True)
             return False
 
     async def async_migrate_features_to_v11(self) -> int:
@@ -487,7 +487,7 @@ class CycleDB:
                 await conn.commit()
             return True
         except Exception:
-            _LOGGER.debug("update_cycle_cluster failed", exc_info=True)
+            _LOGGER.warning("update_cycle_cluster failed", exc_info=True)
             return False
 
     async def async_count_by_cluster(self) -> dict[int, int]:  # pragma: no cover

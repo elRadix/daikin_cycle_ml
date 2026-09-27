@@ -222,7 +222,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 self._db_integrity_ok = await self.db.async_integrity_check()
             except Exception:
                 self._db_integrity_ok = False
-                _LOGGER.debug("integrity_check post-maintenance failed", exc_info=True)
+                _LOGGER.warning("integrity_check post-maintenance failed", exc_info=True)
         out = {'ok': True, 'ts': now}
         if isinstance(result, dict):
             out.update(result)
@@ -259,7 +259,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     await self.db.async_ensure_cluster_column()
                 await self._load_kmeans_state()
             except Exception:
-                _LOGGER.debug("cluster state setup failed", exc_info=True)
+                _LOGGER.warning("cluster state setup failed", exc_info=True)
         if self._baseline_save_unsub is None:
             self._baseline_save_unsub = async_track_time_interval(
                 self.hass,
@@ -466,7 +466,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     record.get("off_s"),
                 )
             except Exception:
-                _LOGGER.debug("adaptive observe_cycle failed", exc_info=True)
+                _LOGGER.warning("adaptive observe_cycle failed", exc_info=True)
             per_mode = self.baseline.get(mode)
             per_mode.update(vector)
             result = evaluate_anomaly(vector, per_mode, self.options)
@@ -498,7 +498,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                             cid, cid_val
                         )
                 except Exception:
-                    _LOGGER.debug("cluster assign failed", exc_info=True)
+                    _LOGGER.warning("cluster assign failed", exc_info=True)
         except Exception:
             _LOGGER.exception("DB persist failed")
 
