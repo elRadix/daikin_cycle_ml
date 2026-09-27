@@ -225,6 +225,7 @@ def _attrs_stooklijn(s, c):
     data = s.stooklijn_advies or {}
     return {
         "optimale_lwt": data.get("optimale_lwt"),
+        "reason": data.get("reason", ""),
         "huidige_lwt": data.get("huidige_lwt"),
         "besparing_cop_pct": data.get("besparing_cop_pct"),
         "comfort_impact": data.get("comfort_impact"),
@@ -417,6 +418,7 @@ def _stooklijn_attrs(data: Any) -> dict[str, Any]:
         return {}
     return {
         "optimale_lwt": data.get("optimale_lwt"),
+        "reason": data.get("reason", ""),
         "huidige_lwt": data.get("huidige_lwt"),
         "besparing_cop_pct": data.get("besparing_cop_pct"),
         "comfort_impact": data.get("comfort_impact"),
