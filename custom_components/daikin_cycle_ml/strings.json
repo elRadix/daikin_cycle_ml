@@ -25,8 +25,7 @@
       },
       "attributes": {
         "title": "Attribute check",
-        "description": "Core attributes on the source sensor: **{present} / {total}** present.\n\n**Present:**\n{present_list}\n\n**Missing:**\n{missing_list}",
-        "data_description": {}
+        "description": "Core attributes on the source sensor: **{present} / {total}** present.\n\n**Present:**\n{present_list}\n\n**Missing:**\n{missing_list}"
       },
       "cycle": {
         "title": "Cycle detection",
@@ -102,8 +101,7 @@
       },
       "finalize": {
         "title": "Confirm",
-        "description": "Model: {model}. Source: {source}. Submit to create the entry.",
-        "data_description": {}
+        "description": "Model: {model}. Source: {source}. Submit to create the entry."
       },
       "reconfigure": {
         "title": "Reconfigure Daikin Cycle ML",
@@ -111,8 +109,7 @@
         "menu_options": {
           "reconfigure_basic": "Source sensor and model only (quick)",
           "reconfigure_full": "Full wizard (all settings)"
-        },
-        "data_description": {}
+        }
       },
       "reconfigure_basic": {
         "title": "Source sensor and model",
@@ -128,8 +125,7 @@
       },
       "reconfigure_full": {
         "title": "Full wizard",
-        "description": "Rerun the full wizard. All current values are prefilled as defaults.",
-        "data_description": {}
+        "description": "Rerun the full wizard. All current values are prefilled as defaults."
       }
     },
     "error": {
@@ -177,6 +173,17 @@
           "maintenance": "Retention, daily rollup, VACUUM",
           "test_notification": "Send one sample alert to the notify target",
           "test_all_notifications": "One click — sends one of each alert type (filters bypassed)"
+        },
+        "data": {
+          "compressor_rps_threshold": "Compressor RPS threshold",
+          "short_run_threshold_min": "Short run threshold (min)",
+          "pendulum_cycles_per_day": "Pendulum cycles per day",
+          "good_run_threshold_min": "Good run threshold (min)",
+          "persistent_enabled": "Persistent notifications",
+          "retention_enabled": "Retention enabled",
+          "cycle_retention_days": "Cycle retention (days)",
+          "alert_retention_days": "Alert retention (days)",
+          "vacuum_enabled": "VACUUM on maintenance"
         }
       },
       "device": {
@@ -319,8 +326,7 @@
       },
       "test_notification_result": {
         "title": "Test result",
-        "description": "Kind: **{kind}**\n\nResult: **{status}**\n\nPreview:\n```\n{preview}\n```\n\nSubmit to return to the options menu.",
-        "data_description": {}
+        "description": "Kind: **{kind}**\n\nResult: **{status}**\n\nPreview:\n```\n{preview}\n```\n\nSubmit to return to the options menu."
       },
       "test_all_notifications": {
         "title": "Send all test notifications",

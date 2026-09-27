@@ -25,8 +25,7 @@
       },
       "attributes": {
         "title": "Attribuut-controle",
-        "description": "Kern-attributen op de bronsensor: **{present} / {total}** aanwezig.\n\n**Aanwezig:**\n{present_list}\n\n**Ontbrekend:**\n{missing_list}",
-        "data_description": {}
+        "description": "Kern-attributen op de bronsensor: **{present} / {total}** aanwezig.\n\n**Aanwezig:**\n{present_list}\n\n**Ontbrekend:**\n{missing_list}"
       },
       "cycle": {
         "title": "Cyclusdetectie",
@@ -102,8 +101,7 @@
       },
       "finalize": {
         "title": "Bevestigen",
-        "description": "Model: {model}. Source: {source}. Submit to create the entry.",
-        "data_description": {}
+        "description": "Model: {model}. Source: {source}. Submit to create the entry."
       },
       "reconfigure": {
         "title": "Daikin Cycle ML opnieuw configureren",
@@ -111,8 +109,7 @@
         "menu_options": {
           "reconfigure_basic": "Source sensor and model only (quick)",
           "reconfigure_full": "Full wizard (all settings)"
-        },
-        "data_description": {}
+        }
       },
       "reconfigure_basic": {
         "title": "Bronsensor en model",
@@ -128,8 +125,7 @@
       },
       "reconfigure_full": {
         "title": "Volledige wizard",
-        "description": "Rerun the full wizard. All current values are prefilled as defaults.",
-        "data_description": {}
+        "description": "Rerun the full wizard. All current values are prefilled as defaults."
       }
     },
     "error": {
@@ -177,6 +173,17 @@
           "maintenance": "Retentie, dagelijkse rollup, VACUUM",
           "test_notification": "Stuur één voorbeeldmelding naar het melding-doel",
           "test_all_notifications": "Eén klik — stuurt elk alert-type in één keer (filters omzeild)"
+        },
+        "data": {
+          "compressor_rps_threshold": "Compressor RPS drempel",
+          "short_run_threshold_min": "Korte run drempel (min)",
+          "pendulum_cycles_per_day": "Pendel cycli per dag",
+          "good_run_threshold_min": "Goede run drempel (min)",
+          "persistent_enabled": "Persistente meldingen",
+          "retention_enabled": "Retentie ingeschakeld",
+          "cycle_retention_days": "Cyclus retentie (dagen)",
+          "alert_retention_days": "Alert retentie (dagen)",
+          "vacuum_enabled": "VACUUM bij onderhoud"
         }
       },
       "device": {
@@ -319,8 +326,7 @@
       },
       "test_notification_result": {
         "title": "Testresultaat",
-        "description": "Type: **{kind}**\n\nResultaat: **{status}**\n\nVoorbeeld:\n```\n{preview}\n```\n\nBevestig om terug te keren naar het optiemenu.",
-        "data_description": {}
+        "description": "Type: **{kind}**\n\nResultaat: **{status}**\n\nVoorbeeld:\n```\n{preview}\n```\n\nBevestig om terug te keren naar het optiemenu."
       },
       "test_all_notifications": {
         "title": "Alle testmeldingen versturen",
