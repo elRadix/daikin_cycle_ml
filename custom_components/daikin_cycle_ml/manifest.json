@@ -1,19 +1,19 @@
 {
   "domain": "daikin_cycle_ml",
   "name": "Daikin Cycle ML",
-  "version": "1.0.2",
-  "documentation": "https://github.com/elRadix/daikin_cycle_ml",
-  "issue_tracker": "https://github.com/elRadix/daikin_cycle_ml/issues",
-  "dependencies": [],
   "codeowners": [
     "@elRadix"
   ],
-  "requirements": [],
-  "iot_class": "calculated",
-  "integration_type": "helper",
-  "quality_scale": "gold",
   "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/elRadix/daikin_cycle_ml",
+  "integration_type": "helper",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/elRadix/daikin_cycle_ml/issues",
   "loggers": [
     "custom_components.daikin_cycle_ml"
-  ]
+  ],
+  "quality_scale": "gold",
+  "requirements": [],
+  "version": "1.0.2"
 }
