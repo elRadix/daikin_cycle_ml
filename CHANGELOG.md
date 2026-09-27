@@ -1,6 +1,17 @@
 # Changelog
 
 ## [Unreleased]
+<!-- batch-cf2-20260928 -->
+### Changed
+- `dashboard/cards/simple-card/preview.png`: 574 KB -> 150 KB
+  via palette-256 quantization. No visual difference for dashboard
+  card usage.
+- `.gitignore`: removed stale deployment-symlink-bridge block
+  (obsolete since v1.1.0 HACS layout restructure).
+
+### Removed
+- Host-side: `daikin_test_old` container (1.23 GB writable layer);
+  fallback no longer needed after v1.1.1 prod verification.
 
 ## [1.1.1] - 2026-09-28
 
