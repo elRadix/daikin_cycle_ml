@@ -665,4 +665,3 @@ class CycleDB:
             return float(row[0])
         except Exception:
             return None
-

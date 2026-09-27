@@ -224,4 +224,3 @@ def bucket_summary(
         ))
     items.sort(key=lambda t: t[0])
     return {k: v for _, k, v in items}
-

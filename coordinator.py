@@ -951,9 +951,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             hours = int(opts.get("status_update_interval_hours", 24))
         except (TypeError, ValueError):
             hours = 24
-        if hours < 1:
-            hours = 1
-        from datetime import timedelta
+        hours = max(hours, 1)
         self._status_update_unsub = async_track_time_interval(
             self.hass,
             self._async_status_update_callback,

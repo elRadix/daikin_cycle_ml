@@ -209,7 +209,7 @@ def build_stooklijn_report(cache, *, language="en", emoji_enabled=True):
     """Bilingual stooklijn advice report."""
     if not isinstance(cache, Mapping):
         cache = {}
-    is_nl = (language == "nl")
+    is_nl = language == "nl"
     title = "Stooklijn advies" if is_nl else "Stooklijn advice"
     state_raw = str(cache.get("state") or "unknown")
     _labels = (STOOKLIJN_STATE_LABEL_NL if is_nl
@@ -254,7 +254,7 @@ def build_stooklijn_report(cache, *, language="en", emoji_enabled=True):
 
 def build_cop_low_report(cop, samples, *, language="en", emoji_enabled=True):
     """Bilingual low-COP report."""
-    is_nl = (language == "nl")
+    is_nl = language == "nl"
     title = "Dag-COP laag" if is_nl else "Day COP low"
     lbl_cop = "COP"
     lbl_th = "Drempel" if is_nl else "Threshold"

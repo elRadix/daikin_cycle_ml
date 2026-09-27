@@ -196,4 +196,3 @@ class AdaptiveThresholds:
             f'AdaptiveThresholds(min_samples={self.min_samples}, '
             f'modes={len(self.modes())}, samples={self.total_samples()})'
         )
-

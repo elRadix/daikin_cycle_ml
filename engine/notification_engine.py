@@ -296,7 +296,6 @@ def evaluate_alerts(
         if _grp and options.get(f"alert_group_{_grp}", True) is False:
             _LOGGER.debug("group disabled: %s (%s)", alert_type, _grp)
             continue
-            continue
         if severity != SEV_CRITICAL and quiet:
             _LOGGER.debug("quiet hours: suppressing %s", alert_type)
             continue

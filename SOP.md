@@ -154,28 +154,28 @@ For each release:
 
 ## 10. Run.py regels (R83-R92)
 
-Aanvulling op DEEL 2 van de handoff. Toegevoegd in batch 52c.
+Supplement to DEEL 2 of the handoff. Added in batch 52c.
 
 | Regel | Inhoud |
 |-------|--------|
-| R83 | Bootstrap P0: verifieer ruff + sqlite3 + pylint aanwezig voor gebruik |
-| R84 | Fragile test-files: async setup_entry altijd asyncio.wait_for(timeout=3); OptionsFlow tests altijd conftest autouse reload-mock |
+| R83 | Bootstrap P0: verify ruff + sqlite3 + pylint present before use |
+| R84 | Fragile test-files: async setup_entry always asyncio.wait_for(timeout=3); OptionsFlow tests always conftest autouse reload-mock |
 | R85 | Wall-time tracking. Full suite >90s -> flag voor refactor |
-| R86 | Version bump = een commit. Versie + CHANGELOG + README + tag + push in een batch |
-| R87 | Context oranje 80%+ en >3 iteraties op dezelfde batch: STOP, handoff, verse chat |
-| R88 | CI compliance. Pylint + ruff beide groen. .pylintrc scope = integratie-code |
-| R89 | Pytest exit code via pipe onbetrouwbaar. Gebruik subprocess.run(cmd, capture_output=True) zonder shell-pipe, dan Python-side tail |
-| R90 | File Editor faalt stil bij bestanden >5 KB. Fallback: heredoc chunks via SSH addon (cat > /config/run.py << 'RUNEOF'). Verifieer altijd met marker-grep + wc -l |
-| R91 | Amend + reset --soft: hash-bewust. Bij batch-mix: git commit --amend -m "<nieuwe boodschap>". Force-with-lease verwacht na amend |
-| R92 | Amend-fix mag niet committen bij rode pytest. P5->P6 sequentie hard stoppen als pytest faalt. Geen try/except rond commit-stap |
+| R86 | Version bump = one commit. Version + CHANGELOG + README + tag + push in one batch |
+| R87 | Context orange 80%+ and >3 iterations on same batch: STOP, handoff, fresh chat |
+| R88 | CI compliance. Pylint + ruff both green. .pylintrc scope = integration code |
+| R89 | Pytest exit code via pipe unreliable. Use subprocess.run(cmd, capture_output=True) without shell pipe, then Python-side tail |
+| R90 | File Editor fails silently on files >5 KB. Fallback: heredoc chunks via SSH addon (cat > /config/run.py << 'RUNEOF'). Always verify with marker-grep + wc -l |
+| R91 | Amend + reset --soft: hash-aware. On batch-mix: git commit --amend -m "<new message>". Force-with-lease expected after amend |
+| R92 | Amend-fix must not commit on red pytest. P5->P6 sequence hard-stop if pytest fails. No try/except around commit step |
 
 ## 11. Correcties op eerdere notities
 
-- README executable bit: was 100644 (correct). Geen chmod nodig. Handoff-notitie was fout.
-- Entity binary_sensor.daikin_cycle_ml_missing_attributes (niet _attrs).
-  Repair issue-id blijft missing_attrs (interne identifier).
+- README executable bit: was 100644 (correct). No chmod needed. Handoff note was wrong.
+- Entity binary_sensor.daikin_cycle_ml_missing_attributes (not _attrs).
+  Repair issue-id remains missing_attrs (internal identifier).
 - Stooklijn advies states: verlaag_lwt_2c, verhoog_lwt_2c, behoud, unknown.
-- Entity counts: 9 sensors + 15 binary sensors = 24 (niet 26+16 of 29+19).
+- Entity counts: 9 sensors + 15 binary sensors = 24 (not 26+16 or 29+19).
 - Repairs (5): source_stale, missing_attrs, db_corrupt, notify_failed, migration_failed.
 - Services (6): reset_counters, export_cycles, label_cycle, recompute_baseline, run_maintenance, send_test_notification.
 - DB tables (7): cycles, features, alerts, daily_summary, cop_samples, model_state, sqlite_sequence.

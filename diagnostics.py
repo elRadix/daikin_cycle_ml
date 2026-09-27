@@ -171,4 +171,3 @@ async def async_get_config_entry_diagnostics(
             "extra": await _db_extra(db),
         },
     }
-
