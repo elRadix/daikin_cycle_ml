@@ -7,7 +7,8 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).parent.parent
+_PROJECT_ROOT = Path(__file__).parent.parent
+ROOT = _PROJECT_ROOT / "custom_components" / "daikin_cycle_ml"
 JSON_FILES = [
     "strings.json",
     "translations/en.json",
@@ -35,5 +36,5 @@ def test_version_consistent_in_three_files():
     assert len(parts) == 3 and all(p.isdigit() for p in parts), ver
     mf = json.loads((ROOT / "manifest.json").read_text())
     assert mf.get("version") == ver
-    pp = (ROOT / "pyproject.toml").read_text()
+    pp = (_PROJECT_ROOT / "pyproject.toml").read_text()
     assert ver in pp

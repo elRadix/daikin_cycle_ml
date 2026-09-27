@@ -11,4 +11,4 @@ venv/
 *.bak
 *.bak-v*
 *.log
-custom_components/daikin_cycle_ml
+MagicMock/

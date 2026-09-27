@@ -12,7 +12,8 @@ from custom_components.daikin_cycle_ml.engine.status_report import (
     build_rich_alert,
 )
 
-ROOT = Path(__file__).parent.parent
+_PROJECT_ROOT = Path(__file__).parent.parent
+ROOT = _PROJECT_ROOT / "custom_components" / "daikin_cycle_ml"
 JSON_FILES = [
     "strings.json",
     "translations/en.json",

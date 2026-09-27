@@ -5,11 +5,15 @@ import json
 import re
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ROOT = _PROJECT_ROOT / "custom_components" / "daikin_cycle_ml"
 
 
 def _read(p: str) -> str:
-    return (ROOT / p).read_text()
+    target = ROOT / p
+    if target.exists():
+        return target.read_text()
+    return (_PROJECT_ROOT / p).read_text()
 
 
 def test_version_1_0_0_in_const():

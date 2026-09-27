@@ -62,7 +62,7 @@ def test_options_flow_notifications_has_language_and_groups():
 
 
 def test_translations_pendulum_has_osc_keys():
-    base = os.path.join(os.path.dirname(__file__), "..", "translations")
+    base = os.path.join(os.path.dirname(__file__), "..", "custom_components", "daikin_cycle_ml", "translations")
     for fn in ("en.json", "nl.json"):
         with open(os.path.join(base, fn), encoding="utf-8") as f:
             data = json.load(f)
@@ -78,7 +78,7 @@ def test_translations_pendulum_has_osc_keys():
 
 
 def test_translations_notifications_has_language_and_groups():
-    base = os.path.join(os.path.dirname(__file__), "..", "translations")
+    base = os.path.join(os.path.dirname(__file__), "..", "custom_components", "daikin_cycle_ml", "translations")
     for fn in ("en.json", "nl.json"):
         with open(os.path.join(base, fn), encoding="utf-8") as f:
             data = json.load(f)
@@ -98,9 +98,9 @@ def test_translations_notifications_has_language_and_groups():
 
 def test_strings_json_mirrors_en():
     base = os.path.dirname(__file__)
-    with open(os.path.join(base, "..", "strings.json"), encoding="utf-8") as f:
+    with open(os.path.join(base, "..", "custom_components", "daikin_cycle_ml", "strings.json"), encoding="utf-8") as f:
         s = json.load(f)
-    with open(os.path.join(base, "..", "translations", "en.json"), encoding="utf-8") as f:
+    with open(os.path.join(base, "..", "custom_components", "daikin_cycle_ml", "translations", "en.json"), encoding="utf-8") as f:
         e = json.load(f)
     sd = s["options"]["step"]["notifications"]["data"]
     ed = e["options"]["step"]["notifications"]["data"]

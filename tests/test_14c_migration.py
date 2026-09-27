@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+_INTEG = Path(__file__).resolve().parent.parent / "custom_components" / "daikin_cycle_ml"
 
 import pytest
 
@@ -125,18 +126,18 @@ def test_multibaseline_new_instance_is_12dim():
 
 def test_dummy_prod_db_migration_path():
     """Verifieer dat de migratie-call in __init__.py staat."""
-    init_path = Path(__file__).parent.parent / '__init__.py'
+    init_path = _INTEG / "__init__.py"
     src = init_path.read_text()
     assert 'async_migrate_features_to_v11' in src
 
 
 def test_multibaseline_source_has_legacy_import():
-    mb_path = Path(__file__).parent.parent / 'ml' / 'multi_baseline.py'
+    mb_path = _INTEG / "ml" / "multi_baseline.py"
     src = mb_path.read_text()
     assert 'VECTOR_LEN_LEGACY' in src
 
 
 def test_coordinator_has_kmeans_guard():
-    co_path = Path(__file__).parent.parent / 'coordinator.py'
+    co_path = _INTEG / "coordinator.py"
     src = co_path.read_text()
     assert 'kmeans_state is legacy' in src

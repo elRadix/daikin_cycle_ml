@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent.parent
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ROOT = _PROJECT_ROOT / "custom_components" / "daikin_cycle_ml"
 ISSUES = ["db_corrupt", "notify_failed", "migration_failed"]
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
+_INTEG = Path(__file__).resolve().parent.parent / "custom_components" / "daikin_cycle_ml"
 from unittest.mock import patch
 
 import pytest
@@ -213,7 +214,7 @@ def test_new_defaults_defined():
 
 
 def test_options_flow_source_contains_new_fields():
-    src = (Path(__file__).parent.parent / "config_flow.py").read_text()
+    src = (_INTEG / "config_flow.py").read_text()
     for key in (
         "retention_enabled",
         "cycle_retention_days",

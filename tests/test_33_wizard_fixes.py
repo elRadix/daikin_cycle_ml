@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).parent.parent
+_PROJECT_ROOT = Path(__file__).parent.parent
+ROOT = _PROJECT_ROOT / "custom_components" / "daikin_cycle_ml"
 JSON_FILES = [
     "strings.json",
     "translations/en.json",
