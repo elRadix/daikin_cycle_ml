@@ -22,6 +22,8 @@ jobs:
           pip install pytest-homeassistant-custom-component
           pip install homeassistant aiosqlite
       - name: Run pytest with coverage gate
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           python -m pytest -q --no-header \
             --cov=custom_components.daikin_cycle_ml \
