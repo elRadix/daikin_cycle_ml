@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-09-28
+
+### Added (dashboard)
+- `dashboard/cards/simple-card/` — Lovelace YAML, full README
+  (installation, dependencies, language toggle) and preview
+  screenshot. Daikin-blue theme, hydraulic diagram, live phase
+  indicator, alerts, stooklijn advice.
+- `dashboard/README.md` — index of cards with general install
+  instructions.
+- `README.md` `## Showcase` section with the simple-card preview
+  image, placed right after the badges.
+
+### Documentation (also in this release)
 <!-- batch-bc-20260927 -->
 ### Added (post-v1.1.0, docs)
 - `HANDOFF_SOP.md`: self-contained SOP for handoff generation and
