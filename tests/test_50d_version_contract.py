@@ -16,19 +16,19 @@ def test_version_1_0_0_in_const():
     src = _read("const.py")
     m = re.search(r'VERSION\s*=\s*"([^"]+)"', src)
     assert m, "VERSION not found in const.py"
-    assert m.group(1) == "1.0.0"
+    assert m.group(1) == "1.0.1"
 
 
 def test_version_1_0_0_in_manifest():
     man = json.loads(_read("manifest.json"))
-    assert man["version"] == "1.0.0"
+    assert man["version"] == "1.0.1"
 
 
 def test_version_consistent_three_files():
     const_v = re.search(r'VERSION\s*=\s*"([^"]+)"', _read("const.py")).group(1)
     man_v = json.loads(_read("manifest.json"))["version"]
     proj_v = re.search(r'(?m)^version\s*=\s*"([^"]+)"', _read("pyproject.toml")).group(1)
-    assert const_v == man_v == proj_v == "1.0.0"
+    assert const_v == man_v == proj_v == "1.0.1"
 
 
 def test_codeowners_present():
