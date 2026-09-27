@@ -1,24 +1,66 @@
 # Changelog
 
-## [Unreleased]
+## [1.0.1] - 2026-09-27
+
+### Added
+- `cop_samples.mode` column + v13 migration (idempotent ALTER TABLE).
+- `CopSample.ts` + `StooklijnAdvies.reason` dataclass fields.
+- `STOOKLIJN_RECENT_WINDOW_S` (48h) recency window in `cop_analyzer`.
+- `_resolve_cop_sample_mode()` in coordinator: `snap.mode` -> direct `I/U`
+  operation mode from attrs -> `classify_mode(attrs)` -> `"unknown"` (Bug I).
+- `reason` attribute on `sensor.stooklijn_advies` (Bug G).
+- DHW-mode gating for `short_run` / `short_off` / `pendulum_hourly` alerts (Bug H).
+- `_build_alert_context` mode fallback to `last_cycle.mode` (52b5).
+- SOP.md rules R93-R100.
+- CI Coverage workflow (Ruff + Pylint + Coverage, 3 workflows).
+- `custom_components/__init__.py` package marker (52b8i).
+- `.gitignore` entry for `custom_components/daikin_cycle_ml` dev symlink (52b9).
+- ROADMAP.md state-space binning open questions (52c-docs).
+
+### Changed
+- `analyze_stooklijn`: DHW-aware (`mode in (heating, unknown)`) + recency filter.
+- `_maybe_refresh_stooklijn`: DHW-check before cache-check.
+- `_maybe_collect_cop_sample`: persist mode via `_resolve_cop_sample_mode`.
+- `dhw_active`: requires `I/U == DHW` AND (`state == "running"` OR BUH active) (Bug A).
+- `sensor.current_cycle.dt_k`: returns `None` when state != "running" (Bug C).
+- 6 silent debug handlers promoted to warning (51d).
+- Pylint 9.94 -> 10.00.
+- English docs (SOP.md + CHANGELOG.md) (R97).
+- CI coverage.yml: replicate custom_components symlink + homeassistant/aiosqlite deps (52b8j).
 
 ### Fixed
-- Bug A (52a): `dhw_active` triggered on 3-way valve rest position (DHW fail-safe).
-  Now requires `I/U == DHW` AND (`state=="running"` OR BUH active).
+- Bug A (52a): `dhw_active` triggered on 3-way valve rest position.
 - Bug B (52b): stooklijn analysis mixed DHW samples with heating samples.
-  `cop_samples.mode` column (v13 migration, idempotent). `analyze_stooklijn`
-  and `_group_by_bucket` filter on `mode in (heating, unknown)`.
-  `_maybe_collect_cop_sample` persists mode.
 - Bug C (52a): `sensor.current_cycle.dt_k` returned stale value when idle.
-  Now returns `None` if state != "running".
+- Bug D: README entity `missing_attrs` -> `missing_attributes`.
+- Bug E: README documented `verlaag_lwt` instead of `verlaag_lwt_2c`.
+- Bug F: stooklijn mixed DHW samples with heating (paired with Bug B).
+- Bug G: `reason` attribute not exposed on stooklijn_advies sensor.
+- Bug H: short_run/short_off/pendulum alerts fired during DHW.
+- Bug I: cop_samples.mode inconsistent during DHW (I/U attrs fallback).
+- CI Coverage `ModuleNotFoundError` (symlink, R98).
+- 102 `ModuleNotFoundError` in pytest collection (dual custom_components, R99).
 
-### Docs
-- README: `verlaag_lwt` -> `verlaag_lwt_2c` (Bug E).
-- README: entity `missing_attrs` -> `missing_attributes` (Bug D).
-- README: test count + coverage updated (1310, 95.11%).
-- CHANGELOG: [Unreleased] section with 52a/52b fixes.
-- SOP.md: run.py rules R83-R92 added; entity counts corrected.
+### Removed
+- `.pylintrc` inline comment `# (DB CRUD)`.
+- Coverage CI disable fallback (52b8h-fallback, R72).
 
+### Version
+- 1.0.1 (patch: bugfixes + docs + CI only, no breaking changes).
+
+### Test suite
+- Coverage: 95.45%
+- Ruff: clean
+- Pylint: 10.00/10
+- CI: Ruff + Pylint + Coverage pending on this commit.
+
+### Known limitations
+- Per-module coverage below 95%: `coordinator.py` 91%,
+  `engine/attribute_reader.py` 93%, `engine/action_engine.py` 93%,
+  `ml/adaptive_thresholds.py` 94%.
+- `CoverageWarning: module-not-measured` (cosmetic, dual-path import).
+- IQS Gold: MQTT-discovery missing.
+- `mypy --strict` not yet done (Platinum blocker).
 
 ## [1.0.0] - 2026-09-26
 
