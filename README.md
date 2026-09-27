@@ -845,6 +845,12 @@ Run pylint:
 
 ---
 
+## Support
+
+Daikin Cycle ML is free and open-source, built and maintained in my own time. No cloud, no accounts, no telemetry - your heat pump data stays on your Home Assistant instance. If this integration has helped you cut down pendelen, understand your cycles, or improve your COP, a coffee is always appreciated and helps keep the project going.
+
+[![Buy me a coffee](assets/buy-me-a-coffee.png)](https://buymeacoffee.com/elradix)
+
 ## License
 
 See [LICENSE](LICENSE).
