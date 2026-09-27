@@ -693,6 +693,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             message=msg,
             notif_id='daikin_cop_low',
             alert_type='cop_low',
+            context={
+                "cop": float(cop),
+                "samples": int(samples),
+                "mode": self._resolve_cop_sample_mode(),
+            },
         )
         try:
             await self._emit_alert(alert)
@@ -955,7 +960,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "setpoint_osc": self._compute_setpoint_oscillating(),
         }
 
-    def _assign_cluster(self, vector: list[float]) -> int | None:  # pragma: no cover
+    def _assign_cluster(self, vector: list[float]) -> int | None:
         if not self._kmeans_centroids:
             return None
         try:
@@ -963,7 +968,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             return None
 
-    def cluster_label(self, cluster_id: int | None) -> str | None:  # pragma: no cover
+    def cluster_label(self, cluster_id: int | None) -> str | None:
         if cluster_id is None:
             return None
         return self._cluster_labels.get(cluster_id)
@@ -1588,9 +1593,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not (isinstance(svc, str) and "." in svc):
             return
         domain, service = svc.split(".", 1)
+        payload: dict[str, Any] = {"message": alert.message}
+        ctx = getattr(alert, "context", None)
+        if isinstance(ctx, dict):
+            payload.update(ctx)
         try:
             await self.hass.services.async_call(
-                domain, service, {"message": alert.message}, blocking=False,
+                domain, service, payload, blocking=False,
             )
             self._notify_fail_streak = 0
         except Exception:

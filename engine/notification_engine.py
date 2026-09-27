@@ -44,6 +44,7 @@ class AlertSpec:
     notif_id: str
     dedupe_key: str
     persistent: bool = True
+    context: dict[str, Any] | None = None
 
 
 # trigger binary key -> (alert_type, severity, message template)
