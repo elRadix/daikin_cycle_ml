@@ -238,7 +238,7 @@ class CycleDB:
         )
         try:
             await conn.commit()
-            rowcount = cur.rowcount
+            rowcount = int(cur.rowcount)
         finally:
             await cur.close()
         return rowcount > 0
