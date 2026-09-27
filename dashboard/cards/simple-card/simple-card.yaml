@@ -1,0 +1,411 @@
+type: custom:stack-in-card
+card_mod:
+  style: |
+    ha-card {
+      border: 3px solid #0097E0;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #F5FAFD 0%, #E6F4FB 50%, #D6ECF7 100%);
+      box-shadow: 0 8px 24px rgba(0, 151, 224, 0.25);
+      overflow: visible;
+    }
+cards:
+  - type: custom:mushroom-template-card
+    primary: 🔵 DAIKIN CYCLE ML
+    secondary: Live cyclus · COP · kwaliteit · alerts
+    icon: mdi:heat-pump
+    icon_color: blue
+    multiline_secondary: true
+    card_mod:
+      style: >
+        ha-card { background: none; box-shadow: none; border-bottom: 3px solid
+        #0097E0; border-radius: 0; padding: 10px 16px; }
+
+        .primary { color: #003366 !important; font-weight: 900 !important;
+        font-size: 1.1em !important; text-transform: uppercase; letter-spacing:
+        0.6px; }
+
+        .secondary { color: #00539F !important; font-size: 0.85em !important;
+        font-weight: 700 !important; }
+  - type: custom:button-card
+    show_name: false
+    show_icon: false
+    styles:
+      grid:
+        - grid-template-areas: '"content"'
+        - grid-template-columns: 1fr
+      card:
+        - background: none
+        - box-shadow: none
+        - border: none
+        - padding: 10px 10px 6px 10px
+        - overflow: visible
+      custom_fields:
+        content:
+          - width: 100%
+    custom_fields:
+      content: |
+        [[[
+          /* ============ LANGUAGE ============ */
+          var LANG = 'nl';  /* 'nl' | 'en' */
+
+          /* ============ helpers ============ */
+          var st = function(s,d){ if(d===undefined)d=0; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='')return d; var v=parseFloat(x.state); return isNaN(v)?d:v; };
+          var stStr = function(s,d){ if(d===undefined)d='—'; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='none'||x.state==='')return d; return x.state; };
+          var isOn = function(s){ var x=states[s]; if(!x||!x.state)return false; var v=String(x.state).toLowerCase(); return v==='on'||v==='true'||v==='1'; };
+          var hasV = function(v){ return v!==null && v!==undefined && v!=='' && String(v)!=='None'; };
+          var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.',','); };
+          var v2 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(2).replace('.',','); };
+          var vI = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Math.round(parseFloat(v)).toString(); };
+          var attr = function(id,n,d){ try{ var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
+          var aN = function(id,n,d){ var v=attr(id,n,null); if(v===null)return d; var x=parseFloat(v); return isNaN(x)?d:x; };
+          var aB = function(id,n,d){ var v=attr(id,n,d); if(typeof v==='boolean')return v; var s=String(v).toLowerCase(); if(s==='true'||s==='on'||s==='1')return true; if(s==='false'||s==='off'||s==='0')return false; return d; };
+          var tr = function(s,m){ if(!s) return '—'; var t=String(s); return t.length>m ? t.slice(0,m-1)+'…' : t; };
+
+          /* ============ i18n ============ */
+          var STR = {
+            nl: {
+              sub:'Live cyclus · COP · kwaliteit · alerts',
+              phase:'Fase', cop:'COP', runs:'Runs', q:'Kwaliteit', src:'Bron',
+              today:'📅 Vandaag', last:'⏮️ Laatste cyclus',
+              dur:'Duur', avgDur:'Gem duur', avgOff:'Gem off', longest:'Langste',
+              ratio:'Good ratio', sr:'Short runs', mode:'Modus', outdoor:'Buiten',
+              dt:'ΔT', rps:'RPS', kw:'Vermogen', defrost:'Defrost', buh:'BUH',
+              stooklijn:'📈 Stooklijn advies', state:'State', bucket:'Bucket',
+              savings:'Besparing', comfort:'Comfort', reliability:'Betrouwbaar',
+              explain:'💡 COP hoger = beter · Q = kwaliteit 0-100 · Alerts bovenaan = actie',
+              noAlert:'✅ Systeem OK — geen actieve waarschuwingen',
+              alertOne:'actief', alertMore:'meer',
+              phases:{ idle:'IDLE', defrost:'DEFROST', buh:'BUH', dhw:'SWW',
+                       heating:'VERWARMEN', cooling:'KOELEN', running:'COMPRESSOR' }
+            },
+            en: {
+              sub:'Live cycle · COP · quality · alerts',
+              phase:'Phase', cop:'COP', runs:'Runs', q:'Quality', src:'Source',
+              today:'📅 Today', last:'⏮️ Last cycle',
+              dur:'Duration', avgDur:'Avg duration', avgOff:'Avg off', longest:'Longest',
+              ratio:'Good ratio', sr:'Short runs', mode:'Mode', outdoor:'Outdoor',
+              dt:'ΔT', rps:'RPS', kw:'Power', defrost:'Defrost', buh:'BUH',
+              stooklijn:'📈 Heating curve advice', state:'State', bucket:'Bucket',
+              savings:'Savings', comfort:'Comfort', reliability:'Reliability',
+              explain:'💡 Higher COP = better · Q = quality 0-100 · Alerts on top = action',
+              noAlert:'✅ System OK — no active warnings',
+              alertOne:'active', alertMore:'more',
+              phases:{ idle:'IDLE', defrost:'DEFROST', buh:'BUH', dhw:'DHW',
+                       heating:'HEATING', cooling:'COOLING', running:'COMPRESSOR' }
+            }
+          };
+          var t = function(k){ return (STR[LANG] && STR[LANG][k]) || (STR.en && STR.en[k]) || k; };
+
+          /* ============ entities ============ */
+          var S = {
+            state:'sensor.daikin_cycle_ml_cycle_state',
+            cur:'sensor.daikin_cycle_ml_current_cycle',
+            last:'sensor.daikin_cycle_ml_last_cycle',
+            today:'sensor.daikin_cycle_ml_today',
+            q:'sensor.daikin_cycle_ml_quality_today',
+            cop:'sensor.daikin_cycle_ml_cop_vandaag',
+            health:'sensor.daikin_cycle_ml_source_health',
+            learn:'sensor.daikin_cycle_ml_learned_thresholds',
+            stook:'sensor.daikin_cycle_ml_stooklijn_advies'
+          };
+          var B = {
+            comp:'binary_sensor.daikin_cycle_ml_compressor_running',
+            heat:'binary_sensor.daikin_cycle_ml_heating_active',
+            cool:'binary_sensor.daikin_cycle_ml_cooling_active',
+            dhw:'binary_sensor.daikin_cycle_ml_dhw_active',
+            defrost:'binary_sensor.daikin_cycle_ml_defrost_active',
+            buh:'binary_sensor.daikin_cycle_ml_buh_active',
+            shortRun:'binary_sensor.daikin_cycle_ml_short_run',
+            shortOff:'binary_sensor.daikin_cycle_ml_short_off',
+            pendH:'binary_sensor.daikin_cycle_ml_pendulum_hourly',
+            pendD:'binary_sensor.daikin_cycle_ml_pendulum_daily',
+            dhwPend:'binary_sensor.daikin_cycle_ml_dhw_pendulum',
+            highRate:'binary_sensor.daikin_cycle_ml_high_cycle_rate',
+            setpoint:'binary_sensor.daikin_cycle_ml_setpoint_oscillating',
+            stale:'binary_sensor.daikin_cycle_ml_source_stale',
+            missing:'binary_sensor.daikin_cycle_ml_missing_attributes'
+          };
+          var UPD = 'update.daikin_cycle_ml_update';
+
+          /* ============ read ============ */
+          var copV = st(S.cop,null);
+          var copMin=aN(S.cop,'cop_min',null), copMax=aN(S.cop,'cop_max',null);
+          var copSamples=aN(S.cop,'samples_today',0);
+          var cyc = st(S.today,0), target = aN(S.learn,'target_cycles_per_day',null);
+          var good=aN(S.q,'good_cycles',0), bad=aN(S.q,'bad_cycles',0), ratio=aN(S.q,'good_ratio_pct',null);
+          var age = st(S.health,null), err=aN(S.health,'coordinator_errors',0);
+          var isStale = aB(S.health,'is_stale',false);
+
+          var curDur=aN(S.cur,'duration_min',null), curDt=aN(S.cur,'dt_k',null), curRps=aN(S.cur,'rps',0);
+          var lastDur=aN(S.last,'duration_min',null), lastDt=aN(S.last,'dt_avg_k',null);
+          var lastRps=aN(S.last,'rps_avg',null), lastKw=aN(S.last,'thermal_kw_avg',null);
+          var lastMode=aN(S.last,'mode',null), lastOut=aN(S.last,'outdoor_temp',null);
+          var lastBuh=aB(S.last,'buh_used',false), lastDefr=aB(S.last,'defrost_used',false);
+          var lastClus=attr(S.last,'cluster',null);
+          var avgDur=aN(S.today,'avg_duration_min',null), avgOff=aN(S.today,'avg_off_time_min',null);
+          var longDur=aN(S.today,'longest_cycle_min',null), shortRuns=aN(S.today,'short_runs',0);
+
+          var stookState=stStr(S.stook,'unknown');
+          var stookBucket=attr(S.stook,'bucket',null);
+          var stookSav=aN(S.stook,'besparing_cop_pct',null);
+          var stookComf=aN(S.stook,'comfort_impact',null);
+          var stookRel=aN(S.stook,'betrouwbaarheid',null);
+
+          var compOn=isOn(B.comp), heatOn=isOn(B.heat), coolOn=isOn(B.cool), dhwOn=isOn(B.dhw);
+          var defr=isOn(B.defrost), buhOn=isOn(B.buh);
+          var buhStep=aN(B.buh,'step',0);
+
+          /* ============ phase ============ */
+          var phColor='#7f8c8d', phIcon='💤', phKey='idle';
+          if (defr)          { phKey='defrost'; phColor='#0097E0'; phIcon='❄️'; }
+          else if (buhOn)    { phKey='buh';     phColor='#F5A623'; phIcon='⚡'; }
+          else if (dhwOn)    { phKey='dhw';     phColor='#9b59b6'; phIcon='🚿'; }
+          else if (heatOn)   { phKey='heating'; phColor='#E60012'; phIcon='🔥'; }
+          else if (coolOn)   { phKey='cooling'; phColor='#0097E0'; phIcon='🧊'; }
+          else if (compOn)   { phKey='running'; phColor='#00539F'; phIcon='⚙️'; }
+          var phLabel = t('phases')[phKey] + (buhOn?' S'+buhStep:'');
+
+          var liveRps = compOn ? curRps : (lastRps || 0);
+          var useFan = compOn && liveRps>0;
+
+          var fanPath='M12,11A1,1 0 0,0 11,12A1,1 0 0,0 12,13A1,1 0 0,0 13,12A1,1 0 0,0 12,11M12.5,2C17,2 17.11,5.57 14.75,6.75C13.76,7.24 13.32,8.29 13.13,9.22C13.61,9.42 14.03,9.73 14.35,10.13C18.05,8.13 22.03,8.92 22.03,12.5C22.03,17 18.46,17.1 17.28,14.73C16.78,13.74 15.72,13.3 14.79,13.11C14.59,13.59 14.28,14 13.88,14.34C15.87,18.03 15.08,22 11.5,22C7,22 6.91,18.42 9.27,17.24C10.26,16.75 10.7,15.69 10.89,14.76C10.4,14.57 9.98,14.26 9.66,13.86C5.97,15.86 2,15.07 2,11.5C2,7 5.57,6.9 6.75,9.27C7.24,10.26 8.3,10.7 9.23,10.89C9.42,10.41 9.73,9.99 10.13,9.67C8.13,5.97 8.92,2 12.5,2Z';
+          var fanDur = function(r){ if(r>=75)return '0.4s'; if(r>=40)return '0.8s'; if(r>=15)return '1.5s'; if(r>0)return '3s'; return null; };
+          var fanHtml = function(r,sz,c){
+            var d=fanDur(r);
+            if(!d) return '<svg viewBox="0 0 24 24" width="'+sz+'" height="'+sz+'" fill="'+c+'"><path d="'+fanPath+'"/></svg>';
+            return '<svg viewBox="0 0 24 24" width="'+sz+'" height="'+sz+'" fill="'+c+'"><g style="transform-origin:12px 12px;"><path d="'+fanPath+'"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="'+d+'" repeatCount="indefinite"/></path></g></svg>';
+          };
+
+          /* ============ alerts ============ */
+          var alerts=[];
+          var A = {
+            missing: isOn(B.missing), stale: isOn(B.stale), buh: buhOn,
+            shortOff: isOn(B.shortOff), pendH: isOn(B.pendH), pendD: isOn(B.pendD),
+            shortRun: isOn(B.shortRun), dhwPend: isOn(B.dhwPend),
+            highRate: isOn(B.highRate), setpoint: isOn(B.setpoint),
+            copLow: copV!==null && copV<2.5,
+            defrost: lastDefr, buhLast: lastBuh,
+            update: isOn(UPD), isStale: isStale
+          };
+          var alertLabels = LANG==='nl' ? {
+            missing:'Attributen ontbreken', stale:'Bron verouderd', buh:'BUH actief',
+            shortOff:'Korte off-time', pendH:'Pendel/uur', pendD:'Pendel/dag',
+            shortRun:'Korte run', dhwPend:'SWW pendelt', highRate:'Hoge cyclusfrequentie',
+            setpoint:'Setpoint oscillatie', copLow:'COP laag', defrost:'Vorige: defrost',
+            buhLast:'Vorige: BUH', update:'Update beschikbaar', isStale:'is_stale flag'
+          } : {
+            missing:'Missing attributes', stale:'Source stale', buh:'BUH active',
+            shortOff:'Short off-time', pendH:'Pendulum/hour', pendD:'Pendulum/day',
+            shortRun:'Short run', dhwPend:'DHW cycling', highRate:'High cycle rate',
+            setpoint:'Setpoint oscillation', copLow:'COP low', defrost:'Previous: defrost',
+            buhLast:'Previous: BUH', update:'Update available', isStale:'is_stale flag'
+          };
+          function push(sev,icon,key){ if(A[key]) alerts.push({sev:sev,icon:icon,label:alertLabels[key]}); }
+          push('crit','❓','missing'); push('crit','📡','stale'); push('crit','⚡','buh');
+          push('crit','🚨','shortOff'); push('crit','🔁','pendH');
+          push('warn','🔄','pendD'); push('warn','⏱️','shortRun'); push('warn','🌊','dhwPend');
+          push('warn','📈','highRate'); push('warn','🎯','setpoint'); push('warn','📉','copLow');
+          push('info','❄️','defrost'); push('info','⚡','buhLast'); push('info','⬆️','update');
+          push('warn','🌐','isStale');
+          var sevOrd={crit:0,warn:1,info:2};
+          alerts.sort(function(a,b){return (sevOrd[a.sev]||3)-(sevOrd[b.sev]||3);});
+
+          /* ============ colors ============ */
+          var copColor = copV===null?'#7f8c8d':(copV>=4?'#4CAF50':copV>=2.5?'#F5A623':'#E60012');
+          var qColor = ratio===null?'#7f8c8d':(ratio>=70?'#4CAF50':ratio>=40?'#F5A623':'#E60012');
+          var ageColor = age===null?'#7f8c8d':(age<120?'#4CAF50':age<600?'#F5A623':'#E60012');
+          var liveDt = curDt!==null ? curDt : (lastDt||0);
+          var liveKw = lastKw||0;
+          var dtColor = liveDt>=5?'#4CAF50':liveDt>=3?'#F5A623':'#E60012';
+          var kwColor = liveKw>=3?'#4CAF50':liveKw>=1.5?'#F5A623':'#E60012';
+
+          /* ============ diagram SVG ============ */
+          var hW=420,hH=190;
+          var hpX=15,hpY=35,hpW=90,hpH=100;
+          var radX=315,radY=35,radW=90,radH=100;
+          var topY=55, botY=115;
+
+          var s='<svg viewBox="0 0 '+hW+' '+hH+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">';
+          s+='<defs>';
+          s+='<filter id="gl"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+          s+='<linearGradient id="warm" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#E60012"/><stop offset="100%" stop-color="#F5A623"/></linearGradient>';
+          s+='<linearGradient id="cold" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#00539F"/><stop offset="100%" stop-color="#66C2E8"/></linearGradient>';
+          s+='<radialGradient id="hpg"><stop offset="0%" stop-color="'+phColor+'" stop-opacity="0.35"/><stop offset="100%" stop-color="'+phColor+'" stop-opacity="0"/></radialGradient>';
+          s+='</defs>';
+
+          s+='<circle cx="'+(hpX+hpW/2)+'" cy="'+(hpY+hpH/2)+'" r="'+(hpW*0.9)+'" fill="url(#hpg)"/>';
+          s+='<circle cx="'+(radX+radW/2)+'" cy="'+(radY+radH/2)+'" r="'+(radW*0.9)+'" fill="url(#hpg)"/>';
+
+          s+='<line x1="'+(hpX+hpW)+'" y1="'+topY+'" x2="'+radX+'" y2="'+topY+'" stroke="url(#warm)" stroke-width="5" stroke-linecap="round"/>';
+          s+='<line x1="'+radX+'" y1="'+botY+'" x2="'+(hpX+hpW)+'" y2="'+botY+'" stroke="url(#cold)" stroke-width="5" stroke-linecap="round"/>';
+
+          if(compOn){
+            s+='<circle r="3.5" fill="#fff"><animateMotion dur="1.4s" repeatCount="indefinite" path="M'+(hpX+hpW)+','+topY+' L'+radX+','+topY+'"/></circle>';
+            s+='<circle r="3.5" fill="#fff" opacity="0.7"><animateMotion dur="1.4s" begin="0.7s" repeatCount="indefinite" path="M'+(hpX+hpW)+','+topY+' L'+radX+','+topY+'"/></circle>';
+            s+='<circle r="3.5" fill="#fff"><animateMotion dur="1.8s" repeatCount="indefinite" path="M'+radX+','+botY+' L'+(hpX+hpW)+','+botY+'"/></circle>';
+            s+='<circle r="3.5" fill="#fff" opacity="0.7"><animateMotion dur="1.8s" begin="0.9s" repeatCount="indefinite" path="M'+radX+','+botY+' L'+(hpX+hpW)+','+botY+'"/></circle>';
+          }
+
+          s+='<rect x="'+hpX+'" y="'+hpY+'" width="'+hpW+'" height="'+hpH+'" rx="14" fill="white" stroke="'+phColor+'" stroke-width="2.5"/>';
+          if(useFan && fanDur(liveRps)){
+            s+='<g transform="translate('+(hpX+hpW/2-14)+','+(hpY+10)+')"><g fill="'+phColor+'"><path d="'+fanPath+'"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="'+fanDur(liveRps)+'" repeatCount="indefinite"/></path></g></g>';
+          } else {
+            s+='<text x="'+(hpX+hpW/2)+'" y="'+(hpY+28)+'" text-anchor="middle" font-size="24" dominant-baseline="middle">'+phIcon+'</text>';
+          }
+          s+='<text x="'+(hpX+hpW/2)+'" y="'+(hpY+52)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+phColor+'" letter-spacing="0.6">WARMTEPOMP</text>';
+          s+='<text x="'+(hpX+hpW/2)+'" y="'+(hpY+70)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="14" font-weight="900" fill="#003366">'+vI(liveRps)+'<tspan font-size="8" fill="#5d6d7e" font-weight="700">rps</tspan></text>';
+          var rpsPct=Math.max(0,Math.min(100,(liveRps||0)/120*100));
+          s+='<rect x="'+(hpX+10)+'" y="'+(hpY+78)+'" width="'+(hpW-20)+'" height="4" rx="2" fill="rgba(0,51,102,0.08)"/>';
+          s+='<rect x="'+(hpX+10)+'" y="'+(hpY+78)+'" width="'+((hpW-20)*rpsPct/100)+'" height="4" rx="2" fill="'+phColor+'"/>';
+          s+='<text x="'+(hpX+hpW/2)+'" y="'+(hpY+92)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="#5d6d7e">'+(lastOut===null?'—':v1(lastOut)+'°C')+'</text>';
+
+          var qScore = ratio!==null?ratio:0;
+          s+='<rect x="'+radX+'" y="'+radY+'" width="'+radW+'" height="'+radH+'" rx="14" fill="white" stroke="'+kwColor+'" stroke-width="2.5"/>';
+          s+='<text x="'+(radX+radW/2)+'" y="'+(radY+28)+'" text-anchor="middle" font-size="22" dominant-baseline="middle">🏠</text>';
+          s+='<text x="'+(radX+radW/2)+'" y="'+(radY+52)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="#00539F" letter-spacing="0.6">AFGIFTE</text>';
+          s+='<text x="'+(radX+radW/2)+'" y="'+(radY+70)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="14" font-weight="900" fill="'+kwColor+'">'+v2(liveKw)+'<tspan font-size="8" font-weight="700">kW</tspan></text>';
+          var kwPct=Math.max(0,Math.min(100,(liveKw||0)/6*100));
+          s+='<rect x="'+(radX+10)+'" y="'+(radY+78)+'" width="'+(radW-20)+'" height="4" rx="2" fill="rgba(0,51,102,0.08)"/>';
+          s+='<rect x="'+(radX+10)+'" y="'+(radY+78)+'" width="'+((radW-20)*kwPct/100)+'" height="4" rx="2" fill="'+kwColor+'"/>';
+          s+='<text x="'+(radX+radW/2)+'" y="'+(radY+92)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8" font-weight="900" fill="'+kwColor+'">'+(lastClus&&lastClus!=='unknown'?'🏷️ '+tr( lastClus,8):'—')+'</text>';
+
+          var dtX=hW/2, dtY=(topY+botY)/2;
+          s+='<circle cx="'+dtX+'" cy="'+dtY+'" r="24" fill="white" stroke="'+dtColor+'" stroke-width="3" filter="url(#gl)"/>';
+          s+='<text x="'+dtX+'" y="'+(dtY-5)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="#5d6d7e">ΔT</text>';
+          s+='<text x="'+dtX+'" y="'+(dtY+11)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="14" font-weight="900" fill="'+dtColor+'">'+v1(liveDt)+'K</text>';
+
+          s+='<rect x="'+(hW/2-55)+'" y="'+(topY-28)+'" width="110" height="18" rx="9" fill="#E60012"/>';
+          s+='<text x="'+(hW/2)+'" y="'+(topY-16)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="white">🔥 AANVOER →</text>';
+          s+='<rect x="'+(hW/2-55)+'" y="'+(botY+10)+'" width="110" height="18" rx="9" fill="#00539F"/>';
+          s+='<text x="'+(hW/2)+'" y="'+(botY+22)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="white">← 💧 RETOUR</text>';
+
+          s+='</svg>';
+
+          /* ============ RENDER ============ */
+          var r='<div style="font-family:var(--primary-font-family);width:100%;box-sizing:border-box;">';
+          r+='<style>'
+            +'@keyframes efp{0%,100%{box-shadow:0 0 0 0 rgba(230,0,18,0.55)}50%{box-shadow:0 0 0 6px rgba(230,0,18,0)}}'
+            +'.d-sec{background:white;border:2px solid #0097E0;border-radius:12px;padding:10px;margin-bottom:8px;box-sizing:border-box;min-width:0;overflow:hidden}'
+            +'.d-hdr{font-size:0.7em;font-weight:900;color:#003366;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid #E6F4FB;display:flex;justify-content:space-between;align-items:center;gap:6px;min-width:0}'
+            +'.d-hdr>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}'
+            +'.d-hdr>span:last-child{flex-shrink:0;font-size:0.85em;color:#00539F}'
+            +'.d-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:0.72em;line-height:1.3;gap:6px;min-width:0}'
+            +'.d-k{color:#5d6d7e;font-weight:700;font-size:0.9em;white-space:nowrap;flex-shrink:0}'
+            +'.d-v{font-family:ui-monospace,monospace;font-weight:900;font-size:0.95em;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;color:#003366}'
+            +'.d-g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:0}'
+            +'.d-tile{padding:8px 6px;border-radius:10px;background:linear-gradient(135deg,#F5FAFD,#E6F4FB);border:2px solid;text-align:center;box-sizing:border-box}'
+            +'.d-tile-i{font-size:0.9em;line-height:1}'
+            +'.d-tile-l{font-size:0.45em;font-weight:900;text-transform:uppercase;letter-spacing:0.3px;margin-top:3px;color:#00539F}'
+            +'.d-tile-v{font-family:ui-monospace,monospace;font-size:1.05em;font-weight:900;line-height:1;margin-top:3px}'
+            +'</style>';
+
+          r+='<div style="background:linear-gradient(135deg,'+phColor+'22,'+phColor+'08);border:2px solid '+phColor+'AA;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;gap:12px;">';
+          r+='<div style="display:flex;align-items:center;gap:12px;min-width:0;">';
+          r+='<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:white;border-radius:12px;border:2px solid '+phColor+';">';
+          r+=(useFan && fanDur(liveRps)) ? fanHtml(liveRps,32,phColor) : '<span style="font-size:28px;line-height:1;">'+phIcon+'</span>';
+          r+='</div>';
+          r+='<div style="min-width:0;">';
+          r+='<div style="font-size:0.55em;color:#5d6d7e;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;">'+t('phase')+' · '+stStr(S.state,'idle')+'</div>';
+          r+='<div style="font-size:1.2em;color:'+phColor+';font-weight:900;letter-spacing:0.6px;line-height:1.1;">'+phLabel+'</div>';
+          r+='<div style="font-size:0.7em;color:#00539F;font-weight:800;font-family:ui-monospace,monospace;margin-top:2px;">'+vI(liveRps)+' rps</div>';
+          r+='</div></div>';
+          r+='<div style="text-align:right;flex-shrink:0;">';
+          r+='<div style="font-size:0.55em;color:#5d6d7e;font-weight:900;text-transform:uppercase;">'+t('cop')+'</div>';
+          r+='<div style="font-family:ui-monospace,monospace;font-size:1.3em;color:'+copColor+';font-weight:900;line-height:1;">'+(copV===null?'—':v2(copV))+'</div>';
+          r+='<div style="font-family:ui-monospace,monospace;font-size:0.8em;color:'+qColor+';font-weight:900;line-height:1;margin-top:3px;">Q '+vI(ratio)+'%</div>';
+          r+='</div></div>';
+
+          if(alerts.length>0){
+            var hasCrit=alerts.some(function(a){return a.sev==='crit';});
+            var hasWarn=alerts.some(function(a){return a.sev==='warn';});
+            var aBg=hasCrit?'linear-gradient(135deg,#fdecea,#fbd0c8)':hasWarn?'linear-gradient(135deg,#fff8ec,#fdead0)':'linear-gradient(135deg,#eaf2f8,#d6eaf8)';
+            var aBd=hasCrit?'#E60012':hasWarn?'#F5A623':'#0097E0';
+            var aTx=hasCrit?'#8b1a1a':hasWarn?'#7d4f00':'#00539F';
+            var aIc=hasCrit?'🚨':hasWarn?'⚠️':'ℹ️';
+            var aTi=hasCrit?'ACTIE VEREIST':hasWarn?'AANDACHT':'INFO';
+            var pS=hasCrit?'animation: efp 1.6s ease-in-out infinite;':'';
+            r+='<div style="background:'+aBg+';border:2px solid '+aBd+';border-radius:12px;padding:10px 12px;margin-bottom:8px;box-sizing:border-box;'+pS+'">';
+            r+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid '+aBd+'33;">';
+            r+='<div style="display:flex;align-items:center;gap:6px;"><span style="font-size:1.05em;">'+aIc+'</span>';
+            r+='<span style="font-size:0.7em;color:'+aTx+';font-weight:900;text-transform:uppercase;letter-spacing:0.5px;">'+aTi+'</span></div>';
+            r+='<span style="background:'+aBd+';color:white;font-size:0.6em;font-weight:900;padding:2px 8px;border-radius:10px;">'+alerts.length+' '+t('alertOne')+'</span>';
+            r+='</div>';
+            var showMax=Math.min(alerts.length,3);
+            for(var ai=0;ai<showMax;ai++){
+              var al=alerts[ai];
+              var sC=al.sev==='crit'?'#E60012':al.sev==='warn'?'#F5A623':'#0097E0';
+              r+='<div style="background:white;border-radius:8px;padding:6px 9px;margin-bottom:4px;box-sizing:border-box;display:flex;align-items:center;gap:8px;border-left:3px solid '+sC+';">';
+              r+='<span style="font-size:0.95em;flex-shrink:0;">'+al.icon+'</span>';
+              r+='<span style="flex:1;font-size:0.72em;color:'+aTx+';font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+al.label+'</span>';
+              r+='</div>';
+            }
+            if(alerts.length>showMax){
+              r+='<div style="text-align:center;padding-top:4px;"><span style="font-size:0.6em;color:'+aTx+';font-weight:900;opacity:0.75;">+ '+(alerts.length-showMax)+' '+t('alertMore')+'</span></div>';
+            }
+            r+='</div>';
+          } else {
+            r+='<div style="background:linear-gradient(135deg,#eafaf1,#d5f5e3);border:2px solid #4CAF5088;border-radius:12px;padding:8px 12px;margin-bottom:8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px;">';
+            r+='<span style="font-size:0.72em;color:#1e8449;font-weight:800;letter-spacing:0.3px;">'+t('noAlert')+'</span>';
+            r+='</div>';
+          }
+
+          r+='<div class="d-sec">';
+          r+='<div class="d-hdr"><span>♻️ Hydraulische kring</span><span>WP → AFGIFTE</span></div>';
+          r+=s;
+          r+='</div>';
+
+          r+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px;">';
+          var tile=function(icon,label,val,color){
+            return '<div class="d-tile" style="border-color:'+color+';">'
+              +'<div class="d-tile-i">'+icon+'</div>'
+              +'<div class="d-tile-l">'+label+'</div>'
+              +'<div class="d-tile-v" style="color:'+color+';">'+val+'</div>'
+              +'</div>';
+          };
+          r+=tile('📈',t('cop'), copV===null?'—':v2(copV), copColor);
+          r+=tile('🔄',t('runs'), vI(cyc)+(target?'/'+vI(target):''), (target && cyc<=target) ? '#4CAF50' : '#E60012');
+          r+=tile('⭐',t('q'), vI(ratio)+'%', qColor);
+          r+=tile('🩺',t('src'), age===null?'—':vI(age)+'s', ageColor);
+          r+='</div>';
+
+          r+='<div class="d-g2" style="margin-bottom:8px;">';
+          r+='<div class="d-sec" style="margin:0;">';
+          r+='<div class="d-hdr"><span>'+t('today')+'</span><span>'+vI(cyc)+(target?'/'+vI(target):'')+'</span></div>';
+          r+='<div class="d-row"><span class="d-k">'+t('avgDur')+'</span><span class="d-v">'+(avgDur===null?'—':v1(avgDur)+"'")+'</span></div>';
+          r+='<div class="d-row"><span class="d-k">'+t('avgOff')+'</span><span class="d-v">'+(avgOff===null?'—':v1(avgOff)+"'")+'</span></div>';
+          r+='<div class="d-row"><span class="d-k">'+t('longest')+'</span><span class="d-v">'+(longDur===null?'—':v1(longDur)+"'")+'</span></div>';
+          r+='<div class="d-row"><span class="d-k">'+t('sr')+'</span><span class="d-v" style="color:'+(shortRuns>0?'#E60012':'#4CAF50')+'">'+vI(shortRuns)+'</span></div>';
+          r+='</div>';
+          r+='<div class="d-sec" style="margin:0;">';
+          r+='<div class="d-hdr"><span>'+t('last')+'</span><span>'+tr(lastClus||'—',10)+'</span></div>';
+          r+='<div class="d-row"><span class="d-k">'+t('dur')+'</span><span class="d-v">'+(lastDur===null?'—':v1(lastDur)+"'")+'</span></div>';
+          r+='<div class="d-row"><span class="d-k">'+t('dt')+'</span><span class="d-v">'+(lastDt===null?'—':v1(lastDt)+'K')+'</span></div>';
+          r+='<div class="d-row"><span class="d-k">'+t('rps')+'</span><span class="d-v">'+(lastRps===null?'—':vI(lastRps))+'</span></div>';
+          r+='<div class="d-row"><span class="d-k">'+t('mode')+'</span><span class="d-v" style="font-size:0.85em;">'+tr(lastMode||'—',9)+'</span></div>';
+          r+='</div>';
+          r+='</div>';
+
+          var stCol = stookState==='ok'?'#4CAF50':stookState==='unknown'?'#7f8c8d':'#E60012';
+          var svCol = (stookSav && stookSav>0)?'#4CAF50':'#7f8c8d';
+          var rlCol = stookRel===null?'#7f8c8d':(stookRel>=0.6?'#4CAF50':stookRel>=0.3?'#F5A623':'#E60012');
+          r+='<div class="d-sec">';
+          r+='<div class="d-hdr"><span>'+t('stooklijn')+'</span><span>'+stookState+'</span></div>';
+          r+='<div class="d-g2">';
+          r+='<div>'
+            +'<div class="d-row"><span class="d-k">'+t('state')+'</span><span class="d-v" style="color:'+stCol+'">'+tr(stookState,10)+'</span></div>'
+            +'<div class="d-row"><span class="d-k">'+t('bucket')+'</span><span class="d-v">'+tr(stookBucket||'—',10)+'</span></div>'
+            +'</div>';
+          r+='<div>'
+            +'<div class="d-row"><span class="d-k">'+t('savings')+'</span><span class="d-v" style="color:'+svCol+'">'+(stookSav===null?'—':(stookSav>0?'+':'')+v1(stookSav)+'%')+'</span></div>'
+            +'<div class="d-row"><span class="d-k">'+t('reliability')+'</span><span class="d-v" style="color:'+rlCol+'">'+(stookRel===null?'—':vI(stookRel*100)+'%')+'</span></div>'
+            +'</div>';
+          r+='</div>';
+          r+='</div>';
+
+          r+='<div style="background:linear-gradient(135deg,#F5FAFD,#E6F4FB);border-left:4px solid #0097E0;border-radius:8px;padding:8px 12px;font-size:0.62em;color:#003366;font-weight:700;line-height:1.4;box-sizing:border-box;margin-bottom:8px;">';
+          r+=t('explain');
+          r+='</div>';
+
+          r+='</div>';
+          return r;
+        ]]]
