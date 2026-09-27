@@ -15,6 +15,7 @@ def _mock_db(**kw):
     inst.async_initialize = AsyncMock()
     inst.async_migrate_features_to_v11 = AsyncMock(return_value=0)
     inst.async_migrate_features_to_v12 = AsyncMock(return_value=0)
+    inst.async_migrate_cop_samples_to_v13 = AsyncMock()
     inst.async_integrity_check = AsyncMock(return_value=True)
     for k, v in kw.items():
         setattr(inst, k, v)

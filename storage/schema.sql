@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS cop_samples (
     lwt REAL,
     outdoor REAL,
     flow_lmin REAL,
-    power_stable INTEGER DEFAULT 0
+    power_stable INTEGER DEFAULT 0,
+    mode TEXT DEFAULT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_cop_samples_ts ON cop_samples(ts);

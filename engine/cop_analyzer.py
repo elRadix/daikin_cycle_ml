@@ -54,6 +54,7 @@ class CopSample:
     defrost: bool = False
     power_stable: bool = False
     data_quality: str = 'unknown'
+    mode: str = 'unknown'
 
     @property
     def valid(self) -> bool:
@@ -123,6 +124,8 @@ def _group_by_bucket(samples: list[CopSample]) -> dict[str, list[CopSample]]:
     for s in samples:
         if not s.valid:
             continue
+        if s.mode not in ('heating', 'unknown'):
+            continue
         b = bucket_for_outdoor(s.outdoor)
         out.setdefault(b, []).append(s)
     return out
@@ -140,6 +143,7 @@ def analyze_stooklijn(
     indoor_avg: float | None = None,
 ) -> StooklijnAdvies:
     advies = StooklijnAdvies()
+    samples = [s for s in samples if s.mode in ('heating', 'unknown')]
     grouped = _group_by_bucket(samples)
     if not grouped:
         return advies

@@ -587,6 +587,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     defrost=False,
                     data_quality='Good',
                     power_stable=bool(r.get('power_stable')),
+                    mode=str(r.get('mode') or 'unknown'),
                 ))
             comfort_min = float(
                 self.options.get('comfort_min_c', DEFAULT_COMFORT_MIN_C)
@@ -734,6 +735,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return
         if not sample.power_stable:
             return
+        _mode = getattr(getattr(self, 'data', None), 'mode', None) or 'unknown'
         row = {
             'ts': now,
             'cop': sample.cop,
@@ -741,6 +743,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             'outdoor': sample.outdoor,
             'flow_lmin': sample.flow_lmin,
             'power_stable': True,
+            'mode': str(_mode),
         }
         ok = await self.db.async_insert_cop_sample(row)
         if ok:

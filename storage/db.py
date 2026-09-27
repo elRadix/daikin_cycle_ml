@@ -108,6 +108,19 @@ class CycleDB:
         await conn.commit()
         return 0
 
+    async def async_migrate_cop_samples_to_v13(self) -> int:
+        """Add mode column to cop_samples if absent. Idempotent."""
+        conn = self._require()
+        cur = await conn.execute("PRAGMA table_info(cop_samples)")
+        cols = {row[1] for row in await cur.fetchall()}
+        await cur.close()
+        if "mode" not in cols:
+            await conn.execute(
+                "ALTER TABLE cop_samples ADD COLUMN mode TEXT DEFAULT NULL"
+            )
+            await conn.commit()
+        return 0
+
     async def async_integrity_check(self) -> bool:
         """Run PRAGMA integrity_check + foreign_key_check. True if healthy."""
         try:
@@ -555,8 +568,8 @@ class CycleDB:
             conn = self._require()
             await conn.execute(
                 "INSERT INTO cop_samples "
-                "(ts, cop, lwt, outdoor, flow_lmin, power_stable) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
+                "(ts, cop, lwt, outdoor, flow_lmin, power_stable, mode) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     float(sample["ts"]),
                     float(sample["cop"]),
@@ -564,6 +577,7 @@ class CycleDB:
                     sample.get("outdoor"),
                     sample.get("flow_lmin"),
                     1 if sample.get("power_stable") else 0,
+                    sample.get("mode"),
                 ),
             )
             await conn.commit()
@@ -579,7 +593,7 @@ class CycleDB:
         conn = self._require()
         cutoff = time.time() - float(days) * 86400.0
         async with conn.execute(
-            "SELECT ts, cop, lwt, outdoor, flow_lmin, power_stable "
+            "SELECT ts, cop, lwt, outdoor, flow_lmin, power_stable, mode "
             "FROM cop_samples WHERE ts >= ? ORDER BY ts ASC",
             (cutoff,),
         ) as cur:
