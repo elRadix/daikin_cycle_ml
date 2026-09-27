@@ -12,6 +12,9 @@ heat pumps. **Local-only ML, no cloud.**
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.9%2B-blue.svg)](https://www.home-assistant.io/)
 [![IQS](https://img.shields.io/badge/IQS-Bronze%20%2B%20Silver%20%2B%20Gold-orange.svg)](quality_scale.yaml)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=elRadix&repository=daikin_cycle_ml&category=integration)
 
 **IoT class:** `calculated`
 
@@ -98,8 +101,22 @@ No cloud. No external API. Everything runs inside your Home Assistant box.
 
 ## 4. Installation
 
-1. Copy custom_components/daikin_cycle_ml/ into your HA config tree
-   (usually /config/custom_components/daikin_cycle_ml/).
+### 4.1 Via HACS (recommended)
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=elRadix&repository=daikin_cycle_ml&category=integration)
+
+1. Install [HACS](https://hacs.xyz/docs/setup/download) if you haven't already.
+2. In Home Assistant, go to **HACS → Integrations → ⋮ (top right) → Custom repositories**.
+3. Add repository URL `https://github.com/elRadix/daikin_cycle_ml` with category **Integration**.
+4. Click **Add** → find **Daikin Cycle ML** in the list → **Download**.
+5. **Restart Home Assistant** (Settings → System → Restart).
+6. **Settings → Devices & Services → Add Integration → "Daikin Cycle ML"**.
+7. Follow the 8-step wizard (see next section).
+
+### 4.2 Manual installation
+
+1. Copy `custom_components/daikin_cycle_ml/` into your HA config tree
+   (usually `/config/custom_components/daikin_cycle_ml/`).
 2. **Restart Home Assistant** (Settings → System → Restart).
    A config-entry reload is **not** enough when the module code changes.
 3. **Settings → Devices & Services → Add Integration → "Daikin Cycle ML"**.
