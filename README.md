@@ -21,6 +21,16 @@ heat pumps. **Local-only ML, no cloud.**
 
 ---
 
+## Showcase
+
+<p align="center">
+  <img src="dashboard/cards/simple-card/preview.png" width="800" alt="Daikin Cycle ML — Simple Card">
+  <br>
+  <em>One-glance dashboard card — see <a href="dashboard/">dashboard/</a> for installation.</em>
+</p>
+
+---
+
 ## Table of contents
 
 1. [Why](#1-why)
