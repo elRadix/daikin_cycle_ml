@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+<!-- batch-bc-20260927 -->
+### Added (post-v1.1.0, docs)
+- `HANDOFF_SOP.md`: self-contained SOP for handoff generation and
+  multi-repo maintenance (R133-R145).
+- `SOP.md` section 12: R133-R145 (handoff + multi-repo regels),
+  tabel-format matching section 10. Includes gap-note that R93-R132
+  are not yet present in SOP.md.
+- HACS default store submission: PR #11345 open at
+  https://github.com/hacs/default/pull/11345 (12/12 automated checks
+  SUCCESS).
+
+### Notes
+- Coverage baseline shifted 97.40% (v1.0.2, commit 858cf8b) ->
+  97.16% (v1.1.0+) due to HACS repo restructure (commit c60bc3f).
+  All 32 non-test `.py` files moved from repo-root to
+  `custom_components/daikin_cycle_ml/`; module-path change affects
+  sub-package `__init__.py` coverage accounting.
+  No functional regression: LOC 7906 -> 7910 (+4), tests 113 -> 114
+  (+1), coverage config unchanged (`fail_under = 95`). Verified via
+  recon batch RECON_C_COVERAGE_DELTA (commit c097197).
+
+
+
 ## [1.1.0] - 2026-09-27
 
 ### Added
