@@ -365,7 +365,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             raw = float(state.state)
         except (TypeError, ValueError):
             return None
-        unit = (state.attributes or {}).get("unit_of_measurement")
+        unit = state.attributes.get("unit_of_measurement")
         return _normalize_power_w(raw, unit)
 
     def _read_cop(self) -> float | None:
