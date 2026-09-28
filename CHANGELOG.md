@@ -1,18 +1,17 @@
 # Changelog
 
 ## [Unreleased]
-<!-- batch-cf2-20260928 -->
-### Changed
-- `dashboard/cards/simple-card/preview.png`: 574 KB -> 150 KB
-  via palette-256 quantization. No visual difference for dashboard
-  card usage.
-- `.gitignore`: removed stale deployment-symlink-bridge block
-  (obsolete since v1.1.0 HACS layout restructure).
-
-### Removed
-- Host-side: `daikin_test_old` container (1.23 GB writable layer);
-  fallback no longer needed after v1.1.1 prod verification.
-
+<!-- feat1-20260928 -->
+### Added
+- `sensor.daikin_cycle_ml_cycle_state` now exposes `configured_*`
+  attributes: `configured_source_sensor`, `configured_power_sensor`,
+  `configured_cop_sensor`, `configured_indoor_sensor`,
+  `configured_model`, `configured_language`, `configured_entry_id`.
+  Enables dashboards and automations to self-discover the entity_ids
+  configured in OptionsFlow, without hardcoding. Values refresh on
+  every OptionsFlow submit via OptionsFlowWithReload. Purely additive;
+  no renamed or removed attributes. `notify_service` intentionally
+  omitted (could leak target names).
 ## [1.1.1] - 2026-09-28
 
 ### Added (dashboard)

@@ -116,6 +116,30 @@ def _cluster_label(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> str:
 
 # --- attr builders -----------------------------------------------------
 
+def _attrs_cycle_state(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
+    """FEAT-1: expose configured entity_ids for cards/automations.
+
+    Values come live from entry.data + entry.options. OptionsFlowWithReload
+    ensures these refresh on every OptionsFlow submit. Only entity_ids,
+    model and language are exposed; notify_service is intentionally omitted
+    (could leak target names).
+    """
+    entry = getattr(c, "entry", None)
+    if entry is None:
+        return {}
+    data = dict(entry.data or {})
+    opts = dict(entry.options or {})
+    return {
+        "configured_source_sensor": data.get("source_sensor"),
+        "configured_power_sensor": opts.get("power_sensor_entity"),
+        "configured_cop_sensor": opts.get("cop_sensor_entity"),
+        "configured_indoor_sensor": opts.get("indoor_temp_sensor"),
+        "configured_model": data.get("model"),
+        "configured_language": opts.get("notification_language", "en"),
+        "configured_entry_id": entry.entry_id,
+    }
+
+
 def _attrs_current_cycle(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     running = s.state == "running"
     dur_min = None
@@ -301,6 +325,7 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "cycle_state", "name": "Cycle state",
         "icon": "mdi:state-machine",
         "value_fn": lambda s, c: s.state,
+        "attr_fn": _attrs_cycle_state,
     },
     {
         "key": "current_cycle", "name": "Current cycle",
