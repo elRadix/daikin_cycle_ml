@@ -2,37 +2,65 @@
 
 ## [Unreleased]
 
-<!-- feat2-20260928 -->
 ### Added
-- `sensor.daikin_cycle_ml_thermal_power_live` (FEAT-2): live
-  thermal power estimation with a 4-step cascade:
-  `power_w x cop` -> `flow_lmin x dT` -> `rps x RPS_KW_FACTOR`
-  -> `idle`. Exposes 6 diagnostic attributes (`input_power_w`,
-  `input_cop`, `input_flow_lmin`, `input_dt_k`, `input_rps`,
-  `calculation_source`) for self-documenting dashboard cards.
-  New coordinator helpers `_read_power_w` (W/kW normalization)
-  and `_read_cop`. New constants `RPS_KW_FACTOR = 0.20`
-  (empirical, re-verify in heating season),
+- `sensor.daikin_cycle_ml_thermal_power_live` (FEAT-2): live thermal
+  power estimation with a 4-step cascade: `power_w x cop` ->
+  `flow_lmin x dT` -> `rps x RPS_KW_FACTOR` -> `idle`. Exposes 6
+  diagnostic attributes (`input_power_w`, `input_cop`,
+  `input_flow_lmin`, `input_dt_k`, `input_rps`, `calculation_source`)
+  for self-documenting dashboard cards. New coordinator helpers
+  `_read_power_w` (W/kW normalization) and `_read_cop`. New constants
+  `RPS_KW_FACTOR = 0.20` (empirical, re-verify in heating season),
   `WATER_SPECIFIC_HEAT_KJ_KG_K = 4.186`, `WATER_DENSITY_KG_L = 1.0`.
   Sensor count 24 -> 25. New test file
   `tests/test_feat2_thermal_power_live.py` (18 tests).
+- `sensor.daikin_cycle_ml_cycle_state` now exposes `configured_*`
+  attributes (FEAT-1): `configured_source_sensor`,
+  `configured_power_sensor`, `configured_cop_sensor`,
+  `configured_indoor_sensor`, `configured_model`, `configured_language`,
+  `configured_entry_id`. Enables dashboards and automations to
+  self-discover the entity_ids configured in OptionsFlow, without
+  hardcoding. Values refresh on every OptionsFlow submit via
+  OptionsFlowWithReload. Purely additive; no renamed or removed
+  attributes. `notify_service` intentionally omitted (could leak
+  target names).
 
 ### Changed
 - `tests/test_31c_sensors.py`: `test_sensor_defs_has_9_containers`
   rewritten to `test_sensor_defs_has_expected_containers` using a
-  forward-compat `>=` set check (R42). Removed stale duplicate
-  `==` assertion that broke on every sensor addition.
-<!-- feat1-20260928 -->
-### Added
-- `sensor.daikin_cycle_ml_cycle_state` now exposes `configured_*`
-  attributes: `configured_source_sensor`, `configured_power_sensor`,
-  `configured_cop_sensor`, `configured_indoor_sensor`,
-  `configured_model`, `configured_language`, `configured_entry_id`.
-  Enables dashboards and automations to self-discover the entity_ids
-  configured in OptionsFlow, without hardcoding. Values refresh on
-  every OptionsFlow submit via OptionsFlowWithReload. Purely additive;
-  no renamed or removed attributes. `notify_service` intentionally
-  omitted (could leak target names).
+  forward-compat `>=` set check (R42). Removed stale duplicate `==`
+  assertion that broke on every sensor addition.
+- `tests/test_cov_config_flow_edges.py` (COV-1): 16 tests targeting
+  missing branches in `config_flow.py`. Coverage 92% -> 99%.
+- `tests/test_cov_db_store_edges.py` (COV-2): 11 tests targeting
+  missing branches in `storage/db.py` (94% -> ~99%) and
+  `storage/store.py` (96% -> 100%).
+- `tests/test_feat1_configured_attrs.py` (FEAT-1): 5 tests targeting
+  the new `_attrs_cycle_state` helper.
+- `pyproject.toml`: `[tool.coverage.run] branch = true`. Branch
+  coverage at enable time: 96.06%.
+- `requirements_test.txt`: `hypothesis>=6.100.0` (property-based
+  tests planned for COV-5; not yet used).
+- `dashboard/cards/simple-card/preview.png`: 574 KB -> 153 KB via
+  palette-256 quantization.
+- `.gitignore`: removed stale deployment-symlink-bridge block.
+
+### Removed
+- Host-side: `daikin_test_old` container (1.23 GB writable layer).
+
+### Fixed
+- `coordinator.py::_read_power_w`: mypy strict error caused by
+  `state.attributes or {}` narrowing to `dict[Never, Never]`.
+  Removed the defensive `or {}` -- `state` is already None-checked,
+  `attributes` is always a mapping. No behavior change.
+
+### Notes
+- Test suite: 1505 passed, 4 skipped.
+- Branch coverage: 97% (4104 stmts, 97 miss, 1176 branches, 74 partial).
+  Gate remains at 95%; COV-6 will raise to 97%.
+- Ruff clean, Pylint 10.00/10, mypy --strict 0 errors.
+- CI on 2207733: 6/6 green.
+
 ## [1.1.1] - 2026-09-28
 
 ### Added (dashboard)
