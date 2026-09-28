@@ -62,6 +62,17 @@ class DataSnapshot:
     cop_today: dict[str, Any] = field(default_factory=dict)
 
 
+# --- FEAT-2: live thermal power helpers ---
+
+def _normalize_power_w(value: float | None, unit: str | None) -> float | None:
+    """Normalize power reading to Watt (kW -> W, W/unknown stays W)."""
+    if value is None:
+        return None
+    if unit == "kW":
+        return value * 1000.0
+    return value
+
+
 class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     """Reads the source sensor every UPDATE_INTERVAL_SECONDS."""
 
@@ -336,6 +347,32 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not self.power_sensor:
             return None
         state = self.hass.states.get(self.power_sensor)
+        if state is None:
+            return None
+        try:
+            return float(state.state)
+        except (TypeError, ValueError):
+            return None
+
+    def _read_power_w(self) -> float | None:
+        """FEAT-2: read power sensor and normalize to Watt."""
+        if not self.power_sensor:
+            return None
+        state = self.hass.states.get(self.power_sensor)
+        if state is None:
+            return None
+        try:
+            raw = float(state.state)
+        except (TypeError, ValueError):
+            return None
+        unit = (state.attributes or {}).get("unit_of_measurement")
+        return _normalize_power_w(raw, unit)
+
+    def _read_cop(self) -> float | None:
+        """FEAT-2: read COP sensor value (dimensionless)."""
+        if not self.cop_sensor_entity:
+            return None
+        state = self.hass.states.get(self.cop_sensor_entity)
         if state is None:
             return None
         try:

@@ -183,6 +183,13 @@ DEFAULT_COP_ANALYSIS_DAYS = 30
 DEFAULT_COMFORT_MIN_C = 20.0
 DEFAULT_INDOOR_TEMP_SENSOR: str | None = None
 DEFAULT_COP_AVG_LOOKBACK_DAYS = 1
+
+# --- FEAT-2: live thermal power cascade ---
+# Empirical coefficient for EPRA12 air-water, nominal ~0.20 kW/rps.
+# To be re-verified against real power-sensor data in heating season.
+RPS_KW_FACTOR = 0.20
+WATER_SPECIFIC_HEAT_KJ_KG_K = 4.186
+WATER_DENSITY_KG_L = 1.0
 ADAPTIVE_SHORT_RUN_PERCENTILE = 20
 ADAPTIVE_GOOD_OFF_PERCENTILE = 50
 ADAPTIVE_TARGET_CPD_PERCENTILE = 50

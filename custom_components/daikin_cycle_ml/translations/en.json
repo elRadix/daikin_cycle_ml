@@ -340,6 +340,9 @@
   },
   "entity": {
     "sensor": {
+      "thermal_power_live": {
+        "name": "Thermal power live"
+      },
       "cycle_state": {
         "name": "Cycle state"
       },

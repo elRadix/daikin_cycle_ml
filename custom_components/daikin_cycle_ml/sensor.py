@@ -25,10 +25,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    ATTR_FLOW_SENSOR,
     ATTR_INLET_WATER_R4T,
     ATTR_INV_FREQUENCY_RPS,
     ATTR_LEAVING_WATER_AFTER_BUH,
+    RPS_KW_FACTOR,
     UPDATE_INTERVAL_SECONDS,
+    WATER_DENSITY_KG_L,
+    WATER_SPECIFIC_HEAT_KJ_KG_K,
 )
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
 from .entity import DaikinCycleMLEntity
@@ -85,6 +89,69 @@ def _dt_from_attrs(attrs: dict[str, Any]) -> float | None:
 
 def _rps_from_attrs(attrs: dict[str, Any]) -> float | None:
     return _safe_float(attrs.get(ATTR_INV_FREQUENCY_RPS))
+
+
+def _flow_from_attrs(attrs: dict[str, Any]) -> float | None:
+    return _safe_float(attrs.get(ATTR_FLOW_SENSOR))
+
+
+def _compute_thermal_power_live(
+    *,
+    power_w: float | None,
+    cop: float | None,
+    flow_lmin: float | None,
+    dt_k: float | None,
+    rps: float | None,
+) -> tuple[float | None, str]:
+    """FEAT-2 cascade: power*COP -> flow*dT -> rps_heuristic -> idle.
+
+    Returns (thermal_kw, calculation_source).
+    """
+    if power_w is not None and cop is not None and power_w > 0 and cop > 0:
+        return round(power_w * cop / 1000.0, 3), "power_cop"
+    if flow_lmin is not None and dt_k is not None and flow_lmin > 0 and dt_k > 0:
+        # Q [kW] = flow[L/min] * rho[kg/L] * cp[kJ/kg/K] * dT[K] / 60
+        kw = (flow_lmin * WATER_DENSITY_KG_L
+              * WATER_SPECIFIC_HEAT_KJ_KG_K * dt_k / 60.0)
+        return round(kw, 3), "flow_dt"
+    if rps is not None and rps > 0:
+        return round(rps * RPS_KW_FACTOR, 3), "rps_heuristic"
+    return None, "idle"
+
+
+def _value_thermal_power_live(
+    s: "DataSnapshot", c: "DaikinCycleMLCoordinator"
+) -> float | None:
+    kw, _ = _compute_thermal_power_live(
+        power_w=c._read_power_w(),
+        cop=c._read_cop(),
+        flow_lmin=_flow_from_attrs(s.attrs),
+        dt_k=_dt_from_attrs(s.attrs),
+        rps=_rps_from_attrs(s.attrs),
+    )
+    return kw
+
+
+def _attrs_thermal_power_live(
+    s: "DataSnapshot", c: "DaikinCycleMLCoordinator"
+) -> dict[str, Any]:
+    power_w = c._read_power_w()
+    cop = c._read_cop()
+    flow_lmin = _flow_from_attrs(s.attrs)
+    dt_k = _dt_from_attrs(s.attrs)
+    rps = _rps_from_attrs(s.attrs)
+    _, source = _compute_thermal_power_live(
+        power_w=power_w, cop=cop, flow_lmin=flow_lmin,
+        dt_k=dt_k, rps=rps,
+    )
+    return {
+        "input_power_w": power_w,
+        "input_cop": cop,
+        "input_flow_lmin": flow_lmin,
+        "input_dt_k": dt_k,
+        "input_rps": rps,
+        "calculation_source": source,
+    }
 
 
 def _avg_off_time(cycles: list[Any]) -> float | None:
@@ -321,6 +388,15 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
 
 
 SENSOR_DEFS: list[dict[str, Any]] = [
+    {
+        "key": "thermal_power_live", "name": "Thermal power live",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "device_class": SensorDeviceClass.POWER,
+        "unit": "kW",
+        "icon": "mdi:fire",
+        "value_fn": _value_thermal_power_live,
+        "attr_fn": _attrs_thermal_power_live,
+    },
     {
         "key": "cycle_state", "name": "Cycle state",
         "icon": "mdi:state-machine",

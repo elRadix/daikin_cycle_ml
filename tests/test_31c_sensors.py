@@ -6,13 +6,20 @@ import inspect
 from custom_components.daikin_cycle_ml import sensor as s_mod
 
 
-def test_sensor_defs_has_9_containers():
+def test_sensor_defs_has_expected_containers():
     keys = [spec["key"] for spec in s_mod.SENSOR_DEFS]
-    assert len(keys) == 9
-    assert set(keys) == {
-        "cycle_state", "current_cycle", "last_cycle", "today",
-        "quality_today", "source_health", "learned_thresholds",
-        "cop_vandaag", "stooklijn_advies",
+    # Forward-compat (R42): allow growth, require original 9 + FEAT-2.
+    assert set(keys) >= {
+        "cycle_state",
+        "current_cycle",
+        "last_cycle",
+        "today",
+        "quality_today",
+        "source_health",
+        "learned_thresholds",
+        "cop_vandaag",
+        "stooklijn_advies",
+        "thermal_power_live",
     }
 
 

@@ -1,6 +1,27 @@
 # Changelog
 
 ## [Unreleased]
+
+<!-- feat2-20260928 -->
+### Added
+- `sensor.daikin_cycle_ml_thermal_power_live` (FEAT-2): live
+  thermal power estimation with a 4-step cascade:
+  `power_w x cop` -> `flow_lmin x dT` -> `rps x RPS_KW_FACTOR`
+  -> `idle`. Exposes 6 diagnostic attributes (`input_power_w`,
+  `input_cop`, `input_flow_lmin`, `input_dt_k`, `input_rps`,
+  `calculation_source`) for self-documenting dashboard cards.
+  New coordinator helpers `_read_power_w` (W/kW normalization)
+  and `_read_cop`. New constants `RPS_KW_FACTOR = 0.20`
+  (empirical, re-verify in heating season),
+  `WATER_SPECIFIC_HEAT_KJ_KG_K = 4.186`, `WATER_DENSITY_KG_L = 1.0`.
+  Sensor count 24 -> 25. New test file
+  `tests/test_feat2_thermal_power_live.py` (18 tests).
+
+### Changed
+- `tests/test_31c_sensors.py`: `test_sensor_defs_has_9_containers`
+  rewritten to `test_sensor_defs_has_expected_containers` using a
+  forward-compat `>=` set check (R42). Removed stale duplicate
+  `==` assertion that broke on every sensor addition.
 <!-- feat1-20260928 -->
 ### Added
 - `sensor.daikin_cycle_ml_cycle_state` now exposes `configured_*`

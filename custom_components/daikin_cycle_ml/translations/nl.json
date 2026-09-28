@@ -340,6 +340,9 @@
   },
   "entity": {
     "sensor": {
+      "thermal_power_live": {
+        "name": "Thermisch vermogen live"
+      },
       "cycle_state": {
         "name": "Cyclus-status"
       },
