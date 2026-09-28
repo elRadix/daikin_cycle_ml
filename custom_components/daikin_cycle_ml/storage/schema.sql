@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS cycles (
     quality_score INTEGER,
     label TEXT,
     cluster_id INTEGER,
+    cop_avg REAL,
+    cop_sample_count INTEGER,
+    cop_sample_stdev REAL,
+    cop_confidence TEXT,
     UNIQUE(start_ts)
 );
 
@@ -69,8 +73,29 @@ CREATE TABLE IF NOT EXISTS cop_samples (
     outdoor REAL,
     flow_lmin REAL,
     power_stable INTEGER DEFAULT 0,
-    mode TEXT DEFAULT NULL
+    mode TEXT DEFAULT NULL,
+    source TEXT DEFAULT 'interval'
 );
 
 CREATE INDEX IF NOT EXISTS idx_cop_samples_ts ON cop_samples(ts);
 CREATE INDEX IF NOT EXISTS idx_cop_samples_outdoor ON cop_samples(outdoor);
+
+CREATE TABLE IF NOT EXISTS cop_hourly (
+    ts_hour INTEGER NOT NULL,
+    mode TEXT NOT NULL,
+    n_samples INTEGER NOT NULL,
+    cop_mean REAL,
+    cop_p10 REAL,
+    cop_p50 REAL,
+    cop_p90 REAL,
+    cop_std REAL,
+    lwt_mean REAL,
+    outdoor_mean REAL,
+    outdoor_min REAL,
+    outdoor_max REAL,
+    flow_mean REAL,
+    updated_ts REAL NOT NULL,
+    PRIMARY KEY (ts_hour, mode)
+);
+
+CREATE INDEX IF NOT EXISTS idx_cop_hourly_ts ON cop_hourly(ts_hour);

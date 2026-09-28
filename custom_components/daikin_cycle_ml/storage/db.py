@@ -163,6 +163,81 @@ class CycleDB:
         if changed:
             await conn.commit()
         return changed
+
+    async def async_migrate_cycles_to_v14(self) -> int:
+        """Add cop_avg/cop_sample_count/cop_sample_stdev/cop_confidence to cycles."""
+        conn = self._require()
+        async with conn.execute("PRAGMA table_info(cycles)") as cur:
+            rows = await cur.fetchall()
+        existing = {r[1] for r in rows}
+        added = 0
+        for name, decl in (
+            ("cop_avg", "REAL"),
+            ("cop_sample_count", "INTEGER"),
+            ("cop_sample_stdev", "REAL"),
+            ("cop_confidence", "TEXT"),
+        ):
+            if name in existing:
+                continue
+            await conn.execute(
+                f"ALTER TABLE cycles ADD COLUMN {name} {decl}"
+            )
+            added += 1
+        if added:
+            await conn.commit()
+        return added
+
+    async def async_migrate_cop_samples_source_v14(self) -> bool:
+        """Add source column to cop_samples (interval / tick / cycle_close)."""
+        conn = self._require()
+        async with conn.execute("PRAGMA table_info(cop_samples)") as cur:
+            rows = await cur.fetchall()
+        existing = {r[1] for r in rows}
+        if "source" in existing:
+            return True
+        await conn.execute(
+            "ALTER TABLE cop_samples ADD COLUMN source TEXT DEFAULT 'interval'"
+        )
+        await conn.commit()
+        return True
+
+    async def async_create_cop_hourly_v14(self) -> bool:
+        """Create cop_hourly rollup table for long-horizon stooklijn (T3)."""
+        conn = self._require()
+        await conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS cop_hourly (
+                ts_hour INTEGER NOT NULL,
+                mode TEXT NOT NULL,
+                n_samples INTEGER NOT NULL,
+                cop_mean REAL,
+                cop_p10 REAL,
+                cop_p50 REAL,
+                cop_p90 REAL,
+                cop_std REAL,
+                lwt_mean REAL,
+                outdoor_mean REAL,
+                outdoor_min REAL,
+                outdoor_max REAL,
+                flow_mean REAL,
+                updated_ts REAL NOT NULL,
+                PRIMARY KEY (ts_hour, mode)
+            )
+            """
+        )
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cop_hourly_ts ON cop_hourly(ts_hour)"
+        )
+        await conn.commit()
+        return True
+
+    async def async_migrate_to_v14(self) -> tuple[int, bool, bool]:
+        """Orchestrate v14. Returns (cycles_cols_added, source_ok, hourly_ok)."""
+        cycles_added = await self.async_migrate_cycles_to_v14()
+        source_ok = await self.async_migrate_cop_samples_source_v14()
+        hourly_ok = await self.async_create_cop_hourly_v14()
+        return cycles_added, source_ok, hourly_ok
+
     async def async_insert_features(
         self, cycle_id: int, vector: list[float]
     ) -> None:

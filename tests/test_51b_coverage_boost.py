@@ -16,6 +16,7 @@ def _mock_db(**kw):
     inst.async_migrate_features_to_v11 = AsyncMock(return_value=0)
     inst.async_migrate_features_to_v12 = AsyncMock(return_value=0)
     inst.async_migrate_cop_samples_to_v13 = AsyncMock()
+    inst.async_migrate_to_v14 = AsyncMock(return_value=(0, True, True))
     inst.async_integrity_check = AsyncMock(return_value=True)
     for k, v in kw.items():
         setattr(inst, k, v)
@@ -48,6 +49,16 @@ async def test_setup_database_v12_raises(hass):
     with patch("custom_components.daikin_cycle_ml.CycleDB", return_value=inst):
         await _async_setup_database(hass, coord)
     assert coord._migration_error == "v12 boom"
+
+
+async def test_setup_database_v14_raises(hass):
+    coord = MagicMock()
+    inst = _mock_db()
+    inst.async_migrate_to_v14 = AsyncMock(side_effect=RuntimeError("v14 boom"))
+    with patch("custom_components.daikin_cycle_ml.CycleDB", return_value=inst):
+        await _async_setup_database(hass, coord)
+    assert coord._migration_error == "v14 boom"
+
 
 
 async def test_setup_database_integrity_raises(hass):

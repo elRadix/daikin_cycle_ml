@@ -65,6 +65,12 @@ async def _async_setup_database(
             if coordinator._migration_error is None:  # pragma: no branch
                 coordinator._migration_error = str(err)
         try:
+            await db.async_migrate_to_v14()
+        except Exception as err:
+            _LOGGER.exception('v14 migration failed')
+            if coordinator._migration_error is None:  # pragma: no branch
+                coordinator._migration_error = str(err)
+        try:
             coordinator._db_integrity_ok = await db.async_integrity_check()
         except Exception:
             coordinator._db_integrity_ok = False

@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- v14 schema: `cycles.cop_avg`, `cycles.cop_sample_count`, `cycles.cop_sample_stdev`, `cycles.cop_confidence`
+- v14 schema: `cop_samples.source` column (`'interval'` / `'tick'` / `'cycle_close'`)
+- v14 schema: `cop_hourly` rollup table for long-horizon stooklijn
+- `engine/thermal.py`: FEAT-2 cascade extracted from `sensor.py`
+
+### Changed
+
+- pyproject `addopts` coverage gate 95 -> 100
+
 ## [1.2.1] - 2026-09-28
 
 ### Fixed
