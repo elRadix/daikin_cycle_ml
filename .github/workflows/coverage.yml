@@ -18,8 +18,7 @@ jobs:
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-asyncio pytest-cov
-          pip install pytest-homeassistant-custom-component
+          pip install -r requirements_test.txt
           pip install homeassistant aiosqlite
       - name: Run pytest with coverage gate
         env:
