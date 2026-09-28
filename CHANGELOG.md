@@ -1,6 +1,18 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.1] - 2026-09-28
+
+### Fixed
+- Version strings in `const.py`, `manifest.json`, and `pyproject.toml`
+  were never bumped for the v1.2.0 release. HA Integrations UI,
+  Diagnostics, and HACS all reported 1.1.1 despite the complete
+  v1.2.0 feature set being present. Bumped to 1.2.1.
+
+### Changed
+- README badges: version 1.1.1 -> 1.2.1, tests 1466 -> 1615,
+  coverage 97.16% -> 100.00%.
+
+## [1.2.0] - 2026-09-28
 
 ### Added
 - `sensor.daikin_cycle_ml_thermal_power_live` (FEAT-2): live thermal
