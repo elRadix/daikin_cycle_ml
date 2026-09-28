@@ -36,6 +36,14 @@ from .const import (
 )
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
 from .entity import DaikinCycleMLEntity
+from .engine.thermal import (  # noqa: F401
+    compute_thermal_power_live as _compute_thermal_power_live,
+    dt_from_attrs as _dt_from_attrs,
+    flow_from_attrs as _flow_from_attrs,
+    rps_from_attrs as _rps_from_attrs,
+    safe_float as _safe_float,
+)
+
 
 PARALLEL_UPDATES = 0  # read-only platform, HA serializes updates
 
@@ -47,12 +55,6 @@ def _now() -> float:
     return time.time()
 
 
-def _safe_float(v: Any) -> float | None:
-    if isinstance(v, bool):
-        return None
-    if isinstance(v, (int, float)):
-        return float(v)
-    return None
 
 
 def _avg(values: list[Any]) -> float | None:
@@ -79,44 +81,12 @@ def _ratio(num: float, denom: float) -> float | None:
         return None
 
 
-def _dt_from_attrs(attrs: dict[str, Any]) -> float | None:
-    a = _safe_float(attrs.get(ATTR_LEAVING_WATER_AFTER_BUH))
-    b = _safe_float(attrs.get(ATTR_INLET_WATER_R4T))
-    if a is None or b is None:
-        return None
-    return round(abs(a - b), 2)
 
 
-def _rps_from_attrs(attrs: dict[str, Any]) -> float | None:
-    return _safe_float(attrs.get(ATTR_INV_FREQUENCY_RPS))
 
 
-def _flow_from_attrs(attrs: dict[str, Any]) -> float | None:
-    return _safe_float(attrs.get(ATTR_FLOW_SENSOR))
 
 
-def _compute_thermal_power_live(
-    *,
-    power_w: float | None,
-    cop: float | None,
-    flow_lmin: float | None,
-    dt_k: float | None,
-    rps: float | None,
-) -> tuple[float | None, str]:
-    """FEAT-2 cascade: power*COP -> flow*dT -> rps_heuristic -> idle.
-
-    Returns (thermal_kw, calculation_source).
-    """
-    if power_w is not None and cop is not None and power_w > 0 and cop > 0:
-        return round(power_w * cop / 1000.0, 3), "power_cop"
-    if flow_lmin is not None and dt_k is not None and flow_lmin > 0 and dt_k > 0:
-        # Q [kW] = flow[L/min] * rho[kg/L] * cp[kJ/kg/K] * dT[K] / 60
-        kw = (flow_lmin * WATER_DENSITY_KG_L
-              * WATER_SPECIFIC_HEAT_KJ_KG_K * dt_k / 60.0)
-        return round(kw, 3), "flow_dt"
-    if rps is not None and rps > 0:
-        return round(rps * RPS_KW_FACTOR, 3), "rps_heuristic"
-    return None, "idle"
 
 
 def _value_thermal_power_live(
