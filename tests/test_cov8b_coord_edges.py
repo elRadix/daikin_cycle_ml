@@ -76,6 +76,12 @@ def test_cov8b_accumulate_cycle_samples_indoor_no_state():
     c._cycle_lwt_count = 0
     c._cycle_indoor_sum = 0.0
     c._cycle_indoor_count = 0
+    c._cycle_cop_w_sum = 0.0
+    c._cycle_cop_weight_sum = 0.0
+    c._cycle_cop_sq_w_sum = 0.0
+    c._cycle_cop_count = 0
+    c.cop_sensor_entity = None
+    c.power_sensor = None
     c._accumulate_cycle_samples({})
 
 

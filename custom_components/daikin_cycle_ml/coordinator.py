@@ -73,6 +73,33 @@ def _normalize_power_w(value: float | None, unit: str | None) -> float | None:
     return value
 
 
+
+
+COP_MIN_TICKS: int = 4
+
+
+def _cop_confidence(count: int, duration_s: float | None) -> str:
+    """Classify confidence from in-cycle tick density (Q6)."""
+    if count < COP_MIN_TICKS:
+        return "none"
+    if duration_s is None or duration_s <= 0:
+        return "low"
+    expected = float(duration_s) / float(UPDATE_INTERVAL_SECONDS)
+    return "high" if count >= expected * 0.5 else "low"
+
+
+def _weighted_mean_stdev(
+    w_sum: float, weight_sum: float, sq_w_sum: float
+) -> tuple[float | None, float | None]:
+    """Return (power-weighted mean, stdev) from accumulator sums."""
+    if weight_sum <= 0.0:
+        return None, None
+    mean = w_sum / weight_sum
+    var = (sq_w_sum / weight_sum) - (mean * mean)
+    if var < 0.0:
+        var = 0.0
+    return mean, var ** 0.5
+
 class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     """Reads the source sensor every UPDATE_INTERVAL_SECONDS."""
 
@@ -82,6 +109,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _cycle_lwt_count: int = 0
     _cycle_indoor_sum: float = 0.0
     _cycle_indoor_count: int = 0
+    _cycle_cop_w_sum: float = 0.0
+    _cycle_cop_weight_sum: float = 0.0
+    _cycle_cop_sq_w_sum: float = 0.0
+    _cycle_cop_count: int = 0
 
     # R52: class-level defaults so __new__-style tests find these attrs
     _kmeans_centroids: list[Any] = []
@@ -112,6 +143,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cycle_lwt_count: int = 0
         self._cycle_indoor_sum: float = 0.0
         self._cycle_indoor_count: int = 0
+        self._cycle_cop_w_sum: float = 0.0
+        self._cycle_cop_weight_sum: float = 0.0
+        self._cycle_cop_sq_w_sum: float = 0.0
+        self._cycle_cop_count: int = 0
         self.detector = CycleDetector(self.options)
         self.store = CycleStore()
         self._errors_total = 0
@@ -451,6 +486,19 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 except (TypeError, ValueError):
                     _LOGGER.debug("indoor cast failed", exc_info=True)
 
+
+        cop = self._read_cop()
+        if cop is None or cop <= 0.0:
+            return
+        power_w = self._read_power_w()
+        if power_w is not None and power_w > 0.0:
+            weight = power_w
+        else:
+            weight = 1.0
+        self._cycle_cop_w_sum += cop * weight
+        self._cycle_cop_weight_sum += weight
+        self._cycle_cop_sq_w_sum += (cop * cop) * weight
+        self._cycle_cop_count += 1
     async def _collect_cycle_averages(
         self, record: dict[str, Any]
     ) -> tuple[float | None, float | None, float | None]:
@@ -465,8 +513,17 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cycle_lwt_count = 0
         self._cycle_indoor_sum = 0.0
         self._cycle_indoor_count = 0
-        cop_avg: float | None = None
-        if self.db is not None:
+        cop_avg, cop_stdev = _weighted_mean_stdev(
+            self._cycle_cop_w_sum,
+            self._cycle_cop_weight_sum,
+            self._cycle_cop_sq_w_sum,
+        )
+        cop_count = self._cycle_cop_count
+        self._cycle_cop_w_sum = 0.0
+        self._cycle_cop_weight_sum = 0.0
+        self._cycle_cop_sq_w_sum = 0.0
+        self._cycle_cop_count = 0
+        if cop_count < COP_MIN_TICKS and self.db is not None:
             start_ts = record.get("start_ts")
             end_ts = record.get("end_ts")
             if isinstance(start_ts, (int, float)) and isinstance(
@@ -474,13 +531,21 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             ):
                 try:
                     if hasattr(self.db, "async_avg_cop_between"):
-                        cop_avg = await self.db.async_avg_cop_between(
+                        fallback = await self.db.async_avg_cop_between(
                             float(start_ts), float(end_ts)
                         )
+                        if fallback is not None:
+                            cop_avg = fallback
                 except Exception:
                     _LOGGER.debug(
                         "cop_avg lookup failed", exc_info=True
                     )
+        record["cop_avg"] = cop_avg
+        record["cop_sample_count"] = cop_count if cop_count > 0 else None
+        record["cop_sample_stdev"] = cop_stdev
+        record["cop_confidence"] = _cop_confidence(
+            cop_count, record.get("duration_s")
+        )
         return cop_avg, lwt_avg, indoor_avg
 
     # ---------- Batch 7c ML pipeline ----------

@@ -65,8 +65,9 @@ class CycleDB:
             """INSERT OR IGNORE INTO cycles
                (start_ts, end_ts, duration_s, mode, dT_max, dT_avg,
                 rps_max, rps_avg, outdoor_temp, buh_used, defrost_used,
-                quality_score, label)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                quality_score, label,
+                cop_avg, cop_sample_count, cop_sample_stdev, cop_confidence)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 record.get("start_ts"),
                 record.get("end_ts"),
@@ -81,6 +82,10 @@ class CycleDB:
                 int(bool(record.get("defrost_used", 0))),
                 record.get("quality_score"),
                 record.get("label"),
+                record.get("cop_avg"),
+                record.get("cop_sample_count"),
+                record.get("cop_sample_stdev"),
+                record.get("cop_confidence"),
             ),
         )
         try:
