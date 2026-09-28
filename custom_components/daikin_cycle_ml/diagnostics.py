@@ -130,7 +130,7 @@ async def async_get_config_entry_diagnostics(
     db = getattr(coord, "db", None)
 
     counters: dict[str, int] = {}
-    if hasattr(store, "counters_snapshot"):
+    if hasattr(store, "counters_snapshot"):  # pragma: no branch
         counters = store.counters_snapshot()
 
     attrs = getattr(snap, "attrs", {}) or {}

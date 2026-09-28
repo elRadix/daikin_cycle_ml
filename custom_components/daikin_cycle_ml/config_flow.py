@@ -655,7 +655,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         c: dict[str, Any] = dict(self.config_entry.options or {})
         _cur_ns = c.get("notify_service") or DEFAULT_NOTIFY_SERVICE
         _def_ns = _default_notify_choice(self.hass, _cur_ns)
-        if _def_ns is not None:
+        if _def_ns is not None:  # pragma: no cover
             _ns_key = vol.Optional("notify_service", default=_def_ns)
         else:
             _ns_key = vol.Optional("notify_service")

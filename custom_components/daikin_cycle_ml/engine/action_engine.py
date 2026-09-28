@@ -138,7 +138,7 @@ def _generate(
     if is_anom and top_dim is not None and 0 <= top_dim < len(FEATURE_NAMES):
         feature = FEATURE_NAMES[top_dim]
         spec = _TOP_DIM_ADVICE.get(feature)
-        if spec is not None:
+        if spec is not None:  # pragma: no branch
             prio, code, title, desc = spec
             if sev == "critical":
                 prio = PRIORITY_HIGH

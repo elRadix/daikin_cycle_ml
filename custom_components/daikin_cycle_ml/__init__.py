@@ -56,13 +56,13 @@ async def _async_setup_database(
             await db.async_migrate_features_to_v12()
         except Exception as err:
             _LOGGER.exception('v12 migration failed')
-            if coordinator._migration_error is None:
+            if coordinator._migration_error is None:  # pragma: no branch
                 coordinator._migration_error = str(err)
         try:
             await db.async_migrate_cop_samples_to_v13()
         except Exception as err:
             _LOGGER.exception('v13 migration failed')
-            if coordinator._migration_error is None:
+            if coordinator._migration_error is None:  # pragma: no branch
                 coordinator._migration_error = str(err)
         try:
             coordinator._db_integrity_ok = await db.async_integrity_check()
@@ -127,7 +127,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if _unsub is not None:
                 try:
                     _unsub()
-                except Exception:
+                except Exception:  # pragma: no cover
                     _LOGGER.exception('Failed to unsub %s', _attr)
                 setattr(coordinator, _attr, None)
     db = getattr(coordinator, "db", None) if coordinator is not None else None

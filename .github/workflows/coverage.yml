@@ -26,5 +26,5 @@ jobs:
         run: |
           python -m pytest -q --no-header \
             --cov=custom_components.daikin_cycle_ml \
-            --cov-fail-under=95 \
+            --cov-fail-under=100 \
             --cov-report=term-missing

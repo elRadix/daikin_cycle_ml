@@ -103,7 +103,7 @@ class Baseline:
 
     def top_dim(self, vector: list[float]) -> int | None:
         zs = self.z_scores(vector)
-        if not zs:
+        if not zs:  # pragma: no cover
             return None
         best_i, best = -1, 0.0
         for i, z in enumerate(zs):

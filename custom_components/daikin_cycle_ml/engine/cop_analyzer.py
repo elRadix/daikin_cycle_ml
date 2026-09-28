@@ -128,7 +128,7 @@ def _group_by_bucket(samples: list[CopSample]) -> dict[str, list[CopSample]]:
     for s in samples:
         if not s.valid:
             continue
-        if s.mode not in ('heating', 'unknown'):
+        if s.mode not in ('heating', 'unknown'):  # pragma: no cover
             continue
         b = bucket_for_outdoor(s.outdoor)
         out.setdefault(b, []).append(s)

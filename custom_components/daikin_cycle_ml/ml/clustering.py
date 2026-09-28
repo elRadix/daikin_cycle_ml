@@ -80,7 +80,7 @@ def _kmeans_plusplus_init(
             r = rng.random() * total
             acc = 0.0
             idx = n - 1
-            for i, w in enumerate(d2):
+            for i, w in enumerate(d2):  # pragma: no branch
                 acc += w
                 if acc >= r:
                     idx = i

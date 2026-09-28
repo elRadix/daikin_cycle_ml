@@ -48,7 +48,7 @@ addopts = "-q --cov=custom_components.daikin_cycle_ml --cov-fail-under=95"
 branch = true
 source = ["custom_components/daikin_cycle_ml"]
 [tool.coverage.report]
-fail_under = 95
+fail_under = 100
 
 [tool.mypy]
 strict = true
