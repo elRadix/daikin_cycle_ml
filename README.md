@@ -4,7 +4,7 @@ Home Assistant integration that detects compressor cycles, classifies
 pendulum behaviour, self-learns per mode, and advises on Daikin Altherma
 heat pumps. **Local-only ML, no cloud.**
 
-[![Version](https://img.shields.io/badge/version-1.2.1-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.2.1)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.3.0)
 [![Tests](https://img.shields.io/badge/tests-1615-brightgreen.svg)](#16-testing)
 [![Coverage](https://img.shields.io/badge/coverage-100.00%25-brightgreen.svg)](#16-testing)
 [![Ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)
@@ -78,6 +78,18 @@ No cloud. No external API. Everything runs inside your Home Assistant box.
 - **8 pendulum patterns** — per mode (Heating / Cooling / DHW), hourly + daily
 - **Quality score 0-100** per cycle (runtime, dT, off-time, BUH, defrost)
 - **thermal_kW per cycle** — computed from flow x 4.18 x dT
+- **COP hourly rollup** (v1.3.0) — 6h scheduler aggregates cop_samples
+  into cop_hourly (per-hour, per-mode: mean/p10/p50/p90/std,
+  lwt_mean, outdoor mean/min/max, flow_mean)
+- **COP KPI sensors** (v1.3.0) — sensor.cop_mean_day/week/month
+  (heating-weighted mean, all-mode breakdown as attribute)
+- **COP curve REST endpoint** (v1.3.0) —
+  GET /api/daikin_cycle_ml/cop_hourly?days=N&mode=X (auth required,
+  1..365 days)
+- **COP curve sensor** (v1.3.0) — sensor.cop_curve_recent (48h window,
+  ~8 KB attrs, recorder-safe for ApexCharts)
+- **Export COP hourly** (v1.3.0) — daikin_cycle_ml.export_cop_hourly
+  service (json/csv, up to 365 days)
 - **MultiBaseline** — per-mode EWMA, dim 12, persistent, dim-guarded
 - **AdaptiveThresholds** — percentile-based self-learning per mode (opt-in)
 - **Weekly k-means clustering** + per-cycle nearest-centroid assignment

@@ -84,3 +84,58 @@ Adding a new card:
 ## License
 
 Same as the parent project — MIT.
+
+---
+
+## COP heating curve (v1.3.0+)
+
+Two ready-made ApexCharts cards for visualising COP against
+outdoor temperature and over time. Both consume the v1.3.0 data
+layer (B4 cop_hourly rollup + B6 REST endpoint + curve sensor).
+
+### Prerequisites
+
+- HACS frontend integration: apexcharts-card
+  (https://github.com/RomRider/apexcharts-card)
+- Daikin Cycle ML v1.3.0+ loaded
+- sensor.cop_curve_recent present
+- /api/daikin_cycle_ml/cop_hourly reachable (same host)
+
+### Card 1 - COP vs outdoor (scatter, 90d)
+
+Best for: seasonal heating-curve shape, low-temperature behaviour,
+DHW-vs-heating separation.
+
+Source: dashboard/cards/apexcharts-heating-curve.yaml
+
+How it works: data_generator calls the REST endpoint directly, so
+there is no 16 KB recorder attribute limit - pull 90 or 365 days
+at will.
+
+### Card 2 - COP last 48h (time series)
+
+Best for: trend, spot defrost/DHW artefacts, confirm rollup is
+running.
+
+Source: dashboard/cards/apexcharts-cop-hourly-recent.yaml
+
+How it works: reads sensor.cop_curve_recent attributes directly.
+No HTTP call. ~8 KB payload, safely under the recorder cap.
+
+### Installation
+
+1. Install apexcharts-card via HACS -> Frontend.
+2. Edit dashboard -> Add card -> Manual.
+3. Paste the content of the YAML file.
+4. Save.
+
+### Data source notes
+
+| Endpoint / sensor | Window | Size | Recorder |
+|---|---|---|---|
+| /api/daikin_cycle_ml/cop_hourly | 1..365d | unlimited | n/a (on-demand) |
+| sensor.cop_curve_recent attrs | 48h | ~8 KB | stored |
+| sensor.cop_mean_day/week/month | scalars | tiny | stored |
+
+For Grafana, Excel, or scripts: use the
+daikin_cycle_ml.export_cop_hourly service (json or csv).

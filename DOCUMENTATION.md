@@ -1,6 +1,6 @@
 # Daikin Cycle ML — Technical Reference
 
-**Version:** 1.2.1 · **Updated:** 2026-09-28
+**Version:** 1.3.0 · **Updated:** 2026-09-29
 **Domain:** `daikin_cycle_ml` · **IoT class:** calculated · **Integration type:** helper
 **Repository:** https://github.com/elRadix/daikin_cycle_ml
 
@@ -888,3 +888,84 @@ Rollback is **not** complete until both checks pass:
 
 Checking only (1) is a known failure mode — see Rule R177 in the
 handoff.
+---
+
+## COP hourly pipeline (v1.3.0)
+
+New in v1.3.0: hourly aggregation of cop_samples into cop_hourly,
+plus query, sensor, REST, and export surfaces.
+
+### Writer
+
+CycleDB.async_rollup_cop_hourly(window_hours=6):
+
+- Reads cop_samples for the trailing window.
+- Buckets by (CAST(ts/3600 AS INT), mode).
+- Computes per bucket: n_samples, cop_mean, cop_p10, cop_p50,
+  cop_p90, cop_std, lwt_mean, outdoor_mean/min/max, flow_mean.
+- Idempotent INSERT ... ON CONFLICT(ts_hour, mode) DO UPDATE.
+
+Hook: _async_baseline_save_callback (every 6h) calls
+_maybe_rollup_cop_hourly() in an isolated try/except so a rollup
+failure cannot break baseline persistence.
+
+### Query layer
+
+Three methods on CycleDB:
+
+- async_query_cop_hourly(since_ts, until_ts=None, mode=None, limit=None)
+- async_cop_hourly_stats(since_ts, mode=None) - bucket-weighted mean
+  (weight = n_samples), p10 = min(bucket p10), p90 = max(bucket p90),
+  min/max of bucket means
+- async_cop_hourly_by_mode(since_ts) - {mode: stats}
+
+Coordinator: _maybe_refresh_cop_hourly(now) throttled to 300s;
+populates _cop_hourly_cache with day (1d), week (7d), month (30d),
+and curve_recent (48h, capped to 96 points). Curve refresh lives in
+a second try/except so its failure cannot poison the KPI cache or
+the throttle timestamp.
+
+### Sensors
+
+| Entity | Unit | State | Attributes |
+|---|---|---|---|
+| sensor.cop_mean_day | COP | heating weighted mean last 24h | per-period + by_mode |
+| sensor.cop_mean_week | COP | heating weighted mean last 7d | same |
+| sensor.cop_mean_month | COP | heating weighted mean last 30d | same |
+| sensor.cop_curve_recent | count | n_points | points[] 48h x mode |
+
+sensor.cop_curve_recent payload is bounded to ~8 KB (48h x 2 modes),
+safely under HA's 16 KB recorder attribute cap.
+
+### REST endpoint
+
+GET /api/daikin_cycle_ml/cop_hourly?days=N&mode=X
+
+- Auth required (requires_auth = True).
+- days 1..365, default 30; mode optional.
+- 200 -> {days, mode, count, rows}; 400 invalid days; 503 no
+  entry/db; 500 query failure.
+- Registered once per HA lifecycle in async_setup via
+  hass.data["daikin_cycle_ml_view_registered"] flag.
+- manifest.json declares dependencies ["http"].
+
+### Export service
+
+daikin_cycle_ml.export_cop_hourly (6th service):
+
+| Field | Type | Default | Notes |
+|---|---|---|---|
+| entry_id | str | required | config entry |
+| days | int | 30 | 1..365 |
+| mode | str | none | heating/dhw/defrost/unknown |
+| format | enum | json | json or csv |
+
+Returns in-memory (mirrors export_cycles):
+{format, days, mode, count, rows} for json,
+{format, days, mode, count, content} for csv.
+
+### Dashboard cards
+
+See dashboard/README.md for two ready-made ApexCharts cards:
+scatter (COP vs outdoor, 90d via REST) and time series
+(COP last 48h via sensor attrs).

@@ -1,0 +1,45 @@
+# Daikin Cycle ML - COP last 48h (time series from sensor attrs)
+# Requires: apexcharts-card (HACS frontend)
+# Uses sensor.cop_curve_recent attributes directly (no HTTP call).
+# 48h x ~2 modes ~= 8KB, under the recorder attribute cap.
+type: custom:apexcharts-card
+header:
+  show: true
+  title: COP laatste 48u (per uur, per modus)
+  show_states: true
+graph_span: 48h
+span:
+  start: hour
+  offset: -47h
+apex_config:
+  chart:
+    height: 320
+    animations:
+      enabled: false
+  xaxis:
+    type: datetime
+  yaxis:
+    min: 1
+    max: 6
+  stroke:
+    curve: smooth
+    width: 2
+  markers:
+    size: 3
+series:
+  - entity: sensor.cop_curve_recent
+    name: Heating
+    color: '#E60012'
+    data_generator: |
+      const pts = entity.attributes.points || [];
+      return pts
+        .filter(p => p.mode === 'heating' && p.cop_mean !== null)
+        .map(p => [p.ts * 1000, p.cop_mean]);
+  - entity: sensor.cop_curve_recent
+    name: DHW
+    color: '#9b59b6'
+    data_generator: |
+      const pts = entity.attributes.points || [];
+      return pts
+        .filter(p => p.mode === 'dhw' && p.cop_mean !== null)
+        .map(p => [p.ts * 1000, p.cop_mean]);

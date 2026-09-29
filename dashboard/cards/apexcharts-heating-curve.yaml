@@ -1,0 +1,50 @@
+# Daikin Cycle ML - COP heating curve (scatter)
+# Requires: apexcharts-card (HACS frontend)
+# Uses the B6 REST endpoint via data_generator (no recorder size
+# limit; the endpoint returns raw cop_hourly rows).
+type: custom:apexcharts-card
+header:
+  show: true
+  title: COP vs buitentemperatuur (heating curve)
+  show_states: false
+chart_type: scatter
+graph_span: 90d
+apex_config:
+  chart:
+    height: 420
+    animations:
+      enabled: false
+  xaxis:
+    type: numeric
+    title:
+      text: Buitentemperatuur
+    min: -15
+    max: 25
+  yaxis:
+    title:
+      text: COP
+    min: 1
+    max: 6
+  markers:
+    size: 6
+    strokeWidth: 0
+  legend:
+    show: true
+    position: top
+series:
+  - entity: sensor.cop_curve_recent
+    name: Heating
+    color: '#E60012'
+    data_generator: |
+      return hass.callApi('GET', 'daikin_cycle_ml/cop_hourly?days=90&mode=heating')
+        .then(r => r.rows
+          .filter(p => p.outdoor_mean !== null && p.cop_mean !== null)
+          .map(p => [p.outdoor_mean, p.cop_mean]));
+  - entity: sensor.cop_curve_recent
+    name: DHW
+    color: '#9b59b6'
+    data_generator: |
+      return hass.callApi('GET', 'daikin_cycle_ml/cop_hourly?days=90&mode=dhw')
+        .then(r => r.rows
+          .filter(p => p.outdoor_mean !== null && p.cop_mean !== null)
+          .map(p => [p.outdoor_mean, p.cop_mean]));
