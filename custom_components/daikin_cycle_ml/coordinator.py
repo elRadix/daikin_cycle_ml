@@ -318,6 +318,21 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self.async_save_baseline_state()
         except Exception:
             _LOGGER.exception("Scheduled baseline save failed")
+        try:
+            await self._maybe_rollup_cop_hourly()
+        except Exception:
+            _LOGGER.exception("Scheduled cop_hourly rollup failed")
+
+    async def _maybe_rollup_cop_hourly(
+        self, window_hours: int = 6
+    ) -> int:
+        """Roll up cop_samples into cop_hourly. No-op without db."""
+        if self.db is None:
+            return 0
+        result: int = await self.db.async_rollup_cop_hourly(
+            window_hours=window_hours
+        )
+        return result
 
     async def async_save_baseline_state(self) -> bool:
         if self.db is None:

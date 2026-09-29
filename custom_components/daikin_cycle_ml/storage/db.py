@@ -640,6 +640,114 @@ class CycleDB:
         )
         await conn.commit()
 
+    @staticmethod
+    def _percentile(sorted_values: list[float], q: float) -> float:
+        """Linear-interpolation percentile. q in [0,1]."""
+        if not sorted_values:  # pragma: no cover - callers pass n>=1
+            return 0.0
+        n = len(sorted_values)
+        if n == 1:
+            return sorted_values[0]
+        idx = q * (n - 1)
+        lo = int(idx)
+        hi = min(lo + 1, n - 1)
+        frac = idx - lo
+        return sorted_values[lo] * (1.0 - frac) + sorted_values[hi] * frac
+
+    @staticmethod
+    def _std(values: list[float], mean: float) -> float:
+        """Population std. n<2 -> 0.0."""
+        if len(values) < 2:
+            return 0.0
+        var = sum((v - mean) ** 2 for v in values) / len(values)
+        return float(var ** 0.5)
+
+    @staticmethod
+    def _mean_or_none(values: list[float]) -> float | None:
+        if not values:
+            return None
+        return sum(values) / len(values)
+
+    async def async_rollup_cop_hourly(self, window_hours: int = 6) -> int:
+        """Roll up cop_samples into cop_hourly. Idempotent UPSERT."""
+        await self.async_ensure_cop_samples_table()
+        await self.async_create_cop_hourly_v14()
+        conn = self._require()
+        now = time.time()
+        cutoff = now - float(window_hours) * 3600.0
+
+        async with conn.execute(
+            "SELECT ts, cop, lwt, outdoor, flow_lmin, mode "
+            "FROM cop_samples WHERE ts >= ?",
+            (cutoff,),
+        ) as cur:
+            rows = await cur.fetchall()
+
+        if not rows:
+            return 0
+
+        buckets: dict[tuple[int, str], list[Any]] = {}
+        for r in rows:
+            ts_hour = int(float(r["ts"]) // 3600)
+            mode = r["mode"] or "unknown"
+            buckets.setdefault((ts_hour, mode), []).append(r)
+
+        upserted = 0
+        for (ts_hour, mode), samples in buckets.items():
+            cops = sorted(float(s["cop"]) for s in samples)
+            n = len(cops)
+            mean = sum(cops) / n
+            lwts = [
+                float(s["lwt"]) for s in samples if s["lwt"] is not None
+            ]
+            outdoors = [
+                float(s["outdoor"]) for s in samples
+                if s["outdoor"] is not None
+            ]
+            flows = [
+                float(s["flow_lmin"]) for s in samples
+                if s["flow_lmin"] is not None
+            ]
+            await conn.execute(
+                "INSERT INTO cop_hourly ("
+                "ts_hour, mode, n_samples, cop_mean, cop_p10, cop_p50, "
+                "cop_p90, cop_std, lwt_mean, outdoor_mean, outdoor_min, "
+                "outdoor_max, flow_mean, updated_ts) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                "ON CONFLICT(ts_hour, mode) DO UPDATE SET "
+                "n_samples=excluded.n_samples, "
+                "cop_mean=excluded.cop_mean, "
+                "cop_p10=excluded.cop_p10, "
+                "cop_p50=excluded.cop_p50, "
+                "cop_p90=excluded.cop_p90, "
+                "cop_std=excluded.cop_std, "
+                "lwt_mean=excluded.lwt_mean, "
+                "outdoor_mean=excluded.outdoor_mean, "
+                "outdoor_min=excluded.outdoor_min, "
+                "outdoor_max=excluded.outdoor_max, "
+                "flow_mean=excluded.flow_mean, "
+                "updated_ts=excluded.updated_ts",
+                (
+                    ts_hour,
+                    mode,
+                    n,
+                    mean,
+                    self._percentile(cops, 0.10),
+                    self._percentile(cops, 0.50),
+                    self._percentile(cops, 0.90),
+                    self._std(cops, mean),
+                    self._mean_or_none(lwts),
+                    self._mean_or_none(outdoors),
+                    min(outdoors) if outdoors else None,
+                    max(outdoors) if outdoors else None,
+                    self._mean_or_none(flows),
+                    now,
+                ),
+            )
+            upserted += 1
+        await conn.commit()
+        return upserted
+
     async def async_insert_cop_sample(
         self, sample: dict[str, Any]
     ) -> bool:
