@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.3.2] - 2026-09-29
+
+### Fixed
+
+- Re-release of v1.3.1 content on the correct commit (f1dc6f9). The
+  v1.3.1 git tag and GitHub release were mistakenly created on
+  e361f5b (v1.3.0 code), so the v1.3.1 release artifact did not
+  actually ship the entity_id migration. v1.3.2 ships the f1dc6f9
+  tree with corrected version strings and a corrected release pointer.
+- README version badge 1.3.0 -> 1.3.2 (badge had not been bumped for
+  v1.3.1).
+
+### Changed
+
+- Version strings (const.py, manifest.json, pyproject.toml) 1.3.1 ->
+  1.3.2. No code change; tree is identical to f1dc6f9 apart from the
+  version strings and this changelog entry.
+
 ## [1.3.1] - 2026-09-29
 
 ### Fixed
