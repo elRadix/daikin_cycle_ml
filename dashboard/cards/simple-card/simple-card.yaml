@@ -101,12 +101,12 @@ cards:
             state:'sensor.daikin_cycle_ml_cycle_state',
             cur:'sensor.daikin_cycle_ml_current_cycle',
             last:'sensor.daikin_cycle_ml_last_cycle',
-            today:'sensor.daikin_cycle_ml_today',
+            today:'sensor.daikin_cycle_ml_cycles_today',
             q:'sensor.daikin_cycle_ml_quality_today',
-            cop:'sensor.daikin_cycle_ml_cop_vandaag',
+            cop:'sensor.daikin_cycle_ml_cop_today',
             health:'sensor.daikin_cycle_ml_source_health',
             learn:'sensor.daikin_cycle_ml_learned_thresholds',
-            stook:'sensor.daikin_cycle_ml_stooklijn_advies'
+            stook:'sensor.daikin_cycle_ml_heating_curve_advice'
           };
           var B = {
             comp:'binary_sensor.daikin_cycle_ml_compressor_running',
