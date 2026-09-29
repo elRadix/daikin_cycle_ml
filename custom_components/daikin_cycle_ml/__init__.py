@@ -13,6 +13,7 @@ from .const import DOMAIN as DOMAIN
 from .const import VERSION as VERSION
 from .coordinator import DaikinCycleMLCoordinator
 from .services import async_register_services
+from .api import CopHourlyView
 from .storage.db import CycleDB
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,8 +27,15 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant, _config: dict[str, Any]) -> bool:
-    """Register integration-wide services once per HA lifecycle."""
+    """Register integration-wide services + HTTP view once per HA."""
     await async_register_services(hass)
+    _VIEW_FLAG = f"{DOMAIN}_view_registered"
+    if not hass.data.get(_VIEW_FLAG):  # pragma: no branch
+        try:
+            hass.http.register_view(CopHourlyView(hass))
+            hass.data[_VIEW_FLAG] = True
+        except Exception:
+            _LOGGER.exception("cop_hourly view registration failed")
     return True
 
 

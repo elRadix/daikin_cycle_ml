@@ -311,6 +311,18 @@ def _attrs_cop_hourly(
         }
     return _fn
 
+def _attrs_cop_curve_recent(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator,
+) -> dict[str, Any]:
+    data = s.cop_curve_recent or {}
+    return {
+        "window_hours": data.get("window_hours"),
+        "n_points": data.get("n_points"),
+        "modes_present": data.get("modes_present") or [],
+        "updated_ts": data.get("updated_ts"),
+        "points": data.get("points") or [],
+    }
+
 def _attrs_stooklijn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     data = s.stooklijn_advies or {}
     return {
@@ -491,6 +503,15 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "icon": "mdi:calendar-month",
         "value_fn": _cop_hourly_heating_mean("month"),
         "attr_fn": _attrs_cop_hourly("month"),
+    },
+    {
+        "key": "cop_curve_recent", "name": "COP curve (48h)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "icon": "mdi:chart-scatter-plot",
+        "value_fn": lambda s, c: (s.cop_curve_recent or {}).get(
+            "n_points"
+        ),
+        "attr_fn": _attrs_cop_curve_recent,
     },
 ]
 

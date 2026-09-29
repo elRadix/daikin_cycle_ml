@@ -37,6 +37,7 @@ from .ml.features import VECTOR_LEN, extract_feature_vector
 from .ml.multi_baseline import MultiBaseline
 from .repairs import async_check_repairs
 from .storage.store import CycleStore
+from .const import COP_CURVE_RECENT_HOURS, COP_CURVE_RECENT_MAX_POINTS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,6 +64,7 @@ class DataSnapshot:
     cop_hourly_day: dict[str, Any] = field(default_factory=dict)
     cop_hourly_week: dict[str, Any] = field(default_factory=dict)
     cop_hourly_month: dict[str, Any] = field(default_factory=dict)
+    cop_curve_recent: dict[str, Any] = field(default_factory=dict)
 
 
 # --- FEAT-2: live thermal power helpers ---
@@ -365,6 +367,43 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._cop_hourly_cache_ts = now
         except Exception:
             _LOGGER.exception("cop_hourly cache refresh failed")
+            return
+        try:
+            await self._refresh_cop_curve_recent(now)
+        except Exception:
+            _LOGGER.exception("cop curve_recent refresh failed")
+
+    async def _refresh_cop_curve_recent(self, now: float) -> None:
+        """Populate _cop_hourly_cache["curve_recent"] with 48h points."""
+        if self.db is None:
+            return
+        since = now - float(COP_CURVE_RECENT_HOURS) * 3600.0
+        rows = await self.db.async_query_cop_hourly(since_ts=since)
+        # cap to most recent N points
+        if len(rows) > COP_CURVE_RECENT_MAX_POINTS:
+            rows = rows[-COP_CURVE_RECENT_MAX_POINTS:]
+        points: list[dict[str, Any]] = []
+        modes_present: set[str] = set()
+        for r in rows:
+            mode = r.get("mode") or "unknown"
+            modes_present.add(mode)
+            points.append({
+                "ts": int(r["ts_hour"]) * 3600,
+                "mode": mode,
+                "cop_mean": r.get("cop_mean"),
+                "cop_p50": r.get("cop_p50"),
+                "cop_p90": r.get("cop_p90"),
+                "lwt_mean": r.get("lwt_mean"),
+                "outdoor_mean": r.get("outdoor_mean"),
+                "n_samples": r.get("n_samples"),
+            })
+        self._cop_hourly_cache["curve_recent"] = {
+            "points": points,
+            "n_points": len(points),
+            "window_hours": COP_CURVE_RECENT_HOURS,
+            "modes_present": sorted(modes_present),
+            "updated_ts": now,
+        }
 
     async def async_save_baseline_state(self) -> bool:
         if self.db is None:
@@ -497,6 +536,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.cop_hourly_day = self._cop_hourly_cache.get("day", {})
             snap.cop_hourly_week = self._cop_hourly_cache.get("week", {})
             snap.cop_hourly_month = self._cop_hourly_cache.get("month", {})
+            snap.cop_curve_recent = self._cop_hourly_cache.get(
+                "curve_recent", {}
+            )
             snap.stooklijn_advies = self._stooklijn_cache
             snap.errors_total = self._errors_total
             await self._async_dispatch_alerts(snap)

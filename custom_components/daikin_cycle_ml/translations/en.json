@@ -369,6 +369,9 @@
       },
       "stooklijn_advies": {
         "name": "Stooklijn advies"
+      },
+      "cop_curve_recent": {
+        "name": "COP curve (48h)"
       }
     },
     "binary_sensor": {
