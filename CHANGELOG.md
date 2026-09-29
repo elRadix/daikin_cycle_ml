@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.3.0] - 2026-09-29
 
 ### Added
 
@@ -8,10 +8,38 @@
 - v14 schema: `cop_samples.source` column (`'interval'` / `'tick'` / `'cycle_close'`)
 - v14 schema: `cop_hourly` rollup table for long-horizon stooklijn
 - `engine/thermal.py`: FEAT-2 cascade extracted from `sensor.py`
+- T1 in-cycle COP integration (B2): `_cop_confidence` + `_weighted_mean_stdev`; cycles now persist weighted COP mean, sample count, stdev, and confidence
+- `cop_hourly` rollup writer (B4) + 6h scheduler hook
+- COP KPI sensors (B5): `sensor.cop_mean_day`, `sensor.cop_mean_week`, `sensor.cop_mean_month`
+- REST view (B6): `GET /api/daikin_cycle_ml/cop_hourly` (`CopHourlyView`)
+- `sensor.cop_curve_recent` (B6): 48h window, capped 96 points
+- Service `export_cop_hourly` (B7): JSON/CSV export, mirrors `export_cycles`
 
 ### Changed
 
 - pyproject `addopts` coverage gate 95 -> 100
+- `db.async_insert_cycle` 13 -> 17 columns (v14 COP fields)
+- `db.async_insert_cop_sample` 7 -> 8 columns (v14 `source` field)
+- `_maybe_collect_cop_sample` interval 600s -> 300s (B3)
+- `VERSION` 1.2.1 -> 1.3.0 (`const.py`, `manifest.json`, `pyproject.toml`)
+- `manifest.json` dependencies: `["http"]` (B6 REST view)
+- README badge: 1.2.1 -> 1.3.0
+- DOCUMENTATION: 1.2.1 -> 1.3.0
+
+### Fixed
+
+- `test_cov8b_*`: new `cycle_cop*` attributes
+- B3 run-1: `asyncio.run()` -> project async pattern (R188)
+- B5 test after B6: `curve_recent` failure isolated the KPI cache (R191)
+- B6: `HomeAssistantView` import from `helpers.http` (R190)
+
+### Notes
+
+- Tests: ~1685 passed, 4 skipped, 100.00% branch coverage (4424 stmts / 1248 branches)
+- Sensor count 10 -> 14; service count 5 -> 6
+- New module: `api.py` (REST view); new engine: `engine/thermal.py`
+- cop_hourly retention policy not yet enforced (unbounded, ~1MB/yr)
+- v14 migration is idempotent; prod v1.2.1 DB migrates on first v1.3.0 boot
 
 ## [1.2.1] - 2026-09-28
 
