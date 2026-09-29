@@ -431,7 +431,7 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "attr_fn": _attrs_last_cycle,
     },
     {
-        "key": "today", "name": "Today",
+        "key": "cycles_today", "name": "Cycles today",
         "state_class": SensorStateClass.TOTAL_INCREASING,
         "icon": "mdi:counter",
         "value_fn": lambda s, c: len(c.store.cycles_today(_now())),
@@ -469,7 +469,7 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "attr_fn": _attrs_learned,
     },
     {
-        "key": "cop_vandaag", "name": "COP vandaag",
+        "key": "cop_today", "name": "COP today",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "COP",
         "icon": "mdi:heat-pump",
@@ -477,7 +477,7 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "attr_fn": _attrs_cop_today,
     },
     {
-        "key": "stooklijn_advies", "name": "Stooklijn advies",
+        "key": "heating_curve_advice", "name": "Heating curve advice",
         "icon": "mdi:chart-line",
         "value_fn": lambda s, c: (s.stooklijn_advies or {}).get("state", "unknown"),
         "attr_fn": _attrs_stooklijn,
@@ -520,17 +520,45 @@ SENSOR_DEFS: list[dict[str, Any]] = [
 
 
 def _migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """v1.3.1: Fix entity_ids from v1.3.0 translation bug (idempotent)."""
+    """Entity-ID migrations (idempotent).
+
+    v1.3.1: fix entity_ids from v1.3.0 translation bug.
+    v1.4.0: BREAKING rename NL/vague SENSOR_DEFS keys -> EN slugs.
+      Update entity_id + unique_id + translation_key in one call so
+      the entity created on this same setup pass reconciles to the
+      same registry row (no orphan).
+    """
     registry = er.async_get(hass)
-    id_fixes = {
+
+    # v1.3.1 slug-only fixes (unique_id unchanged).
+    slug_fixes = {
         "sensor.daikin_cycle_ml":               "sensor.daikin_cycle_ml_cop_mean_day",
         "sensor.daikin_cycle_ml_2":             "sensor.daikin_cycle_ml_cop_mean_week",
         "sensor.daikin_cycle_ml_3":             "sensor.daikin_cycle_ml_cop_mean_month",
         "sensor.daikin_cycle_ml_cop_curve_48h": "sensor.daikin_cycle_ml_cop_curve_recent",
     }
-    for old_eid, new_eid in id_fixes.items():
+    for old_eid, new_eid in slug_fixes.items():
         if registry.async_get(old_eid) and not registry.async_get(new_eid):
             registry.async_update_entity(old_eid, new_entity_id=new_eid)
+
+    # v1.4.0 key renames: entity_id + unique_id + translation_key.
+    entry_id = entry.entry_id
+    entry_domain = entry.domain
+    key_fixes = {
+        "today": "cycles_today",
+        "cop_vandaag": "cop_today",
+        "stooklijn_advies": "heating_curve_advice",
+    }
+    for old_key, new_key in key_fixes.items():
+        old_eid = "sensor.daikin_cycle_ml_" + old_key
+        new_eid = "sensor.daikin_cycle_ml_" + new_key
+        if registry.async_get(old_eid) and not registry.async_get(new_eid):
+            registry.async_update_entity(
+                old_eid,
+                new_entity_id=new_eid,
+                new_unique_id="%s_%s_%s" % (entry_domain, entry_id, new_key),
+                translation_key=new_key,
+            )
 
 async def async_setup_entry(
     hass: HomeAssistant,

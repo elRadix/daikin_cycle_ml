@@ -13,21 +13,21 @@ def test_sensor_defs_has_expected_containers():
         "cycle_state",
         "current_cycle",
         "last_cycle",
-        "today",
+        "cycles_today",
         "quality_today",
         "source_health",
         "learned_thresholds",
-        "cop_vandaag",
-        "stooklijn_advies",
+        "cop_today",
+        "heating_curve_advice",
         "thermal_power_live",
     }
 
 
 def test_container_sensors_have_attr_fn():
     containers_with_attrs = {
-        "current_cycle", "last_cycle", "today", "quality_today",
-        "source_health", "learned_thresholds", "cop_vandaag",
-        "stooklijn_advies",
+        "current_cycle", "last_cycle", "cycles_today", "quality_today",
+        "source_health", "learned_thresholds", "cop_today",
+        "heating_curve_advice",
     }
     for spec in s_mod.SENSOR_DEFS:
         if spec["key"] in containers_with_attrs:
@@ -45,7 +45,7 @@ def test_no_old_sensor_keys():
     for old in (
         "current_cycle_duration", "current_cycle_mode", "current_dt", "current_rps",
         "last_cycle_duration", "last_cycle_mode", "last_cycle_dt_max",
-        "cycles_today", "cycles_last_hour", "short_runs_today",
+        "cycles_last_hour", "short_runs_today",
         "buh_step1_active", "buh_step2_active",
         "cluster_pendulum", "cluster_normal", "cluster_dhw_like",
     ):

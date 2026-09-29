@@ -1,5 +1,43 @@
 # Changelog
 
+## [1.4.0] - 2026-09-29
+
+### BREAKING
+
+- Renamed 3 sensor translation keys to English slugs. Entity IDs
+  change on next setup; the migration runs automatically and is
+  idempotent.
+  - `today` -> `cycles_today`  (sensor.daikin_cycle_ml_cycles_today)
+  - `cop_vandaag` -> `cop_today`  (sensor.daikin_cycle_ml_cop_today)
+  - `stooklijn_advies` -> `heating_curve_advice`
+    (sensor.daikin_cycle_ml_heating_curve_advice)
+- Internal identifiers (alert_type, dedupe_key, notification_id,
+  ALERT_GROUP_MAP key, DataSnapshot.stooklijn_advies) are unchanged;
+  alert dedupe state carries over.
+
+### Fixed
+
+- `_migrate_entity_ids` now updates `unique_id` and `translation_key`
+  alongside `entity_id`, so registry rows reconcile to the entity
+  created on the same setup pass (no orphaned rows).
+- strings.json and translations/en.json had Dutch display names for
+  `cop_vandaag` and `stooklijn_advies`; corrected to English. The
+  Dutch display names remain in translations/nl.json.
+- README version badge corrected.
+
+### Added
+
+- tests/test_entity_registry_integration.py: drives HA real
+  EntityRegistry via `hass.config_entries.async_setup` (R195: no
+  `mock_state(LOADED)` + `async_forward_entry_setups`). Asserts
+  every SENSOR_DEFS key resolves to sensor.daikin_cycle_ml_<key>,
+  no collision slugs, and no Dutch words in keys.
+
+### Changed
+
+- Version strings (const.py, manifest.json, pyproject.toml)
+  1.3.2 -> 1.4.0.
+
 ## [1.3.2] - 2026-09-29
 
 ### Fixed

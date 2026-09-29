@@ -349,8 +349,8 @@
       "last_cycle": {
         "name": "Last cycle"
       },
-      "today": {
-        "name": "Today"
+      "cycles_today": {
+        "name": "Cycles today"
       },
       "quality_today": {
         "name": "Quality today"
@@ -361,11 +361,11 @@
       "learned_thresholds": {
         "name": "Learned thresholds"
       },
-      "cop_vandaag": {
-        "name": "COP vandaag"
+      "cop_today": {
+        "name": "COP today"
       },
-      "stooklijn_advies": {
-        "name": "Stooklijn advies"
+      "heating_curve_advice": {
+        "name": "Heating curve advice"
       },
       "cop_mean_day": {
         "name": "COP mean day"

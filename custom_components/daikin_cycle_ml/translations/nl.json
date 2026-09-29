@@ -352,8 +352,8 @@
       "last_cycle": {
         "name": "Laatste cyclus"
       },
-      "today": {
-        "name": "Vandaag"
+      "cycles_today": {
+        "name": "Cycli vandaag"
       },
       "quality_today": {
         "name": "Kwaliteit vandaag"
@@ -364,10 +364,10 @@
       "learned_thresholds": {
         "name": "Geleerde drempels"
       },
-      "cop_vandaag": {
+      "cop_today": {
         "name": "COP vandaag"
       },
-      "stooklijn_advies": {
+      "heating_curve_advice": {
         "name": "Stooklijn advies"
       },
       "cop_curve_recent": {

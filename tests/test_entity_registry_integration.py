@@ -130,6 +130,14 @@ async def test_all_sensor_defs_registered_with_correct_slug(
     ]
     assert not collision, "found collision slugs: %s" % sorted(collision)
 
+    # R194 language leak: SENSOR_DEFS keys must be English slugs.
+    _NL_LEAKS = ("vandaag", "stooklijn", "advies")
+    leaked = [
+        spec["key"] for spec in sensor_mod.SENSOR_DEFS
+        if any(w in spec["key"] for w in _NL_LEAKS)
+    ]
+    assert not leaked, "NL-word in SENSOR_DEFS key: %s" % sorted(leaked)
+
 
 @pytest.mark.asyncio
 @pytest.mark.expected_lingering_timers(True)
@@ -158,3 +166,41 @@ async def test_migration_runs_through_real_registry(
     renamed = registry.async_get("sensor.daikin_cycle_ml_cop_mean_day")
     assert renamed is not None, "migration did not rename bare slug"
     assert registry.async_get("sensor.daikin_cycle_ml") is None
+
+@pytest.mark.asyncio
+@pytest.mark.expected_lingering_timers(True)
+@pytest.mark.expected_lingering_tasks(True)
+async def test_v140_key_rename_migrates_through_real_registry(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """v1.4.0: _migrate_entity_ids renames legacy keys via real registry."""
+    registry = er.async_get(hass)
+    entry_id = "r140_key_mig"
+    pairs = (
+        ("today", "cycles_today"),
+        ("cop_vandaag", "cop_today"),
+        ("stooklijn_advies", "heating_curve_advice"),
+    )
+
+    for old_key, _new_key in pairs:
+        legacy = registry.async_get_or_create(
+            domain="sensor",
+            platform=DOMAIN,
+            unique_id="daikin_cycle_ml_%s_%s" % (entry_id, old_key),
+            suggested_object_id="daikin_cycle_ml_%s" % old_key,
+        )
+        assert legacy.entity_id == "sensor.daikin_cycle_ml_%s" % old_key
+
+    await _setup_integration(hass, monkeypatch, entry_id=entry_id)
+
+    for old_key, new_key in pairs:
+        old_eid = "sensor.daikin_cycle_ml_%s" % old_key
+        new_eid = "sensor.daikin_cycle_ml_%s" % new_key
+        assert registry.async_get(old_eid) is None, old_eid
+        renamed = registry.async_get(new_eid)
+        assert renamed is not None, new_eid
+        assert renamed.unique_id == (
+            "daikin_cycle_ml_%s_%s" % (entry_id, new_key)
+        )
+        assert renamed.translation_key == new_key
