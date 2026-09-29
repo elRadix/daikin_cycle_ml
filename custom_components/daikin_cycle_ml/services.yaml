@@ -149,3 +149,40 @@ send_test_notification:
       required: false
       selector:
         text:
+
+export_cop_hourly:
+  name: Export COP hourly
+  description: Export aggregated COP-per-hour rows as JSON or CSV.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID.
+      required: true
+      selector:
+        text:
+    days:
+      name: Days
+      description: Look-back window in days.
+      required: false
+      default: 30
+      selector:
+        number:
+          min: 1
+          max: 365
+          mode: box
+    mode:
+      name: Mode
+      description: Optional filter (heating, dhw, defrost, unknown).
+      required: false
+      selector:
+        text:
+    format:
+      name: Format
+      description: Output format.
+      required: false
+      default: json
+      selector:
+        select:
+          options:
+            - json
+            - csv

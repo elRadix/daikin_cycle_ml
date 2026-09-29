@@ -24,6 +24,7 @@ SERVICE_LABEL_CYCLE = "label_cycle"
 SERVICE_RECOMPUTE_BASELINE = "recompute_baseline"
 SERVICE_RUN_MAINTENANCE = "run_maintenance"
 SERVICE_SEND_TEST_NOTIFICATION = "send_test_notification"
+SERVICE_EXPORT_COP_HOURLY = "export_cop_hourly"
 ATTR_MESSAGE = "message"
 ATTR_TARGET = "target"
 ATTR_CYCLE_RETENTION_DAYS = "cycle_retention_days"
@@ -36,6 +37,7 @@ ATTR_DAYS = "days"
 ATTR_FORMAT = "format"
 ATTR_CYCLE_ID = "cycle_id"
 ATTR_LABEL = "label"
+ATTR_MODE = "mode"
 
 SCHEMA_RESET = vol.Schema({
     vol.Required(ATTR_ENTRY_ID): str,
@@ -72,6 +74,15 @@ SCHEMA_SEND_TEST = vol.Schema({
     vol.Optional(ATTR_ENTRY_ID): str,
     vol.Optional(ATTR_MESSAGE): str,
     vol.Optional(ATTR_TARGET): str,
+})
+
+SCHEMA_EXPORT_COP_HOURLY = vol.Schema({
+    vol.Required(ATTR_ENTRY_ID): str,
+    vol.Optional(ATTR_DAYS, default=30): vol.All(
+        int, vol.Range(min=1, max=365)
+    ),
+    vol.Optional(ATTR_MODE): vol.Any(None, str),
+    vol.Optional(ATTR_FORMAT, default="json"): vol.In(["json", "csv"]),
 })
 
 
@@ -124,6 +135,43 @@ def _do_export_cycles(coordinator: Any, days: int, fmt: str) -> dict[str, Any]:
         return {"format": "csv", "days": days, "content": buf.getvalue()}
     return {"format": "json", "days": days, "cycles": cycles}
 
+
+async def _do_export_cop_hourly(
+    coordinator: Any, days: int, mode: str | None, fmt: str,
+) -> dict[str, Any]:
+    """Export cop_hourly rows as JSON dict or CSV string."""
+    db = getattr(coordinator, "db", None)
+    if db is None:
+        raise HomeAssistantError("Database not available")
+    since_ts = time.time() - float(days) * 86400.0
+    rows = await db.async_query_cop_hourly(since_ts=since_ts, mode=mode)
+    if fmt == "csv":
+        buf = io.StringIO()
+        if rows:
+            writer = csv.DictWriter(
+                buf, fieldnames=list(rows[0].keys())
+            )
+            writer.writeheader()
+            writer.writerows(rows)
+        return {
+            "format": "csv", "days": days, "mode": mode,
+            "count": len(rows), "content": buf.getvalue(),
+        }
+    return {
+        "format": "json", "days": days, "mode": mode,
+        "count": len(rows), "rows": rows,
+    }
+
+
+async def _handle_export_cop_hourly(
+    hass: HomeAssistant, call: ServiceCall,
+) -> dict[str, Any]:
+    entry_id = call.data[ATTR_ENTRY_ID]
+    coord = _resolve_coordinator(hass, entry_id)
+    days = call.data.get(ATTR_DAYS, 30)
+    mode = call.data.get(ATTR_MODE)
+    fmt = call.data.get(ATTR_FORMAT, "json")
+    return await _do_export_cop_hourly(coord, days, mode, fmt)
 
 async def _do_label_cycle(coordinator: Any, cycle_id: int, label: str) -> dict[str, Any]:
     db = getattr(coordinator, "db", None)
@@ -264,5 +312,10 @@ async def async_register_services(hass: HomeAssistant) -> None:
         DOMAIN, SERVICE_SEND_TEST_NOTIFICATION,
         partial(_handle_send_test_notification, hass),
         schema=SCHEMA_SEND_TEST,
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_EXPORT_COP_HOURLY,
+        partial(_handle_export_cop_hourly, hass),
+        schema=SCHEMA_EXPORT_COP_HOURLY,
     )
     _LOGGER.info("Daikin Cycle ML services registered")
