@@ -111,12 +111,12 @@ block. The `UPD` variable points to the HACS update entity.
 - `sensor.daikin_cycle_ml_cycle_state`
 - `sensor.daikin_cycle_ml_current_cycle`
 - `sensor.daikin_cycle_ml_last_cycle`
-- `sensor.daikin_cycle_ml_today`
+- `sensor.daikin_cycle_ml_cycles_today`
 - `sensor.daikin_cycle_ml_quality_today`
-- `sensor.daikin_cycle_ml_cop_vandaag`
+- `sensor.daikin_cycle_ml_cop_today`
 - `sensor.daikin_cycle_ml_source_health`
 - `sensor.daikin_cycle_ml_learned_thresholds`
-- `sensor.daikin_cycle_ml_stooklijn_advies`
+- `sensor.daikin_cycle_ml_heating_curve_advice`
 
 ### Binary sensors (15)
 
@@ -181,7 +181,7 @@ container style.
 | Card renders as plain YAML text | HACS frontend cards not installed. See **Dependencies**. |
 | `Custom element doesn't exist: stack-in-card` | Frontend card not loaded — restart HA, hard-refresh browser. |
 | Body shows empty / blank | Check browser console for JS errors. Verify entity IDs match. |
-| COP shows `—` | No COP sample collected yet — check `sensor.daikin_cycle_ml_cop_vandaag` in **Developer Tools -> States**. |
+| COP shows `—` | No COP sample collected yet — check `sensor.daikin_cycle_ml_cop_today` in **Developer Tools -> States**. |
 | Language not switching | Verify `var LANG = 'en';` has no typo — check capital letters. |
 | Colours look washed out | Some browsers block CSS gradients in `card_mod` under strict mode. Remove the outer `card_mod.style` block if needed. |
 | Preview image missing | `preview.png` is a 1x1 placeholder — replace with a real screenshot. |
