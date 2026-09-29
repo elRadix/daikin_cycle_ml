@@ -878,7 +878,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     async def _maybe_collect_cop_sample(self, now: float) -> None:
         if self.db is None:
             return
-        interval = 600.0
+        interval = 300.0
         if (now - self._last_cop_sample_ts) < interval:
             return
         state = self.hass.states.get(self.cop_sensor_entity)
@@ -908,6 +908,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             'flow_lmin': sample.flow_lmin,
             'power_stable': True,
             'mode': str(_mode),
+            'source': 'interval',
         }
         ok = await self.db.async_insert_cop_sample(row)
         if ok:

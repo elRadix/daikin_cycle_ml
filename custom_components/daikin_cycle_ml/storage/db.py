@@ -648,8 +648,8 @@ class CycleDB:
             conn = self._require()
             await conn.execute(
                 "INSERT INTO cop_samples "
-                "(ts, cop, lwt, outdoor, flow_lmin, power_stable, mode) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "(ts, cop, lwt, outdoor, flow_lmin, power_stable, mode, source) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     float(sample["ts"]),
                     float(sample["cop"]),
@@ -658,6 +658,7 @@ class CycleDB:
                     sample.get("flow_lmin"),
                     1 if sample.get("power_stable") else 0,
                     sample.get("mode"),
+                    sample.get("source", "interval"),
                 ),
             )
             await conn.commit()
