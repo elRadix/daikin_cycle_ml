@@ -22,6 +22,7 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -29,6 +30,7 @@ from .const import (
     ATTR_INLET_WATER_R4T,
     ATTR_INV_FREQUENCY_RPS,
     ATTR_LEAVING_WATER_AFTER_BUH,
+    DOMAIN,
     RPS_KW_FACTOR,
     UPDATE_INTERVAL_SECONDS,
     WATER_DENSITY_KG_L,
@@ -516,6 +518,20 @@ SENSOR_DEFS: list[dict[str, Any]] = [
 ]
 
 
+
+def _migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """v1.3.1: Fix entity_ids from v1.3.0 translation bug (idempotent)."""
+    registry = er.async_get(hass)
+    id_fixes = {
+        "sensor.daikin_cycle_ml":               "sensor.daikin_cycle_ml_cop_mean_day",
+        "sensor.daikin_cycle_ml_2":             "sensor.daikin_cycle_ml_cop_mean_week",
+        "sensor.daikin_cycle_ml_3":             "sensor.daikin_cycle_ml_cop_mean_month",
+        "sensor.daikin_cycle_ml_cop_curve_48h": "sensor.daikin_cycle_ml_cop_curve_recent",
+    }
+    for old_eid, new_eid in id_fixes.items():
+        if registry.async_get(old_eid) and not registry.async_get(new_eid):
+            registry.async_update_entity(old_eid, new_entity_id=new_eid)
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -525,6 +541,7 @@ async def async_setup_entry(
     if coord is None:
         _LOGGER.error("Coordinator not found for %s", entry.entry_id)
         return
+    _migrate_entity_ids(hass, entry)
     entities = [
         DaikinCycleMLSensor(
             coord,

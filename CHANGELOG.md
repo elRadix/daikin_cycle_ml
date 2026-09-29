@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1] - 2026-09-29
+
+### Fixed
+- Entity ID migration for B5/B6 sensors: missing translation entries
+  caused slug collision -> sensor.daikin_cycle_ml, _2, _3, _cop_curve_48h.
+- cop_curve_recent display name now uniform across en/nl/strings.
+- strings.json synced with translations/en.json (9 -> 13 entries).
+
 ## [1.3.0] - 2026-09-29
 
 ### Added

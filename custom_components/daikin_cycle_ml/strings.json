@@ -366,6 +366,21 @@
       },
       "stooklijn_advies": {
         "name": "Stooklijn advies"
+      },
+      "cop_mean_day": {
+        "name": "COP mean day"
+      },
+      "cop_mean_week": {
+        "name": "COP mean week"
+      },
+      "cop_mean_month": {
+        "name": "COP mean month"
+      },
+      "cop_curve_recent": {
+        "name": "COP curve recent"
+      },
+      "thermal_power_live": {
+        "name": "Thermal power live"
       }
     },
     "binary_sensor": {

@@ -371,7 +371,16 @@
         "name": "Stooklijn advies"
       },
       "cop_curve_recent": {
-        "name": "COP-curve (48u)"
+        "name": "COP-curve recent"
+      },
+      "cop_mean_day": {
+        "name": "COP gemiddelde dag"
+      },
+      "cop_mean_week": {
+        "name": "COP gemiddelde week"
+      },
+      "cop_mean_month": {
+        "name": "COP gemiddelde maand"
       }
     },
     "binary_sensor": {
