@@ -282,6 +282,35 @@ def _attrs_cop_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, 
     }
 
 
+def _cop_hourly_heating_mean(
+    period: str,
+) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], Any]:
+    """Return value_fn: heating cop_mean for a period label."""
+    def _fn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> Any:
+        data = getattr(s, f"cop_hourly_{period}", None) or {}
+        hm = (data.get("by_mode") or {}).get("heating") or {}
+        return hm.get("cop_mean")
+    return _fn
+
+
+def _attrs_cop_hourly(
+    period: str,
+) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], dict[str, Any]]:
+    """Return attr_fn: full period breakdown."""
+    def _fn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
+        data = getattr(s, f"cop_hourly_{period}", None) or {}
+        return {
+            "period": period,
+            "n_hours": data.get("n_hours"),
+            "n_samples": data.get("n_samples"),
+            "cop_p10": data.get("cop_p10"),
+            "cop_p90": data.get("cop_p90"),
+            "cop_min": data.get("cop_min"),
+            "cop_max": data.get("cop_max"),
+            "by_mode": data.get("by_mode") or {},
+        }
+    return _fn
+
 def _attrs_stooklijn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     data = s.stooklijn_advies or {}
     return {
@@ -438,6 +467,30 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "icon": "mdi:chart-line",
         "value_fn": lambda s, c: (s.stooklijn_advies or {}).get("state", "unknown"),
         "attr_fn": _attrs_stooklijn,
+    },
+    {
+        "key": "cop_mean_day", "name": "COP mean (24h)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP",
+        "icon": "mdi:calendar-today",
+        "value_fn": _cop_hourly_heating_mean("day"),
+        "attr_fn": _attrs_cop_hourly("day"),
+    },
+    {
+        "key": "cop_mean_week", "name": "COP mean (7d)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP",
+        "icon": "mdi:calendar-week",
+        "value_fn": _cop_hourly_heating_mean("week"),
+        "attr_fn": _attrs_cop_hourly("week"),
+    },
+    {
+        "key": "cop_mean_month", "name": "COP mean (30d)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP",
+        "icon": "mdi:calendar-month",
+        "value_fn": _cop_hourly_heating_mean("month"),
+        "attr_fn": _attrs_cop_hourly("month"),
     },
 ]
 

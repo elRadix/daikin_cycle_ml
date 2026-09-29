@@ -60,6 +60,9 @@ class DataSnapshot:
     cluster_id: int | None = None
     stooklijn_advies: dict[str, Any] = field(default_factory=dict)
     cop_today: dict[str, Any] = field(default_factory=dict)
+    cop_hourly_day: dict[str, Any] = field(default_factory=dict)
+    cop_hourly_week: dict[str, Any] = field(default_factory=dict)
+    cop_hourly_month: dict[str, Any] = field(default_factory=dict)
 
 
 # --- FEAT-2: live thermal power helpers ---
@@ -113,6 +116,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _cycle_cop_weight_sum: float = 0.0
     _cycle_cop_sq_w_sum: float = 0.0
     _cycle_cop_count: int = 0
+    _cop_hourly_cache: dict[str, dict[str, Any]] = {}
+    _cop_hourly_cache_ts: float = 0.0
 
     # R52: class-level defaults so __new__-style tests find these attrs
     _kmeans_centroids: list[Any] = []
@@ -177,6 +182,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._stooklijn_cache: dict[str, Any] = {}
         self._stooklijn_cache_ts: float = 0.0
         self._cop_today_cache: dict[str, Any] = {}
+        self._cop_hourly_cache: dict[str, dict[str, Any]] = {}
+        self._cop_hourly_cache_ts: float = 0.0
         self.db: Any = None
         super().__init__(
             hass,
@@ -334,6 +341,31 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         )
         return result
 
+    async def _maybe_refresh_cop_hourly(self, now: float) -> None:
+        """Refresh day/week/month cop_hourly caches (throttled 300s)."""
+        if self.db is None:
+            return
+        if (now - self._cop_hourly_cache_ts) < 300.0:
+            return
+        try:
+            for label, days in (
+                ("day", 1), ("week", 7), ("month", 30),
+            ):
+                since = now - float(days) * 86400.0
+                stats = await self.db.async_cop_hourly_stats(
+                    since_ts=since
+                )
+                by_mode = await self.db.async_cop_hourly_by_mode(
+                    since_ts=since
+                )
+                self._cop_hourly_cache[label] = {
+                    **stats,
+                    "by_mode": by_mode,
+                }
+            self._cop_hourly_cache_ts = now
+        except Exception:
+            _LOGGER.exception("cop_hourly cache refresh failed")
+
     async def async_save_baseline_state(self) -> bool:
         if self.db is None:
             return False
@@ -460,7 +492,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._maybe_collect_cop_sample(now)
             await self._refresh_cop_today(now)
             await self._maybe_refresh_stooklijn(now)
+            await self._maybe_refresh_cop_hourly(now)
             snap.cop_today = self._cop_today_cache
+            snap.cop_hourly_day = self._cop_hourly_cache.get("day", {})
+            snap.cop_hourly_week = self._cop_hourly_cache.get("week", {})
+            snap.cop_hourly_month = self._cop_hourly_cache.get("month", {})
             snap.stooklijn_advies = self._stooklijn_cache
             snap.errors_total = self._errors_total
             await self._async_dispatch_alerts(snap)

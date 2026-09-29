@@ -819,6 +819,79 @@ class CycleDB:
             return None
         return sum(cops) / float(len(cops))
 
+    async def async_query_cop_hourly(
+        self, *, since_ts: float, until_ts: float | None = None,
+        mode: str | None = None, limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Query cop_hourly rows in [since_ts, until_ts] window."""
+        await self.async_create_cop_hourly_v14()
+        conn = self._require()
+        sql = (
+            "SELECT ts_hour, mode, n_samples, cop_mean, cop_p10, "
+            "cop_p50, cop_p90, cop_std, lwt_mean, outdoor_mean, "
+            "outdoor_min, outdoor_max, flow_mean, updated_ts "
+            "FROM cop_hourly WHERE ts_hour >= ?"
+        )
+        params: list[Any] = [int(since_ts) // 3600]
+        if until_ts is not None:
+            sql += " AND ts_hour <= ?"
+            params.append(int(until_ts) // 3600)
+        if mode is not None:
+            sql += " AND mode = ?"
+            params.append(mode)
+        sql += " ORDER BY ts_hour ASC"
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(int(limit))
+        async with conn.execute(sql, tuple(params)) as cur:
+            rows = await cur.fetchall()
+        return [dict(r) for r in rows]
+
+    async def async_cop_hourly_stats(
+        self, *, since_ts: float, mode: str | None = None,
+    ) -> dict[str, Any]:
+        """Bucket-weighted aggregate stats over window."""
+        rows = await self.async_query_cop_hourly(
+            since_ts=since_ts, mode=mode
+        )
+        n_hours = len(rows)
+        if n_hours == 0:
+            return {
+                "n_hours": 0, "n_samples": 0,
+                "cop_mean": None, "cop_p10": None, "cop_p90": None,
+                "cop_min": None, "cop_max": None,
+            }
+        n_samples = sum(int(r["n_samples"]) for r in rows)
+        weighted_sum = 0.0
+        for r in rows:
+            weighted_sum += float(r["cop_mean"]) * int(r["n_samples"])
+        cop_mean = weighted_sum / float(n_samples)
+        p10_values = [float(r["cop_p10"]) for r in rows]
+        p90_values = [float(r["cop_p90"]) for r in rows]
+        means = [float(r["cop_mean"]) for r in rows]
+        return {
+            "n_hours": n_hours,
+            "n_samples": n_samples,
+            "cop_mean": cop_mean,
+            "cop_p10": min(p10_values),
+            "cop_p90": max(p90_values),
+            "cop_min": min(means),
+            "cop_max": max(means),
+        }
+
+    async def async_cop_hourly_by_mode(
+        self, *, since_ts: float,
+    ) -> dict[str, dict[str, Any]]:
+        """Per-mode stats dict over window."""
+        rows = await self.async_query_cop_hourly(since_ts=since_ts)
+        modes = sorted({r["mode"] for r in rows})
+        out: dict[str, dict[str, Any]] = {}
+        for m in modes:
+            out[m] = await self.async_cop_hourly_stats(
+                since_ts=since_ts, mode=m
+            )
+        return out
+
     async def async_count_cop_samples(self) -> int:
         await self.async_ensure_cop_samples_table()
         conn = self._require()
