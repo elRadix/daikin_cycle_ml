@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.4.4] - 2026-10-02
+
+Hotfix on top of v1.4.3.
+
+### Fixed
+
+- **`quality_today.good_cycles` / `bad_cycles` were reset to 0 on
+  the first coordinator tick after HA restart.** v1.4.3 correctly
+  backfilled `quality_score` and hydrated cycles into the store,
+  but the very next `store.daily_reset_if_needed()` call wiped
+  every `*_today` counter because `_day_key` was not set by the
+  hydration code.
+- **Fix**: `CycleStore.hydrate_from_rows()` now sets
+  `_counters["_day_key"]` to today's date before counting cycles.
+  The next `daily_reset_if_needed()` on the same day becomes a
+  no-op, preserving the recomputed counters.
+
+### Added
+
+- `tests/test_v1_4_4_improvements.py` with 3 regression tests.
+
+### Notes
+
+- No public API change. Coverage stays at 100.00%.
+- Safe drop-in for v1.4.3.
+
 ## [1.4.3] - 2026-10-02
 
 Hotfix on top of v1.4.2.

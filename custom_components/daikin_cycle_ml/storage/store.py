@@ -104,6 +104,10 @@ class CycleStore:
         while len(self._cycles) > self.maxlen:
             self._cycles.popleft()
         today = time.strftime("%Y-%m-%d", time.localtime())
+        # v1.4.4: mark day so daily_reset_if_needed is a no-op today.
+        # Uses Any-alias to satisfy mypy (matches daily_reset_if_needed).
+        _any: dict[str, Any] = self._counters
+        _any["_day_key"] = today
         good = 0
         bad = 0
         cycles_today = 0
