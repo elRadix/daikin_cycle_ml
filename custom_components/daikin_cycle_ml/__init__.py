@@ -11,6 +11,8 @@ from homeassistant.helpers import config_validation as cv
 
 from .const import DOMAIN as DOMAIN
 from .const import VERSION as VERSION
+from .const import GOOD_CYCLE_MIN_SCORE as GOOD_CYCLE_MIN_SCORE
+from .engine.quality_scorer import score_cycle as _score_cycle
 from .coordinator import DaikinCycleMLCoordinator
 from .services import async_register_services
 from .api import CopHourlyView
@@ -90,10 +92,52 @@ async def _async_setup_database(
         coordinator.db = None
 
 
+async def _async_hydrate_store(
+    coordinator: DaikinCycleMLCoordinator,
+) -> int:
+    """v1.4.2: preload recent cycles. Never raises."""
+    if coordinator.db is None:
+        return 0
+    try:
+        rows = await coordinator.db.async_fetch_recent_cycles_for_hydration()
+    except Exception:
+        _LOGGER.exception("CycleStore hydration failed")
+        return 0
+    if not isinstance(rows, list):
+        return 0
+    n = coordinator.store.hydrate_from_rows(
+        rows, good_threshold=GOOD_CYCLE_MIN_SCORE
+    )
+    _LOGGER.info("Hydrated %d cycles from DB", n)
+    return n
+
+
+async def _async_backfill_quality(
+    coordinator: DaikinCycleMLCoordinator,
+) -> int:
+    """v1.4.2: backfill NULL quality scores. Never raises."""
+    if coordinator.db is None:
+        return 0
+
+    def _scorer(rec: dict[str, Any]) -> int:
+        return _score_cycle(rec, None)
+
+    try:
+        result = await coordinator.db.async_backfill_quality_scores(_scorer)
+    except Exception:
+        _LOGGER.exception("quality_score backfill failed")
+        return 0
+    n = result if isinstance(result, int) else 0
+    _LOGGER.info("Backfilled %d quality scores", n)
+    return n
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Daikin Cycle ML from a config entry."""
     coordinator = DaikinCycleMLCoordinator(hass, entry)
     await _async_setup_database(hass, coordinator)
+    await _async_hydrate_store(coordinator)
+    await _async_backfill_quality(coordinator)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
     try:

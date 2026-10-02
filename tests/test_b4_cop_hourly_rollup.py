@@ -203,7 +203,7 @@ async def test_b4_coord_rollup_delegates():
     result = await DaikinCycleMLCoordinator._maybe_rollup_cop_hourly(obj)
     assert result == 7
     obj.db.async_rollup_cop_hourly.assert_awaited_once_with(
-        window_hours=6
+        window_hours=720
     )
 
 

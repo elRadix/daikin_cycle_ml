@@ -59,6 +59,86 @@ class CycleDB:
         await self._conn.close()
         self._conn = None
 
+
+    async def async_fetch_recent_cycles_for_hydration(
+        self, limit: int = 500,
+    ) -> list[dict[str, Any]]:
+        # v1.4.2: newest cycles, chronological.
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT start_ts, end_ts, duration_s, mode, dT_max, dT_avg, "
+            "rps_max, rps_avg, outdoor_temp, buh_used, defrost_used, "
+            "quality_score, label, cluster_id, cop_avg, "
+            "cop_sample_count, cop_sample_stdev, cop_confidence "
+            "FROM cycles ORDER BY start_ts DESC LIMIT ?",
+            (limit,),
+        )
+        raw = await cur.fetchall()
+        await cur.close()
+        raw_list = list(raw)
+        cols = (
+            "start_ts", "end_ts", "duration_s", "mode", "dT_max",
+            "dT_avg", "rps_max", "rps_avg", "outdoor_temp",
+            "buh_used", "defrost_used", "quality_score", "label",
+            "cluster_id", "cop_avg", "cop_sample_count",
+            "cop_sample_stdev", "cop_confidence",
+        )
+        return [dict(zip(cols, r)) for r in reversed(raw_list)]
+
+    async def async_backfill_quality_scores(self, scorer: Any) -> int:
+        # v1.4.2: backfill NULL quality_score.
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT id, start_ts, end_ts, duration_s, mode, dT_max, "
+            "dT_avg, rps_max, rps_avg, outdoor_temp, buh_used, "
+            "defrost_used FROM cycles WHERE quality_score IS NULL"
+        )
+        rows = await cur.fetchall()
+        await cur.close()
+        if not rows:
+            return 0
+        cols = (
+            "id", "start_ts", "end_ts", "duration_s", "mode",
+            "dT_max", "dT_avg", "rps_max", "rps_avg", "outdoor_temp",
+            "buh_used", "defrost_used",
+        )
+        updates = 0
+        for r in rows:
+            rec = dict(zip(cols, r))
+            try:
+                score = scorer(rec)
+            except Exception:
+                _LOGGER.debug("scorer failed", exc_info=True)
+                continue
+            if isinstance(score, bool) or not isinstance(score, int):
+                continue
+            cur2 = await conn.execute(
+                "UPDATE cycles SET quality_score = ? WHERE id = ?",
+                (score, rec["id"]),
+            )
+            await cur2.close()
+            updates += 1
+        if updates:
+            await conn.commit()
+        return updates
+
+    async def async_prune_cop_hourly(
+        self, retention_days: int = 365,
+    ) -> int:
+        # v1.4.2: prune cop_hourly older than retention_days.
+        conn = self._require()
+        cutoff = int(time.time() - float(retention_days) * 86400.0)
+        cur = await conn.execute(
+            "DELETE FROM cop_hourly WHERE ts_hour < ?",
+            (cutoff,),
+        )
+        try:
+            deleted = int(cur.rowcount or 0)
+        finally:
+            await cur.close()
+        await conn.commit()
+        return deleted
+
     async def async_insert_cycle(self, record: dict[str, Any]) -> int | None:
         conn = self._require()
         cur = await conn.execute(
@@ -465,6 +545,13 @@ class CycleDB:
             await cur.close()
         except Exception:
             _LOGGER.exception("cop_samples prune failed")
+
+        try:
+            await self.async_prune_cop_hourly(
+                retention_days=int(cop_retention_days),
+            )
+        except Exception:
+            _LOGGER.exception("cop_hourly prune failed")
 
         await conn.commit()
 

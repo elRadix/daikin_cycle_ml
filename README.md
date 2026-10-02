@@ -27,7 +27,7 @@ heat pumps. **Local-only ML, no cloud.**
   <img src="dashboard/cards/simple-card/preview.png" width="800" alt="Daikin Cycle ML — Simple Card">
   <img src="dashboard/cards/heating-curve/preview.png" width="800" alt="Daikin Cycle ML — Heating Curve">
   <br>
-  <em>One-glance dashboard card — see <a href="dashboard/">dashboard/</a> for installation.</em>
+  <em>One-glance dashboard cards — see <a href="dashboard/">dashboard/</a> for installation.</em>
 </p>
 
 ---
