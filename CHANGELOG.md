@@ -1,5 +1,42 @@
 # Changelog
 
+## [1.4.5] - 2026-10-02
+
+Documentation and dashboard-cards refresh. No integration code
+change - coverage stays at 100.00%, safe drop-in for v1.4.4.
+
+### Changed
+
+- **Simple Card** (`dashboard/cards/simple-card/`):
+    - Full i18n coverage: every label, caption, and alert
+      translates via a `STR` table (NL + EN).
+    - New `LANG_OVERRIDE` (JS) + `lang_override` (Jinja):
+      `''` = auto from integration, `'nl'` / `'en'` = force.
+    - Four display bugs fixed: mode read via `attr` instead
+      of `aN`; `tr()` preserves the value `0`; SVG cluster
+      label uses `hasV`; `liveKw` stays null-aware on idle.
+    - Dead `stookComf` variable removed.
+    - `preview.png` refreshed.
+- **Heating Curve** (`dashboard/cards/heating-curve/`):
+    - R202: `parseBucket` now matches the `-10-` pattern so
+      cold-weather buckets below -10 C are no longer dropped.
+    - R203: current-bucket share shown next to true total in
+      the specs box (e.g. `samples: 63 (25 in bucket 20+C)`).
+    - R201 cleanup: removed dead `curOut` lookup.
+    - `aN2` helper crash fixed (Lovelace
+      `ButtonCardJSTemplateError` on prod HA).
+- **Root README**: Showcase section now shows the two card
+  previews side-by-side; each preview links to its folder.
+- **dashboard/README.md**: complete rewrite. Fixes a truncated
+  code fence; adds language docs, troubleshooting, and
+  adding-a-new-card sections.
+- **Badges**: version -> 1.4.5; tests -> 1700.
+
+### Notes
+
+- No public API change. Coverage stays at 100.00%.
+- Safe drop-in for v1.4.4.
+- See `dashboard/cards/` for the updated YAML.
 ## [1.4.4] - 2026-10-02
 
 Hotfix on top of v1.4.3.
