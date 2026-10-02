@@ -4,8 +4,8 @@ Home Assistant integration that detects compressor cycles, classifies
 pendulum behaviour, self-learns per mode, and advises on Daikin Altherma
 heat pumps. **Local-only ML, no cloud.**
 
-[![Version](https://img.shields.io/badge/version-1.4.3-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.4.0)
-[![Tests](https://img.shields.io/badge/tests-1615-brightgreen.svg)](#16-testing)
+[![Version](https://img.shields.io/badge/version-1.4.3-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.4.3)
+[![Tests](https://img.shields.io/badge/tests-1697-brightgreen.svg)](#16-testing)
 [![Coverage](https://img.shields.io/badge/coverage-100.00%25-brightgreen.svg)](#16-testing)
 [![Ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)
 [![Pylint](https://img.shields.io/badge/pylint-10.00%2F10-brightgreen.svg)](https://pylint.readthedocs.io/)
