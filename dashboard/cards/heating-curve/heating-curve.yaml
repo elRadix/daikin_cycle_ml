@@ -56,7 +56,8 @@ cards:
           var parseBucket = function(k){
             if(!k) return null; var s=String(k).trim();
             if(s==='-10-') return { lo:-12, hi:-10, c:-11, key:k };
-            var m = s.match(/^(-?\d+)\s*\+$/); if(m) return { lo: parseFloat(m[1]), hi: parseFloat(m[1])+4, c: parseFloat(m[1])+2, key: k };
+            var m = s.match(/^(-?\d+)-$/); if(m) return { lo: -999, hi: parseFloat(m[1]), c: parseFloat(m[1])-1, key: k };
+            m = s.match(/^(-?\d+)\s*\+$/); if(m) return { lo: parseFloat(m[1]), hi: parseFloat(m[1])+4, c: parseFloat(m[1])+2, key: k };
             m = s.match(/^(-?\d+)\s*-\s*(-?\d+)$/); if(m) return { lo: parseFloat(m[1]), hi: parseFloat(m[2]), c: (parseFloat(m[1])+parseFloat(m[2]))/2, key: k };
             m = s.match(/^(-?\d+)$/); if(m) return { lo: parseFloat(m[1]), hi: parseFloat(m[1])+2, c: parseFloat(m[1])+1, key: k };
             return null;
@@ -132,7 +133,9 @@ cards:
           var stookState   = String((states[S_STOOK]&&states[S_STOOK].state)||'unknown');
           var stookLwtNow  = aN(S_STOOK,'huidige_lwt',null);
           var stookLwtOpt  = aN(S_STOOK,'optimale_lwt',null);
-          var stookSamples = aN(S_STOOK,'samples',0);
+          /* R203: samples = n of CURRENT bucket only; repurposed from unused legacy var */
+          var stookBucketSamples = aN(S_STOOK,'samples',0);
+          var stookBucketKey     = String(aN2(S_STOOK,'bucket')) || '';
 
           var curvePts = attr(S_CURVE,'points',[]);
           if (!Array.isArray(curvePts)) curvePts = [];
@@ -160,9 +163,8 @@ cards:
             trendDir = Math.abs(trendPct) < 2 ? 'flat' : (trendPct > 0 ? 'up' : 'down');
           }
 
-          var lastOut = aN(S_LAST,'outdoor_temp',null);
-          var curOut  = aN(S_CUR,'outdoor_temp',null);
-          var liveOut = curOut !== null ? curOut : lastOut;
+          /* R201: current_cycle has no outdoor_temp; read directly from last_cycle */
+          var liveOut = aN(S_LAST,'outdoor_temp',null);
           var liveKw  = stv(S_THERM);
           var lastDur = aN(S_LAST,'duration_min',null);
           var lastBuhFlag = aB(S_LAST,'buh_used',false);
@@ -215,6 +217,11 @@ cards:
           pts.sort(function(a,b){ return a.x - b.x; });
 
           var totalSamples = pts.reduce(function(a,p){ return a + p.n; }, 0);
+          /* R203: samplesLine shows true total + current-bucket share */
+          var samplesLine  = t('specSamples')+': '+totalSamples;
+          if (stookBucketSamples > 0 && stookBucketKey) {
+            samplesLine += ' ('+stookBucketSamples+' in bucket '+stookBucketKey+')';
+          }
 
           var slope = null, inter = null;
           if (pts.length >= 2) {
@@ -723,7 +730,7 @@ cards:
           s += '<text x="24" y="'+(spY+36)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_MD+'">'+t('specRangeLwt')+' '+hp.lwtMin+'–'+hp.lwtMax+'°C  ·  '+t('specOutdoor')+' '+hp.outMin+'…+'+hp.outMax+'°C  ·  '+t('specNomCop')+' '+hp.nomCop.toFixed(1)+'</text>';
           s += '<text x="24" y="'+(spY+52)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_MD+'">'+t('specDefrost')+' +'+hp.defrostBelow+'°C  ·  '+t('specBuh')+' '+hp.buhAbove+'°C  ·  '+t('specHeatOff')+' +'+hp.offAbove+'°C</text>';
           var regTxt = slope !== null ? 'LWT = '+inter.toFixed(1)+' '+(slope<0?'− ':'+ ')+Math.abs(slope).toFixed(2)+' × T_buiten' : t('specInsufficient');
-          s += '<text x="24" y="'+(spY+69)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_DK+'">'+t('specRegression')+': '+regTxt+'  ·  '+t('specSamples')+': '+totalSamples+'  ·  '+t('specBuckets')+': '+pts.length+'</text>';
+          s += '<text x="24" y="'+(spY+69)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_DK+'">'+t('specRegression')+': '+regTxt+'  ·  '+samplesLine+'  ·  '+t('specBuckets')+': '+pts.length+'</text>';
           var trendTxt = '—'; var trendCol = '#7f8c8d';
           if (trendPct !== null) {
             var arrow = trendDir === 'up' ? '▲' : (trendDir === 'down' ? '▼' : '▬');
