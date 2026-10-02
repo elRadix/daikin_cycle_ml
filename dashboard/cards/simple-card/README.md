@@ -2,7 +2,8 @@
 
 A compact, one-glance Lovelace card for **Daikin Cycle ML**. Daikin-blue
 theme, hydraulic diagram, phase indicator, live alerts, and stooklijn
-advice.
+advice. Auto-detects the integration language (EN / NL) and supports a
+manual override.
 
 ![preview](preview.png)
 
@@ -14,7 +15,7 @@ advice.
 |---|---|
 | **Header** | Title + live subtitle |
 | **Hero** | Current phase (IDLE / HEATING / DHW / DEFROST / BUH / COOLING) + animated fan at live rps + COP + Quality |
-| **Alerts** | Only when active — colour-coded by severity (crit / warn / info) |
+| **Alerts** | Only when active - colour-coded by severity (crit / warn / info) |
 | **Diagram** | Hydraulic loop: warmtepomp -> afgifte, with live rps / kW / dT |
 | **Tiles** | COP - Runs today/target - Quality % - Source age |
 | **2-col detail** | "Vandaag" (avg duration, avg off, longest, short runs) next to "Laatste cyclus" (duration, dT, rps, mode) |
@@ -22,7 +23,7 @@ advice.
 | **Explain** | One-line legend for non-obvious values |
 
 All **25 entities** from the integration are used. Missing values render
-as `—` (no errors, no broken layout).
+as an em-dash placeholder (no errors, no broken layout).
 
 ---
 
@@ -44,7 +45,7 @@ Install each via **HACS -> Frontend -> Explore & Download Repositories**:
 ## Installation
 
 1. **Install the four dependencies** (see above) via HACS.
-2. **Restart Home Assistant** — required after installing a new frontend card.
+2. **Restart Home Assistant** - required after installing a new frontend card.
 3. Hard-refresh the browser (Ctrl+Shift+R).
 4. Open a dashboard in edit mode, click **+ Add Card**.
 5. Choose **Manual** (bottom of the card picker).
@@ -64,20 +65,49 @@ If the card looks unstyled or empty:
 
 ### Language
 
-Open `simple-card.yaml`, find the following line inside the **button-card**
-JavaScript block (near the top of `custom_fields.content`):
+The card has **three language modes**, controlled by two variables that
+must always be kept in sync:
 
-```js
-var LANG = 'nl';  /* 'nl' | 'en' */
+| Variable | Location | Purpose |
+|---|---|---|
+| `lang_override` | `mushroom-template-card` block (Jinja) | Controls the header subtitle |
+| `LANG_OVERRIDE` | `button-card` block (JavaScript) | Controls the entire body |
+
+Both accept the same values:
+
+| Value | Behaviour |
+|---|---|
+| `''` (empty string) | **Auto** - follow `configured_language` from the integration |
+| `'nl'` | **Force Dutch** - ignore integration setting |
+| `'en'` | **Force English** - ignore integration setting |
+
+**Example - force Dutch:**
+
+In the mushroom block:
+
+```jinja
+{% set lang_override = 'nl' -%}
 ```
 
-Change to `'en'` for English. All labels, phases, and alerts translate
-automatically.
+In the button-card JS block:
+
+```js
+var LANG_OVERRIDE = 'nl';
+```
+
+**Warning:** if the two variables are set to different values, the header
+and body will display in different languages. Keep them identical.
 
 **Supported languages:** `nl` (Nederlands), `en` (English).
 
-To add a new language: copy the `en` block inside the `STR` object and
-extend with your own language code. Then change `LANG` accordingly.
+**To add a new language:**
+
+1. Copy the `en` block inside the `STR` object (in the JS) and rename the
+   key to your language code (e.g. `de`).
+2. Translate every value in the copied block.
+3. Extend the `LANG` resolution so it recognises your new code:
+   `(LANG_OVERRIDE === 'de' || ...) ? LANG_OVERRIDE : (...)`
+4. Add the same language branch to the Jinja subtitle in the mushroom block.
 
 ### Theme colours
 
@@ -142,17 +172,43 @@ block. The `UPD` variable points to the HACS update entity.
 
 ---
 
+## i18n keys reference
+
+All user-facing strings live in the `STR` object inside the JS block,
+grouped by language (`nl`, `en`). Keys:
+
+| Key group | Purpose |
+|---|---|
+| `sub`, `phase`, `cop`, `runs`, `q`, `src` | Hero block labels |
+| `today`, `last`, `dur`, `avgDur`, `avgOff`, `longest`, `sr`, `mode` | Detail sections |
+| `dt`, `rps`, `kw`, `outdoor` | Diagram labels |
+| `stooklijn`, `state`, `bucket`, `savings`, `comfort`, `reliability` | Stooklijn section |
+| `hydKring`, `hpEmitter`, `heatPump`, `emitter`, `supplyLabel`, `returnLabel` | Hydraulic diagram section |
+| `lvlCrit`, `lvlWarn`, `lvlInfo` | Alert level headers |
+| `noAlert`, `alertOne`, `alertMore`, `explain` | Alert / footer text |
+| `phases` (nested object) | Phase names |
+
+The `phases` object is nested. When adding a new language, keep the same
+nested structure.
+
+---
+
 ## Customisation tips
 
 ### Hide the diagram
 
-Find the block starting with `/* DIAGRAM */` and remove the lines that
-append `s` (the SVG) and the wrapping `<div class="d-sec">`.
+Find the block starting with the comment `DIAGRAM` in the JS and remove
+the lines that append `s` (the SVG) plus the wrapping `<div class="d-sec">`.
 
 ### Disable alerts
 
-Replace the `if(alerts.length>0){ ... }` block with an empty string
-`''` if you prefer a pure-information card.
+Replace the block that starts with:
+
+```js
+if(alerts.length>0){
+```
+
+...with an empty string `''` if you prefer a pure-information card.
 
 ### Change the fan animation speed
 
@@ -179,12 +235,13 @@ container style.
 | Symptom | Fix |
 |---|---|
 | Card renders as plain YAML text | HACS frontend cards not installed. See **Dependencies**. |
-| `Custom element doesn't exist: stack-in-card` | Frontend card not loaded — restart HA, hard-refresh browser. |
+| `Custom element doesn't exist: stack-in-card` | Frontend card not loaded - restart HA, hard-refresh browser. |
 | Body shows empty / blank | Check browser console for JS errors. Verify entity IDs match. |
-| COP shows `—` | No COP sample collected yet — check `sensor.daikin_cycle_ml_cop_today` in **Developer Tools -> States**. |
-| Language not switching | Verify `var LANG = 'en';` has no typo — check capital letters. |
+| COP shows a dash placeholder | No COP sample collected yet - check `sensor.daikin_cycle_ml_cop_today` in **Developer Tools -> States**. |
+| Language not switching | Verify both `lang_override` (Jinja) and `LANG_OVERRIDE` (JS) are set to the same value. Check for typos - the values are case-sensitive and must be lowercase `'nl'` or `'en'`. |
+| Header in NL, body in EN (or vice versa) | `lang_override` and `LANG_OVERRIDE` are out of sync. Set both to identical values. |
 | Colours look washed out | Some browsers block CSS gradients in `card_mod` under strict mode. Remove the outer `card_mod.style` block if needed. |
-| Preview image missing | `preview.png` is a 1x1 placeholder — replace with a real screenshot. |
+| Preview image missing | Take a fresh screenshot of the card (~800x600) and save it as `preview.png` in this folder. |
 
 ---
 

@@ -11,7 +11,12 @@ card_mod:
 cards:
   - type: custom:mushroom-template-card
     primary: 🔵 DAIKIN CYCLE ML
-    secondary: Live cyclus · COP · kwaliteit · alerts
+    secondary: >-
+      {% set lang_override = '' -%} {% set l = (lang_override if lang_override
+      in ['nl','en'] else
+      (state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') or
+      'en')) -%} {% if l == 'nl' %}Live cyclus · COP · kwaliteit · alerts{% else
+      %}Live cycle · COP · quality · alerts{% endif %}
     icon: mdi:heat-pump
     icon_color: blue
     multiline_secondary: true
@@ -45,9 +50,6 @@ cards:
     custom_fields:
       content: |
         [[[
-          /* ============ LANGUAGE ============ */
-          var LANG = 'nl';  /* 'nl' | 'en' */
-
           /* ============ helpers ============ */
           var st = function(s,d){ if(d===undefined)d=0; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='')return d; var v=parseFloat(x.state); return isNaN(v)?d:v; };
           var stStr = function(s,d){ if(d===undefined)d='—'; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='none'||x.state==='')return d; return x.state; };
@@ -59,7 +61,16 @@ cards:
           var attr = function(id,n,d){ try{ var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
           var aN = function(id,n,d){ var v=attr(id,n,null); if(v===null)return d; var x=parseFloat(v); return isNaN(x)?d:x; };
           var aB = function(id,n,d){ var v=attr(id,n,d); if(typeof v==='boolean')return v; var s=String(v).toLowerCase(); if(s==='true'||s==='on'||s==='1')return true; if(s==='false'||s==='off'||s==='0')return false; return d; };
-          var tr = function(s,m){ if(!s) return '—'; var t=String(s); return t.length>m ? t.slice(0,m-1)+'…' : t; };
+          var tr = function(s,m){ if(s===null||s===undefined||s==='') return '—'; if(typeof s==='number' && !isFinite(s)) return '—'; var t=String(s); return t.length>m ? t.slice(0,m-1)+'…' : t; };
+
+          /* ============ LANGUAGE ============ */
+          /* LANG_OVERRIDE: '' = auto from integration, 'nl' = force NL, 'en' = force EN */
+          var LANG_OVERRIDE = 'EN';
+          var S_STATE = 'sensor.daikin_cycle_ml_cycle_state';
+          var cfgLangRaw = String(attr(S_STATE,'configured_language','en')).toLowerCase();
+          var LANG = (LANG_OVERRIDE === 'nl' || LANG_OVERRIDE === 'en')
+            ? LANG_OVERRIDE
+            : (cfgLangRaw === 'nl' ? 'nl' : 'en');
 
           /* ============ i18n ============ */
           var STR = {
@@ -75,6 +86,10 @@ cards:
               explain:'💡 COP hoger = beter · Q = kwaliteit 0-100 · Alerts bovenaan = actie',
               noAlert:'✅ Systeem OK — geen actieve waarschuwingen',
               alertOne:'actief', alertMore:'meer',
+              hydKring:'♻️ Hydraulische kring', hpEmitter:'WP → AFGIFTE',
+              heatPump:'WARMTEPOMP', emitter:'AFGIFTE',
+              supplyLabel:'🔥 AANVOER →', returnLabel:'← 💧 RETOUR',
+              lvlCrit:'ACTIE VEREIST', lvlWarn:'AANDACHT', lvlInfo:'INFO',
               phases:{ idle:'IDLE', defrost:'DEFROST', buh:'BUH', dhw:'SWW',
                        heating:'VERWARMEN', cooling:'KOELEN', running:'COMPRESSOR' }
             },
@@ -90,6 +105,10 @@ cards:
               explain:'💡 Higher COP = better · Q = quality 0-100 · Alerts on top = action',
               noAlert:'✅ System OK — no active warnings',
               alertOne:'active', alertMore:'more',
+              hydKring:'♻️ Hydraulic circuit', hpEmitter:'HP → EMITTER',
+              heatPump:'HEAT PUMP', emitter:'EMITTER',
+              supplyLabel:'🔥 SUPPLY →', returnLabel:'← 💧 RETURN',
+              lvlCrit:'ACTION REQUIRED', lvlWarn:'ATTENTION', lvlInfo:'INFO',
               phases:{ idle:'IDLE', defrost:'DEFROST', buh:'BUH', dhw:'DHW',
                        heating:'HEATING', cooling:'COOLING', running:'COMPRESSOR' }
             }
@@ -98,7 +117,7 @@ cards:
 
           /* ============ entities ============ */
           var S = {
-            state:'sensor.daikin_cycle_ml_cycle_state',
+            state:S_STATE,
             cur:'sensor.daikin_cycle_ml_current_cycle',
             last:'sensor.daikin_cycle_ml_last_cycle',
             today:'sensor.daikin_cycle_ml_cycles_today',
@@ -137,9 +156,10 @@ cards:
           var isStale = aB(S.health,'is_stale',false);
 
           var curDur=aN(S.cur,'duration_min',null), curDt=aN(S.cur,'dt_k',null), curRps=aN(S.cur,'rps',0);
-          var lastDur=aN(S.last,'duration_min',null), lastDt=aN(S.last,'dt_avg_k',null);
+          var lastDur=aN(S.last,'duration_min',null), lastDt=aN(S.last,'avg_dt_k',null);
           var lastRps=aN(S.last,'rps_avg',null), lastKw=aN(S.last,'thermal_kw_avg',null);
-          var lastMode=aN(S.last,'mode',null), lastOut=aN(S.last,'outdoor_temp',null);
+          var lastMode=attr(S.last,'mode',null);
+          var lastOut=aN(S.last,'outdoor_temp',null);
           var lastBuh=aB(S.last,'buh_used',false), lastDefr=aB(S.last,'defrost_used',false);
           var lastClus=attr(S.last,'cluster',null);
           var avgDur=aN(S.today,'avg_duration_min',null), avgOff=aN(S.today,'avg_off_time_min',null);
@@ -148,7 +168,6 @@ cards:
           var stookState=stStr(S.stook,'unknown');
           var stookBucket=attr(S.stook,'bucket',null);
           var stookSav=aN(S.stook,'besparing_cop_pct',null);
-          var stookComf=aN(S.stook,'comfort_impact',null);
           var stookRel=aN(S.stook,'betrouwbaarheid',null);
 
           var compOn=isOn(B.comp), heatOn=isOn(B.heat), coolOn=isOn(B.cool), dhwOn=isOn(B.dhw);
@@ -215,9 +234,9 @@ cards:
           var qColor = ratio===null?'#7f8c8d':(ratio>=70?'#4CAF50':ratio>=40?'#F5A623':'#E60012');
           var ageColor = age===null?'#7f8c8d':(age<120?'#4CAF50':age<600?'#F5A623':'#E60012');
           var liveDt = curDt!==null ? curDt : (lastDt||0);
-          var liveKw = lastKw||0;
+          var liveKw = lastKw;
           var dtColor = liveDt>=5?'#4CAF50':liveDt>=3?'#F5A623':'#E60012';
-          var kwColor = liveKw>=3?'#4CAF50':liveKw>=1.5?'#F5A623':'#E60012';
+          var kwColor = liveKw===null?'#7f8c8d':(liveKw>=3?'#4CAF50':liveKw>=1.5?'#F5A623':'#E60012');
 
           /* ============ diagram SVG ============ */
           var hW=420,hH=190;
@@ -252,7 +271,7 @@ cards:
           } else {
             s+='<text x="'+(hpX+hpW/2)+'" y="'+(hpY+28)+'" text-anchor="middle" font-size="24" dominant-baseline="middle">'+phIcon+'</text>';
           }
-          s+='<text x="'+(hpX+hpW/2)+'" y="'+(hpY+52)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+phColor+'" letter-spacing="0.6">WARMTEPOMP</text>';
+          s+='<text x="'+(hpX+hpW/2)+'" y="'+(hpY+52)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+phColor+'" letter-spacing="0.6">'+t('heatPump')+'</text>';
           s+='<text x="'+(hpX+hpW/2)+'" y="'+(hpY+70)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="14" font-weight="900" fill="#003366">'+vI(liveRps)+'<tspan font-size="8" fill="#5d6d7e" font-weight="700">rps</tspan></text>';
           var rpsPct=Math.max(0,Math.min(100,(liveRps||0)/120*100));
           s+='<rect x="'+(hpX+10)+'" y="'+(hpY+78)+'" width="'+(hpW-20)+'" height="4" rx="2" fill="rgba(0,51,102,0.08)"/>';
@@ -262,12 +281,12 @@ cards:
           var qScore = ratio!==null?ratio:0;
           s+='<rect x="'+radX+'" y="'+radY+'" width="'+radW+'" height="'+radH+'" rx="14" fill="white" stroke="'+kwColor+'" stroke-width="2.5"/>';
           s+='<text x="'+(radX+radW/2)+'" y="'+(radY+28)+'" text-anchor="middle" font-size="22" dominant-baseline="middle">🏠</text>';
-          s+='<text x="'+(radX+radW/2)+'" y="'+(radY+52)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="#00539F" letter-spacing="0.6">AFGIFTE</text>';
-          s+='<text x="'+(radX+radW/2)+'" y="'+(radY+70)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="14" font-weight="900" fill="'+kwColor+'">'+v2(liveKw)+'<tspan font-size="8" font-weight="700">kW</tspan></text>';
+          s+='<text x="'+(radX+radW/2)+'" y="'+(radY+52)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="#00539F" letter-spacing="0.6">'+t('emitter')+'</text>';
+          s+='<text x="'+(radX+radW/2)+'" y="'+(radY+70)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="14" font-weight="900" fill="'+kwColor+'">'+(liveKw===null?'—':v2(liveKw))+'<tspan font-size="8" font-weight="700">kW</tspan></text>';
           var kwPct=Math.max(0,Math.min(100,(liveKw||0)/6*100));
           s+='<rect x="'+(radX+10)+'" y="'+(radY+78)+'" width="'+(radW-20)+'" height="4" rx="2" fill="rgba(0,51,102,0.08)"/>';
           s+='<rect x="'+(radX+10)+'" y="'+(radY+78)+'" width="'+((radW-20)*kwPct/100)+'" height="4" rx="2" fill="'+kwColor+'"/>';
-          s+='<text x="'+(radX+radW/2)+'" y="'+(radY+92)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8" font-weight="900" fill="'+kwColor+'">'+(lastClus&&lastClus!=='unknown'?'🏷️ '+tr( lastClus,8):'—')+'</text>';
+          s+='<text x="'+(radX+radW/2)+'" y="'+(radY+92)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8" font-weight="900" fill="'+kwColor+'">'+((hasV(lastClus) && String(lastClus)!=='unknown')?'🏷️ '+tr(lastClus,8):'—')+'</text>';
 
           var dtX=hW/2, dtY=(topY+botY)/2;
           s+='<circle cx="'+dtX+'" cy="'+dtY+'" r="24" fill="white" stroke="'+dtColor+'" stroke-width="3" filter="url(#gl)"/>';
@@ -275,9 +294,9 @@ cards:
           s+='<text x="'+dtX+'" y="'+(dtY+11)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="14" font-weight="900" fill="'+dtColor+'">'+v1(liveDt)+'K</text>';
 
           s+='<rect x="'+(hW/2-55)+'" y="'+(topY-28)+'" width="110" height="18" rx="9" fill="#E60012"/>';
-          s+='<text x="'+(hW/2)+'" y="'+(topY-16)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="white">🔥 AANVOER →</text>';
+          s+='<text x="'+(hW/2)+'" y="'+(topY-16)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="white">'+t('supplyLabel')+'</text>';
           s+='<rect x="'+(hW/2-55)+'" y="'+(botY+10)+'" width="110" height="18" rx="9" fill="#00539F"/>';
-          s+='<text x="'+(hW/2)+'" y="'+(botY+22)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="white">← 💧 RETOUR</text>';
+          s+='<text x="'+(hW/2)+'" y="'+(botY+22)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="white">'+t('returnLabel')+'</text>';
 
           s+='</svg>';
 
@@ -322,7 +341,7 @@ cards:
             var aBd=hasCrit?'#E60012':hasWarn?'#F5A623':'#0097E0';
             var aTx=hasCrit?'#8b1a1a':hasWarn?'#7d4f00':'#00539F';
             var aIc=hasCrit?'🚨':hasWarn?'⚠️':'ℹ️';
-            var aTi=hasCrit?'ACTIE VEREIST':hasWarn?'AANDACHT':'INFO';
+            var aTi=hasCrit?t('lvlCrit'):hasWarn?t('lvlWarn'):t('lvlInfo');
             var pS=hasCrit?'animation: efp 1.6s ease-in-out infinite;':'';
             r+='<div style="background:'+aBg+';border:2px solid '+aBd+';border-radius:12px;padding:10px 12px;margin-bottom:8px;box-sizing:border-box;'+pS+'">';
             r+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid '+aBd+'33;">';
@@ -350,7 +369,7 @@ cards:
           }
 
           r+='<div class="d-sec">';
-          r+='<div class="d-hdr"><span>♻️ Hydraulische kring</span><span>WP → AFGIFTE</span></div>';
+          r+='<div class="d-hdr"><span>'+t('hydKring')+'</span><span>'+t('hpEmitter')+'</span></div>';
           r+=s;
           r+='</div>';
 
@@ -377,7 +396,7 @@ cards:
           r+='<div class="d-row"><span class="d-k">'+t('sr')+'</span><span class="d-v" style="color:'+(shortRuns>0?'#E60012':'#4CAF50')+'">'+vI(shortRuns)+'</span></div>';
           r+='</div>';
           r+='<div class="d-sec" style="margin:0;">';
-          r+='<div class="d-hdr"><span>'+t('last')+'</span><span>'+tr(lastClus||'—',10)+'</span></div>';
+          r+='<div class="d-hdr"><span>'+t('last')+'</span><span>'+tr(lastClus,10)+'</span></div>';
           r+='<div class="d-row"><span class="d-k">'+t('dur')+'</span><span class="d-v">'+(lastDur===null?'—':v1(lastDur)+"'")+'</span></div>';
           r+='<div class="d-row"><span class="d-k">'+t('dt')+'</span><span class="d-v">'+(lastDt===null?'—':v1(lastDt)+'K')+'</span></div>';
           r+='<div class="d-row"><span class="d-k">'+t('rps')+'</span><span class="d-v">'+(lastRps===null?'—':vI(lastRps))+'</span></div>';
