@@ -12,8 +12,11 @@ cards:
   - type: custom:mushroom-template-card
     primary: 🔵 DAIKIN CYCLE ML
     secondary: >-
-      {% set l = state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') or 'en' -%}
-      {% if l == 'nl' %}📈 Stooklijn — LWT vs buiten · heatmap · modes · balans{% else %}📈 Heating curve — LWT vs outdoor · heatmap · modes · balance{% endif %}
+      {% set l =
+      state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') or
+      'en' -%} {% if l == 'nl' %}📈 Stooklijn — LWT vs buiten · heatmap · modes
+      · balans{% else %}📈 Heating curve — LWT vs outdoor · heatmap · modes ·
+      balance{% endif %}
     icon: mdi:heat-pump
     icon_color: blue
     multiline_secondary: true
@@ -53,9 +56,11 @@ cards:
           var attr = function(id,n,d){ try{ var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
           var aN = function(id,n,d){ var v=attr(id,n,null); if(v===null)return d; var x=parseFloat(v); return isNaN(x)?d:x; };
           var aB = function(id,n,d){ var v=attr(id,n,d); if(typeof v==='boolean')return v; var s=String(v).toLowerCase(); if(s==='true'||s==='on'||s==='1')return true; if(s==='false'||s==='off'||s==='0')return false; return d; };
+
+          /* R202: bucket_for_outdoor() emit keys: -10-, -10--8...18-20, 20+, unknown
+             -10- pattern MUST be tested BEFORE range and integer patterns. */
           var parseBucket = function(k){
             if(!k) return null; var s=String(k).trim();
-            if(s==='-10-') return { lo:-12, hi:-10, c:-11, key:k };
             var m = s.match(/^(-?\d+)-$/); if(m) return { lo: -999, hi: parseFloat(m[1]), c: parseFloat(m[1])-1, key: k };
             m = s.match(/^(-?\d+)\s*\+$/); if(m) return { lo: parseFloat(m[1]), hi: parseFloat(m[1])+4, c: parseFloat(m[1])+2, key: k };
             m = s.match(/^(-?\d+)\s*-\s*(-?\d+)$/); if(m) return { lo: parseFloat(m[1]), hi: parseFloat(m[2]), c: (parseFloat(m[1])+parseFloat(m[2]))/2, key: k };
@@ -81,7 +86,7 @@ cards:
               specRangeLwt:'LWT', specOutdoor:'buiten', specNomCop:'nominale COP',
               specDefrost:'defrost <', specBuh:'BUH >', specHeatOff:'verwarming OFF >',
               specRegression:'📈 Regressie', specInsufficient:'onvoldoende buckets',
-              specSamples:'samples', specBuckets:'buckets',
+              specSamples:'samples', specBuckets:'buckets', specInBucket:'in bucket',
               specTrend:'📊 historisch', specTrendUp:'24u vs 7d',
               specState:'state', specCfg:'🔍 auto-discovery',
               modeHeating:'VERWARMING', modeDhw:'DHW', modeCooling:'KOELING',
@@ -98,7 +103,7 @@ cards:
               specRangeLwt:'LWT', specOutdoor:'outdoor', specNomCop:'nominal COP',
               specDefrost:'defrost <', specBuh:'BUH >', specHeatOff:'heating OFF >',
               specRegression:'📈 Regression', specInsufficient:'insufficient buckets',
-              specSamples:'samples', specBuckets:'buckets',
+              specSamples:'samples', specBuckets:'buckets', specInBucket:'in bucket',
               specTrend:'📊 historical', specTrendUp:'24h vs 7d',
               specState:'state', specCfg:'🔍 auto-discovery',
               modeHeating:'HEATING', modeDhw:'DHW', modeCooling:'COOLING',
@@ -130,12 +135,13 @@ cards:
           var S_COPTODAY = 'sensor.daikin_cycle_ml_cop_today';
 
           var stookBuckets = attr(S_STOOK,'buckets',{});
-          var stookState   = String((states[S_STOOK]&&states[S_STOOK].state)||'unknown');
+          /* R200: state is not an attribute — read from states[id].state */
+          var stookState   = (states[S_STOOK] && states[S_STOOK].state) ? String(states[S_STOOK].state) : 'unknown';
           var stookLwtNow  = aN(S_STOOK,'huidige_lwt',null);
           var stookLwtOpt  = aN(S_STOOK,'optimale_lwt',null);
-          /* R203: samples = n of CURRENT bucket only; repurposed from unused legacy var */
+          /* R203: samples = n of CURRENT bucket only — never used as totalSamples */
           var stookBucketSamples = aN(S_STOOK,'samples',0);
-          var stookBucketKey     = String(aN2(S_STOOK,'bucket')) || '';
+          var stookBucketKey     = String(attr(S_STOOK,'bucket','')) || '';
 
           var curvePts = attr(S_CURVE,'points',[]);
           if (!Array.isArray(curvePts)) curvePts = [];
@@ -163,7 +169,7 @@ cards:
             trendDir = Math.abs(trendPct) < 2 ? 'flat' : (trendPct > 0 ? 'up' : 'down');
           }
 
-          /* R201: current_cycle has no outdoor_temp; read directly from last_cycle */
+          /* R201: current_cycle has no outdoor_temp — use last_cycle directly */
           var liveOut = aN(S_LAST,'outdoor_temp',null);
           var liveKw  = stv(S_THERM);
           var lastDur = aN(S_LAST,'duration_min',null);
@@ -216,12 +222,8 @@ cards:
           });
           pts.sort(function(a,b){ return a.x - b.x; });
 
+          /* R203: totalSamples = sum of ALL bucket samples; never overwritten */
           var totalSamples = pts.reduce(function(a,p){ return a + p.n; }, 0);
-          /* R203: samplesLine shows true total + current-bucket share */
-          var samplesLine  = t('specSamples')+': '+totalSamples;
-          if (stookBucketSamples > 0 && stookBucketKey) {
-            samplesLine += ' ('+stookBucketSamples+' in bucket '+stookBucketKey+')';
-          }
 
           var slope = null, inter = null;
           if (pts.length >= 2) {
@@ -401,12 +403,11 @@ cards:
           for (var vx=Xmin; vx<=Xmax; vx+=xStep) s+='<line x1="'+xS(vx)+'" y1="'+Y0+'" x2="'+xS(vx)+'" y2="'+Y1+'" stroke="rgba(0,51,102,0.10)" stroke-width="1"/>';
           for (var vy=Ymin; vy<=Ymax; vy+=5) s+='<line x1="'+X0+'" y1="'+yS(vy)+'" x2="'+X1+'" y2="'+yS(vy)+'" stroke="rgba(0,51,102,0.10)" stroke-width="1"/>';
 
-          /* ============ LIMITS — chips moved clear of data ============ */
+          /* ============ LIMITS ============ */
           var lwtMaxY = yS(hp.lwtMax);
           s += '<line x1="'+X0+'" y1="'+lwtMaxY+'" x2="'+X1+'" y2="'+lwtMaxY+'" stroke="'+DK_RED+'" stroke-width="1.5" stroke-dasharray="7,4" opacity="0.60"/>';
           var maxLbl = t('maxLwt')+' '+hp.lwtMax+'°';
           var maxW = Math.max(96, maxLbl.length*6);
-          /* position: above the line, further up to avoid data labels */
           s += '<g><rect x="'+(X1-maxW-6)+'" y="'+(lwtMaxY-24)+'" width="'+maxW+'" height="14" rx="7" fill="'+DK_RED+'" opacity="0.85" stroke="white" stroke-width="1" stroke-opacity="0.6"/>';
           s += '<text x="'+(X1-maxW/2-6)+'" y="'+(lwtMaxY-13)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.5" font-weight="900" fill="white">'+maxLbl+'</text></g>';
 
@@ -414,7 +415,6 @@ cards:
           s += '<line x1="'+X0+'" y1="'+lwtMinY+'" x2="'+X1+'" y2="'+lwtMinY+'" stroke="'+DK_BLUE_MD+'" stroke-width="1.5" stroke-dasharray="7,4" opacity="0.60"/>';
           var minLbl = t('minLwt')+' '+hp.lwtMin+'°';
           var minW = Math.max(96, minLbl.length*6);
-          /* position: BELOW the line, further down to avoid data */
           s += '<g><rect x="'+(X1-minW-6)+'" y="'+(lwtMinY+6)+'" width="'+minW+'" height="14" rx="7" fill="'+DK_BLUE_MD+'" opacity="0.85" stroke="white" stroke-width="1" stroke-opacity="0.5"/>';
           s += '<text x="'+(X1-minW/2-6)+'" y="'+(lwtMinY+16)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.5" font-weight="900" fill="white">'+minLbl+'</text></g>';
 
@@ -455,7 +455,7 @@ cards:
             s += '<path d="'+pathCurve+'" fill="none" stroke="white" stroke-width="1" stroke-dasharray="2,9" opacity="0.6"/>';
           }
 
-          /* RUNNING AVERAGE OVERLAY — no inline label (legend in specs box) */
+          /* RUNNING AVERAGE OVERLAY */
           if (runAvgPts.length >= 2) {
             var raPath = '';
             for (var rai=0; rai<runAvgPts.length; rai++){
@@ -464,7 +464,7 @@ cards:
             s += '<path d="'+raPath+'" fill="none" stroke="'+DK_BLUE+'" stroke-width="2" stroke-dasharray="5,4" opacity="0.75" stroke-linecap="round" stroke-linejoin="round"/>';
           }
 
-          /* ============ BUCKETS — alternate label positions ============ */
+          /* BUCKETS */
           for (var bi=0; bi<pts.length; bi++){
             var p = pts[bi];
             var bx = xS(p.x), by = yS(p.y);
@@ -481,7 +481,6 @@ cards:
             s += '<text x="'+bx+'" y="'+(by+3)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.5" font-weight="900" fill="white">'+p.n+'</text>';
             s += '</g>';
 
-            /* COP pill ABOVE bubble */
             var copLblY = by - rad - 8;
             s += '<g opacity="0">';
             s += '<animate attributeName="opacity" from="0" to="1" dur="0.7s" begin="'+(parseFloat(delay)+0.15).toFixed(2)+'s" fill="freeze"/>';
@@ -489,7 +488,6 @@ cards:
             s += '<text x="'+bx+'" y="'+copLblY+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.5" font-weight="900" fill="white">COP '+v2(p.cop)+'</text>';
             s += '</g>';
 
-            /* Range label — SIDE, alternating left/right to avoid stacking */
             var sideSign = (bi % 2 === 0) ? 1 : -1;
             var rlblX = bx + sideSign * (rad + 6);
             var rlblAnchor = sideSign > 0 ? 'start' : 'end';
@@ -499,7 +497,7 @@ cards:
             s += '</g>';
           }
 
-          /* ============ LIVE DOT — corner-aware callout ============ */
+          /* LIVE DOT */
           if (liveOut !== null && stookLwtNow !== null) {
             var lx = xS(liveOut), ly = yS(stookLwtNow);
 
@@ -508,7 +506,6 @@ cards:
             s += '<circle cx="'+lx+'" cy="'+ly+'" r="9" fill="'+DK_BLUE+'" stroke="white" stroke-width="2.5" filter="url(#hc-drop)"/>';
             s += '<text x="'+lx+'" y="'+(ly+2.5)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="7" font-weight="900" fill="white">LIVE</text>';
 
-            /* ---- obstacle list ---- */
             var callW = 100, callH = 42;
             var obstacles = [];
             for (var oi=0; oi<pts.length; oi++){
@@ -530,25 +527,21 @@ cards:
               obstacles.push({ x1: X0+4, y1: yS(hp.buhAbove)-23, x2: X0+8+buhChW3+4, y2: yS(hp.buhAbove)+4 });
             }
 
-            /* ---- 12 candidate positions ---- */
             var GAP = 12;
             var M = 8;
             var candidates = [
-              /* near dot */
-              { x: lx + GAP,          y: ly - callH/2 },          /* right */
-              { x: lx - callW - GAP,  y: ly - callH/2 },          /* left */
-              { x: lx - callW/2,      y: ly - callH - GAP },      /* above */
-              { x: lx - callW/2,      y: ly + GAP },              /* below */
-              /* corners of the plot (farthest but safest) */
-              { x: X0 + M,            y: Y0 + M },                /* top-left */
-              { x: X1 - callW - M,    y: Y0 + M },                /* top-right */
-              { x: X0 + M,            y: Y1 - callH - M },        /* bottom-left */
-              { x: X1 - callW - M,    y: Y1 - callH - M },        /* bottom-right */
-              /* mid-edge */
-              { x: X0 + M,            y: (Y0+Y1)/2 - callH/2 },   /* mid-left */
-              { x: X1 - callW - M,    y: (Y0+Y1)/2 - callH/2 },   /* mid-right */
-              { x: (X0+X1)/2 - callW/2, y: Y0 + M },              /* top-center */
-              { x: (X0+X1)/2 - callW/2, y: Y1 - callH - M }       /* bottom-center */
+              { x: lx + GAP,          y: ly - callH/2 },
+              { x: lx - callW - GAP,  y: ly - callH/2 },
+              { x: lx - callW/2,      y: ly - callH - GAP },
+              { x: lx - callW/2,      y: ly + GAP },
+              { x: X0 + M,            y: Y0 + M },
+              { x: X1 - callW - M,    y: Y0 + M },
+              { x: X0 + M,            y: Y1 - callH - M },
+              { x: X1 - callW - M,    y: Y1 - callH - M },
+              { x: X0 + M,            y: (Y0+Y1)/2 - callH/2 },
+              { x: X1 - callW - M,    y: (Y0+Y1)/2 - callH/2 },
+              { x: (X0+X1)/2 - callW/2, y: Y0 + M },
+              { x: (X0+X1)/2 - callW/2, y: Y1 - callH - M }
             ];
 
             var overlapArea = function(a, b) {
@@ -576,7 +569,6 @@ cards:
               var dist2 = Math.sqrt((midX2-lx)*(midX2-lx) + (midY2-ly)*(midY2-ly));
               score += dist2 * 0.3;
               score += clamped * 100;
-              /* subtle preference for near-dot when scores tie */
               if (ci2 < 4) score -= 150;
 
               if (score < bestScore) { bestScore = score; best = { x: cx2, y: cy2 }; }
@@ -584,7 +576,6 @@ cards:
 
             var callX = best.x, callY = best.y;
 
-            /* Leader line if far */
             var cMidX = callX + callW/2;
             var cMidY = callY + callH/2;
             var dist = Math.sqrt((cMidX-lx)*(cMidX-lx) + (cMidY-ly)*(cMidY-ly));
@@ -592,7 +583,6 @@ cards:
               s += '<line x1="'+lx+'" y1="'+ly+'" x2="'+cMidX+'" y2="'+cMidY+'" stroke="'+DK_BLUE+'" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.5"/>';
             }
 
-            /* Callout — semi-transparent */
             s += '<g filter="url(#hc-drop)">';
             s += '<rect x="'+callX+'" y="'+callY+'" width="'+callW+'" height="'+callH+'" rx="8" fill="white" fill-opacity="0.82" stroke="'+DK_BLUE+'" stroke-width="1.5" stroke-opacity="0.85"/>';
             s += '<text x="'+(callX+callW/2)+'" y="'+(callY+14)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.5" font-weight="800" fill="'+DK_BLUE_MD+'">'+v1(liveOut)+'° OUT</text>';
@@ -730,6 +720,11 @@ cards:
           s += '<text x="24" y="'+(spY+36)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_MD+'">'+t('specRangeLwt')+' '+hp.lwtMin+'–'+hp.lwtMax+'°C  ·  '+t('specOutdoor')+' '+hp.outMin+'…+'+hp.outMax+'°C  ·  '+t('specNomCop')+' '+hp.nomCop.toFixed(1)+'</text>';
           s += '<text x="24" y="'+(spY+52)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_MD+'">'+t('specDefrost')+' +'+hp.defrostBelow+'°C  ·  '+t('specBuh')+' '+hp.buhAbove+'°C  ·  '+t('specHeatOff')+' +'+hp.offAbove+'°C</text>';
           var regTxt = slope !== null ? 'LWT = '+inter.toFixed(1)+' '+(slope<0?'− ':'+ ')+Math.abs(slope).toFixed(2)+' × T_buiten' : t('specInsufficient');
+          /* R203: totalSamples = ALL buckets; show current-bucket sample count separately */
+          var samplesLine = t('specSamples')+': '+totalSamples;
+          if (stookBucketSamples > 0 && stookBucketKey) {
+            samplesLine += ' ('+stookBucketSamples+' '+t('specInBucket')+' '+stookBucketKey+'°C)';
+          }
           s += '<text x="24" y="'+(spY+69)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_DK+'">'+t('specRegression')+': '+regTxt+'  ·  '+samplesLine+'  ·  '+t('specBuckets')+': '+pts.length+'</text>';
           var trendTxt = '—'; var trendCol = '#7f8c8d';
           if (trendPct !== null) {
