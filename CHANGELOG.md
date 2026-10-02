@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.4.2] - 2026-10-02
+
+Maintenance release on top of v1.4.1.
+
+### Fixed
+
+- CycleStore is now hydrated from SQLite on startup. Before,
+  after every HA restart last_cycle, cycles_today, quality_today
+  and the good/bad counters reset until the next cycle.
+- Existing cycles receive a backfilled quality_score.
+- cop_hourly retention policy added inside async_run_maintenance
+  matching the existing cop_samples policy.
+
+### Changed
+
+- COP_ROLLUP_WINDOW_HOURS = 720 replaces the hard-coded 6h
+  default.
+- README showcase subtitle is now plural.
+
+### Added
+
+- CycleStore.hydrate_from_rows()
+- CycleDB.async_fetch_recent_cycles_for_hydration()
+- CycleDB.async_backfill_quality_scores()
+- CycleDB.async_prune_cop_hourly()
+- tests/test_v1_4_2_improvements.py
+
+### Notes
+
+- Coverage stays at 100.00%.
+- No public API change. Safe drop-in for v1.4.1.
+
 ## [1.4.1] - 2026-10-02
 
 Patch release on top of v1.4.0. Restores three sensor

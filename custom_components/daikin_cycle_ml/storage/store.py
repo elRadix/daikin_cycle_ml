@@ -90,6 +90,44 @@ class CycleStore:
     def record_short_off(self) -> int:
         return self.increment("short_offs_today")
 
+    def hydrate_from_rows(
+        self,
+        rows: list[Mapping[str, Any]],
+        *,
+        good_threshold: int = 70,
+    ) -> int:
+        # v1.4.2: preload cycles + recompute today counters.
+        if not rows:
+            return 0
+        for r in rows:
+            self._cycles.append(dict(r))
+        while len(self._cycles) > self.maxlen:
+            self._cycles.popleft()
+        today = time.strftime("%Y-%m-%d", time.localtime())
+        good = 0
+        bad = 0
+        cycles_today = 0
+        for c in self._cycles:
+            ts = c.get("start_ts")
+            if not isinstance(ts, (int, float)) or isinstance(ts, bool):
+                continue
+            if time.strftime(
+                "%Y-%m-%d", time.localtime(float(ts))
+            ) != today:
+                continue
+            cycles_today += 1
+            qs = c.get("quality_score")
+            if isinstance(qs, bool) or not isinstance(qs, int):
+                continue
+            if qs >= good_threshold:
+                good += 1
+            else:
+                bad += 1
+        self._counters["cycles_today"] = cycles_today
+        self._counters["good_cycles_today"] = good
+        self._counters["bad_cycles_today"] = bad
+        return len(self._cycles)
+
     def cycles_in_window(self, now: float, window_s: float) -> int:
         cutoff = float(now) - float(window_s)
         return sum(

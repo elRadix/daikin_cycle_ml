@@ -27,6 +27,7 @@ from .const import (
 )
 # v1.4.1 BUG-2 / BUG-3: score wiring + threshold.
 from .const import GOOD_CYCLE_MIN_SCORE
+from .const import COP_ROLLUP_WINDOW_HOURS
 from .engine.quality_scorer import score_cycle
 from .engine.action_engine import generate_advice
 from .engine.anomaly_engine import evaluate as evaluate_anomaly
@@ -373,7 +374,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.exception("Scheduled cop_hourly rollup failed")
 
     async def _maybe_rollup_cop_hourly(
-        self, window_hours: int = 6
+        self, window_hours: int = COP_ROLLUP_WINDOW_HOURS
     ) -> int:
         """Roll up cop_samples into cop_hourly. No-op without db."""
         if self.db is None:
