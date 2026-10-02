@@ -136,8 +136,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Daikin Cycle ML from a config entry."""
     coordinator = DaikinCycleMLCoordinator(hass, entry)
     await _async_setup_database(hass, coordinator)
-    await _async_hydrate_store(coordinator)
     await _async_backfill_quality(coordinator)
+    await _async_hydrate_store(coordinator)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
     try:

@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.4.3] - 2026-10-02
+
+Hotfix on top of v1.4.2.
+
+### Fixed
+
+- **Ordering bug in `async_setup_entry`**: v1.4.2 called
+  `_async_hydrate_store()` BEFORE `_async_backfill_quality()`.
+  The store therefore loaded records with `quality_score = NULL`
+  before the backfill could write scores back to the database.
+  Consequence: after every HA restart, `last_cycle.state` and
+  `quality_today.state` remained `unknown` even though the
+  underlying cycles had been scored. The two calls are now
+  swapped: backfill runs first, then hydration loads the scored
+  records.
+
+### Notes
+
+- No new tests added; existing v1.4.2 tests still pass.
+- Coverage stays at 100.00%.
+- No public API change. Safe drop-in for v1.4.2.
+
 ## [1.4.2] - 2026-10-02
 
 Maintenance release on top of v1.4.1.
