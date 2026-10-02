@@ -25,6 +25,9 @@ from .const import (
     SOURCE_SENSOR_ENTITY,
     UPDATE_INTERVAL_SECONDS,
 )
+# v1.4.1 BUG-2 / BUG-3: score wiring + threshold.
+from .const import GOOD_CYCLE_MIN_SCORE
+from .engine.quality_scorer import score_cycle
 from .engine.action_engine import generate_advice
 from .engine.anomaly_engine import evaluate as evaluate_anomaly
 from .engine.attribute_reader import missing_required, read
@@ -104,6 +107,43 @@ def _weighted_mean_stdev(
     if var < 0.0:
         var = 0.0
     return mean, var ** 0.5
+
+def score_and_count(
+    record: dict[str, Any],
+    options: dict[str, Any] | None,
+    store: Any,
+    now: float,
+) -> None:
+    """v1.4.1: compute quality_score + increment good/bad counters.
+
+    Isolated try/except so a scoring failure never aborts the cycle
+    pipeline (R191).
+    """
+    try:
+        off_s = store.off_time_since_last(now)
+    except Exception:
+        off_s = None
+    try:
+        record["quality_score"] = score_cycle(
+            record, options, off_time_s=off_s
+        )
+    except Exception:
+        _LOGGER.warning("score_cycle failed", exc_info=True)
+        record["quality_score"] = None
+    qs = record.get("quality_score")
+    if isinstance(qs, int):
+        try:
+            key = (
+                "good_cycles_today"
+                if qs >= GOOD_CYCLE_MIN_SCORE
+                else "bad_cycles_today"
+            )
+            store.increment(key)
+        except Exception:
+            _LOGGER.warning(
+                "cycle counter increment failed", exc_info=True
+            )
+
 
 class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     """Reads the source sensor every UPDATE_INTERVAL_SECONDS."""
@@ -520,6 +560,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             )
             self._accumulate_cycle_samples(attrs)
             if record is not None:
+                score_and_count(record, self.options, self.store, now)
                 self.store.add_cycle(record)
                 snap.last_record = record
                 await self._process_new_cycle(record, snap)

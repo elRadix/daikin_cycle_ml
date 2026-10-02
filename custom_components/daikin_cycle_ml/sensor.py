@@ -143,14 +143,16 @@ def _last(c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     return c.store.last_cycle() or {}
 
 
-def _cluster_label(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> str:
+def _cluster_label(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> str | None:
     cid = getattr(s, "cluster_id", None)
     if cid is None:
-        return "unknown"
+        return None
     try:
-        return c.cluster_label(cid) or "unknown"
+        return c.cluster_label(cid) or None
     except Exception:
-        return "unknown"
+        return None
 
 
 # --- attr builders -----------------------------------------------------
