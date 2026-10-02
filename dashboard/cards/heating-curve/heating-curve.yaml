@@ -1,0 +1,807 @@
+type: custom:stack-in-card
+card_mod:
+  style: |
+    ha-card {
+      border: 3px solid #0097E0;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #F5FAFD 0%, #E6F4FB 50%, #D6ECF7 100%);
+      box-shadow: 0 8px 24px rgba(0, 151, 224, 0.25);
+      overflow: hidden;
+    }
+cards:
+  - type: custom:mushroom-template-card
+    primary: 🔵 DAIKIN CYCLE ML
+    secondary: >-
+      {% set l = state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') or 'en' -%}
+      {% if l == 'nl' %}📈 Stooklijn — LWT vs buiten · heatmap · modes · balans{% else %}📈 Heating curve — LWT vs outdoor · heatmap · modes · balance{% endif %}
+    icon: mdi:heat-pump
+    icon_color: blue
+    multiline_secondary: true
+    card_mod:
+      style: >
+        ha-card { background: none; box-shadow: none; border-bottom: 3px solid
+        #0097E0; border-radius: 0; padding: 12px 18px; }
+
+        .primary { color: #003366 !important; font-weight: 900 !important;
+        font-size: 1.15em !important; text-transform: uppercase; letter-spacing:
+        0.6px; }
+
+        .secondary { color: #00539F !important; font-size: 0.92em !important;
+        font-weight: 700 !important; }
+  - type: custom:button-card
+    show_name: false
+    show_icon: false
+    styles:
+      grid:
+        - grid-template-areas: '"content"'
+        - grid-template-columns: 1fr
+      card:
+        - background: none
+        - box-shadow: none
+        - border: none
+        - padding: 8px 8px 4px 8px
+    custom_fields:
+      content: |
+        [[[
+          /* ============ helpers ============ */
+          var st = function(s,d){ if(d===undefined)d=0; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='')return d; var v=parseFloat(x.state); return isNaN(v)?d:v; };
+          var stv = function(s){ var x=states[s]; if(!x||!x.state)return null; if(x.state==='unknown'||x.state==='unavailable'||x.state==='')return null; var v=parseFloat(x.state); return isNaN(v)?null:v; };
+          var hasV = function(v){ return v!==null && v!==undefined && v!=='' && String(v)!=='None'; };
+          var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.',','); };
+          var v2 = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Number(v).toFixed(2).replace('.',','); };
+          var tr = function(s,m){ if(!hasV(s)) return '—'; var t=String(s); return t.length>m ? t.slice(0,m-1)+'…' : t; };
+          var attr = function(id,n,d){ try{ var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
+          var aN = function(id,n,d){ var v=attr(id,n,null); if(v===null)return d; var x=parseFloat(v); return isNaN(x)?d:x; };
+          var aB = function(id,n,d){ var v=attr(id,n,d); if(typeof v==='boolean')return v; var s=String(v).toLowerCase(); if(s==='true'||s==='on'||s==='1')return true; if(s==='false'||s==='off'||s==='0')return false; return d; };
+          var parseBucket = function(k){
+            if(!k) return null; var s=String(k).trim();
+            if(s==='-10-') return { lo:-12, hi:-10, c:-11, key:k };
+            var m = s.match(/^(-?\d+)\s*\+$/); if(m) return { lo: parseFloat(m[1]), hi: parseFloat(m[1])+4, c: parseFloat(m[1])+2, key: k };
+            m = s.match(/^(-?\d+)\s*-\s*(-?\d+)$/); if(m) return { lo: parseFloat(m[1]), hi: parseFloat(m[2]), c: (parseFloat(m[1])+parseFloat(m[2]))/2, key: k };
+            m = s.match(/^(-?\d+)$/); if(m) return { lo: parseFloat(m[1]), hi: parseFloat(m[1])+2, c: parseFloat(m[1])+1, key: k };
+            return null;
+          };
+          var parseTs = function(v){
+            if(!hasV(v)) return null;
+            if(typeof v === 'number') return v;
+            var s = String(v); var d = new Date(s);
+            if(!isNaN(d.getTime())) return d.getTime()/1000;
+            var n = parseFloat(s); if(!isNaN(n) && n > 1e8) return n;
+            return null;
+          };
+          var nowHourFn = function(){ var d = new Date(); return d.getHours() + d.getMinutes()/60; };
+
+          /* ============ i18n ============ */
+          var STR = {
+            nl: {
+              defrost:'❄ DEFROST', heatingOff:'VERWARMING OFF',
+              buhAssist:'⚠ BUH HULP', maxLwt:'MAX LWT', minLwt:'MIN LWT',
+              xAxis:'BUITENTEMPERATUUR (°C)', yAxis:'LWT AANVOER (°C)',
+              specRangeLwt:'LWT', specOutdoor:'buiten', specNomCop:'nominale COP',
+              specDefrost:'defrost <', specBuh:'BUH >', specHeatOff:'verwarming OFF >',
+              specRegression:'📈 Regressie', specInsufficient:'onvoldoende buckets',
+              specSamples:'samples', specBuckets:'buckets',
+              specTrend:'📊 historisch', specTrendUp:'24u vs 7d',
+              specState:'state', specCfg:'🔍 auto-discovery',
+              modeHeating:'VERWARMING', modeDhw:'DHW', modeCooling:'KOELING',
+              modeCycles:'cycli', modeAvg:'gem', modeLast:'laatste',
+              carnotTitle:'CARNOT REND.', carnotActual:'act', carnotMax:'max',
+              balanceTitle:'WARMTEBALANS', balanceDemand:'vraag', balanceSupply:'levering',
+              defrostTitle:'DEFROST IMPACT', defrostEvts:'events', defrostLost:'min',
+              tileLwtNow:'LWT NU', tileLwtOpt:'LWT OPT', tileSavings:'BESPARING', tileTrend:'COP TREND'
+            },
+            en: {
+              defrost:'❄ DEFROST', heatingOff:'HEATING OFF',
+              buhAssist:'⚠ BUH ASSIST', maxLwt:'MAX LWT', minLwt:'MIN LWT',
+              xAxis:'OUTDOOR TEMPERATURE (°C)', yAxis:'SUPPLY LWT (°C)',
+              specRangeLwt:'LWT', specOutdoor:'outdoor', specNomCop:'nominal COP',
+              specDefrost:'defrost <', specBuh:'BUH >', specHeatOff:'heating OFF >',
+              specRegression:'📈 Regression', specInsufficient:'insufficient buckets',
+              specSamples:'samples', specBuckets:'buckets',
+              specTrend:'📊 historical', specTrendUp:'24h vs 7d',
+              specState:'state', specCfg:'🔍 auto-discovery',
+              modeHeating:'HEATING', modeDhw:'DHW', modeCooling:'COOLING',
+              modeCycles:'cycles', modeAvg:'avg', modeLast:'last',
+              carnotTitle:'CARNOT EFF.', carnotActual:'act', carnotMax:'max',
+              balanceTitle:'HEAT BALANCE', balanceDemand:'demand', balanceSupply:'supply',
+              defrostTitle:'DEFROST IMPACT', defrostEvts:'events', defrostLost:'min',
+              tileLwtNow:'LWT NOW', tileLwtOpt:'LWT OPT', tileSavings:'SAVINGS', tileTrend:'COP TREND'
+            }
+          };
+          var t = function(k){ return (STR[LANG] && STR[LANG][k]) || (STR.en && STR.en[k]) || k; };
+
+          /* ============ AUTO-DISCOVERY ============ */
+          var S_STATE = 'sensor.daikin_cycle_ml_cycle_state';
+          var cfgLang = String(attr(S_STATE,'configured_language','en')).toLowerCase();
+          var LANG = (cfgLang === 'nl') ? 'nl' : 'en';
+          var cfgModel = String(attr(S_STATE,'configured_model','')).toLowerCase();
+          var cfgSource = attr(S_STATE,'configured_source_sensor',null);
+          var cfgPower  = attr(S_STATE,'configured_power_sensor',null);
+          var cfgCop    = attr(S_STATE,'configured_cop_sensor',null);
+          var cfgInd    = attr(S_STATE,'configured_indoor_sensor',null);
+
+          /* ============ data ============ */
+          var S_STOOK = 'sensor.daikin_cycle_ml_heating_curve_advice';
+          var S_CURVE = 'sensor.daikin_cycle_ml_cop_curve_recent';
+          var S_LAST  = 'sensor.daikin_cycle_ml_last_cycle';
+          var S_CUR   = 'sensor.daikin_cycle_ml_current_cycle';
+          var S_THERM = 'sensor.daikin_cycle_ml_thermal_power_live';
+          var S_COPTODAY = 'sensor.daikin_cycle_ml_cop_today';
+
+          var stookBuckets = attr(S_STOOK,'buckets',{});
+          var stookState   = String((states[S_STOOK]&&states[S_STOOK].state)||'unknown');
+          var stookLwtNow  = aN(S_STOOK,'huidige_lwt',null);
+          var stookLwtOpt  = aN(S_STOOK,'optimale_lwt',null);
+          var stookSamples = aN(S_STOOK,'samples',0);
+
+          var curvePts = attr(S_CURVE,'points',[]);
+          if (!Array.isArray(curvePts)) curvePts = [];
+          var byMode = { heating: [], dhw: [], cooling: [] };
+          for (var ci=0; ci<curvePts.length; ci++){
+            var p = curvePts[ci]; if(!p) continue;
+            var m = String(p.mode || '').toLowerCase();
+            var ts = parseTs(p.ts !== undefined ? p.ts : p.timestamp);
+            var cv = p.cop !== undefined ? parseFloat(p.cop) : (p.cop_mean !== undefined ? parseFloat(p.cop_mean) : NaN);
+            if (ts === null || isNaN(cv)) continue;
+            if (byMode[m]) byMode[m].push({ t: ts, v: cv });
+          }
+          byMode.heating.sort(function(a,b){return a.t-b.t;});
+          byMode.dhw.sort(function(a,b){return a.t-b.t;});
+          byMode.cooling.sort(function(a,b){return a.t-b.t;});
+
+          var copDay   = stv('sensor.daikin_cycle_ml_cop_mean_day');
+          var copWeek  = stv('sensor.daikin_cycle_ml_cop_mean_week');
+          var copToday = stv(S_COPTODAY);
+          var actualCOP = copDay !== null ? copDay : copToday;
+
+          var trendPct = null, trendDir = 'flat';
+          if (copDay !== null && copWeek !== null && copWeek > 0) {
+            trendPct = ((copDay - copWeek) / copWeek) * 100;
+            trendDir = Math.abs(trendPct) < 2 ? 'flat' : (trendPct > 0 ? 'up' : 'down');
+          }
+
+          var lastOut = aN(S_LAST,'outdoor_temp',null);
+          var curOut  = aN(S_CUR,'outdoor_temp',null);
+          var liveOut = curOut !== null ? curOut : lastOut;
+          var liveKw  = stv(S_THERM);
+          var lastDur = aN(S_LAST,'duration_min',null);
+          var lastBuhFlag = aB(S_LAST,'buh_used',false);
+          var lastDefrFlag = aB(S_LAST,'defrost_used',false);
+          var lastStartTs = parseTs(attr(S_LAST,'start_ts',null));
+
+          var compOn = false, buhOn = false, defrOn = false;
+          try {
+            var bcomp = states['binary_sensor.daikin_cycle_ml_compressor_running'];
+            compOn = bcomp && String(bcomp.state).toLowerCase()==='on';
+            var bbuh = states['binary_sensor.daikin_cycle_ml_buh_active'];
+            buhOn = bbuh && String(bbuh.state).toLowerCase()==='on';
+            var bdef = states['binary_sensor.daikin_cycle_ml_defrost_active'];
+            defrOn = bdef && String(bdef.state).toLowerCase()==='on';
+          } catch(e){}
+
+          /* ============ MODEL LOOKUP ============ */
+          var HP_SPECS = {
+            'epra04': { kw: 4,  lwtMin: 25, lwtMax: 55, nomCop: 4.6, family: 'Monoblock', ref: 'R32' },
+            'epra06': { kw: 6,  lwtMin: 25, lwtMax: 55, nomCop: 4.5, family: 'Monoblock', ref: 'R32' },
+            'epra08': { kw: 8,  lwtMin: 25, lwtMax: 55, nomCop: 4.4, family: 'Monoblock', ref: 'R32' },
+            'epra11': { kw: 11, lwtMin: 25, lwtMax: 60, nomCop: 4.3, family: 'Monoblock', ref: 'R32' },
+            'epra12': { kw: 12, lwtMin: 25, lwtMax: 60, nomCop: 4.2, family: 'Monoblock', ref: 'R32' },
+            'epra14': { kw: 14, lwtMin: 25, lwtMax: 65, nomCop: 4.1, family: 'Monoblock', ref: 'R32' },
+            'epra16': { kw: 16, lwtMin: 25, lwtMax: 65, nomCop: 4.0, family: 'Monoblock', ref: 'R32' },
+            'erla04': { kw: 4,  lwtMin: 25, lwtMax: 55, nomCop: 4.8, family: 'Split',     ref: 'R32' },
+            'erla06': { kw: 6,  lwtMin: 25, lwtMax: 55, nomCop: 4.7, family: 'Split',     ref: 'R32' },
+            'erla08': { kw: 8,  lwtMin: 25, lwtMax: 55, nomCop: 4.5, family: 'Split',     ref: 'R32' },
+            'erla11': { kw: 11, lwtMin: 25, lwtMax: 60, nomCop: 4.4, family: 'Split',     ref: 'R32' },
+            'erla12': { kw: 12, lwtMin: 25, lwtMax: 60, nomCop: 4.3, family: 'Split',     ref: 'R32' },
+            'erla14': { kw: 14, lwtMin: 25, lwtMax: 65, nomCop: 4.2, family: 'Split',     ref: 'R32' },
+            'erla16': { kw: 16, lwtMin: 25, lwtMax: 65, nomCop: 4.1, family: 'Split',     ref: 'R32' }
+          };
+          var hpKey = cfgModel.substring(0,6);
+          var hp = HP_SPECS[hpKey] || { kw: 12, lwtMin: 25, lwtMax: 60, nomCop: 4.2, family: 'Generic', ref: 'R32' };
+          hp.outMin = -25; hp.outMax = 35;
+          hp.defrostBelow = 5;
+          hp.buhAbove = hp.lwtMax - 5;
+          hp.offAbove = 20;
+
+          /* ============ Buckets → regressie ============ */
+          var pts = [];
+          Object.keys(stookBuckets || {}).forEach(function(k){
+            var p = parseBucket(k); if(!p) return;
+            var b = stookBuckets[k] || {};
+            var lwt = parseFloat(b.lwt); var cop = parseFloat(b.cop); var n = parseInt(b.n,10);
+            if(isNaN(lwt)) return;
+            pts.push({ x: p.c, y: lwt, cop: isNaN(cop)?0:cop, n: isNaN(n)?0:n, key: k });
+          });
+          pts.sort(function(a,b){ return a.x - b.x; });
+
+          var totalSamples = pts.reduce(function(a,p){ return a + p.n; }, 0);
+
+          var slope = null, inter = null;
+          if (pts.length >= 2) {
+            var N=pts.length, Sx=0, Sy=0, Sxy=0, Sxx=0;
+            for (var i=0; i<pts.length; i++){ Sx+=pts[i].x; Sy+=pts[i].y; Sxy+=pts[i].x*pts[i].y; Sxx+=pts[i].x*pts[i].x; }
+            var denom = N*Sxx - Sx*Sx;
+            if (denom !== 0) { slope = (N*Sxy - Sx*Sy)/denom; inter = (Sy - slope*Sx)/N; }
+          }
+
+          var runAvgPts = [];
+          if (pts.length >= 2) {
+            for (var ai=0; ai<pts.length; ai++){
+              var sum = 0, wsum = 0;
+              for (var wi=Math.max(0,ai-1); wi<=Math.min(pts.length-1,ai+1); wi++){
+                var w = pts[wi].n; sum += pts[wi].y * w; wsum += w;
+              }
+              if (wsum > 0) runAvgPts.push({ x: pts[ai].x, y: sum/wsum });
+            }
+          }
+
+          /* ============ DIAGNOSTICS CALC ============ */
+          var carnotCOP = null, effPct = null;
+          if (stookLwtNow !== null && liveOut !== null) {
+            var tHot = stookLwtNow + 5 + 273.15;
+            var tCold = liveOut - 8 + 273.15;
+            var dTk = tHot - tCold;
+            if (dTk > 0) {
+              carnotCOP = tHot / dTk;
+              if (actualCOP !== null && carnotCOP > 0) {
+                effPct = Math.max(0, Math.min(100, (actualCOP / carnotCOP) * 100));
+              }
+            }
+          }
+
+          var inFlow = aN(S_THERM, 'input_flow_lmin', null);
+          var inDT = aN(S_THERM, 'input_dt_k', null);
+          var inPw = aN(S_THERM, 'input_power_w', null);
+          var inCop = aN(S_THERM, 'input_cop', null);
+          var balDemand = null, balSupply = null, balNet = null;
+          if (inFlow !== null && inDT !== null && inFlow > 0 && inDT > 0) {
+            balDemand = (inFlow * inDT * 4.18) / 60;
+          }
+          if (inPw !== null && inCop !== null && inCop > 0) {
+            balSupply = (inPw * inCop) / 1000;
+          }
+          if (balDemand !== null && balSupply !== null) {
+            balNet = balSupply - balDemand;
+          }
+
+          var defEvtCount = 0, defMinLost = 0, defPct = null;
+          if (lastDefrFlag) { defEvtCount++; defMinLost += 5; }
+          if (defrOn) { defEvtCount++; defMinLost += 3; }
+          if (defMinLost > 0 && lastDur !== null && lastDur > 0) {
+            defPct = (defMinLost / lastDur) * 100;
+          }
+
+          /* ============ DYNAMIC MODE LAYOUT ============ */
+          var allModes = [
+            { key:'heating', col:'#E60012', label:t('modeHeating'), pts: byMode.heating },
+            { key:'dhw',     col:'#F5A623', label:t('modeDhw'),     pts: byMode.dhw },
+            { key:'cooling', col:'#3498DB', label:t('modeCooling'), pts: byMode.cooling }
+          ];
+          var activeModes = allModes.filter(function(m){ return m.pts.length > 0; });
+          var nActive = activeModes.length;
+          var showModeSection = nActive > 0;
+
+          /* ============ AUTO ZOOM ============ */
+          var Xmin = -20, Xmax = 22;
+          if (pts.length >= 2) {
+            var bxMin = Math.min.apply(null, pts.map(function(p){return p.x;}));
+            var bxMax = Math.max.apply(null, pts.map(function(p){return p.x;}));
+            Xmin = Math.max(-22, Math.min(-15, Math.floor((bxMin - 4)/5)*5));
+            Xmax = Math.min(35,  Math.max(15,  Math.ceil((bxMax + 4)/5)*5));
+          } else if (liveOut !== null) {
+            Xmin = Math.max(-22, Math.floor((liveOut - 10)/5)*5);
+            Xmax = Math.min(35,  Math.ceil((liveOut + 10)/5)*5);
+          }
+          var Ymin = Math.floor((hp.lwtMin - 5) / 5) * 5;
+          var Ymax = Math.ceil((hp.lwtMax + 5) / 5) * 5;
+          if (liveOut !== null && stookLwtNow !== null) {
+            Ymin = Math.min(Ymin, Math.floor((stookLwtNow - 5) / 5) * 5);
+            Ymax = Math.max(Ymax, Math.ceil((stookLwtNow + 5) / 5) * 5);
+          }
+
+          /* ============ SVG LAYOUT ============ */
+          var W = 620;
+          var X0 = 92, Y0 = 50, Wp = 500, Hp = 320;
+          var X1 = X0 + Wp, Y1 = Y0 + Hp;
+
+          var axLabY = Y1 + 42;
+          var stripY = axLabY + 14;
+          var stripH = 36;
+          var diagY = stripY + stripH + 10;
+          var diagH = 62;
+          var mbY = diagY + diagH + 10;
+          var mbH = 68;
+          var spY;
+          if (showModeSection) spY = mbY + mbH + 16;
+          else spY = diagY + diagH + 16;
+          var specH = 118;
+          var H = spY + specH + 16;
+
+          var xS = function(t){ return X0 + ((Math.max(Xmin,Math.min(Xmax,t))-Xmin)/(Xmax-Xmin))*Wp; };
+          var yS = function(t){ return Y1 - ((Math.max(Ymin,Math.min(Ymax,t))-Ymin)/(Ymax-Ymin))*Hp; };
+          var tX = function(h){ return X0 + (Math.max(0,Math.min(24,h))/24)*Wp; };
+
+          var DK_BLUE    = '#0097E0';
+          var DK_BLUE_DK = '#003366';
+          var DK_BLUE_MD = '#00539F';
+          var DK_RED     = '#E60012';
+
+          var famCol   = hp.family === 'Split' ? '#E67E22' : DK_RED;
+          var famColDk = hp.family === 'Split' ? '#7d4f00' : '#7a0008';
+
+          var txtHalo = 'paint-order="stroke fill" stroke="white" stroke-width="2.5" stroke-opacity="0.85" stroke-linejoin="round"';
+
+          var heatColor = function(cop) {
+            var t2 = Math.max(0, Math.min(1, (cop - 1.5) / 3.5));
+            var r,g,b;
+            if (t2 < 0.5) { var u=t2/0.5; r=Math.round(230+15*u); g=Math.round(0+166*u); b=Math.round(18+17*u); }
+            else { var u2=(t2-0.5)/0.5; r=Math.round(245-169*u2); g=Math.round(166+9*u2); b=Math.round(35+45*u2); }
+            return 'rgb('+r+','+g+','+b+')';
+          };
+
+          /* ============ SVG ============ */
+          var s = '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">';
+
+          s += '<defs>';
+          s += '<linearGradient id="hc-off" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#95a5a6" stop-opacity="0.18"/><stop offset="100%" stop-color="#95a5a6" stop-opacity="0.03"/></linearGradient>';
+          s += '<linearGradient id="hc-warm" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="'+DK_BLUE+'" stop-opacity="0.05"/><stop offset="100%" stop-color="'+DK_BLUE+'" stop-opacity="0.01"/></linearGradient>';
+          s += '<linearGradient id="hc-defrost" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#AED6F1" stop-opacity="0.35"/><stop offset="100%" stop-color="#AED6F1" stop-opacity="0.04"/></linearGradient>';
+          s += '<linearGradient id="hc-curve" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="'+famColDk+'"/><stop offset="30%" stop-color="'+famCol+'"/><stop offset="70%" stop-color="#F5A623"/><stop offset="100%" stop-color="#F7DC6F"/></linearGradient>';
+          s += '<radialGradient id="hc-live-glow"><stop offset="0%" stop-color="'+DK_BLUE+'" stop-opacity="0.55"/><stop offset="100%" stop-color="'+DK_BLUE+'" stop-opacity="0"/></radialGradient>';
+          s += '<filter id="hc-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+          s += '<filter id="hc-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+          s += '<filter id="hc-drop"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="'+DK_BLUE_DK+'" flood-opacity="0.25"/></filter>';
+          s += '<pattern id="hc-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="'+DK_BLUE+'" stroke-width="1" opacity="0.25"/></pattern>';
+          s += '<clipPath id="hc-clip"><rect x="'+X0+'" y="'+Y0+'" width="'+Wp+'" height="'+Hp+'"/></clipPath>';
+          s += '</defs>';
+
+          /* HEATMAP */
+          var cols = 25, rows = 13;
+          var cw = Wp / cols, chh = Hp / rows;
+          s += '<g clip-path="url(#hc-clip)" opacity="0.18">';
+          for (var rr=0; rr<rows; rr++) {
+            var y_c = Ymax - (rr + 0.5) * (Ymax - Ymin) / rows;
+            for (var cc=0; cc<cols; cc++) {
+              var x_c = Xmin + (cc + 0.5) * (Xmax - Xmin) / cols;
+              var tCond = y_c + 5 + 273.15;
+              var tEvap = x_c - 8 + 273.15;
+              var dT = Math.max(3, tCond - tEvap);
+              var copEst = 0.45 * (tCond / dT);
+              s += '<rect x="'+(X0+cc*cw).toFixed(1)+'" y="'+(Y0+rr*chh).toFixed(1)+'" width="'+(cw+0.6).toFixed(1)+'" height="'+(chh+0.6).toFixed(1)+'" fill="'+heatColor(copEst)+'"/>';
+            }
+          }
+          s += '</g>';
+
+          /* ZONES */
+          if (Xmax > hp.offAbove){
+            var offX0 = xS(hp.offAbove), offX1 = xS(Xmax);
+            s += '<rect x="'+offX0+'" y="'+Y0+'" width="'+(offX1-offX0)+'" height="'+Hp+'" fill="url(#hc-off)"/>';
+            if (offX1-offX0 > 50) s += '<text x="'+(X1-8)+'" y="'+(Y0+Hp/2)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="#7f8c8d" letter-spacing="1" opacity="0.55" '+txtHalo+' transform="rotate(-90 '+(X1-8)+' '+(Y0+Hp/2)+')">'+t('heatingOff')+'</text>';
+          }
+          if (Xmax > 12 && Xmin < hp.offAbove){
+            var wX0 = xS(Math.max(Xmin,12)), wX1 = xS(Math.min(Xmax,hp.offAbove));
+            if (wX1 > wX0) s += '<rect x="'+wX0+'" y="'+Y0+'" width="'+(wX1-wX0)+'" height="'+Hp+'" fill="url(#hc-warm)"/>';
+          }
+          if (Xmin < hp.defrostBelow){
+            var dX0 = xS(Xmin), dX1 = xS(Math.min(Xmax, hp.defrostBelow));
+            s += '<rect x="'+dX0+'" y="'+Y0+'" width="'+(dX1-dX0)+'" height="'+Hp+'" fill="url(#hc-defrost)"/>';
+            s += '<rect x="'+dX0+'" y="'+Y0+'" width="'+(dX1-dX0)+'" height="'+Hp+'" fill="url(#hc-hatch)"/>';
+            if (dX1-dX0 > 70) s += '<text x="'+(dX0+8)+'" y="'+(Y0+16)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+DK_BLUE_MD+'" letter-spacing="0.5" '+txtHalo+'>'+t('defrost')+'</text>';
+          }
+
+          /* GRID */
+          var xStep = (Xmax-Xmin) > 30 ? 5 : 2;
+          for (var vx=Xmin; vx<=Xmax; vx+=xStep) s+='<line x1="'+xS(vx)+'" y1="'+Y0+'" x2="'+xS(vx)+'" y2="'+Y1+'" stroke="rgba(0,51,102,0.10)" stroke-width="1"/>';
+          for (var vy=Ymin; vy<=Ymax; vy+=5) s+='<line x1="'+X0+'" y1="'+yS(vy)+'" x2="'+X1+'" y2="'+yS(vy)+'" stroke="rgba(0,51,102,0.10)" stroke-width="1"/>';
+
+          /* ============ LIMITS — chips moved clear of data ============ */
+          var lwtMaxY = yS(hp.lwtMax);
+          s += '<line x1="'+X0+'" y1="'+lwtMaxY+'" x2="'+X1+'" y2="'+lwtMaxY+'" stroke="'+DK_RED+'" stroke-width="1.5" stroke-dasharray="7,4" opacity="0.60"/>';
+          var maxLbl = t('maxLwt')+' '+hp.lwtMax+'°';
+          var maxW = Math.max(96, maxLbl.length*6);
+          /* position: above the line, further up to avoid data labels */
+          s += '<g><rect x="'+(X1-maxW-6)+'" y="'+(lwtMaxY-24)+'" width="'+maxW+'" height="14" rx="7" fill="'+DK_RED+'" opacity="0.85" stroke="white" stroke-width="1" stroke-opacity="0.6"/>';
+          s += '<text x="'+(X1-maxW/2-6)+'" y="'+(lwtMaxY-13)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.5" font-weight="900" fill="white">'+maxLbl+'</text></g>';
+
+          var lwtMinY = yS(hp.lwtMin);
+          s += '<line x1="'+X0+'" y1="'+lwtMinY+'" x2="'+X1+'" y2="'+lwtMinY+'" stroke="'+DK_BLUE_MD+'" stroke-width="1.5" stroke-dasharray="7,4" opacity="0.60"/>';
+          var minLbl = t('minLwt')+' '+hp.lwtMin+'°';
+          var minW = Math.max(96, minLbl.length*6);
+          /* position: BELOW the line, further down to avoid data */
+          s += '<g><rect x="'+(X1-minW-6)+'" y="'+(lwtMinY+6)+'" width="'+minW+'" height="14" rx="7" fill="'+DK_BLUE_MD+'" opacity="0.85" stroke="white" stroke-width="1" stroke-opacity="0.5"/>';
+          s += '<text x="'+(X1-minW/2-6)+'" y="'+(lwtMinY+16)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.5" font-weight="900" fill="white">'+minLbl+'</text></g>';
+
+          if (hp.buhAbove < Ymax){
+            var bY = yS(hp.buhAbove);
+            s += '<line x1="'+X0+'" y1="'+bY+'" x2="'+X1+'" y2="'+bY+'" stroke="'+DK_RED+'" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.65"/>';
+            var buhLbl = t('buhAssist')+' '+hp.buhAbove+'°C';
+            var buhW = Math.max(140, buhLbl.length*6);
+            s += '<g><rect x="'+(X0+8)+'" y="'+(bY-19)+'" width="'+buhW+'" height="15" rx="7" fill="'+DK_RED+'" opacity="0.85" stroke="white" stroke-width="1" stroke-opacity="0.6"/>';
+            s += '<text x="'+(X0+8+buhW/2)+'" y="'+(bY-8)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.5" font-weight="900" fill="white">'+buhLbl+'</text></g>';
+          }
+
+          /* AXES */
+          s += '<line x1="'+X0+'" y1="'+Y1+'" x2="'+X1+'" y2="'+Y1+'" stroke="'+DK_BLUE_DK+'" stroke-width="2"/>';
+          s += '<line x1="'+X0+'" y1="'+Y0+'" x2="'+X0+'" y2="'+Y1+'" stroke="'+DK_BLUE_DK+'" stroke-width="2"/>';
+          for (var xt=Xmin; xt<=Xmax; xt+=xStep){
+            s += '<line x1="'+xS(xt)+'" y1="'+Y1+'" x2="'+xS(xt)+'" y2="'+(Y1+5)+'" stroke="'+DK_BLUE_DK+'" stroke-width="1.5"/>';
+            s += '<text x="'+xS(xt)+'" y="'+(Y1+19)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="'+DK_BLUE_MD+'">'+xt+'°</text>';
+          }
+          for (var yt=Ymin; yt<=Ymax; yt+=5){
+            s += '<line x1="'+(X0-5)+'" y1="'+yS(yt)+'" x2="'+X0+'" y2="'+yS(yt)+'" stroke="'+DK_BLUE_DK+'" stroke-width="1.5"/>';
+            s += '<text x="'+(X0-8)+'" y="'+(yS(yt)+4)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="'+DK_BLUE_MD+'">'+yt+'°</text>';
+          }
+          s += '<text x="'+(X0+Wp/2)+'" y="'+axLabY+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="900" fill="'+DK_BLUE_DK+'" letter-spacing="1">'+t('xAxis')+'</text>';
+          s += '<text x="22" y="'+(Y0+Hp/2)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="900" fill="'+DK_BLUE_DK+'" letter-spacing="1" transform="rotate(-90 22 '+(Y0+Hp/2)+')">'+t('yAxis')+'</text>';
+
+          /* REGRESSION CURVE */
+          if (slope !== null) {
+            var pathCurve = '';
+            for (var tv=Xmin; tv<=Xmax; tv+=0.5){
+              var lwtVal = inter + slope*tv;
+              if (lwtVal < hp.lwtMin) lwtVal = hp.lwtMin;
+              if (lwtVal > hp.lwtMax) lwtVal = hp.lwtMax;
+              pathCurve += (pathCurve === '' ? 'M' : ' L') + xS(tv) + ',' + yS(lwtVal);
+            }
+            s += '<path d="'+pathCurve+'" fill="none" stroke="'+famCol+'" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.18" filter="url(#hc-glow)"/>';
+            s += '<path d="'+pathCurve+'" fill="none" stroke="url(#hc-curve)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#hc-soft)"/>';
+            s += '<path d="'+pathCurve+'" fill="none" stroke="white" stroke-width="1" stroke-dasharray="2,9" opacity="0.6"/>';
+          }
+
+          /* RUNNING AVERAGE OVERLAY — no inline label (legend in specs box) */
+          if (runAvgPts.length >= 2) {
+            var raPath = '';
+            for (var rai=0; rai<runAvgPts.length; rai++){
+              raPath += (rai===0?'M':' L') + xS(runAvgPts[rai].x) + ',' + yS(runAvgPts[rai].y);
+            }
+            s += '<path d="'+raPath+'" fill="none" stroke="'+DK_BLUE+'" stroke-width="2" stroke-dasharray="5,4" opacity="0.75" stroke-linecap="round" stroke-linejoin="round"/>';
+          }
+
+          /* ============ BUCKETS — alternate label positions ============ */
+          for (var bi=0; bi<pts.length; bi++){
+            var p = pts[bi];
+            var bx = xS(p.x), by = yS(p.y);
+            var rad = 9 + Math.min(7, Math.sqrt(p.n)*1.6);
+            var col = p.cop >= 4 ? '#4CAF50' : p.cop >= 2.5 ? '#F5A623' : DK_RED;
+            var delay = (bi * 0.12).toFixed(2);
+
+            s += '<g opacity="0">';
+            s += '<animate attributeName="opacity" from="0" to="1" dur="0.7s" begin="'+delay+'s" fill="freeze"/>';
+            s += '<circle cx="'+bx+'" cy="'+by+'" r="'+(rad+6)+'" fill="'+col+'" opacity="0.18"><animate attributeName="r" values="'+(rad+6)+';'+(rad+10)+';'+(rad+6)+'" dur="3s" repeatCount="indefinite" begin="'+(parseFloat(delay)+0.7).toFixed(2)+'s"/></circle>';
+            s += '<circle cx="'+bx+'" cy="'+by+'" r="'+(rad+1)+'" fill="white" opacity="0.55"/>';
+            s += '<circle cx="'+bx+'" cy="'+by+'" r="'+rad+'" fill="'+col+'" fill-opacity="0.55" stroke="'+col+'" stroke-width="2.2" filter="url(#hc-soft)"/>';
+            s += '<circle cx="'+bx+'" cy="'+by+'" r="3.5" fill="'+col+'"/>';
+            s += '<text x="'+bx+'" y="'+(by+3)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.5" font-weight="900" fill="white">'+p.n+'</text>';
+            s += '</g>';
+
+            /* COP pill ABOVE bubble */
+            var copLblY = by - rad - 8;
+            s += '<g opacity="0">';
+            s += '<animate attributeName="opacity" from="0" to="1" dur="0.7s" begin="'+(parseFloat(delay)+0.15).toFixed(2)+'s" fill="freeze"/>';
+            s += '<rect x="'+(bx-28)+'" y="'+(copLblY-11)+'" width="56" height="15" rx="7" fill="'+col+'" opacity="0.88" stroke="white" stroke-width="1" stroke-opacity="0.7"/>';
+            s += '<text x="'+bx+'" y="'+copLblY+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.5" font-weight="900" fill="white">COP '+v2(p.cop)+'</text>';
+            s += '</g>';
+
+            /* Range label — SIDE, alternating left/right to avoid stacking */
+            var sideSign = (bi % 2 === 0) ? 1 : -1;
+            var rlblX = bx + sideSign * (rad + 6);
+            var rlblAnchor = sideSign > 0 ? 'start' : 'end';
+            s += '<g opacity="0">';
+            s += '<animate attributeName="opacity" from="0" to="1" dur="0.7s" begin="'+(parseFloat(delay)+0.25).toFixed(2)+'s" fill="freeze"/>';
+            s += '<text x="'+rlblX+'" y="'+(by+3)+'" text-anchor="'+rlblAnchor+'" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="'+col+'" '+txtHalo+'>'+p.key+'°C</text>';
+            s += '</g>';
+          }
+
+          /* ============ LIVE DOT — corner-aware callout ============ */
+          if (liveOut !== null && stookLwtNow !== null) {
+            var lx = xS(liveOut), ly = yS(stookLwtNow);
+
+            s += '<circle cx="'+lx+'" cy="'+ly+'" r="20" fill="url(#hc-live-glow)"><animate attributeName="r" values="14;26;14" dur="2.2s" repeatCount="indefinite"/></circle>';
+            s += '<circle cx="'+lx+'" cy="'+ly+'" r="11" fill="none" stroke="'+DK_BLUE+'" stroke-width="2" opacity="0.6"><animate attributeName="r" values="11;18;11" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.2s" repeatCount="indefinite"/></circle>';
+            s += '<circle cx="'+lx+'" cy="'+ly+'" r="9" fill="'+DK_BLUE+'" stroke="white" stroke-width="2.5" filter="url(#hc-drop)"/>';
+            s += '<text x="'+lx+'" y="'+(ly+2.5)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="7" font-weight="900" fill="white">LIVE</text>';
+
+            /* ---- obstacle list ---- */
+            var callW = 100, callH = 42;
+            var obstacles = [];
+            for (var oi=0; oi<pts.length; oi++){
+              var op = pts[oi];
+              var obx = xS(op.x), oby = yS(op.y);
+              var orad = 9 + Math.min(7, Math.sqrt(op.n)*1.6);
+              obstacles.push({ x1: obx-orad-4, y1: oby-orad-4, x2: obx+orad+4, y2: oby+orad+4 });
+              obstacles.push({ x1: obx-32, y1: oby-orad-22, x2: obx+32, y2: oby-orad-2 });
+              var obSideSign = (oi % 2 === 0) ? 1 : -1;
+              obstacles.push({ x1: obx + Math.min(0, obSideSign*(orad+80)), y1: oby-8, x2: obx + Math.max(0, obSideSign*(orad+80)), y2: oby+8 });
+            }
+            obstacles.push({ x1: lx-13, y1: ly-13, x2: lx+13, y2: ly+13 });
+            var maxChW3 = Math.max(96, (t('maxLwt')+' '+hp.lwtMax+'°').length*6);
+            obstacles.push({ x1: X1-maxChW3-10, y1: yS(hp.lwtMax)-30, x2: X1-4, y2: yS(hp.lwtMax)+2 });
+            var minChW3 = Math.max(96, (t('minLwt')+' '+hp.lwtMin+'°').length*6);
+            obstacles.push({ x1: X1-minChW3-10, y1: yS(hp.lwtMin)+2, x2: X1-4, y2: yS(hp.lwtMin)+24 });
+            if (hp.buhAbove < Ymax){
+              var buhChW3 = Math.max(140, (t('buhAssist')+' '+hp.buhAbove+'°C').length*6);
+              obstacles.push({ x1: X0+4, y1: yS(hp.buhAbove)-23, x2: X0+8+buhChW3+4, y2: yS(hp.buhAbove)+4 });
+            }
+
+            /* ---- 12 candidate positions ---- */
+            var GAP = 12;
+            var M = 8;
+            var candidates = [
+              /* near dot */
+              { x: lx + GAP,          y: ly - callH/2 },          /* right */
+              { x: lx - callW - GAP,  y: ly - callH/2 },          /* left */
+              { x: lx - callW/2,      y: ly - callH - GAP },      /* above */
+              { x: lx - callW/2,      y: ly + GAP },              /* below */
+              /* corners of the plot (farthest but safest) */
+              { x: X0 + M,            y: Y0 + M },                /* top-left */
+              { x: X1 - callW - M,    y: Y0 + M },                /* top-right */
+              { x: X0 + M,            y: Y1 - callH - M },        /* bottom-left */
+              { x: X1 - callW - M,    y: Y1 - callH - M },        /* bottom-right */
+              /* mid-edge */
+              { x: X0 + M,            y: (Y0+Y1)/2 - callH/2 },   /* mid-left */
+              { x: X1 - callW - M,    y: (Y0+Y1)/2 - callH/2 },   /* mid-right */
+              { x: (X0+X1)/2 - callW/2, y: Y0 + M },              /* top-center */
+              { x: (X0+X1)/2 - callW/2, y: Y1 - callH - M }       /* bottom-center */
+            ];
+
+            var overlapArea = function(a, b) {
+              var xo = Math.max(0, Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1));
+              var yo = Math.max(0, Math.min(a.y2, b.y2) - Math.max(a.y1, b.y1));
+              return xo * yo;
+            };
+
+            var best = null, bestScore = Infinity;
+            for (var ci2 = 0; ci2 < candidates.length; ci2++){
+              var cand = candidates[ci2];
+              var cx2 = cand.x, cy2 = cand.y;
+              var clamped = 0;
+              if (cx2 + callW > X1 - 6) { clamped += (cx2 + callW) - (X1 - 6); cx2 = X1 - callW - 6; }
+              if (cx2 < X0 + 6) { clamped += (X0 + 6) - cx2; cx2 = X0 + 6; }
+              if (cy2 + callH > Y1 - 6) { clamped += (cy2 + callH) - (Y1 - 6); cy2 = Y1 - callH - 6; }
+              if (cy2 < Y0 + 6) { clamped += (Y0 + 6) - cy2; cy2 = Y0 + 6; }
+
+              var rect = { x1: cx2, y1: cy2, x2: cx2 + callW, y2: cy2 + callH };
+              var score = 0;
+              for (var oi2 = 0; oi2 < obstacles.length; oi2++){
+                score += overlapArea(rect, obstacles[oi2]) * 3;
+              }
+              var midX2 = cx2 + callW/2, midY2 = cy2 + callH/2;
+              var dist2 = Math.sqrt((midX2-lx)*(midX2-lx) + (midY2-ly)*(midY2-ly));
+              score += dist2 * 0.3;
+              score += clamped * 100;
+              /* subtle preference for near-dot when scores tie */
+              if (ci2 < 4) score -= 150;
+
+              if (score < bestScore) { bestScore = score; best = { x: cx2, y: cy2 }; }
+            }
+
+            var callX = best.x, callY = best.y;
+
+            /* Leader line if far */
+            var cMidX = callX + callW/2;
+            var cMidY = callY + callH/2;
+            var dist = Math.sqrt((cMidX-lx)*(cMidX-lx) + (cMidY-ly)*(cMidY-ly));
+            if (dist > 50) {
+              s += '<line x1="'+lx+'" y1="'+ly+'" x2="'+cMidX+'" y2="'+cMidY+'" stroke="'+DK_BLUE+'" stroke-width="1.2" stroke-dasharray="3,3" opacity="0.5"/>';
+            }
+
+            /* Callout — semi-transparent */
+            s += '<g filter="url(#hc-drop)">';
+            s += '<rect x="'+callX+'" y="'+callY+'" width="'+callW+'" height="'+callH+'" rx="8" fill="white" fill-opacity="0.82" stroke="'+DK_BLUE+'" stroke-width="1.5" stroke-opacity="0.85"/>';
+            s += '<text x="'+(callX+callW/2)+'" y="'+(callY+14)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.5" font-weight="800" fill="'+DK_BLUE_MD+'">'+v1(liveOut)+'° OUT</text>';
+            s += '<text x="'+(callX+callW/2)+'" y="'+(callY+28)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="900" fill="'+DK_BLUE+'">'+v1(stookLwtNow)+'° LWT</text>';
+            if (liveKw !== null && liveKw > 0) s += '<text x="'+(callX+callW/2)+'" y="'+(callY+38)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="7.5" font-weight="800" fill="#5d6d7e">'+v2(liveKw)+' kW</text>';
+            s += '</g>';
+          }
+
+          /* BUH/DEFROST TIMELINE STRIP */
+          var buhLaneY = stripY + 4;
+          var defLaneY = stripY + 18;
+          var rulerY = stripY + 34;
+          var nowH = nowHourFn();
+
+          s += '<rect x="'+X0+'" y="'+buhLaneY+'" width="'+Wp+'" height="12" rx="3" fill="rgba(245,166,35,0.10)"/>';
+          s += '<rect x="'+X0+'" y="'+defLaneY+'" width="'+Wp+'" height="12" rx="3" fill="rgba(0,151,224,0.10)"/>';
+
+          s += '<text x="'+(X0-6)+'" y="'+(buhLaneY+9)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="8" font-weight="900" fill="#F5A623">⚡BUH</text>';
+          s += '<text x="'+(X0-6)+'" y="'+(defLaneY+9)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="8" font-weight="900" fill="'+DK_BLUE+'">❄️DEF</text>';
+
+          for (var tH=0; tH<=24; tH+=6){
+            s += '<line x1="'+tX(tH)+'" y1="'+(buhLaneY-2)+'" x2="'+tX(tH)+'" y2="'+(defLaneY+14)+'" stroke="rgba(0,51,102,0.10)" stroke-width="1"/>';
+            s += '<text x="'+tX(tH)+'" y="'+(rulerY+8)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="7" font-weight="800" fill="#5d6d7e">'+tH+'h</text>';
+          }
+
+          if (lastStartTs !== null){
+            var evH = new Date(lastStartTs * 1000).getHours() + new Date(lastStartTs * 1000).getMinutes()/60;
+            if (lastBuhFlag){
+              s += '<rect x="'+(tX(evH)-3)+'" y="'+(buhLaneY+1)+'" width="6" height="10" rx="1.5" fill="#F5A623"/>';
+            }
+            if (lastDefrFlag){
+              s += '<rect x="'+(tX(evH)-3)+'" y="'+(defLaneY+1)+'" width="6" height="10" rx="1.5" fill="'+DK_BLUE+'"/>';
+            }
+          }
+
+          s += '<line x1="'+tX(nowH)+'" y1="'+(buhLaneY-3)+'" x2="'+tX(nowH)+'" y2="'+(defLaneY+15)+'" stroke="'+DK_RED+'" stroke-width="1.2" stroke-dasharray="2,2" opacity="0.7"/>';
+
+          if (buhOn){
+            s += '<circle cx="'+tX(nowH)+'" cy="'+(buhLaneY+6)+'" r="5" fill="#F5A623"><animate attributeName="r" values="5;8;5" dur="1.4s" repeatCount="indefinite"/></circle>';
+          }
+          if (defrOn){
+            s += '<circle cx="'+tX(nowH)+'" cy="'+(defLaneY+6)+'" r="5" fill="'+DK_BLUE+'"><animate attributeName="r" values="5;8;5" dur="1.4s" repeatCount="indefinite"/></circle>';
+          }
+
+          /* DIAGNOSTICS PANEL */
+          var carnotCol = '#7D3C98';
+          var balCol = '#16A085';
+          var defCol = '#2E86C1';
+          var diagColW = Wp / 3;
+
+          var c1x = X0;
+          s += '<rect x="'+(c1x+2)+'" y="'+diagY+'" width="'+(diagColW-4)+'" height="'+diagH+'" rx="8" fill="white" stroke="'+carnotCol+'" stroke-width="1.3" stroke-opacity="0.65"/>';
+          s += '<text x="'+(c1x+12)+'" y="'+(diagY+14)+'" font-family="ui-monospace,monospace" font-size="8" font-weight="900" fill="'+carnotCol+'" letter-spacing="0.5">'+t('carnotTitle')+'</text>';
+          if (effPct !== null && carnotCOP !== null) {
+            s += '<text x="'+(c1x+12)+'" y="'+(diagY+32)+'" font-family="ui-monospace,monospace" font-size="15" font-weight="900" fill="'+carnotCol+'">'+Math.round(effPct)+'%</text>';
+            var barW = diagColW - 24, barX = c1x + 12, barY = diagY + 40, barH = 5;
+            s += '<rect x="'+barX+'" y="'+barY+'" width="'+barW+'" height="'+barH+'" rx="2.5" fill="rgba(0,51,102,0.08)"/>';
+            s += '<rect x="'+barX+'" y="'+barY+'" width="'+(barW*effPct/100).toFixed(1)+'" height="'+barH+'" rx="2.5" fill="'+carnotCol+'"/>';
+            s += '<text x="'+(c1x+12)+'" y="'+(diagY+57)+'" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="#5d6d7e">'+t('carnotActual')+' '+(actualCOP===null?'—':v2(actualCOP))+' · '+t('carnotMax')+' '+carnotCOP.toFixed(1)+'</text>';
+          } else {
+            s += '<text x="'+(c1x+diagColW/2)+'" y="'+(diagY+38)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="900" fill="#95a5a6">—</text>';
+          }
+
+          var c2x = X0 + diagColW;
+          s += '<rect x="'+(c2x+2)+'" y="'+diagY+'" width="'+(diagColW-4)+'" height="'+diagH+'" rx="8" fill="white" stroke="'+balCol+'" stroke-width="1.3" stroke-opacity="0.65"/>';
+          s += '<text x="'+(c2x+12)+'" y="'+(diagY+14)+'" font-family="ui-monospace,monospace" font-size="8" font-weight="900" fill="'+balCol+'" letter-spacing="0.5">'+t('balanceTitle')+'</text>';
+          if (balNet !== null) {
+            var balSign = balNet >= 0 ? '+' : '';
+            var balColor = Math.abs(balNet) < 0.3 ? '#4CAF50' : (Math.abs(balNet) < 1 ? '#F5A623' : DK_RED);
+            s += '<text x="'+(c2x+12)+'" y="'+(diagY+32)+'" font-family="ui-monospace,monospace" font-size="15" font-weight="900" fill="'+balColor+'">'+balSign+v2(balNet)+' kW</text>';
+            s += '<text x="'+(c2x+12)+'" y="'+(diagY+48)+'" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="#5d6d7e">'+t('balanceDemand')+' '+(balDemand===null?'—':v2(balDemand))+' kW</text>';
+            s += '<text x="'+(c2x+12)+'" y="'+(diagY+58)+'" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="#5d6d7e">'+t('balanceSupply')+' '+(balSupply===null?'—':v2(balSupply))+' kW</text>';
+          } else {
+            s += '<text x="'+(c2x+diagColW/2)+'" y="'+(diagY+38)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="900" fill="#95a5a6">—</text>';
+          }
+
+          var c3x = X0 + 2*diagColW;
+          s += '<rect x="'+(c3x+2)+'" y="'+diagY+'" width="'+(diagColW-4)+'" height="'+diagH+'" rx="8" fill="white" stroke="'+defCol+'" stroke-width="1.3" stroke-opacity="0.65"/>';
+          s += '<text x="'+(c3x+12)+'" y="'+(diagY+14)+'" font-family="ui-monospace,monospace" font-size="8" font-weight="900" fill="'+defCol+'" letter-spacing="0.5">'+t('defrostTitle')+'</text>';
+          if (defPct !== null && defEvtCount > 0) {
+            s += '<text x="'+(c3x+12)+'" y="'+(diagY+32)+'" font-family="ui-monospace,monospace" font-size="15" font-weight="900" fill="'+defCol+'">'+v1(defPct)+'%</text>';
+            var dbarW = diagColW - 24;
+            s += '<rect x="'+(c3x+12)+'" y="'+(diagY+40)+'" width="'+dbarW+'" height="5" rx="2.5" fill="rgba(0,51,102,0.08)"/>';
+            s += '<rect x="'+(c3x+12)+'" y="'+(diagY+40)+'" width="'+(dbarW*Math.min(100,defPct)/100).toFixed(1)+'" height="5" rx="2.5" fill="'+defCol+'"/>';
+            s += '<text x="'+(c3x+12)+'" y="'+(diagY+57)+'" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="#5d6d7e">'+defEvtCount+' '+t('defrostEvts')+' · ~'+defMinLost+' '+t('defrostLost')+'</text>';
+          } else {
+            s += '<text x="'+(c3x+diagColW/2)+'" y="'+(diagY+38)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="900" fill="#95a5a6">—</text>';
+          }
+
+          /* MODE BREAKDOWN */
+          if (showModeSection) {
+            var colW = Wp / nActive;
+            for (var mi=0; mi<nActive; mi++){
+              var mm = activeModes[mi];
+              var mx = X0 + mi * colW;
+              var mPts = mm.pts;
+              var cnt = mPts.length;
+              var avg = cnt > 0 ? mPts.reduce(function(a,p){return a+p.v;},0)/cnt : null;
+              var last = cnt > 0 ? mPts[cnt-1].v : null;
+
+              s += '<rect x="'+(mx+3)+'" y="'+mbY+'" width="'+(colW-6)+'" height="'+mbH+'" rx="8" fill="white" stroke="'+mm.col+'" stroke-width="1.5" stroke-opacity="0.7"/>';
+              s += '<text x="'+(mx+10)+'" y="'+(mbY+13)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+mm.col+'" letter-spacing="0.5">'+mm.label+'</text>';
+              s += '<text x="'+(mx+colW-12)+'" y="'+(mbY+13)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="#5d6d7e">'+cnt+' '+t('modeCycles')+'</text>';
+
+              if (cnt >= 2) {
+                var spX0 = mx + 10, spX1 = mx + colW - 10;
+                var spY0 = mbY + 20, spY1 = mbY + 48;
+                var vMin = Math.min.apply(null, mPts.map(function(p){return p.v;}));
+                var vMax = Math.max.apply(null, mPts.map(function(p){return p.v;}));
+                if (vMax - vMin < 0.5) { vMin -= 0.25; vMax += 0.25; }
+                var tMin = mPts[0].t, tMax = mPts[cnt-1].t;
+                if (tMax - tMin < 1) tMax = tMin + 1;
+                var spx = function(ts){ return spX0 + ((ts-tMin)/(tMax-tMin))*(spX1-spX0); };
+                var spy = function(v){ return spY1 - ((v-vMin)/(vMax-vMin))*(spY1-spY0); };
+                var spPath = '';
+                for (var pi=0; pi<cnt; pi++){
+                  spPath += (pi===0?'M':' L') + spx(mPts[pi].t).toFixed(1) + ',' + spy(mPts[pi].v).toFixed(1);
+                }
+                s += '<path d="'+spPath+'" fill="none" stroke="'+mm.col+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>';
+                for (var pj=0; pj<cnt; pj++){
+                  s += '<circle cx="'+spx(mPts[pj].t).toFixed(1)+'" cy="'+spy(mPts[pj].v).toFixed(1)+'" r="2.6" fill="'+mm.col+'"/>';
+                }
+              } else {
+                var onlyV = mPts[0].v;
+                s += '<text x="'+(mx+colW/2)+'" y="'+(mbY+38)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="16" font-weight="900" fill="'+mm.col+'">'+v2(onlyV)+'</text>';
+              }
+
+              s += '<text x="'+(mx+10)+'" y="'+(mbY+60)+'" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="#5d6d7e">'+t('modeAvg')+' '+(avg===null?'—':v2(avg))+'  ·  '+t('modeLast')+' '+(last===null?'—':v2(last))+'</text>';
+            }
+          }
+
+          /* SPECS BOX */
+          s += '<rect x="10" y="'+spY+'" width="'+(W-20)+'" height="'+specH+'" rx="10" fill="rgba(0,151,224,0.05)" stroke="'+DK_BLUE+'" stroke-width="1.2" stroke-opacity="0.40"/>';
+          s += '<text x="24" y="'+(spY+19)+'" font-family="ui-monospace,monospace" font-size="10.5" font-weight="900" fill="'+DK_BLUE_DK+'" letter-spacing="0.5">⚙ '+String(attr(S_STATE,'configured_model','—')).toUpperCase()+' · '+hp.family.toUpperCase()+' · '+hp.kw+' kW · '+hp.ref+'</text>';
+          s += '<text x="24" y="'+(spY+36)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_MD+'">'+t('specRangeLwt')+' '+hp.lwtMin+'–'+hp.lwtMax+'°C  ·  '+t('specOutdoor')+' '+hp.outMin+'…+'+hp.outMax+'°C  ·  '+t('specNomCop')+' '+hp.nomCop.toFixed(1)+'</text>';
+          s += '<text x="24" y="'+(spY+52)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_MD+'">'+t('specDefrost')+' +'+hp.defrostBelow+'°C  ·  '+t('specBuh')+' '+hp.buhAbove+'°C  ·  '+t('specHeatOff')+' +'+hp.offAbove+'°C</text>';
+          var regTxt = slope !== null ? 'LWT = '+inter.toFixed(1)+' '+(slope<0?'− ':'+ ')+Math.abs(slope).toFixed(2)+' × T_buiten' : t('specInsufficient');
+          s += '<text x="24" y="'+(spY+69)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_DK+'">'+t('specRegression')+': '+regTxt+'  ·  '+t('specSamples')+': '+totalSamples+'  ·  '+t('specBuckets')+': '+pts.length+'</text>';
+          var trendTxt = '—'; var trendCol = '#7f8c8d';
+          if (trendPct !== null) {
+            var arrow = trendDir === 'up' ? '▲' : (trendDir === 'down' ? '▼' : '▬');
+            trendCol = trendDir === 'up' ? '#4CAF50' : (trendDir === 'down' ? DK_RED : '#7f8c8d');
+            trendTxt = arrow + ' ' + (trendPct>0?'+':'') + trendPct.toFixed(1) + '% ('+t('specTrendUp')+')';
+          }
+          s += '<text x="24" y="'+(spY+86)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+trendCol+'">'+t('specTrend')+': '+trendTxt+'</text>';
+          s += '<text x="'+(W-24)+'" y="'+(spY+86)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_MD+'">'+t('specState')+': '+stookState+'</text>';
+          var cfgLine = t('specCfg')+': '+tr(cfgSource,22)+' · '+tr(cfgPower,22)+' · '+tr(cfgCop,22)+' · '+tr(cfgInd,22);
+          s += '<text x="24" y="'+(spY+104)+'" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="#7f8c8d">'+cfgLine+'</text>';
+
+          s += '</svg>';
+
+          return '<div style="width:100%;box-sizing:border-box;">' + s + '</div>';
+        ]]]
+  - type: custom:button-card
+    show_name: false
+    show_icon: false
+    styles:
+      grid:
+        - grid-template-areas: '"content"'
+        - grid-template-columns: 1fr
+      card:
+        - background: none
+        - box-shadow: none
+        - border: none
+        - padding: 10px 12px 12px 12px
+    custom_fields:
+      content: |
+        [[[
+          var st = function(s,d){ if(d===undefined)d=0; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='')return d; var v=parseFloat(x.state); return isNaN(v)?d:v; };
+          var hasV = function(v){ return v!==null && v!==undefined && v!=='' && String(v)!=='None'; };
+          var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.',','); };
+          var attr = function(id,n,d){ try{ var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
+          var aN = function(id,n,d){ var v=attr(id,n,null); if(v===null)return d; var x=parseFloat(v); return isNaN(x)?d:x; };
+
+          var DK_BLUE = '#0097E0';
+          var DK_BLUE_DK = '#003366';
+
+          var S_STATE = 'sensor.daikin_cycle_ml_cycle_state';
+          var cfgLang = String(attr(S_STATE,'configured_language','en')).toLowerCase();
+          var LANG = (cfgLang === 'nl') ? 'nl' : 'en';
+          var T = {
+            nl: { lwtNow:'LWT NU', lwtOpt:'LWT OPT', sav:'BESPARING', trend:'COP TREND' },
+            en: { lwtNow:'LWT NOW', lwtOpt:'LWT OPT', sav:'SAVINGS', trend:'COP TREND' }
+          };
+          var t = function(k){ return (T[LANG] && T[LANG][k]) || (T.en && T.en[k]) || k; };
+
+          var S = 'sensor.daikin_cycle_ml_heating_curve_advice';
+          var sav = aN(S,'besparing_cop_pct',null);
+          var opt = aN(S,'optimale_lwt',null);
+          var now = aN(S,'huidige_lwt',null);
+          var copDay = st('sensor.daikin_cycle_ml_cop_mean_day', null);
+          var copWeek = st('sensor.daikin_cycle_ml_cop_mean_week', null);
+
+          var trendTxt = '—', trendCol = '#7f8c8d';
+          if (copDay !== null && copWeek !== null && copWeek > 0) {
+            var d = ((copDay - copWeek) / copWeek) * 100;
+            if (Math.abs(d) < 2) { trendTxt = '▬ ' + v1(copDay) + ' / ' + v1(copWeek); trendCol = '#7f8c8d'; }
+            else if (d > 0) { trendTxt = '▲ +' + d.toFixed(1) + '%'; trendCol = '#4CAF50'; }
+            else { trendTxt = '▼ ' + d.toFixed(1) + '%'; trendCol = '#E60012'; }
+          } else if (copDay !== null) {
+            trendTxt = '● ' + v1(copDay); trendCol = DK_BLUE;
+          }
+
+          var r = '';
+          r += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">';
+          var tile = function(icon,label,val,col){
+            return '<div style="background:linear-gradient(135deg,#F5FAFD,#D6ECF7);border:2px solid '+col+';border-radius:10px;padding:8px 4px;text-align:center;box-sizing:border-box;">'
+              +'<ha-icon icon="'+icon+'" style="--mdc-icon-size:1.15em;color:'+col+';display:block;margin:0 auto 3px;"></ha-icon>'
+              +'<div style="font-size:0.42em;color:'+DK_BLUE_DK+';font-weight:900;text-transform:uppercase;letter-spacing:0.3px;">'+label+'</div>'
+              +'<div style="font-family:ui-monospace,monospace;font-size:1.02em;color:'+col+';font-weight:900;line-height:1;margin-top:3px;">'+val+'</div>'
+              +'</div>';
+          };
+          r += tile('mdi:thermometer-chevron-down', t('lwtNow'), (now===null?'—':v1(now)+'°'), '#E60012');
+          r += tile('mdi:target',                    t('lwtOpt'), (opt===null?'—':v1(opt)+'°'), '#4CAF50');
+          r += tile('mdi:percent',                   t('sav'),    (sav===null?'—':(sav>0?'+':'')+v1(sav)+'%'), (sav&&sav>0?'#4CAF50':'#7f8c8d'));
+          r += tile('mdi:trending-up',               t('trend'),  trendTxt, trendCol);
+          r += '</div>';
+          return r;
+        ]]]
