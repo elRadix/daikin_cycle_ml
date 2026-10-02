@@ -33,6 +33,9 @@ DEFAULT_GOOD_OFF_MIN = 20
 DEFAULT_TARGET_CYCLES_PER_DAY = 8
 DEFAULT_GOOD_CYCLE_RATIO = 60
 
+# v1.4.1 BUG-3: score threshold for good-cycle counter.
+GOOD_CYCLE_MIN_SCORE = 70
+
 # --- Defaults: notifications ---
 DEFAULT_PERSISTENT_ENABLED = True
 DEFAULT_NOTIFY_SERVICE = ""

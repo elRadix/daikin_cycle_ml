@@ -257,7 +257,7 @@ def test_attrs_last_cycle_empty():
     c.store.last_cycle.return_value = None
     out = s_mod._attrs_last_cycle(s, c)
     assert out["duration_min"] is None
-    assert out["cluster"] == "unknown"
+    assert out["cluster"] is None
 
 
 def test_cluster_label_helper():
@@ -270,14 +270,14 @@ def test_cluster_label_helper():
 def test_cluster_label_none():
     s = MagicMock(cluster_id=None)
     c = MagicMock()
-    assert s_mod._cluster_label(s, c) == "unknown"
+    assert s_mod._cluster_label(s, c) is None
 
 
 def test_cluster_label_exception():
     s = MagicMock(cluster_id=5)
     c = MagicMock()
     c.cluster_label.side_effect = RuntimeError("x")
-    assert s_mod._cluster_label(s, c) == "unknown"
+    assert s_mod._cluster_label(s, c) is None
 
 
 # ────────────────────────────────────────────────────────────
