@@ -4,10 +4,10 @@ Ready-to-use Lovelace dashboard cards for the **Daikin Cycle ML** integration.
 
 ## Available Cards
 
-| File | Card | Requires |
-|---|---|---|
-| `cards/simple-card/` | Simple Card — live phase, hydraulic diagram, COP, quality, alerts, stooklijn advice | v1.4.0+ |
-| `cards/heating-curve/heating-curve.yaml` | Heating Curve — HP spec-aware visual with COP heatmap, regression & live position | v1.4.0+ |
+| Card | Description | Preview | Requires |
+|---|---|---|---|
+| [**Simple Card**](cards/simple-card/README.md) | Live phase, hydraulic diagram, COP, quality, alerts, stooklijn advice | <img src="cards/simple-card/preview.png" width="320" alt="Simple Card preview"> | v1.4.0+ |
+| [**Heating Curve**](cards/heating-curve/README.md) | HP spec-aware visual with COP heatmap, regression & live position | <img src="cards/heating-curve/preview.png" width="320" alt="Heating Curve preview"> | v1.4.0+ |
 
 ---
 
