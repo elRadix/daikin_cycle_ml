@@ -1,5 +1,84 @@
 # Changelog
 
+## [1.4.1] - 2026-10-02
+
+Patch release on top of v1.4.0. Restores three sensor
+behaviours that were broken in production (BUG-2, BUG-3,
+BUG-4). BUG-1 was investigated and **falsified** -- no code
+change was needed for it.
+
+### Fixed
+
+- **BUG-2 - `sensor.daikin_cycle_ml_last_cycle` reported
+  `unknown`.** Root cause: `engine/quality_scorer.py::score_cycle()`
+  existed but was orphaned (no import site, no call site).
+  Consequently every cycle record lacked the `quality_score` key
+  and the sensor's `native_value` lambda returned `None`.
+  Fix: new module-level helper `score_and_count()` in
+  `coordinator.py` invokes `score_cycle()` immediately before
+  `store.add_cycle(record)`; the return value is written back to
+  `record["quality_score"]`.
+- **BUG-3 - `sensor.daikin_cycle_ml_quality_today` reported
+  `unknown` with `good_cycles=0`, `bad_cycles=0`.** Root cause:
+  the `CycleStore.increment()` API existed and was used for
+  `short_runs_today` / `short_offs_today`, but no code path ever
+  incremented `good_cycles_today` or `bad_cycles_today`.
+  Fix: `score_and_count()` increments exactly one of those two
+  counters per cycle, using the new threshold
+  `GOOD_CYCLE_MIN_SCORE = 70` (added to `const.py`).
+- **BUG-4 - `cluster` attribute was the literal string `"unknown"`
+  instead of JSON `null`.** Root cause: three fallback branches
+  in `sensor._cluster_label()` all returned the string
+  `"unknown"`, which propagated as a real string to the state
+  machine and to any consumer that distinguishes strings from
+  `None` (e.g. Jinja `is string`).
+  Fix: `_cluster_label` return type changed from `str` to
+  `str | None`; all three branches now return `None`; Home
+  Assistant renders the attribute as JSON `null` and the state
+  as `unknown`.
+
+### Added
+
+- `tests/test_v1_4_1_quality_wiring.py` with 13 regression tests:
+  - `_cluster_label()`: no cluster -> `None`; unknown cid -> `None`;
+    exception -> `None`; known cid -> label.
+  - `score_cycle()`: empty record -> 100; return type is `int`.
+  - `score_and_count()`: good cycle increments
+    `good_cycles_today`; bad cycle increments `bad_cycles_today`;
+    boundary score 70 counts as good; exception in `score_cycle`
+    leaves `quality_score=None` and skips counters; exception in
+    `store.off_time_since_last` is swallowed; exception in
+    `store.increment` is swallowed.
+
+### Changed
+
+- `custom_components/daikin_cycle_ml/coordinator.py`: added
+  imports (`GOOD_CYCLE_MIN_SCORE`, `score_cycle`) and helper
+  `score_and_count()`; `_async_update_data` now calls the helper
+  before `store.add_cycle`.
+- `custom_components/daikin_cycle_ml/sensor.py::_cluster_label`:
+  signature `-> str` changed to `-> str | None`; the three
+  fallback branches return `None` instead of the string
+  `"unknown"`.
+- `custom_components/daikin_cycle_ml/const.py`: added
+  `GOOD_CYCLE_MIN_SCORE = 70`.
+- `tests/test_31cd_coverage.py`: three assertions migrated from
+  `== "unknown"` to `is None`.
+- Version strings (`const.py`, `manifest.json`) `1.4.0` -> `1.4.1`.
+
+### Notes
+
+- **BUG-1 (`cop_mean_day/week/month` reported `unknown`) is
+  FALSIFIED.** Production Jinja verified correct values
+  (`cop_mean_day=6.61`, `n_hours=5`, `n_samples=37`,
+  `by_mode.heating.cop_mean=6.608`). The v41.3 report was
+  observing stale pre-03:00 rollup state on a fresh install.
+  Optional future-proof fix (rollup window 6h -> 720h) deferred
+  to v1.4.2.
+- Coverage remains `100.00%` (4461 stmts / 1258 branches);
+  `--cov-fail-under=100` enforced in CI.
+- No public API, entity_id, unique_id, service, or translation
+  key changed. Safe drop-in for v1.4.0.
 ## [1.4.0] - 2026-09-29
 
 ### BREAKING
