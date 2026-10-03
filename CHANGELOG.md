@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.5.2] - 2026-10-03
+
+README showcase cache-bust. Docs + asset rename, no code change.
+
+### Changed
+
+- Renamed dashboard/cards/simple-card/preview.png to showcase.png
+  to bust a stale CDN cache entry that prevented the image from
+  rendering inside the HACS panel.
+- README showcase table updated to the new path.
+
+## [1.5.1] - 2026-10-03
+
+HACS README showcase fix. Docs-only, no code change.
+
+### Changed
+
+- Replaced the showcase HTML table with a markdown pipe table so
+  previews render inside the HACS panel (HACS sanitizes raw HTML
+  img tags).
+- Absolute raw.githubusercontent.com URLs for preview images.
+
+
 ## [1.5.0] - 2026-10-03
 
 Dynamic LWT step. The heating-curve advice now emits a 1-3 C step
