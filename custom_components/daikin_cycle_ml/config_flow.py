@@ -38,6 +38,8 @@ from .const import (
     DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED,
     DEFAULT_ALERT_AGGREGATION_MIN,
     DEFAULT_ALERT_RETENTION_DAYS,
+    DEFAULT_COMFORT_MAX_C,
+    DEFAULT_COMFORT_MIN_C,
     DEFAULT_COMPRESSOR_RPS_THRESHOLD,
     DEFAULT_CYCLE_RETENTION_DAYS,
     DEFAULT_DHW_PENDULUM_CPH,
@@ -579,6 +581,14 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor")
             ),
+            vol.Required(
+                "comfort_min_c",
+                default=c.get("comfort_min_c", DEFAULT_COMFORT_MIN_C),
+            ): _num(15.0, 22.0, 0.5, "°C"),
+            vol.Required(
+                "comfort_max_c",
+                default=c.get("comfort_max_c", DEFAULT_COMFORT_MAX_C),
+            ): _num(22.0, 28.0, 0.5, "°C"),
         })
         return self.async_show_form(
             step_id="device",
