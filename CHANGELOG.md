@@ -1,5 +1,56 @@
 # Changelog
 
+## [1.5.0] - 2026-10-03
+
+Dynamic LWT step. The heating-curve advice now emits a 1-3 C step
+relative to the current setpoint, with a comfort floor+ceiling guard
+and tracking-error dampening.
+
+### Added
+
+- **Dynamic LWT step (1-3 C)** in `analyze_stooklijn`.
+- **Comfort dual-loop** - OptionsFlow sliders `comfort_min_c` (15-22)
+  and `comfort_max_c` (22-28) enforce a floor+ceiling.
+- **8 new attributes** on `heating_curve_advice`: `state_label`,
+  `step_c`, `delta_c`, `huidige_setpoint`, `doel_setpoint`,
+  `tracking_error`, `comfort_cap`, extended `reason` codes.
+- **7 new constants**: `K_EMIT_DEFAULT`, `LWT_STEP_MIN`,
+  `LWT_STEP_MAX`, `LWT_TRACKING_TOLERANCE`, `COMFORT_TOLERANCE`,
+  `DEFAULT_COMFORT_MIN_C`, `DEFAULT_COMFORT_MAX_C`.
+- **37 new tests**: `test_b13_dynamic_step.py` (32) +
+  `test_b13_config_flow.py` (5).
+
+### Changed
+
+- `analyze_stooklijn` now compares against `setpoint_lwt`
+  (`LW setpoint (main)`) instead of the last bucket sample.
+- Sensor states are canonical EN: `no_data` / `keep` /
+  `lower_lwt` / `raise_lwt` / `unknown`.
+- `STOOKLIJN_STATE_LABEL_EN` / `_NL` now symmetric; legacy
+  aliases kept as input-only for backwards compatibility.
+- `build_stooklijn_report` formats the `{step}` placeholder
+  with the recommended step.
+- OptionsFlow screen 2 (device) gained two Required sliders.
+- README reorganized for v1.5.0 (sections 2, 3, 9.1-9.4, 11, 16,
+  17, 21, 22).
+
+### Fixed
+
+- Literal `{step}` placeholder leaked into notification output.
+- `geen_data` / `behoud` fallback when language = EN.
+- Banker rounding `round(2.5) = 2` -> `int(x + 0.5)`.
+- Comfort-guard dead code (indoor_avg was never passed).
+- DHW cache state invalidated after the EN rename.
+
+### Notes
+
+- Coverage 100.00% (4676 stmts / 1312 branches), mypy strict 0
+  errors, 6/6 CI green on the merge commit.
+- Safe drop-in for v1.4.5 users; automations that match on old
+  literals (`behoud`, `verlaag_lwt_2c`, `verhoog_lwt_2c`,
+  `geen_data`) must be updated - see README section 3.
+
+
 ## [1.4.5] - 2026-10-02
 
 Documentation and dashboard-cards refresh. No integration code
