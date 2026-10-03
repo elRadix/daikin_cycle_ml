@@ -58,7 +58,7 @@ def test_stooklijn_attrs_empty():
 
 def test_stooklijn_attrs_full():
     data = {
-        'state': 'verlaag_lwt_2c', 'optimale_lwt': 32.0,
+        'state': 'lower_lwt', 'optimale_lwt': 32.0,
         'huidige_lwt': 36.0, 'besparing_cop_pct': 8.0,
         'comfort_impact': -0.3, 'betrouwbaarheid': 0.85,
         'bucket': '6-8', 'samples': 87,
@@ -130,7 +130,7 @@ async def test_maybe_refresh_stooklijn_cache_hit():
     db = MagicMock()
     db.async_fetch_cop_samples = AsyncMock(return_value=[])
     c = _bare(db=db)
-    c._stooklijn_cache = {'state': 'behoud'}
+    c._stooklijn_cache = {'state': 'keep'}
     c._stooklijn_cache_ts = 1000.0
     await c._maybe_refresh_stooklijn(1100.0)
     db.async_fetch_cop_samples.assert_not_awaited()

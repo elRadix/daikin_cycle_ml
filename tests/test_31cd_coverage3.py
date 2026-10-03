@@ -49,7 +49,7 @@ def test_build_status_message_handles_missing_keys():
 
 def test_build_stooklijn_message_basic():
     cache = {
-        "state": "verlaag_lwt_2c",
+        "state": "lower_lwt",
         "huidige_lwt": 35.0, "optimale_lwt": 33.0,
         "besparing_cop_pct": 8.0,
         "comfort_impact": 0.5,

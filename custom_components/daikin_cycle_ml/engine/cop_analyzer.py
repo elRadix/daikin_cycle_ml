@@ -10,6 +10,15 @@ _NUM_RE = re.compile(r'-?\d+(?:\.\d+)?')
 STOOKLIJN_RECENT_WINDOW_S = 48 * 3600
 
 
+from ..const import (
+    COMFORT_TOLERANCE,
+    K_EMIT_DEFAULT,
+    LWT_STEP_MAX,
+    LWT_STEP_MIN,
+    LWT_TRACKING_TOLERANCE,
+)
+
+
 def _parse_float(value: Any) -> float | None:
     if value is None:
         return None
@@ -78,6 +87,14 @@ class StooklijnAdvies:
     betrouwbaarheid: float = 0.0
     bucket: str = ''
     samples: int = 0
+    setpoint_lwt: float | None = None
+    doel_setpoint: float | None = None
+    step_c: int = 0
+    delta_c: float = 0.0
+    tracking_error: float | None = None
+    err_indoor: float | None = None
+    urgency: float = 0.0
+    comfort_cap: float = 3.0
     reason: str = ''
 
 
@@ -147,12 +164,15 @@ def analyze_stooklijn(
     indoor_avg: float | None = None,
     *,
     now: float | None = None,
+    setpoint_lwt: float | None = None,
+    comfort_max: float = 24.0,
+    rt_setpoint: float | None = None,
 ) -> StooklijnAdvies:
     advies = StooklijnAdvies()
     _input_len = len(samples)
     samples = [s for s in samples if s.mode in ('heating', 'unknown')]
     if _input_len > 0 and not samples:
-        advies.state = 'geen_data'
+        advies.state = 'no_data'
         advies.reason = 'no_recent_heating'
         return advies
     grouped = _group_by_bucket(samples)
@@ -169,7 +189,7 @@ def analyze_stooklijn(
         recent = s
         break
     if recent is None:
-        advies.state = 'geen_data'
+        advies.state = 'no_data'
         advies.reason = 'no_recent_heating'
         return advies
     current_bucket = bucket_for_outdoor(recent.outdoor)
@@ -191,26 +211,85 @@ def analyze_stooklijn(
     # Als huidige LWT > optimale_lwt + 1 -> verlaag, vice versa
     if recent.lwt is None:
         return advies
-    diff = recent.lwt - avg_lwt
-    # Comfort-guard
-    projected_indoor = None
-    if indoor_avg is not None:
-        projected_indoor = indoor_avg - diff * 0.3
-        if projected_indoor < comfort_min:
-            advies.comfort_impact = projected_indoor - indoor_avg
-            advies.state = 'behoud'
-            return advies
-    if diff > 1.5:
-        advies.state = 'verlaag_lwt_2c'
-    elif diff < -1.5:
-        advies.state = 'verhoog_lwt_2c'
+    advies.setpoint_lwt = setpoint_lwt
+    if setpoint_lwt is None:
+        # Legacy fallback (tests + no-setpoint installations)
+        diff = recent.lwt - avg_lwt
+        if indoor_avg is not None:
+            projected_indoor = indoor_avg - diff * 0.3
+            if projected_indoor < comfort_min:
+                advies.comfort_impact = round(-2.0 * K_EMIT_DEFAULT, 2)
+                advies.state = 'keep'
+                advies.step_c = 0
+                advies.reason = 'comfort_floor_reached'
+                return advies
+        if diff > 1.5:
+            advies.state = 'lower_lwt'
+            advies.step_c = 2
+            advies.delta_c = -2.0
+            advies.besparing_cop_pct = min(abs(diff) * 2.0, 15.0)
+            advies.comfort_impact = round(-2.0 * K_EMIT_DEFAULT, 2)
+        elif diff < -1.5:
+            advies.state = 'raise_lwt'
+            advies.step_c = 2
+            advies.delta_c = 2.0
+            advies.besparing_cop_pct = 0.0
+            advies.comfort_impact = round(2.0 * K_EMIT_DEFAULT, 2)
+        else:
+            advies.state = 'keep'
+            advies.step_c = 0
+            advies.delta_c = 0.0
+        return advies
+    # B13: dynamic LWT step vs setpoint + comfort dual-loop
+    advies.tracking_error = round(setpoint_lwt - recent.lwt, 2)
+    if rt_setpoint is not None and indoor_avg is not None:
+        advies.err_indoor = round(rt_setpoint - indoor_avg, 2)
+    if indoor_avg is None:
+        advies.state = 'keep'
+        advies.step_c = 0
+        advies.delta_c = 0.0
+        advies.reason = 'no_indoor_sensor'
+        return advies
+    diff_cop = setpoint_lwt - avg_lwt
+    advies.urgency = round(min(abs(diff_cop) / LWT_STEP_MAX, 1.0), 3)
+    if diff_cop > 0:
+        comfort_cap = max(0.0, (indoor_avg - comfort_min) / K_EMIT_DEFAULT)
     else:
-        advies.state = 'behoud'
-    # Besparing schatting: ~2% COP-winst per 1C LWT-daling (koud water)
-    if advies.state == 'verlaag_lwt_2c':
-        advies.besparing_cop_pct = min(abs(diff) * 2.0, 15.0)
-    if indoor_avg is not None:
-        advies.comfort_impact = round(-abs(diff) * 0.3, 2)
+        comfort_cap = max(0.0, (comfort_max - indoor_avg) / K_EMIT_DEFAULT)
+    advies.comfort_cap = round(comfort_cap, 2)
+    target = min(abs(diff_cop), comfort_cap, LWT_STEP_MAX)
+    target *= advies.betrouwbaarheid
+    _tracking_behind = (
+        advies.tracking_error is not None
+        and abs(advies.tracking_error) > LWT_TRACKING_TOLERANCE
+    )
+    if _tracking_behind:
+        target *= 0.5
+    if target < LWT_STEP_MIN:
+        advies.state = 'keep'
+        advies.step_c = 0
+        advies.delta_c = 0.0
+        if _tracking_behind:
+            advies.reason = 'unit_tracking_behind'
+        elif abs(diff_cop) < COMFORT_TOLERANCE:
+            advies.reason = 'within_deadband'
+        elif comfort_cap < LWT_STEP_MIN:
+            advies.reason = ('comfort_floor_reached' if diff_cop > 0
+                             else 'comfort_ceiling_reached')
+        else:
+            advies.reason = 'low_confidence'
+        return advies
+    step_c = min(int(target + 0.5), 3)
+    advies.step_c = step_c
+    advies.delta_c = float(-step_c if diff_cop > 0 else step_c)
+    advies.doel_setpoint = round(setpoint_lwt + advies.delta_c, 1)
+    advies.state = 'lower_lwt' if diff_cop > 0 else 'raise_lwt'
+    advies.reason = ''
+    if advies.state == 'lower_lwt':
+        advies.besparing_cop_pct = min(abs(diff_cop) * 2.0, 15.0)
+    else:
+        advies.besparing_cop_pct = 0.0
+    advies.comfort_impact = round(advies.delta_c * K_EMIT_DEFAULT, 2)
     return advies
 
 

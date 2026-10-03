@@ -315,7 +315,7 @@ def test_maybe_notify_cop_low_emit_exception():
 def test_maybe_notify_stooklijn_nan_values():
     c = _mk()
     cache = {
-        "state": "verlaag_lwt_2c",
+        "state": "lower_lwt",
         "betrouwbaarheid": "not-a-number",
         "besparing_cop_pct": 10.0,
         "comfort_impact": 0.0,
@@ -326,7 +326,7 @@ def test_maybe_notify_stooklijn_nan_values():
 def test_maybe_notify_stooklijn_emit_exception():
     c = _mk()
     cache = {
-        "state": "verlaag_lwt_2c",
+        "state": "lower_lwt",
         "betrouwbaarheid": 0.9,
         "besparing_cop_pct": 10.0,
         "comfort_impact": -0.2,

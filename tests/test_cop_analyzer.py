@@ -127,7 +127,7 @@ def test_analyze_few_samples():
 def test_analyze_behoud():
     samples = [_mk_sample(3.5, 32.0, 7.0) for _ in range(10)]
     a = analyze_stooklijn(samples)
-    assert a.state == 'behoud'
+    assert a.state == 'keep'
     assert a.samples == 10
     assert a.betrouwbaarheid == 1.0
 
@@ -136,7 +136,7 @@ def test_analyze_verlaag():
     samples = [_mk_sample(3.0, 32.0, 7.0) for _ in range(10)]
     samples.append(_mk_sample(2.5, 36.0, 7.0))
     a = analyze_stooklijn(samples)
-    assert a.state == 'verlaag_lwt_2c'
+    assert a.state == 'lower_lwt'
     assert a.besparing_cop_pct > 0
 
 
@@ -144,14 +144,14 @@ def test_analyze_verhoog():
     samples = [_mk_sample(3.0, 36.0, 7.0) for _ in range(10)]
     samples.append(_mk_sample(3.5, 32.0, 7.0))
     a = analyze_stooklijn(samples)
-    assert a.state == 'verhoog_lwt_2c'
+    assert a.state == 'raise_lwt'
 
 
 def test_analyze_comfort_guard():
     samples = [_mk_sample(3.0, 32.0, 7.0) for _ in range(10)]
     samples.append(_mk_sample(2.5, 40.0, 7.0))
     a = analyze_stooklijn(samples, comfort_min=22.0, indoor_avg=22.0)
-    assert a.state == 'behoud'
+    assert a.state == 'keep'
     assert a.comfort_impact < 0
 
 

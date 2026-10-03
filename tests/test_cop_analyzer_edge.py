@@ -239,7 +239,7 @@ def test_analyze_verlaag():
         CopSample(cop=3.5, lwt=35.0, outdoor=7.0, data_quality="Good")
     )
     a = analyze_stooklijn(samples)
-    assert a.state == "verlaag_lwt_2c"
+    assert a.state == "lower_lwt"
     assert a.besparing_cop_pct > 0
 
 
@@ -252,7 +252,7 @@ def test_analyze_verhoog():
         CopSample(cop=3.0, lwt=30.0, outdoor=7.0, data_quality="Good")
     )
     a = analyze_stooklijn(samples)
-    assert a.state == "verhoog_lwt_2c"
+    assert a.state == "raise_lwt"
 
 
 def test_analyze_behoud():
@@ -261,7 +261,7 @@ def test_analyze_behoud():
         for _ in range(6)
     ]
     a = analyze_stooklijn(samples)
-    assert a.state == "behoud"
+    assert a.state == "keep"
 
 
 def test_analyze_comfort_guard():
@@ -273,7 +273,7 @@ def test_analyze_comfort_guard():
         CopSample(cop=3.5, lwt=40.0, outdoor=7.0, data_quality="Good")
     )
     a = analyze_stooklijn(samples, comfort_min=22.0, indoor_avg=21.0)
-    assert a.state == "behoud"
+    assert a.state == "keep"
     assert a.comfort_impact < 0
 
 
@@ -286,7 +286,7 @@ def test_analyze_indoor_avg_set_after_state():
         CopSample(cop=3.5, lwt=35.0, outdoor=7.0, data_quality="Good")
     )
     a = analyze_stooklijn(samples, comfort_min=10.0, indoor_avg=21.0)
-    assert a.state == "verlaag_lwt_2c"
+    assert a.state == "lower_lwt"
     assert a.comfort_impact != 0.0
 
 

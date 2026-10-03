@@ -194,14 +194,18 @@
           "power_sensor_entity": "Power sensor (fallback)",
           "fallback_power_threshold_w": "Fallback power threshold",
           "indoor_temp_sensor": "Indoor temperature sensor",
-          "cop_sensor_entity": "COP sensor"
+          "cop_sensor_entity": "COP sensor",
+          "comfort_min_c": "Minimum indoor temperature (°C)",
+          "comfort_max_c": "Maximum indoor temperature (°C)"
         },
         "data_description": {
           "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3.",
           "power_sensor_entity": "Optional. Used as fallback when RPS is unavailable.",
           "fallback_power_threshold_w": "Power threshold (W) for the fallback sensor. Default 200.",
           "indoor_temp_sensor": "Optional. Used for the indoor_temp_avg feature (dim #10).",
-          "cop_sensor_entity": "Global COP sensor, e.g. sensor.altherma_global_cop. Used for cop_samples."
+          "cop_sensor_entity": "Global COP sensor, e.g. sensor.altherma_global_cop. Used for cop_samples.",
+          "comfort_min_c": "Lower LWT will not be advised below this indoor temperature. Default 20 °C.",
+          "comfort_max_c": "Higher LWT will not be advised above this indoor temperature. Default 24 °C."
         }
       },
       "pendulum": {

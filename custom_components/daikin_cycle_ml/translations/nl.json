@@ -194,14 +194,18 @@
           "power_sensor_entity": "Vermogensensor (fallback)",
           "fallback_power_threshold_w": "Fallback vermogensdrempel",
           "indoor_temp_sensor": "Binnentemperatuur sensor",
-          "cop_sensor_entity": "COP-sensor"
+          "cop_sensor_entity": "COP-sensor",
+          "comfort_min_c": "Minimale binnentemperatuur (°C)",
+          "comfort_max_c": "Maximale binnentemperatuur (°C)"
         },
         "data_description": {
           "compressor_rps_threshold": "Compressor AAN wanneer RPS >= deze waarde. Standaard 3.",
           "power_sensor_entity": "Optioneel. Fallback wanneer RPS niet beschikbaar is.",
           "fallback_power_threshold_w": "Vermogensdrempel (W) voor de fallback-sensor. Standaard 200.",
           "indoor_temp_sensor": "Optioneel. Voor de indoor_temp_avg feature (dim #10).",
-          "cop_sensor_entity": "Globale COP-sensor, b.v. sensor.altherma_global_cop."
+          "cop_sensor_entity": "Globale COP-sensor, b.v. sensor.altherma_global_cop.",
+          "comfort_min_c": "Onder deze binnentemperatuur wordt geen lagere LWT geadviseerd. Standaard 20 °C.",
+          "comfort_max_c": "Boven deze binnentemperatuur wordt geen hogere LWT geadviseerd. Standaard 24 °C."
         }
       },
       "pendulum": {
