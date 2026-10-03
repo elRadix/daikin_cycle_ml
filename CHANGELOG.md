@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.5.3] - 2026-10-03
+
+Version alignment release. v1.5.1 and v1.5.2 were tagged with code
+version 1.5.0 (docs-only patches). v1.5.3 aligns the code version,
+tag, and release so HA Diagnostics, HACS, and README all report the
+same number.
+
+### Changed
+
+- VERSION bump 1.5.2 -> 1.5.3 (const.py, manifest.json, pyproject.toml).
+- README version badge + tag link -> v1.5.3.
+- No functional change vs v1.5.2.
+
+
 ## [1.5.2] - 2026-10-03
 
 README showcase cache-bust. Docs + asset rename, no code change.
