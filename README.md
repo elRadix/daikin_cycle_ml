@@ -27,14 +27,14 @@ heat pumps. **Local-only ML, no cloud.**
   <tr>
     <td align="center" width="50%">
       <a href="dashboard/cards/simple-card/">
-        <img src="dashboard/cards/simple-card/preview.png" width="100%" alt="Daikin Cycle ML — Simple Card">
+        <img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/v1.5.0/dashboard/cards/simple-card/preview.png" width="100%" alt="Daikin Cycle ML — Simple Card">
       </a>
       <br>
       <sub><b>Simple Card</b> — one-glance overview</sub>
     </td>
     <td align="center" width="50%">
       <a href="dashboard/cards/heating-curve/">
-        <img src="dashboard/cards/heating-curve/preview.png" width="100%" alt="Daikin Cycle ML — Heating Curve">
+        <img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/v1.5.0/dashboard/cards/heating-curve/preview.png" width="100%" alt="Daikin Cycle ML — Heating Curve">
       </a>
       <br>
       <sub><b>Heating Curve</b> — LWT vs outdoor</sub>
