@@ -13,3 +13,4 @@ venv/
 *.log
 MagicMock/
 coverage.json
+data/
