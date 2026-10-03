@@ -23,26 +23,12 @@ heat pumps. **Local-only ML, no cloud.**
 
 ## Showcase
 
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <a href="dashboard/cards/simple-card/">
-        <img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/v1.5.0/dashboard/cards/simple-card/preview.png" width="100%" alt="Daikin Cycle ML — Simple Card">
-      </a>
-      <br>
-      <sub><b>Simple Card</b> — one-glance overview</sub>
-    </td>
-    <td align="center" width="50%">
-      <a href="dashboard/cards/heating-curve/">
-        <img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/v1.5.0/dashboard/cards/heating-curve/preview.png" width="100%" alt="Daikin Cycle ML — Heating Curve">
-      </a>
-      <br>
-      <sub><b>Heating Curve</b> — LWT vs outdoor</sub>
-    </td>
-  </tr>
-</table>
+| Simple Card | Heating Curve |
+|:---:|:---:|
+| [![Daikin Cycle ML - Simple Card](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/simple-card/preview.png)](dashboard/cards/simple-card/) | [![Daikin Cycle ML - Heating Curve](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/heating-curve/preview.png)](dashboard/cards/heating-curve/) |
+| *one-glance overview* | *LWT vs outdoor* |
 
-<p align="center"><em>One-glance dashboard cards — see <a href="dashboard/">dashboard/</a> for installation.</em></p>
+*One-glance dashboard cards - see [dashboard/](dashboard/) for installation.*
 
 ---
 
