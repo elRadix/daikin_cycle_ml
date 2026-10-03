@@ -89,7 +89,7 @@ def test_analyze_recent_invalid_scans_backwards():
     samples = [_valid() for _ in range(10)]
     samples.append(_invalid())
     a = analyze_stooklijn(samples)
-    assert a.state in ('behoud', 'verlaag_lwt_2c', 'verhoog_lwt_2c')
+    assert a.state in ('keep', 'lower_lwt', 'raise_lwt')
 
 
 def test_bucket_summary_extreme_buckets():

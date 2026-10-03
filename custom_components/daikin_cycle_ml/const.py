@@ -187,6 +187,12 @@ DEFAULT_COP_RETENTION_DAYS = 365
 COP_ROLLUP_WINDOW_HOURS = 720
 DEFAULT_COP_ANALYSIS_DAYS = 30
 DEFAULT_COMFORT_MIN_C = 20.0
+DEFAULT_COMFORT_MAX_C = 24.0
+K_EMIT_DEFAULT = 0.20
+LWT_STEP_MIN = 1.0
+LWT_STEP_MAX = 3.0
+LWT_TRACKING_TOLERANCE = 1.5
+COMFORT_TOLERANCE = 1.0
 DEFAULT_INDOOR_TEMP_SENSOR: str | None = None
 DEFAULT_COP_AVG_LOOKBACK_DAYS = 1
 
@@ -245,19 +251,31 @@ ALERT_GROUP_MAP = {
 
 # Stooklijn advice state -> display label (Batch 39c)
 STOOKLIJN_STATE_LABEL_EN = {
+    "keep": "Keep current LWT",
+    "lower_lwt": "Lower LWT by {step} \u00b0C",
+    "raise_lwt": "Raise LWT by {step} \u00b0C",
+    "no_data": "No data",
+    "unknown": "Unknown",
     "behoud": "Keep current LWT",
+    "verlaag_lwt": "Lower LWT by {step} \u00b0C",
+    "verhoog_lwt": "Raise LWT by {step} \u00b0C",
     "verlaag_lwt_2c": "Lower LWT by 2 \u00b0C",
     "verhoog_lwt_2c": "Raise LWT by 2 \u00b0C",
-    "verlaag_lwt": "Lower LWT",
-    "verhoog_lwt": "Raise LWT",
+    "geen_data": "No data",
 }
 
 STOOKLIJN_STATE_LABEL_NL = {
+    "keep": "Behoud huidige LWT",
+    "lower_lwt": "Verlaag LWT met {step} \u00b0C",
+    "raise_lwt": "Verhoog LWT met {step} \u00b0C",
+    "no_data": "Geen data",
+    "unknown": "Onbekend",
     "behoud": "Behoud huidige LWT",
+    "verlaag_lwt": "Verlaag LWT met {step} \u00b0C",
+    "verhoog_lwt": "Verhoog LWT met {step} \u00b0C",
     "verlaag_lwt_2c": "Verlaag LWT met 2 \u00b0C",
     "verhoog_lwt_2c": "Verhoog LWT met 2 \u00b0C",
-    "verlaag_lwt": "Verlaag LWT",
-    "verhoog_lwt": "Verhoog LWT",
+    "geen_data": "Geen data",
 }
 
 STOOKLIJN_STATE_LABEL = STOOKLIJN_STATE_LABEL_EN

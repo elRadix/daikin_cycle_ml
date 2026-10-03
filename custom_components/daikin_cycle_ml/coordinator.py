@@ -803,7 +803,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 cache = getattr(self, '_stooklijn_cache', {})
                 if cache.get('reason') != 'dhw_active':
                     self._stooklijn_cache = {
-                        'state': 'geen_data',
+                        'state': 'no_data',
                         'reason': 'dhw_active',
                         'huidige_lwt': None,
                         'optimale_lwt': None,
@@ -813,6 +813,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                         'bucket': '',
                         'samples': 0,
                         'buckets': {},
+                        'setpoint_lwt': None,
+                        'doel_setpoint': None,
+                        'step_c': 0,
+                        'delta_c': 0.0,
+                        'tracking_error': None,
+                        'err_indoor': None,
+                        'urgency': 0.0,
+                        'comfort_cap': 3.0,
                     }
                     self._stooklijn_cache_ts = now
                 return
@@ -849,10 +857,36 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     mode=str(r.get('mode') or 'unknown'),
                     ts=float(r.get('ts') or 0.0),
                 ))
+            from .const import ATTR_LW_SETPOINT, DEFAULT_COMFORT_MAX_C
             comfort_min = float(
                 self.options.get('comfort_min_c', DEFAULT_COMFORT_MIN_C)
             )
-            advies = analyze_stooklijn(samples, comfort_min=comfort_min)
+            comfort_max = float(
+                self.options.get('comfort_max_c', DEFAULT_COMFORT_MAX_C)
+            )
+            setpoint_lwt = None
+            _snap = getattr(self, 'data', None)
+            _attrs = getattr(_snap, 'attrs', None) if _snap is not None else None
+            if isinstance(_attrs, dict):
+                _sp = _attrs.get(ATTR_LW_SETPOINT)
+                if isinstance(_sp, (int, float)):
+                    setpoint_lwt = float(_sp)
+            indoor_avg = None
+            _ient = getattr(self, 'indoor_temp_entity', None)
+            if _ient and self.hass is not None:
+                try:
+                    _st = self.hass.states.get(_ient)
+                    if _st is not None and _st.state not in ('unknown', 'unavailable', ''):
+                        indoor_avg = float(_st.state)
+                except (TypeError, ValueError, AttributeError):
+                    indoor_avg = None
+            advies = analyze_stooklijn(
+                samples,
+                comfort_min=comfort_min,
+                indoor_avg=indoor_avg,
+                setpoint_lwt=setpoint_lwt,
+                comfort_max=comfort_max,
+            )
             buckets = bucket_summary(samples)
             self._stooklijn_cache = {
                 'state': advies.state,
@@ -865,6 +899,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 'bucket': advies.bucket,
                 'samples': advies.samples,
                 'buckets': buckets,
+                'setpoint_lwt': advies.setpoint_lwt,
+                'doel_setpoint': advies.doel_setpoint,
+                'step_c': advies.step_c,
+                'delta_c': advies.delta_c,
+                'tracking_error': advies.tracking_error,
+                'err_indoor': advies.err_indoor,
+                'urgency': advies.urgency,
+                'comfort_cap': advies.comfort_cap,
             }
             self._stooklijn_cache_ts = now
         except Exception:
@@ -948,7 +990,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not isinstance(cache, dict) or not cache:
             return
         state = cache.get('state')
-        if state not in ('verlaag_lwt_2c', 'verhoog_lwt_2c'):
+        if state not in ('lower_lwt', 'raise_lwt'):
             return
         try:
             betrouw = float(cache.get('betrouwbaarheid') or 0.0)
@@ -1776,7 +1818,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         parts.append("=== cop_low ===\n" + cop_msg)
 
         fake_stook = {
-            "state": "verlaag_lwt_2c",
+            "state": "lower_lwt",
+            "step_c": 2,
             "besparing_cop_pct": 12.0,
             "comfort_impact": -0.3,
             "betrouwbaarheid": 0.75,

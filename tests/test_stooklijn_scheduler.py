@@ -93,7 +93,7 @@ async def test_notify_stooklijn_skips_behoud():
 async def test_notify_stooklijn_skips_low_conf():
     c = _bare()
     await c._maybe_notify_stooklijn(10000.0, {
-        'state': 'verlaag_lwt_2c',
+        'state': 'lower_lwt',
         'betrouwbaarheid': 0.5, 'besparing_cop_pct': 8.0,
         'comfort_impact': -0.3},
     )
@@ -103,7 +103,7 @@ async def test_notify_stooklijn_skips_low_conf():
 async def test_notify_stooklijn_skips_low_saving():
     c = _bare()
     await c._maybe_notify_stooklijn(10000.0, {
-        'state': 'verlaag_lwt_2c',
+        'state': 'lower_lwt',
         'betrouwbaarheid': 0.85, 'besparing_cop_pct': 2.0,
         'comfort_impact': -0.3},
     )
@@ -113,7 +113,7 @@ async def test_notify_stooklijn_skips_low_saving():
 async def test_notify_stooklijn_sends():
     c = _bare()
     await c._maybe_notify_stooklijn(100000.0, {
-        'state': 'verlaag_lwt_2c',
+        'state': 'lower_lwt',
         'betrouwbaarheid': 0.85, 'besparing_cop_pct': 8.0,
         'comfort_impact': -0.3},
     )

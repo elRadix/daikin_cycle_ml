@@ -217,6 +217,14 @@ def build_stooklijn_report(cache: Any, *, language: str = "en", emoji_enabled: b
                else STOOKLIJN_STATE_LABEL_EN)
     state = _labels.get(state_raw, state_raw)
     try:
+        _step_fmt = int(cache.get("step_c") or 0)
+    except (TypeError, ValueError):
+        _step_fmt = 0
+    try:
+        state = state.format(step=_step_fmt)
+    except (KeyError, IndexError, ValueError, AttributeError):
+        pass
+    try:
         besparing = float(cache.get("besparing_cop_pct") or 0.0)
     except (TypeError, ValueError):
         besparing = 0.0

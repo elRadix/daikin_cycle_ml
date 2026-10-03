@@ -327,9 +327,37 @@ def _attrs_cop_curve_recent(
         "points": data.get("points") or [],
     }
 
+def _state_label(state: str, step_c: int, lang: str) -> str:
+    """Localized state label (B11/B13)."""
+    from .const import (
+        STOOKLIJN_STATE_LABEL_EN,
+        STOOKLIJN_STATE_LABEL_NL,
+    )
+    tbl = STOOKLIJN_STATE_LABEL_NL if lang == 'nl' else STOOKLIJN_STATE_LABEL_EN
+    tmpl = tbl.get(state) or state
+    try:
+        return str(tmpl).format(step=step_c)
+    except (KeyError, IndexError, ValueError):
+        return str(tmpl)
+
+
 def _attrs_stooklijn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     data = s.stooklijn_advies or {}
+    _lang = 'en'
+    try:
+        _lang = (c.options or {}).get('notification_language', 'en') or 'en'
+    except Exception:
+        pass
+    _state = str(data.get('state', 'unknown'))
+    _step = int(data.get('step_c') or 0)
     return {
+        'state_label': _state_label(_state, _step, _lang),
+        'step_c': _step,
+        'delta_c': data.get('delta_c'),
+        'huidige_setpoint': data.get('setpoint_lwt'),
+        'doel_setpoint': data.get('doel_setpoint'),
+        'tracking_error': data.get('tracking_error'),
+        'comfort_cap': data.get('comfort_cap'),
         "optimale_lwt": data.get("optimale_lwt"),
         "reason": data.get("reason", ""),
         "huidige_lwt": data.get("huidige_lwt"),

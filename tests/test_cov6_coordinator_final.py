@@ -97,7 +97,7 @@ def test_maybe_notify_stooklijn_recent_alert():
     c = _mk()
     c._last_alert_sent = {"stooklijn_advies": time.time()}
     cache = {
-        "state": "verlaag_lwt_2c",
+        "state": "lower_lwt",
         "betrouwbaarheid": 0.8,
         "besparing_cop_pct": 10.0,
         "comfort_impact": -0.2,
