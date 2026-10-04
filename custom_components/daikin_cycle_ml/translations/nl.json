@@ -385,6 +385,33 @@
       },
       "cop_mean_month": {
         "name": "COP gemiddelde maand"
+      },
+      "cop_heating_day": {
+        "name": "COP verwarming (dag)"
+      },
+      "cop_heating_week": {
+        "name": "COP verwarming (week)"
+      },
+      "cop_heating_month": {
+        "name": "COP verwarming (maand)"
+      },
+      "cop_dhw_day": {
+        "name": "COP SWW (dag)"
+      },
+      "cop_dhw_week": {
+        "name": "COP SWW (week)"
+      },
+      "cop_dhw_month": {
+        "name": "COP SWW (maand)"
+      },
+      "cop_cooling_day": {
+        "name": "COP koeling (dag)"
+      },
+      "cop_cooling_week": {
+        "name": "COP koeling (week)"
+      },
+      "cop_cooling_month": {
+        "name": "COP koeling (maand)"
       }
     },
     "binary_sensor": {

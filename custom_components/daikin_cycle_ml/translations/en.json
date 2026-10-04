@@ -385,6 +385,33 @@
       },
       "cop_mean_month": {
         "name": "COP mean month"
+      },
+      "cop_heating_day": {
+        "name": "COP heating (day)"
+      },
+      "cop_heating_week": {
+        "name": "COP heating (week)"
+      },
+      "cop_heating_month": {
+        "name": "COP heating (month)"
+      },
+      "cop_dhw_day": {
+        "name": "COP DHW (day)"
+      },
+      "cop_dhw_week": {
+        "name": "COP DHW (week)"
+      },
+      "cop_dhw_month": {
+        "name": "COP DHW (month)"
+      },
+      "cop_cooling_day": {
+        "name": "COP cooling (day)"
+      },
+      "cop_cooling_week": {
+        "name": "COP cooling (week)"
+      },
+      "cop_cooling_month": {
+        "name": "COP cooling (month)"
       }
     },
     "binary_sensor": {

@@ -297,6 +297,17 @@ def _cop_hourly_heating_mean(
     return _fn
 
 
+def _cop_hourly_mode_mean(
+    mode: str, period: str,
+) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], Any]:
+    """Return value_fn: cop_mean for a specific mode + period (C1a)."""
+    def _fn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> Any:
+        data = getattr(s, f"cop_hourly_{period}", None) or {}
+        bm = (data.get("by_mode") or {}).get(mode) or {}
+        return bm.get("cop_mean")
+    return _fn
+
+
 def _attrs_cop_hourly(
     period: str,
 ) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], dict[str, Any]]:
@@ -311,6 +322,27 @@ def _attrs_cop_hourly(
             "cop_p90": data.get("cop_p90"),
             "cop_min": data.get("cop_min"),
             "cop_max": data.get("cop_max"),
+            "by_mode": data.get("by_mode") or {},
+        }
+    return _fn
+
+
+def _attrs_cop_hourly_mode(
+    mode: str, period: str,
+) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], dict[str, Any]]:
+    """Return attr_fn: mode-specific COP breakdown (C1a)."""
+    def _fn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
+        data = getattr(s, f"cop_hourly_{period}", None) or {}
+        bm = (data.get("by_mode") or {}).get(mode) or {}
+        return {
+            "period": period, "mode": mode,
+            "n_hours": bm.get("n_hours"),
+            "n_samples": bm.get("n_samples"),
+            "cop_mean": bm.get("cop_mean"),
+            "cop_p10": bm.get("cop_p10"),
+            "cop_p90": bm.get("cop_p90"),
+            "cop_min": bm.get("cop_min"),
+            "cop_max": bm.get("cop_max"),
             "by_mode": data.get("by_mode") or {},
         }
     return _fn
@@ -544,6 +576,69 @@ SENSOR_DEFS: list[dict[str, Any]] = [
             "n_points"
         ),
         "attr_fn": _attrs_cop_curve_recent,
+    },
+    {
+        "key": "cop_heating_day", "name": "COP heating (day)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:radiator",
+        "value_fn": _cop_hourly_mode_mean("heating", "day"),
+        "attr_fn": _attrs_cop_hourly_mode("heating", "day"),
+    },
+    {
+        "key": "cop_heating_week", "name": "COP heating (week)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:radiator",
+        "value_fn": _cop_hourly_mode_mean("heating", "week"),
+        "attr_fn": _attrs_cop_hourly_mode("heating", "week"),
+    },
+    {
+        "key": "cop_heating_month", "name": "COP heating (month)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:radiator",
+        "value_fn": _cop_hourly_mode_mean("heating", "month"),
+        "attr_fn": _attrs_cop_hourly_mode("heating", "month"),
+    },
+    {
+        "key": "cop_dhw_day", "name": "COP DHW (day)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:water-boiler",
+        "value_fn": _cop_hourly_mode_mean("dhw", "day"),
+        "attr_fn": _attrs_cop_hourly_mode("dhw", "day"),
+    },
+    {
+        "key": "cop_dhw_week", "name": "COP DHW (week)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:water-boiler",
+        "value_fn": _cop_hourly_mode_mean("dhw", "week"),
+        "attr_fn": _attrs_cop_hourly_mode("dhw", "week"),
+    },
+    {
+        "key": "cop_dhw_month", "name": "COP DHW (month)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:water-boiler",
+        "value_fn": _cop_hourly_mode_mean("dhw", "month"),
+        "attr_fn": _attrs_cop_hourly_mode("dhw", "month"),
+    },
+    {
+        "key": "cop_cooling_day", "name": "COP cooling (day)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:snowflake",
+        "value_fn": _cop_hourly_mode_mean("cooling", "day"),
+        "attr_fn": _attrs_cop_hourly_mode("cooling", "day"),
+    },
+    {
+        "key": "cop_cooling_week", "name": "COP cooling (week)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:snowflake",
+        "value_fn": _cop_hourly_mode_mean("cooling", "week"),
+        "attr_fn": _attrs_cop_hourly_mode("cooling", "week"),
+    },
+    {
+        "key": "cop_cooling_month", "name": "COP cooling (month)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:snowflake",
+        "value_fn": _cop_hourly_mode_mean("cooling", "month"),
+        "attr_fn": _attrs_cop_hourly_mode("cooling", "month"),
     },
 ]
 
