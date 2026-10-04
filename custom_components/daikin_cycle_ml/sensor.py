@@ -95,8 +95,8 @@ def _value_thermal_power_live(
     s: "DataSnapshot", c: "DaikinCycleMLCoordinator"
 ) -> float | None:
     kw, _ = _compute_thermal_power_live(
-        power_w=c._read_power_w(),
-        cop=c._read_cop(),
+        power_w=s.power_w,
+        cop=s.cop,
         flow_lmin=_flow_from_attrs(s.attrs),
         dt_k=_dt_from_attrs(s.attrs),
         rps=_rps_from_attrs(s.attrs),
@@ -107,8 +107,8 @@ def _value_thermal_power_live(
 def _attrs_thermal_power_live(
     s: "DataSnapshot", c: "DaikinCycleMLCoordinator"
 ) -> dict[str, Any]:
-    power_w = c._read_power_w()
-    cop = c._read_cop()
+    power_w = s.power_w
+    cop = s.cop
     flow_lmin = _flow_from_attrs(s.attrs)
     dt_k = _dt_from_attrs(s.attrs)
     rps = _rps_from_attrs(s.attrs)
