@@ -71,6 +71,9 @@ class DataSnapshot:
     cop_hourly_month: dict[str, Any] = field(default_factory=dict)
     cop_curve_recent: dict[str, Any] = field(default_factory=dict)
     spf_state: dict[str, Any] = field(default_factory=dict)
+    power_w: float | None = None
+    cop: float | None = None
+    setpoint_oscillating: bool = False
 
 
 # --- FEAT-2: live thermal power helpers ---
@@ -560,6 +563,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.attrs = attrs
             snap.missing_attrs = missing_required(attrs)
             snap.last_success_ts = now
+            self._track_setpoint(attrs)
+            snap.power_w = self._read_power_w()
+            snap.cop = self._read_cop()
+            snap.setpoint_oscillating = self._compute_setpoint_oscillating()
             record = self.detector.update(
                 attrs, now=now, power_w=self._read_power()
             )
@@ -1282,7 +1289,6 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
     def _alert_binary_states(self, snap: DataSnapshot) -> dict[str, bool]:
         """Snapshot the 4 alert-relevant binary states."""
-        self._track_setpoint(snap.attrs)
         now = time.time()
         short_run_th = self._effective_threshold(
             "short_run_threshold_min",
