@@ -242,7 +242,7 @@ BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
     {"key": "setpoint_oscillating", "name": "Setpoint oscillating",
      "device_class": BinarySensorDeviceClass.PROBLEM,
      "icon": "mdi:sine-wave",
-     "state_fn": lambda s, c: c._compute_setpoint_oscillating()},
+     "state_fn": lambda s, c: s.setpoint_oscillating},
     {"key": "dhw_pendulum", "name": "DHW pendulum",
      "device_class": BinarySensorDeviceClass.PROBLEM,
      "icon": "mdi:water-boiler-alert",
