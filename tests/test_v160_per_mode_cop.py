@@ -120,3 +120,30 @@ def test_existing_cop_keys_kept():
     for k in ("cop_today", "cop_mean_day", "cop_mean_week",
               "cop_mean_month", "cop_curve_recent"):
         assert k in keys
+
+
+# ============================================================
+# Runtime smoke (v1.6.0-C1a additions)
+# ============================================================
+
+def test_c1a_runtime_import_package():
+    from custom_components.daikin_cycle_ml import async_setup_entry  # noqa: F401
+
+
+def test_c1a_runtime_count_27():
+    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
+    assert len(SENSOR_DEFS) == 27
+
+
+def test_c1a_runtime_9_cop_keys_slug_match():
+    import re
+    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
+
+    def _slug(s: str) -> str:
+        return re.sub(r"[^a-z0-9]+", "_", s.lower()).strip("_")
+
+    for sd in SENSOR_DEFS:
+        if sd["key"].startswith(("cop_heating_", "cop_dhw_", "cop_cooling_")):
+            assert _slug(sd["name"]) == sd["key"], (
+                f"{sd['name']!r} -> {_slug(sd['name'])!r} != {sd['key']!r}"
+            )

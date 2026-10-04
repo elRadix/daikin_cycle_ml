@@ -177,3 +177,35 @@ def test_translation_cop_combined_today_in_all_3_files():
     for fn in ("strings.json", "translations/en.json", "translations/nl.json"):
         data = json.loads((base / fn).read_text())
         assert "cop_combined_today" in data["entity"]["sensor"]
+
+
+# ============================================================
+# Runtime smoke (v1.6.0-C1b additions)
+# ============================================================
+
+def test_c1b_runtime_import_package():
+    from custom_components.daikin_cycle_ml import async_setup_entry  # noqa: F401
+
+
+def test_c1b_runtime_datasnapshot_defaults():
+    from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+    s = DataSnapshot()
+    assert s.cop_today == {}
+    assert s.cop_combined_today == {}
+
+
+def test_c1b_runtime_combined_sensor_present():
+    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
+    keys = {sd["key"] for sd in SENSOR_DEFS}
+    assert "cop_combined_today" in keys
+    assert "cop_today" in keys
+
+
+def test_c1b_runtime_combined_translation_all_3():
+    import json
+    from pathlib import Path
+    base = Path(__file__).parent.parent / "custom_components" / "daikin_cycle_ml"
+    for fn in ("strings.json", "translations/en.json", "translations/nl.json"):
+        d = json.loads((base / fn).read_text())
+        assert "cop_combined_today" in d["entity"]["sensor"]
+        assert "name" in d["entity"]["sensor"]["cop_combined_today"]
