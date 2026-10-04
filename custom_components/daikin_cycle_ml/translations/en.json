@@ -412,6 +412,9 @@
       },
       "cop_cooling_month": {
         "name": "COP cooling (month)"
+      },
+      "cop_combined_today": {
+        "name": "COP combined today"
       }
     },
     "binary_sensor": {

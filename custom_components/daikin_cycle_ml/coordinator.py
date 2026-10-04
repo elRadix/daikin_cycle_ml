@@ -65,6 +65,7 @@ class DataSnapshot:
     cluster_id: int | None = None
     stooklijn_advies: dict[str, Any] = field(default_factory=dict)
     cop_today: dict[str, Any] = field(default_factory=dict)
+    cop_combined_today: dict[str, Any] = field(default_factory=dict)
     cop_hourly_day: dict[str, Any] = field(default_factory=dict)
     cop_hourly_week: dict[str, Any] = field(default_factory=dict)
     cop_hourly_month: dict[str, Any] = field(default_factory=dict)
@@ -225,6 +226,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._stooklijn_cache: dict[str, Any] = {}
         self._stooklijn_cache_ts: float = 0.0
         self._cop_today_cache: dict[str, Any] = {}
+        self._cop_today_heating_cache: dict[str, Any] = {}
         self._cop_hourly_cache: dict[str, dict[str, Any]] = {}
         self._cop_hourly_cache_ts: float = 0.0
         self.db: Any = None
@@ -574,7 +576,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._refresh_cop_today(now)
             await self._maybe_refresh_stooklijn(now)
             await self._maybe_refresh_cop_hourly(now)
-            snap.cop_today = self._cop_today_cache
+            snap.cop_today = self._cop_today_heating_cache
+            snap.cop_combined_today = self._cop_today_cache
             snap.cop_hourly_day = self._cop_hourly_cache.get("day", {})
             snap.cop_hourly_week = self._cop_hourly_cache.get("week", {})
             snap.cop_hourly_month = self._cop_hourly_cache.get("month", {})
@@ -748,46 +751,54 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return
         if not isinstance(rows, list) or not rows:
             self._cop_today_cache = {}
+            self._cop_today_heating_cache = {}
             return
         try:
             lt = time.localtime(now)
             today_start = time.mktime(
                 (lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1)
             )
-            todays = [
-                r for r in rows
-                if isinstance(r.get('ts'), (int, float))
-                and float(r['ts']) >= today_start
-                and isinstance(r.get('cop'), (int, float))
-                and float(r['cop']) > 0.0
-            ]
-            if not todays:
-                self._cop_today_cache = {}
-                return
-            cops = [float(r['cop']) for r in todays]
-            avg = sum(cops) / len(cops)
             try:
                 week = await self.db.async_fetch_cop_samples(days=7)
             except Exception:
                 week = rows
-            week_cops = [
-                float(r['cop']) for r in week
-                if isinstance(r.get('cop'), (int, float))
-                and float(r['cop']) > 0.0
-            ]
-            base = sum(week_cops) / len(week_cops) if week_cops else avg
-            loss = 0.0
-            if base > 0:  # pragma: no branch
-                loss = round(max(0.0, (base - avg) / base * 100.0), 1)
-            self._cop_today_cache = {
-                'cop': round(avg, 2),
-                'samples_today': len(cops),
-                'cop_min': round(min(cops), 2),
-                'cop_max': round(max(cops), 2),
-                'baseline_cop_verlies_pct': loss,
-            }
+
+            def _build(mode: str | None) -> dict[str, Any]:
+                todays = [
+                    r for r in rows
+                    if isinstance(r.get('ts'), (int, float))
+                    and float(r['ts']) >= today_start
+                    and isinstance(r.get('cop'), (int, float))
+                    and float(r['cop']) > 0.0
+                    and (mode is None or r.get('mode') == mode)
+                ]
+                if not todays:
+                    return {}
+                cops = [float(r['cop']) for r in todays]
+                avg = sum(cops) / len(cops)
+                week_cops = [
+                    float(r['cop']) for r in week
+                    if isinstance(r.get('cop'), (int, float))
+                    and float(r['cop']) > 0.0
+                    and (mode is None or r.get('mode') == mode)
+                ]
+                base = sum(week_cops) / len(week_cops) if week_cops else avg
+                loss = 0.0
+                if base > 0:  # pragma: no branch
+                    loss = round(max(0.0, (base - avg) / base * 100.0), 1)
+                return {
+                    'cop': round(avg, 2),
+                    'samples_today': len(cops),
+                    'cop_min': round(min(cops), 2),
+                    'cop_max': round(max(cops), 2),
+                    'baseline_cop_verlies_pct': loss,
+                }
+
+            self._cop_today_cache = _build(None)
+            self._cop_today_heating_cache = _build('heating')
         except Exception:
             self._cop_today_cache = {}
+            self._cop_today_heating_cache = {}
 
     async def _maybe_refresh_stooklijn(
         self, now: float, *, force: bool = False

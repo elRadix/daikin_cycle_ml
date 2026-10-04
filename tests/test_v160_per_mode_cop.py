@@ -87,8 +87,8 @@ def test_per_mode_have_unit_and_class():
             assert s["state_class"] == SensorStateClass.MEASUREMENT
 
 
-def test_sensor_defs_total_23():
-    assert len(SENSOR_DEFS) == 23
+def test_sensor_defs_total_24():
+    assert len(SENSOR_DEFS) == 24
 
 
 @pytest.mark.parametrize("mode", ["heating", "dhw", "cooling"])

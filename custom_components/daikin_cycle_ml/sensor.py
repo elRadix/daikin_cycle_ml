@@ -286,6 +286,16 @@ def _attrs_cop_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, 
     }
 
 
+def _attrs_cop_combined_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
+    data = s.cop_combined_today or {}
+    return {
+        "samples_today": data.get("samples_today"),
+        "cop_min": data.get("cop_min"),
+        "cop_max": data.get("cop_max"),
+        "baseline_cop_verlies_pct": data.get("baseline_cop_verlies_pct"),
+    }
+
+
 def _cop_hourly_heating_mean(
     period: str,
 ) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], Any]:
@@ -537,6 +547,14 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "icon": "mdi:heat-pump",
         "value_fn": lambda s, c: (s.cop_today or {}).get("cop"),
         "attr_fn": _attrs_cop_today,
+    },
+    {
+        "key": "cop_combined_today", "name": "COP combined today",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP",
+        "icon": "mdi:heat-pump-outline",
+        "value_fn": lambda s, c: (s.cop_combined_today or {}).get("cop"),
+        "attr_fn": _attrs_cop_combined_today,
     },
     {
         "key": "heating_curve_advice", "name": "Heating curve advice",
