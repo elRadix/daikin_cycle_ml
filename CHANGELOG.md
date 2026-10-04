@@ -1,5 +1,106 @@
 # Changelog
 
+## [Unreleased] - v1.6.0 HVAC Parity (S1 complete)
+
+Branch: `feat/v1.6.0-hvac-parity`. S1 covers 3 of 14 commits in the
+v1.6.0 plan (Issue #18). C3-C14 still pending. No tag, no release yet.
+
+### Added
+
+- **Per-mode COP sensors** (`6c1b330`, C1a): 9 new sensors
+  `cop_{heating,dhw,cooling}_{day,week,month}`.
+  DHW and cooling COP become first-class entities, no longer hidden in
+  `cop_mean_*` attributes. **Impact:** users can alert and graph DHW
+  efficiency separately. DHW is structurally lower than heating
+  (LWT ~55 C vs ~35 C); blending masked real degradation in either mode.
+
+- **`cop_combined_today` sensor** (`583d6b8`, C1b): exposes the
+  previous blended COP (heating + DHW + cooling) for backwards
+  compatibility.
+
+- **SPF sensors** (`b04a633`, C2): `spf_season`, `spf_ytd`,
+  `scop_running_365d`. Computes Seasonal Performance Factor per
+  EN14825 over season / year-to-date / rolling-365-day windows.
+  Persisted to `model_state["spf_state"]`, refreshed hourly.
+  **Impact:** SPF is the only COP metric recognized by the ErP
+  directive and by installers for warranty evaluation. Previously the
+  integration could not demonstrate seasonal efficiency.
+
+- **`season_start_month` option** (`b04a633`, C2): user-configurable
+  first month of the heating season (1-12, default 10 = October).
+  **Impact:** matches NL/BE heating season; override for early-season
+  homes or non-NL climates. Lives in the OptionsFlow Maintenance step.
+
+- **Deep test suite** (`f6de063`): 29 tests covering SENSOR_DEFS
+  contract, slug parity (entity_id generation), translation parity
+  across `strings.json` / `en.json` / `nl.json`, subprocess import
+  cleanliness for all 29 modules, Hypothesis fuzz on pure factories,
+  SPF year-rollback edge cases, and C1b mode-filter edge cases.
+
+### Changed
+
+- **`cop_today` becomes heating-only** (`583d6b8`, C1b).
+  Previously it blended all operating modes.
+  **Breaking for automations** that relied on the blended value.
+  **Mitigation:** use `cop_combined_today` (added in the same commit)
+  to keep the old blended semantics.
+  **Impact:** heating efficiency becomes legible in the entity state;
+  DHW and cooling anomalies no longer contaminate the headline COP.
+  Anyone graphing `cop_today` should switch their automation to
+  `cop_combined_today` if they want blended values.
+
+- **OptionsFlow `season_start_month` schema** uses
+  `vol.All(vol.Coerce(int), vol.In({1..12}))` (`b04a633`, C2).
+  **Impact:** prevents UI save failures when HA frontend serializes
+  the dropdown value as a string.
+
+### Fixed
+
+- **OptionsFlow string coercion for `season_start_month`**
+  (`b04a633`, C2): without `vol.Coerce(int)` the schema would reject
+  string inputs from the HA frontend. Caught by the pre-commit runtime
+  smoke test before commit.
+
+### Test Status (S1)
+
+- pytest: **100.00% coverage** - 4745 statements, 1322 branches, 0 misses
+- mypy strict: clean
+- ruff: clean
+- test count: ~1785 (was ~1740 at S1 start, +45)
+- commits on branch: 4 (3 feature, 1 test) + 1 chore (`c193e52`)
+
+### Entity delta (v1.6.0 S1)
+
+| Category | v1.5.3 | After S1 | Delta |
+|---|---|---|---|
+| Sensors | 14 | 27 | +13 |
+| Binary sensors | 15 | 15 | 0 |
+| Total | 30 | 43 | +13 |
+
+### Compatibility
+
+- **HA Core:** 2026.9.3+ (PHACC pin 0.13.366)
+- **HA OS:** 18.3 tested
+- **Database schema:** unchanged (v14). No migration required.
+- **Options:** one new key (`season_start_month`) added; existing
+  options preserved.
+
+### Install / upgrade
+
+No user action required for install. Upgraders who used `cop_today`
+in automations should review and switch to `cop_combined_today` if
+they want the previous blended value.
+
+### Related
+
+- Issue #18: v1.6.0 - HVAC Parity and Enhancement
+- Commits: `6c1b330`, `583d6b8`, `b04a633`, `f6de063`
+
+### Next (S2 of 7)
+
+C3: normalized A7/W35 COP + datasheet deviation.
+C4: week-over-week degradation trend + `cop_degradation_warning` binary.
+
 ## [1.5.3] - 2026-10-03
 
 Version alignment release. v1.5.1 and v1.5.2 were tagged with code
