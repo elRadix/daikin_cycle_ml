@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import math
 import random
+import sys
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -37,7 +38,28 @@ class ClusteringResult:
 
 
 def _euclidean(a: list[float], b: list[float]) -> float:
-    return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b, strict=True)))
+    deltas = [x - y for x, y in zip(a, b, strict=True)]
+    return math.hypot(*deltas)
+
+
+def _safe_sq(x: float) -> float:
+    """Square a float, saturating to sys.float_info.max on overflow.
+
+    Note: Python float multiplication returns inf rather than raising
+    OverflowError, so isinf() is the actual detector.
+    """
+    y = x * x
+    if math.isinf(y):
+        return sys.float_info.max
+    return y
+
+
+def _safe_add(a: float, b: float) -> float:
+    """Add two floats, saturating to sys.float_info.max on overflow."""
+    y = a + b
+    if math.isinf(y):
+        return sys.float_info.max
+    return y
 
 
 def _mean_vector(vectors: list[list[float]], dim: int) -> list[float]:
@@ -101,7 +123,7 @@ def _assign(
             if d < best_d:
                 best_d, best_i = d, i
         labels.append(best_i)
-        inertia += best_d * best_d
+        inertia = _safe_add(inertia, _safe_sq(best_d))
     return labels, inertia
 
 
@@ -144,7 +166,9 @@ def kmeans(
     if k_eff == 1:
         centroid = _mean_vector(vectors, dim)
         labels = [0] * n
-        inertia = sum(_euclidean(v, centroid) ** 2 for v in vectors)
+        inertia = 0.0
+        for v in vectors:
+            inertia = _safe_add(inertia, _safe_sq(_euclidean(v, centroid)))
         return ClusteringResult(
             labels=labels, centroids=[centroid],
             inertia=inertia, iterations=0, k=1,
