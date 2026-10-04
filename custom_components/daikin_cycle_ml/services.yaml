@@ -7,16 +7,13 @@ reset_counters:
       description: Config entry ID.
       required: true
       selector:
-        text:
+        text: null
     counters:
       name: Counters
       description: List of counter keys (leave empty for all).
       required: false
       selector:
-        object:
-  example:
-    entry_id: "0123456789abcdef0123456789abcdef"
-
+        object: null
 export_cycles:
   name: Export cycles
   description: Export cached cycles as JSON or CSV.
@@ -26,7 +23,7 @@ export_cycles:
       description: Config entry ID.
       required: true
       selector:
-        text:
+        text: null
     days:
       name: Days
       description: Look-back window in days.
@@ -47,11 +44,6 @@ export_cycles:
           options:
             - json
             - csv
-  example:
-    entry_id: "0123456789abcdef0123456789abcdef"
-    days: 30
-    format: json
-
 label_cycle:
   name: Label cycle
   description: Attach a user label to a stored cycle (ML training).
@@ -61,7 +53,7 @@ label_cycle:
       description: Config entry ID.
       required: true
       selector:
-        text:
+        text: null
     cycle_id:
       name: Cycle ID
       description: Database ID of the cycle.
@@ -75,12 +67,7 @@ label_cycle:
       description: Label string.
       required: true
       selector:
-        text:
-  example:
-    entry_id: "0123456789abcdef0123456789abcdef"
-    cycle_id: 1
-    label: good
-
+        text: null
 recompute_baseline:
   name: Recompute baseline
   description: Recompute ML baseline (deferred to Batch 7).
@@ -90,7 +77,7 @@ recompute_baseline:
       description: Config entry ID.
       required: true
       selector:
-        text:
+        text: null
     days:
       name: Days
       description: Baseline window in days.
@@ -101,10 +88,6 @@ recompute_baseline:
           min: 1
           max: 365
           mode: box
-  example:
-    entry_id: "0123456789abcdef0123456789abcdef"
-    days: 7
-
 run_maintenance:
   name: Run maintenance
   description: Aggregate and prune old cycles/alerts, optionally VACUUM.
@@ -114,7 +97,7 @@ run_maintenance:
       description: Config entry ID.
       required: true
       selector:
-        text:
+        text: null
     cycle_retention_days:
       name: Cycle retention (days)
       description: Delete cycles older than N days.
@@ -138,11 +121,7 @@ run_maintenance:
       description: Run SQLite VACUUM after prune.
       required: false
       selector:
-        boolean:
-  example:
-    entry_id: "0123456789abcdef0123456789abcdef"
-    cycle_retention_days: 90
-
+        boolean: null
 send_test_notification:
   name: Send test notification
   description: Send a test message via the configured notify target.
@@ -152,23 +131,19 @@ send_test_notification:
       description: Config entry ID. Omit when only one Daikin entry is loaded.
       required: false
       selector:
-        text:
+        text: null
     message:
       name: Message
       description: Optional custom message body.
       required: false
       selector:
-        text:
+        text: null
     target:
       name: Target override
       description: Optional override of the configured notify target.
       required: false
       selector:
-        text:
-  example:
-    entry_id: "0123456789abcdef0123456789abcdef"
-    message: "Hello"
-
+        text: null
 export_cop_hourly:
   name: Export COP hourly
   description: Export aggregated COP-per-hour rows as JSON or CSV.
@@ -178,7 +153,7 @@ export_cop_hourly:
       description: Config entry ID.
       required: true
       selector:
-        text:
+        text: null
     days:
       name: Days
       description: Look-back window in days.
@@ -194,7 +169,7 @@ export_cop_hourly:
       description: Optional filter (heating, dhw, defrost, unknown).
       required: false
       selector:
-        text:
+        text: null
     format:
       name: Format
       description: Output format.
@@ -205,11 +180,6 @@ export_cop_hourly:
           options:
             - json
             - csv
-  example:
-    entry_id: "0123456789abcdef0123456789abcdef"
-    days: 30
-    format: json
-
 import_datasheet:
   name: Import datasheet
   description: Import or override user-supplied Daikin datasheet specs.
@@ -219,40 +189,19 @@ import_datasheet:
       description: Config entry ID.
       required: true
       selector:
-        text:
+        text: null
     payload:
       name: Payload
       description: Datasheet payload (dict or JSON string).
       required: true
       selector:
-        object:
+        object: null
     source_url:
       name: Source URL
       description: Optional source reference for provenance.
       required: false
       selector:
-        text:
-  example:
-    entry_id: "0123456789abcdef0123456789abcdef"
-    payload:
-      schema_version: 1
-      models:
-        epra04eav3:
-          family: EPRA
-          kw: 4.0
-          lwt_min: 25.0
-          lwt_max: 55.0
-          nom_cop: 4.42
-          refrigerant: R32
-          gwp: 675
-          charge_kg: 1.15
-          points:
-            - label: "A7/W35"
-              t_out: 7.0
-              t_lwc: 35.0
-              cop: 4.42
-    source_url: "installer-report-2026-10-04.pdf"
-
+        text: null
 remove_user_datasheet:
   name: Remove user datasheet
   description: Remove a user-supplied datasheet override for a specific model.
@@ -262,13 +211,10 @@ remove_user_datasheet:
       description: Config entry ID.
       required: true
       selector:
-        text:
+        text: null
     model_key:
       name: Model key
       description: Model key to remove from user store.
       required: true
       selector:
-        text:
-  example:
-    entry_id: "0123456789abcdef0123456789abcdef"
-    model_key: "my_custom_hp"
+        text: null
