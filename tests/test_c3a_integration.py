@@ -166,8 +166,12 @@ async def test_refresh_no_datasheet_model():
 
 @pytest.mark.asyncio
 async def test_refresh_with_real_datasheet():
+    from custom_components.daikin_cycle_ml.engine.model_datasheets import (
+        load_bundled,
+    )
     coord = MagicMock()
-    coord._datasheet_merged = {}
+    coord._datasheet_merged = load_bundled()
+    coord._datasheet_user_loaded = True
     coord._datasheet_defaults = {}
     coord.entry.data = {"model": "erla11dav3"}
     coord._datasheet_cache = {}

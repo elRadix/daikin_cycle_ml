@@ -1,6 +1,4 @@
 {
-  "domain": "daikin_cycle_ml",
-  "name": "Daikin Cycle ML",
   "codeowners": [
     "@elRadix"
   ],
@@ -9,12 +7,14 @@
     "http"
   ],
   "documentation": "https://github.com/elRadix/daikin_cycle_ml",
+  "domain": "daikin_cycle_ml",
   "integration_type": "helper",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/elRadix/daikin_cycle_ml/issues",
   "loggers": [
     "custom_components.daikin_cycle_ml"
   ],
+  "name": "Daikin Cycle ML",
   "quality_scale": "gold",
   "requirements": [],
   "version": "1.5.3"

@@ -135,6 +135,9 @@ def _attrs_hp_specs(
         "defrost_below_c": ds.get("defrost_below_c"),
         "off_above_c": ds.get("off_above_c"),
         "points": list(ds.get("points") or []),
+        "datasheet_sources": (
+            dict(c.datasheet_sources) if c is not None else {}
+        ),
     }
 
 

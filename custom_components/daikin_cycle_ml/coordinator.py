@@ -41,7 +41,13 @@ from .engine.model_datasheets import (
     load_bundled as _load_bundled_datasheets,
 )
 from .engine.model_datasheets import (
+    UserDatasheetError,
+)
+from .engine.model_datasheets import (
     load_defaults as _load_datasheet_defaults,
+)
+from .engine.model_datasheets import (
+    load_user as _load_user_datasheets,
 )
 from .engine.model_datasheets import (
     merge as _merge_datasheets,
@@ -263,6 +269,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._datasheet_cache: dict[str, Any] = {}
         self._datasheet_merged: dict[str, Any] = {}
         self._datasheet_defaults: dict[str, Any] = {}
+        self._datasheet_user: dict[str, Any] = {}
+        self._datasheet_user_loaded: bool = False
         self._cop_hourly_cache_ts: float = 0.0
         self.db: Any = None
         super().__init__(
@@ -918,6 +926,31 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("spf_state write failed")
 
+    async def async_reload_user_datasheets(self) -> None:
+        """Reload user datasheet Store and rebuild merged view.
+
+        Raises UserDatasheetError if the Store is corrupt or has an
+        unsupported version. Caller (setup_entry or _refresh) decides
+        whether to surface a Repair or fall back to bundled-only.
+        """
+        self._datasheet_user = await _load_user_datasheets(
+            self.hass, self.entry.entry_id
+        )
+        self._datasheet_merged = _merge_datasheets(
+            _load_bundled_datasheets(), self._datasheet_user
+        )
+        self._datasheet_cache = {}
+        self._datasheet_user_loaded = True
+
+    @property
+    def datasheet_sources(self) -> dict[str, str]:
+        """Per-model origin: 'bundled' | 'user'. Public API (R216)."""
+        out: dict[str, str] = {}
+        for k, v in self._datasheet_merged.items():
+            if isinstance(v, dict):
+                out[k] = str(v.get("source", "bundled"))
+        return out
+
     async def _refresh_datasheet_state(
         self,
         now: float,
@@ -926,10 +959,18 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         cop_meas: float | None,
     ) -> None:
         """Compute datasheet-normalized COP (C3a) for the current tick."""
-        if not self._datasheet_merged:
-            self._datasheet_merged = _merge_datasheets(
-                _load_bundled_datasheets(), {}
-            )
+        if not self._datasheet_user_loaded:
+            try:
+                await self.async_reload_user_datasheets()
+            except UserDatasheetError:
+                _LOGGER.warning(
+                    "user datasheet store unreadable; falling back to bundled"
+                )
+                self._datasheet_user = {}
+                self._datasheet_merged = _merge_datasheets(
+                    _load_bundled_datasheets(), {}
+                )
+                self._datasheet_user_loaded = True
         if not self._datasheet_defaults:
             self._datasheet_defaults = _load_datasheet_defaults()
         try:
