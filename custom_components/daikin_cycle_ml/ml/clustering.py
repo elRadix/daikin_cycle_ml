@@ -196,9 +196,8 @@ def nearest_centroid(vector: list[float], centroids: list[list[float]]) -> int |
     for i, c in enumerate(centroids):
         if not isinstance(c, (list, tuple)) or len(c) != len(vector):
             continue
-        d = 0.0
-        for a, b in zip(vector, c, strict=True):
-            d += (float(a) - float(b)) ** 2
+        deltas = [float(a) - float(b) for a, b in zip(vector, c, strict=True)]
+        d = math.hypot(*deltas)
         if d < best_d:
             best_d = d
             best_idx = i
