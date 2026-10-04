@@ -14,9 +14,14 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
+
 _LOGGER = logging.getLogger(__name__)
 
 KNOWN_SCHEMA_VERSION = 1
+USER_STORE_VERSION = 1
+_STORE_KEY_FMT = "daikin_cycle_ml.user_datasheets.{entry_id}"
 
 _BUNDLED_PATH = (
     Path(__file__).resolve().parent.parent / "data" / "datasheets.json"
@@ -118,9 +123,86 @@ def load_bundled(path: Path | None = None) -> dict[str, Any]:
     return _parse_payload(raw, "Bundled")
 
 
+def validate_user_payload(raw: Any) -> tuple[dict[str, Any], list[str]]:
+    """Return (clean_models, errors). Never raises."""
+    errors: list[str] = []
+    if not isinstance(raw, dict):
+        return {}, ["root: not a dict"]
+    if raw.get("schema_version") != KNOWN_SCHEMA_VERSION:
+        errors.append(
+            f"schema_version: {raw.get('schema_version')!r} != {KNOWN_SCHEMA_VERSION}"
+        )
+        return {}, errors
+    models = raw.get("models", {})
+    if not isinstance(models, dict):
+        return {}, ["models: not a dict"]
+    clean: dict[str, Any] = {}
+    for k, v in models.items():
+        errs = _validate_model(k, v)
+        if errs:
+            errors.extend(errs)
+            continue
+        clean[k] = v
+    return clean, errors
+
+
 def parse_user_payload(raw: Any) -> dict[str, Any]:
     """Validate a user-supplied JSON object (already parsed). Returns clean models."""
-    return _parse_payload(raw, "User")
+    clean, _ = validate_user_payload(raw)
+    return clean
+
+
+class UserDatasheetError(Exception):
+    """Raised when the user datasheet Store cannot be read or has wrong version."""
+
+
+def _store(
+    hass: HomeAssistant, entry_id: str
+) -> Store[dict[str, Any]]:
+    return Store[dict[str, Any]](
+        hass, USER_STORE_VERSION, _STORE_KEY_FMT.format(entry_id=entry_id)
+    )
+
+
+async def load_user(hass: HomeAssistant, entry_id: str) -> dict[str, Any]:
+    """Read user datasheets Store. {} on missing. Raises UserDatasheetError on corruption."""
+    store = _store(hass, entry_id)
+    try:
+        data = await store.async_load()
+    except Exception as exc:
+        raise UserDatasheetError(f"store load failed: {exc}") from exc
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise UserDatasheetError(f"store payload not dict: {type(data).__name__}")
+    if data.get("version") != USER_STORE_VERSION:
+        raise UserDatasheetError(
+            f"store version {data.get('version')!r} != {USER_STORE_VERSION}"
+        )
+    models = data.get("models", {})
+    if not isinstance(models, dict):
+        raise UserDatasheetError("store models not dict")
+    return models
+
+
+async def save_user(
+    hass: HomeAssistant, entry_id: str, models: dict[str, Any]
+) -> None:
+    """Atomically persist user models."""
+    store = _store(hass, entry_id)
+    await store.async_save({"version": USER_STORE_VERSION, "models": models})
+
+
+async def remove_user_model(
+    hass: HomeAssistant, entry_id: str, model_key: str
+) -> bool:
+    """Remove one user model. True if removed, False if no-op."""
+    current = await load_user(hass, entry_id)
+    if model_key not in current:
+        return False
+    del current[model_key]
+    await save_user(hass, entry_id, current)
+    return True
 
 
 def merge(
