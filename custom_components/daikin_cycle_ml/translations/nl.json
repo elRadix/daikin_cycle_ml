@@ -428,16 +428,13 @@
         "name": "SCOP rollend 365d"
       },
       "hp_specs": {
-        "name": "WP specs",
-        "description": "Datasheet-specificaties van het geconfigureerde warmtepompmodel (statisch)"
+        "name": "WP specs"
       },
       "cop_normalized_a7w35": {
-        "name": "COP genormaliseerd A7W35",
-        "description": "Carnot-gecorrigeerde live COP genormaliseerd naar referentie A7/W35 uit de datasheet"
+        "name": "COP genormaliseerd A7W35"
       },
       "cop_vs_datasheet_pct": {
-        "name": "COP vs datasheet pct",
-        "description": "Live COP-afwijking t.o.v. datasheet A7/W35 referentiepunt (procent)"
+        "name": "COP vs datasheet pct"
       }
     },
     "binary_sensor": {
