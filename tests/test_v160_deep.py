@@ -26,7 +26,6 @@ from hypothesis import strategies as st
 # === Module-level imports (must resolve before PHACC mocks) ===
 from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,
-    DataSnapshot,
 )
 from custom_components.daikin_cycle_ml.sensor import (
     SENSOR_DEFS,
@@ -85,7 +84,7 @@ def test_contract_unit_implies_state_class():
 
 
 def test_contract_count_27():
-    assert len(SENSOR_DEFS) == 27
+    assert len(SENSOR_DEFS) == 30
 
 
 # ================================================================

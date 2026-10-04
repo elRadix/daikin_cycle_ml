@@ -1,0 +1,512 @@
+{
+  "schema_version": 1,
+  "generated": "2026-10-04",
+  "source": "Daikin EN 14511 datasheets (ported from Lovelace card HP_SPECS/DAIKIN_REF_COP)",
+  "defaults": {
+    "defrost_below_c": 5,
+    "buh_above_offset_c": -5,
+    "off_above_c": 20,
+    "outdoor_min_c": -25,
+    "outdoor_max_c": 35
+  },
+  "models": {
+    "epra04eav3": {
+      "family": "Monoblock",
+      "kw": 4,
+      "lwt_min": 18,
+      "lwt_max": 55,
+      "nom_cop": 4.6,
+      "charge_kg": 2.6,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "epra06eav3": {
+      "family": "Monoblock",
+      "kw": 6,
+      "lwt_min": 18,
+      "lwt_max": 55,
+      "nom_cop": 4.5,
+      "charge_kg": 3.0,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "epra08eav3": {
+      "family": "Monoblock",
+      "kw": 8,
+      "lwt_min": 18,
+      "lwt_max": 60,
+      "nom_cop": 4.4,
+      "charge_kg": 3.8,
+      "scop_w35": 4.65,
+      "scop_w55": 3.25,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.92,
+          "hc": 6.17
+        },
+        {
+          "label": "A2/W35",
+          "t_out": 2,
+          "t_lwc": 35,
+          "cop": 4.08,
+          "hc": 5.74
+        },
+        {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 3.04,
+          "hc": 4.8
+        },
+        {
+          "label": "A-2/W45",
+          "t_out": -2,
+          "t_lwc": 45,
+          "cop": 2.36,
+          "hc": 7.73
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.94,
+          "hc": 2.94
+        },
+        {
+          "label": "A-7/W55",
+          "t_out": -7,
+          "t_lwc": 55,
+          "cop": 2.05,
+          "hc": 2.55
+        }
+      ]
+    },
+    "epra10eav3": {
+      "family": "Monoblock",
+      "kw": 10,
+      "lwt_min": 18,
+      "lwt_max": 60,
+      "nom_cop": 4.3,
+      "charge_kg": 3.8,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.92,
+          "hc": 6.17
+        },
+        {
+          "label": "A2/W35",
+          "t_out": 2,
+          "t_lwc": 35,
+          "cop": 4.08,
+          "hc": 5.74
+        },
+        {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 3.04,
+          "hc": 4.8
+        },
+        {
+          "label": "A-2/W45",
+          "t_out": -2,
+          "t_lwc": 45,
+          "cop": 2.36,
+          "hc": 7.73
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.94,
+          "hc": 2.94
+        },
+        {
+          "label": "A-7/W55",
+          "t_out": -7,
+          "t_lwc": 55,
+          "cop": 2.05,
+          "hc": 2.55
+        }
+      ]
+    },
+    "epra11eav3": {
+      "family": "Monoblock",
+      "kw": 11,
+      "lwt_min": 18,
+      "lwt_max": 60,
+      "nom_cop": 4.3,
+      "charge_kg": 3.8,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "epra12eav3": {
+      "family": "Monoblock",
+      "kw": 12,
+      "lwt_min": 18,
+      "lwt_max": 60,
+      "nom_cop": 4.2,
+      "charge_kg": 3.8,
+      "scop_w35": 4.63,
+      "scop_w55": 3.23,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.92,
+          "hc": 6.17
+        },
+        {
+          "label": "A2/W35",
+          "t_out": 2,
+          "t_lwc": 35,
+          "cop": 4.08,
+          "hc": 5.74
+        },
+        {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 3.04,
+          "hc": 4.8
+        },
+        {
+          "label": "A-2/W45",
+          "t_out": -2,
+          "t_lwc": 45,
+          "cop": 2.36,
+          "hc": 7.73
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.94,
+          "hc": 2.94
+        },
+        {
+          "label": "A-7/W55",
+          "t_out": -7,
+          "t_lwc": 55,
+          "cop": 2.05,
+          "hc": 2.55
+        }
+      ]
+    },
+    "epra14eav3": {
+      "family": "Monoblock",
+      "kw": 14,
+      "lwt_min": 18,
+      "lwt_max": 65,
+      "nom_cop": 4.1,
+      "charge_kg": 3.8,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "epra16eav3": {
+      "family": "Monoblock",
+      "kw": 16,
+      "lwt_min": 18,
+      "lwt_max": 65,
+      "nom_cop": 4.0,
+      "charge_kg": 3.8,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "erla04dav3": {
+      "family": "Split",
+      "kw": 4,
+      "lwt_min": 15,
+      "lwt_max": 55,
+      "nom_cop": 4.8,
+      "charge_kg": 2.4,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "erla06dav3": {
+      "family": "Split",
+      "kw": 6,
+      "lwt_min": 15,
+      "lwt_max": 55,
+      "nom_cop": 4.7,
+      "charge_kg": 2.9,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "erla08dav3": {
+      "family": "Split",
+      "kw": 8,
+      "lwt_min": 15,
+      "lwt_max": 60,
+      "nom_cop": 4.5,
+      "charge_kg": 3.2,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "erla11dav3": {
+      "family": "Split",
+      "kw": 11,
+      "lwt_min": 15,
+      "lwt_max": 60,
+      "nom_cop": 4.83,
+      "charge_kg": 3.8,
+      "scop_w35": 4.63,
+      "scop_w55": 3.23,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": [
+        {
+          "label": "A10/W35",
+          "t_out": 10,
+          "t_lwc": 35,
+          "cop": 5.32,
+          "hc": 9.2
+        },
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.83,
+          "hc": 10.56
+        },
+        {
+          "label": "A2/W35",
+          "t_out": 2,
+          "t_lwc": 35,
+          "cop": 3.65,
+          "hc": 9.0
+        },
+        {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 2.92,
+          "hc": 8.75
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.66,
+          "hc": 9.82
+        },
+        {
+          "label": "A-2/W45",
+          "t_out": -2,
+          "t_lwc": 45,
+          "cop": 2.57,
+          "hc": 9.32
+        },
+        {
+          "label": "A-7/W45",
+          "t_out": -7,
+          "t_lwc": 45,
+          "cop": 2.35,
+          "hc": 8.72
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.94,
+          "hc": 10.64
+        },
+        {
+          "label": "A-7/W55",
+          "t_out": -7,
+          "t_lwc": 55,
+          "cop": 1.82,
+          "hc": 7.89
+        }
+      ]
+    },
+    "erla12dav3": {
+      "family": "Split",
+      "kw": 12,
+      "lwt_min": 15,
+      "lwt_max": 60,
+      "nom_cop": 4.85,
+      "charge_kg": 3.8,
+      "scop_w35": 4.62,
+      "scop_w55": 3.22,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "erla14dav3": {
+      "family": "Split",
+      "kw": 14,
+      "lwt_min": 15,
+      "lwt_max": 60,
+      "nom_cop": 4.87,
+      "charge_kg": 3.8,
+      "scop_w35": 4.6,
+      "scop_w55": 3.22,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": [
+        {
+          "label": "A10/W35",
+          "t_out": 10,
+          "t_lwc": 35,
+          "cop": 5.32,
+          "hc": 9.2
+        },
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.87,
+          "hc": 12.0
+        },
+        {
+          "label": "A2/W35",
+          "t_out": 2,
+          "t_lwc": 35,
+          "cop": 3.5,
+          "hc": 10.8
+        },
+        {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 2.86,
+          "hc": 9.3
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.64,
+          "hc": 12.45
+        },
+        {
+          "label": "A-2/W45",
+          "t_out": -2,
+          "t_lwc": 45,
+          "cop": 2.58,
+          "hc": 10.15
+        },
+        {
+          "label": "A-7/W45",
+          "t_out": -7,
+          "t_lwc": 45,
+          "cop": 2.29,
+          "hc": 8.98
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.89,
+          "hc": 11.87
+        },
+        {
+          "label": "A-7/W55",
+          "t_out": -7,
+          "t_lwc": 55,
+          "cop": 1.82,
+          "hc": 8.47
+        }
+      ]
+    },
+    "erla16dav3": {
+      "family": "Split",
+      "kw": 16,
+      "lwt_min": 15,
+      "lwt_max": 60,
+      "nom_cop": 4.53,
+      "charge_kg": 3.8,
+      "scop_w35": 4.58,
+      "scop_w55": 3.2,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": [
+        {
+          "label": "A10/W35",
+          "t_out": 10,
+          "t_lwc": 35,
+          "cop": 5.32,
+          "hc": 9.2
+        },
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.53,
+          "hc": 16.0
+        },
+        {
+          "label": "A2/W35",
+          "t_out": 2,
+          "t_lwc": 35,
+          "cop": 3.3,
+          "hc": 12.0
+        },
+        {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 2.7,
+          "hc": 10.6
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.51,
+          "hc": 16.0
+        },
+        {
+          "label": "A-2/W45",
+          "t_out": -2,
+          "t_lwc": 45,
+          "cop": 2.42,
+          "hc": 11.91
+        },
+        {
+          "label": "A-7/W45",
+          "t_out": -7,
+          "t_lwc": 45,
+          "cop": 2.1,
+          "hc": 10.49
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.75,
+          "hc": 15.63
+        },
+        {
+          "label": "A-7/W55",
+          "t_out": -7,
+          "t_lwc": 55,
+          "cop": 1.78,
+          "hc": 8.87
+        }
+      ]
+    }
+  }
+}

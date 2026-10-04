@@ -20,32 +20,31 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTime
+from homeassistant.const import EntityCategory, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
-    ATTR_FLOW_SENSOR,
-    ATTR_INLET_WATER_R4T,
-    ATTR_INV_FREQUENCY_RPS,
-    ATTR_LEAVING_WATER_AFTER_BUH,
-    DOMAIN,
-    RPS_KW_FACTOR,
     UPDATE_INTERVAL_SECONDS,
-    WATER_DENSITY_KG_L,
-    WATER_SPECIFIC_HEAT_KJ_KG_K,
 )
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
-from .entity import DaikinCycleMLEntity
-from .engine.thermal import (  # noqa: F401
+from .engine.thermal import (
     compute_thermal_power_live as _compute_thermal_power_live,
+)
+from .engine.thermal import (
     dt_from_attrs as _dt_from_attrs,
+)
+from .engine.thermal import (
     flow_from_attrs as _flow_from_attrs,
+)
+from .engine.thermal import (
     rps_from_attrs as _rps_from_attrs,
+)
+from .engine.thermal import (
     safe_float as _safe_float,
 )
-
+from .entity import DaikinCycleMLEntity
 
 PARALLEL_UPDATES = 0  # read-only platform, HA serializes updates
 
@@ -91,8 +90,118 @@ def _ratio(num: float, denom: float) -> float | None:
 
 
 
+def _value_cop_normalized_a7w35(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> float | None:
+    """C3a: Carnot-normalized COP at reference A7/W35."""
+    return s.cop_normalized_a7w35
+
+
+def _value_hp_specs(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> str | None:
+    """C3a: configured heat pump model key (specs sensor)."""
+    return s.datasheet_model
+
+
+def _attrs_hp_specs(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    """C3a: full datasheet of the configured model (static specs)."""
+    ds = s.datasheet
+    if not ds:
+        return {
+            "configured": False,
+            "model": s.datasheet_model,
+            "reason": "no datasheet for this model",
+        }
+    return {
+        "configured": True,
+        "model": ds.get("model"),
+        "source": ds.get("source"),
+        "family": ds.get("family"),
+        "kw": ds.get("kw"),
+        "lwt_min": ds.get("lwt_min"),
+        "lwt_max": ds.get("lwt_max"),
+        "outdoor_min_c": ds.get("outdoor_min_c"),
+        "outdoor_max_c": ds.get("outdoor_max_c"),
+        "nom_cop": ds.get("nom_cop"),
+        "scop_w35": ds.get("scop_w35"),
+        "scop_w55": ds.get("scop_w55"),
+        "refrigerant": ds.get("refrigerant"),
+        "gwp": ds.get("gwp"),
+        "charge_kg": ds.get("charge_kg"),
+        "buh_above_c": ds.get("buh_above_c"),
+        "defrost_below_c": ds.get("defrost_below_c"),
+        "off_above_c": ds.get("off_above_c"),
+        "points": list(ds.get("points") or []),
+    }
+
+
+def _attrs_cop_normalized_a7w35(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    """Attributes for cop_normalized_a7w35 sensor (C3a)."""
+    ds = s.datasheet or {}
+    ref_cop = next(
+        (pt.get("cop") for pt in (ds.get("points") or [])
+         if pt.get("label") == "A7/W35"),
+        None,
+    )
+    return {
+        "model": s.datasheet_model,
+        "family": ds.get("family"),
+        "kw": ds.get("kw"),
+        "lwt_min": ds.get("lwt_min"),
+        "lwt_max": ds.get("lwt_max"),
+        "nom_cop": ds.get("nom_cop"),
+        "scop_w35": ds.get("scop_w35"),
+        "scop_w55": ds.get("scop_w55"),
+        "ref_cop_a7w35": ref_cop,
+        "source": ds.get("source"),
+        "cop_normalized_a7w35": s.cop_normalized_a7w35,
+        "cop_measured": s.cop,
+    }
+
+
+def _value_cop_vs_datasheet_pct(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> float | None:
+    """C3a: live COP deviation (%) vs datasheet A7/W35."""
+    return s.cop_vs_datasheet_pct
+
+
+def _attrs_cop_vs_datasheet_pct(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    """Attributes for cop_vs_datasheet_pct sensor (C3a)."""
+    ds = s.datasheet or {}
+    ref_cop = next(
+        (pt.get("cop") for pt in (ds.get("points") or [])
+         if pt.get("label") == "A7/W35"),
+        None,
+    )
+    pct = s.cop_vs_datasheet_pct
+    if pct is None:
+        band = None
+    elif pct >= 0:
+        band = "on_spec"
+    elif pct >= -20:
+        band = "below_spec"
+    else:
+        band = "critical"
+    return {
+        "model": s.datasheet_model,
+        "ref_cop_a7w35": ref_cop,
+        "cop_normalized_a7w35": s.cop_normalized_a7w35,
+        "cop_measured": s.cop,
+        "deviation_pct": pct,
+        "band": band,
+    }
+
+
 def _value_thermal_power_live(
-    s: "DataSnapshot", c: "DaikinCycleMLCoordinator"
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> float | None:
     kw, _ = _compute_thermal_power_live(
         power_w=s.power_w,
@@ -105,7 +214,7 @@ def _value_thermal_power_live(
 
 
 def _attrs_thermal_power_live(
-    s: "DataSnapshot", c: "DaikinCycleMLCoordinator"
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> dict[str, Any]:
     power_w = s.power_w
     cop = s.cop
@@ -444,6 +553,7 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
         state_class: SensorStateClass | None = None,
         unit: str | None = None,
         icon: str | None = None,
+        entity_category: str | None = None,
     ) -> None:
         super().__init__(coordinator, key, name)
         self._value_fn = value_fn
@@ -456,6 +566,10 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
             self._attr_native_unit_of_measurement = unit
         if icon is not None:
             self._attr_icon = icon
+        if entity_category == "diagnostic":
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        elif entity_category == "config":
+            self._attr_entity_category = EntityCategory.CONFIG
 
     @property
     def native_value(self) -> Any:
@@ -494,6 +608,29 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "icon": "mdi:fire",
         "value_fn": _value_thermal_power_live,
         "attr_fn": _attrs_thermal_power_live,
+    },
+    {
+        "key": "hp_specs", "name": "HP specs",
+        "icon": "mdi:heat-pump-outline",
+        "entity_category": "diagnostic",
+        "value_fn": _value_hp_specs,
+        "attr_fn": _attrs_hp_specs,
+    },
+    {
+        "key": "cop_normalized_a7w35", "name": "COP normalized A7W35",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP",
+        "icon": "mdi:thermometer-lines",
+        "value_fn": _value_cop_normalized_a7w35,
+        "attr_fn": _attrs_cop_normalized_a7w35,
+    },
+    {
+        "key": "cop_vs_datasheet_pct", "name": "COP vs datasheet pct",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "%",
+        "icon": "mdi:chart-bell-curve",
+        "value_fn": _value_cop_vs_datasheet_pct,
+        "attr_fn": _attrs_cop_vs_datasheet_pct,
     },
     {
         "key": "cycle_state", "name": "Cycle state",
@@ -761,6 +898,7 @@ async def async_setup_entry(
             state_class=spec.get("state_class"),
             unit=spec.get("unit"),
             icon=spec.get("icon"),
+            entity_category=spec.get("entity_category"),
         )
         for spec in SENSOR_DEFS
     ]

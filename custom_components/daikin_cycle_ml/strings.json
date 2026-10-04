@@ -426,6 +426,18 @@
       },
       "scop_running_365d": {
         "name": "SCOP running 365d"
+      },
+      "hp_specs": {
+        "name": "HP specs",
+        "description": "Datasheet specifications of the configured heat pump model (static)"
+      },
+      "cop_normalized_a7w35": {
+        "name": "COP normalized A7W35",
+        "description": "Carnot-corrected live COP normalized to reference A7/W35 from datasheet"
+      },
+      "cop_vs_datasheet_pct": {
+        "name": "COP vs datasheet pct",
+        "description": "Live COP deviation from datasheet A7/W35 reference point (percent)"
       }
     },
     "binary_sensor": {

@@ -17,31 +17,44 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+# v1.4.1 BUG-2 / BUG-3: score wiring + threshold.
 from .const import (
+    COP_CURVE_RECENT_HOURS,
+    COP_CURVE_RECENT_MAX_POINTS,
+    COP_ROLLUP_WINDOW_HOURS,
     COP_SENSOR_ENTITY,
     DEFAULT_COMFORT_MIN_C,
     DOMAIN,
+    GOOD_CYCLE_MIN_SCORE,
     MODEL_BASISPROFIEL,
     SOURCE_SENSOR_ENTITY,
     UPDATE_INTERVAL_SECONDS,
 )
-# v1.4.1 BUG-2 / BUG-3: score wiring + threshold.
-from .const import GOOD_CYCLE_MIN_SCORE
-from .const import COP_ROLLUP_WINDOW_HOURS
-from .engine.quality_scorer import score_cycle
 from .engine.action_engine import generate_advice
 from .engine.anomaly_engine import evaluate as evaluate_anomaly
 from .engine.attribute_reader import missing_required, read
 from .engine.cycle_detector import CycleDetector
+from .engine.model_datasheets import (
+    get_datasheet as _get_datasheet,
+)
+from .engine.model_datasheets import (
+    load_bundled as _load_bundled_datasheets,
+)
+from .engine.model_datasheets import (
+    load_defaults as _load_datasheet_defaults,
+)
+from .engine.model_datasheets import (
+    merge as _merge_datasheets,
+)
 from .engine.model_profiles import defaults_for
 from .engine.notification_engine import build_status_message, evaluate_alerts
+from .engine.quality_scorer import score_cycle
 from .ml.adaptive_thresholds import AdaptiveThresholds
 from .ml.clustering import classify_clusters, nearest_centroid
 from .ml.features import VECTOR_LEN, extract_feature_vector
 from .ml.multi_baseline import MultiBaseline
 from .repairs import async_check_repairs
 from .storage.store import CycleStore
-from .const import COP_CURVE_RECENT_HOURS, COP_CURVE_RECENT_MAX_POINTS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -74,9 +87,23 @@ class DataSnapshot:
     power_w: float | None = None
     cop: float | None = None
     setpoint_oscillating: bool = False
+    datasheet: dict[str, Any] | None = None
+    datasheet_model: str | None = None
+    cop_normalized_a7w35: float | None = None
+    cop_vs_datasheet_pct: float | None = None
 
 
 # --- FEAT-2: live thermal power helpers ---
+
+def _safe_float_opt(value: Any) -> float | None:
+    """Parse any value to float, or None on failure."""
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
 
 def _normalize_power_w(value: float | None, unit: str | None) -> float | None:
     """Normalize power reading to Watt (kW -> W, W/unknown stays W)."""
@@ -233,6 +260,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cop_today_heating_cache: dict[str, Any] = {}
         self._cop_hourly_cache: dict[str, dict[str, Any]] = {}
         self._spf_state_cache: dict[str, Any] = {}
+        self._datasheet_cache: dict[str, Any] = {}
+        self._datasheet_merged: dict[str, Any] = {}
+        self._datasheet_defaults: dict[str, Any] = {}
         self._cop_hourly_cache_ts: float = 0.0
         self.db: Any = None
         super().__init__(
@@ -597,6 +627,20 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             )
             snap.stooklijn_advies = self._stooklijn_cache
             snap.errors_total = self._errors_total
+            await self._refresh_datasheet_state(
+                now,
+                _safe_float_opt(self._stooklijn_cache.get("huidige_lwt")),
+                _safe_float_opt((snap.last_record or {}).get("outdoor_temp")),
+                snap.cop,
+            )
+            snap.datasheet = self._datasheet_cache.get("datasheet")
+            snap.datasheet_model = self._datasheet_cache.get("model")
+            snap.cop_normalized_a7w35 = self._datasheet_cache.get(
+                "cop_normalized_a7w35"
+            )
+            snap.cop_vs_datasheet_pct = self._datasheet_cache.get(
+                "cop_vs_datasheet_pct"
+            )
             await self._async_dispatch_alerts(snap)
             await async_check_repairs(
                 self.hass, self.entry.entry_id, snap, self
@@ -873,6 +917,78 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self.db.async_set_model_state("spf_state", self._spf_state_cache)
         except Exception:
             _LOGGER.exception("spf_state write failed")
+
+    async def _refresh_datasheet_state(
+        self,
+        now: float,
+        lwt_now: float | None,
+        t_out: float | None,
+        cop_meas: float | None,
+    ) -> None:
+        """Compute datasheet-normalized COP (C3a) for the current tick."""
+        if not self._datasheet_merged:
+            self._datasheet_merged = _merge_datasheets(
+                _load_bundled_datasheets(), {}
+            )
+        if not self._datasheet_defaults:
+            self._datasheet_defaults = _load_datasheet_defaults()
+        try:
+            model = self.entry.data.get("model", MODEL_BASISPROFIEL)
+        except Exception:
+            model = MODEL_BASISPROFIEL
+        ds_raw = _get_datasheet(self._datasheet_merged, model)
+        ds: dict[str, Any] | None = None
+        if ds_raw is not None:
+            defaults = self._datasheet_defaults
+            lwt_max = ds_raw.get("lwt_max")
+            buh_offset = defaults.get("buh_above_offset_c", -5)
+            buh_above = (
+                lwt_max + buh_offset
+                if isinstance(lwt_max, (int, float))
+                else None
+            )
+            ds = {
+                **ds_raw,
+                "model": model,
+                "outdoor_min_c": defaults.get("outdoor_min_c"),
+                "outdoor_max_c": defaults.get("outdoor_max_c"),
+                "defrost_below_c": defaults.get("defrost_below_c"),
+                "off_above_c": defaults.get("off_above_c"),
+                "buh_above_c": buh_above,
+            }
+        out: dict[str, Any] = {
+            "datasheet": ds,
+            "cop_normalized_a7w35": None,
+            "cop_vs_datasheet_pct": None,
+            "model": model,
+            "updated_ts": now,
+        }
+        if ds is None or cop_meas is None or lwt_now is None or t_out is None:
+            self._datasheet_cache = out
+            return
+        ref = next(
+            (pt for pt in ds["points"] if pt.get("label") == "A7/W35"),
+            None,
+        )
+        if ref is None or float(ref.get("cop", 0)) <= 0:
+            self._datasheet_cache = out
+            return
+        t_cond_ref = 35.0 + 5.0 + 273.15
+        t_evap_ref = 7.0 - 8.0 + 273.15
+        dT_ref = t_cond_ref - t_evap_ref
+        t_cond_live = lwt_now + 5.0 + 273.15
+        t_evap_live = t_out - 8.0 + 273.15
+        dT_live = t_cond_live - t_evap_live
+        if dT_live <= 0:
+            self._datasheet_cache = out
+            return
+        cop_norm = cop_meas * (
+            (t_cond_ref / dT_ref) / (t_cond_live / dT_live)
+        )
+        pct = ((cop_norm - float(ref["cop"])) / float(ref["cop"])) * 100.0
+        out["cop_normalized_a7w35"] = round(cop_norm, 3)
+        out["cop_vs_datasheet_pct"] = round(pct, 2)
+        self._datasheet_cache = out
 
     async def _maybe_refresh_stooklijn(
         self, now: float, *, force: bool = False

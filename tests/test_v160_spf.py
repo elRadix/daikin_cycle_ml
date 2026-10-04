@@ -297,7 +297,7 @@ def test_runtime_import_all_modules():
 
 def test_runtime_sensor_defs_count_and_unique_keys():
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
-    assert len(SENSOR_DEFS) == 27
+    assert len(SENSOR_DEFS) == 30
     keys = [s["key"] for s in SENSOR_DEFS]
     assert len(set(keys)) == len(keys), "duplicate SENSOR_DEFS keys"
 
@@ -305,6 +305,7 @@ def test_runtime_sensor_defs_count_and_unique_keys():
 def test_runtime_spf_scop_slug_match():
     """SPF/SCOP names must slugify to their key."""
     import re
+
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
 
     def _slug(s: str) -> str:
@@ -369,8 +370,8 @@ def test_runtime_optionsflow_season_schema_accepts_str():
 
 
 def test_runtime_optionsflow_season_schema_rejects_out_of_range():
-    import voluptuous as vol
     import pytest as _pytest
+    import voluptuous as vol
     schema = vol.Schema({
         vol.Required("season_start_month", default=10): vol.All(
             vol.Coerce(int),
@@ -385,8 +386,8 @@ def test_runtime_optionsflow_season_schema_rejects_out_of_range():
 
 
 def test_runtime_optionsflow_season_schema_rejects_nonnumeric():
-    import voluptuous as vol
     import pytest as _pytest
+    import voluptuous as vol
     schema = vol.Schema({
         vol.Required("season_start_month", default=10): vol.All(
             vol.Coerce(int),

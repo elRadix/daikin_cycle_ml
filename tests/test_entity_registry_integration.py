@@ -10,13 +10,13 @@ import re
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.daikin_cycle_ml import sensor as sensor_mod
 from custom_components.daikin_cycle_ml.const import DOMAIN
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 
 _SLUG_RE = re.compile(r"^sensor\.daikin_cycle_ml_[a-z0-9_]+$")
 
