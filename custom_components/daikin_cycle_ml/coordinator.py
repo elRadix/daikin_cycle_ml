@@ -70,6 +70,7 @@ class DataSnapshot:
     cop_hourly_week: dict[str, Any] = field(default_factory=dict)
     cop_hourly_month: dict[str, Any] = field(default_factory=dict)
     cop_curve_recent: dict[str, Any] = field(default_factory=dict)
+    spf_state: dict[str, Any] = field(default_factory=dict)
 
 
 # --- FEAT-2: live thermal power helpers ---
@@ -228,6 +229,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cop_today_cache: dict[str, Any] = {}
         self._cop_today_heating_cache: dict[str, Any] = {}
         self._cop_hourly_cache: dict[str, dict[str, Any]] = {}
+        self._spf_state_cache: dict[str, Any] = {}
         self._cop_hourly_cache_ts: float = 0.0
         self.db: Any = None
         super().__init__(
@@ -576,8 +578,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._refresh_cop_today(now)
             await self._maybe_refresh_stooklijn(now)
             await self._maybe_refresh_cop_hourly(now)
+            await self._maybe_refresh_spf(now)
             snap.cop_today = self._cop_today_heating_cache
             snap.cop_combined_today = self._cop_today_cache
+            snap.spf_state = self._spf_state_cache
             snap.cop_hourly_day = self._cop_hourly_cache.get("day", {})
             snap.cop_hourly_week = self._cop_hourly_cache.get("week", {})
             snap.cop_hourly_month = self._cop_hourly_cache.get("month", {})
@@ -799,6 +803,69 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             self._cop_today_cache = {}
             self._cop_today_heating_cache = {}
+
+    async def _maybe_refresh_spf(self, now: float) -> None:
+        """Refresh SPF state at most once per hour (or on cold start)."""
+        if self.db is None:
+            return
+        last = self._spf_state_cache.get("updated_ts", 0) if self._spf_state_cache else 0
+        if self._spf_state_cache and (now - float(last)) < 3600.0:
+            return
+        await self._refresh_spf_state(now)
+
+    async def _refresh_spf_state(self, now: float) -> None:
+        """Compute SPF / SCOP over season, YTD and rolling 365d windows.
+
+        NOTE: SPF is defined per EN14825 as heat output / electric input.
+        Without per-sample power data we approximate it by the arithmetic
+        mean of per-sample COP values (same approach as cop_today).
+        """
+        if self.db is None:
+            return
+        try:
+            opts = self.options or {}
+            start_month = int(opts.get("season_start_month", 10))
+            if not (1 <= start_month <= 12):
+                start_month = 10
+        except Exception:
+            start_month = 10
+
+        lt = time.localtime(now)
+        season_year = lt.tm_year if lt.tm_mon >= start_month else lt.tm_year - 1
+        season_start = time.mktime(
+            (season_year, start_month, 1, 0, 0, 0, 0, 0, -1)
+        )
+        ytd_start = time.mktime((lt.tm_year, 1, 1, 0, 0, 0, 0, 0, -1))
+        rolling_start = now - 365.0 * 86400.0
+
+        async def _mean_since(start_ts: float) -> tuple[float | None, int]:
+            try:
+                rows = await self.db.async_fetch_cop_samples_between(start_ts, now)
+            except Exception:
+                return (None, 0)
+            cops = [
+                float(r["cop"]) for r in rows
+                if isinstance(r.get("cop"), (int, float)) and float(r["cop"]) > 0.0
+            ]
+            if not cops:
+                return (None, 0)
+            return (round(sum(cops) / len(cops), 2), len(cops))
+
+        spf_s, n_s = await _mean_since(season_start)
+        spf_y, n_y = await _mean_since(ytd_start)
+        spf_r, n_r = await _mean_since(rolling_start)
+
+        self._spf_state_cache = {
+            "season_start_month": start_month,
+            "spf_season": spf_s, "spf_season_n": n_s,
+            "spf_ytd": spf_y, "spf_ytd_n": n_y,
+            "scop_365d": spf_r, "scop_365d_n": n_r,
+            "updated_ts": now,
+        }
+        try:
+            await self.db.async_set_model_state("spf_state", self._spf_state_cache)
+        except Exception:
+            _LOGGER.exception("spf_state write failed")
 
     async def _maybe_refresh_stooklijn(
         self, now: float, *, force: bool = False

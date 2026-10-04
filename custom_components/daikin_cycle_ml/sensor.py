@@ -296,6 +296,19 @@ def _attrs_cop_combined_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> d
     }
 
 
+def _attrs_spf_state(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
+    data = s.spf_state or {}
+    return {
+        "season_start_month": data.get("season_start_month"),
+        "spf_season_n": data.get("spf_season_n"),
+        "spf_ytd": data.get("spf_ytd"),
+        "spf_ytd_n": data.get("spf_ytd_n"),
+        "scop_365d": data.get("scop_365d"),
+        "scop_365d_n": data.get("scop_365d_n"),
+        "updated_ts": data.get("updated_ts"),
+    }
+
+
 def _cop_hourly_heating_mean(
     period: str,
 ) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], Any]:
@@ -555,6 +568,30 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "icon": "mdi:heat-pump-outline",
         "value_fn": lambda s, c: (s.cop_combined_today or {}).get("cop"),
         "attr_fn": _attrs_cop_combined_today,
+    },
+    {
+        "key": "spf_season", "name": "SPF season",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "SPF",
+        "icon": "mdi:calendar-star",
+        "value_fn": lambda s, c: (s.spf_state or {}).get("spf_season"),
+        "attr_fn": _attrs_spf_state,
+    },
+    {
+        "key": "spf_ytd", "name": "SPF YTD",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "SPF",
+        "icon": "mdi:calendar-today",
+        "value_fn": lambda s, c: (s.spf_state or {}).get("spf_ytd"),
+        "attr_fn": _attrs_spf_state,
+    },
+    {
+        "key": "scop_running_365d", "name": "SCOP running 365d",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "SPF",
+        "icon": "mdi:chart-timeline-variant",
+        "value_fn": lambda s, c: (s.spf_state or {}).get("scop_365d"),
+        "attr_fn": _attrs_spf_state,
     },
     {
         "key": "heating_curve_advice", "name": "Heating curve advice",

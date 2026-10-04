@@ -307,13 +307,15 @@
           "retention_enabled": "Retentie ingeschakeld",
           "cycle_retention_days": "Cyclus-retentie (dagen)",
           "alert_retention_days": "Melding-retentie (dagen)",
-          "vacuum_enabled": "VACUUM na opschonen"
+          "vacuum_enabled": "VACUUM na opschonen",
+          "season_start_month": "Startmaand stookseizoen"
         },
         "data_description": {
           "retention_enabled": "Dagelijks onderhoud om 03:00 lokale tijd.",
           "cycle_retention_days": "Cycli ouder dan N dagen worden gerold. Standaard 90.",
           "alert_retention_days": "Meldingen ouder dan N dagen verwijderd. Standaard 30.",
-          "vacuum_enabled": "SQLite VACUUM om ruimte vrij te maken."
+          "vacuum_enabled": "SQLite VACUUM om ruimte vrij te maken.",
+          "season_start_month": "Eerste maand van het stookseizoen (1-12). Gebruikt voor SPF-berekening. Standaard: 10."
         }
       },
       "test_notification": {
@@ -415,6 +417,15 @@
       },
       "cop_combined_today": {
         "name": "COP gecombineerd vandaag"
+      },
+      "spf_season": {
+        "name": "SPF seizoen"
+      },
+      "spf_ytd": {
+        "name": "SPF dit jaar"
+      },
+      "scop_running_365d": {
+        "name": "SCOP rollend 365d"
       }
     },
     "binary_sensor": {

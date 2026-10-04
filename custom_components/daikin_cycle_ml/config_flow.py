@@ -76,6 +76,7 @@ from .const import (
     NAME,
     REQUIRED_ATTRIBUTES,
     SOURCE_SENSOR_ENTITY,
+    DEFAULT_SEASON_START_MONTH,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -880,5 +881,14 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             vol.Required("vacuum_enabled",
                 default=c.get("vacuum_enabled", DEFAULT_VACUUM_ENABLED)
             ): bool,
+            vol.Required("season_start_month",
+                default=c.get("season_start_month", DEFAULT_SEASON_START_MONTH)
+            ): vol.All(
+                vol.Coerce(int),
+                vol.In({1: "January", 2: "February", 3: "March",
+                        4: "April", 5: "May", 6: "June",
+                        7: "July", 8: "August", 9: "September",
+                        10: "October", 11: "November", 12: "December"}),
+            ),
         })
         return self.async_show_form(step_id="maintenance", data_schema=schema)

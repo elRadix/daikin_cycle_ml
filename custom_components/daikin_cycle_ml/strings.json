@@ -307,13 +307,15 @@
           "retention_enabled": "Retention enabled",
           "cycle_retention_days": "Cycle retention (days)",
           "alert_retention_days": "Alert retention (days)",
-          "vacuum_enabled": "VACUUM after prune"
+          "vacuum_enabled": "VACUUM after prune",
+          "season_start_month": "Season start month"
         },
         "data_description": {
           "retention_enabled": "Run daily maintenance at 03:00 local time.",
           "cycle_retention_days": "Cycles older than N days are rolled up and pruned. Default 90.",
           "alert_retention_days": "Alerts older than N days are deleted. Default 30.",
-          "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning."
+          "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning.",
+          "season_start_month": "First month of the heating season (1-12). Used for SPF calculation. Default: 10."
         }
       },
       "test_notification": {
@@ -415,6 +417,15 @@
       },
       "cop_combined_today": {
         "name": "COP combined today"
+      },
+      "spf_season": {
+        "name": "SPF season"
+      },
+      "spf_ytd": {
+        "name": "SPF YTD"
+      },
+      "scop_running_365d": {
+        "name": "SCOP running 365d"
       }
     },
     "binary_sensor": {
