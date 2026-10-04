@@ -19,6 +19,9 @@ ISSUE_DB_CORRUPT = "db_corrupt"
 ISSUE_NOTIFY_FAILED = "notify_failed"
 ISSUE_MIGRATION_FAILED = "migration_failed"
 NOTIFY_FAIL_THRESHOLD = 3
+ISSUE_DATASHEET_IMPORT_INVALID = "datasheet_import_invalid"
+ISSUE_DATASHEET_SCHEMA_UNKNOWN = "datasheet_schema_unknown"
+ISSUE_DATASHEET_LOAD_FAILED = "datasheet_load_failed"
 
 
 async def async_check_repairs(
@@ -123,3 +126,68 @@ def _check_migration_failed(hass: HomeAssistant, entry_id: str, coord: Any) -> N
         translation_key=ISSUE_MIGRATION_FAILED,
         translation_placeholders={"error": str(err)[:120]},
     )
+
+
+def raise_datasheet_import_invalid(
+    hass: HomeAssistant, entry_id: str, errors: list[str]
+) -> None:
+    """Create import_invalid issue with error summary as placeholder."""
+    issue_id = f"{ISSUE_DATASHEET_IMPORT_INVALID}_{entry_id}"
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=ISSUE_DATASHEET_IMPORT_INVALID,
+        translation_placeholders={"count": str(len(errors)), "first": errors[0][:120] if errors else ""},
+    )
+
+
+def clear_datasheet_import_invalid(hass: HomeAssistant, entry_id: str) -> None:
+    ir.async_delete_issue(
+        hass, DOMAIN, f"{ISSUE_DATASHEET_IMPORT_INVALID}_{entry_id}"
+    )
+
+
+def raise_datasheet_schema_unknown(
+    hass: HomeAssistant, entry_id: str, found: object
+) -> None:
+    issue_id = f"{ISSUE_DATASHEET_SCHEMA_UNKNOWN}_{entry_id}"
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.ERROR,
+        translation_key=ISSUE_DATASHEET_SCHEMA_UNKNOWN,
+        translation_placeholders={"found": str(found)},
+    )
+
+
+def clear_datasheet_schema_unknown(hass: HomeAssistant, entry_id: str) -> None:
+    ir.async_delete_issue(
+        hass, DOMAIN, f"{ISSUE_DATASHEET_SCHEMA_UNKNOWN}_{entry_id}"
+    )
+
+
+def raise_datasheet_load_failed(
+    hass: HomeAssistant, entry_id: str, reason: str
+) -> None:
+    issue_id = f"{ISSUE_DATASHEET_LOAD_FAILED}_{entry_id}"
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.ERROR,
+        translation_key=ISSUE_DATASHEET_LOAD_FAILED,
+        translation_placeholders={"reason": reason[:120]},
+    )
+
+
+def clear_datasheet_load_failed(hass: HomeAssistant, entry_id: str) -> None:
+    ir.async_delete_issue(
+        hass, DOMAIN, f"{ISSUE_DATASHEET_LOAD_FAILED}_{entry_id}"
+    )
+

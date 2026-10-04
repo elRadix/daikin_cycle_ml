@@ -505,6 +505,18 @@
     "migration_failed": {
       "title": "Feature-vector-migratie mislukt",
       "description": "Migratiefout: {error}. Historische feature-vectors zijn mogelijk niet compatibel met het huidige model."
+    },
+    "datasheet_import_invalid": {
+      "title": "Datasheet-import mislukt",
+      "description": "{count} validatiefout(en). Eerste: {first}"
+    },
+    "datasheet_schema_unknown": {
+      "title": "Datasheet-schema niet ondersteund",
+      "description": "Payload heeft schema_version {found}; alleen {supported} is ondersteund."
+    },
+    "datasheet_load_failed": {
+      "title": "User-datasheet-store onleesbaar",
+      "description": "Kon user-datasheet-store niet laden: {reason}"
     }
   },
   "services": {
@@ -523,6 +535,38 @@
         "target": {
           "name": "Target override",
           "description": "Optional override of the configured notify target."
+        }
+      }
+    },
+    "import_datasheet": {
+      "name": "Import datasheet",
+      "description": "Import or override user-supplied Daikin datasheet specs.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "payload": {
+          "name": "Payload",
+          "description": "Datasheet payload (dict or JSON string)."
+        },
+        "source_url": {
+          "name": "Source URL",
+          "description": "Optional source reference for provenance."
+        }
+      }
+    },
+    "remove_user_datasheet": {
+      "name": "Remove user datasheet",
+      "description": "Remove a user-supplied datasheet override for a specific model.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "model_key": {
+          "name": "Model key",
+          "description": "Model key to remove from user store."
         }
       }
     }

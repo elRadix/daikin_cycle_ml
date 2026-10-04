@@ -1,12 +1,11 @@
 """B7: export_cop_hourly service. Marker: B7_EXPORT_COP_HOURLY_v1"""
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import voluptuous as vol
-
-from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.daikin_cycle_ml.services import (
     SCHEMA_EXPORT_COP_HOURLY,
@@ -14,6 +13,7 @@ from custom_components.daikin_cycle_ml.services import (
     _do_export_cop_hourly,
     _handle_export_cop_hourly,
 )
+from homeassistant.exceptions import HomeAssistantError
 
 
 def _mk_coord(db=None):
@@ -39,11 +39,11 @@ def _mk_rows():
     ]
 
 
-def test_b7_service_constant():
+def test_b7_service_constant() -> None:
     assert SERVICE_EXPORT_COP_HOURLY == "export_cop_hourly"
 
 
-def test_b7_schema_valid():
+def test_b7_schema_valid() -> None:
     data = SCHEMA_EXPORT_COP_HOURLY({
         "entry_id": "abc", "days": 7, "mode": "heating",
         "format": "csv",
@@ -54,29 +54,29 @@ def test_b7_schema_valid():
     assert data["format"] == "csv"
 
 
-def test_b7_schema_defaults():
+def test_b7_schema_defaults() -> None:
     data = SCHEMA_EXPORT_COP_HOURLY({"entry_id": "abc"})
     assert data["days"] == 30
     assert data["format"] == "json"
     assert data.get("mode") is None
 
 
-def test_b7_schema_rejects_zero_days():
+def test_b7_schema_rejects_zero_days() -> None:
     with pytest.raises(vol.Invalid):
         SCHEMA_EXPORT_COP_HOURLY({"entry_id": "abc", "days": 0})
 
 
-def test_b7_schema_rejects_too_many_days():
+def test_b7_schema_rejects_too_many_days() -> None:
     with pytest.raises(vol.Invalid):
         SCHEMA_EXPORT_COP_HOURLY({"entry_id": "abc", "days": 366})
 
 
-def test_b7_schema_rejects_bad_format():
+def test_b7_schema_rejects_bad_format() -> None:
     with pytest.raises(vol.Invalid):
         SCHEMA_EXPORT_COP_HOURLY({"entry_id": "abc", "format": "xml"})
 
 
-async def test_b7_worker_json():
+async def test_b7_worker_json() -> None:
     db = MagicMock()
     db.async_query_cop_hourly = AsyncMock(return_value=_mk_rows())
     coord = _mk_coord(db=db)
@@ -88,7 +88,7 @@ async def test_b7_worker_json():
     assert out["days"] == 30
 
 
-async def test_b7_worker_csv():
+async def test_b7_worker_csv() -> None:
     db = MagicMock()
     db.async_query_cop_hourly = AsyncMock(return_value=_mk_rows())
     coord = _mk_coord(db=db)
@@ -99,7 +99,7 @@ async def test_b7_worker_csv():
     assert "heating" in out["content"]
 
 
-async def test_b7_worker_csv_empty():
+async def test_b7_worker_csv_empty() -> None:
     db = MagicMock()
     db.async_query_cop_hourly = AsyncMock(return_value=[])
     coord = _mk_coord(db=db)
@@ -108,13 +108,13 @@ async def test_b7_worker_csv_empty():
     assert out["count"] == 0
 
 
-async def test_b7_worker_no_db():
+async def test_b7_worker_no_db() -> None:
     coord = _mk_coord(db=None)
     with pytest.raises(HomeAssistantError):
         await _do_export_cop_hourly(coord, 30, None, "json")
 
 
-async def test_b7_worker_mode_filter():
+async def test_b7_worker_mode_filter() -> None:
     db = MagicMock()
     db.async_query_cop_hourly = AsyncMock(return_value=[])
     coord = _mk_coord(db=db)
@@ -139,14 +139,14 @@ async def test_b7_handler_passthrough(monkeypatch):
     assert out["days"] == 7
 
 
-async def test_b7_registration_includes_export_cop_hourly():
+async def test_b7_registration_includes_export_cop_hourly() -> None:
     from custom_components.daikin_cycle_ml import services as svc
     hass = MagicMock()
     hass.services = MagicMock()
     hass.services.has_service = MagicMock(return_value=False)
     registered = []
 
-    def _reg(domain, name, handler, schema=None):
+    def _reg(domain: str, name: str, handler: Any, schema: Any = None, **kwargs: Any) -> None:
         registered.append(name)
 
     hass.services.async_register = MagicMock(side_effect=_reg)

@@ -14,6 +14,8 @@ reset_counters:
       required: false
       selector:
         object:
+  example:
+    entry_id: "0123456789abcdef0123456789abcdef"
 
 export_cycles:
   name: Export cycles
@@ -45,6 +47,10 @@ export_cycles:
           options:
             - json
             - csv
+  example:
+    entry_id: "0123456789abcdef0123456789abcdef"
+    days: 30
+    format: json
 
 label_cycle:
   name: Label cycle
@@ -70,6 +76,10 @@ label_cycle:
       required: true
       selector:
         text:
+  example:
+    entry_id: "0123456789abcdef0123456789abcdef"
+    cycle_id: 1
+    label: good
 
 recompute_baseline:
   name: Recompute baseline
@@ -91,6 +101,9 @@ recompute_baseline:
           min: 1
           max: 365
           mode: box
+  example:
+    entry_id: "0123456789abcdef0123456789abcdef"
+    days: 7
 
 run_maintenance:
   name: Run maintenance
@@ -126,6 +139,9 @@ run_maintenance:
       required: false
       selector:
         boolean:
+  example:
+    entry_id: "0123456789abcdef0123456789abcdef"
+    cycle_retention_days: 90
 
 send_test_notification:
   name: Send test notification
@@ -149,6 +165,9 @@ send_test_notification:
       required: false
       selector:
         text:
+  example:
+    entry_id: "0123456789abcdef0123456789abcdef"
+    message: "Hello"
 
 export_cop_hourly:
   name: Export COP hourly
@@ -186,3 +205,70 @@ export_cop_hourly:
           options:
             - json
             - csv
+  example:
+    entry_id: "0123456789abcdef0123456789abcdef"
+    days: 30
+    format: json
+
+import_datasheet:
+  name: Import datasheet
+  description: Import or override user-supplied Daikin datasheet specs.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID.
+      required: true
+      selector:
+        text:
+    payload:
+      name: Payload
+      description: Datasheet payload (dict or JSON string).
+      required: true
+      selector:
+        object:
+    source_url:
+      name: Source URL
+      description: Optional source reference for provenance.
+      required: false
+      selector:
+        text:
+  example:
+    entry_id: "0123456789abcdef0123456789abcdef"
+    payload:
+      schema_version: 1
+      models:
+        epra04eav3:
+          family: EPRA
+          kw: 4.0
+          lwt_min: 25.0
+          lwt_max: 55.0
+          nom_cop: 4.42
+          refrigerant: R32
+          gwp: 675
+          charge_kg: 1.15
+          points:
+            - label: "A7/W35"
+              t_out: 7.0
+              t_lwc: 35.0
+              cop: 4.42
+    source_url: "installer-report-2026-10-04.pdf"
+
+remove_user_datasheet:
+  name: Remove user datasheet
+  description: Remove a user-supplied datasheet override for a specific model.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID.
+      required: true
+      selector:
+        text:
+    model_key:
+      name: Model key
+      description: Model key to remove from user store.
+      required: true
+      selector:
+        text:
+  example:
+    entry_id: "0123456789abcdef0123456789abcdef"
+    model_key: "my_custom_hp"
