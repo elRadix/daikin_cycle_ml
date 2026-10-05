@@ -29,6 +29,15 @@ from .const import (
     MODEL_BASISPROFIEL,
     SOURCE_SENSOR_ENTITY,
     UPDATE_INTERVAL_SECONDS,
+
+    DEGRADATION_BASELINE_DAYS,
+    DEGRADATION_REFRESH_THROTTLE_S,
+    DEGRADATION_WINDOW_DAYS,
+)
+from .engine.cop_degradation import (
+    analyze_degradation,
+    analyze_trend,
+    build_dirty_hours,
 )
 from .engine.action_engine import generate_advice
 from .engine.anomaly_engine import evaluate as evaluate_anomaly
@@ -97,6 +106,11 @@ class DataSnapshot:
     datasheet_model: str | None = None
     cop_normalized_a7w35: float | None = None
     cop_vs_datasheet_pct: float | None = None
+    cop_degradation_status: str = "none"
+    cop_degradation_week_pct: float | None = None
+    cop_trend_30d: float | None = None
+    cop_degradation_detail: dict[str, Any] = field(default_factory=dict)
+    cop_trend_detail: dict[str, Any] = field(default_factory=dict)
 
 
 # --- FEAT-2: live thermal power helpers ---
@@ -199,6 +213,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _cycle_cop_count: int = 0
     _cop_hourly_cache: dict[str, dict[str, Any]] = {}
     _cop_hourly_cache_ts: float = 0.0
+    _cop_degradation_cache: dict[str, Any] = {}
+    _cop_degradation_cache_ts: float = 0.0
 
     # R52: class-level defaults so __new__-style tests find these attrs
     _kmeans_centroids: list[Any] = []
@@ -272,6 +288,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._datasheet_user: dict[str, Any] = {}
         self._datasheet_user_loaded: bool = False
         self._cop_hourly_cache_ts: float = 0.0
+        self._cop_degradation_cache: dict[str, Any] = {}
+        self._cop_degradation_cache_ts: float = 0.0
         self.db: Any = None
         super().__init__(
             hass,
@@ -459,6 +477,63 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("cop curve_recent refresh failed")
 
+    async def _maybe_refresh_cop_degradation(self, now: float) -> None:
+        """Refresh weather-normalized degradation + 30d trend (C4).
+
+        Throttled to DEGRADATION_REFRESH_THROTTLE_S. Uses heating-only
+        hourly rows and cycles-filtered dirty hours. On any failure
+        leaves the previous cache intact.
+        """
+        if self.db is None:
+            return
+        if (now - self._cop_degradation_cache_ts) < DEGRADATION_REFRESH_THROTTLE_S:
+            return
+        win_s = float(DEGRADATION_WINDOW_DAYS) * 86400.0
+        base_s = float(DEGRADATION_BASELINE_DAYS) * 86400.0
+        recent_since = now - win_s
+        prev_since = now - 2.0 * win_s
+        baseline_since = now - (base_s + win_s)
+        try:
+            recent_rows = await self.db.async_query_cop_hourly(
+                since_ts=recent_since, until_ts=now, mode="heating"
+            )
+            prev_rows = await self.db.async_query_cop_hourly(
+                since_ts=prev_since, until_ts=recent_since,
+                mode="heating",
+            )
+            baseline_rows = await self.db.async_query_cop_hourly(
+                since_ts=baseline_since, until_ts=recent_since,
+                mode="heating",
+            )
+            cycles_all = await self.db.async_fetch_cycles(
+                days=DEGRADATION_BASELINE_DAYS + DEGRADATION_WINDOW_DAYS
+            )
+            cycles_win = [
+                c for c in cycles_all
+                if c.get("start_ts") is not None
+                and float(c["start_ts"]) >= baseline_since
+            ]
+            dirty = build_dirty_hours(cycles_win)
+            deg = analyze_degradation(
+                recent_rows, prev_rows, dirty,
+                window_days=DEGRADATION_WINDOW_DAYS, now=now,
+            )
+            trend = analyze_trend(
+                baseline_rows, recent_rows, dirty,
+                window_days=DEGRADATION_BASELINE_DAYS,
+                baseline_days=DEGRADATION_BASELINE_DAYS,
+                recent_days=DEGRADATION_WINDOW_DAYS,
+                now=now,
+            )
+            self._cop_degradation_cache = {
+                "degradation": deg, "trend": trend,
+            }
+            self._cop_degradation_cache_ts = now
+        except Exception:
+            _LOGGER.exception(
+                "cop_degradation cache refresh failed"
+            )
+
     async def _refresh_cop_curve_recent(self, now: float) -> None:
         """Populate _cop_hourly_cache["curve_recent"] with 48h points."""
         if self.db is None:
@@ -623,6 +698,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._refresh_cop_today(now)
             await self._maybe_refresh_stooklijn(now)
             await self._maybe_refresh_cop_hourly(now)
+            await self._maybe_refresh_cop_degradation(now)
             await self._maybe_refresh_spf(now)
             snap.cop_today = self._cop_today_heating_cache
             snap.cop_combined_today = self._cop_today_cache
@@ -633,6 +709,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.cop_curve_recent = self._cop_hourly_cache.get(
                 "curve_recent", {}
             )
+            _deg = self._cop_degradation_cache.get("degradation", {})
+            _tr = self._cop_degradation_cache.get("trend", {})
+            snap.cop_degradation_status = _deg.get("severity", "none")
+            snap.cop_degradation_week_pct = _deg.get("week_pct")
+            snap.cop_trend_30d = _tr.get("trend_30d")
+            snap.cop_degradation_detail = _deg
+            snap.cop_trend_detail = _tr
             snap.stooklijn_advies = self._stooklijn_cache
             snap.errors_total = self._errors_total
             await self._refresh_datasheet_state(

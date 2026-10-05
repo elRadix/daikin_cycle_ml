@@ -602,6 +602,89 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
             return None
 
 
+def _value_cop_degradation_status(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> Any:
+    return s.cop_degradation_status
+
+
+def _attrs_cop_degradation_status(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    d = s.cop_degradation_detail or {}
+    return {
+        "severity_raw": d.get("severity_raw", "none"),
+        "severity_downgraded": d.get("severity_downgraded", False),
+        "week_pct": d.get("week_pct"),
+        "week_pct_raw": d.get("week_pct_raw"),
+        "lwt_shift_detected": d.get("lwt_shift_detected", False),
+        "lwt_shift_c": d.get("lwt_shift_c"),
+        "threshold_pct": d.get("threshold_pct"),
+        "critical_pct": d.get("critical_pct"),
+        "valid": d.get("valid", False),
+        "updated_ts": d.get("updated_ts"),
+    }
+
+
+def _value_cop_degradation_week_pct(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> Any:
+    return s.cop_degradation_week_pct
+
+
+def _attrs_cop_degradation_week_pct(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    d = s.cop_degradation_detail or {}
+    return {
+        "mode": d.get("mode"),
+        "window_days": d.get("window_days"),
+        "n_samples_recent": d.get("n_samples_recent"),
+        "n_samples_prev": d.get("n_samples_prev"),
+        "n_days_recent": d.get("n_days_recent"),
+        "n_days_prev": d.get("n_days_prev"),
+        "n_bins_used": d.get("n_bins_used"),
+        "dynamic_min_samples": d.get("dynamic_min_samples"),
+        "bins_used": d.get("bins_used", []),
+        "excluded_hours_recent": d.get("excluded_hours_recent"),
+        "excluded_hours_prev": d.get("excluded_hours_prev"),
+        "exclusion_skew": d.get("exclusion_skew"),
+        "lwt_mean_recent": d.get("lwt_mean_recent"),
+        "lwt_mean_prev": d.get("lwt_mean_prev"),
+        "updated_ts": d.get("updated_ts"),
+    }
+
+
+def _value_cop_trend_30d(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> Any:
+    return s.cop_trend_30d
+
+
+def _attrs_cop_trend_30d(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    d = s.cop_trend_detail or {}
+    return {
+        "mode": d.get("mode"),
+        "window_days": d.get("window_days"),
+        "baseline_days": d.get("baseline_days"),
+        "recent_days": d.get("recent_days"),
+        "n_hours_baseline": d.get("n_hours_baseline"),
+        "n_hours_recent": d.get("n_hours_recent"),
+        "outdoor_spread_baseline_c": d.get("outdoor_spread_baseline_c"),
+        "fit_slope": d.get("fit_slope"),
+        "fit_intercept": d.get("fit_intercept"),
+        "fit_r2": d.get("fit_r2"),
+        "cop_predicted_recent": d.get("cop_predicted_recent"),
+        "cop_observed_recent": d.get("cop_observed_recent"),
+        "threshold_pct": d.get("threshold_pct"),
+        "critical_pct": d.get("critical_pct"),
+        "valid": d.get("valid", False),
+        "updated_ts": d.get("updated_ts"),
+    }
+
+
 SENSOR_DEFS: list[dict[str, Any]] = [
     {
         "key": "thermal_power_live", "name": "Thermal power live",
@@ -634,6 +717,30 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "icon": "mdi:chart-bell-curve",
         "value_fn": _value_cop_vs_datasheet_pct,
         "attr_fn": _attrs_cop_vs_datasheet_pct,
+    },
+    {
+        "key": "cop_degradation_status", "name": "COP degradation status",
+        "device_class": SensorDeviceClass.ENUM,
+        "options": ["none", "info", "warning", "critical"],
+        "icon": "mdi:chart-line-variant",
+        "value_fn": _value_cop_degradation_status,
+        "attr_fn": _attrs_cop_degradation_status,
+    },
+    {
+        "key": "cop_degradation_week_pct", "name": "COP degradation week pct",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "%",
+        "icon": "mdi:trending-down",
+        "value_fn": _value_cop_degradation_week_pct,
+        "attr_fn": _attrs_cop_degradation_week_pct,
+    },
+    {
+        "key": "cop_trend_30d", "name": "COP trend 30d",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "%",
+        "icon": "mdi:chart-timeline-variant",
+        "value_fn": _value_cop_trend_30d,
+        "attr_fn": _attrs_cop_trend_30d,
     },
     {
         "key": "cycle_state", "name": "Cycle state",

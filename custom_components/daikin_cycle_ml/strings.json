@@ -435,6 +435,21 @@
       },
       "cop_vs_datasheet_pct": {
         "name": "COP vs datasheet pct"
+      },
+      "cop_degradation_status": {
+        "name": "COP degradation status",
+        "state": {
+          "none": "Normal",
+          "info": "Informational",
+          "warning": "Warning",
+          "critical": "Critical"
+        }
+      },
+      "cop_degradation_week_pct": {
+        "name": "COP degradation week pct"
+      },
+      "cop_trend_30d": {
+        "name": "COP trend 30d"
       }
     },
     "binary_sensor": {
