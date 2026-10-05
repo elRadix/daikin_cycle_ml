@@ -86,8 +86,14 @@ async def test_options_device_submit_roundtrip(hass: HomeAssistant):
     try:
         r2 = await hass.config_entries.options.async_configure(
             r["flow_id"],
-            user_input={"compressor_rps_threshold": 3,
-                        "fallback_power_threshold_w": 200},
+            user_input={
+                "sensors": {},
+                "detection": {
+                    "compressor_rps_threshold": 3,
+                    "fallback_power_threshold_w": 200,
+                },
+                "comfort": {},
+            },
         )
         assert r2["type"] in (FlowResultType.FORM, FlowResultType.MENU,
                               FlowResultType.CREATE_ENTRY)

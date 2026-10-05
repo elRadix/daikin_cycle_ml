@@ -151,7 +151,11 @@ async def test_options_flow_saves(hass):
     )
     result = await hass.config_entries.options.async_configure(
         result["flow_id"],
-        {"compressor_rps_threshold": 5},
+        {
+            "sensors": {},
+            "detection": {"compressor_rps_threshold": 5},
+            "comfort": {},
+        },
     )
     assert result["type"] == "create_entry"
     assert result["data"]["compressor_rps_threshold"] == 5

@@ -130,7 +130,11 @@ async def test_options_flow_menu_test_all(hass: HomeAssistant):
 
 # --- SUBMIT tests: raken de handler-bodies in config_flow.py ---
 @pytest.mark.parametrize("step,data", [
-    ("device", {"compressor_rps_threshold": 3, "fallback_power_threshold_w": 200}),
+    ("device", {
+        "sensors": {},
+        "detection": {"compressor_rps_threshold": 3, "fallback_power_threshold_w": 200},
+        "comfort": {},
+    }),
     ("pendulum", {
         "short_run_threshold_min": 20, "short_off_threshold_min": 5,
         "pendulum_cycles_per_hour": 4, "pendulum_cycles_per_day": 40,

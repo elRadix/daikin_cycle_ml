@@ -29,6 +29,7 @@ else:
         )
 
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 
 from .const import (
@@ -549,7 +550,14 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         )
 
     def _save(self, user_input: dict[str, Any]) -> ConfigFlowResult:
-        merged = {**dict(self.config_entry.options or {}), **user_input}
+        # Flatten section() input one level: {section: {k: v}} -> {k: v}
+        flat: dict[str, Any] = {}
+        for k, v in user_input.items():
+            if isinstance(v, dict):
+                flat.update(v)
+            else:
+                flat[k] = v
+        merged = {**dict(self.config_entry.options or {}), **flat}
         return self.async_create_entry(data=merged)
 
     async def async_step_device(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -558,42 +566,48 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         c: dict[str, Any] = dict(self.config_entry.options or {})
         d: dict[str, Any] = dict(self.config_entry.data or {})
         schema = vol.Schema({
-            vol.Required(
-                "compressor_rps_threshold",
-                default=c.get("compressor_rps_threshold",
-                    DEFAULT_COMPRESSOR_RPS_THRESHOLD),
-            ): _num(0, 100, 1, "rps"),
-            vol.Optional(
-                "power_sensor_entity",
-                description={"suggested_value": c.get("power_sensor_entity")},
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
-            ),
-            vol.Required(
-                "fallback_power_threshold_w",
-                default=c.get("fallback_power_threshold_w",
-                    DEFAULT_FALLBACK_POWER_THRESHOLD_W),
-            ): _num(0, 10000, 10, "W"),
-            vol.Optional(
-                "indoor_temp_sensor",
-                description={"suggested_value": c.get("indoor_temp_sensor")},
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
-            ),
-            vol.Optional(
-                "cop_sensor_entity",
-                description={"suggested_value": c.get("cop_sensor_entity")},
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
-            ),
-            vol.Required(
-                "comfort_min_c",
-                default=c.get("comfort_min_c", DEFAULT_COMFORT_MIN_C),
-            ): _num(15.0, 22.0, 0.5, "°C"),
-            vol.Required(
-                "comfort_max_c",
-                default=c.get("comfort_max_c", DEFAULT_COMFORT_MAX_C),
-            ): _num(22.0, 28.0, 0.5, "°C"),
+            vol.Required("sensors"): section(vol.Schema({
+                vol.Optional(
+                    "power_sensor_entity",
+                    description={"suggested_value": c.get("power_sensor_entity")},
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(
+                    "cop_sensor_entity",
+                    description={"suggested_value": c.get("cop_sensor_entity")},
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(
+                    "indoor_temp_sensor",
+                    description={"suggested_value": c.get("indoor_temp_sensor")},
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+            })),
+            vol.Required("detection"): section(vol.Schema({
+                vol.Required(
+                    "compressor_rps_threshold",
+                    default=c.get("compressor_rps_threshold",
+                        DEFAULT_COMPRESSOR_RPS_THRESHOLD),
+                ): _num(0, 100, 1, "rps"),
+                vol.Required(
+                    "fallback_power_threshold_w",
+                    default=c.get("fallback_power_threshold_w",
+                        DEFAULT_FALLBACK_POWER_THRESHOLD_W),
+                ): _num(0, 10000, 10, "W"),
+            })),
+            vol.Required("comfort"): section(vol.Schema({
+                vol.Required(
+                    "comfort_min_c",
+                    default=c.get("comfort_min_c", DEFAULT_COMFORT_MIN_C),
+                ): _num(15.0, 22.0, 0.5, "°C"),
+                vol.Required(
+                    "comfort_max_c",
+                    default=c.get("comfort_max_c", DEFAULT_COMFORT_MAX_C),
+                ): _num(22.0, 28.0, 0.5, "°C"),
+            })),
         })
         return self.async_show_form(
             step_id="device",
