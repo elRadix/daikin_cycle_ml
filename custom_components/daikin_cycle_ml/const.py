@@ -225,6 +225,35 @@ COP_ROLLUP_WINDOW_HOURS = 720
 DEFAULT_COP_ANALYSIS_DAYS = 30
 DEFAULT_COMFORT_MIN_C = 20.0
 DEFAULT_SEASON_START_MONTH = 10
+
+# ---------- v1.6.0-C5: BUH step power by model ----------
+# Daikin Altherma service handbook: BUH is 3kW step1 + 3kW or 6kW step2.
+# Fallback (3.0, 3.0) underestimates EPRA/ERLA 11-16 with step2=6kW.
+BUH_STEP_KW_BY_MODEL: dict[str, tuple[float, float]] = {
+    "EPRA04": (3.0, 3.0),
+    "EPRA06": (3.0, 3.0),
+    "EPRA08": (3.0, 3.0),
+    "EPRA11": (3.0, 6.0),
+    "EPRA12": (3.0, 6.0),
+    "EPRA14": (3.0, 6.0),
+    "EPRA16": (3.0, 6.0),
+    "ERLA04": (3.0, 3.0),
+    "ERLA06": (3.0, 3.0),
+    "ERLA08": (3.0, 3.0),
+    "ERLA11": (3.0, 6.0),
+    "ERLA12": (3.0, 6.0),
+    "ERLA14": (3.0, 6.0),
+    "ERLA16": (3.0, 6.0),
+}
+BUH_STEP_KW_DEFAULT: tuple[float, float] = (3.0, 3.0)
+
+
+def buh_step_kw_for_model(model: str | None) -> tuple[float, float]:
+    """Return (step1_kw, step2_kw) for a model key, fallback (3.0, 3.0)."""
+    if not model:
+        return BUH_STEP_KW_DEFAULT
+    return BUH_STEP_KW_BY_MODEL.get(str(model).upper(), BUH_STEP_KW_DEFAULT)
+
 DEFAULT_COMFORT_MAX_C = 24.0
 K_EMIT_DEFAULT = 0.20
 LWT_STEP_MIN = 1.0

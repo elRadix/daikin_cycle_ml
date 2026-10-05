@@ -23,6 +23,10 @@ from .const import (
     COP_CURVE_RECENT_MAX_POINTS,
     COP_ROLLUP_WINDOW_HOURS,
     COP_SENSOR_ENTITY,
+    ATTR_BUH_STEP1,
+    ATTR_BUH_STEP2,
+    ATTR_DEFROST_OPERATION,
+    buh_step_kw_for_model as _buh_step_kw_for_model,
     DEFAULT_COMFORT_MIN_C,
     DOMAIN,
     GOOD_CYCLE_MIN_SCORE,
@@ -42,6 +46,10 @@ from .engine.cop_degradation import (
 from .engine.action_engine import generate_advice
 from .engine.anomaly_engine import evaluate as evaluate_anomaly
 from .engine.attribute_reader import missing_required, read
+from .engine.thermal import compute_thermal_power_live as _compute_thermal_power_live
+from .engine.thermal import dt_from_attrs as _dt_from_attrs
+from .engine.thermal import flow_from_attrs as _flow_from_attrs
+from .engine.thermal import rps_from_attrs as _rps_from_attrs
 from .engine.cycle_detector import CycleDetector
 from .engine.model_datasheets import (
     get_datasheet as _get_datasheet,
@@ -290,6 +298,28 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cop_hourly_cache_ts: float = 0.0
         self._cop_degradation_cache: dict[str, Any] = {}
         self._cop_degradation_cache_ts: float = 0.0
+        # ---------- v1.6.0-C5: runtime/BUH/defrost accumulators ----------
+        self._runtime_day_key: str = ""
+        self._buh_step1_s: float = 0.0
+        self._buh_step2_s: float = 0.0
+        self._prev_defrost: bool = False
+        self._defrost_start_ts: float | None = None
+        self._defrost_count_today: int = 0
+        self._defrost_duration_s: float = 0.0
+        self._last_defrost_ts: float = 0.0
+        self._last_runtime_tick_ts: float = 0.0
+        # ---------- v1.6.0-C6a: energy accumulators ----------
+        self._energy_day_key: str = ""
+        self._energy_acc: dict[str, dict[str, float]] = {
+            "heating": {"th": 0.0, "el": 0.0},
+            "dhw":     {"th": 0.0, "el": 0.0},
+            "cooling": {"th": 0.0, "el": 0.0},
+        }
+        self._last_energy_tick_ts: float = 0.0
+        # ---------- v1.6.0-C6b: cost caches ----------
+        self._cost_month_cache: dict[str, Any] = {}
+        self._cost_month_cache_ts: float = 0.0
+
         self.db: Any = None
         super().__init__(
             hass,
@@ -666,6 +696,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         now = time.time()
         snap = DataSnapshot(last_sample_ts=now)
         self.store.daily_reset_if_needed(now)
+        self._maybe_reset_daily_accumulators(now)
         try:
             state = self.hass.states.get(self.source_entity)
             if state is None:
@@ -693,6 +724,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.mode = self.detector.snapshot().get("mode", "unknown")
             snap.cycle_start_ts = float(
                 self.detector.snapshot().get("start_ts") or 0.0
+            )
+            self._tick_buh_and_defrost(attrs, now)
+            self._tick_energy(
+                attrs, now,
+                mode=snap.mode,
+                power_w=snap.power_w,
+                cop=snap.cop,
             )
             await self._maybe_collect_cop_sample(now)
             await self._refresh_cop_today(now)
@@ -742,6 +780,134 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.errors_total = self._errors_total
             _LOGGER.exception("Coordinator update failed: %s", err)
         return snap
+
+    def _maybe_reset_daily_accumulators(self, now: float) -> None:
+        """Reset runtime + energy accumulators on local-day boundary.
+
+        Does NOT persist — caller is responsible for calling
+        async_save_runtime_state BEFORE this (or accept ~30s loss).
+        """
+        day = time.strftime("%Y-%m-%d", time.localtime(float(now)))
+        if self._runtime_day_key == day:
+            return
+        self._runtime_day_key = day
+        self._buh_step1_s = 0.0
+        self._buh_step2_s = 0.0
+        self._prev_defrost = False
+        self._defrost_start_ts = None
+        self._defrost_count_today = 0
+        self._defrost_duration_s = 0.0
+        self._energy_day_key = day
+        self._energy_acc = {
+            "heating": {"th": 0.0, "el": 0.0},
+            "dhw":     {"th": 0.0, "el": 0.0},
+            "cooling": {"th": 0.0, "el": 0.0},
+        }
+
+    async def _persist_runtime_acc(self) -> None:
+        """Persist runtime accumulators to model_state. Never raises."""
+        if self.db is None or not self._runtime_day_key:
+            return
+        try:
+            await self.db.async_set_model_state(
+                f"runtime_acc.{self._runtime_day_key}",
+                {
+                    "day": self._runtime_day_key,
+                    "buh_step1_s": self._buh_step1_s,
+                    "buh_step2_s": self._buh_step2_s,
+                    "defrost_count": self._defrost_count_today,
+                    "defrost_duration_s": self._defrost_duration_s,
+                    "last_defrost_ts": self._last_defrost_ts,
+                },
+            )
+        except Exception:
+            _LOGGER.exception("runtime_acc persist failed")
+
+    async def _persist_energy_acc(self) -> None:
+        """Persist energy accumulators to model_state. Never raises."""
+        if self.db is None or not self._energy_day_key:
+            return
+        try:
+            payload: dict[str, Any] = {"day": self._energy_day_key}
+            for mode in ("heating", "dhw", "cooling"):
+                payload[f"{mode}_th_kwh"] = self._energy_acc[mode]["th"]
+                payload[f"{mode}_el_kwh"] = self._energy_acc[mode]["el"]
+            await self.db.async_set_model_state(
+                f"energy_acc.{self._energy_day_key}", payload
+            )
+        except Exception:
+            _LOGGER.exception("energy_acc persist failed")
+
+    def _tick_buh_and_defrost(self, attrs: dict[str, Any], now: float) -> None:
+        """Accumulate BUH-runtime + defrost-events for one tick. Never raises."""
+        try:
+            last = self._last_runtime_tick_ts or now
+            dt_s = max(0.0, min(now - last, 120.0))
+            self._last_runtime_tick_ts = now
+            if dt_s <= 0.0:
+                return
+            s1 = attrs.get(ATTR_BUH_STEP1)
+            s2 = attrs.get(ATTR_BUH_STEP2)
+            if s1 is True:
+                self._buh_step1_s += dt_s
+            if s2 is True:
+                self._buh_step2_s += dt_s
+            defrost_on = attrs.get(ATTR_DEFROST_OPERATION) is True
+            if defrost_on and not self._prev_defrost:
+                self._defrost_count_today += 1
+                self._defrost_start_ts = now
+                self._last_defrost_ts = now
+            elif not defrost_on and self._prev_defrost:
+                if self._defrost_start_ts is not None:
+                    dur = max(0.0, now - self._defrost_start_ts)
+                    self._defrost_duration_s += dur
+                self._defrost_start_ts = None
+            elif defrost_on and self._defrost_start_ts is not None:
+                # Running tally while defrost continues (live view).
+                dur = max(0.0, now - self._defrost_start_ts)
+                # Not accumulated twice: value is recomputed not summed.
+                self._defrost_duration_s = max(
+                    self._defrost_duration_s, dur
+                )
+            self._prev_defrost = defrost_on
+        except Exception:
+            _LOGGER.exception("BUH/defrost tick failed")
+
+    def _tick_energy(
+        self,
+        attrs: dict[str, Any],
+        now: float,
+        mode: str,
+        power_w: float | None,
+        cop: float | None,
+    ) -> None:
+        """Accumulate thermal + electrical kWh for one tick. Never raises."""
+        try:
+            last = self._last_energy_tick_ts or now
+            dt_s = max(0.0, min(now - last, 120.0))
+            self._last_energy_tick_ts = now
+            if dt_s <= 0.0:
+                return
+            m = mode if mode in ("heating", "dhw", "cooling") else "heating"
+            kw_th, _src = _compute_thermal_power_live(
+                power_w=power_w,
+                cop=cop,
+                flow_lmin=_flow_from_attrs(attrs),
+                dt_k=_dt_from_attrs(attrs),
+                rps=_rps_from_attrs(attrs),
+            )
+            if kw_th is None:
+                return
+            kw_el: float | None = None
+            if power_w is not None and power_w > 0.0:
+                kw_el = power_w / 1000.0
+            elif cop is not None and cop > 0.0:
+                kw_el = kw_th / cop
+            self._energy_acc[m]["th"] += kw_th * dt_s / 3600.0
+            if kw_el is not None:
+                self._energy_acc[m]["el"] += kw_el * dt_s / 3600.0
+        except Exception:
+            _LOGGER.exception("energy tick failed")
 
     def _accumulate_cycle_samples(self, attrs: dict[str, Any]) -> None:
         """Add LWT + indoor temp to running sums while cycle is active."""
