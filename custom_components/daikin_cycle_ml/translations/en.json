@@ -293,42 +293,18 @@
       },
       "notifications": {
         "title": "Notifications",
-        "description": "How and when alerts are delivered.",
-        "data": {
-          "persistent_enabled": "Persistent notifications",
-          "notify_service": "Notify target",
-          "notify_emoji_enabled": "Emoji in notifications",
-          "action_advice_enabled": "Include action advice",
-          "quiet_hours_enabled": "Quiet hours",
-          "quiet_hours_start": "Quiet hours start",
-          "quiet_hours_end": "Quiet hours end",
-          "alert_aggregation_minutes": "Alert aggregation (minutes)",
-          "status_update_enabled": "Periodic status updates",
-          "status_update_interval_hours": "Status interval (hours)",
-          "notification_language": "Notification language",
-          "alert_group_pendulum": "Alert: pendulum",
-          "alert_group_short_cycle": "Alert: short cycle",
-          "alert_group_ml": "Alert: ML anomaly",
-          "alert_group_setpoint": "Alert: setpoint oscillation",
-          "alert_group_cop_stooklijn": "Alert: COP / heat curve"
+        "description": "How and when alerts are delivered. Choose a subsection.",
+        "menu_options": {
+          "notifications_delivery": "Delivery",
+          "notifications_quiet_hours": "Quiet hours and status",
+          "notifications_content": "Content and language",
+          "notifications_test_menu": "Test notifications"
         },
-        "data_description": {
-          "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
-          "notify_service": "Notify entity or legacy service. Empty disables push.",
-          "notify_emoji_enabled": "Prefix messages with emoji for quick scanning.",
-          "action_advice_enabled": "Include actionable advice in alert messages.",
-          "quiet_hours_enabled": "Suppress non-critical alerts during the quiet window.",
-          "quiet_hours_start": "Start of quiet hours, HH:MM (24h). Default 22:00.",
-          "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00.",
-          "alert_aggregation_minutes": "Suppress duplicate alerts within this window. Default 30.",
-          "status_update_enabled": "Send a periodic summary of cycle activity.",
-          "status_update_interval_hours": "How often the summary is sent (1-168 hours).",
-          "notification_language": "Language for alert messages. Default English.",
-          "alert_group_pendulum": "Hourly/daily pendulum alerts.",
-          "alert_group_short_cycle": "Short-run and short-off alerts.",
-          "alert_group_ml": "ML anomaly alerts (z-score).",
-          "alert_group_setpoint": "LWT setpoint oscillation alerts.",
-          "alert_group_cop_stooklijn": "Daily COP and heat-curve advice alerts."
+        "menu_option_descriptions": {
+          "notifications_delivery": "Persistent notifications, notify target, emoji, action advice",
+          "notifications_quiet_hours": "Quiet hours window, dedup window, periodic status updates",
+          "notifications_content": "Language and per-alert-group toggles",
+          "notifications_test_menu": "Send one or all sample alerts"
         }
       },
       "ml": {
@@ -401,6 +377,74 @@
       "test_all_notifications_result": {
         "title": "All-notifications result",
         "description": "Result: **{status}**\n\nAlerts sent: **{count}**\n\nPreview:\n```\n{preview}\n```\n\nSubmit to return to the menu."
+      },
+      "notifications_delivery": {
+        "title": "Delivery",
+        "description": "How alerts reach you.",
+        "data": {
+          "persistent_enabled": "Persistent notifications",
+          "notify_service": "Notify target",
+          "notify_emoji_enabled": "Emoji in notifications",
+          "action_advice_enabled": "Include action advice"
+        },
+        "data_description": {
+          "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
+          "notify_service": "Notify entity or legacy service. Empty disables push.",
+          "notify_emoji_enabled": "Prefix messages with emoji for quick scanning.",
+          "action_advice_enabled": "Include actionable advice in alert messages."
+        }
+      },
+      "notifications_quiet_hours": {
+        "title": "Quiet hours and status updates",
+        "description": "Suppress non-critical alerts and schedule periodic summaries.",
+        "data": {
+          "quiet_hours_enabled": "Quiet hours",
+          "quiet_hours_start": "Quiet hours start",
+          "quiet_hours_end": "Quiet hours end",
+          "alert_aggregation_minutes": "Alert aggregation (minutes)",
+          "status_update_enabled": "Periodic status updates",
+          "status_update_interval_hours": "Status interval (hours)"
+        },
+        "data_description": {
+          "quiet_hours_enabled": "Suppress non-critical alerts during the quiet window.",
+          "quiet_hours_start": "Start of quiet hours, HH:MM (24h). Default 22:00.",
+          "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00.",
+          "alert_aggregation_minutes": "Suppress duplicate alerts within this window. Default 30.",
+          "status_update_enabled": "Send a periodic summary of cycle activity.",
+          "status_update_interval_hours": "How often the summary is sent (1-168 hours)."
+        }
+      },
+      "notifications_content": {
+        "title": "Alert content and language",
+        "description": "Language and per-group alert toggles.",
+        "data": {
+          "notification_language": "Notification language",
+          "alert_group_pendulum": "Alert: pendulum",
+          "alert_group_short_cycle": "Alert: short cycle",
+          "alert_group_ml": "Alert: ML anomaly",
+          "alert_group_setpoint": "Alert: setpoint oscillation",
+          "alert_group_cop_stooklijn": "Alert: COP / heat curve"
+        },
+        "data_description": {
+          "notification_language": "Language for alert messages. Default English.",
+          "alert_group_pendulum": "Hourly/daily pendulum alerts.",
+          "alert_group_short_cycle": "Short-run and short-off alerts.",
+          "alert_group_ml": "ML anomaly alerts (z-score).",
+          "alert_group_setpoint": "LWT setpoint oscillation alerts.",
+          "alert_group_cop_stooklijn": "Daily COP and heat-curve advice alerts."
+        }
+      },
+      "notifications_test_menu": {
+        "title": "Test notifications",
+        "description": "Send a sample alert to your notify target.",
+        "menu_options": {
+          "test_notification": "Send one test alert",
+          "test_all_notifications": "Send all alerts at once"
+        },
+        "menu_option_descriptions": {
+          "test_notification": "Pick an alert type and send one sample",
+          "test_all_notifications": "One click sends one of each alert type"
+        }
       }
     }
   },

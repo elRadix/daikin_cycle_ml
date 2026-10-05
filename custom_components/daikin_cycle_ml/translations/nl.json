@@ -293,42 +293,18 @@
       },
       "notifications": {
         "title": "Meldingen",
-        "description": "Hoe en wanneer meldingen worden verzonden.",
-        "data": {
-          "persistent_enabled": "Blijvende meldingen",
-          "notify_service": "Meldingsdoel",
-          "notify_emoji_enabled": "Emoji in meldingen",
-          "action_advice_enabled": "Inclusief actie-advies",
-          "quiet_hours_enabled": "Stille uren",
-          "quiet_hours_start": "Start stille uren",
-          "quiet_hours_end": "Einde stille uren",
-          "alert_aggregation_minutes": "Melding-aggregatie (minuten)",
-          "status_update_enabled": "Periodieke statusupdates",
-          "status_update_interval_hours": "Status-interval (uren)",
-          "notification_language": "Meldings taal",
-          "alert_group_pendulum": "Melding: pendelen",
-          "alert_group_short_cycle": "Melding: korte cyclus",
-          "alert_group_ml": "Melding: ML-anomalie",
-          "alert_group_setpoint": "Melding: setpoint-oscillatie",
-          "alert_group_cop_stooklijn": "Melding: COP / stooklijn"
+        "description": "Hoe en wanneer meldingen worden verstuurd. Kies een subsectie.",
+        "menu_options": {
+          "notifications_delivery": "Verzending",
+          "notifications_quiet_hours": "Stille uren en status",
+          "notifications_content": "Inhoud en taal",
+          "notifications_test_menu": "Testmeldingen"
         },
-        "data_description": {
-          "persistent_enabled": "Toon meldingen als blijvende meldingen in de zijbalk.",
-          "notify_service": "Notify-entiteit of legacy service. Leeg = push uit.",
-          "notify_emoji_enabled": "Emoji voor berichten voor snelle herkenning.",
-          "action_advice_enabled": "Voeg actiegericht advies toe aan meldingen.",
-          "quiet_hours_enabled": "Onderdruk niet-kritieke meldingen tijdens het stille venster.",
-          "quiet_hours_start": "Start stille uren, HH:MM (24u). Standaard 22:00.",
-          "quiet_hours_end": "Einde stille uren, HH:MM (24u). Standaard 07:00.",
-          "alert_aggregation_minutes": "Onderdruk dubbele meldingen binnen dit venster. Standaard 30.",
-          "status_update_enabled": "Stuur periodiek een samenvatting.",
-          "status_update_interval_hours": "Hoe vaak (1-168 uur).",
-          "notification_language": "Taal van meldingen. Standaard Engels.",
-          "alert_group_pendulum": "Pendelmeldingen per uur en per dag.",
-          "alert_group_short_cycle": "Korte run en korte off-tijd meldingen.",
-          "alert_group_ml": "ML-anomalie meldingen (z-score).",
-          "alert_group_setpoint": "LWT-setpoint oscillatie meldingen.",
-          "alert_group_cop_stooklijn": "Dagelijkse COP- en stooklijn-advies meldingen."
+        "menu_option_descriptions": {
+          "notifications_delivery": "Blijvende meldingen, melding-doel, emoji, actie-advies",
+          "notifications_quiet_hours": "Stille-uren venster, dedup-venster, periodieke statusupdates",
+          "notifications_content": "Taal en per-alertgroep schakelaars",
+          "notifications_test_menu": "Stuur één of alle voorbeeldmeldingen"
         }
       },
       "ml": {
@@ -401,6 +377,74 @@
       "test_all_notifications_result": {
         "title": "Resultaat alle meldingen",
         "description": "Resultaat: **{status}**\n\nVerzonden alerts: **{count}**\n\nVoorbeeld:\n```\n{preview}\n```\n\nBevestig om terug te keren naar het menu."
+      },
+      "notifications_delivery": {
+        "title": "Verzending",
+        "description": "Hoe meldingen bij je aankomen.",
+        "data": {
+          "persistent_enabled": "Blijvende meldingen",
+          "notify_service": "Melding-doel",
+          "notify_emoji_enabled": "Emoji in meldingen",
+          "action_advice_enabled": "Actie-advies meesturen"
+        },
+        "data_description": {
+          "persistent_enabled": "Toon meldingen als blijvende meldingen in de zijbalk.",
+          "notify_service": "Notify-entiteit of legacy service. Leeg schakelt push uit.",
+          "notify_emoji_enabled": "Zet emoji voor berichten voor snelle herkenning.",
+          "action_advice_enabled": "Voeg bruikbaar advies toe aan alert-berichten."
+        }
+      },
+      "notifications_quiet_hours": {
+        "title": "Stille uren en statusupdates",
+        "description": "Onderdruk niet-kritieke meldingen en plan periodieke samenvattingen.",
+        "data": {
+          "quiet_hours_enabled": "Stille uren",
+          "quiet_hours_start": "Start stille uren",
+          "quiet_hours_end": "Einde stille uren",
+          "alert_aggregation_minutes": "Alert-aggregatie (minuten)",
+          "status_update_enabled": "Periodieke statusupdates",
+          "status_update_interval_hours": "Status-interval (uren)"
+        },
+        "data_description": {
+          "quiet_hours_enabled": "Onderdruk niet-kritieke meldingen gedurende het stille-uren venster.",
+          "quiet_hours_start": "Start stille uren, HH:MM (24u). Standaard 22:00.",
+          "quiet_hours_end": "Einde stille uren, HH:MM (24u). Standaard 07:00.",
+          "alert_aggregation_minutes": "Onderdruk dubbele meldingen binnen dit venster. Standaard 30.",
+          "status_update_enabled": "Stuur een periodieke samenvatting van cyclusactiviteit.",
+          "status_update_interval_hours": "Hoe vaak de samenvatting wordt verstuurd (1-168 uur)."
+        }
+      },
+      "notifications_content": {
+        "title": "Alert-inhoud en taal",
+        "description": "Taal en per-groep alert-schakelaars.",
+        "data": {
+          "notification_language": "Melding-taal",
+          "alert_group_pendulum": "Alert: pendelen",
+          "alert_group_short_cycle": "Alert: korte cyclus",
+          "alert_group_ml": "Alert: ML-anomalie",
+          "alert_group_setpoint": "Alert: setpoint-oscillatie",
+          "alert_group_cop_stooklijn": "Alert: COP / stooklijn"
+        },
+        "data_description": {
+          "notification_language": "Taal voor alert-berichten. Standaard Engels.",
+          "alert_group_pendulum": "Uurlijkse/dagelijkse pendelmeldingen.",
+          "alert_group_short_cycle": "Korte-run en korte-off meldingen.",
+          "alert_group_ml": "ML-anomalie meldingen (z-score).",
+          "alert_group_setpoint": "LWT setpoint-oscillatie meldingen.",
+          "alert_group_cop_stooklijn": "Dagelijkse COP- en stooklijn-adviesmeldingen."
+        }
+      },
+      "notifications_test_menu": {
+        "title": "Testmeldingen",
+        "description": "Stuur een voorbeeldmelding naar je melding-doel.",
+        "menu_options": {
+          "test_notification": "Stuur één testmelding",
+          "test_all_notifications": "Stuur alle meldingen in één keer"
+        },
+        "menu_option_descriptions": {
+          "test_notification": "Kies een alert-type en stuur één voorbeeld",
+          "test_all_notifications": "Eén klik stuurt elk alert-type"
+        }
       }
     }
   },

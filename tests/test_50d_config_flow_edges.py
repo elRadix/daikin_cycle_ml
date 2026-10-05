@@ -102,7 +102,11 @@ async def test_options_flow_menu_navigate(hass: HomeAssistant, step: str):
     r2 = await hass.config_entries.options.async_configure(
         r["flow_id"], user_input={"next_step_id": step},
     )
-    assert r2["type"] == FlowResultType.FORM
+    # notifications is a sub-menu (C11b); other steps are forms
+    if step == "notifications":
+        assert r2["type"] == FlowResultType.MENU
+    else:
+        assert r2["type"] == FlowResultType.FORM
     assert r2["step_id"] == step
 
 
@@ -187,21 +191,15 @@ async def test_options_notifications_submit(hass: HomeAssistant):
     r = await hass.config_entries.options.async_configure(
         r["flow_id"], user_input={"next_step_id": "notifications"},
     )
+    assert r["type"] == FlowResultType.MENU
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], user_input={"next_step_id": "notifications_delivery"},
+    )
     r2 = await hass.config_entries.options.async_configure(
         r["flow_id"], user_input={
             "persistent_enabled": True,
             "notify_emoji_enabled": True,
             "action_advice_enabled": True,
-            "quiet_hours_enabled": False,
-            "alert_aggregation_minutes": 30,
-            "status_update_enabled": False,
-            "status_update_interval_hours": 24,
-            "notification_language": "en",
-            "alert_group_pendulum": True,
-            "alert_group_short_cycle": True,
-            "alert_group_ml": True,
-            "alert_group_setpoint": True,
-            "alert_group_cop_stooklijn": True,
         },
     )
     assert r2["type"] in (FlowResultType.FORM, FlowResultType.MENU,

@@ -209,9 +209,11 @@ async def test_config_flow_notifications_submit_flattens(hass):
 # ---------- OptionsFlow notifications form prefill ----------
 
 async def test_options_notifications_form_with_current_ns(hass):
-    # line 659
+    # line 659 -- notifications is now a menu; form lives in delivery sub-step
     flow, _entry = await _make_flow(
         hass, options={"notify_service": "notify.old"},
     )
     result = await flow.async_step_notifications()
-    assert result["type"] == "form"
+    assert result["type"] == "menu"
+    result2 = await flow.async_step_notifications_delivery()
+    assert result2["type"] == "form"

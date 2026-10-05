@@ -683,6 +683,18 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         return self.async_show_form(step_id="quality", data_schema=schema)
 
     async def async_step_notifications(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Notifications submenu."""
+        return self.async_show_menu(
+            step_id="notifications",
+            menu_options=[
+                "notifications_delivery",
+                "notifications_quiet_hours",
+                "notifications_content",
+                "notifications_test_menu",
+            ],
+        )
+
+    async def async_step_notifications_delivery(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             if "notify_service" in user_input:
                 user_input["notify_service"] = _flatten_notify_choice(
@@ -707,6 +719,14 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             vol.Required("action_advice_enabled",
                 default=c.get("action_advice_enabled", DEFAULT_ACTION_ADVICE_ENABLED)
             ): bool,
+        })
+        return self.async_show_form(step_id="notifications_delivery", data_schema=schema)
+
+    async def async_step_notifications_quiet_hours(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        if user_input is not None:
+            return self._save(user_input)
+        c: dict[str, Any] = dict(self.config_entry.options or {})
+        schema = vol.Schema({
             vol.Required("quiet_hours_enabled",
                 default=c.get("quiet_hours_enabled", DEFAULT_QUIET_HOURS_ENABLED)
             ): bool,
@@ -726,6 +746,14 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 default=c.get("status_update_interval_hours",
                     DEFAULT_STATUS_UPDATE_INTERVAL_HOURS),
             ): _num(1, 168, 1, "h"),
+        })
+        return self.async_show_form(step_id="notifications_quiet_hours", data_schema=schema)
+
+    async def async_step_notifications_content(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        if user_input is not None:
+            return self._save(user_input)
+        c: dict[str, Any] = dict(self.config_entry.options or {})
+        schema = vol.Schema({
             vol.Required("notification_language",
                 default=c.get("notification_language", DEFAULT_NOTIFICATION_LANGUAGE)
             ): _build_language_selector(),
@@ -745,7 +773,14 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 default=c.get("alert_group_cop_stooklijn", True)
             ): bool,
         })
-        return self.async_show_form(step_id="notifications", data_schema=schema)
+        return self.async_show_form(step_id="notifications_content", data_schema=schema)
+
+    async def async_step_notifications_test_menu(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Submenu for test notifications."""
+        return self.async_show_menu(
+            step_id="notifications_test_menu",
+            menu_options=["test_notification", "test_all_notifications"],
+        )
 
     def _get_coordinator_handle(self) -> Any:
         """Resolve coordinator across runtime_data and hass.data patterns."""
