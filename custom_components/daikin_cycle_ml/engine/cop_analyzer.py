@@ -51,6 +51,22 @@ def _parse_bool(value: Any) -> bool:
     return bool(value)
 
 
+T_REF_STOOKLIJN: float = 20.0
+
+
+def _slope_delta(
+    delta_c: float,
+    outdoor: float | None,
+) -> float | None:
+    """Derive Daikin stooklijn slope correction from an LWT delta."""
+    if outdoor is None:
+        return None
+    denom = T_REF_STOOKLIJN - outdoor
+    if abs(denom) < 0.1:
+        return None
+    return round(delta_c / denom, 4)
+
+
 @dataclass
 class CopSample:
     cop: float
@@ -96,6 +112,8 @@ class StooklijnAdvies:
     urgency: float = 0.0
     comfort_cap: float = 3.0
     reason: str = ''
+    offset_delta_c: float = 0.0
+    slope_delta: float | None = None
 
 
 def parse_global_cop_attrs(attrs: dict[str, Any] | None) -> CopSample | None:
@@ -144,8 +162,6 @@ def _group_by_bucket(samples: list[CopSample]) -> dict[str, list[CopSample]]:
     out: dict[str, list[CopSample]] = {}
     for s in samples:
         if not s.valid:
-            continue
-        if s.mode not in ('heating', 'unknown'):  # pragma: no cover
             continue
         b = bucket_for_outdoor(s.outdoor)
         out.setdefault(b, []).append(s)
@@ -239,6 +255,8 @@ def analyze_stooklijn(
             advies.state = 'keep'
             advies.step_c = 0
             advies.delta_c = 0.0
+        advies.offset_delta_c = advies.delta_c
+        advies.slope_delta = _slope_delta(advies.delta_c, recent.outdoor)
         return advies
     # B13: dynamic LWT step vs setpoint + comfort dual-loop
     advies.tracking_error = round(setpoint_lwt - recent.lwt, 2)
@@ -290,6 +308,8 @@ def analyze_stooklijn(
     else:
         advies.besparing_cop_pct = 0.0
     advies.comfort_impact = round(advies.delta_c * K_EMIT_DEFAULT, 2)
+    advies.offset_delta_c = advies.delta_c
+    advies.slope_delta = _slope_delta(advies.delta_c, recent.outdoor)
     return advies
 
 

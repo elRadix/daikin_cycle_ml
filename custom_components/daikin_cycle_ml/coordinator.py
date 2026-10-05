@@ -1481,6 +1481,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 'err_indoor': advies.err_indoor,
                 'urgency': advies.urgency,
                 'comfort_cap': advies.comfort_cap,
+                'offset_delta_c': advies.offset_delta_c,
+                'slope_delta': advies.slope_delta,
             }
             self._stooklijn_cache_ts = now
         except Exception:

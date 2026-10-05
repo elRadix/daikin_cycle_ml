@@ -539,6 +539,8 @@ def _attrs_stooklijn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, 
         "bucket": data.get("bucket"),
         "samples": data.get("samples"),
         "buckets": data.get("buckets") or {},
+        "offset_delta_c": data.get("offset_delta_c"),
+        "slope_delta": data.get("slope_delta"),
     }
 
 
