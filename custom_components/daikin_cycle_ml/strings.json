@@ -468,6 +468,24 @@
       },
       "duty_cycle_today": {
         "name": "Duty cycle today"
+      },
+      "electrical_energy_heating_today": {
+        "name": "Electrical energy heating today"
+      },
+      "electrical_energy_dhw_today": {
+        "name": "Electrical energy dhw today"
+      },
+      "electrical_energy_cooling_today": {
+        "name": "Electrical energy cooling today"
+      },
+      "electrical_energy_total_today": {
+        "name": "Electrical energy total today"
+      },
+      "thermal_energy_heating_today": {
+        "name": "Thermal energy heating today"
+      },
+      "thermal_energy_cooling_today": {
+        "name": "Thermal energy cooling today"
       }
     },
     "binary_sensor": {

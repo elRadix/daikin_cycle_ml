@@ -756,6 +756,54 @@ def _buh_energy_kwh_est(
         return None
 
 
+_ENERGY_MODES = ("heating", "dhw", "cooling")
+
+
+def _value_energy_kwh(
+    mode: str, kind: str
+) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], float]:
+    def _fn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> float:
+        snap = c.energy_snapshot or {}
+        mode_data = snap.get(mode) or {}
+        return round(float(mode_data.get(kind, 0.0)), 3)
+    return _fn
+
+
+def _value_energy_total_kwh(
+    kind: str,
+) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], float]:
+    def _fn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> float:
+        snap = c.energy_snapshot or {}
+        return round(
+            sum(
+                float((snap.get(m) or {}).get(kind, 0.0))
+                for m in _ENERGY_MODES
+            ),
+            3,
+        )
+    return _fn
+
+
+def _attrs_energy_snapshot(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    snap = c.energy_snapshot or {}
+    out: dict[str, Any] = {}
+    for mode in _ENERGY_MODES:
+        m = snap.get(mode) or {}
+        out[f"{mode}_th_kwh"] = round(float(m.get("th", 0.0)), 3)
+        out[f"{mode}_el_kwh"] = round(float(m.get("el", 0.0)), 3)
+    out["total_th_kwh"] = round(
+        sum(float((snap.get(m) or {}).get("th", 0.0)) for m in _ENERGY_MODES),
+        3,
+    )
+    out["total_el_kwh"] = round(
+        sum(float((snap.get(m) or {}).get("el", 0.0)) for m in _ENERGY_MODES),
+        3,
+    )
+    return out
+
+
 def _attrs_runtime_compressor_today_s(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> dict[str, Any]:
@@ -1007,6 +1055,66 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "icon": "mdi:gauge",
         "value_fn": _value_duty_cycle_today_pct,
         "attr_fn": _attrs_duty_cycle_today_pct,
+    },
+    {
+        "key": "electrical_energy_heating_today",
+        "name": "Electrical energy heating today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.ENERGY,
+        "unit": "kWh",
+        "icon": "mdi:lightning-bolt",
+        "value_fn": _value_energy_kwh("heating", "el"),
+        "attr_fn": _attrs_energy_snapshot,
+    },
+    {
+        "key": "electrical_energy_dhw_today",
+        "name": "Electrical energy dhw today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.ENERGY,
+        "unit": "kWh",
+        "icon": "mdi:lightning-bolt",
+        "value_fn": _value_energy_kwh("dhw", "el"),
+        "attr_fn": _attrs_energy_snapshot,
+    },
+    {
+        "key": "electrical_energy_cooling_today",
+        "name": "Electrical energy cooling today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.ENERGY,
+        "unit": "kWh",
+        "icon": "mdi:lightning-bolt",
+        "value_fn": _value_energy_kwh("cooling", "el"),
+        "attr_fn": _attrs_energy_snapshot,
+    },
+    {
+        "key": "electrical_energy_total_today",
+        "name": "Electrical energy total today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.ENERGY,
+        "unit": "kWh",
+        "icon": "mdi:lightning-bolt-circle",
+        "value_fn": _value_energy_total_kwh("el"),
+        "attr_fn": _attrs_energy_snapshot,
+    },
+    {
+        "key": "thermal_energy_heating_today",
+        "name": "Thermal energy heating today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.ENERGY,
+        "unit": "kWh",
+        "icon": "mdi:fire",
+        "value_fn": _value_energy_kwh("heating", "th"),
+        "attr_fn": _attrs_energy_snapshot,
+    },
+    {
+        "key": "thermal_energy_cooling_today",
+        "name": "Thermal energy cooling today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.ENERGY,
+        "unit": "kWh",
+        "icon": "mdi:snowflake",
+        "value_fn": _value_energy_kwh("cooling", "th"),
+        "attr_fn": _attrs_energy_snapshot,
     },
     {
         "key": "source_health", "name": "Source health",

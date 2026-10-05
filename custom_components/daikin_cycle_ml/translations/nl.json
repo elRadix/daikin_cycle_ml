@@ -468,6 +468,24 @@
       },
       "duty_cycle_today": {
         "name": "Duty cycle vandaag"
+      },
+      "electrical_energy_heating_today": {
+        "name": "Elektrische energie verwarming vandaag"
+      },
+      "electrical_energy_dhw_today": {
+        "name": "Elektrische energie warm water vandaag"
+      },
+      "electrical_energy_cooling_today": {
+        "name": "Elektrische energie koeling vandaag"
+      },
+      "electrical_energy_total_today": {
+        "name": "Elektrische energie totaal vandaag"
+      },
+      "thermal_energy_heating_today": {
+        "name": "Thermische energie verwarming vandaag"
+      },
+      "thermal_energy_cooling_today": {
+        "name": "Thermische energie koeling vandaag"
       }
     },
     "binary_sensor": {
