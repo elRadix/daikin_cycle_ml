@@ -88,7 +88,7 @@ def test_per_mode_have_unit_and_class():
 
 
 def test_sensor_defs_total_27():
-    assert len(SENSOR_DEFS) == 39
+    assert len(SENSOR_DEFS) == 45
 
 
 @pytest.mark.parametrize("mode", ["heating", "dhw", "cooling"])
@@ -132,7 +132,7 @@ def test_c1a_runtime_import_package():
 
 def test_c1a_runtime_count_27():
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
-    assert len(SENSOR_DEFS) == 39
+    assert len(SENSOR_DEFS) == 45
 
 
 def test_c1a_runtime_9_cop_keys_slug_match():

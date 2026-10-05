@@ -146,7 +146,7 @@ def test_sensor_defs_no_duplicate_keys():
 
 
 def test_sensor_defs_count():
-    assert len(sensor.SENSOR_DEFS) == 39
+    assert len(sensor.SENSOR_DEFS) == 45
 
 
 @pytest.mark.asyncio
