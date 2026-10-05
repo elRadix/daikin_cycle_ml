@@ -781,6 +781,22 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.exception("Coordinator update failed: %s", err)
         return snap
 
+    @property
+    def runtime_snapshot(self) -> dict[str, float]:
+        """Read-only snapshot of runtime/BUH/defrost accumulators (R216)."""
+        return {
+            "buh_step1_s": self._buh_step1_s,
+            "buh_step2_s": self._buh_step2_s,
+            "defrost_count": float(self._defrost_count_today),
+            "defrost_duration_s": self._defrost_duration_s,
+            "last_defrost_ts": self._last_defrost_ts,
+        }
+
+    @property
+    def energy_snapshot(self) -> dict[str, dict[str, float]]:
+        """Read-only snapshot of energy accumulators (R216)."""
+        return {mode: dict(vals) for mode, vals in self._energy_acc.items()}
+
     def _maybe_reset_daily_accumulators(self, now: float) -> None:
         """Reset runtime + energy accumulators on local-day boundary.
 

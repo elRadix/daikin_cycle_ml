@@ -297,7 +297,7 @@ def test_runtime_import_all_modules():
 
 def test_runtime_sensor_defs_count_and_unique_keys():
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
-    assert len(SENSOR_DEFS) == 33
+    assert len(SENSOR_DEFS) == 39
     keys = [s["key"] for s in SENSOR_DEFS]
     assert len(set(keys)) == len(keys), "duplicate SENSOR_DEFS keys"
 

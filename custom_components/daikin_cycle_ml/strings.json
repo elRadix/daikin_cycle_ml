@@ -450,6 +450,24 @@
       },
       "cop_trend_30d": {
         "name": "COP trend 30d"
+      },
+      "runtime_compressor_today": {
+        "name": "Runtime compressor today"
+      },
+      "runtime_buh_today": {
+        "name": "Runtime BUH today"
+      },
+      "compressor_starts_today": {
+        "name": "Compressor starts today"
+      },
+      "defrost_count_today": {
+        "name": "Defrost count today"
+      },
+      "defrost_duration_today": {
+        "name": "Defrost duration today"
+      },
+      "duty_cycle_today": {
+        "name": "Duty cycle today"
       }
     },
     "binary_sensor": {

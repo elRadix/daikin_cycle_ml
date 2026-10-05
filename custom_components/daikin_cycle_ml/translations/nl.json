@@ -450,6 +450,24 @@
       },
       "cop_trend_30d": {
         "name": "COP-trend 30d"
+      },
+      "runtime_compressor_today": {
+        "name": "Compressorbedrijfstijd vandaag"
+      },
+      "runtime_buh_today": {
+        "name": "BUH-bedrijfstijd vandaag"
+      },
+      "compressor_starts_today": {
+        "name": "Compressorstarts vandaag"
+      },
+      "defrost_count_today": {
+        "name": "Ontdooiingen vandaag"
+      },
+      "defrost_duration_today": {
+        "name": "Ontdooiingsduur vandaag"
+      },
+      "duty_cycle_today": {
+        "name": "Duty cycle vandaag"
       }
     },
     "binary_sensor": {

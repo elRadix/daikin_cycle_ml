@@ -28,6 +28,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import (
     UPDATE_INTERVAL_SECONDS,
 )
+from .const import buh_step_kw_for_model as _buh_step_kw_for_model
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
 from .engine.thermal import (
     compute_thermal_power_live as _compute_thermal_power_live,
@@ -685,6 +686,175 @@ def _attrs_cop_trend_30d(
     }
 
 
+# ---------- v1.6.0-C5: runtime/BUH/defrost/duty helpers ----------
+
+
+def _local_midnight(now: float) -> float:
+    lt = time.localtime(float(now))
+    return time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1))
+
+
+def _value_runtime_compressor_today_s(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> int:
+    now = _now()
+    total = sum(
+        float(cy.get("duration_s") or 0.0)
+        for cy in c.store.cycles_today(now)
+    )
+    if s.state == "running" and s.cycle_start_ts > 0:
+        total += max(0.0, now - s.cycle_start_ts)
+    return int(total)
+
+
+def _value_runtime_buh_today_s(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> int:
+    snap = c.runtime_snapshot
+    return int(snap["buh_step1_s"] + snap["buh_step2_s"])
+
+
+def _value_compressor_starts_today(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> int:
+    return len(c.store.cycles_today(_now()))
+
+
+def _value_defrost_count_today(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> int:
+    return int(c.runtime_snapshot["defrost_count"])
+
+
+def _value_defrost_duration_today_s(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> int:
+    return int(c.runtime_snapshot["defrost_duration_s"])
+
+
+def _value_duty_cycle_today_pct(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> float:
+    now = _now()
+    runtime = _value_runtime_compressor_today_s(s, c)
+    elapsed = max(1.0, now - _local_midnight(now))
+    return round(100.0 * runtime / elapsed, 2)
+
+
+def _buh_energy_kwh_est(
+    c: DaikinCycleMLCoordinator, step1_s: float, step2_s: float
+) -> float | None:
+    try:
+        model = c.entry.data.get("model") if c.entry else None
+        s1_kw, s2_kw = _buh_step_kw_for_model(model)
+        return round(step1_s * s1_kw / 3600.0 + step2_s * s2_kw / 3600.0, 3)
+    except Exception:
+        return None
+
+
+def _attrs_runtime_compressor_today_s(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    now = _now()
+    cycles = c.store.cycles_today(now)
+    by_mode: dict[str, float] = {"heating": 0.0, "dhw": 0.0, "cooling": 0.0}
+    for cy in cycles:
+        mode = cy.get("mode") or "unknown"
+        dur = float(cy.get("duration_s") or 0.0)
+        if mode in by_mode:
+            by_mode[mode] += dur
+    snap = c.runtime_snapshot
+    total = sum(by_mode.values())
+    return {
+        "heating_s": int(by_mode["heating"]),
+        "dhw_s": int(by_mode["dhw"]),
+        "cooling_s": int(by_mode["cooling"]),
+        "cycle_count": len(cycles),
+        "avg_cycle_s": int(total / len(cycles)) if cycles else None,
+        "buh_step1_s": int(snap["buh_step1_s"]),
+        "buh_step2_s": int(snap["buh_step2_s"]),
+    }
+
+
+def _attrs_runtime_buh_today_s(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    snap = c.runtime_snapshot
+    s1 = snap["buh_step1_s"]
+    s2 = snap["buh_step2_s"]
+    return {
+        "step1_s": int(s1),
+        "step2_s": int(s2),
+        "buh_energy_kwh_est": _buh_energy_kwh_est(c, s1, s2),
+    }
+
+
+def _attrs_compressor_starts_today(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    cycles = c.store.cycles_today(_now())
+    per_mode: dict[str, int] = {"heating": 0, "dhw": 0, "cooling": 0}
+    for cy in cycles:
+        mode = cy.get("mode") or "unknown"
+        if mode in per_mode:
+            per_mode[mode] += 1
+    hour_ago = _now() - 3600.0
+    recent = sum(
+        1 for cy in cycles
+        if float(cy.get("start_ts") or 0.0) >= hour_ago
+    )
+    return {
+        "per_mode": per_mode,
+        "starts_last_hour": recent,
+    }
+
+
+def _attrs_defrost_count_today(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    snap = c.runtime_snapshot
+    count = int(snap["defrost_count"])
+    dur = snap["defrost_duration_s"]
+    return {
+        "avg_duration_s": round(dur / count, 1) if count > 0 else None,
+        "last_defrost_ts": snap["last_defrost_ts"] or None,
+    }
+
+
+def _attrs_defrost_duration_today_s(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    snap = c.runtime_snapshot
+    count = int(snap["defrost_count"])
+    dur = snap["defrost_duration_s"]
+    return {
+        "defrost_count": count,
+        "avg_duration_s": round(dur / count, 1) if count > 0 else None,
+    }
+
+
+def _attrs_duty_cycle_today_pct(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    now = _now()
+    runtime = _value_runtime_compressor_today_s(s, c)
+    elapsed = max(1.0, now - _local_midnight(now))
+    pct = 100.0 * runtime / elapsed
+    if pct < 15.0:
+        band = "low"
+    elif pct < 60.0:
+        band = "nominal"
+    elif pct < 85.0:
+        band = "high"
+    else:
+        band = "saturated"
+    return {
+        "runtime_s": runtime,
+        "elapsed_s": int(elapsed),
+        "band": band,
+    }
+
+
 SENSOR_DEFS: list[dict[str, Any]] = [
     {
         "key": "thermal_power_live", "name": "Thermal power live",
@@ -778,6 +948,61 @@ SENSOR_DEFS: list[dict[str, Any]] = [
             [cy.get("quality_score") for cy in c.store.cycles_today(_now())]
         ),
         "attr_fn": _attrs_quality_today,
+    },
+    {
+        "key": "runtime_compressor_today",
+        "name": "Runtime compressor today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.DURATION,
+        "unit": "s",
+        "icon": "mdi:timer-outline",
+        "value_fn": _value_runtime_compressor_today_s,
+        "attr_fn": _attrs_runtime_compressor_today_s,
+    },
+    {
+        "key": "runtime_buh_today",
+        "name": "Runtime BUH today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.DURATION,
+        "unit": "s",
+        "icon": "mdi:fire-alert",
+        "value_fn": _value_runtime_buh_today_s,
+        "attr_fn": _attrs_runtime_buh_today_s,
+    },
+    {
+        "key": "compressor_starts_today",
+        "name": "Compressor starts today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "icon": "mdi:restart",
+        "value_fn": _value_compressor_starts_today,
+        "attr_fn": _attrs_compressor_starts_today,
+    },
+    {
+        "key": "defrost_count_today",
+        "name": "Defrost count today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "icon": "mdi:snowflake-melt",
+        "value_fn": _value_defrost_count_today,
+        "attr_fn": _attrs_defrost_count_today,
+    },
+    {
+        "key": "defrost_duration_today",
+        "name": "Defrost duration today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.DURATION,
+        "unit": "s",
+        "icon": "mdi:timer-sand",
+        "value_fn": _value_defrost_duration_today_s,
+        "attr_fn": _attrs_defrost_duration_today_s,
+    },
+    {
+        "key": "duty_cycle_today",
+        "name": "Duty cycle today",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "%",
+        "icon": "mdi:gauge",
+        "value_fn": _value_duty_cycle_today_pct,
+        "attr_fn": _attrs_duty_cycle_today_pct,
     },
     {
         "key": "source_health", "name": "Source health",
