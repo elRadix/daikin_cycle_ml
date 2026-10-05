@@ -236,6 +236,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _cop_hourly_cache_ts: float = 0.0
     _cop_degradation_cache: dict[str, Any] = {}
     _cop_degradation_cache_ts: float = 0.0
+    # v1.6.0-C6a: persist-throttle timestamps (R52 class defaults)
+    _last_runtime_persist_ts: float = 0.0
+    _last_energy_persist_ts: float = 0.0
 
     # R52: class-level defaults so __new__-style tests find these attrs
     _kmeans_centroids: list[Any] = []
@@ -311,6 +314,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cop_hourly_cache_ts: float = 0.0
         self._cop_degradation_cache: dict[str, Any] = {}
         self._cop_degradation_cache_ts: float = 0.0
+        # v1.6.0-C6a: persist-throttle
+        self._last_runtime_persist_ts: float = 0.0
+        self._last_energy_persist_ts: float = 0.0
         # ---------- v1.6.0-C5: runtime/BUH/defrost accumulators ----------
         self._runtime_day_key: str = ""
         self._buh_step1_s: float = 0.0
@@ -709,6 +715,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         now = time.time()
         snap = DataSnapshot(last_sample_ts=now)
         self.store.daily_reset_if_needed(now)
+        # v1.6.0-C6a: persist OLD-day accumulators BEFORE reset
+        _day_now = time.strftime("%Y-%m-%d", time.localtime(float(now)))
+        if self._runtime_day_key and self._runtime_day_key != _day_now:
+            await self._persist_runtime_acc()
+            await self._persist_energy_acc()
         self._maybe_reset_daily_accumulators(now)
         try:
             state = self.hass.states.get(self.source_entity)
@@ -745,6 +756,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 power_w=snap.power_w,
                 cop=snap.cop,
             )
+            await self._maybe_persist_accumulators(now)
             await self._maybe_collect_cop_sample(now)
             await self._refresh_cop_today(now)
             await self._maybe_refresh_stooklijn(now)
@@ -830,8 +842,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     def _maybe_reset_daily_accumulators(self, now: float) -> None:
         """Reset runtime + energy accumulators on local-day boundary.
 
-        Does NOT persist — caller is responsible for calling
-        async_save_runtime_state BEFORE this (or accept ~30s loss).
+        Persist-before-reset is done by _async_update_data.
+        Throttled persist after each tick via _maybe_persist_accumulators.
         """
         day = time.strftime("%Y-%m-%d", time.localtime(float(now)))
         if self._runtime_day_key == day:
@@ -883,6 +895,20 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             )
         except Exception:
             _LOGGER.exception("energy_acc persist failed")
+
+    async def _maybe_persist_accumulators(self, now: float) -> None:
+        """Persist runtime + energy accumulators throttled at 300s.
+
+        Called from _async_update_data after each tick. Without this,
+        accumulators are lost on HA restart (C5a known gap).
+        """
+        interval = 300.0
+        if (now - self._last_runtime_persist_ts) >= interval:
+            await self._persist_runtime_acc()
+            self._last_runtime_persist_ts = now
+        if (now - self._last_energy_persist_ts) >= interval:
+            await self._persist_energy_acc()
+            self._last_energy_persist_ts = now
 
     def _tick_buh_and_defrost(self, attrs: dict[str, Any], now: float) -> None:
         """Accumulate BUH-runtime + defrost-events for one tick. Never raises."""

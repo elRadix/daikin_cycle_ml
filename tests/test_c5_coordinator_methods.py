@@ -20,6 +20,8 @@ from custom_components.daikin_cycle_ml.coordinator import (
 def _bare(**overrides):
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.db = overrides.get("db")
+    c.source_entity = overrides.get("source_entity", "sensor.test")
+    c._errors_total = 0
     c._runtime_day_key = overrides.get("runtime_day_key", "")
     c._energy_day_key = overrides.get("energy_day_key", "")
     c._buh_step1_s = 0.0
@@ -31,6 +33,13 @@ def _bare(**overrides):
     c._last_defrost_ts = 0.0
     c._last_runtime_tick_ts = 0.0
     c._last_energy_tick_ts = 0.0
+    c._last_runtime_persist_ts = overrides.get("runtime_persist_ts", 0.0)
+    c._last_energy_persist_ts = overrides.get("energy_persist_ts", 0.0)
+    c._energy_acc = overrides.get("energy_acc") or {
+        "heating": {"th": 0.0, "el": 0.0},
+        "dhw": {"th": 0.0, "el": 0.0},
+        "cooling": {"th": 0.0, "el": 0.0},
+    }
     return c
 
 
@@ -328,3 +337,125 @@ def test_tick_energy_no_kw_el_via_rps():
     )
     assert c._energy_acc["heating"]["th"] > 0.0
     assert c._energy_acc["heating"]["el"] == 0.0
+
+# ---------- v1.6.0-C6a: _maybe_persist_accumulators ----------
+
+
+async def test_maybe_persist_both_fire():
+    c = _bare(db=AsyncMock())
+    c._runtime_day_key = "2026-10-05"
+    c._energy_day_key = "2026-10-05"
+    c._last_runtime_persist_ts = 0.0
+    c._last_energy_persist_ts = 0.0
+    await c._maybe_persist_accumulators(1000.0)
+    assert c._last_runtime_persist_ts == 1000.0
+    assert c._last_energy_persist_ts == 1000.0
+    assert c.db.async_set_model_state.await_count == 2
+
+
+async def test_maybe_persist_both_skip_within_throttle():
+    c = _bare(db=AsyncMock())
+    c._runtime_day_key = "2026-10-05"
+    c._energy_day_key = "2026-10-05"
+    c._last_runtime_persist_ts = 1000.0
+    c._last_energy_persist_ts = 1000.0
+    await c._maybe_persist_accumulators(1100.0)
+    assert c._last_runtime_persist_ts == 1000.0
+    assert c._last_energy_persist_ts == 1000.0
+    assert c.db.async_set_model_state.await_count == 0
+
+
+async def test_maybe_persist_runtime_skip_energy_fire():
+    c = _bare(db=AsyncMock())
+    c._runtime_day_key = "2026-10-05"
+    c._energy_day_key = "2026-10-05"
+    c._last_runtime_persist_ts = 1000.0
+    c._last_energy_persist_ts = 0.0
+    await c._maybe_persist_accumulators(1100.0)
+    assert c._last_runtime_persist_ts == 1000.0
+    assert c._last_energy_persist_ts == 1100.0
+
+
+async def test_maybe_persist_runtime_fire_energy_skip():
+    c = _bare(db=AsyncMock())
+    c._runtime_day_key = "2026-10-05"
+    c._energy_day_key = "2026-10-05"
+    c._last_runtime_persist_ts = 0.0
+    c._last_energy_persist_ts = 1000.0
+    await c._maybe_persist_accumulators(1100.0)
+    assert c._last_runtime_persist_ts == 1100.0
+    assert c._last_energy_persist_ts == 1000.0
+
+
+async def test_maybe_persist_db_none_still_advances_ts():
+    c = _bare(db=None)
+    c._last_runtime_persist_ts = 0.0
+    c._last_energy_persist_ts = 0.0
+    await c._maybe_persist_accumulators(1000.0)
+    assert c._last_runtime_persist_ts == 1000.0
+    assert c._last_energy_persist_ts == 1000.0
+
+
+async def test_maybe_persist_exception_swallowed():
+    c = _bare(db=AsyncMock())
+    c._runtime_day_key = "2026-10-05"
+    c._energy_day_key = "2026-10-05"
+    c.db.async_set_model_state.side_effect = RuntimeError("boom")
+    c._last_runtime_persist_ts = 0.0
+    c._last_energy_persist_ts = 0.0
+    await c._maybe_persist_accumulators(1000.0)
+    assert c._last_runtime_persist_ts == 1000.0
+    assert c._last_energy_persist_ts == 1000.0
+
+
+# ---------- v1.6.0-C6a: day-rollover persist in _async_update_data ----------
+
+
+def _setup_min_coord(c):
+    c.store = MagicMock()
+    c._maybe_reset_daily_accumulators = MagicMock()
+    c.hass = MagicMock()
+    c.hass.states.get.return_value = None
+
+
+async def test_update_data_rollover_persists_old_day():
+    c = _bare(db=AsyncMock())
+    c._runtime_day_key = "2020-01-01"
+    c._energy_day_key = "2020-01-01"
+    _setup_min_coord(c)
+    await c._async_update_data()
+    assert c.db.async_set_model_state.await_count == 2
+    calls = c.db.async_set_model_state.await_args_list
+    assert calls[0].args[0].startswith("runtime_acc.")
+    assert calls[1].args[0].startswith("energy_acc.")
+
+
+async def test_update_data_same_day_no_persist():
+    today = time.strftime("%Y-%m-%d", time.localtime(time.time()))
+    c = _bare(db=AsyncMock())
+    c._runtime_day_key = today
+    c._energy_day_key = today
+    _setup_min_coord(c)
+    await c._async_update_data()
+    assert c.db.async_set_model_state.await_count == 0
+
+
+async def test_update_data_empty_day_key_no_persist():
+    c = _bare(db=AsyncMock())
+    c._runtime_day_key = ""
+    c._energy_day_key = ""
+    _setup_min_coord(c)
+    await c._async_update_data()
+    assert c.db.async_set_model_state.await_count == 0
+
+
+# ---------- v1.6.0-C6a: class-defaults sanity ----------
+
+
+def test_class_defaults_persist_ts_present():
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator as C,
+    )
+    assert C._last_runtime_persist_ts == 0.0
+    assert C._last_energy_persist_ts == 0.0
+
