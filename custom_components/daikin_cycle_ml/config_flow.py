@@ -77,7 +77,9 @@ from .const import (
     REQUIRED_ATTRIBUTES,
     SOURCE_SENSOR_ENTITY,
     DEFAULT_SEASON_START_MONTH,
+    MODEL_BASISPROFIEL,
 )
+from .engine.model_profiles import expected_attributes
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -249,15 +251,17 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         cmap = self._data.get("custom_attribute_map") or {}
         state = self.hass.states.get(source_id) if source_id else None
+        model = self._data.get("model") or MODEL_BASISPROFIEL
+        expected = expected_attributes(model)
 
         present: list[str] = []
         missing: list[str] = []
         if state is None:
-            missing = list(CORE_ATTRIBUTES)
+            missing = list(expected)
         else:
             attrs = state.attributes
             normalized = {cmap.get(k, k): v for k, v in attrs.items()}
-            for key in CORE_ATTRIBUTES:
+            for key in expected:
                 if normalized.get(key) is None:
                     missing.append(key)
                 else:
@@ -268,7 +272,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema({}, extra=vol.ALLOW_EXTRA),
             description_placeholders={
                 "present": str(len(present)),
-                "total": str(len(CORE_ATTRIBUTES)),
+                "total": str(len(expected)),
                 "missing_list": (
                     "\n".join(f"\u2022 {m}" for m in missing)
                     if missing else "none"

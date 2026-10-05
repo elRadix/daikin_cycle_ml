@@ -25,6 +25,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .engine.timer_health import is_stale
 from .const import (
     UPDATE_INTERVAL_SECONDS,
 )
@@ -360,7 +361,10 @@ def _attrs_quality_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[s
 def _attrs_source_health(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     stale = False
     if s.last_success_ts > 0:
-        stale = (_now() - s.last_success_ts) > 2.0 * UPDATE_INTERVAL_SECONDS
+        stale = is_stale(
+            s.last_success_ts, _now(),
+            2.0 * UPDATE_INTERVAL_SECONDS,
+        )
     return {
         "missing_attrs_count": len(s.missing_attrs),
         "missing_attrs_list": list(s.missing_attrs),

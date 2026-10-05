@@ -76,6 +76,7 @@ from .ml.adaptive_thresholds import AdaptiveThresholds
 from .ml.clustering import classify_clusters, nearest_centroid
 from .ml.features import VECTOR_LEN, extract_feature_vector
 from .ml.multi_baseline import MultiBaseline
+from .engine.timer_health import clamp_cycle_duration as _clamp_duration
 from .repairs import async_check_repairs
 from .storage.store import CycleStore
 
@@ -1080,6 +1081,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self, record: dict[str, Any], snap: DataSnapshot
     ) -> None:
         """Update baseline, detect anomaly, generate advice, persist."""
+        # v1.6.0-C6a: clamp duration to guard ML/DB against clock jumps.
+        _raw_dur = record.get("duration_s")
+        if _raw_dur is not None:
+            _max_min = int(self.options.get("max_cycle_duration_min", 240))
+            record["duration_s"] = _clamp_duration(_raw_dur, _max_min)
         cop_avg, lwt_avg, indoor_avg = await self._collect_cycle_averages(record)
         try:
             vector = extract_feature_vector(record, cop_avg=cop_avg,
