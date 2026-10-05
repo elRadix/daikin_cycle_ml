@@ -219,6 +219,19 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _cycle_cop_weight_sum: float = 0.0
     _cycle_cop_sq_w_sum: float = 0.0
     _cycle_cop_count: int = 0
+
+    # ---------- v1.6.0-C5/C6: class-level defaults for __new__ tests ----------
+    _runtime_day_key: str = ""
+    _buh_step1_s: float = 0.0
+    _buh_step2_s: float = 0.0
+    _prev_defrost: bool = False
+    _defrost_start_ts: float | None = None
+    _defrost_count_today: int = 0
+    _defrost_duration_s: float = 0.0
+    _last_defrost_ts: float = 0.0
+    _last_runtime_tick_ts: float = 0.0
+    _energy_day_key: str = ""
+    _last_energy_tick_ts: float = 0.0
     _cop_hourly_cache: dict[str, dict[str, Any]] = {}
     _cop_hourly_cache_ts: float = 0.0
     _cop_degradation_cache: dict[str, Any] = {}
@@ -795,7 +808,24 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     @property
     def energy_snapshot(self) -> dict[str, dict[str, float]]:
         """Read-only snapshot of energy accumulators (R216)."""
-        return {mode: dict(vals) for mode, vals in self._energy_acc.items()}
+        acc = self._ensure_energy_acc()
+        return {mode: dict(vals) for mode, vals in acc.items()}
+
+    def _ensure_energy_acc(self) -> dict[str, dict[str, float]]:
+        """Return the instance-owned energy accumulator dict.
+
+        Lazy-init: needed because __new__-based tests skip __init__.
+        Without this, _tick_energy would mutate a class-shared dict.
+        """
+        acc = self.__dict__.get("_energy_acc")
+        if acc is None:
+            acc = {
+                "heating": {"th": 0.0, "el": 0.0},
+                "dhw":     {"th": 0.0, "el": 0.0},
+                "cooling": {"th": 0.0, "el": 0.0},
+            }
+            self._energy_acc = acc
+        return acc
 
     def _maybe_reset_daily_accumulators(self, now: float) -> None:
         """Reset runtime + energy accumulators on local-day boundary.
@@ -919,9 +949,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 kw_el = power_w / 1000.0
             elif cop is not None and cop > 0.0:
                 kw_el = kw_th / cop
-            self._energy_acc[m]["th"] += kw_th * dt_s / 3600.0
+            acc = self._ensure_energy_acc()
+            acc[m]["th"] += kw_th * dt_s / 3600.0
             if kw_el is not None:
-                self._energy_acc[m]["el"] += kw_el * dt_s / 3600.0
+                acc[m]["el"] += kw_el * dt_s / 3600.0
         except Exception:
             _LOGGER.exception("energy tick failed")
 

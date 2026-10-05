@@ -250,3 +250,51 @@ def test_attrs_defrost_duration_includes_count():
     a = s_mod._attrs_defrost_duration_today_s(s, c)
     assert a["defrost_count"] == 3
     assert a["avg_duration_s"] == 300.0
+
+
+def test_buh_energy_kwh_est_swallows_exception():
+    c = MagicMock()
+    c.entry.data.get = MagicMock(side_effect=RuntimeError("boom"))
+    assert s_mod._buh_energy_kwh_est(c, 3600.0, 0.0) is None
+
+
+def test_attrs_runtime_unknown_mode_skipped():
+    now = time.time()
+    c = _mk_coord(cycles=[
+        {"duration_s": 100, "mode": "unknown", "start_ts": now - 3600},
+        {"duration_s": 50, "mode": "heating", "start_ts": now - 1800},
+    ])
+    s = _mk_snap()
+    a = s_mod._attrs_runtime_compressor_today_s(s, c)
+    assert a["heating_s"] == 50
+    assert a["dhw_s"] == 0
+
+
+def test_attrs_starts_unknown_mode_skipped():
+    c = _mk_coord(cycles=[
+        {"mode": "unknown", "start_ts": 1.0},
+        {"mode": "heating", "start_ts": 2.0},
+    ])
+    s = _mk_snap()
+    a = s_mod._attrs_compressor_starts_today(s, c)
+    assert a["per_mode"]["heating"] == 1
+
+
+def test_attrs_duty_cycle_high_band(monkeypatch):
+    fake = 100000.0
+    monkeypatch.setattr(s_mod, "_now", lambda: fake)
+    monkeypatch.setattr(s_mod, "_local_midnight", lambda _: fake - 100.0)
+    c = _mk_coord(cycles=[{"duration_s": 70, "mode": "heating"}])
+    s = _mk_snap()
+    a = s_mod._attrs_duty_cycle_today_pct(s, c)
+    assert a["band"] == "high"
+
+
+def test_attrs_duty_cycle_saturated_band(monkeypatch):
+    fake = 100000.0
+    monkeypatch.setattr(s_mod, "_now", lambda: fake)
+    monkeypatch.setattr(s_mod, "_local_midnight", lambda _: fake - 100.0)
+    c = _mk_coord(cycles=[{"duration_s": 90, "mode": "heating"}])
+    s = _mk_snap()
+    a = s_mod._attrs_duty_cycle_today_pct(s, c)
+    assert a["band"] == "saturated"
