@@ -571,27 +571,135 @@
     }
   },
   "services": {
-    "send_test_notification": {
-      "name": "Send test notification",
-      "description": "Send a test message via the configured notify target.",
+    "reset_counters": {
+      "name": "Reset tellers",
+      "description": "Reset dagelijkse tellers (alles of een subset).",
       "fields": {
         "entry_id": {
           "name": "Config entry",
           "description": "Config entry ID."
         },
+        "counters": {
+          "name": "Tellers",
+          "description": "Lijst van teller-keys (leeg voor alles)."
+        }
+      }
+    },
+    "export_cycles": {
+      "name": "Exporteer cycli",
+      "description": "Exporteer gecachte cycli als JSON of CSV.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "days": {
+          "name": "Dagen",
+          "description": "Look-back venster in dagen."
+        },
+        "format": {
+          "name": "Formaat",
+          "description": "Uitvoerformaat."
+        }
+      }
+    },
+    "label_cycle": {
+      "name": "Label cyclus",
+      "description": "Voeg een gebruikerslabel toe aan een opgeslagen cyclus (ML-training).",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "cycle_id": {
+          "name": "Cyclus ID",
+          "description": "Database-ID van de cyclus."
+        },
+        "label": {
+          "name": "Label",
+          "description": "Label-string."
+        }
+      }
+    },
+    "recompute_baseline": {
+      "name": "Herbereken baseline",
+      "description": "Herbereken de ML-baseline (uitgesteld naar Batch 7).",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "days": {
+          "name": "Dagen",
+          "description": "Baseline-venster in dagen."
+        }
+      }
+    },
+    "run_maintenance": {
+      "name": "Onderhoud uitvoeren",
+      "description": "Aggregeer en ruim oude cycli/alerts op, optioneel VACUUM.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "cycle_retention_days": {
+          "name": "Cyclus-retentie (dagen)",
+          "description": "Verwijder cycli ouder dan N dagen."
+        },
+        "alert_retention_days": {
+          "name": "Alert-retentie (dagen)",
+          "description": "Verwijder alerts ouder dan N dagen."
+        },
+        "vacuum": {
+          "name": "VACUUM",
+          "description": "Voer SQLite VACUUM uit na opruimen."
+        }
+      }
+    },
+    "export_cop_hourly": {
+      "name": "Exporteer COP per uur",
+      "description": "Exporteer geaggregeerde COP-per-uur rijen als JSON of CSV.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "days": {
+          "name": "Dagen",
+          "description": "Look-back venster in dagen."
+        },
+        "mode": {
+          "name": "Modus",
+          "description": "Optionele filter (heating, dhw, defrost, unknown)."
+        },
+        "format": {
+          "name": "Formaat",
+          "description": "Uitvoerformaat."
+        }
+      }
+    },
+    "send_test_notification": {
+      "name": "Testmelding sturen",
+      "description": "Stuur een testbericht via het geconfigureerde notify-target.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID. Weglaten als slechts 1 Daikin-entry geladen is."
+        },
         "message": {
-          "name": "Message",
-          "description": "Optional custom message body."
+          "name": "Bericht",
+          "description": "Optionele aangepaste berichttekst."
         },
         "target": {
-          "name": "Target override",
-          "description": "Optional override of the configured notify target."
+          "name": "Target-override",
+          "description": "Optionele override van het geconfigureerde notify-target."
         }
       }
     },
     "import_datasheet": {
-      "name": "Import datasheet",
-      "description": "Import or override user-supplied Daikin datasheet specs.",
+      "name": "Datasheet importeren",
+      "description": "Importeer of overschrijf door gebruiker aangeleverde Daikin datasheet-specs.",
       "fields": {
         "entry_id": {
           "name": "Config entry",
@@ -599,25 +707,25 @@
         },
         "payload": {
           "name": "Payload",
-          "description": "Datasheet payload (dict or JSON string)."
+          "description": "Datasheet-payload (dict of JSON-string)."
         },
         "source_url": {
-          "name": "Source URL",
-          "description": "Optional source reference for provenance."
+          "name": "Bron-URL",
+          "description": "Optionele bronreferentie voor herkomst."
         }
       }
     },
     "remove_user_datasheet": {
-      "name": "Remove user datasheet",
-      "description": "Remove a user-supplied datasheet override for a specific model.",
+      "name": "User datasheet verwijderen",
+      "description": "Verwijder een door gebruiker aangeleverde datasheet-override voor een specifiek model.",
       "fields": {
         "entry_id": {
           "name": "Config entry",
           "description": "Config entry ID."
         },
         "model_key": {
-          "name": "Model key",
-          "description": "Model key to remove from user store."
+          "name": "Model-key",
+          "description": "Model-key om uit de user store te verwijderen."
         }
       }
     }

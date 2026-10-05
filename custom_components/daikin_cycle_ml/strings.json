@@ -571,13 +571,121 @@
     }
   },
   "services": {
+    "reset_counters": {
+      "name": "Reset counters",
+      "description": "Reset daily counters (all or a subset).",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "counters": {
+          "name": "Counters",
+          "description": "List of counter keys (leave empty for all)."
+        }
+      }
+    },
+    "export_cycles": {
+      "name": "Export cycles",
+      "description": "Export cached cycles as JSON or CSV.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "days": {
+          "name": "Days",
+          "description": "Look-back window in days."
+        },
+        "format": {
+          "name": "Format",
+          "description": "Output format."
+        }
+      }
+    },
+    "label_cycle": {
+      "name": "Label cycle",
+      "description": "Attach a user label to a stored cycle (ML training).",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "cycle_id": {
+          "name": "Cycle ID",
+          "description": "Database ID of the cycle."
+        },
+        "label": {
+          "name": "Label",
+          "description": "Label string."
+        }
+      }
+    },
+    "recompute_baseline": {
+      "name": "Recompute baseline",
+      "description": "Recompute ML baseline (deferred to Batch 7).",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "days": {
+          "name": "Days",
+          "description": "Baseline window in days."
+        }
+      }
+    },
+    "run_maintenance": {
+      "name": "Run maintenance",
+      "description": "Aggregate and prune old cycles/alerts, optionally VACUUM.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "cycle_retention_days": {
+          "name": "Cycle retention (days)",
+          "description": "Delete cycles older than N days."
+        },
+        "alert_retention_days": {
+          "name": "Alert retention (days)",
+          "description": "Delete alerts older than N days."
+        },
+        "vacuum": {
+          "name": "Vacuum",
+          "description": "Run SQLite VACUUM after prune."
+        }
+      }
+    },
+    "export_cop_hourly": {
+      "name": "Export COP hourly",
+      "description": "Export aggregated COP-per-hour rows as JSON or CSV.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "days": {
+          "name": "Days",
+          "description": "Look-back window in days."
+        },
+        "mode": {
+          "name": "Mode",
+          "description": "Optional filter (heating, dhw, defrost, unknown)."
+        },
+        "format": {
+          "name": "Format",
+          "description": "Output format."
+        }
+      }
+    },
     "send_test_notification": {
       "name": "Send test notification",
       "description": "Send a test message via the configured notify target.",
       "fields": {
         "entry_id": {
           "name": "Config entry",
-          "description": "Config entry ID."
+          "description": "Config entry ID. Omit when only one Daikin entry is loaded."
         },
         "message": {
           "name": "Message",
