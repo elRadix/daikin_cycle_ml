@@ -481,6 +481,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("Scheduled baseline save failed")
         try:
+            await self.async_save_adaptive_state()
+        except Exception:
+            _LOGGER.exception("Scheduled adaptive save failed")
+        try:
             await self._maybe_rollup_cop_hourly()
         except Exception:
             _LOGGER.exception("Scheduled cop_hourly rollup failed")

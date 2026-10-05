@@ -147,7 +147,12 @@ def validate_user_payload(raw: Any) -> tuple[dict[str, Any], list[str]]:
 
 
 def parse_user_payload(raw: Any) -> dict[str, Any]:
-    """Validate a user-supplied JSON object (already parsed). Returns clean models."""
+    """Validate a user-supplied JSON object (already parsed). Returns clean models.
+
+    Public API (backward compat): kept for external callers since C3b.
+    Production code uses validate_user_payload directly, which returns
+    (clean, errors) instead of dropping the error tuple. Do not wire.
+    """
     clean, _ = validate_user_payload(raw)
     return clean
 
