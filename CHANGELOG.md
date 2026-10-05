@@ -1,9 +1,221 @@
 # Changelog
 
-## [Unreleased] - v1.6.0 HVAC Parity (S1 complete)
+## [Unreleased] - v1.6.0 HVAC Parity (S1 + C3a + C3b + C4 complete)
 
-Branch: `feat/v1.6.0-hvac-parity`. S1 covers 3 of 14 commits in the
-v1.6.0 plan (Issue #18). C3-C14 still pending. No tag, no release yet.
+### v1.6.0-C4 -- weather-normalized COP degradation + 30d regression trend
+
+**Commit:** eac1132ae2124f65c01e99dc69545a1e9691f7e6
+**URL:** https://github.com/elRadix/daikin_cycle_ml/commit/eac1132ae2124f65c01e99dc69545a1e9691f7e6
+**Branch:** feat/v1.6.0-hvac-parity
+**Date:** 2026-10-05
+**CI:** 6/6 green
+
+#### Why weather-normalization matters
+
+HVAC thermodynamics. The Carnot COP of an air-water heat pump depends on the
+condensation and evaporation temperatures. For a fixed LWT of 35 C the
+following outdoor-temperature sensitivity holds:
+
+- T_outdoor 10 C -> COP 8.2 (baseline)
+- T_outdoor  5 C -> COP 7.3 (-11%)
+- T_outdoor  0 C -> COP 6.5 (-21%)
+- T_outdoor -5 C -> COP 5.9 (-28%)
+
+A 5 C outdoor swing between two consecutive weeks therefore produces
+roughly 11% COP change, exactly at the un-normalized warning threshold.
+Raw 7d-vs-7d comparison fires on every seasonal transition rather than on
+hardware degradation. Outdoor-binning removes the first-order weather
+signal.
+
+Additional contaminants handled:
+
+- Defrost and BUH cycles: COP during defrost is near zero and heavily
+  skews weekly averages. Excluded by joining cycles on buh_used or
+  defrost_used and building an hour-level exclusion set.
+- LWT shift: if the user raises the heating curve by 5 C, COP drops 10 to
+  15% structurally. Detected via weighted LWT comparison. Optie C
+  downgrade preserves the warning signal but lowers its severity.
+- Sparse data: dynamic sample floor scaled to the number of outdoor bins
+  prevents false alarms on new installations.
+
+#### Algorithm -- analyze_degradation (7d vs 7d, outdoor-binned)
+
+1. Fetch recent [now-7d, now] and prev [now-14d, now-7d] cop_hourly rows,
+   mode=heating.
+2. Build dirty-hours set from cycles with buh_used=1 or defrost_used=1 in
+   [now-37d, now].
+3. Filter dirty hours from both windows. Track asymmetry as exclusion_skew.
+4. Bin rows by outdoor_mean into 6 bins:
+   very_cold (-25..-10), cold (-10..0), cool (0..5),
+   mild (5..10), warm (10..15), hot (15..25).
+5. Aggregate per bin with n_samples-weighted mean for cop_mean and
+   lwt_mean.
+6. merge_bins: keep bins present in BOTH windows with at least 6 hours
+   each. Bins ordered per OUTDOOR_BINS_ORDER.
+7. Dynamic sample floor based on bin coverage: 1 bin -> 200 samples,
+   2 bins -> 100, 3 or more bins -> 80.
+8. week_pct = weighted-mean of per-bin ratios, minus 1.
+9. Validity gates: samples OK, at least 3 distinct UTC days,
+   exclusion_skew below 0.15.
+10. Severity mapping: below -8% warning, below -15% critical.
+11. Optie C downgrade: if absolute LWT shift between windows exceeds 5 C,
+    critical becomes warning, warning becomes info. severity_raw keeps
+    the original. severity_downgraded flag is exposed on attrs.
+
+#### Algorithm -- analyze_trend (30d baseline, weighted least squares)
+
+1. Fit COP = a + b * T_outdoor on baseline [now-37d, now-7d], weights
+   n_samples.
+2. Guards: at least 10 hourly rows, outdoor spread at least 5 C.
+3. For each recent hour compute predicted = a + b * T_outdoor.
+4. cop_predicted_recent = weighted mean of predictions.
+5. cop_observed_recent = weighted mean of observations.
+6. trend_30d = (observed - predicted) / predicted * 100.
+7. Same severity mapping applied to trend. No Optie C downgrade on the
+   trend sensor.
+
+#### New files
+
+- engine/cop_degradation.py. Pure helpers, no HA dependency.
+  Public API: bin_for_outdoor, weighted_mean, weighted_linear_fit,
+  severity_for_pct, downgrade_for_lwt, build_dirty_hours,
+  filter_dirty_hours, aggregate_by_bin, merge_bins, analyze_degradation,
+  analyze_trend. Also exports SEVERITY_NONE, SEVERITY_INFO,
+  SEVERITY_WARNING, SEVERITY_CRITICAL.
+- tests/test_c4_engine.py (41 test-defs, 63 collected via parametrize).
+- tests/test_c4_degradation.py (17 test-defs).
+- tests/test_c4_trend.py (16 test-defs).
+- tests/test_c4_integration.py (20 test-defs).
+
+#### Added
+
+Sensors (3 new, SENSOR_DEFS 30 -> 33):
+
+- sensor.cop_degradation_status -- enum, options
+  none/info/warning/critical. Primary state, Optie C downgraded severity.
+  Attrs: severity_raw, severity_downgraded, week_pct, week_pct_raw,
+  lwt_shift_detected, lwt_shift_c, threshold_pct, critical_pct, valid,
+  updated_ts.
+- sensor.cop_degradation_week_pct -- measurement, percent. The 7d-vs-7d
+  normalized ratio. None when gates fail. Attrs: mode, window_days,
+  n_samples_recent, n_samples_prev, n_days_recent, n_days_prev,
+  n_bins_used, dynamic_min_samples, bins_used, excluded_hours_recent,
+  excluded_hours_prev, exclusion_skew, lwt_mean_recent, lwt_mean_prev,
+  updated_ts.
+- sensor.cop_trend_30d -- measurement, percent. Regression residual
+  against baseline prediction. None when regression guards fail. Attrs:
+  mode, window_days, baseline_days, recent_days, n_hours_baseline,
+  n_hours_recent, outdoor_spread_baseline_c, fit_slope, fit_intercept,
+  fit_r2, cop_predicted_recent, cop_observed_recent, threshold_pct,
+  critical_pct, valid, updated_ts.
+
+Coordinator:
+
+- _maybe_refresh_cop_degradation(now) -- throttled 300 s. Hooked in
+  _async_update_data after _maybe_refresh_cop_hourly, before
+  _maybe_refresh_spf. Uses existing async_query_cop_hourly with until_ts
+  and mode=heating, plus async_fetch_cycles(days=37). No new DB method,
+  no schema change.
+- DataSnapshot +5 fields: cop_degradation_status (str, default "none"),
+  cop_degradation_week_pct (float or None), cop_trend_30d (float or None),
+  cop_degradation_detail (dict), cop_trend_detail (dict).
+- +2 caches: _cop_degradation_cache, _cop_degradation_cache_ts.
+
+Constants (17 new in const.py, right after COP_CURVE_RECENT_MAX_POINTS):
+
+- DEGRADATION_WINDOW_DAYS = 7
+- DEGRADATION_BASELINE_DAYS = 30
+- DEGRADATION_MIN_HOURS_PER_BIN = 6
+- DEGRADATION_THRESHOLD_PCT = -8.0
+- DEGRADATION_CRITICAL_PCT = -15.0
+- DEGRADATION_MIN_DAYS = 3
+- DEGRADATION_EXCLUSION_SKEW_MAX = 0.15
+- DEGRADATION_MIN_SAMPLES_1BIN = 200
+- DEGRADATION_MIN_SAMPLES_2BIN = 100
+- DEGRADATION_MIN_SAMPLES_3BIN = 80
+- DEGRADATION_LWT_SHIFT_C = 5.0
+- DEGRADATION_MIN_HOURS_FIT = 10
+- DEGRADATION_MIN_SPREAD_C = 5.0
+- DEGRADATION_REFRESH_THROTTLE_S = 300.0
+- OUTDOOR_BINS (tuple of 6 (lo, hi, label) tuples)
+- OUTDOOR_BINS_ORDER (tuple of 6 labels)
+
+Translations (3 files: strings.json, translations/en.json,
+translations/nl.json):
+
+- 3 sensor-name entries per file.
+- 4 enum-state entries on cop_degradation_status per file
+  (none/info/warning/critical).
+
+#### Changed
+
+- coordinator.py: update-flow ordering now cop_hourly -> cop_degradation
+  -> spf. Degradation refresh uses the cop_hourly cache from the same
+  tick.
+- SENSOR_DEFS total: 30 -> 33.
+- Entity total: 48 -> 51.
+- Test-defs: 1999 -> 2096 (+97).
+- Coverage stmts: 5113 -> 5422. Branches: 1426 -> 1528.
+- mypy scope: 33 -> 34 source files (new engine module included).
+
+#### Fixed
+
+- test_c3a_integration.py, test_v160_deep.py,
+  test_v160_per_mode_cop.py, test_v160_spf.py: SENSOR_DEFS count
+  assertion 30 -> 33. These tests assert total sensor count to catch
+  accidental additions/removals; the increase is intentional.
+- engine/cop_degradation.py: dead branch (total_w > 0 after merge_bins
+  is always true because merge_bins already filters weight > 0) marked
+  pragma no cover. Actual filtering stays in merge_bins.
+
+#### Impact summary
+
+- Sensors: +3. Binary sensors: 0. Entities: +3 (48 -> 51).
+- Services: 0. Repairs: 0.
+- DB schema: unchanged (v14). DB methods: 0 new.
+- Coordinator caches: +2.
+- Constants: +17.
+- Test files: +4 new, +4 updated.
+- Breaking changes: none for end users.
+
+#### Test status
+
+- pytest: 2096 passed.
+- Coverage: 100.00% (5422 statements, 1528 branches).
+- mypy strict: Success, 34 source files.
+- ruff CI-scope: All checks passed.
+- CI checks: 6/6 green (coverage, Hassfest, ruff, HACS Action, build,
+  mypy).
+
+#### Notes
+
+- Requires 14 days of cop_hourly history to produce non-None values.
+  New installations see status none with week_pct None until enough
+  data is available. This is by design; the sensor is not noisy on
+  install.
+- Outdoor-binning is a first-order weather correction. Full 2D binning
+  (outdoor x LWT) is deferred to v1.7 or later once users have
+  multi-season history.
+- Defrost and BUH exclusion depends on cycles.buh_used and
+  cycles.defrost_used (present since v1.4.x). No schema migration.
+- Optie C preserves the warning signal (severity field still reflects
+  degradation) while qualifying it via severity_raw. Users wanting
+  strict alerting can match severity_raw in automations.
+- Production validation of heating-season behavior is pending the
+  Nov/Dec 2026 stookseizoen.
+
+#### Related
+
+- C3a (spec-based datasheet comparison): sensor.cop_vs_datasheet_pct.
+- C3b (user datasheet Store plus two services).
+- Issue #18 S2 C4.
+- Handoff v48.0 (C3b), v49.0 (C4 done, C5 and C6 next).
+
+
+Branch: `feat/v1.6.0-hvac-parity`. S1 (per-mode COP + SPF), C3a
+(bundled datasheets), C3b (user datasheets + 2 services + 3 Repairs)
+and C4 (weather-normalized COP degradation + 30d regression trend) are
+complete. Remaining: C5-C14. No tag, no release yet.
 
 ### Added
 
