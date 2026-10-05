@@ -66,8 +66,8 @@ def test_translations_pendulum_has_osc_keys():
     for fn in ("en.json", "nl.json"):
         with open(os.path.join(base, fn), encoding="utf-8") as f:
             data = json.load(f)
-        d = data["options"]["step"]["pendulum"]["data"]
-        dd = data["options"]["step"]["pendulum"]["data_description"]
+        d = data["options"]["step"]["pendulum"]["sections"]["setpoint"]["data"]
+        dd = data["options"]["step"]["pendulum"]["sections"]["setpoint"]["data_description"]
         for k in (
             "setpoint_oscillation_threshold",
             "setpoint_osc_window_min",
@@ -105,6 +105,6 @@ def test_strings_json_mirrors_en():
     sd = s["options"]["step"]["notifications"]["data"]
     ed = e["options"]["step"]["notifications"]["data"]
     assert sd.get("notification_language") == ed.get("notification_language")
-    sp = s["options"]["step"]["pendulum"]["data"]
-    ep = e["options"]["step"]["pendulum"]["data"]
+    sp = s["options"]["step"]["pendulum"]["sections"]["setpoint"]["data"]
+    ep = e["options"]["step"]["pendulum"]["sections"]["setpoint"]["data"]
     assert sp.get("setpoint_oscillation_threshold") == ep.get("setpoint_oscillation_threshold")

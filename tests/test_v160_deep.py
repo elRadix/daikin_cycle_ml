@@ -148,8 +148,9 @@ def test_options_maintenance_has_season_in_all_3():
     for fn in ("strings.json", "translations/en.json", "translations/nl.json"):
         d = _load_json(fn)
         step = d.get("options", {}).get("step", {}).get("maintenance", {})
-        assert "season_start_month" in step.get("data", {}), f"data missing in {fn}"
-        assert "season_start_month" in step.get("data_description", {}), f"desc missing in {fn}"
+        season = step.get("sections", {}).get("season", {})
+        assert "season_start_month" in season.get("data", {}), f"data missing in {fn}"
+        assert "season_start_month" in season.get("data_description", {}), f"desc missing in {fn}"
 
 
 # ================================================================

@@ -230,41 +230,65 @@
       "pendulum": {
         "title": "Pendulum",
         "description": "What counts as a bad cycle.",
-        "data": {
-          "short_run_threshold_min": "Short run threshold",
-          "short_off_threshold_min": "Short off threshold",
-          "pendulum_cycles_per_hour": "Cycles per hour",
-          "pendulum_cycles_per_day": "Cycles per day",
-          "setpoint_oscillation_threshold": "Setpoint oscillation threshold",
-          "setpoint_osc_window_min": "Setpoint window (min)",
-          "setpoint_osc_min_delta": "Minimum setpoint change (°C)",
-          "dhw_pendulum_cycles_per_hour": "DHW pendulum cycles per hour"
-        },
-        "data_description": {
-          "short_run_threshold_min": "Cycles shorter than this are flagged. Default 20 min.",
-          "short_off_threshold_min": "Off-times shorter than this are flagged. Default 5 min.",
-          "pendulum_cycles_per_hour": "Hourly cycle count triggering a pendulum alert. Default 4.",
-          "pendulum_cycles_per_day": "Daily cycle count triggering a pendulum alert. Default 40.",
-          "setpoint_oscillation_threshold": "Number of setpoint changes in the window before an alert fires. Default 6 — filters normal thermostat tuning, warns on real oscillation.",
-          "setpoint_osc_window_min": "Rolling window in minutes. Default 30.",
-          "setpoint_osc_min_delta": "Minimum °C change to count as a setpoint change. Default 0.5 — filters floating-point noise.",
-          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour triggering a pendulum alert. Default 3."
+        "sections": {
+          "run_off": {
+            "name": "Run/off thresholds",
+            "data": {
+              "short_run_threshold_min": "Short run threshold",
+              "short_off_threshold_min": "Short off threshold"
+            },
+            "data_description": {
+              "short_run_threshold_min": "Cycles shorter than this are flagged. Default 20 min.",
+              "short_off_threshold_min": "Off-times shorter than this are flagged. Default 5 min."
+            }
+          },
+          "pendulum": {
+            "name": "Pendulum detection",
+            "data": {
+              "pendulum_cycles_per_hour": "Cycles per hour",
+              "pendulum_cycles_per_day": "Cycles per day",
+              "dhw_pendulum_cycles_per_hour": "DHW pendulum cycles per hour"
+            },
+            "data_description": {
+              "pendulum_cycles_per_hour": "Hourly cycle count triggering a pendulum alert. Default 4.",
+              "pendulum_cycles_per_day": "Daily cycle count triggering a pendulum alert. Default 40.",
+              "dhw_pendulum_cycles_per_hour": "DHW cycles per hour triggering a pendulum alert. Default 3."
+            }
+          },
+          "setpoint": {
+            "name": "Setpoint oscillation",
+            "data": {
+              "setpoint_oscillation_threshold": "Setpoint oscillation threshold",
+              "setpoint_osc_window_min": "Setpoint window (min)",
+              "setpoint_osc_min_delta": "Minimum setpoint change (°C)"
+            },
+            "data_description": {
+              "setpoint_oscillation_threshold": "Number of setpoint changes in the window before an alert fires. Default 6 — filters normal thermostat tuning, warns on real oscillation.",
+              "setpoint_osc_window_min": "Rolling window in minutes. Default 30.",
+              "setpoint_osc_min_delta": "Minimum °C change to count as a setpoint change. Default 0.5 — filters floating-point noise."
+            }
+          }
         }
       },
       "quality": {
         "title": "Quality",
         "description": "Cycle quality scoring (0-100).",
-        "data": {
-          "good_run_threshold_min": "Good run threshold",
-          "good_dt_threshold_k": "Good dT threshold",
-          "good_off_threshold_min": "Good off threshold",
-          "target_cycles_per_day": "Target cycles per day"
-        },
-        "data_description": {
-          "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min.",
-          "good_dt_threshold_k": "Minimum dT (K) for full marks. Default 5.0 K.",
-          "good_off_threshold_min": "Minimum off-time for full marks. Default 20 min.",
-          "target_cycles_per_day": "Efficiency target used in ratio-based advice. Default 8."
+        "sections": {
+          "quality": {
+            "name": "Quality score",
+            "data": {
+              "good_run_threshold_min": "Good run threshold",
+              "good_dt_threshold_k": "Good dT threshold",
+              "good_off_threshold_min": "Good off threshold",
+              "target_cycles_per_day": "Target cycles per day"
+            },
+            "data_description": {
+              "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min.",
+              "good_dt_threshold_k": "Minimum dT (K) for full marks. Default 5.0 K.",
+              "good_off_threshold_min": "Minimum off-time for full marks. Default 20 min.",
+              "target_cycles_per_day": "Efficiency target used in ratio-based advice. Default 8."
+            }
+          }
         }
       },
       "notifications": {
@@ -310,31 +334,48 @@
       "ml": {
         "title": "ML learning",
         "description": "Adaptive thresholds and anomaly detection.",
-        "data": {
-          "adaptive_thresholds_enabled": "Adaptive thresholds",
-          "adaptive_min_samples": "Minimum samples"
-        },
-        "data_description": {
-          "adaptive_thresholds_enabled": "Auto-tune thresholds from observed cycles.",
-          "adaptive_min_samples": "Cycles needed before adaptive tuning activates. Default 20."
+        "sections": {
+          "adaptive": {
+            "name": "Adaptive learning",
+            "data": {
+              "adaptive_thresholds_enabled": "Adaptive thresholds",
+              "adaptive_min_samples": "Minimum samples"
+            },
+            "data_description": {
+              "adaptive_thresholds_enabled": "Auto-tune thresholds from observed cycles.",
+              "adaptive_min_samples": "Cycles needed before adaptive tuning activates. Default 20."
+            }
+          }
         }
       },
       "maintenance": {
         "title": "Maintenance",
         "description": "Retention and database maintenance.",
-        "data": {
-          "retention_enabled": "Retention enabled",
-          "cycle_retention_days": "Cycle retention (days)",
-          "alert_retention_days": "Alert retention (days)",
-          "vacuum_enabled": "VACUUM after prune",
-          "season_start_month": "Season start month"
-        },
-        "data_description": {
-          "retention_enabled": "Run daily maintenance at 03:00 local time.",
-          "cycle_retention_days": "Cycles older than N days are rolled up and pruned. Default 90.",
-          "alert_retention_days": "Alerts older than N days are deleted. Default 30.",
-          "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning.",
-          "season_start_month": "First month of the heating season (1-12). Used for SPF calculation. Default: 10."
+        "sections": {
+          "retention": {
+            "name": "Retention",
+            "data": {
+              "retention_enabled": "Retention enabled",
+              "cycle_retention_days": "Cycle retention (days)",
+              "alert_retention_days": "Alert retention (days)",
+              "vacuum_enabled": "VACUUM after prune"
+            },
+            "data_description": {
+              "retention_enabled": "Run daily maintenance at 03:00 local time.",
+              "cycle_retention_days": "Cycles older than N days are rolled up and pruned. Default 90.",
+              "alert_retention_days": "Alerts older than N days are deleted. Default 30.",
+              "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning."
+            }
+          },
+          "season": {
+            "name": "Season",
+            "data": {
+              "season_start_month": "Season start month"
+            },
+            "data_description": {
+              "season_start_month": "First month of the heating season (1-12). Used for SPF calculation. Default: 10."
+            }
+          }
         }
       },
       "test_notification": {

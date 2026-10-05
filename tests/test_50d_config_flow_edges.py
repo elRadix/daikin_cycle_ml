@@ -136,20 +136,33 @@ async def test_options_flow_menu_test_all(hass: HomeAssistant):
         "comfort": {},
     }),
     ("pendulum", {
-        "short_run_threshold_min": 20, "short_off_threshold_min": 5,
-        "pendulum_cycles_per_hour": 4, "pendulum_cycles_per_day": 40,
-        "dhw_pendulum_cycles_per_hour": 3,
-        "setpoint_oscillation_threshold": 10,
-        "setpoint_osc_window_min": 30, "setpoint_osc_min_delta": 0.5,
+        "run_off": {
+            "short_run_threshold_min": 20, "short_off_threshold_min": 5,
+        },
+        "pendulum": {
+            "pendulum_cycles_per_hour": 4, "pendulum_cycles_per_day": 40,
+            "dhw_pendulum_cycles_per_hour": 3,
+        },
+        "setpoint": {
+            "setpoint_oscillation_threshold": 10,
+            "setpoint_osc_window_min": 30, "setpoint_osc_min_delta": 0.5,
+        },
     }),
     ("quality", {
-        "good_run_threshold_min": 45, "good_dt_threshold_k": 5.0,
-        "good_off_threshold_min": 20, "target_cycles_per_day": 8,
+        "quality": {
+            "good_run_threshold_min": 45, "good_dt_threshold_k": 5.0,
+            "good_off_threshold_min": 20, "target_cycles_per_day": 8,
+        },
     }),
-    ("ml", {"adaptive_thresholds_enabled": True, "adaptive_min_samples": 30}),
+    ("ml", {"adaptive": {
+        "adaptive_thresholds_enabled": True, "adaptive_min_samples": 30,
+    }}),
     ("maintenance", {
-        "retention_enabled": True, "cycle_retention_days": 90,
-        "alert_retention_days": 30, "vacuum_enabled": True,
+        "retention": {
+            "retention_enabled": True, "cycle_retention_days": 90,
+            "alert_retention_days": 30, "vacuum_enabled": True,
+        },
+        "season": {"season_start_month": 10},
     }),
 ])
 async def test_options_step_submit(hass: HomeAssistant, step: str, data: dict):

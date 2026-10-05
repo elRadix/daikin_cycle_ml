@@ -100,10 +100,20 @@ async def test_pendulum_submit_preserves_other_keys(hass):
     r = await hass.config_entries.options.async_configure(
         r["flow_id"],
         user_input={
-            "short_run_threshold_min": 25,
-            "short_off_threshold_min": 6,
-            "pendulum_cycles_per_hour": 5,
-            "pendulum_cycles_per_day": 35,
+            "run_off": {
+                "short_run_threshold_min": 25,
+                "short_off_threshold_min": 6,
+            },
+            "pendulum": {
+                "pendulum_cycles_per_hour": 5,
+                "pendulum_cycles_per_day": 35,
+                "dhw_pendulum_cycles_per_hour": 3,
+            },
+            "setpoint": {
+                "setpoint_oscillation_threshold": 6,
+                "setpoint_osc_window_min": 30,
+                "setpoint_osc_min_delta": 0.5,
+            },
         },
     )
     assert r["type"] == "create_entry"
@@ -119,10 +129,12 @@ async def test_quality_submit(hass):
     r = await hass.config_entries.options.async_configure(
         r["flow_id"],
         user_input={
-            "good_run_threshold_min": 50,
-            "good_dt_threshold_k": 5.5,
-            "good_off_threshold_min": 22,
-            "target_cycles_per_day": 9,
+            "quality": {
+                "good_run_threshold_min": 50,
+                "good_dt_threshold_k": 5.5,
+                "good_off_threshold_min": 22,
+                "target_cycles_per_day": 9,
+            },
         },
     )
     assert r["type"] == "create_entry"
@@ -137,8 +149,10 @@ async def test_ml_submit(hass):
     r = await hass.config_entries.options.async_configure(
         r["flow_id"],
         user_input={
-            "adaptive_thresholds_enabled": True,
-            "adaptive_min_samples": 25,
+            "adaptive": {
+                "adaptive_thresholds_enabled": True,
+                "adaptive_min_samples": 25,
+            },
         },
     )
     assert r["type"] == "create_entry"
@@ -153,10 +167,15 @@ async def test_maintenance_submit(hass):
     r = await hass.config_entries.options.async_configure(
         r["flow_id"],
         user_input={
-            "retention_enabled": True,
-            "cycle_retention_days": 120,
-            "alert_retention_days": 45,
-            "vacuum_enabled": True,
+            "retention": {
+                "retention_enabled": True,
+                "cycle_retention_days": 120,
+                "alert_retention_days": 45,
+                "vacuum_enabled": True,
+            },
+            "season": {
+                "season_start_month": 10,
+            },
         },
     )
     assert r["type"] == "create_entry"

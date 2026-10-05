@@ -230,41 +230,65 @@
       "pendulum": {
         "title": "Pendelen",
         "description": "Wat telt als een slechte cyclus.",
-        "data": {
-          "short_run_threshold_min": "Korte run-drempel",
-          "short_off_threshold_min": "Korte off-drempel",
-          "pendulum_cycles_per_hour": "Cycli per uur",
-          "pendulum_cycles_per_day": "Cycli per dag",
-          "setpoint_oscillation_threshold": "Setpoint-oscillatiedrempel",
-          "setpoint_osc_window_min": "Setpoint-venster (min)",
-          "setpoint_osc_min_delta": "Minimale setpointwijziging (°C)",
-          "dhw_pendulum_cycles_per_hour": "SWW-pendel cycli per uur"
-        },
-        "data_description": {
-          "short_run_threshold_min": "Cycli korter dan dit worden gemarkeerd. Standaard 20 min.",
-          "short_off_threshold_min": "Off-tijden korter dan dit worden gemarkeerd. Standaard 5 min.",
-          "pendulum_cycles_per_hour": "Cycli per uur die een pendelmelding triggeren. Standaard 4.",
-          "pendulum_cycles_per_day": "Cycli per dag die een pendelmelding triggeren. Standaard 40.",
-          "setpoint_oscillation_threshold": "Aantal setpointwijzigingen in het venster voordat een melding klinkt. Standaard 6 — filtert normale thermostaat-tuning, waarschuwt bij echte oscillatie.",
-          "setpoint_osc_window_min": "Rollend venster in minuten. Standaard 30.",
-          "setpoint_osc_min_delta": "Minimale °C-wijziging om als setpointwijziging te tellen. Standaard 0.5 — filtert floating-point ruis.",
-          "dhw_pendulum_cycles_per_hour": "SWW-cycli per uur die een pendelmelding triggeren. Standaard 3."
+        "sections": {
+          "run_off": {
+            "name": "Run/off drempels",
+            "data": {
+              "short_run_threshold_min": "Korte run-drempel",
+              "short_off_threshold_min": "Korte off-drempel"
+            },
+            "data_description": {
+              "short_run_threshold_min": "Cycli korter dan dit worden gemarkeerd. Standaard 20 min.",
+              "short_off_threshold_min": "Off-tijden korter dan dit worden gemarkeerd. Standaard 5 min."
+            }
+          },
+          "pendulum": {
+            "name": "Pendulum-detectie",
+            "data": {
+              "pendulum_cycles_per_hour": "Cycli per uur",
+              "pendulum_cycles_per_day": "Cycli per dag",
+              "dhw_pendulum_cycles_per_hour": "SWW-pendel cycli per uur"
+            },
+            "data_description": {
+              "pendulum_cycles_per_hour": "Cycli per uur die een pendelmelding triggeren. Standaard 4.",
+              "pendulum_cycles_per_day": "Cycli per dag die een pendelmelding triggeren. Standaard 40.",
+              "dhw_pendulum_cycles_per_hour": "SWW-cycli per uur die een pendelmelding triggeren. Standaard 3."
+            }
+          },
+          "setpoint": {
+            "name": "Setpoint-oscillatie",
+            "data": {
+              "setpoint_oscillation_threshold": "Setpoint-oscillatiedrempel",
+              "setpoint_osc_window_min": "Setpoint-venster (min)",
+              "setpoint_osc_min_delta": "Minimale setpointwijziging (°C)"
+            },
+            "data_description": {
+              "setpoint_oscillation_threshold": "Aantal setpointwijzigingen in het venster voordat een melding klinkt. Standaard 6 — filtert normale thermostaat-tuning, waarschuwt bij echte oscillatie.",
+              "setpoint_osc_window_min": "Rollend venster in minuten. Standaard 30.",
+              "setpoint_osc_min_delta": "Minimale °C-wijziging om als setpointwijziging te tellen. Standaard 0.5 — filtert floating-point ruis."
+            }
+          }
         }
       },
       "quality": {
         "title": "Kwaliteit",
         "description": "Kwaliteitsscore van cycli (0-100).",
-        "data": {
-          "good_run_threshold_min": "Goede run-drempel",
-          "good_dt_threshold_k": "Goede dT-drempel",
-          "good_off_threshold_min": "Goede off-drempel",
-          "target_cycles_per_day": "Doelcycli per dag"
-        },
-        "data_description": {
-          "good_run_threshold_min": "Looptijd >= deze waarde scoort volledig. Standaard 45 min.",
-          "good_dt_threshold_k": "Minimale dT (K) voor volledige score. Standaard 5.0 K.",
-          "good_off_threshold_min": "Minimale off-tijd voor volledige score. Standaard 20 min.",
-          "target_cycles_per_day": "Efficientiedoel voor ratio-advies. Standaard 8."
+        "sections": {
+          "quality": {
+            "name": "Kwaliteitsscore",
+            "data": {
+              "good_run_threshold_min": "Goede run-drempel",
+              "good_dt_threshold_k": "Goede dT-drempel",
+              "good_off_threshold_min": "Goede off-drempel",
+              "target_cycles_per_day": "Doelcycli per dag"
+            },
+            "data_description": {
+              "good_run_threshold_min": "Looptijd >= deze waarde scoort volledig. Standaard 45 min.",
+              "good_dt_threshold_k": "Minimale dT (K) voor volledige score. Standaard 5.0 K.",
+              "good_off_threshold_min": "Minimale off-tijd voor volledige score. Standaard 20 min.",
+              "target_cycles_per_day": "Efficientiedoel voor ratio-advies. Standaard 8."
+            }
+          }
         }
       },
       "notifications": {
@@ -310,31 +334,48 @@
       "ml": {
         "title": "ML leren",
         "description": "Adaptieve drempels en anomaliedetectie.",
-        "data": {
-          "adaptive_thresholds_enabled": "Adaptieve drempels",
-          "adaptive_min_samples": "Minimum aantal samples"
-        },
-        "data_description": {
-          "adaptive_thresholds_enabled": "Drempels automatisch bijstellen op basis van cycli.",
-          "adaptive_min_samples": "Aantal cycli voor adaptieve tuning. Standaard 20."
+        "sections": {
+          "adaptive": {
+            "name": "Adaptief leren",
+            "data": {
+              "adaptive_thresholds_enabled": "Adaptieve drempels",
+              "adaptive_min_samples": "Minimum aantal samples"
+            },
+            "data_description": {
+              "adaptive_thresholds_enabled": "Drempels automatisch bijstellen op basis van cycli.",
+              "adaptive_min_samples": "Aantal cycli voor adaptieve tuning. Standaard 20."
+            }
+          }
         }
       },
       "maintenance": {
         "title": "Onderhoud",
         "description": "Retentie en database-onderhoud.",
-        "data": {
-          "retention_enabled": "Retentie ingeschakeld",
-          "cycle_retention_days": "Cyclus-retentie (dagen)",
-          "alert_retention_days": "Melding-retentie (dagen)",
-          "vacuum_enabled": "VACUUM na opschonen",
-          "season_start_month": "Startmaand stookseizoen"
-        },
-        "data_description": {
-          "retention_enabled": "Dagelijks onderhoud om 03:00 lokale tijd.",
-          "cycle_retention_days": "Cycli ouder dan N dagen worden gerold. Standaard 90.",
-          "alert_retention_days": "Meldingen ouder dan N dagen verwijderd. Standaard 30.",
-          "vacuum_enabled": "SQLite VACUUM om ruimte vrij te maken.",
-          "season_start_month": "Eerste maand van het stookseizoen (1-12). Gebruikt voor SPF-berekening. Standaard: 10."
+        "sections": {
+          "retention": {
+            "name": "Retentie",
+            "data": {
+              "retention_enabled": "Retentie ingeschakeld",
+              "cycle_retention_days": "Cyclus-retentie (dagen)",
+              "alert_retention_days": "Melding-retentie (dagen)",
+              "vacuum_enabled": "VACUUM na opschonen"
+            },
+            "data_description": {
+              "retention_enabled": "Dagelijks onderhoud om 03:00 lokale tijd.",
+              "cycle_retention_days": "Cycli ouder dan N dagen worden gerold. Standaard 90.",
+              "alert_retention_days": "Meldingen ouder dan N dagen verwijderd. Standaard 30.",
+              "vacuum_enabled": "SQLite VACUUM om ruimte vrij te maken."
+            }
+          },
+          "season": {
+            "name": "Seizoen",
+            "data": {
+              "season_start_month": "Startmaand stookseizoen"
+            },
+            "data_description": {
+              "season_start_month": "Eerste maand van het stookseizoen (1-12). Gebruikt voor SPF-berekening. Standaard: 10."
+            }
+          }
         }
       },
       "test_notification": {

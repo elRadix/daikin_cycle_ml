@@ -623,34 +623,40 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             return self._save(user_input)
         c: dict[str, Any] = dict(self.config_entry.options or {})
         schema = vol.Schema({
-            vol.Required("short_run_threshold_min",
-                default=c.get("short_run_threshold_min", DEFAULT_SHORT_RUN_MIN)
-            ): _num(1, 240, 1, "min"),
-            vol.Required("short_off_threshold_min",
-                default=c.get("short_off_threshold_min", DEFAULT_SHORT_OFF_MIN)
-            ): _num(1, 120, 1, "min"),
-            vol.Required("pendulum_cycles_per_hour",
-                default=c.get("pendulum_cycles_per_hour", DEFAULT_PENDULUM_CPH)
-            ): _num(1, 100, 1),
-            vol.Required("pendulum_cycles_per_day",
-                default=c.get("pendulum_cycles_per_day", DEFAULT_PENDULUM_CPD)
-            ): _num(1, 200, 1),
-            vol.Required("dhw_pendulum_cycles_per_hour",
-                default=c.get("dhw_pendulum_cycles_per_hour",
-                    DEFAULT_DHW_PENDULUM_CPH),
-            ): _num(1, 20, 1, "cyc/h"),
-            vol.Required("setpoint_oscillation_threshold",
-                default=c.get("setpoint_oscillation_threshold",
-                    DEFAULT_SETPOINT_OSC_THRESHOLD),
-            ): _num(1, 100, 1, "changes"),
-            vol.Required("setpoint_osc_window_min",
-                default=c.get("setpoint_osc_window_min",
-                    DEFAULT_SETPOINT_OSC_WINDOW_MIN),
-            ): _num(5, 180, 1, "min"),
-            vol.Required("setpoint_osc_min_delta",
-                default=c.get("setpoint_osc_min_delta",
-                    DEFAULT_SETPOINT_OSC_MIN_DELTA),
-            ): _num(0.1, 2.0, 0.1, "\u00b0C"),
+            vol.Required("run_off"): section(vol.Schema({
+                vol.Required("short_run_threshold_min",
+                    default=c.get("short_run_threshold_min", DEFAULT_SHORT_RUN_MIN)
+                ): _num(1, 240, 1, "min"),
+                vol.Required("short_off_threshold_min",
+                    default=c.get("short_off_threshold_min", DEFAULT_SHORT_OFF_MIN)
+                ): _num(1, 120, 1, "min"),
+            })),
+            vol.Required("pendulum"): section(vol.Schema({
+                vol.Required("pendulum_cycles_per_hour",
+                    default=c.get("pendulum_cycles_per_hour", DEFAULT_PENDULUM_CPH)
+                ): _num(1, 100, 1),
+                vol.Required("pendulum_cycles_per_day",
+                    default=c.get("pendulum_cycles_per_day", DEFAULT_PENDULUM_CPD)
+                ): _num(1, 200, 1),
+                vol.Required("dhw_pendulum_cycles_per_hour",
+                    default=c.get("dhw_pendulum_cycles_per_hour",
+                        DEFAULT_DHW_PENDULUM_CPH),
+                ): _num(1, 20, 1, "cyc/h"),
+            })),
+            vol.Required("setpoint"): section(vol.Schema({
+                vol.Required("setpoint_oscillation_threshold",
+                    default=c.get("setpoint_oscillation_threshold",
+                        DEFAULT_SETPOINT_OSC_THRESHOLD),
+                ): _num(1, 100, 1, "changes"),
+                vol.Required("setpoint_osc_window_min",
+                    default=c.get("setpoint_osc_window_min",
+                        DEFAULT_SETPOINT_OSC_WINDOW_MIN),
+                ): _num(5, 180, 1, "min"),
+                vol.Required("setpoint_osc_min_delta",
+                    default=c.get("setpoint_osc_min_delta",
+                        DEFAULT_SETPOINT_OSC_MIN_DELTA),
+                ): _num(0.1, 2.0, 0.1, "°C"),
+            })),
         })
         return self.async_show_form(step_id="pendulum", data_schema=schema)
 
@@ -659,18 +665,20 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             return self._save(user_input)
         c: dict[str, Any] = dict(self.config_entry.options or {})
         schema = vol.Schema({
-            vol.Required("good_run_threshold_min",
-                default=c.get("good_run_threshold_min", DEFAULT_GOOD_RUN_MIN)
-            ): _num(1, 240, 1, "min"),
-            vol.Required("good_dt_threshold_k",
-                default=c.get("good_dt_threshold_k", DEFAULT_GOOD_DT_K)
-            ): _num(0.0, 20.0, 0.5, "K"),
-            vol.Required("good_off_threshold_min",
-                default=c.get("good_off_threshold_min", DEFAULT_GOOD_OFF_MIN)
-            ): _num(1, 240, 1, "min"),
-            vol.Required("target_cycles_per_day",
-                default=c.get("target_cycles_per_day", DEFAULT_TARGET_CYCLES_PER_DAY)
-            ): _num(1, 100, 1),
+            vol.Required("quality"): section(vol.Schema({
+                vol.Required("good_run_threshold_min",
+                    default=c.get("good_run_threshold_min", DEFAULT_GOOD_RUN_MIN)
+                ): _num(1, 240, 1, "min"),
+                vol.Required("good_dt_threshold_k",
+                    default=c.get("good_dt_threshold_k", DEFAULT_GOOD_DT_K)
+                ): _num(0.0, 20.0, 0.5, "K"),
+                vol.Required("good_off_threshold_min",
+                    default=c.get("good_off_threshold_min", DEFAULT_GOOD_OFF_MIN)
+                ): _num(1, 240, 1, "min"),
+                vol.Required("target_cycles_per_day",
+                    default=c.get("target_cycles_per_day", DEFAULT_TARGET_CYCLES_PER_DAY)
+                ): _num(1, 100, 1),
+            })),
         })
         return self.async_show_form(step_id="quality", data_schema=schema)
 
@@ -872,13 +880,15 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             return self._save(user_input)
         c: dict[str, Any] = dict(self.config_entry.options or {})
         schema = vol.Schema({
-            vol.Required("adaptive_thresholds_enabled",
-                default=c.get("adaptive_thresholds_enabled",
-                    DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED),
-            ): bool,
-            vol.Required("adaptive_min_samples",
-                default=c.get("adaptive_min_samples", DEFAULT_ADAPTIVE_MIN_SAMPLES)
-            ): _num(5, 500, 1),
+            vol.Required("adaptive"): section(vol.Schema({
+                vol.Required("adaptive_thresholds_enabled",
+                    default=c.get("adaptive_thresholds_enabled",
+                        DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED),
+                ): bool,
+                vol.Required("adaptive_min_samples",
+                    default=c.get("adaptive_min_samples", DEFAULT_ADAPTIVE_MIN_SAMPLES)
+                ): _num(5, 500, 1),
+            })),
         })
         return self.async_show_form(step_id="ml", data_schema=schema)
 
@@ -887,26 +897,30 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             return self._save(user_input)
         c: dict[str, Any] = dict(self.config_entry.options or {})
         schema = vol.Schema({
-            vol.Required("retention_enabled",
-                default=c.get("retention_enabled", DEFAULT_RETENTION_ENABLED)
-            ): bool,
-            vol.Required("cycle_retention_days",
-                default=c.get("cycle_retention_days", DEFAULT_CYCLE_RETENTION_DAYS)
-            ): _num(1, 3650, 1, "d"),
-            vol.Required("alert_retention_days",
-                default=c.get("alert_retention_days", DEFAULT_ALERT_RETENTION_DAYS)
-            ): _num(1, 365, 1, "d"),
-            vol.Required("vacuum_enabled",
-                default=c.get("vacuum_enabled", DEFAULT_VACUUM_ENABLED)
-            ): bool,
-            vol.Required("season_start_month",
-                default=c.get("season_start_month", DEFAULT_SEASON_START_MONTH)
-            ): vol.All(
-                vol.Coerce(int),
-                vol.In({1: "January", 2: "February", 3: "March",
-                        4: "April", 5: "May", 6: "June",
-                        7: "July", 8: "August", 9: "September",
-                        10: "October", 11: "November", 12: "December"}),
-            ),
+            vol.Required("retention"): section(vol.Schema({
+                vol.Required("retention_enabled",
+                    default=c.get("retention_enabled", DEFAULT_RETENTION_ENABLED)
+                ): bool,
+                vol.Required("cycle_retention_days",
+                    default=c.get("cycle_retention_days", DEFAULT_CYCLE_RETENTION_DAYS)
+                ): _num(1, 3650, 1, "d"),
+                vol.Required("alert_retention_days",
+                    default=c.get("alert_retention_days", DEFAULT_ALERT_RETENTION_DAYS)
+                ): _num(1, 365, 1, "d"),
+                vol.Required("vacuum_enabled",
+                    default=c.get("vacuum_enabled", DEFAULT_VACUUM_ENABLED)
+                ): bool,
+            })),
+            vol.Required("season"): section(vol.Schema({
+                vol.Required("season_start_month",
+                    default=c.get("season_start_month", DEFAULT_SEASON_START_MONTH)
+                ): vol.All(
+                    vol.Coerce(int),
+                    vol.In({1: "January", 2: "February", 3: "March",
+                            4: "April", 5: "May", 6: "June",
+                            7: "July", 8: "August", 9: "September",
+                            10: "October", 11: "November", 12: "December"}),
+                ),
+            })),
         })
         return self.async_show_form(step_id="maintenance", data_schema=schema)
