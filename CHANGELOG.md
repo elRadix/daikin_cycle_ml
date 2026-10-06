@@ -5,6 +5,83 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.5] - 2026-10-06
+
+Patch release: correctness hygiene for COP-analyzer early-returns and
+cop_samples.mode persistence. dt_s cap on energy/runtime accumulators.
+
+[Full diff v1.6.4...v1.6.5](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.4...v1.6.5)
+
+### Added
+
+- R284: `StooklijnAdvies.comfort_cap` defaults to `None`; early-returns
+  (no_data, no_recent_heating, no_indoor_sensor, comfort_floor_reached,
+  DHW-active) leave it `None` (was misleading `3.0` sentinel).
+- R298: `cop_samples.mode` DEFAULT `'unknown'` + INSERT fallback
+  `or "unknown"` + idempotent migration v14 -> v15.
+- R288/R288b: energy + BUH/defrost runtime accumulators cap `dt_s` at
+  300s, warn >60s (`ENERGY_DT_CAP_S` / `ENERGY_DT_WARN_S`).
+- R299: AST-contract test freezing `CopSample.data_quality` invariant.
+- Tests: `test_r284_comfort_cap_none.py` (6 cases) ·
+  `test_r298_mode_default.py` (3) · `test_r299_data_quality_contract.py`
+  (1) · `test_v161_energy_guard.py` (+6) ·
+  `test_52b6_init_coverage.py::test_v15_migration_raises` (1).
+
+### Fixed
+
+- Misleading `comfort_cap=3.0` on early-return paths (R284).
+- Semantic NULL-vs-'unknown' confusion in `cop_samples.mode` (R298).
+- Silent `dt_s` spike in energy accumulator on tick backlog (R288/R288b).
+
+### Changed
+
+- `CopSample.mode: str = 'unknown'` explicit dataclass default.
+- `__init__.py` migration chain extended for v15.
+
+### Database
+
+- Schema v14 -> v15 (`cop_samples.mode` DEFAULT `'unknown'`). Idempotent.
+- Prod-verify 2026-10-06: 0 NULL-mode rows remain.
+
+### Tests
+
+- 2292 passed, 4 skipped. Coverage 100.00% (5813 / 1640).
+- Ruff + mypy strict clean (34 files). CI 6/6 groen op `8ff381b`.
+
+## [1.6.4] - 2026-10-06
+
+Patch release: `bucket_summary()` filters DHW-samples from heating-curve
+buckets (issue #29).
+
+[Full diff v1.6.3...v1.6.4](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.3...v1.6.4)
+
+### Fixed
+
+- `bucket_summary()` mode-filter; DHW no longer pollutes heating-curve
+  buckets (R295, issue #29).
+
+### Added
+
+- Keyword-only `include_modes=('heating','unknown')`; `None` disables.
+- `tests/test_r295_bucket_mode_filter.py` (8 cases).
+
+## [1.6.3] - 2026-10-06
+
+Patch release: Hassfest 2026.10 weigert ICU-escape in translations.
+`integration_type` helper -> hub.
+
+[Full diff v1.6.2...v1.6.3](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.2...v1.6.3)
+
+### Fixed
+
+- ICU-escape `{{ }}` in translations replaced with `{identifier}`
+  (R290/R293).
+- `tests/test_r290_icu_braces.py` guard-test (2 cases).
+
+### Changed
+
+- `manifest.json`: `integration_type: helper` -> `hub` (R294).
+
 ## [1.6.2] - 2026-10-06
 
 Patch release: onboarding blocker for units that do not expose every
@@ -1419,6 +1496,6 @@ Versioning: https://semver.org/spec/v2.0.0.html
 
 - db.py: maintenance deletes features before cycles (FK-safe)
 
-[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.4...HEAD
 [1.6.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.2...v1.5.3
