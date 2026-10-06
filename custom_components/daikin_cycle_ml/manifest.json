@@ -9,7 +9,7 @@
     "http"
   ],
   "documentation": "https://github.com/elRadix/daikin_cycle_ml",
-  "integration_type": "helper",
+  "integration_type": "hub",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/elRadix/daikin_cycle_ml/issues",
   "loggers": [
@@ -17,5 +17,5 @@
   ],
   "quality_scale": "gold",
   "requirements": [],
-  "version": "1.6.2"
+  "version": "1.6.3"
 }

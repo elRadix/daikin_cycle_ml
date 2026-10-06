@@ -7,7 +7,7 @@ weather-normalized degradation trends, runtime + energy accounting, and
 Daikin installer-language curve advice (slope / offset). **Local-only ML,
 no cloud.**
 
-[![Version](https://img.shields.io/badge/version-1.6.2-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.6.2)
+[![Version](https://img.shields.io/badge/version-1.6.3-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.6.2)
 [![Tests](https://img.shields.io/badge/tests-2231-brightgreen.svg)](#19-testing)
 [![Coverage](https://img.shields.io/badge/coverage-100.00%25-brightgreen.svg)](#19-testing)
 [![Ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)

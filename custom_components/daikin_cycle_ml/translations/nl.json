@@ -17,12 +17,12 @@
       },
       "model_custom": {
         "title": "Aangepaste attribuutkoppeling",
-        "description": "Optional JSON mapping from standard keys to your attribute names. Example: `{{\"INV frequency (rps)\": \"my_rps\"}}`. Leave empty to use defaults.",
+        "description": "Optionele JSON-koppeling van standaardsleutels naar jouw attribuutnamen. Geef een JSON-object op; zie de README voor een voorbeeld. Laat leeg om de defaults te gebruiken.",
         "data": {
           "custom_attribute_map": "Custom attribute map (JSON)"
         },
         "data_description": {
-          "custom_attribute_map": "JSON object mapping standard keys to attribute names, e.g. {{\"INV frequency (rps)\": \"my_rps\"}}."
+          "custom_attribute_map": "JSON-object dat standaardsleutels aan attribuutnamen koppelt. Zie de documentatie voor het exacte formaat."
         }
       },
       "attributes": {
