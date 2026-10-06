@@ -7,7 +7,7 @@ weather-normalized degradation trends, runtime + energy accounting, and
 Daikin installer-language curve advice (slope / offset). **Local-only ML,
 no cloud.**
 
-[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.6.0)
+[![Version](https://img.shields.io/badge/version-1.6.1-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.6.1)
 [![Tests](https://img.shields.io/badge/tests-2231-brightgreen.svg)](#19-testing)
 [![Coverage](https://img.shields.io/badge/coverage-100.00%25-brightgreen.svg)](#19-testing)
 [![Ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)
@@ -192,6 +192,7 @@ full HVAC performance platform. Three headline additions:
 
 | Version | Date | Highlights |
 |---|---|---|
+| **v1.6.1** | 2026-10-06 | Energy tick fix - standby power no longer booked as heating - unknown-mode fallback removed - 16 new tests |
 | **v1.6.0** | 2026-10-06 | Per-mode COP + SPF/SCOP - Daikin datasheets + user import - Weather-normalized degradation + 30d trend - Runtime + energy (kWh) - Slope/offset advice - OptionsFlow sections + notifications sub-menu - 45 sensors / 9 services / 8 repairs |
 | v1.5.0 | 2026-10-03 | Dynamic LWT step + comfort dual-loop + setpoint comparison |
 | v1.4.5 | 2026-10-03 | Dashboard cards refresh + card i18n |
