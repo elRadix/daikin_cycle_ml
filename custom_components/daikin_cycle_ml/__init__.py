@@ -85,6 +85,12 @@ async def _async_setup_database(
             if coordinator._migration_error is None:  # pragma: no branch
                 coordinator._migration_error = str(err)
         try:
+            await db.async_migrate_cop_samples_mode_default_v15()
+        except Exception as err:
+            _LOGGER.exception('v15 mode-default migration failed')
+            if coordinator._migration_error is None:  # pragma: no branch
+                coordinator._migration_error = str(err)
+        try:
             coordinator._db_integrity_ok = await db.async_integrity_check()
         except Exception:
             coordinator._db_integrity_ok = False

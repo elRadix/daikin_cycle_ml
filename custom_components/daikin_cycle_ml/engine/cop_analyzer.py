@@ -110,7 +110,7 @@ class StooklijnAdvies:
     tracking_error: float | None = None
     err_indoor: float | None = None
     urgency: float = 0.0
-    comfort_cap: float = 3.0
+    comfort_cap: float | None = None
     reason: str = ''
     offset_delta_c: float = 0.0
     slope_delta: float | None = None
