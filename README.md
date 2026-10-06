@@ -1,11 +1,14 @@
 # Daikin Cycle ML
 
-Home Assistant integration that detects compressor cycles, classifies
-pendulum behaviour, self-learns per mode, and advises on Daikin Altherma
-heat pumps. **Local-only ML, no cloud.**
+Home Assistant integration for Daikin Altherma heat pumps that detects
+compressor cycles, scores quality, learns per-mode behaviour, and delivers
+**HVAC-grade performance intelligence**: per-mode COP, seasonal SPF/SCOP,
+weather-normalized degradation trends, runtime + energy accounting, and
+Daikin installer-language curve advice (slope / offset). **Local-only ML,
+no cloud.**
 
-[![Version](https://img.shields.io/badge/version-1.5.3-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.5.3)
-[![Tests](https://img.shields.io/badge/tests-1740-brightgreen.svg)](#19-testing)
+[![Version](https://img.shields.io/badge/version-1.6.0--rc1-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.6.0-rc1)
+[![Tests](https://img.shields.io/badge/tests-2231-brightgreen.svg)](#19-testing)
 [![Coverage](https://img.shields.io/badge/coverage-100.00%25-brightgreen.svg)](#19-testing)
 [![Ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)
 [![Pylint](https://img.shields.io/badge/pylint-10.00%2F10-brightgreen.svg)](https://pylint.readthedocs.io/)
@@ -56,6 +59,8 @@ heat pumps. **Local-only ML, no cloud.**
 20. [Continuous integration](#20-continuous-integration)
 21. [Troubleshooting](#21-troubleshooting)
 22. [Out of scope](#22-out-of-scope)
+23. [Upgrade from 1.5.x](#23-upgrade-from-15x)
+24. [Known limitations](#24-known-limitations)
 
 ---
 
@@ -78,6 +83,61 @@ No cloud. No external API. Everything runs inside your Home Assistant box.
 ---
 
 ## 2. What's new
+
+### v1.6.0 — HVAC Parity
+
+The v1.6.0 release turns the integration from a cycle-detector into a
+full HVAC performance platform. Three headline additions:
+
+**1. COP intelligence**
+
+- **Per-mode COP** — 9 new sensors: `cop_heating_day` / `_week` / `_month`,
+  plus DHW and cooling variants. `cop_today` now reports **heating-only**
+  COP (BREAKING; the previous blended value is preserved on the new
+  `cop_combined_today` sensor).
+- **SPF / SCOP** — `spf_season`, `spf_ytd`, `scop_running_365d` with a
+  configurable `season_start_month` option (default October).
+- **Weather-normalized degradation** — `cop_degradation_status`,
+  `cop_degradation_week_pct`, `cop_trend_30d`. Outdoor-binning + BUH/defrost
+  exclusion isolates hardware wear from weather variation.
+- **30-day regression trend** — `analyze_trend()` fits
+  `COP ~ a + b * T_outdoor` over 30 days and reports the residual mean as
+  %-of-predicted.
+
+**2. Daikin datasheet integration**
+
+- **15 bundled models** (8 EPRA + 7 ERLA) — full EN 14511 reference data in
+  `data/datasheets.json`.
+- **`hp_specs`** sensor exposes the full datasheet as attributes.
+- **`cop_normalized_a7w35`** — live COP normalized to A7/W35 reference.
+- **`cop_vs_datasheet_pct`** — live deviation vs spec with on_spec /
+  below / critical bands.
+- **User datasheet import** — `import_datasheet` and
+  `remove_user_datasheet` services, per-entry Store, 3 new Repairs
+  (invalid / schema unknown / load failed).
+- **MODEL_CHOICES** expanded 5 -> 17.
+
+**3. Runtime + energy observability**
+
+- **Runtime** — `runtime_compressor_today`, `runtime_buh_today`,
+  `compressor_starts_today`, `defrost_count_today`,
+  `defrost_duration_today`, `duty_cycle_today`.
+- **Energy (kWh)** — 6 sensors feeding the HA Energy Dashboard:
+  `electrical_energy_{heating,dhw,cooling,total}_today` and
+  `thermal_energy_{heating,cooling}_today`.
+- **Accumulator persistence** — runtime + energy accumulators survive HA
+  restart; persisted 300s-throttled, with an old-day flush before reset.
+
+**Plus:**
+
+- **Daikin installer advice** — `heating_curve_advice` now exposes
+  `offset_delta_c` and `slope_delta` alongside `delta_c` / `step_c`,
+  matching the Altherma installer menu terminology.
+- **OptionsFlow overhaul** — every FORM step is now grouped into
+  `section()` blocks, and the notifications step is split into a sub-menu
+  with 4 dedicated sub-pages. Top-level menu is now 7 items (was 8).
+- **Complete service translations** — all 9 services now have full EN + NL
+  translations (previously only 3).
 
 ### v1.5.0 — Dynamic LWT step
 
@@ -132,7 +192,8 @@ No cloud. No external API. Everything runs inside your Home Assistant box.
 
 | Version | Date | Highlights |
 |---|---|---|
-| **v1.5.0** | 2026-10-03 | Dynamic LWT step + comfort dual-loop + setpoint comparison |
+| **v1.6.0-rc1** | 2026-10-06 | Per-mode COP + SPF/SCOP - Daikin datasheets + user import - Weather-normalized degradation + 30d trend - Runtime + energy (kWh) - Slope/offset advice - OptionsFlow sections + notifications sub-menu - 45 sensors / 9 services / 8 repairs |
+| v1.5.0 | 2026-10-03 | Dynamic LWT step + comfort dual-loop + setpoint comparison |
 | v1.4.5 | 2026-10-03 | Dashboard cards refresh + card i18n |
 | v1.4.4 | 2026-10-02 | `_day_key` hydrate fix |
 | v1.4.3 | 2026-10-02 | Order-swap hotfix |
@@ -148,51 +209,118 @@ No cloud. No external API. Everything runs inside your Home Assistant box.
 
 ## 4. Features
 
+### Cycle detection & quality
+
 - **Cycle detection** — RPS threshold + optional power-sensor fallback
 - **Water pump guard** — skips cycles where the pump is off
 - **8 pendulum patterns** — per mode (Heating / Cooling / DHW), hourly + daily
 - **Quality score 0–100** per cycle (runtime, dT, off-time, BUH, defrost)
-- **thermal_kW per cycle** — computed from flow × 4.18 × dT
-- **COP hourly rollup** — 6 h scheduler aggregates `cop_samples` into
-  `cop_hourly` (per-hour per-mode: mean/p10/p50/p90/std, lwt_mean,
-  outdoor mean/min/max, flow_mean)
-- **COP KPI sensors** — `cop_today`, `cop_mean_day`, `cop_mean_week`,
-  `cop_mean_month` (heating-weighted mean, all-mode breakdown as attribute)
-- **COP curve REST endpoint** —
-  `GET /api/daikin_cycle_ml/cop_hourly?days=N&mode=X` (auth required,
-  1–365 days)
-- **COP curve sensor** — `cop_curve_recent` (48 h window, ~8 KB attrs,
-  recorder-safe for ApexCharts)
-- **Export COP hourly** — `daikin_cycle_ml.export_cop_hourly` service
-  (json/csv, up to 365 days)
-- **Dynamic LWT step 1–3 °C** — see §2
-- **Comfort dual-loop (floor + ceiling)** — see §2
+- **thermal_kW per cycle** — computed from flow x 4.18 x dT
+- **Setpoint-oscillation detection** — rolling window, tunable threshold
+- **Actionable advice** — priority-ordered, category-tagged, included in alerts
+
+### COP intelligence
+
+- **Per-mode COP** — 9 sensors: `cop_{heating,dhw,cooling}_{day,week,month}`
+- **`cop_today`** — heating-only (v1.6.0 BREAKING; old blended value on
+  `cop_combined_today`)
+- **COP hourly rollup** — `cop_hourly` table, per-hour per-mode aggregates
+  (mean / p10 / p50 / p90 / std, lwt_mean, outdoor mean / min / max, flow_mean)
+- **COP KPI sensors** — `cop_mean_day` / `_week` / `_month`, `cop_combined_today`
+- **COP curve sensor** — `cop_curve_recent` (48 h window, recorder-safe)
+- **REST endpoint** — `GET /api/daikin_cycle_ml/cop_hourly?days=N&mode=X`
+- **Export service** — `export_cop_hourly` (json / csv, up to 365 days)
+
+### SPF / SCOP
+
+- **`spf_season`** — seasonal performance factor (configurable start month)
+- **`spf_ytd`** — year-to-date
+- **`scop_running_365d`** — rolling 365-day SCOP
+
+### Daikin datasheets
+
+- **15 bundled models** — 8 EPRA + 7 ERLA, EN 14511 reference data
+- **`hp_specs`** — datasheet attributes + per-model provenance
+  (`bundled` / `user`)
+- **`cop_normalized_a7w35`** — Carnot-corrected live COP
+- **`cop_vs_datasheet_pct`** — deviation vs spec with on_spec / below /
+  critical band
+- **User import** — `import_datasheet` + `remove_user_datasheet` services,
+  per-entry `Store`, 3 Repairs (invalid / schema unknown / load failed)
+
+### Degradation analysis
+
+- **Weather-normalized 7d-vs-7d** — outdoor-binned, BUH/defrost excluded,
+  LWT-shift aware
+- **30-day regression trend** — `analyze_trend()` on `cop_hourly`
+- **3 sensors** — `cop_degradation_status`, `cop_degradation_week_pct`,
+  `cop_trend_30d`
+
+### Runtime & energy
+
+- **Compressor runtime** — `runtime_compressor_today` (s)
+- **BUH runtime** — `runtime_buh_today` (s), model-based step power
+  (`BUH_STEP_KW_BY_MODEL`, 14 models + fallback)
+- **Compressor starts** — `compressor_starts_today`
+- **Defrost** — `defrost_count_today`, `defrost_duration_today`
+- **Duty cycle** — `duty_cycle_today` (%)
+- **Electrical energy** — heating / DHW / cooling / total (kWh)
+- **Thermal energy** — heating / cooling (kWh)
+- **HA Energy Dashboard compatible** — `state_class=total_increasing`,
+  `device_class=ENERGY`
+
+### Advice & automation
+
+- **Dynamic LWT step 1–3 °C** — scaled to delta vs setpoint
+- **Comfort dual-loop (floor + ceiling)** — see §8.2
+- **Slope / offset in Daikin installer language** — `offset_delta_c` and
+  `slope_delta` attributes on `heating_curve_advice`
+- **Tracking-error dampening** — reduces step when unit lags setpoint
+
+### ML pipeline
+
 - **MultiBaseline** — per-mode EWMA, dim 12, persistent, dim-guarded
 - **AdaptiveThresholds** — percentile-based self-learning per mode (opt-in)
-- **Weekly k-means clustering** + per-cycle nearest-centroid assignment
+- **Weekly k-means clustering** — per-cycle nearest-centroid assignment
 - **12-dim feature vector** — see §13
-- **Actionable advice** — priority-ordered, category-tagged, included in alerts
-- **Setpoint-oscillation detection** — rolling window, tunable threshold
-- **Rich sectioned alerts** — aligned rows + severity + mode + advice
-- **Bilingual notifications** — EN + NL templates, per installation
-- **Per-group alert toggles** — 5 groups: pendulum / short-cycle / ML /
-  setpoint / COP-stooklijn
-- **Test-notification dropdown** — 10 alert kinds + "all alerts" button
-- **COP stooklijn analysis** — daily advice + bucket table, DHW-aware,
-  48-hour recency window
+- **Anomaly detection** — z-score vs MultiBaseline
+
+### Configuration & UX
+
 - **Custom attribute map** — remap non-standard ESPAltherma firmware keys
-- **SQLite persistence** — retention, daily rollups, schema v14
-- **30 entities** — 14 sensors + 15 binary sensors + 1 HA-managed update
-  entity
-- **7 services** — reset, export, label, recompute, maintain, test-notify,
-  export-cop-hourly
-- **5 repair issues** — source stale, missing attrs, DB corrupt,
-  notify fail, migration fail
-- **HA-compliant** — 8-step wizard, `OptionsFlowWithReload`, 8-screen menu
-- **HACS-installable** — Custom repository, no workarounds
+- **8-step setup wizard**
+- **OptionsFlow (v1.6.0 overhaul):**
+  - Top-level menu: **7 items** (device / pendulum / quality_ml /
+    notifications / advanced / test_notification / test_all_notifications)
+  - Every FORM step is grouped into `section()` blocks
+  - **notifications sub-menu** with 4 dedicated sub-pages:
+    Delivery / Quiet hours / Content / Test
+  - One-level flatten in `_save()` keeps the stored options schema
+    backwards compatible
+- **Bilingual notifications** — EN + NL templates
+- **Per-group alert toggles** — pendulum / short-cycle / ML / setpoint /
+  COP-stooklijn
+- **Test-notification dropdown** — 10 alert kinds + "all alerts" button
+- **Reconfigure** — change source entity / model without re-adding
+
+### Storage & compliance
+
+- **SQLite persistence** — schema v14, retention, daily rollups
+- **9 services** — reset, export, label, recompute, maintain, test-notify,
+  export-cop-hourly, import-datasheet, remove-user-datasheet
+- **8 repair issues** — source stale, missing attrs, DB corrupt, notify
+  fail, migration fail, 3x datasheet
 - **IQS Bronze + Silver + Gold**
-- **6 CI workflows** — Ruff, Pylint, Coverage, Mypy (strict),
-  HACS Validation, Hassfest
+- **HACS-installable** — Custom repository, no workarounds
+- **6 CI workflows** — Ruff, Pylint, Coverage, Mypy strict, HACS,
+  Hassfest
+- **~2231 tests, 100% branch coverage, mypy strict clean**
+
+### Entities (v1.6.0 total)
+
+- **63 entities** — 45 sensors + 15 binary sensors + 1 update + 2 controls
+- **45 sensors** — see §9.1
+- **15 binary sensors** — see §9.2
 
 ---
 
@@ -337,8 +465,9 @@ user → model_custom (conditional) → attributes (check)
 | `source_sensor` | entity picker | `sensor.althermasensors` | Your ESPAltherma sensor |
 | `model` | dropdown | `EPRA12EAV3` | Or `Custom` for non-standard pumps |
 
-Available models: `EPRA12EAV3`, `EPRA08EAV3`, `EABH16DA6V`,
-`EABX16DA6V`, `Custom`.
+Available models (v1.6.0, 17 total): 15 bundled Daikin models
+(8 EPRA + 7 ERLA) plus `Custom`. Bundled models get datasheet-backed
+COP normalization via `cop_normalized_a7w35`.
 
 #### Step 2 — `model_custom` *(only shown when Model = Custom)*
 
@@ -402,134 +531,97 @@ Review screen. Submit → integration starts polling every 30 seconds.
 
 ---
 
-### 8.2 Options menu (8 screens)
+### 8.2 Options menu (v1.6.0)
 
-Open via **Settings → Devices & Services → Daikin Cycle ML → Configure**.
-Each screen saves independently. All number fields have sensible min / max
-validators enforced by the UI.
+Open via **Settings -> Devices & Services -> Daikin Cycle ML -> Configure**.
+FORM steps use HA `section()` blocks; each step saves independently.
 
-#### Screen 1 — `init` (menu)
+**Top-level menu (7 items):** device, pendulum, quality_ml, notifications
+(sub-menu), advanced, test_notification, test_all_notifications.
 
-Menu options:
+#### Screen 1 - device (3 sections)
 
-```
-device
-pendulum
-quality
-notifications
-ml
-maintenance
-test_notification
-test_all_notifications
-```
+**Sensors:** `power_sensor_entity` (none), `cop_sensor_entity` (none),
+`indoor_temp_sensor` (none).
 
-#### Screen 2 — `device`
+**Detection:** `compressor_rps_threshold` (3, range 1-100),
+`fallback_power_threshold_w` (200, range 10-10000).
 
-| Field | Default | Range |
-|---|---|---|
-| `compressor_rps_threshold` | 3 | 1–100 |
-| `power_sensor_entity` | (none) | entity |
-| `fallback_power_threshold_w` | 200 | 10–10000 |
-| `indoor_temp_sensor` | (none) | entity |
-| `cop_sensor_entity` | (none) | entity — required for `cop_samples` |
-| `comfort_min_c` | 20.0 | 15.0–22.0 (step 0.5) |
-| `comfort_max_c` | 24.0 | 22.0–28.0 (step 0.5) |
+**Comfort:** `comfort_min_c` (20.0, range 15-22, step 0.5),
+`comfort_max_c` (24.0, range 22-28, step 0.5).
 
-> `comfort_min_c` is the comfort **floor** (never advise lowering LWT below
-> this projected indoor temp). `comfort_max_c` is the comfort **ceiling**
-> (never advise raising above). They are independent; the advice engine
-> enforces both.
+`comfort_min_c` is the floor (never advise lowering LWT below this
+projected indoor temp). `comfort_max_c` is the ceiling (never advise
+raising above).
 
-#### Screen 3 — `pendulum`
+#### Screen 2 - pendulum (3 sections)
 
-| Field | Default | Range |
-|---|---|---|
-| `short_run_threshold_min` | 20 | 1–240 |
-| `short_off_threshold_min` | 5 | 1–120 |
-| `pendulum_cycles_per_hour` | 4 | 1–100 |
-| `pendulum_cycles_per_day` | 40 | 1–200 |
-| `dhw_pendulum_cycles_per_hour` | 3 | 1–20 |
-| `setpoint_oscillation_threshold` | 6 | 1–100 |
-| `setpoint_osc_window_min` | 30 | 5–180 |
-| `setpoint_osc_min_delta` | 0.5 | 0.1–2.0 (step 0.1) |
+**Run/off:** `short_run_threshold_min` (20, range 1-240),
+`short_off_threshold_min` (5, range 1-120).
 
-#### Screen 4 — `quality`
+**Pendulum:** `pendulum_cycles_per_hour` (4, range 1-100),
+`pendulum_cycles_per_day` (40, range 1-200),
+`dhw_pendulum_cycles_per_hour` (3, range 1-20).
 
-| Field | Default | Range |
-|---|---|---|
-| `good_run_threshold_min` | 45 | 1–240 |
-| `good_dt_threshold_k` | 5.0 | 0.1–20.0 (step 0.1) |
-| `good_off_threshold_min` | 20 | 1–240 |
-| `target_cycles_per_day` | 8 | 1–100 |
+**Setpoint:** `setpoint_oscillation_threshold` (6, range 1-100),
+`setpoint_osc_window_min` (30, range 5-180),
+`setpoint_osc_min_delta` (0.5, range 0.1-2.0, step 0.1).
 
-#### Screen 5 — `notifications` (16 fields)
+#### Screen 3 - quality_ml (2 sections)
 
-| Field | Default | Range / Options |
-|---|---|---|
-| `persistent_enabled` | `true` | bool |
-| `notify_service` | (empty) | dropdown (loaded at runtime) |
-| `notify_emoji_enabled` | `true` | bool |
-| `action_advice_enabled` | `true` | bool |
-| `quiet_hours_enabled` | `false` | bool |
-| `quiet_hours_start` | `22:00` | time |
-| `quiet_hours_end` | `07:00` | time |
-| `alert_aggregation_minutes` | 30 | 1–1440 |
-| `status_update_enabled` | `false` | bool |
-| `status_update_interval_hours` | 24 | 1–168 |
-| `notification_language` | `en` | dropdown: `en`, `nl` |
-| `alert_group_pendulum` | `true` | bool |
-| `alert_group_short_cycle` | `true` | bool |
-| `alert_group_ml` | `true` | bool |
-| `alert_group_setpoint` | `true` | bool |
-| `alert_group_cop_stooklijn` | `true` | bool |
+**Quality:** `good_run_threshold_min` (45, range 1-240),
+`good_dt_threshold_k` (5.0, range 0.1-20.0, step 0.1),
+`good_off_threshold_min` (20, range 1-240),
+`target_cycles_per_day` (8, range 1-100).
 
-#### Screen 6 — `ml` (Machine learning)
+**Adaptive:** `adaptive_thresholds_enabled` (false),
+`adaptive_min_samples` (20, range 5-500).
 
-| Field | Default | Range |
-|---|---|---|
-| `adaptive_thresholds_enabled` | `false` | bool |
-| `adaptive_min_samples` | 20 | 5–500 |
+#### Screen 4 - notifications (menu, 4 sub-pages)
 
-#### Screen 7 — `maintenance`
+**4a notifications_delivery:** `persistent_enabled` (true),
+`notify_service` (empty, runtime dropdown), `notify_emoji_enabled` (true),
+`action_advice_enabled` (true).
 
-| Field | Default | Range |
-|---|---|---|
-| `retention_enabled` | `true` | bool |
-| `cycle_retention_days` | 90 | 7–3650 |
-| `alert_retention_days` | 30 | 7–3650 |
-| `vacuum_enabled` | `true` | bool |
+**4b notifications_quiet_hours:** `quiet_hours_enabled` (false),
+`quiet_hours_start` (22:00), `quiet_hours_end` (07:00),
+`alert_aggregation_minutes` (30, range 1-1440),
+`status_update_enabled` (false),
+`status_update_interval_hours` (24, range 1-168).
 
-#### Screen 8a — `test_notification`
+**4c notifications_content:** `notification_language` (en or nl),
+`alert_group_pendulum` (true), `alert_group_short_cycle` (true),
+`alert_group_ml` (true), `alert_group_setpoint` (true),
+`alert_group_cop_stooklijn` (true).
 
-| Field | Default | Notes |
-|---|---|---|
-| `alert_kind` | `status_summary` | dropdown — 10 options, see below |
-| `ignore_group_filters` | `false` | bool |
+**4d notifications_test_menu:** sub-menu leading to `test_notification`
+and `test_all_notifications`.
 
-Available `alert_kind` options:
+#### Screen 5 - advanced (2 sections)
 
-```
-status_summary
-pendulum_hourly
-pendulum_daily
-short_run
-short_off
-ml_anomaly
-setpoint_osc
-cop_low
-stooklijn_advies
-all_alerts
-```
+**Retention:** `retention_enabled` (true),
+`cycle_retention_days` (90, range 7-3650),
+`alert_retention_days` (30, range 7-3650),
+`vacuum_enabled` (true).
 
-Submits and shows a **preview** of the rendered message. The preview
-respects the currently configured language and emoji setting.
+**Season:** `season_start_month` (10, range 1-12). Drives the SPF season
+window. Renders as dropdown but stores int.
 
-#### Screen 8b — `test_all_notifications`
+#### Screen 6 - test_notification
 
-Single submit button. Emits **every** alert kind in one shot — useful for
-verifying EN/NL formatting, severity labels and the rich sectioned layout
-at once. Ignores per-group filters (uses `ignore_filters=True`
-internally).
+`alert_kind` (status_summary; 10 options: status_summary, pendulum_hourly,
+pendulum_daily, short_run, short_off, ml_anomaly, setpoint_osc, cop_low,
+stooklijn_advies, all_alerts), `ignore_group_filters` (false). Respects
+language + emoji settings.
+
+#### Screen 7 - test_all_notifications
+
+Single submit. Fires every alert kind at once. Ignores per-group filters.
+
+**Backwards compatibility.** `_save()` flattens one level
+(`{section_key: {field: value}}` -> `{field: value}`), so the stored
+options schema is unchanged from pre-v1.6.0. Existing config entries
+keep working.
 
 ---
 
@@ -551,27 +643,46 @@ Daikin Cycle ML → Reconfigure**:
 
 ## 9. Entities
 
-### 9.1 Sensors (14)
+### 9.1 Sensors (45)
 
-| Entity | Unit | Device class | Description |
-|---|---|---|---|
-| `sensor.daikin_cycle_ml_cycle_state` | — | — | `idle` / `running` / `cooldown` |
-| `sensor.daikin_cycle_ml_current_cycle` | — | — | Current cycle mode + duration attribute |
-| `sensor.daikin_cycle_ml_last_cycle` | score | — | Last cycle quality + cluster attribute |
-| `sensor.daikin_cycle_ml_cycles_today` | — | — | Cycles since midnight |
-| `sensor.daikin_cycle_ml_quality_today` | score | — | Average quality today |
-| `sensor.daikin_cycle_ml_source_health` | s | DURATION | Seconds since last source update |
-| `sensor.daikin_cycle_ml_learned_thresholds` | min | DURATION | Adaptive threshold (if enabled) |
-| `sensor.daikin_cycle_ml_thermal_power_live` | kW | POWER | Live thermal power (flow × 4.18 × dT / 60) |
-| `sensor.daikin_cycle_ml_heating_curve_advice` | — | — | LWT advice with dynamic step (see §9.3) |
-| `sensor.daikin_cycle_ml_cop_today` | COP | — | Today's simple KPI + baseline loss % |
-| `sensor.daikin_cycle_ml_cop_mean_day` | COP | — | Today's heating-weighted mean COP |
-| `sensor.daikin_cycle_ml_cop_mean_week` | COP | — | Rolling 7-day mean COP |
-| `sensor.daikin_cycle_ml_cop_mean_month` | COP | — | Rolling 30-day mean COP |
-| `sensor.daikin_cycle_ml_cop_curve_recent` | COP | — | 48 h window; recorder-safe (~8 KB attrs) |
+Entity IDs follow `sensor.daikin_cycle_ml_<key>`.
 
-Cluster membership: `state_attr('sensor.daikin_cycle_ml_last_cycle', 'cluster')`.
+**Cycle & state (7):** `cycle_state` (idle/running/cooldown),
+`current_cycle`, `last_cycle` (score; attr `cluster`), `cycles_today`,
+`quality_today`, `source_health` (s, DURATION), `learned_thresholds`.
 
+**Live performance (1):** `thermal_power_live` (kW, POWER; flow x 4.18 x dT / 60).
+
+**Advice (1):** `heating_curve_advice` (see 9.3).
+
+**COP legacy & KPIs (5):** `cop_today` (heating-only, v1.6.0 BREAKING),
+`cop_combined_today` (blended, previous cop_today value), `cop_mean_day`,
+`cop_mean_week`, `cop_mean_month`.
+
+**COP per-mode (9):** `cop_heating_day`, `cop_heating_week`,
+`cop_heating_month`, `cop_dhw_day`, `cop_dhw_week`, `cop_dhw_month`,
+`cop_cooling_day`, `cop_cooling_week`, `cop_cooling_month`.
+
+**COP curve (1):** `cop_curve_recent` (48 h window, recorder-safe).
+
+**SPF / SCOP (3):** `spf_season`, `spf_ytd`, `scop_running_365d`.
+
+**Daikin datasheets (3):** `hp_specs` (attrs + provenance),
+`cop_normalized_a7w35`, `cop_vs_datasheet_pct` (%).
+
+**Degradation (3):** `cop_degradation_status` (enum: none/info/warning/
+critical), `cop_degradation_week_pct` (%), `cop_trend_30d` (%).
+
+**Runtime (6):** `runtime_compressor_today` (s, DURATION),
+`runtime_buh_today` (s, DURATION), `compressor_starts_today` (count),
+`defrost_count_today` (count), `defrost_duration_today` (s, DURATION),
+`duty_cycle_today` (%).
+
+**Energy kWh (6):** `electrical_energy_heating_today`,
+`electrical_energy_dhw_today`, `electrical_energy_cooling_today`,
+`electrical_energy_total_today`, `thermal_energy_heating_today`,
+`thermal_energy_cooling_today`. All have `device_class=ENERGY`,
+`state_class=total_increasing`.
 ### 9.2 Binary sensors (15)
 
 | Entity | Device class | Description |
@@ -704,6 +815,34 @@ service: daikin_cycle_ml.send_test_notification
 data:
   message: "Hello from Daikin Cycle ML"
 ```
+
+
+### 10.8 import_datasheet
+
+Import a user datasheet for a non-bundled model, or override a bundled one.
+
+| Field | Type | Required |
+|---|---|---|
+| entry_id | string | auto-resolved if 1 entry |
+| payload | object | yes (full datasheet JSON) |
+| source_url | string | no (provenance only) |
+
+Response: `{"imported": [model_keys], "errors": [messages]}`.
+
+Repairs raised on error: `datasheet_import_invalid` (validation failed),
+`datasheet_schema_unknown` (schema_version mismatch),
+`datasheet_load_failed` (Store unreadable at startup).
+
+### 10.9 remove_user_datasheet
+
+Remove a user-imported datasheet. Bundled datasheets cannot be removed.
+
+| Field | Type | Required |
+|---|---|---|
+| entry_id | string | auto-resolved if 1 entry |
+| model_key | string | yes |
+
+Response: `{"removed": bool, "model_key": str}`.
 
 ---
 
@@ -1459,6 +1598,95 @@ python3 -c "import json; k=list(json.load(open('custom_components/daikin_cycle_m
 - Webhook push (use HA notify targets)
 
 ---
+
+---
+
+## 23. Upgrade from 1.5.x
+
+### Breaking change: cop_today is heating-only
+
+In v1.6.0, sensor.daikin_cycle_ml_cop_today reports the heating-only COP
+for today. The previous value (blended across heating, DHW and cooling)
+is preserved on the new sensor sensor.daikin_cycle_ml_cop_combined_today.
+
+Action required if you have automations or templates that consume
+cop_today and expect the blended value. Replace:
+
+    Before:  {{ states('sensor.daikin_cycle_ml_cop_today') }}
+    After:   {{ states('sensor.daikin_cycle_ml_cop_combined_today') }}
+
+No change needed for other COP sensors.
+
+### No-op for other sensors
+
+cop_mean_day / cop_mean_week / cop_mean_month keep their semantics
+(heating-weighted mean). cop_curve_recent, thermal_power_live and all
+binary sensors are unchanged.
+
+### Optional: re-select your Daikin model
+
+The wizard now offers 17 models (was 5). If your Daikin was previously
+configured as Custom, re-select your specific model to enable
+datasheet-backed COP normalization:
+
+1. Settings -> Devices & Services -> Daikin Cycle ML -> Reconfigure.
+2. Pick your exact model from the dropdown.
+3. Save. Reload fires automatically (OptionsFlowWithReload).
+
+If your model is not bundled, use the new
+daikin_cycle_ml.import_datasheet service to import it.
+
+### Database
+
+No migration. Schema is unchanged at v14. Existing DBs keep working.
+
+---
+
+## 24. Known limitations
+
+The following are intentional design decisions or accepted trade-offs
+in v1.6.0. They are candidates for future releases.
+
+### BUH step power is a model-based estimate
+
+BUH_STEP_KW_BY_MODEL maps 14 Daikin models to their step heater power
+(typically 3 kW or 6 kW per step). If your installation has a different
+backup-heater configuration, runtime_buh_today will drift.
+
+### Defrost duration is a monotone accumulator
+
+_defrost_duration_s grows monotonically while a defrost is active. It is
+not decremented mid-cycle. A non-monotone summation is planned for
+v1.6.1.
+
+### Energy fallback uses rps_heuristic
+
+If power_sensor_entity is not configured, energy values are computed via
+rps_heuristic (compressor RPS x nominal kW). For accurate Energy
+Dashboard numbers, configure a real power sensor in the Device
+OptionsFlow step.
+
+### Mid-cycle mode switch uses start mode
+
+If the unit switches from heating to DHW mid-cycle, the cycle keeps the
+mode it started in. This is by design; mode-switch detection is a
+v1.6.1 candidate.
+
+### BUH-share sensors not implemented
+
+buh_high_share fires as an alert based on the runtime ratio, but there
+are no dedicated BUH-share sensors. Sensor exposure is deferred to
+v1.6.1.
+
+### Energy sensors toggle deferred
+
+An energy_sensors_enabled toggle was planned for C6b but is deferred to
+v1.6.1. All 6 energy sensors are always registered in v1.6.0.
+
+### Cost tracking deferred
+
+Tariff options and cost-tracking sensors (EUR/day, EUR/month, cost_acc
+persistence, DB schema v15) are planned for v1.6.1 / C6b + C7.
 
 ## Support
 
