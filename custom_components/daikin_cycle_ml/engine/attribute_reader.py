@@ -6,7 +6,7 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from ..const import CORE_ATTRIBUTES
+from ..const import REQUIRED_ATTRIBUTES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -103,4 +103,4 @@ def read(
 
 def missing_required(attrs: Mapping[str, Any]) -> list[str]:
     """Return required attribute keys that are absent or None."""
-    return [key for key in CORE_ATTRIBUTES if attrs.get(key) is None]
+    return [key for key in REQUIRED_ATTRIBUTES if attrs.get(key) is None]
