@@ -326,7 +326,17 @@ def _bucket_sort_key(k: str) -> int:
 
 def bucket_summary(
     samples: list[CopSample],
+    *,
+    include_modes: tuple[str, ...] | None = ('heating', 'unknown'),
 ) -> dict[str, dict[str, Any]]:
+    """Summarize COP samples per outdoor-temperature bucket.
+
+    By default only heating-related samples (heating and unknown)
+    are considered, matching analyze_stooklijn. Pass
+    include_modes=None to disable filtering (diagnostics use only).
+    """
+    if include_modes is not None:
+        samples = [s for s in samples if s.mode in include_modes]
     grouped = _group_by_bucket(samples)
     items: list[tuple[int, str, dict[str, Any]]] = []
     for k, group in grouped.items():
