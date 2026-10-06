@@ -33,6 +33,7 @@ def _bare(**overrides):
     c._last_defrost_ts = 0.0
     c._last_runtime_tick_ts = 0.0
     c._last_energy_tick_ts = 0.0
+    c.detector = MagicMock(state=overrides.get("detector_state", "running"))
     c._last_runtime_persist_ts = overrides.get("runtime_persist_ts", 0.0)
     c._last_energy_persist_ts = overrides.get("energy_persist_ts", 0.0)
     c._energy_acc = overrides.get("energy_acc") or {
@@ -281,7 +282,8 @@ def test_tick_energy_zero_dt_returns():
     assert c._energy_acc["heating"]["th"] == 0.0
 
 
-def test_tick_energy_unknown_mode_falls_back():
+def test_tick_energy_unknown_mode_skipped():
+    # R287 (v1.6.1): unknown mode must NOT fall back to heating.
     c = _bare()
     c._last_energy_tick_ts = 1000.0
     c._energy_acc = _zero_acc()
@@ -289,7 +291,8 @@ def test_tick_energy_unknown_mode_falls_back():
         {ATTR_INV_FREQUENCY_RPS: 50.0}, 1030.0,
         mode="foo", power_w=2000.0, cop=4.0,
     )
-    assert c._energy_acc["heating"]["th"] > 0.0
+    assert c._energy_acc["heating"]["th"] == 0.0
+    assert c._energy_acc["heating"]["el"] == 0.0
 
 
 def test_tick_energy_swallows_exception():
@@ -459,3 +462,37 @@ def test_class_defaults_persist_ts_present():
     assert C._last_runtime_persist_ts == 0.0
     assert C._last_energy_persist_ts == 0.0
 
+
+# ---------- v1.6.1 R286: partial-branch coverage ----------
+
+
+def test_tick_energy_detector_exception_treated_as_off():
+    """R286: detector.state raising is caught; compressor_on defaults False.
+    Without BUH the tick must be skipped (no accumulation)."""
+    class BadDetector:
+        @property
+        def state(self):
+            raise RuntimeError("boom")
+    c = _bare()
+    c.detector = BadDetector()
+    c._last_energy_tick_ts = 1000.0
+    c._energy_acc = _zero_acc()
+    c._tick_energy(
+        {ATTR_INV_FREQUENCY_RPS: 50.0}, 1030.0,
+        mode="heating", power_w=2000.0, cop=4.0,
+    )
+    assert c._energy_acc["heating"]["th"] == 0.0
+    assert c._energy_acc["heating"]["el"] == 0.0
+
+
+def test_tick_energy_zero_power_and_zero_cop_no_el():
+    """kw_el is None when power_w <= 0 and cop <= 0; only thermal accumulates."""
+    c = _bare(detector_state="running")
+    c._last_energy_tick_ts = 1000.0
+    c._energy_acc = _zero_acc()
+    c._tick_energy(
+        {ATTR_INV_FREQUENCY_RPS: 50.0}, 1030.0,
+        mode="heating", power_w=0.0, cop=0.0,
+    )
+    assert c._energy_acc["heating"]["th"] > 0.0
+    assert c._energy_acc["heating"]["el"] == 0.0
