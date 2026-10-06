@@ -7,7 +7,7 @@ weather-normalized degradation trends, runtime + energy accounting, and
 Daikin installer-language curve advice (slope / offset). **Local-only ML,
 no cloud.**
 
-[![Version](https://img.shields.io/badge/version-1.6.1-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.6.1)
+[![Version](https://img.shields.io/badge/version-1.6.2-blue.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.6.2)
 [![Tests](https://img.shields.io/badge/tests-2231-brightgreen.svg)](#19-testing)
 [![Coverage](https://img.shields.io/badge/coverage-100.00%25-brightgreen.svg)](#19-testing)
 [![Ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)
@@ -83,6 +83,30 @@ No cloud. No external API. Everything runs inside your Home Assistant box.
 ---
 
 ## 2. What's new
+
+### v1.6.2 — Onboarding modes
+
+Patch release that unblocks onboarding for units whose ESPAltherma firmware
+does not expose every canonical attribute (issue #25).
+
+**Two attribute modes** (screen 1 of the wizard):
+
+- **Automatic** — canonical ESPAltherma names (previous behaviour).
+- **Manual** — map each required attribute to whatever your sensor exposes.
+
+The required set shrinks from 13 to 12: `INV frequency (rps)` is now
+optional. Units without a compressor-frequency attribute can onboard in
+Automatic mode as long as the remaining 12 keys exist, or in Manual mode
+when even those use non-canonical names.
+
+**Manual mapping step** — one text field per required (12) and optional (1)
+attribute. Leave a field empty if the canonical name already exists on the
+sensor; the wizard auto-fills it. Fields with a name that is not present on
+the sensor fail fast with `attribute_not_found`.
+
+**Coordinator fallback** — the custom map is resolved in order:
+`options["custom_attribute_map"]` → `data["custom_attribute_map"]` →
+`data["attribute_map"]`. Existing entries keep working unchanged.
 
 ### v1.6.0 — HVAC Parity
 
@@ -193,6 +217,7 @@ full HVAC performance platform. Three headline additions:
 | Version | Date | Highlights |
 |---|---|---|
 | **v1.6.1** | 2026-10-06 | Energy tick fix - standby power no longer booked as heating - unknown-mode fallback removed - 16 new tests |
+| **v1.6.2** | 2026-10-06 | Onboarding fix - Automatic/Manual attribute mode - Manual mapping step (issue #25) - 3-way custom_map fallback - REQUIRED split (13->12) + OPTIONAL |
 | **v1.6.0** | 2026-10-06 | Per-mode COP + SPF/SCOP - Daikin datasheets + user import - Weather-normalized degradation + 30d trend - Runtime + energy (kWh) - Slope/offset advice - OptionsFlow sections + notifications sub-menu - 45 sensors / 9 services / 8 repairs |
 | v1.5.0 | 2026-10-03 | Dynamic LWT step + comfort dual-loop + setpoint comparison |
 | v1.4.5 | 2026-10-03 | Dashboard cards refresh + card i18n |
@@ -449,6 +474,31 @@ Example:
 ---
 
 ## 8. Config flow — step by step
+
+### Workaround: onboarding fails with 'Sensor mist vereiste ESPAltherma-attributen'
+
+If the wizard aborts on screen 1 with this message and you cannot proceed:
+
+1. Re-run **Add Integration**.
+2. On screen 1, switch **Attribute mode** from `Automatic` to `Manual`.
+3. On the next screen, map each canonical attribute to the matching
+   attribute name on your sensor (as visible in **Developer Tools -> States**
+   under the source entity). Leave a field empty if the canonical name
+   already exists on the sensor.
+4. If `INV frequency (rps)` is not exposed by your firmware, leave that
+   field empty - cycle detection falls back to a current-based heuristic.
+
+If `Manual` mode still fails, please open an issue with the output of
+the following snippet, run in **Developer Tools -> Template**:
+
+```
+{% for k in states.sensor.althermasensors.attributes.keys() %}
+{{ k }}
+{% endfor %}
+```
+
+That gives us the exact key list for your firmware.
+
 
 ### 8.1 Setup wizard (8 steps)
 
@@ -1502,6 +1552,9 @@ All six must pass before a release is tagged.
 
 - Source sensor missing one or more required attributes.
 - Verify ESPAltherma fields, or add a custom attribute map.
+- If onboarding blocks on screen 1, switch **Attribute mode** to
+  **Manual** and map each required attribute (see the Custom attribute
+  map section for details).
 
 ### Alerts are noisy
 

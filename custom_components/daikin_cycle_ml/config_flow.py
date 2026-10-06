@@ -33,7 +33,8 @@ from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 
 from .const import (
-    CORE_ATTRIBUTES,
+    ATTRIBUTE_MODE_AUTO,
+    ATTRIBUTE_MODE_MANUAL,
     DEFAULT_ACTION_ADVICE_ENABLED,
     DEFAULT_ADAPTIVE_MIN_SAMPLES,
     DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED,
@@ -58,6 +59,7 @@ from .const import (
     DEFAULT_QUIET_HOURS_END,
     DEFAULT_QUIET_HOURS_START,
     DEFAULT_RETENTION_ENABLED,
+    DEFAULT_SEASON_START_MONTH,
     DEFAULT_SETPOINT_OSC_MIN_DELTA,
     DEFAULT_SETPOINT_OSC_THRESHOLD,
     DEFAULT_SETPOINT_OSC_WINDOW_MIN,
@@ -70,15 +72,15 @@ from .const import (
     DOMAIN,
     LANG_EN,
     LANG_NL,
+    MODEL_BASISPROFIEL,
     MODEL_CHOICES,
     MODEL_CUSTOM,
     MODEL_EPRA12EAV3,
     MODEL_LABELS,
     NAME,
+    OPTIONAL_ATTRIBUTES,
     REQUIRED_ATTRIBUTES,
     SOURCE_SENSOR_ENTITY,
-    DEFAULT_SEASON_START_MONTH,
-    MODEL_BASISPROFIEL,
 )
 from .engine.model_profiles import expected_attributes
 
@@ -96,6 +98,22 @@ _MODEL_SELECTOR = selector.SelectSelector(
 
 _ENTITY_SELECTOR = selector.EntitySelector(
     selector.EntitySelectorConfig(domain="sensor")
+)
+
+_ATTRIBUTE_MODE_SELECTOR = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=[
+            selector.SelectOptionDict(
+                value=ATTRIBUTE_MODE_AUTO,
+                label="Automatic (canonical ESPAltherma names)",
+            ),
+            selector.SelectOptionDict(
+                value=ATTRIBUTE_MODE_MANUAL,
+                label="Manual (map each required attribute)",
+            ),
+        ],
+        mode=selector.SelectSelectorMode.DROPDOWN,
+    )
 )
 
 
@@ -185,11 +203,17 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
+        missing_list: list[str] = []
         if user_input is not None:
             entity_id = user_input["source_sensor"]
             state = self.hass.states.get(entity_id)
+            mode = user_input.get("attribute_mode", ATTRIBUTE_MODE_AUTO)
             if state is None:
                 errors["source_sensor"] = "entity_not_found"
+            elif mode == ATTRIBUTE_MODE_MANUAL:
+                self._data.update(user_input)
+                self._data["attribute_mode"] = ATTRIBUTE_MODE_MANUAL
+                return await self.async_step_map_attributes()
             else:
                 missing = [
                     k for k in REQUIRED_ATTRIBUTES if k not in state.attributes
@@ -197,8 +221,10 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 if missing:
                     _LOGGER.warning("Missing required attrs: %s", missing)
                     errors["source_sensor"] = "missing_attributes"
+                    missing_list = missing
                 else:
                     self._data.update(user_input)
+                    self._data["attribute_mode"] = ATTRIBUTE_MODE_AUTO
                     if user_input["model"] == MODEL_CUSTOM:
                         return await self.async_step_model_custom()
                     return await self.async_step_attributes()
@@ -211,9 +237,21 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 "model",
                 default=self._data.get("model", MODEL_EPRA12EAV3),
             ): _MODEL_SELECTOR,
+            vol.Required(
+                "attribute_mode",
+                default=self._data.get("attribute_mode", ATTRIBUTE_MODE_AUTO),
+            ): _ATTRIBUTE_MODE_SELECTOR,
         })
         return self.async_show_form(
-            step_id="user", data_schema=schema, errors=errors
+            step_id="user",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "missing_list": (
+                    "\n".join("\u2022 " + m for m in missing_list)
+                    if missing_list else "none"
+                ),
+            },
         )
 
     async def async_step_model_custom(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -239,6 +277,72 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         })
         return self.async_show_form(
             step_id="model_custom", data_schema=schema, errors=errors
+        )
+
+    async def async_step_map_attributes(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Manual mapping of required + optional attributes to user's own names."""
+        errors: dict[str, str] = {}
+        source_id = self._data.get("source_sensor", SOURCE_SENSOR_ENTITY)
+        state = self.hass.states.get(source_id) if source_id else None
+        available = set(state.attributes.keys()) if state else set()
+
+        if user_input is not None:
+            mapping: dict[str, str] = {}
+            bad: list[str] = []
+            unmapped: list[str] = []
+            for canonical in REQUIRED_ATTRIBUTES:
+                user_key = (user_input.get(canonical) or "").strip()
+                if not user_key:
+                    if canonical in available:
+                        mapping[canonical] = canonical
+                    else:
+                        unmapped.append(canonical)
+                    continue
+                if user_key not in available:
+                    bad.append(user_key)
+                    continue
+                mapping[canonical] = user_key
+            for canonical in OPTIONAL_ATTRIBUTES:
+                user_key = (user_input.get(canonical) or "").strip()
+                if not user_key:
+                    continue
+                if user_key not in available:
+                    bad.append(user_key)
+                    continue
+                mapping[canonical] = user_key
+            if bad:
+                errors["base"] = "attribute_not_found"
+                self._data["_bad_attrs"] = bad
+            elif unmapped:
+                errors["base"] = "required_attrs_unmapped"
+                self._data["_bad_attrs"] = unmapped
+            else:
+                self._data["attribute_map"] = mapping
+                self._data["attribute_mode"] = ATTRIBUTE_MODE_MANUAL
+                return await self.async_step_attributes()
+
+        existing = self._data.get("attribute_map") or {}
+        reversed_existing = dict(existing)
+        fields: dict[Any, Any] = {}
+        for canonical in REQUIRED_ATTRIBUTES + OPTIONAL_ATTRIBUTES:
+            default = reversed_existing.get(canonical, "") or ""
+            fields[vol.Optional(canonical, default=default)] = selector.TextSelector(
+                selector.TextSelectorConfig()
+            )
+        return self.async_show_form(
+            step_id="map_attributes",
+            data_schema=vol.Schema(fields),
+            errors=errors,
+            description_placeholders={
+                "available_count": str(len(available)),
+                "available_list": (
+                    ", ".join(sorted(available)[:40])
+                    if available else "none"
+                ),
+                "bad_list": (
+                    ", ".join(self._data.pop("_bad_attrs", [])) or "none"
+                ),
+            },
         )
 
     async def async_step_attributes(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

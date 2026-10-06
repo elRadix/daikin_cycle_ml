@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "daikin_cycle_ml"
 NAME = "Daikin Cycle ML"
-VERSION = "1.6.1"
+VERSION = "1.6.2"
 
 # --- Coordinator ---
 UPDATE_INTERVAL_SECONDS = 30
@@ -141,7 +141,18 @@ CORE_ATTRIBUTES = [
 ]
 
 # Legacy alias — kept for backwards-compatible imports.
-REQUIRED_ATTRIBUTES = CORE_ATTRIBUTES
+OPTIONAL_ATTRIBUTES = [
+    ATTR_INV_FREQUENCY_RPS,
+]
+
+REQUIRED_ATTRIBUTES = [
+    a for a in CORE_ATTRIBUTES if a not in OPTIONAL_ATTRIBUTES
+]
+
+# --- Config-flow attribute-mode ---
+ATTRIBUTE_MODE_AUTO = "auto"
+ATTRIBUTE_MODE_MANUAL = "manual"
+
 
 # --- Operation-mode values (from ESPAltherma) ---
 OP_MODE_FAN_ONLY = "Fan Only"

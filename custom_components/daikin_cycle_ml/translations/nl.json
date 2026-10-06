@@ -3,14 +3,16 @@
     "step": {
       "user": {
         "title": "Daikin Cycle ML installatie",
-        "description": "Choose the ESPAltherma source sensor and your heat-pump model.\n\n- **Source sensor**: must expose the 13 required ESPAltherma attributes. Typical: `sensor.althermasensors`.\n- **Model**: determines default thresholds. Pick 'Custom' to supply your own attribute map.",
+        "description": "Choose the ESPAltherma source sensor, your heat-pump model, and how required attributes are mapped.\n\n- **Source sensor**: must expose the 12 required ESPAltherma attributes. Typical: `sensor.althermasensors`.\n- **Model**: determines default thresholds.\n- **Attribute mode**: Automatic uses canonical names. Manual lets you map each attribute yourself.",
         "data": {
           "source_sensor": "Source sensor",
-          "model": "Heat-pump model"
+          "model": "Heat-pump model",
+          "attribute_mode": "Attribute mode"
         },
         "data_description": {
-          "source_sensor": "ESPAltherma sensor that exposes the 13 required heat-pump attributes. Typical: sensor.althermasensors.",
-          "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map."
+          "source_sensor": "ESPAltherma sensor that exposes the 12 required heat-pump attributes. Typical: sensor.althermasensors.",
+          "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map.",
+          "attribute_mode": "Automatic uses the canonical ESPAltherma attribute names. Manual lets you map each required attribute to your own sensor's name."
         }
       },
       "model_custom": {
@@ -126,12 +128,48 @@
       "reconfigure_full": {
         "title": "Volledige wizard",
         "description": "Rerun the full wizard. All current values are prefilled as defaults."
+      },
+      "map_attributes": {
+        "title": "Map required attributes",
+        "description": "Map each canonical attribute to the matching attribute name on your sensor. Leave a field empty if the canonical name already exists on your sensor.\n\nSensor exposes **{available_count}** attributes.\n\nSample of available keys:\n{available_list}\n\nUnmatched: {bad_list}",
+        "data": {
+          "INV frequency (rps)": "INV frequency (rps)",
+          "Operation Mode": "Operation Mode",
+          "I/U operation mode": "I/U operation mode",
+          "3way valve(On:DHW_Off:Space)": "3way valve(On:DHW_Off:Space)",
+          "Defrost Operation": "Defrost Operation",
+          "Leaving water temp. after BUH (R2T)": "Leaving water temp. after BUH (R2T)",
+          "Inlet water temp.(R4T)": "Inlet water temp.(R4T)",
+          "Outdoor air temp.(R1T)": "Outdoor air temp.(R1T)",
+          "Flow sensor (l/min)": "Flow sensor (l/min)",
+          "Water pump operation": "Water pump operation",
+          "BUH Step1": "BUH Step1",
+          "BUH Step2": "BUH Step2",
+          "LW setpoint (main)": "LW setpoint (main)"
+        },
+        "data_description": {
+          "INV frequency (rps)": "Your sensor's attribute name for the canonical 'INV frequency (rps)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Operation Mode": "Your sensor's attribute name for the canonical 'Operation Mode' field. Leave empty if the canonical name already exists on the sensor.",
+          "I/U operation mode": "Your sensor's attribute name for the canonical 'I/U operation mode' field. Leave empty if the canonical name already exists on the sensor.",
+          "3way valve(On:DHW_Off:Space)": "Your sensor's attribute name for the canonical '3way valve(On:DHW_Off:Space)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Defrost Operation": "Your sensor's attribute name for the canonical 'Defrost Operation' field. Leave empty if the canonical name already exists on the sensor.",
+          "Leaving water temp. after BUH (R2T)": "Your sensor's attribute name for the canonical 'Leaving water temp. after BUH (R2T)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Inlet water temp.(R4T)": "Your sensor's attribute name for the canonical 'Inlet water temp.(R4T)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Outdoor air temp.(R1T)": "Your sensor's attribute name for the canonical 'Outdoor air temp.(R1T)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Flow sensor (l/min)": "Your sensor's attribute name for the canonical 'Flow sensor (l/min)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Water pump operation": "Your sensor's attribute name for the canonical 'Water pump operation' field. Leave empty if the canonical name already exists on the sensor.",
+          "BUH Step1": "Your sensor's attribute name for the canonical 'BUH Step1' field. Leave empty if the canonical name already exists on the sensor.",
+          "BUH Step2": "Your sensor's attribute name for the canonical 'BUH Step2' field. Leave empty if the canonical name already exists on the sensor.",
+          "LW setpoint (main)": "Your sensor's attribute name for the canonical 'LW setpoint (main)' field. Leave empty if the canonical name already exists on the sensor."
+        }
       }
     },
     "error": {
       "entity_not_found": "Sensor niet gevonden",
-      "missing_attributes": "Sensor mist vereiste ESPAltherma-attributen",
-      "invalid_json": "Ongeldige JSON"
+      "missing_attributes": "Sensor is missing one or more required ESPAltherma attributes. See the description for the exact list, or switch Attribute mode to Manual.",
+      "invalid_json": "Ongeldige JSON",
+      "attribute_not_found": "One or more mapped attribute names were not found on the source sensor.",
+      "required_attrs_unmapped": "One or more required attributes have no mapping and no canonical match on the sensor."
     },
     "abort": {
       "already_configured": "Al geconfigureerd",

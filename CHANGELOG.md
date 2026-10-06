@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.2] - 2026-10-06
+
+Patch release: onboarding blocker for units that do not expose every
+canonical ESPAltherma attribute (issue #25). Adds a Manual mapping mode
+and downgrades `INV frequency (rps)` from required to optional.
+
+[Full diff v1.6.1...v1.6.2](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.1...v1.6.2)
+
+### Added
+
+- Screen-1 dropdown `attribute_mode` with Automatic / Manual options.
+- New config-flow step `map_attributes`: one text field per required
+  (12) and optional (1) attribute, letting the user map canonical names
+  to their own sensor's attribute names.
+- `const.OPTIONAL_ATTRIBUTES` and `const.ATTRIBUTE_MODE_AUTO|MANUAL`.
+- `tests/test_v162_manual_mapping.py` with 12 cases covering Auto/Manual
+  routing, mapping validation, error paths, and translation parity.
+
+### Changed
+
+- `REQUIRED_ATTRIBUTES` is now derived from `CORE_ATTRIBUTES` minus
+  `OPTIONAL_ATTRIBUTES` (13 -> 12). `CORE_ATTRIBUTES` stays at 13 for
+  profile consumers.
+- `engine/attribute_reader.missing_required()` checks
+  `REQUIRED_ATTRIBUTES` instead of `CORE_ATTRIBUTES`.
+- `coordinator._async_update_data` resolves the custom map in order:
+  `options["custom_attribute_map"]` -> `data["custom_attribute_map"]` ->
+  `data["attribute_map"]`. Existing entries unaffected.
+- `strings.json` + `translations/{en,nl}.json` updated: `attribute_mode`
+  field, `map_attributes` step, refreshed error texts. Parity kept at
+  410/410/410 leaves.
+
+### Fixed
+
+- Onboarding no longer blocks on screen 1 when a firmware variant uses
+  non-canonical attribute names. Manual mode bypasses the required-check
+  and lets the user map each attribute explicitly (issue #25).
+- Improved error message lists the exact missing attribute keys instead
+  of a generic "Sensor mist vereiste ESPAltherma-attributen".
+
+### Notes
+
+- Backward compatible: `attribute_mode` defaults to Automatic; existing
+  entries follow the original code path.
+- No entity changes, no DB schema change, no options-flow change.
+- Resolves issue #25.
+
 ## [1.6.1] - 2026-10-06
 
 Patch release: fixes an energy accumulator bug found in production where
