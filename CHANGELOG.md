@@ -1,317 +1,168 @@
 # Changelog
 
-## [Unreleased] - v1.6.0 HVAC Parity (S1 + C3a + C3b + C4 complete)
+All notable changes to this project will be documented in this file.
 
-### v1.6.0-C4 -- weather-normalized COP degradation + 30d regression trend
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-**Commit:** eac1132ae2124f65c01e99dc69545a1e9691f7e6
-**URL:** https://github.com/elRadix/daikin_cycle_ml/commit/eac1132ae2124f65c01e99dc69545a1e9691f7e6
-**Branch:** feat/v1.6.0-hvac-parity
-**Date:** 2026-10-05
-**CI:** 6/6 green
+## [1.6.0-rc1] - 2026-10-06
 
-#### Why weather-normalization matters
+**Release candidate.** v1.6.0 adds COP intelligence, Daikin datasheet
+integration, and runtime/energy observability. Validate in your heating
+season before promoting to stable.
 
-HVAC thermodynamics. The Carnot COP of an air-water heat pump depends on the
-condensation and evaporation temperatures. For a fixed LWT of 35 C the
-following outdoor-temperature sensitivity holds:
-
-- T_outdoor 10 C -> COP 8.2 (baseline)
-- T_outdoor  5 C -> COP 7.3 (-11%)
-- T_outdoor  0 C -> COP 6.5 (-21%)
-- T_outdoor -5 C -> COP 5.9 (-28%)
-
-A 5 C outdoor swing between two consecutive weeks therefore produces
-roughly 11% COP change, exactly at the un-normalized warning threshold.
-Raw 7d-vs-7d comparison fires on every seasonal transition rather than on
-hardware degradation. Outdoor-binning removes the first-order weather
-signal.
-
-Additional contaminants handled:
-
-- Defrost and BUH cycles: COP during defrost is near zero and heavily
-  skews weekly averages. Excluded by joining cycles on buh_used or
-  defrost_used and building an hour-level exclusion set.
-- LWT shift: if the user raises the heating curve by 5 C, COP drops 10 to
-  15% structurally. Detected via weighted LWT comparison. Optie C
-  downgrade preserves the warning signal but lowers its severity.
-- Sparse data: dynamic sample floor scaled to the number of outdoor bins
-  prevents false alarms on new installations.
-
-#### Algorithm -- analyze_degradation (7d vs 7d, outdoor-binned)
-
-1. Fetch recent [now-7d, now] and prev [now-14d, now-7d] cop_hourly rows,
-   mode=heating.
-2. Build dirty-hours set from cycles with buh_used=1 or defrost_used=1 in
-   [now-37d, now].
-3. Filter dirty hours from both windows. Track asymmetry as exclusion_skew.
-4. Bin rows by outdoor_mean into 6 bins:
-   very_cold (-25..-10), cold (-10..0), cool (0..5),
-   mild (5..10), warm (10..15), hot (15..25).
-5. Aggregate per bin with n_samples-weighted mean for cop_mean and
-   lwt_mean.
-6. merge_bins: keep bins present in BOTH windows with at least 6 hours
-   each. Bins ordered per OUTDOOR_BINS_ORDER.
-7. Dynamic sample floor based on bin coverage: 1 bin -> 200 samples,
-   2 bins -> 100, 3 or more bins -> 80.
-8. week_pct = weighted-mean of per-bin ratios, minus 1.
-9. Validity gates: samples OK, at least 3 distinct UTC days,
-   exclusion_skew below 0.15.
-10. Severity mapping: below -8% warning, below -15% critical.
-11. Optie C downgrade: if absolute LWT shift between windows exceeds 5 C,
-    critical becomes warning, warning becomes info. severity_raw keeps
-    the original. severity_downgraded flag is exposed on attrs.
-
-#### Algorithm -- analyze_trend (30d baseline, weighted least squares)
-
-1. Fit COP = a + b * T_outdoor on baseline [now-37d, now-7d], weights
-   n_samples.
-2. Guards: at least 10 hourly rows, outdoor spread at least 5 C.
-3. For each recent hour compute predicted = a + b * T_outdoor.
-4. cop_predicted_recent = weighted mean of predictions.
-5. cop_observed_recent = weighted mean of observations.
-6. trend_30d = (observed - predicted) / predicted * 100.
-7. Same severity mapping applied to trend. No Optie C downgrade on the
-   trend sensor.
-
-#### New files
-
-- engine/cop_degradation.py. Pure helpers, no HA dependency.
-  Public API: bin_for_outdoor, weighted_mean, weighted_linear_fit,
-  severity_for_pct, downgrade_for_lwt, build_dirty_hours,
-  filter_dirty_hours, aggregate_by_bin, merge_bins, analyze_degradation,
-  analyze_trend. Also exports SEVERITY_NONE, SEVERITY_INFO,
-  SEVERITY_WARNING, SEVERITY_CRITICAL.
-- tests/test_c4_engine.py (41 test-defs, 63 collected via parametrize).
-- tests/test_c4_degradation.py (17 test-defs).
-- tests/test_c4_trend.py (16 test-defs).
-- tests/test_c4_integration.py (20 test-defs).
-
-#### Added
-
-Sensors (3 new, SENSOR_DEFS 30 -> 33):
-
-- sensor.cop_degradation_status -- enum, options
-  none/info/warning/critical. Primary state, Optie C downgraded severity.
-  Attrs: severity_raw, severity_downgraded, week_pct, week_pct_raw,
-  lwt_shift_detected, lwt_shift_c, threshold_pct, critical_pct, valid,
-  updated_ts.
-- sensor.cop_degradation_week_pct -- measurement, percent. The 7d-vs-7d
-  normalized ratio. None when gates fail. Attrs: mode, window_days,
-  n_samples_recent, n_samples_prev, n_days_recent, n_days_prev,
-  n_bins_used, dynamic_min_samples, bins_used, excluded_hours_recent,
-  excluded_hours_prev, exclusion_skew, lwt_mean_recent, lwt_mean_prev,
-  updated_ts.
-- sensor.cop_trend_30d -- measurement, percent. Regression residual
-  against baseline prediction. None when regression guards fail. Attrs:
-  mode, window_days, baseline_days, recent_days, n_hours_baseline,
-  n_hours_recent, outdoor_spread_baseline_c, fit_slope, fit_intercept,
-  fit_r2, cop_predicted_recent, cop_observed_recent, threshold_pct,
-  critical_pct, valid, updated_ts.
-
-Coordinator:
-
-- _maybe_refresh_cop_degradation(now) -- throttled 300 s. Hooked in
-  _async_update_data after _maybe_refresh_cop_hourly, before
-  _maybe_refresh_spf. Uses existing async_query_cop_hourly with until_ts
-  and mode=heating, plus async_fetch_cycles(days=37). No new DB method,
-  no schema change.
-- DataSnapshot +5 fields: cop_degradation_status (str, default "none"),
-  cop_degradation_week_pct (float or None), cop_trend_30d (float or None),
-  cop_degradation_detail (dict), cop_trend_detail (dict).
-- +2 caches: _cop_degradation_cache, _cop_degradation_cache_ts.
-
-Constants (17 new in const.py, right after COP_CURVE_RECENT_MAX_POINTS):
-
-- DEGRADATION_WINDOW_DAYS = 7
-- DEGRADATION_BASELINE_DAYS = 30
-- DEGRADATION_MIN_HOURS_PER_BIN = 6
-- DEGRADATION_THRESHOLD_PCT = -8.0
-- DEGRADATION_CRITICAL_PCT = -15.0
-- DEGRADATION_MIN_DAYS = 3
-- DEGRADATION_EXCLUSION_SKEW_MAX = 0.15
-- DEGRADATION_MIN_SAMPLES_1BIN = 200
-- DEGRADATION_MIN_SAMPLES_2BIN = 100
-- DEGRADATION_MIN_SAMPLES_3BIN = 80
-- DEGRADATION_LWT_SHIFT_C = 5.0
-- DEGRADATION_MIN_HOURS_FIT = 10
-- DEGRADATION_MIN_SPREAD_C = 5.0
-- DEGRADATION_REFRESH_THROTTLE_S = 300.0
-- OUTDOOR_BINS (tuple of 6 (lo, hi, label) tuples)
-- OUTDOOR_BINS_ORDER (tuple of 6 labels)
-
-Translations (3 files: strings.json, translations/en.json,
-translations/nl.json):
-
-- 3 sensor-name entries per file.
-- 4 enum-state entries on cop_degradation_status per file
-  (none/info/warning/critical).
-
-#### Changed
-
-- coordinator.py: update-flow ordering now cop_hourly -> cop_degradation
-  -> spf. Degradation refresh uses the cop_hourly cache from the same
-  tick.
-- SENSOR_DEFS total: 30 -> 33.
-- Entity total: 48 -> 51.
-- Test-defs: 1999 -> 2096 (+97).
-- Coverage stmts: 5113 -> 5422. Branches: 1426 -> 1528.
-- mypy scope: 33 -> 34 source files (new engine module included).
-
-#### Fixed
-
-- test_c3a_integration.py, test_v160_deep.py,
-  test_v160_per_mode_cop.py, test_v160_spf.py: SENSOR_DEFS count
-  assertion 30 -> 33. These tests assert total sensor count to catch
-  accidental additions/removals; the increase is intentional.
-- engine/cop_degradation.py: dead branch (total_w > 0 after merge_bins
-  is always true because merge_bins already filters weight > 0) marked
-  pragma no cover. Actual filtering stays in merge_bins.
-
-#### Impact summary
-
-- Sensors: +3. Binary sensors: 0. Entities: +3 (48 -> 51).
-- Services: 0. Repairs: 0.
-- DB schema: unchanged (v14). DB methods: 0 new.
-- Coordinator caches: +2.
-- Constants: +17.
-- Test files: +4 new, +4 updated.
-- Breaking changes: none for end users.
-
-#### Test status
-
-- pytest: 2096 passed.
-- Coverage: 100.00% (5422 statements, 1528 branches).
-- mypy strict: Success, 34 source files.
-- ruff CI-scope: All checks passed.
-- CI checks: 6/6 green (coverage, Hassfest, ruff, HACS Action, build,
-  mypy).
-
-#### Notes
-
-- Requires 14 days of cop_hourly history to produce non-None values.
-  New installations see status none with week_pct None until enough
-  data is available. This is by design; the sensor is not noisy on
-  install.
-- Outdoor-binning is a first-order weather correction. Full 2D binning
-  (outdoor x LWT) is deferred to v1.7 or later once users have
-  multi-season history.
-- Defrost and BUH exclusion depends on cycles.buh_used and
-  cycles.defrost_used (present since v1.4.x). No schema migration.
-- Optie C preserves the warning signal (severity field still reflects
-  degradation) while qualifying it via severity_raw. Users wanting
-  strict alerting can match severity_raw in automations.
-- Production validation of heating-season behavior is pending the
-  Nov/Dec 2026 stookseizoen.
-
-#### Related
-
-- C3a (spec-based datasheet comparison): sensor.cop_vs_datasheet_pct.
-- C3b (user datasheet Store plus two services).
-- Issue #18 S2 C4.
-- Handoff v48.0 (C3b), v49.0 (C4 done, C5 and C6 next).
-
-
-Branch: `feat/v1.6.0-hvac-parity`. S1 (per-mode COP + SPF), C3a
-(bundled datasheets), C3b (user datasheets + 2 services + 3 Repairs)
-and C4 (weather-normalized COP degradation + 30d regression trend) are
-complete. Remaining: C5-C14. No tag, no release yet.
+[Full diff v1.5.3...v1.6.0-rc1](https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0-rc1)
 
 ### Added
 
-- **Per-mode COP sensors** (`6c1b330`, C1a): 9 new sensors
-  `cop_{heating,dhw,cooling}_{day,week,month}`.
-  DHW and cooling COP become first-class entities, no longer hidden in
-  `cop_mean_*` attributes. **Impact:** users can alert and graph DHW
-  efficiency separately. DHW is structurally lower than heating
-  (LWT ~55 C vs ~35 C); blending masked real degradation in either mode.
-
-- **`cop_combined_today` sensor** (`583d6b8`, C1b): exposes the
-  previous blended COP (heating + DHW + cooling) for backwards
-  compatibility.
-
-- **SPF sensors** (`b04a633`, C2): `spf_season`, `spf_ytd`,
-  `scop_running_365d`. Computes Seasonal Performance Factor per
-  EN14825 over season / year-to-date / rolling-365-day windows.
-  Persisted to `model_state["spf_state"]`, refreshed hourly.
-  **Impact:** SPF is the only COP metric recognized by the ErP
-  directive and by installers for warranty evaluation. Previously the
-  integration could not demonstrate seasonal efficiency.
-
-- **`season_start_month` option** (`b04a633`, C2): user-configurable
-  first month of the heating season (1-12, default 10 = October).
-  **Impact:** matches NL/BE heating season; override for early-season
-  homes or non-NL climates. Lives in the OptionsFlow Maintenance step.
-
-- **Deep test suite** (`f6de063`): 29 tests covering SENSOR_DEFS
-  contract, slug parity (entity_id generation), translation parity
-  across `strings.json` / `en.json` / `nl.json`, subprocess import
-  cleanliness for all 29 modules, Hypothesis fuzz on pure factories,
-  SPF year-rollback edge cases, and C1b mode-filter edge cases.
+- **Per-mode COP sensors** — `cop_heating_day`, `cop_heating_week`,
+  `cop_heating_month`, plus DHW and cooling variants. 9 new sensors total.
+  ([`6c1b330`](https://github.com/elRadix/daikin_cycle_ml/commit/6c1b330))
+- **SPF sensors** — `spf_season`, `spf_ytd`, `scop_running_365d`. Configure
+  your season start via the new `season_start_month` option (default: October).
+  ([`b04a633`](https://github.com/elRadix/daikin_cycle_ml/commit/b04a633))
+- **Daikin datasheet integration** — 15 bundled models (8 EPRA + 7 ERLA)
+  in `data/datasheets.json`. The model dropdown now lists 17 entries.
+  ([`0c7a787`](https://github.com/elRadix/daikin_cycle_ml/commit/0c7a787))
+  - `hp_specs` — full datasheet as attributes.
+  - `cop_normalized_a7w35` — live COP normalized to A7/W35 reference.
+  - `cop_vs_datasheet_pct` — deviation vs spec with on_spec/below/critical bands.
+- **User datasheet import** — new services `import_datasheet` and
+  `remove_user_datasheet`. Import overrides for non-bundled models without
+  editing files.
+  ([`50afb8f`](https://github.com/elRadix/daikin_cycle_ml/commit/50afb8f),
+  [`006b281`](https://github.com/elRadix/daikin_cycle_ml/commit/006b281),
+  [`a9766db`](https://github.com/elRadix/daikin_cycle_ml/commit/a9766db))
+- **Weather-normalized degradation** — `cop_degradation_status`,
+  `cop_degradation_week_pct`, `cop_trend_30d`. Isolates hardware degradation
+  from weather variation using outdoor-binning and BUH/defrost exclusion.
+  ([`eac1132`](https://github.com/elRadix/daikin_cycle_ml/commit/eac1132))
+- **Runtime sensors** — `runtime_compressor_today`, `runtime_buh_today`,
+  `compressor_starts_today`, `defrost_count_today`, `defrost_duration_today`,
+  `duty_cycle_today`.
+  ([`6de9935`](https://github.com/elRadix/daikin_cycle_ml/commit/6de9935),
+  [`b247a8b`](https://github.com/elRadix/daikin_cycle_ml/commit/b247a8b))
+- **Energy sensors (kWh)** — 6 sensors feeding the HA Energy Dashboard:
+  `electrical_energy_{heating,dhw,cooling,total}_today` and
+  `thermal_energy_{heating,cooling}_today`.
+  ([`95b1346`](https://github.com/elRadix/daikin_cycle_ml/commit/95b1346))
+- **Daikin slope/offset advice** — `heating_curve_advice` now exposes
+  `offset_delta_c` and `slope_delta` attributes, matching the language
+  used in Daikin installer menus.
+  ([`443af4d`](https://github.com/elRadix/daikin_cycle_ml/commit/443af4d))
+- **Repairs for datasheets** — `datasheet_import_invalid`,
+  `datasheet_schema_unknown`, `datasheet_load_failed`.
+  ([`006b281`](https://github.com/elRadix/daikin_cycle_ml/commit/006b281))
+- **Deep test suite for C1/C2** — full contract tests for SENSOR_DEFS,
+  slug parity, translation parity, subprocess import-cleanliness, and
+  Hypothesis fuzzing of the new COP factories.
+  ([`f6de063`](https://github.com/elRadix/daikin_cycle_ml/commit/f6de063))
 
 ### Changed
 
-- **`cop_today` becomes heating-only** (`583d6b8`, C1b).
-  Previously it blended all operating modes.
-  **Breaking for automations** that relied on the blended value.
-  **Mitigation:** use `cop_combined_today` (added in the same commit)
-  to keep the old blended semantics.
-  **Impact:** heating efficiency becomes legible in the entity state;
-  DHW and cooling anomalies no longer contaminate the headline COP.
-  Anyone graphing `cop_today` should switch their automation to
-  `cop_combined_today` if they want blended values.
+- **BREAKING:** `cop_today` now reports **heating-only** COP. If your
+  automation expects the old blended value, switch to the new
+  `cop_combined_today` sensor.
+  ([`583d6b8`](https://github.com/elRadix/daikin_cycle_ml/commit/583d6b8))
+- **Service translations** — all 9 services now have complete EN and NL
+  translations (previously only 3 had entries).
+  ([`8bf02d8`](https://github.com/elRadix/daikin_cycle_ml/commit/8bf02d8))
+- **OptionsFlow UX overhaul** — the configuration flow now uses HA
+  sections and a sub-menu structure:
+  ([`526026c`](https://github.com/elRadix/daikin_cycle_ml/commit/526026c),
+  [`76b0215`](https://github.com/elRadix/daikin_cycle_ml/commit/76b0215),
+  [`178a4d7`](https://github.com/elRadix/daikin_cycle_ml/commit/178a4d7),
+  [`c428e0f`](https://github.com/elRadix/daikin_cycle_ml/commit/c428e0f))
+  - `device` step: grouped into Sensors / Detection / Comfort sections.
+  - `pendulum` step: grouped into Run/off / Pendulum / Setpoint sections.
+  - `quality` + `ml` merged into `quality_ml`.
+  - `maintenance` renamed to `advanced`.
+  - `notifications` split into 4 sub-pages: Delivery, Quiet Hours, Content, Test.
+- **DataSnapshot purity (R216)** — entities now read `power_w`, `cop`, and
+  `setpoint_oscillating` via `DataSnapshot` instead of private coordinator
+  methods.
+  ([`1e98359`](https://github.com/elRadix/daikin_cycle_ml/commit/1e98359),
+  [`5b83377`](https://github.com/elRadix/daikin_cycle_ml/commit/5b83377))
+- **Model choices** — `MODEL_CHOICES` expanded from 5 to 17.
+  ([`0c7a787`](https://github.com/elRadix/daikin_cycle_ml/commit/0c7a787))
 
-- **OptionsFlow `season_start_month` schema** uses
-  `vol.All(vol.Coerce(int), vol.In({1..12}))` (`b04a633`, C2).
-  **Impact:** prevents UI save failures when HA frontend serializes
-  the dropdown value as a string.
+### Removed
+
+- **BREAKING:** orphan `data` and `data_description` keys removed from
+  `options.step.init` (leftovers from an earlier migration; never rendered).
+  ([`0204e2c`](https://github.com/elRadix/daikin_cycle_ml/commit/0204e2c))
+- Unreachable mode-filter branch in `_group_by_bucket`.
+  ([`443af4d`](https://github.com/elRadix/daikin_cycle_ml/commit/443af4d))
 
 ### Fixed
 
-- **OptionsFlow string coercion for `season_start_month`**
-  (`b04a633`, C2): without `vol.Coerce(int)` the schema would reject
-  string inputs from the HA frontend. Caught by the pre-commit runtime
-  smoke test before commit.
+- **Adaptive thresholds persistence** — learned adaptive thresholds now
+  survive HA restart (previously reset on every restart).
+  ([`bd6f655`](https://github.com/elRadix/daikin_cycle_ml/commit/bd6f655))
+- **Runtime/energy accumulator persistence** — accumulators now persist
+  before the daily reset, so the final ~30s delta is not lost.
+  ([`8b1fb62`](https://github.com/elRadix/daikin_cycle_ml/commit/8b1fb62))
+- **Class defaults for accumulator paths** — coverage gap closed; tests
+  using `__new__()` no longer break on first accumulator read.
+  ([`417eb16`](https://github.com/elRadix/daikin_cycle_ml/commit/417eb16))
+- **Duration clamping** — `duration_s` is now clamped to
+  `max_cycle_duration_min` before entering ML and DB, preventing
+  wall-clock jumps from polluting features.
+  ([`3409ba7`](https://github.com/elRadix/daikin_cycle_ml/commit/3409ba7))
+- **Consistent stale detection** — `binary_sensor._is_source_stale` and
+  `sensor._attrs_source_health` now use `timer_health.is_stale()` instead
+  of divergent inline arithmetic.
+  ([`3409ba7`](https://github.com/elRadix/daikin_cycle_ml/commit/3409ba7))
+- **Hassfest compliance** — manifest keys ordered (domain+name first);
+  invalid `description` key removed from sensor translations;
+  `example:` blocks removed from `services.yaml`.
+  ([`a45f3ba`](https://github.com/elRadix/daikin_cycle_ml/commit/a45f3ba),
+  [`69071a2`](https://github.com/elRadix/daikin_cycle_ml/commit/69071a2),
+  [`6632f4c`](https://github.com/elRadix/daikin_cycle_ml/commit/6632f4c))
+- **SENSOR_DEFS count assertions** — 5 stale assertions updated from 39
+  to 45, aligning tests with the C6a energy-sensor addition.
+  ([`3535f1e`](https://github.com/elRadix/daikin_cycle_ml/commit/3535f1e))
+- **Test isolation for OptionsFlow** — class-level `config_entry`
+  property patch no longer leaks between tests.
+  ([`c428e0f`](https://github.com/elRadix/daikin_cycle_ml/commit/c428e0f))
 
-### Test Status (S1)
+### Security
 
-- pytest: **100.00% coverage** - 4745 statements, 1322 branches, 0 misses
-- mypy strict: clean
-- ruff: clean
-- test count: ~1785 (was ~1740 at S1 start, +45)
-- commits on branch: 4 (3 feature, 1 test) + 1 chore (`c193e52`)
+- No security fixes in this release.
 
-### Entity delta (v1.6.0 S1)
+### Known Limitations
 
-| Category | v1.5.3 | After S1 | Delta |
-|---|---|---|---|
-| Sensors | 14 | 27 | +13 |
-| Binary sensors | 15 | 15 | 0 |
-| Total | 30 | 43 | +13 |
+- BUH step power is a model-based estimate. If your Daikin has a
+  different BUH configuration, the estimate may drift.
+- Defrost duration is a monotone accumulator (non-monotone summation
+  planned for v1.6.1).
+- Energy values use `rps_heuristic` fallback when no power sensor is
+  configured. Configure `power_sensor_entity` for accurate tracking.
+- Cost tracking (tariff + sensors) and energy toggle are deferred to v1.6.1.
+
+### Upgrade Guide
+
+**Action required for `cop_today` automations.** The sensor now reports
+heating-only COP. Switch to `cop_combined_today` for the previous blended value.
+
+**Optional: re-select your Daikin model.** The wizard now shows 17 models.
+If your model was previously "custom", re-select it to get datasheet-backed
+COP normalization.
+
+**No action required** for entity IDs, DB schema, or other sensors.
 
 ### Compatibility
 
-- **HA Core:** 2026.9.3+ (PHACC pin 0.13.366)
-- **HA OS:** 18.3 tested
-- **Database schema:** unchanged (v14). No migration required.
-- **Options:** one new key (`season_start_month`) added; existing
-  options preserved.
+- Home Assistant 2026.9.3 or later.
+- Database schema v14 (unchanged from 1.5.x).
+- No breaking changes to entity IDs or option keys.
 
-### Install / upgrade
+### Install / Update
 
-No user action required for install. Upgraders who used `cop_today`
-in automations should review and switch to `cop_combined_today` if
-they want the previous blended value.
+Via HACS: update to `1.6.0-rc1` (pre-release channel).
+Manual: copy `custom_components/daikin_cycle_ml/` into `/config/custom_components/`, restart HA.
 
-### Related
-
-- Issue #18: v1.6.0 - HVAC Parity and Enhancement
-- Commits: `6c1b330`, `583d6b8`, `b04a633`, `f6de063`
-
-### Next (S2 of 7)
-
-C3: normalized A7/W35 COP + datasheet deviation.
-C4: week-over-week degradation trend + `cop_degradation_warning` binary.
+---
 
 ## [1.5.3] - 2026-10-03
 
@@ -1488,3 +1339,7 @@ Versioning: https://semver.org/spec/v2.0.0.html
 ## Batch 11b-1-fix2 - 2026-09-25
 
 - db.py: maintenance deletes features before cycles (FK-safe)
+
+[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...HEAD
+[1.6.0-rc1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0-rc1
+[1.5.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.2...v1.5.3
