@@ -37,6 +37,8 @@ from .const import (
     DEGRADATION_BASELINE_DAYS,
     DEGRADATION_REFRESH_THROTTLE_S,
     DEGRADATION_WINDOW_DAYS,
+    ENERGY_DT_CAP_S,
+    ENERGY_DT_WARN_S,
 )
 from .engine.cop_degradation import (
     analyze_degradation,
@@ -922,8 +924,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         """Accumulate BUH-runtime + defrost-events for one tick. Never raises."""
         try:
             last = self._last_runtime_tick_ts or now
-            dt_s = max(0.0, min(now - last, 120.0))
+            raw_dt = now - last
+            dt_s = max(0.0, min(raw_dt, ENERGY_DT_CAP_S))
             self._last_runtime_tick_ts = now
+            if raw_dt > ENERGY_DT_WARN_S:
+                _LOGGER.warning(
+                    "buh tick gap %.1fs exceeds %.0fs threshold; capped at %.0fs",
+                    raw_dt, ENERGY_DT_WARN_S, ENERGY_DT_CAP_S,
+                )
             if dt_s <= 0.0:
                 return
             s1 = attrs.get(ATTR_BUH_STEP1)
@@ -972,8 +980,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         """
         try:
             last = self._last_energy_tick_ts or now
-            dt_s = max(0.0, min(now - last, 120.0))
+            raw_dt = now - last
+            dt_s = max(0.0, min(raw_dt, ENERGY_DT_CAP_S))
             self._last_energy_tick_ts = now
+            if raw_dt > ENERGY_DT_WARN_S:
+                _LOGGER.warning(
+                    "energy tick gap %.1fs exceeds %.0fs threshold; capped at %.0fs",
+                    raw_dt, ENERGY_DT_WARN_S, ENERGY_DT_CAP_S,
+                )
             if dt_s <= 0.0:
                 return
             if mode not in ("heating", "dhw", "cooling"):
