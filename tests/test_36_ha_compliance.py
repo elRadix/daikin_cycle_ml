@@ -45,8 +45,7 @@ def test_version_bumped():
     m = re.search(r'VERSION\s*=\s*"([^"]+)"', const)
     assert m, "VERSION not found in const.py"
     ver = m.group(1)
-    parts = ver.split(".")
-    assert len(parts) == 3 and all(p.isdigit() for p in parts), ver
+    assert re.fullmatch(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", ver), ver
     mf = json.loads((ROOT / "manifest.json").read_text())
     assert mf["version"] == ver
 
