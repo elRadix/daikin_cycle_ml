@@ -1,5 +1,169 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.6.0-rc1] - 2026-10-06
+
+**Release candidate.** v1.6.0 adds COP intelligence, Daikin datasheet
+integration, and runtime/energy observability. Validate in your heating
+season before promoting to stable.
+
+[Full diff v1.5.3...v1.6.0-rc1](https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0-rc1)
+
+### Added
+
+- **Per-mode COP sensors** — `cop_heating_day`, `cop_heating_week`,
+  `cop_heating_month`, plus DHW and cooling variants. 9 new sensors total.
+  ([`6c1b330`](https://github.com/elRadix/daikin_cycle_ml/commit/6c1b330))
+- **SPF sensors** — `spf_season`, `spf_ytd`, `scop_running_365d`. Configure
+  your season start via the new `season_start_month` option (default: October).
+  ([`b04a633`](https://github.com/elRadix/daikin_cycle_ml/commit/b04a633))
+- **Daikin datasheet integration** — 15 bundled models (8 EPRA + 7 ERLA)
+  in `data/datasheets.json`. The model dropdown now lists 17 entries.
+  ([`0c7a787`](https://github.com/elRadix/daikin_cycle_ml/commit/0c7a787))
+  - `hp_specs` — full datasheet as attributes.
+  - `cop_normalized_a7w35` — live COP normalized to A7/W35 reference.
+  - `cop_vs_datasheet_pct` — deviation vs spec with on_spec/below/critical bands.
+- **User datasheet import** — new services `import_datasheet` and
+  `remove_user_datasheet`. Import overrides for non-bundled models without
+  editing files.
+  ([`50afb8f`](https://github.com/elRadix/daikin_cycle_ml/commit/50afb8f),
+  [`006b281`](https://github.com/elRadix/daikin_cycle_ml/commit/006b281),
+  [`a9766db`](https://github.com/elRadix/daikin_cycle_ml/commit/a9766db))
+- **Weather-normalized degradation** — `cop_degradation_status`,
+  `cop_degradation_week_pct`, `cop_trend_30d`. Isolates hardware degradation
+  from weather variation using outdoor-binning and BUH/defrost exclusion.
+  ([`eac1132`](https://github.com/elRadix/daikin_cycle_ml/commit/eac1132))
+- **Runtime sensors** — `runtime_compressor_today`, `runtime_buh_today`,
+  `compressor_starts_today`, `defrost_count_today`, `defrost_duration_today`,
+  `duty_cycle_today`.
+  ([`6de9935`](https://github.com/elRadix/daikin_cycle_ml/commit/6de9935),
+  [`b247a8b`](https://github.com/elRadix/daikin_cycle_ml/commit/b247a8b))
+- **Energy sensors (kWh)** — 6 sensors feeding the HA Energy Dashboard:
+  `electrical_energy_{heating,dhw,cooling,total}_today` and
+  `thermal_energy_{heating,cooling}_today`.
+  ([`95b1346`](https://github.com/elRadix/daikin_cycle_ml/commit/95b1346))
+- **Daikin slope/offset advice** — `heating_curve_advice` now exposes
+  `offset_delta_c` and `slope_delta` attributes, matching the language
+  used in Daikin installer menus.
+  ([`443af4d`](https://github.com/elRadix/daikin_cycle_ml/commit/443af4d))
+- **Repairs for datasheets** — `datasheet_import_invalid`,
+  `datasheet_schema_unknown`, `datasheet_load_failed`.
+  ([`006b281`](https://github.com/elRadix/daikin_cycle_ml/commit/006b281))
+- **Deep test suite for C1/C2** — full contract tests for SENSOR_DEFS,
+  slug parity, translation parity, subprocess import-cleanliness, and
+  Hypothesis fuzzing of the new COP factories.
+  ([`f6de063`](https://github.com/elRadix/daikin_cycle_ml/commit/f6de063))
+
+### Changed
+
+- **BREAKING:** `cop_today` now reports **heating-only** COP. If your
+  automation expects the old blended value, switch to the new
+  `cop_combined_today` sensor.
+  ([`583d6b8`](https://github.com/elRadix/daikin_cycle_ml/commit/583d6b8))
+- **Service translations** — all 9 services now have complete EN and NL
+  translations (previously only 3 had entries).
+  ([`8bf02d8`](https://github.com/elRadix/daikin_cycle_ml/commit/8bf02d8))
+- **OptionsFlow UX overhaul** — the configuration flow now uses HA
+  sections and a sub-menu structure:
+  ([`526026c`](https://github.com/elRadix/daikin_cycle_ml/commit/526026c),
+  [`76b0215`](https://github.com/elRadix/daikin_cycle_ml/commit/76b0215),
+  [`178a4d7`](https://github.com/elRadix/daikin_cycle_ml/commit/178a4d7),
+  [`c428e0f`](https://github.com/elRadix/daikin_cycle_ml/commit/c428e0f))
+  - `device` step: grouped into Sensors / Detection / Comfort sections.
+  - `pendulum` step: grouped into Run/off / Pendulum / Setpoint sections.
+  - `quality` + `ml` merged into `quality_ml`.
+  - `maintenance` renamed to `advanced`.
+  - `notifications` split into 4 sub-pages: Delivery, Quiet Hours, Content, Test.
+- **DataSnapshot purity (R216)** — entities now read `power_w`, `cop`, and
+  `setpoint_oscillating` via `DataSnapshot` instead of private coordinator
+  methods.
+  ([`1e98359`](https://github.com/elRadix/daikin_cycle_ml/commit/1e98359),
+  [`5b83377`](https://github.com/elRadix/daikin_cycle_ml/commit/5b83377))
+- **Model choices** — `MODEL_CHOICES` expanded from 5 to 17.
+  ([`0c7a787`](https://github.com/elRadix/daikin_cycle_ml/commit/0c7a787))
+
+### Removed
+
+- **BREAKING:** orphan `data` and `data_description` keys removed from
+  `options.step.init` (leftovers from an earlier migration; never rendered).
+  ([`0204e2c`](https://github.com/elRadix/daikin_cycle_ml/commit/0204e2c))
+- Unreachable mode-filter branch in `_group_by_bucket`.
+  ([`443af4d`](https://github.com/elRadix/daikin_cycle_ml/commit/443af4d))
+
+### Fixed
+
+- **Adaptive thresholds persistence** — learned adaptive thresholds now
+  survive HA restart (previously reset on every restart).
+  ([`bd6f655`](https://github.com/elRadix/daikin_cycle_ml/commit/bd6f655))
+- **Runtime/energy accumulator persistence** — accumulators now persist
+  before the daily reset, so the final ~30s delta is not lost.
+  ([`8b1fb62`](https://github.com/elRadix/daikin_cycle_ml/commit/8b1fb62))
+- **Class defaults for accumulator paths** — coverage gap closed; tests
+  using `__new__()` no longer break on first accumulator read.
+  ([`417eb16`](https://github.com/elRadix/daikin_cycle_ml/commit/417eb16))
+- **Duration clamping** — `duration_s` is now clamped to
+  `max_cycle_duration_min` before entering ML and DB, preventing
+  wall-clock jumps from polluting features.
+  ([`3409ba7`](https://github.com/elRadix/daikin_cycle_ml/commit/3409ba7))
+- **Consistent stale detection** — `binary_sensor._is_source_stale` and
+  `sensor._attrs_source_health` now use `timer_health.is_stale()` instead
+  of divergent inline arithmetic.
+  ([`3409ba7`](https://github.com/elRadix/daikin_cycle_ml/commit/3409ba7))
+- **Hassfest compliance** — manifest keys ordered (domain+name first);
+  invalid `description` key removed from sensor translations;
+  `example:` blocks removed from `services.yaml`.
+  ([`a45f3ba`](https://github.com/elRadix/daikin_cycle_ml/commit/a45f3ba),
+  [`69071a2`](https://github.com/elRadix/daikin_cycle_ml/commit/69071a2),
+  [`6632f4c`](https://github.com/elRadix/daikin_cycle_ml/commit/6632f4c))
+- **SENSOR_DEFS count assertions** — 5 stale assertions updated from 39
+  to 45, aligning tests with the C6a energy-sensor addition.
+  ([`3535f1e`](https://github.com/elRadix/daikin_cycle_ml/commit/3535f1e))
+- **Test isolation for OptionsFlow** — class-level `config_entry`
+  property patch no longer leaks between tests.
+  ([`c428e0f`](https://github.com/elRadix/daikin_cycle_ml/commit/c428e0f))
+
+### Security
+
+- No security fixes in this release.
+
+### Known Limitations
+
+- BUH step power is a model-based estimate. If your Daikin has a
+  different BUH configuration, the estimate may drift.
+- Defrost duration is a monotone accumulator (non-monotone summation
+  planned for v1.6.1).
+- Energy values use `rps_heuristic` fallback when no power sensor is
+  configured. Configure `power_sensor_entity` for accurate tracking.
+- Cost tracking (tariff + sensors) and energy toggle are deferred to v1.6.1.
+
+### Upgrade Guide
+
+**Action required for `cop_today` automations.** The sensor now reports
+heating-only COP. Switch to `cop_combined_today` for the previous blended value.
+
+**Optional: re-select your Daikin model.** The wizard now shows 17 models.
+If your model was previously "custom", re-select it to get datasheet-backed
+COP normalization.
+
+**No action required** for entity IDs, DB schema, or other sensors.
+
+### Compatibility
+
+- Home Assistant 2026.9.3 or later.
+- Database schema v14 (unchanged from 1.5.x).
+- No breaking changes to entity IDs or option keys.
+
+### Install / Update
+
+Via HACS: update to `1.6.0-rc1` (pre-release channel).
+Manual: copy `custom_components/daikin_cycle_ml/` into `/config/custom_components/`, restart HA.
+
+---
+
 ## [1.5.3] - 2026-10-03
 
 Version alignment release. v1.5.1 and v1.5.2 were tagged with code
@@ -1175,3 +1339,7 @@ Versioning: https://semver.org/spec/v2.0.0.html
 ## Batch 11b-1-fix2 - 2026-09-25
 
 - db.py: maintenance deletes features before cycles (FK-safe)
+
+[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...HEAD
+[1.6.0-rc1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0-rc1
+[1.5.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.2...v1.5.3

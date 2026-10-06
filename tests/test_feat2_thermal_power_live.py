@@ -76,7 +76,7 @@ def test_value_fn_via_simple_namespace() -> None:
         ATTR_LEAVING_WATER_AFTER_BUH: 35.0,
         ATTR_INLET_WATER_R4T: 30.0,
         ATTR_INV_FREQUENCY_RPS: 20.0,
-    })
+    }, power_w=500.0, cop=4.0)
     coord = SimpleNamespace(
         _read_power_w=lambda: 500.0,
         _read_cop=lambda: 4.0,
@@ -91,7 +91,7 @@ def test_attrs_fn_via_simple_namespace_forward_compat() -> None:
         ATTR_INLET_WATER_R4T: 30.0,
         ATTR_INV_FREQUENCY_RPS: 20.0,
         ATTR_FLOW_SENSOR: 12.0,
-    })
+    }, power_w=500.0, cop=4.0)
     coord = SimpleNamespace(
         _read_power_w=lambda: 500.0,
         _read_cop=lambda: 4.0,

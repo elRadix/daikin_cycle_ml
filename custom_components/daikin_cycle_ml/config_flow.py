@@ -29,6 +29,7 @@ else:
         )
 
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 
 from .const import (
@@ -76,7 +77,10 @@ from .const import (
     NAME,
     REQUIRED_ATTRIBUTES,
     SOURCE_SENSOR_ENTITY,
+    DEFAULT_SEASON_START_MONTH,
+    MODEL_BASISPROFIEL,
 )
+from .engine.model_profiles import expected_attributes
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -248,15 +252,17 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         cmap = self._data.get("custom_attribute_map") or {}
         state = self.hass.states.get(source_id) if source_id else None
+        model = self._data.get("model") or MODEL_BASISPROFIEL
+        expected = expected_attributes(model)
 
         present: list[str] = []
         missing: list[str] = []
         if state is None:
-            missing = list(CORE_ATTRIBUTES)
+            missing = list(expected)
         else:
             attrs = state.attributes
             normalized = {cmap.get(k, k): v for k, v in attrs.items()}
-            for key in CORE_ATTRIBUTES:
+            for key in expected:
                 if normalized.get(key) is None:
                     missing.append(key)
                 else:
@@ -267,7 +273,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema({}, extra=vol.ALLOW_EXTRA),
             description_placeholders={
                 "present": str(len(present)),
-                "total": str(len(CORE_ATTRIBUTES)),
+                "total": str(len(expected)),
                 "missing_list": (
                     "\n".join(f"\u2022 {m}" for m in missing)
                     if missing else "none"
@@ -534,17 +540,23 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             menu_options=[
                 "device",
                 "pendulum",
-                "quality",
+                "quality_ml",
                 "notifications",
-                "ml",
-                "maintenance",
+                "advanced",
                 "test_notification",
                 "test_all_notifications",
             ],
         )
 
     def _save(self, user_input: dict[str, Any]) -> ConfigFlowResult:
-        merged = {**dict(self.config_entry.options or {}), **user_input}
+        # Flatten section() input one level: {section: {k: v}} -> {k: v}
+        flat: dict[str, Any] = {}
+        for k, v in user_input.items():
+            if isinstance(v, dict):
+                flat.update(v)
+            else:
+                flat[k] = v
+        merged = {**dict(self.config_entry.options or {}), **flat}
         return self.async_create_entry(data=merged)
 
     async def async_step_device(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -553,42 +565,48 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         c: dict[str, Any] = dict(self.config_entry.options or {})
         d: dict[str, Any] = dict(self.config_entry.data or {})
         schema = vol.Schema({
-            vol.Required(
-                "compressor_rps_threshold",
-                default=c.get("compressor_rps_threshold",
-                    DEFAULT_COMPRESSOR_RPS_THRESHOLD),
-            ): _num(0, 100, 1, "rps"),
-            vol.Optional(
-                "power_sensor_entity",
-                description={"suggested_value": c.get("power_sensor_entity")},
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
-            ),
-            vol.Required(
-                "fallback_power_threshold_w",
-                default=c.get("fallback_power_threshold_w",
-                    DEFAULT_FALLBACK_POWER_THRESHOLD_W),
-            ): _num(0, 10000, 10, "W"),
-            vol.Optional(
-                "indoor_temp_sensor",
-                description={"suggested_value": c.get("indoor_temp_sensor")},
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
-            ),
-            vol.Optional(
-                "cop_sensor_entity",
-                description={"suggested_value": c.get("cop_sensor_entity")},
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
-            ),
-            vol.Required(
-                "comfort_min_c",
-                default=c.get("comfort_min_c", DEFAULT_COMFORT_MIN_C),
-            ): _num(15.0, 22.0, 0.5, "°C"),
-            vol.Required(
-                "comfort_max_c",
-                default=c.get("comfort_max_c", DEFAULT_COMFORT_MAX_C),
-            ): _num(22.0, 28.0, 0.5, "°C"),
+            vol.Required("sensors"): section(vol.Schema({
+                vol.Optional(
+                    "power_sensor_entity",
+                    description={"suggested_value": c.get("power_sensor_entity")},
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(
+                    "cop_sensor_entity",
+                    description={"suggested_value": c.get("cop_sensor_entity")},
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+                vol.Optional(
+                    "indoor_temp_sensor",
+                    description={"suggested_value": c.get("indoor_temp_sensor")},
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(domain="sensor")
+                ),
+            })),
+            vol.Required("detection"): section(vol.Schema({
+                vol.Required(
+                    "compressor_rps_threshold",
+                    default=c.get("compressor_rps_threshold",
+                        DEFAULT_COMPRESSOR_RPS_THRESHOLD),
+                ): _num(0, 100, 1, "rps"),
+                vol.Required(
+                    "fallback_power_threshold_w",
+                    default=c.get("fallback_power_threshold_w",
+                        DEFAULT_FALLBACK_POWER_THRESHOLD_W),
+                ): _num(0, 10000, 10, "W"),
+            })),
+            vol.Required("comfort"): section(vol.Schema({
+                vol.Required(
+                    "comfort_min_c",
+                    default=c.get("comfort_min_c", DEFAULT_COMFORT_MIN_C),
+                ): _num(15.0, 22.0, 0.5, "°C"),
+                vol.Required(
+                    "comfort_max_c",
+                    default=c.get("comfort_max_c", DEFAULT_COMFORT_MAX_C),
+                ): _num(22.0, 28.0, 0.5, "°C"),
+            })),
         })
         return self.async_show_form(
             step_id="device",
@@ -604,58 +622,87 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             return self._save(user_input)
         c: dict[str, Any] = dict(self.config_entry.options or {})
         schema = vol.Schema({
-            vol.Required("short_run_threshold_min",
-                default=c.get("short_run_threshold_min", DEFAULT_SHORT_RUN_MIN)
-            ): _num(1, 240, 1, "min"),
-            vol.Required("short_off_threshold_min",
-                default=c.get("short_off_threshold_min", DEFAULT_SHORT_OFF_MIN)
-            ): _num(1, 120, 1, "min"),
-            vol.Required("pendulum_cycles_per_hour",
-                default=c.get("pendulum_cycles_per_hour", DEFAULT_PENDULUM_CPH)
-            ): _num(1, 100, 1),
-            vol.Required("pendulum_cycles_per_day",
-                default=c.get("pendulum_cycles_per_day", DEFAULT_PENDULUM_CPD)
-            ): _num(1, 200, 1),
-            vol.Required("dhw_pendulum_cycles_per_hour",
-                default=c.get("dhw_pendulum_cycles_per_hour",
-                    DEFAULT_DHW_PENDULUM_CPH),
-            ): _num(1, 20, 1, "cyc/h"),
-            vol.Required("setpoint_oscillation_threshold",
-                default=c.get("setpoint_oscillation_threshold",
-                    DEFAULT_SETPOINT_OSC_THRESHOLD),
-            ): _num(1, 100, 1, "changes"),
-            vol.Required("setpoint_osc_window_min",
-                default=c.get("setpoint_osc_window_min",
-                    DEFAULT_SETPOINT_OSC_WINDOW_MIN),
-            ): _num(5, 180, 1, "min"),
-            vol.Required("setpoint_osc_min_delta",
-                default=c.get("setpoint_osc_min_delta",
-                    DEFAULT_SETPOINT_OSC_MIN_DELTA),
-            ): _num(0.1, 2.0, 0.1, "\u00b0C"),
+            vol.Required("run_off"): section(vol.Schema({
+                vol.Required("short_run_threshold_min",
+                    default=c.get("short_run_threshold_min", DEFAULT_SHORT_RUN_MIN)
+                ): _num(1, 240, 1, "min"),
+                vol.Required("short_off_threshold_min",
+                    default=c.get("short_off_threshold_min", DEFAULT_SHORT_OFF_MIN)
+                ): _num(1, 120, 1, "min"),
+            })),
+            vol.Required("pendulum"): section(vol.Schema({
+                vol.Required("pendulum_cycles_per_hour",
+                    default=c.get("pendulum_cycles_per_hour", DEFAULT_PENDULUM_CPH)
+                ): _num(1, 100, 1),
+                vol.Required("pendulum_cycles_per_day",
+                    default=c.get("pendulum_cycles_per_day", DEFAULT_PENDULUM_CPD)
+                ): _num(1, 200, 1),
+                vol.Required("dhw_pendulum_cycles_per_hour",
+                    default=c.get("dhw_pendulum_cycles_per_hour",
+                        DEFAULT_DHW_PENDULUM_CPH),
+                ): _num(1, 20, 1, "cyc/h"),
+            })),
+            vol.Required("setpoint"): section(vol.Schema({
+                vol.Required("setpoint_oscillation_threshold",
+                    default=c.get("setpoint_oscillation_threshold",
+                        DEFAULT_SETPOINT_OSC_THRESHOLD),
+                ): _num(1, 100, 1, "changes"),
+                vol.Required("setpoint_osc_window_min",
+                    default=c.get("setpoint_osc_window_min",
+                        DEFAULT_SETPOINT_OSC_WINDOW_MIN),
+                ): _num(5, 180, 1, "min"),
+                vol.Required("setpoint_osc_min_delta",
+                    default=c.get("setpoint_osc_min_delta",
+                        DEFAULT_SETPOINT_OSC_MIN_DELTA),
+                ): _num(0.1, 2.0, 0.1, "°C"),
+            })),
         })
         return self.async_show_form(step_id="pendulum", data_schema=schema)
 
-    async def async_step_quality(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_quality_ml(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self._save(user_input)
         c: dict[str, Any] = dict(self.config_entry.options or {})
         schema = vol.Schema({
-            vol.Required("good_run_threshold_min",
-                default=c.get("good_run_threshold_min", DEFAULT_GOOD_RUN_MIN)
-            ): _num(1, 240, 1, "min"),
-            vol.Required("good_dt_threshold_k",
-                default=c.get("good_dt_threshold_k", DEFAULT_GOOD_DT_K)
-            ): _num(0.0, 20.0, 0.5, "K"),
-            vol.Required("good_off_threshold_min",
-                default=c.get("good_off_threshold_min", DEFAULT_GOOD_OFF_MIN)
-            ): _num(1, 240, 1, "min"),
-            vol.Required("target_cycles_per_day",
-                default=c.get("target_cycles_per_day", DEFAULT_TARGET_CYCLES_PER_DAY)
-            ): _num(1, 100, 1),
+            vol.Required("quality"): section(vol.Schema({
+                vol.Required("good_run_threshold_min",
+                    default=c.get("good_run_threshold_min", DEFAULT_GOOD_RUN_MIN)
+                ): _num(1, 240, 1, "min"),
+                vol.Required("good_dt_threshold_k",
+                    default=c.get("good_dt_threshold_k", DEFAULT_GOOD_DT_K)
+                ): _num(0.0, 20.0, 0.5, "K"),
+                vol.Required("good_off_threshold_min",
+                    default=c.get("good_off_threshold_min", DEFAULT_GOOD_OFF_MIN)
+                ): _num(1, 240, 1, "min"),
+                vol.Required("target_cycles_per_day",
+                    default=c.get("target_cycles_per_day", DEFAULT_TARGET_CYCLES_PER_DAY)
+                ): _num(1, 100, 1),
+            })),
+            vol.Required("adaptive"): section(vol.Schema({
+                vol.Required("adaptive_thresholds_enabled",
+                    default=c.get("adaptive_thresholds_enabled",
+                        DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED),
+                ): bool,
+                vol.Required("adaptive_min_samples",
+                    default=c.get("adaptive_min_samples", DEFAULT_ADAPTIVE_MIN_SAMPLES)
+                ): _num(5, 500, 1),
+            })),
         })
-        return self.async_show_form(step_id="quality", data_schema=schema)
+        return self.async_show_form(step_id="quality_ml", data_schema=schema)
 
     async def async_step_notifications(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Notifications submenu."""
+        return self.async_show_menu(
+            step_id="notifications",
+            menu_options=[
+                "notifications_delivery",
+                "notifications_quiet_hours",
+                "notifications_content",
+                "notifications_test_menu",
+            ],
+        )
+
+    async def async_step_notifications_delivery(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             if "notify_service" in user_input:
                 user_input["notify_service"] = _flatten_notify_choice(
@@ -680,6 +727,14 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             vol.Required("action_advice_enabled",
                 default=c.get("action_advice_enabled", DEFAULT_ACTION_ADVICE_ENABLED)
             ): bool,
+        })
+        return self.async_show_form(step_id="notifications_delivery", data_schema=schema)
+
+    async def async_step_notifications_quiet_hours(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        if user_input is not None:
+            return self._save(user_input)
+        c: dict[str, Any] = dict(self.config_entry.options or {})
+        schema = vol.Schema({
             vol.Required("quiet_hours_enabled",
                 default=c.get("quiet_hours_enabled", DEFAULT_QUIET_HOURS_ENABLED)
             ): bool,
@@ -699,6 +754,14 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 default=c.get("status_update_interval_hours",
                     DEFAULT_STATUS_UPDATE_INTERVAL_HOURS),
             ): _num(1, 168, 1, "h"),
+        })
+        return self.async_show_form(step_id="notifications_quiet_hours", data_schema=schema)
+
+    async def async_step_notifications_content(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        if user_input is not None:
+            return self._save(user_input)
+        c: dict[str, Any] = dict(self.config_entry.options or {})
+        schema = vol.Schema({
             vol.Required("notification_language",
                 default=c.get("notification_language", DEFAULT_NOTIFICATION_LANGUAGE)
             ): _build_language_selector(),
@@ -718,7 +781,14 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 default=c.get("alert_group_cop_stooklijn", True)
             ): bool,
         })
-        return self.async_show_form(step_id="notifications", data_schema=schema)
+        return self.async_show_form(step_id="notifications_content", data_schema=schema)
+
+    async def async_step_notifications_test_menu(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Submenu for test notifications."""
+        return self.async_show_menu(
+            step_id="notifications_test_menu",
+            menu_options=["test_notification", "test_all_notifications"],
+        )
 
     def _get_coordinator_handle(self) -> Any:
         """Resolve coordinator across runtime_data and hass.data patterns."""
@@ -847,38 +917,35 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         )
 
 
-    async def async_step_ml(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-
+    async def async_step_advanced(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self._save(user_input)
         c: dict[str, Any] = dict(self.config_entry.options or {})
         schema = vol.Schema({
-            vol.Required("adaptive_thresholds_enabled",
-                default=c.get("adaptive_thresholds_enabled",
-                    DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED),
-            ): bool,
-            vol.Required("adaptive_min_samples",
-                default=c.get("adaptive_min_samples", DEFAULT_ADAPTIVE_MIN_SAMPLES)
-            ): _num(5, 500, 1),
+            vol.Required("retention"): section(vol.Schema({
+                vol.Required("retention_enabled",
+                    default=c.get("retention_enabled", DEFAULT_RETENTION_ENABLED)
+                ): bool,
+                vol.Required("cycle_retention_days",
+                    default=c.get("cycle_retention_days", DEFAULT_CYCLE_RETENTION_DAYS)
+                ): _num(1, 3650, 1, "d"),
+                vol.Required("alert_retention_days",
+                    default=c.get("alert_retention_days", DEFAULT_ALERT_RETENTION_DAYS)
+                ): _num(1, 365, 1, "d"),
+                vol.Required("vacuum_enabled",
+                    default=c.get("vacuum_enabled", DEFAULT_VACUUM_ENABLED)
+                ): bool,
+            })),
+            vol.Required("season"): section(vol.Schema({
+                vol.Required("season_start_month",
+                    default=c.get("season_start_month", DEFAULT_SEASON_START_MONTH)
+                ): vol.All(
+                    vol.Coerce(int),
+                    vol.In({1: "January", 2: "February", 3: "March",
+                            4: "April", 5: "May", 6: "June",
+                            7: "July", 8: "August", 9: "September",
+                            10: "October", 11: "November", 12: "December"}),
+                ),
+            })),
         })
-        return self.async_show_form(step_id="ml", data_schema=schema)
-
-    async def async_step_maintenance(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        if user_input is not None:
-            return self._save(user_input)
-        c: dict[str, Any] = dict(self.config_entry.options or {})
-        schema = vol.Schema({
-            vol.Required("retention_enabled",
-                default=c.get("retention_enabled", DEFAULT_RETENTION_ENABLED)
-            ): bool,
-            vol.Required("cycle_retention_days",
-                default=c.get("cycle_retention_days", DEFAULT_CYCLE_RETENTION_DAYS)
-            ): _num(1, 3650, 1, "d"),
-            vol.Required("alert_retention_days",
-                default=c.get("alert_retention_days", DEFAULT_ALERT_RETENTION_DAYS)
-            ): _num(1, 365, 1, "d"),
-            vol.Required("vacuum_enabled",
-                default=c.get("vacuum_enabled", DEFAULT_VACUUM_ENABLED)
-            ): bool,
-        })
-        return self.async_show_form(step_id="maintenance", data_schema=schema)
+        return self.async_show_form(step_id="advanced", data_schema=schema)

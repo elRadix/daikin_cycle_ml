@@ -17,31 +17,68 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+# v1.4.1 BUG-2 / BUG-3: score wiring + threshold.
 from .const import (
+    COP_CURVE_RECENT_HOURS,
+    COP_CURVE_RECENT_MAX_POINTS,
+    COP_ROLLUP_WINDOW_HOURS,
     COP_SENSOR_ENTITY,
+    ATTR_BUH_STEP1,
+    ATTR_BUH_STEP2,
+    ATTR_DEFROST_OPERATION,
+    buh_step_kw_for_model as _buh_step_kw_for_model,
     DEFAULT_COMFORT_MIN_C,
     DOMAIN,
+    GOOD_CYCLE_MIN_SCORE,
     MODEL_BASISPROFIEL,
     SOURCE_SENSOR_ENTITY,
     UPDATE_INTERVAL_SECONDS,
+
+    DEGRADATION_BASELINE_DAYS,
+    DEGRADATION_REFRESH_THROTTLE_S,
+    DEGRADATION_WINDOW_DAYS,
 )
-# v1.4.1 BUG-2 / BUG-3: score wiring + threshold.
-from .const import GOOD_CYCLE_MIN_SCORE
-from .const import COP_ROLLUP_WINDOW_HOURS
-from .engine.quality_scorer import score_cycle
+from .engine.cop_degradation import (
+    analyze_degradation,
+    analyze_trend,
+    build_dirty_hours,
+)
 from .engine.action_engine import generate_advice
 from .engine.anomaly_engine import evaluate as evaluate_anomaly
 from .engine.attribute_reader import missing_required, read
+from .engine.thermal import compute_thermal_power_live as _compute_thermal_power_live
+from .engine.thermal import dt_from_attrs as _dt_from_attrs
+from .engine.thermal import flow_from_attrs as _flow_from_attrs
+from .engine.thermal import rps_from_attrs as _rps_from_attrs
 from .engine.cycle_detector import CycleDetector
+from .engine.model_datasheets import (
+    get_datasheet as _get_datasheet,
+)
+from .engine.model_datasheets import (
+    load_bundled as _load_bundled_datasheets,
+)
+from .engine.model_datasheets import (
+    UserDatasheetError,
+)
+from .engine.model_datasheets import (
+    load_defaults as _load_datasheet_defaults,
+)
+from .engine.model_datasheets import (
+    load_user as _load_user_datasheets,
+)
+from .engine.model_datasheets import (
+    merge as _merge_datasheets,
+)
 from .engine.model_profiles import defaults_for
 from .engine.notification_engine import build_status_message, evaluate_alerts
+from .engine.quality_scorer import score_cycle
 from .ml.adaptive_thresholds import AdaptiveThresholds
 from .ml.clustering import classify_clusters, nearest_centroid
 from .ml.features import VECTOR_LEN, extract_feature_vector
 from .ml.multi_baseline import MultiBaseline
+from .engine.timer_health import clamp_cycle_duration as _clamp_duration
 from .repairs import async_check_repairs
 from .storage.store import CycleStore
-from .const import COP_CURVE_RECENT_HOURS, COP_CURVE_RECENT_MAX_POINTS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,13 +102,37 @@ class DataSnapshot:
     cluster_id: int | None = None
     stooklijn_advies: dict[str, Any] = field(default_factory=dict)
     cop_today: dict[str, Any] = field(default_factory=dict)
+    cop_combined_today: dict[str, Any] = field(default_factory=dict)
     cop_hourly_day: dict[str, Any] = field(default_factory=dict)
     cop_hourly_week: dict[str, Any] = field(default_factory=dict)
     cop_hourly_month: dict[str, Any] = field(default_factory=dict)
     cop_curve_recent: dict[str, Any] = field(default_factory=dict)
+    spf_state: dict[str, Any] = field(default_factory=dict)
+    power_w: float | None = None
+    cop: float | None = None
+    setpoint_oscillating: bool = False
+    datasheet: dict[str, Any] | None = None
+    datasheet_model: str | None = None
+    cop_normalized_a7w35: float | None = None
+    cop_vs_datasheet_pct: float | None = None
+    cop_degradation_status: str = "none"
+    cop_degradation_week_pct: float | None = None
+    cop_trend_30d: float | None = None
+    cop_degradation_detail: dict[str, Any] = field(default_factory=dict)
+    cop_trend_detail: dict[str, Any] = field(default_factory=dict)
 
 
 # --- FEAT-2: live thermal power helpers ---
+
+def _safe_float_opt(value: Any) -> float | None:
+    """Parse any value to float, or None on failure."""
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
 
 def _normalize_power_w(value: float | None, unit: str | None) -> float | None:
     """Normalize power reading to Watt (kW -> W, W/unknown stays W)."""
@@ -159,8 +220,26 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _cycle_cop_weight_sum: float = 0.0
     _cycle_cop_sq_w_sum: float = 0.0
     _cycle_cop_count: int = 0
+
+    # ---------- v1.6.0-C5/C6: class-level defaults for __new__ tests ----------
+    _runtime_day_key: str = ""
+    _buh_step1_s: float = 0.0
+    _buh_step2_s: float = 0.0
+    _prev_defrost: bool = False
+    _defrost_start_ts: float | None = None
+    _defrost_count_today: int = 0
+    _defrost_duration_s: float = 0.0
+    _last_defrost_ts: float = 0.0
+    _last_runtime_tick_ts: float = 0.0
+    _energy_day_key: str = ""
+    _last_energy_tick_ts: float = 0.0
     _cop_hourly_cache: dict[str, dict[str, Any]] = {}
     _cop_hourly_cache_ts: float = 0.0
+    _cop_degradation_cache: dict[str, Any] = {}
+    _cop_degradation_cache_ts: float = 0.0
+    # v1.6.0-C6a: persist-throttle timestamps (R52 class defaults)
+    _last_runtime_persist_ts: float = 0.0
+    _last_energy_persist_ts: float = 0.0
 
     # R52: class-level defaults so __new__-style tests find these attrs
     _kmeans_centroids: list[Any] = []
@@ -225,8 +304,42 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._stooklijn_cache: dict[str, Any] = {}
         self._stooklijn_cache_ts: float = 0.0
         self._cop_today_cache: dict[str, Any] = {}
+        self._cop_today_heating_cache: dict[str, Any] = {}
         self._cop_hourly_cache: dict[str, dict[str, Any]] = {}
+        self._spf_state_cache: dict[str, Any] = {}
+        self._datasheet_cache: dict[str, Any] = {}
+        self._datasheet_merged: dict[str, Any] = {}
+        self._datasheet_defaults: dict[str, Any] = {}
+        self._datasheet_user: dict[str, Any] = {}
+        self._datasheet_user_loaded: bool = False
         self._cop_hourly_cache_ts: float = 0.0
+        self._cop_degradation_cache: dict[str, Any] = {}
+        self._cop_degradation_cache_ts: float = 0.0
+        # v1.6.0-C6a: persist-throttle
+        self._last_runtime_persist_ts: float = 0.0
+        self._last_energy_persist_ts: float = 0.0
+        # ---------- v1.6.0-C5: runtime/BUH/defrost accumulators ----------
+        self._runtime_day_key: str = ""
+        self._buh_step1_s: float = 0.0
+        self._buh_step2_s: float = 0.0
+        self._prev_defrost: bool = False
+        self._defrost_start_ts: float | None = None
+        self._defrost_count_today: int = 0
+        self._defrost_duration_s: float = 0.0
+        self._last_defrost_ts: float = 0.0
+        self._last_runtime_tick_ts: float = 0.0
+        # ---------- v1.6.0-C6a: energy accumulators ----------
+        self._energy_day_key: str = ""
+        self._energy_acc: dict[str, dict[str, float]] = {
+            "heating": {"th": 0.0, "el": 0.0},
+            "dhw":     {"th": 0.0, "el": 0.0},
+            "cooling": {"th": 0.0, "el": 0.0},
+        }
+        self._last_energy_tick_ts: float = 0.0
+        # ---------- v1.6.0-C6b: cost caches ----------
+        self._cost_month_cache: dict[str, Any] = {}
+        self._cost_month_cache_ts: float = 0.0
+
         self.db: Any = None
         super().__init__(
             hass,
@@ -369,6 +482,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("Scheduled baseline save failed")
         try:
+            await self.async_save_adaptive_state()
+        except Exception:
+            _LOGGER.exception("Scheduled adaptive save failed")
+        try:
             await self._maybe_rollup_cop_hourly()
         except Exception:
             _LOGGER.exception("Scheduled cop_hourly rollup failed")
@@ -413,6 +530,63 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._refresh_cop_curve_recent(now)
         except Exception:
             _LOGGER.exception("cop curve_recent refresh failed")
+
+    async def _maybe_refresh_cop_degradation(self, now: float) -> None:
+        """Refresh weather-normalized degradation + 30d trend (C4).
+
+        Throttled to DEGRADATION_REFRESH_THROTTLE_S. Uses heating-only
+        hourly rows and cycles-filtered dirty hours. On any failure
+        leaves the previous cache intact.
+        """
+        if self.db is None:
+            return
+        if (now - self._cop_degradation_cache_ts) < DEGRADATION_REFRESH_THROTTLE_S:
+            return
+        win_s = float(DEGRADATION_WINDOW_DAYS) * 86400.0
+        base_s = float(DEGRADATION_BASELINE_DAYS) * 86400.0
+        recent_since = now - win_s
+        prev_since = now - 2.0 * win_s
+        baseline_since = now - (base_s + win_s)
+        try:
+            recent_rows = await self.db.async_query_cop_hourly(
+                since_ts=recent_since, until_ts=now, mode="heating"
+            )
+            prev_rows = await self.db.async_query_cop_hourly(
+                since_ts=prev_since, until_ts=recent_since,
+                mode="heating",
+            )
+            baseline_rows = await self.db.async_query_cop_hourly(
+                since_ts=baseline_since, until_ts=recent_since,
+                mode="heating",
+            )
+            cycles_all = await self.db.async_fetch_cycles(
+                days=DEGRADATION_BASELINE_DAYS + DEGRADATION_WINDOW_DAYS
+            )
+            cycles_win = [
+                c for c in cycles_all
+                if c.get("start_ts") is not None
+                and float(c["start_ts"]) >= baseline_since
+            ]
+            dirty = build_dirty_hours(cycles_win)
+            deg = analyze_degradation(
+                recent_rows, prev_rows, dirty,
+                window_days=DEGRADATION_WINDOW_DAYS, now=now,
+            )
+            trend = analyze_trend(
+                baseline_rows, recent_rows, dirty,
+                window_days=DEGRADATION_BASELINE_DAYS,
+                baseline_days=DEGRADATION_BASELINE_DAYS,
+                recent_days=DEGRADATION_WINDOW_DAYS,
+                now=now,
+            )
+            self._cop_degradation_cache = {
+                "degradation": deg, "trend": trend,
+            }
+            self._cop_degradation_cache_ts = now
+        except Exception:
+            _LOGGER.exception(
+                "cop_degradation cache refresh failed"
+            )
 
     async def _refresh_cop_curve_recent(self, now: float) -> None:
         """Populate _cop_hourly_cache["curve_recent"] with 48h points."""
@@ -546,6 +720,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         now = time.time()
         snap = DataSnapshot(last_sample_ts=now)
         self.store.daily_reset_if_needed(now)
+        # v1.6.0-C6a: persist OLD-day accumulators BEFORE reset
+        _day_now = time.strftime("%Y-%m-%d", time.localtime(float(now)))
+        if self._runtime_day_key and self._runtime_day_key != _day_now:
+            await self._persist_runtime_acc()
+            await self._persist_energy_acc()
+        self._maybe_reset_daily_accumulators(now)
         try:
             state = self.hass.states.get(self.source_entity)
             if state is None:
@@ -556,6 +736,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.attrs = attrs
             snap.missing_attrs = missing_required(attrs)
             snap.last_success_ts = now
+            self._track_setpoint(attrs)
+            snap.power_w = self._read_power_w()
+            snap.cop = self._read_cop()
+            snap.setpoint_oscillating = self._compute_setpoint_oscillating()
             record = self.detector.update(
                 attrs, now=now, power_w=self._read_power()
             )
@@ -570,19 +754,52 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.cycle_start_ts = float(
                 self.detector.snapshot().get("start_ts") or 0.0
             )
+            self._tick_buh_and_defrost(attrs, now)
+            self._tick_energy(
+                attrs, now,
+                mode=snap.mode,
+                power_w=snap.power_w,
+                cop=snap.cop,
+            )
+            await self._maybe_persist_accumulators(now)
             await self._maybe_collect_cop_sample(now)
             await self._refresh_cop_today(now)
             await self._maybe_refresh_stooklijn(now)
             await self._maybe_refresh_cop_hourly(now)
-            snap.cop_today = self._cop_today_cache
+            await self._maybe_refresh_cop_degradation(now)
+            await self._maybe_refresh_spf(now)
+            snap.cop_today = self._cop_today_heating_cache
+            snap.cop_combined_today = self._cop_today_cache
+            snap.spf_state = self._spf_state_cache
             snap.cop_hourly_day = self._cop_hourly_cache.get("day", {})
             snap.cop_hourly_week = self._cop_hourly_cache.get("week", {})
             snap.cop_hourly_month = self._cop_hourly_cache.get("month", {})
             snap.cop_curve_recent = self._cop_hourly_cache.get(
                 "curve_recent", {}
             )
+            _deg = self._cop_degradation_cache.get("degradation", {})
+            _tr = self._cop_degradation_cache.get("trend", {})
+            snap.cop_degradation_status = _deg.get("severity", "none")
+            snap.cop_degradation_week_pct = _deg.get("week_pct")
+            snap.cop_trend_30d = _tr.get("trend_30d")
+            snap.cop_degradation_detail = _deg
+            snap.cop_trend_detail = _tr
             snap.stooklijn_advies = self._stooklijn_cache
             snap.errors_total = self._errors_total
+            await self._refresh_datasheet_state(
+                now,
+                _safe_float_opt(self._stooklijn_cache.get("huidige_lwt")),
+                _safe_float_opt((snap.last_record or {}).get("outdoor_temp")),
+                snap.cop,
+            )
+            snap.datasheet = self._datasheet_cache.get("datasheet")
+            snap.datasheet_model = self._datasheet_cache.get("model")
+            snap.cop_normalized_a7w35 = self._datasheet_cache.get(
+                "cop_normalized_a7w35"
+            )
+            snap.cop_vs_datasheet_pct = self._datasheet_cache.get(
+                "cop_vs_datasheet_pct"
+            )
             await self._async_dispatch_alerts(snap)
             await async_check_repairs(
                 self.hass, self.entry.entry_id, snap, self
@@ -593,6 +810,182 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.errors_total = self._errors_total
             _LOGGER.exception("Coordinator update failed: %s", err)
         return snap
+
+    @property
+    def runtime_snapshot(self) -> dict[str, float]:
+        """Read-only snapshot of runtime/BUH/defrost accumulators (R216)."""
+        return {
+            "buh_step1_s": self._buh_step1_s,
+            "buh_step2_s": self._buh_step2_s,
+            "defrost_count": float(self._defrost_count_today),
+            "defrost_duration_s": self._defrost_duration_s,
+            "last_defrost_ts": self._last_defrost_ts,
+        }
+
+    @property
+    def energy_snapshot(self) -> dict[str, dict[str, float]]:
+        """Read-only snapshot of energy accumulators (R216)."""
+        acc = self._ensure_energy_acc()
+        return {mode: dict(vals) for mode, vals in acc.items()}
+
+    def _ensure_energy_acc(self) -> dict[str, dict[str, float]]:
+        """Return the instance-owned energy accumulator dict.
+
+        Lazy-init: needed because __new__-based tests skip __init__.
+        Without this, _tick_energy would mutate a class-shared dict.
+        """
+        acc = self.__dict__.get("_energy_acc")
+        if acc is None:
+            acc = {
+                "heating": {"th": 0.0, "el": 0.0},
+                "dhw":     {"th": 0.0, "el": 0.0},
+                "cooling": {"th": 0.0, "el": 0.0},
+            }
+            self._energy_acc = acc
+        return acc
+
+    def _maybe_reset_daily_accumulators(self, now: float) -> None:
+        """Reset runtime + energy accumulators on local-day boundary.
+
+        Persist-before-reset is done by _async_update_data.
+        Throttled persist after each tick via _maybe_persist_accumulators.
+        """
+        day = time.strftime("%Y-%m-%d", time.localtime(float(now)))
+        if self._runtime_day_key == day:
+            return
+        self._runtime_day_key = day
+        self._buh_step1_s = 0.0
+        self._buh_step2_s = 0.0
+        self._prev_defrost = False
+        self._defrost_start_ts = None
+        self._defrost_count_today = 0
+        self._defrost_duration_s = 0.0
+        self._energy_day_key = day
+        self._energy_acc = {
+            "heating": {"th": 0.0, "el": 0.0},
+            "dhw":     {"th": 0.0, "el": 0.0},
+            "cooling": {"th": 0.0, "el": 0.0},
+        }
+
+    async def _persist_runtime_acc(self) -> None:
+        """Persist runtime accumulators to model_state. Never raises."""
+        if self.db is None or not self._runtime_day_key:
+            return
+        try:
+            await self.db.async_set_model_state(
+                f"runtime_acc.{self._runtime_day_key}",
+                {
+                    "day": self._runtime_day_key,
+                    "buh_step1_s": self._buh_step1_s,
+                    "buh_step2_s": self._buh_step2_s,
+                    "defrost_count": self._defrost_count_today,
+                    "defrost_duration_s": self._defrost_duration_s,
+                    "last_defrost_ts": self._last_defrost_ts,
+                },
+            )
+        except Exception:
+            _LOGGER.exception("runtime_acc persist failed")
+
+    async def _persist_energy_acc(self) -> None:
+        """Persist energy accumulators to model_state. Never raises."""
+        if self.db is None or not self._energy_day_key:
+            return
+        try:
+            payload: dict[str, Any] = {"day": self._energy_day_key}
+            for mode in ("heating", "dhw", "cooling"):
+                payload[f"{mode}_th_kwh"] = self._energy_acc[mode]["th"]
+                payload[f"{mode}_el_kwh"] = self._energy_acc[mode]["el"]
+            await self.db.async_set_model_state(
+                f"energy_acc.{self._energy_day_key}", payload
+            )
+        except Exception:
+            _LOGGER.exception("energy_acc persist failed")
+
+    async def _maybe_persist_accumulators(self, now: float) -> None:
+        """Persist runtime + energy accumulators throttled at 300s.
+
+        Called from _async_update_data after each tick. Without this,
+        accumulators are lost on HA restart (C5a known gap).
+        """
+        interval = 300.0
+        if (now - self._last_runtime_persist_ts) >= interval:
+            await self._persist_runtime_acc()
+            self._last_runtime_persist_ts = now
+        if (now - self._last_energy_persist_ts) >= interval:
+            await self._persist_energy_acc()
+            self._last_energy_persist_ts = now
+
+    def _tick_buh_and_defrost(self, attrs: dict[str, Any], now: float) -> None:
+        """Accumulate BUH-runtime + defrost-events for one tick. Never raises."""
+        try:
+            last = self._last_runtime_tick_ts or now
+            dt_s = max(0.0, min(now - last, 120.0))
+            self._last_runtime_tick_ts = now
+            if dt_s <= 0.0:
+                return
+            s1 = attrs.get(ATTR_BUH_STEP1)
+            s2 = attrs.get(ATTR_BUH_STEP2)
+            if s1 is True:
+                self._buh_step1_s += dt_s
+            if s2 is True:
+                self._buh_step2_s += dt_s
+            defrost_on = attrs.get(ATTR_DEFROST_OPERATION) is True
+            if defrost_on and not self._prev_defrost:
+                self._defrost_count_today += 1
+                self._defrost_start_ts = now
+                self._last_defrost_ts = now
+            elif not defrost_on and self._prev_defrost:
+                if self._defrost_start_ts is not None:
+                    dur = max(0.0, now - self._defrost_start_ts)
+                    self._defrost_duration_s += dur
+                self._defrost_start_ts = None
+            elif defrost_on and self._defrost_start_ts is not None:
+                # Running tally while defrost continues (live view).
+                dur = max(0.0, now - self._defrost_start_ts)
+                # Not accumulated twice: value is recomputed not summed.
+                self._defrost_duration_s = max(
+                    self._defrost_duration_s, dur
+                )
+            self._prev_defrost = defrost_on
+        except Exception:
+            _LOGGER.exception("BUH/defrost tick failed")
+
+    def _tick_energy(
+        self,
+        attrs: dict[str, Any],
+        now: float,
+        mode: str,
+        power_w: float | None,
+        cop: float | None,
+    ) -> None:
+        """Accumulate thermal + electrical kWh for one tick. Never raises."""
+        try:
+            last = self._last_energy_tick_ts or now
+            dt_s = max(0.0, min(now - last, 120.0))
+            self._last_energy_tick_ts = now
+            if dt_s <= 0.0:
+                return
+            m = mode if mode in ("heating", "dhw", "cooling") else "heating"
+            kw_th, _src = _compute_thermal_power_live(
+                power_w=power_w,
+                cop=cop,
+                flow_lmin=_flow_from_attrs(attrs),
+                dt_k=_dt_from_attrs(attrs),
+                rps=_rps_from_attrs(attrs),
+            )
+            if kw_th is None:
+                return
+            kw_el: float | None = None
+            if power_w is not None and power_w > 0.0:
+                kw_el = power_w / 1000.0
+            elif cop is not None and cop > 0.0:
+                kw_el = kw_th / cop
+            acc = self._ensure_energy_acc()
+            acc[m]["th"] += kw_th * dt_s / 3600.0
+            if kw_el is not None:
+                acc[m]["el"] += kw_el * dt_s / 3600.0
+        except Exception:
+            _LOGGER.exception("energy tick failed")
 
     def _accumulate_cycle_samples(self, attrs: dict[str, Any]) -> None:
         """Add LWT + indoor temp to running sums while cycle is active."""
@@ -688,6 +1081,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self, record: dict[str, Any], snap: DataSnapshot
     ) -> None:
         """Update baseline, detect anomaly, generate advice, persist."""
+        # v1.6.0-C6a: clamp duration to guard ML/DB against clock jumps.
+        _raw_dur = record.get("duration_s")
+        if _raw_dur is not None:
+            _max_min = int(self.options.get("max_cycle_duration_min", 240))
+            record["duration_s"] = _clamp_duration(_raw_dur, _max_min)
         cop_avg, lwt_avg, indoor_avg = await self._collect_cycle_averages(record)
         try:
             vector = extract_feature_vector(record, cop_avg=cop_avg,
@@ -748,46 +1146,222 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return
         if not isinstance(rows, list) or not rows:
             self._cop_today_cache = {}
+            self._cop_today_heating_cache = {}
             return
         try:
             lt = time.localtime(now)
             today_start = time.mktime(
                 (lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1)
             )
-            todays = [
-                r for r in rows
-                if isinstance(r.get('ts'), (int, float))
-                and float(r['ts']) >= today_start
-                and isinstance(r.get('cop'), (int, float))
-                and float(r['cop']) > 0.0
-            ]
-            if not todays:
-                self._cop_today_cache = {}
-                return
-            cops = [float(r['cop']) for r in todays]
-            avg = sum(cops) / len(cops)
             try:
                 week = await self.db.async_fetch_cop_samples(days=7)
             except Exception:
                 week = rows
-            week_cops = [
-                float(r['cop']) for r in week
-                if isinstance(r.get('cop'), (int, float))
-                and float(r['cop']) > 0.0
-            ]
-            base = sum(week_cops) / len(week_cops) if week_cops else avg
-            loss = 0.0
-            if base > 0:  # pragma: no branch
-                loss = round(max(0.0, (base - avg) / base * 100.0), 1)
-            self._cop_today_cache = {
-                'cop': round(avg, 2),
-                'samples_today': len(cops),
-                'cop_min': round(min(cops), 2),
-                'cop_max': round(max(cops), 2),
-                'baseline_cop_verlies_pct': loss,
-            }
+
+            def _build(mode: str | None) -> dict[str, Any]:
+                todays = [
+                    r for r in rows
+                    if isinstance(r.get('ts'), (int, float))
+                    and float(r['ts']) >= today_start
+                    and isinstance(r.get('cop'), (int, float))
+                    and float(r['cop']) > 0.0
+                    and (mode is None or r.get('mode') == mode)
+                ]
+                if not todays:
+                    return {}
+                cops = [float(r['cop']) for r in todays]
+                avg = sum(cops) / len(cops)
+                week_cops = [
+                    float(r['cop']) for r in week
+                    if isinstance(r.get('cop'), (int, float))
+                    and float(r['cop']) > 0.0
+                    and (mode is None or r.get('mode') == mode)
+                ]
+                base = sum(week_cops) / len(week_cops) if week_cops else avg
+                loss = 0.0
+                if base > 0:  # pragma: no branch
+                    loss = round(max(0.0, (base - avg) / base * 100.0), 1)
+                return {
+                    'cop': round(avg, 2),
+                    'samples_today': len(cops),
+                    'cop_min': round(min(cops), 2),
+                    'cop_max': round(max(cops), 2),
+                    'baseline_cop_verlies_pct': loss,
+                }
+
+            self._cop_today_cache = _build(None)
+            self._cop_today_heating_cache = _build('heating')
         except Exception:
             self._cop_today_cache = {}
+            self._cop_today_heating_cache = {}
+
+    async def _maybe_refresh_spf(self, now: float) -> None:
+        """Refresh SPF state at most once per hour (or on cold start)."""
+        if self.db is None:
+            return
+        last = self._spf_state_cache.get("updated_ts", 0) if self._spf_state_cache else 0
+        if self._spf_state_cache and (now - float(last)) < 3600.0:
+            return
+        await self._refresh_spf_state(now)
+
+    async def _refresh_spf_state(self, now: float) -> None:
+        """Compute SPF / SCOP over season, YTD and rolling 365d windows.
+
+        NOTE: SPF is defined per EN14825 as heat output / electric input.
+        Without per-sample power data we approximate it by the arithmetic
+        mean of per-sample COP values (same approach as cop_today).
+        """
+        if self.db is None:
+            return
+        try:
+            opts = self.options or {}
+            start_month = int(opts.get("season_start_month", 10))
+            if not (1 <= start_month <= 12):
+                start_month = 10
+        except Exception:
+            start_month = 10
+
+        lt = time.localtime(now)
+        season_year = lt.tm_year if lt.tm_mon >= start_month else lt.tm_year - 1
+        season_start = time.mktime(
+            (season_year, start_month, 1, 0, 0, 0, 0, 0, -1)
+        )
+        ytd_start = time.mktime((lt.tm_year, 1, 1, 0, 0, 0, 0, 0, -1))
+        rolling_start = now - 365.0 * 86400.0
+
+        async def _mean_since(start_ts: float) -> tuple[float | None, int]:
+            try:
+                rows = await self.db.async_fetch_cop_samples_between(start_ts, now)
+            except Exception:
+                return (None, 0)
+            cops = [
+                float(r["cop"]) for r in rows
+                if isinstance(r.get("cop"), (int, float)) and float(r["cop"]) > 0.0
+            ]
+            if not cops:
+                return (None, 0)
+            return (round(sum(cops) / len(cops), 2), len(cops))
+
+        spf_s, n_s = await _mean_since(season_start)
+        spf_y, n_y = await _mean_since(ytd_start)
+        spf_r, n_r = await _mean_since(rolling_start)
+
+        self._spf_state_cache = {
+            "season_start_month": start_month,
+            "spf_season": spf_s, "spf_season_n": n_s,
+            "spf_ytd": spf_y, "spf_ytd_n": n_y,
+            "scop_365d": spf_r, "scop_365d_n": n_r,
+            "updated_ts": now,
+        }
+        try:
+            await self.db.async_set_model_state("spf_state", self._spf_state_cache)
+        except Exception:
+            _LOGGER.exception("spf_state write failed")
+
+    async def async_reload_user_datasheets(self) -> None:
+        """Reload user datasheet Store and rebuild merged view.
+
+        Raises UserDatasheetError if the Store is corrupt or has an
+        unsupported version. Caller (setup_entry or _refresh) decides
+        whether to surface a Repair or fall back to bundled-only.
+        """
+        self._datasheet_user = await _load_user_datasheets(
+            self.hass, self.entry.entry_id
+        )
+        self._datasheet_merged = _merge_datasheets(
+            _load_bundled_datasheets(), self._datasheet_user
+        )
+        self._datasheet_cache = {}
+        self._datasheet_user_loaded = True
+
+    @property
+    def datasheet_sources(self) -> dict[str, str]:
+        """Per-model origin: 'bundled' | 'user'. Public API (R216)."""
+        out: dict[str, str] = {}
+        for k, v in self._datasheet_merged.items():
+            if isinstance(v, dict):
+                out[k] = str(v.get("source", "bundled"))
+        return out
+
+    async def _refresh_datasheet_state(
+        self,
+        now: float,
+        lwt_now: float | None,
+        t_out: float | None,
+        cop_meas: float | None,
+    ) -> None:
+        """Compute datasheet-normalized COP (C3a) for the current tick."""
+        if not self._datasheet_user_loaded:
+            try:
+                await self.async_reload_user_datasheets()
+            except UserDatasheetError:
+                _LOGGER.warning(
+                    "user datasheet store unreadable; falling back to bundled"
+                )
+                self._datasheet_user = {}
+                self._datasheet_merged = _merge_datasheets(
+                    _load_bundled_datasheets(), {}
+                )
+                self._datasheet_user_loaded = True
+        if not self._datasheet_defaults:
+            self._datasheet_defaults = _load_datasheet_defaults()
+        try:
+            model = self.entry.data.get("model", MODEL_BASISPROFIEL)
+        except Exception:
+            model = MODEL_BASISPROFIEL
+        ds_raw = _get_datasheet(self._datasheet_merged, model)
+        ds: dict[str, Any] | None = None
+        if ds_raw is not None:
+            defaults = self._datasheet_defaults
+            lwt_max = ds_raw.get("lwt_max")
+            buh_offset = defaults.get("buh_above_offset_c", -5)
+            buh_above = (
+                lwt_max + buh_offset
+                if isinstance(lwt_max, (int, float))
+                else None
+            )
+            ds = {
+                **ds_raw,
+                "model": model,
+                "outdoor_min_c": defaults.get("outdoor_min_c"),
+                "outdoor_max_c": defaults.get("outdoor_max_c"),
+                "defrost_below_c": defaults.get("defrost_below_c"),
+                "off_above_c": defaults.get("off_above_c"),
+                "buh_above_c": buh_above,
+            }
+        out: dict[str, Any] = {
+            "datasheet": ds,
+            "cop_normalized_a7w35": None,
+            "cop_vs_datasheet_pct": None,
+            "model": model,
+            "updated_ts": now,
+        }
+        if ds is None or cop_meas is None or lwt_now is None or t_out is None:
+            self._datasheet_cache = out
+            return
+        ref = next(
+            (pt for pt in ds["points"] if pt.get("label") == "A7/W35"),
+            None,
+        )
+        if ref is None or float(ref.get("cop", 0)) <= 0:
+            self._datasheet_cache = out
+            return
+        t_cond_ref = 35.0 + 5.0 + 273.15
+        t_evap_ref = 7.0 - 8.0 + 273.15
+        dT_ref = t_cond_ref - t_evap_ref
+        t_cond_live = lwt_now + 5.0 + 273.15
+        t_evap_live = t_out - 8.0 + 273.15
+        dT_live = t_cond_live - t_evap_live
+        if dT_live <= 0:
+            self._datasheet_cache = out
+            return
+        cop_norm = cop_meas * (
+            (t_cond_ref / dT_ref) / (t_cond_live / dT_live)
+        )
+        pct = ((cop_norm - float(ref["cop"])) / float(ref["cop"])) * 100.0
+        out["cop_normalized_a7w35"] = round(cop_norm, 3)
+        out["cop_vs_datasheet_pct"] = round(pct, 2)
+        self._datasheet_cache = out
 
     async def _maybe_refresh_stooklijn(
         self, now: float, *, force: bool = False
@@ -907,6 +1481,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 'err_indoor': advies.err_indoor,
                 'urgency': advies.urgency,
                 'comfort_cap': advies.comfort_cap,
+                'offset_delta_c': advies.offset_delta_c,
+                'slope_delta': advies.slope_delta,
             }
             self._stooklijn_cache_ts = now
         except Exception:
@@ -1204,7 +1780,6 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
     def _alert_binary_states(self, snap: DataSnapshot) -> dict[str, bool]:
         """Snapshot the 4 alert-relevant binary states."""
-        self._track_setpoint(snap.attrs)
         now = time.time()
         short_run_th = self._effective_threshold(
             "short_run_threshold_min",

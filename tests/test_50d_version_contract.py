@@ -8,6 +8,9 @@ from pathlib import Path
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ROOT = _PROJECT_ROOT / "custom_components" / "daikin_cycle_ml"
 
+# SemVer: X.Y.Z with optional pre-release suffix (-rc1, -beta2, etc.)
+_SEMVER_RE = r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?"
+
 
 def _read(p: str) -> str:
     target = ROOT / p
@@ -20,12 +23,12 @@ def test_version_1_0_0_in_const():
     src = _read("const.py")
     m = re.search(r'VERSION\s*=\s*"([^"]+)"', src)
     assert m, "VERSION not found in const.py"
-    assert re.fullmatch(r"\d+\.\d+\.\d+", m.group(1)), m.group(1)
+    assert re.fullmatch(_SEMVER_RE, m.group(1)), m.group(1)
 
 
 def test_version_1_0_0_in_manifest():
     man = json.loads(_read("manifest.json"))
-    assert re.fullmatch(r"\d+\.\d+\.\d+", man["version"]), man["version"]
+    assert re.fullmatch(_SEMVER_RE, man["version"]), man["version"]
 
 
 def test_version_consistent_three_files():
@@ -33,7 +36,7 @@ def test_version_consistent_three_files():
     man_v = json.loads(_read("manifest.json"))["version"]
     proj_v = re.search(r'(?m)^version\s*=\s*"([^"]+)"', _read("pyproject.toml")).group(1)
     assert const_v == man_v == proj_v
-    assert re.fullmatch(r"\d+\.\d+\.\d+", const_v), const_v
+    assert re.fullmatch(_SEMVER_RE, const_v), const_v
 
 
 def test_codeowners_present():

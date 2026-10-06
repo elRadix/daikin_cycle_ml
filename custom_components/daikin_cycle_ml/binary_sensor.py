@@ -18,6 +18,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .engine.timer_health import is_stale
 from .const import (
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
@@ -88,7 +89,10 @@ def _is_short_off(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
 def _is_source_stale(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     if s.last_success_ts <= 0:
         return False
-    return (_now() - s.last_success_ts) > SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS
+    return is_stale(
+        s.last_success_ts, _now(),
+        SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS,
+    )
 
 
 def _is_pendulum_hourly(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
@@ -242,7 +246,7 @@ BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
     {"key": "setpoint_oscillating", "name": "Setpoint oscillating",
      "device_class": BinarySensorDeviceClass.PROBLEM,
      "icon": "mdi:sine-wave",
-     "state_fn": lambda s, c: c._compute_setpoint_oscillating()},
+     "state_fn": lambda s, c: s.setpoint_oscillating},
     {"key": "dhw_pendulum", "name": "DHW pendulum",
      "device_class": BinarySensorDeviceClass.PROBLEM,
      "icon": "mdi:water-boiler-alert",

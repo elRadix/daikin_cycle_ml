@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import asyncio
+
+import pytest
 from unittest.mock import MagicMock
 
 from custom_components.daikin_cycle_ml import config_flow as cf
@@ -24,6 +26,14 @@ def _wizard(source_state=None):
     flow._options = {}
     flow._reconfigure_entry = None
     return flow
+
+
+@pytest.fixture(autouse=True)
+def _restore_flow_config_entry_property():
+    """Restore class-level config_entry patch leaked by OptionsFlow tests."""
+    yield
+    if "config_entry" in cf.DaikinCycleMLOptionsFlow.__dict__:
+        del cf.DaikinCycleMLOptionsFlow.config_entry
 
 
 def test_user_step_form_no_state():
@@ -215,8 +225,8 @@ def test_options_flow_quality_form():
     entry.data = {}
     entry.runtime_data = None
     type(flow).config_entry = property(lambda self: entry)
-    r = asyncio.run(flow.async_step_quality())
-    assert r['step_id'] == 'quality'
+    r = asyncio.run(flow.async_step_quality_ml())
+    assert r['step_id'] == 'quality_ml'
 
 
 def test_options_flow_ml_form():
@@ -228,8 +238,8 @@ def test_options_flow_ml_form():
     entry.data = {}
     entry.runtime_data = None
     type(flow).config_entry = property(lambda self: entry)
-    r = asyncio.run(flow.async_step_ml())
-    assert r['step_id'] == 'ml'
+    r = asyncio.run(flow.async_step_quality_ml())
+    assert r['step_id'] == 'quality_ml'
 
 
 def test_options_flow_maintenance_form():
@@ -241,8 +251,8 @@ def test_options_flow_maintenance_form():
     entry.data = {}
     entry.runtime_data = None
     type(flow).config_entry = property(lambda self: entry)
-    r = asyncio.run(flow.async_step_maintenance())
-    assert r['step_id'] == 'maintenance'
+    r = asyncio.run(flow.async_step_advanced())
+    assert r['step_id'] == 'advanced'
 
 
 def test_options_flow_test_notification_form():

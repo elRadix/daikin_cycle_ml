@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import logging
 import time
 from functools import partial
@@ -11,10 +12,21 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import (
+    HomeAssistant,
+    ServiceCall,
+    SupportsResponse,
+)
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
+from .engine import model_datasheets as md
+from .repairs import (
+    clear_datasheet_import_invalid,
+    clear_datasheet_schema_unknown,
+    raise_datasheet_import_invalid,
+    raise_datasheet_schema_unknown,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,6 +37,8 @@ SERVICE_RECOMPUTE_BASELINE = "recompute_baseline"
 SERVICE_RUN_MAINTENANCE = "run_maintenance"
 SERVICE_SEND_TEST_NOTIFICATION = "send_test_notification"
 SERVICE_EXPORT_COP_HOURLY = "export_cop_hourly"
+SERVICE_IMPORT_DATASHEET = "import_datasheet"
+SERVICE_REMOVE_USER_DATASHEET = "remove_user_datasheet"
 ATTR_MESSAGE = "message"
 ATTR_TARGET = "target"
 ATTR_CYCLE_RETENTION_DAYS = "cycle_retention_days"
@@ -38,6 +52,9 @@ ATTR_FORMAT = "format"
 ATTR_CYCLE_ID = "cycle_id"
 ATTR_LABEL = "label"
 ATTR_MODE = "mode"
+ATTR_PAYLOAD = "payload"
+ATTR_SOURCE_URL = "source_url"
+ATTR_MODEL_KEY = "model_key"
 
 SCHEMA_RESET = vol.Schema({
     vol.Required(ATTR_ENTRY_ID): str,
@@ -83,6 +100,18 @@ SCHEMA_EXPORT_COP_HOURLY = vol.Schema({
     ),
     vol.Optional(ATTR_MODE): vol.Any(None, str),
     vol.Optional(ATTR_FORMAT, default="json"): vol.In(["json", "csv"]),
+})
+
+
+SCHEMA_IMPORT_DATASHEET = vol.Schema({
+    vol.Required(ATTR_ENTRY_ID): str,
+    vol.Required(ATTR_PAYLOAD): vol.Any(dict, str),
+    vol.Optional(ATTR_SOURCE_URL): vol.Any(None, str),
+})
+
+SCHEMA_REMOVE_USER_DATASHEET = vol.Schema({
+    vol.Required(ATTR_ENTRY_ID): str,
+    vol.Required(ATTR_MODEL_KEY): str,
 })
 
 
@@ -284,6 +313,59 @@ async def _handle_send_test_notification(
     ok = await async_send_notification(hass, target, msg)
     return {"ok": bool(ok), "target": target, "message": msg}
 
+async def _handle_import_datasheet(
+    hass: HomeAssistant, call: ServiceCall
+) -> dict[str, Any]:
+    entry_id = call.data[ATTR_ENTRY_ID]
+    coord = _resolve_coordinator(hass, entry_id)
+    raw = call.data[ATTR_PAYLOAD]
+
+    payload: Any = raw
+    if isinstance(raw, str):
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            errors = [f"json parse error: {exc}"]
+            raise_datasheet_import_invalid(hass, entry_id, errors)
+            return {"imported": [], "errors": errors}
+
+    clean, errors = md.validate_user_payload(payload)
+    found = payload.get("schema_version") if isinstance(payload, dict) else None
+    if found is not None and found != md.KNOWN_SCHEMA_VERSION:
+        raise_datasheet_schema_unknown(hass, entry_id, found)
+    elif errors:
+        raise_datasheet_import_invalid(hass, entry_id, errors)
+
+    if not clean:
+        return {"imported": [], "errors": errors or ["no valid models"]}
+
+    existing = await md.load_user(hass, entry_id)
+    merged = {**existing, **clean}
+    await md.save_user(hass, entry_id, merged)
+    clear_datasheet_import_invalid(hass, entry_id)
+    clear_datasheet_schema_unknown(hass, entry_id)
+
+    reload_fn = getattr(coord, "async_reload_user_datasheets", None)
+    if reload_fn is not None:
+        await reload_fn()
+    return {"imported": sorted(clean.keys()), "errors": errors}
+
+
+async def _handle_remove_user_datasheet(
+    hass: HomeAssistant, call: ServiceCall
+) -> dict[str, Any]:
+    entry_id = call.data[ATTR_ENTRY_ID]
+    coord = _resolve_coordinator(hass, entry_id)
+    model_key = call.data[ATTR_MODEL_KEY]
+
+    removed = await md.remove_user_model(hass, entry_id, model_key)
+    if removed:
+        reload_fn = getattr(coord, "async_reload_user_datasheets", None)
+        if reload_fn is not None:
+            await reload_fn()
+    return {"removed": removed, "model_key": model_key}
+
+
 async def async_register_services(hass: HomeAssistant) -> None:
     """Idempotent registration at DOMAIN level."""
     if hass.services.has_service(DOMAIN, SERVICE_SEND_TEST_NOTIFICATION):
@@ -317,5 +399,17 @@ async def async_register_services(hass: HomeAssistant) -> None:
         DOMAIN, SERVICE_EXPORT_COP_HOURLY,
         partial(_handle_export_cop_hourly, hass),
         schema=SCHEMA_EXPORT_COP_HOURLY,
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_IMPORT_DATASHEET,
+        partial(_handle_import_datasheet, hass),
+        schema=SCHEMA_IMPORT_DATASHEET,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_REMOVE_USER_DATASHEET,
+        partial(_handle_remove_user_datasheet, hass),
+        schema=SCHEMA_REMOVE_USER_DATASHEET,
+        supports_response=SupportsResponse.ONLY,
     )
     _LOGGER.info("Daikin Cycle ML services registered")

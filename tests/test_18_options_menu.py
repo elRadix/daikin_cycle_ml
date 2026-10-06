@@ -25,10 +25,10 @@ def _disable_options_reload(hass):
         yield
 
 
-STEPS = (
-    "device", "pendulum", "quality",
-    "notifications", "ml", "maintenance",
+STEPS_FORM = (
+    "device", "pendulum", "quality_ml", "advanced",
 )
+STEPS = STEPS_FORM
 
 
 async def _start(hass):
@@ -67,10 +67,27 @@ async def test_device_shows_readonly_source_and_model(hass):
     assert "model" in placeholders
 
 
+async def test_notifications_is_menu_with_subsections(hass):
+    r = await _start(hass)
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], user_input={"next_step_id": "notifications"}
+    )
+    assert r["type"] == "menu"
+    assert set(r["menu_options"]) == {
+        "notifications_delivery",
+        "notifications_quiet_hours",
+        "notifications_content",
+        "notifications_test_menu",
+    }
+
+
 async def test_notifications_submit_creates_entry(hass):
     r = await _start(hass)
     r = await hass.config_entries.options.async_configure(
         r["flow_id"], user_input={"next_step_id": "notifications"}
+    )
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], user_input={"next_step_id": "notifications_delivery"}
     )
     r = await hass.config_entries.options.async_configure(
         r["flow_id"],
@@ -79,17 +96,71 @@ async def test_notifications_submit_creates_entry(hass):
             "notify_service": "notify.telegram_bot_x",
             "notify_emoji_enabled": True,
             "action_advice_enabled": True,
-            "quiet_hours_enabled": False,
-            "quiet_hours_start": "22:00",
-            "quiet_hours_end": "07:00",
-            "alert_aggregation_minutes": 30,
-            "status_update_enabled": False,
-            "status_update_interval_hours": 24,
         },
     )
     assert r["type"] == "create_entry"
     assert r["data"]["notify_service"] == "notify.telegram_bot_x"
     assert r["data"]["compressor_rps_threshold"] == 4  # preserved
+
+
+async def test_notifications_quiet_hours_form_and_submit(hass):
+    r = await _start(hass)
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], user_input={"next_step_id": "notifications"}
+    )
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], user_input={"next_step_id": "notifications_quiet_hours"}
+    )
+    assert r["type"] == "form"
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"],
+        user_input={
+            "quiet_hours_enabled": True,
+            "quiet_hours_start": "23:00",
+            "quiet_hours_end": "06:00",
+            "alert_aggregation_minutes": 45,
+            "status_update_enabled": True,
+            "status_update_interval_hours": 12,
+        },
+    )
+    assert r["type"] == "create_entry"
+    assert r["data"]["alert_aggregation_minutes"] == 45
+
+
+async def test_notifications_content_form_and_submit(hass):
+    r = await _start(hass)
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], user_input={"next_step_id": "notifications"}
+    )
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], user_input={"next_step_id": "notifications_content"}
+    )
+    assert r["type"] == "form"
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"],
+        user_input={
+            "notification_language": "nl",
+            "alert_group_pendulum": True,
+            "alert_group_short_cycle": False,
+            "alert_group_ml": True,
+            "alert_group_setpoint": False,
+            "alert_group_cop_stooklijn": True,
+        },
+    )
+    assert r["type"] == "create_entry"
+    assert r["data"]["notification_language"] == "nl"
+
+
+async def test_notifications_test_menu_is_menu(hass):
+    r = await _start(hass)
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], user_input={"next_step_id": "notifications"}
+    )
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], user_input={"next_step_id": "notifications_test_menu"}
+    )
+    assert r["type"] == "menu"
+    assert set(r["menu_options"]) == {"test_notification", "test_all_notifications"}
 
 
 async def test_pendulum_submit_preserves_other_keys(hass):
@@ -100,10 +171,20 @@ async def test_pendulum_submit_preserves_other_keys(hass):
     r = await hass.config_entries.options.async_configure(
         r["flow_id"],
         user_input={
-            "short_run_threshold_min": 25,
-            "short_off_threshold_min": 6,
-            "pendulum_cycles_per_hour": 5,
-            "pendulum_cycles_per_day": 35,
+            "run_off": {
+                "short_run_threshold_min": 25,
+                "short_off_threshold_min": 6,
+            },
+            "pendulum": {
+                "pendulum_cycles_per_hour": 5,
+                "pendulum_cycles_per_day": 35,
+                "dhw_pendulum_cycles_per_hour": 3,
+            },
+            "setpoint": {
+                "setpoint_oscillation_threshold": 6,
+                "setpoint_osc_window_min": 30,
+                "setpoint_osc_min_delta": 0.5,
+            },
         },
     )
     assert r["type"] == "create_entry"
@@ -111,52 +192,48 @@ async def test_pendulum_submit_preserves_other_keys(hass):
     assert r["data"]["compressor_rps_threshold"] == 4
 
 
-async def test_quality_submit(hass):
+async def test_quality_ml_submit(hass):
     r = await _start(hass)
     r = await hass.config_entries.options.async_configure(
-        r["flow_id"], user_input={"next_step_id": "quality"}
+        r["flow_id"], user_input={"next_step_id": "quality_ml"}
     )
     r = await hass.config_entries.options.async_configure(
         r["flow_id"],
         user_input={
-            "good_run_threshold_min": 50,
-            "good_dt_threshold_k": 5.5,
-            "good_off_threshold_min": 22,
-            "target_cycles_per_day": 9,
+            "quality": {
+                "good_run_threshold_min": 50,
+                "good_dt_threshold_k": 5.5,
+                "good_off_threshold_min": 22,
+                "target_cycles_per_day": 9,
+            },
+            "adaptive": {
+                "adaptive_thresholds_enabled": True,
+                "adaptive_min_samples": 25,
+            },
         },
     )
     assert r["type"] == "create_entry"
     assert r["data"]["good_run_threshold_min"] == 50
-
-
-async def test_ml_submit(hass):
-    r = await _start(hass)
-    r = await hass.config_entries.options.async_configure(
-        r["flow_id"], user_input={"next_step_id": "ml"}
-    )
-    r = await hass.config_entries.options.async_configure(
-        r["flow_id"],
-        user_input={
-            "adaptive_thresholds_enabled": True,
-            "adaptive_min_samples": 25,
-        },
-    )
-    assert r["type"] == "create_entry"
     assert r["data"]["adaptive_min_samples"] == 25
 
 
-async def test_maintenance_submit(hass):
+async def test_advanced_submit(hass):
     r = await _start(hass)
     r = await hass.config_entries.options.async_configure(
-        r["flow_id"], user_input={"next_step_id": "maintenance"}
+        r["flow_id"], user_input={"next_step_id": "advanced"}
     )
     r = await hass.config_entries.options.async_configure(
         r["flow_id"],
         user_input={
-            "retention_enabled": True,
-            "cycle_retention_days": 120,
-            "alert_retention_days": 45,
-            "vacuum_enabled": True,
+            "retention": {
+                "retention_enabled": True,
+                "cycle_retention_days": 120,
+                "alert_retention_days": 45,
+                "vacuum_enabled": True,
+            },
+            "season": {
+                "season_start_month": 10,
+            },
         },
     )
     assert r["type"] == "create_entry"

@@ -13,3 +13,6 @@ venv/
 *.log
 MagicMock/
 coverage.json
+data/
+!custom_components/daikin_cycle_ml/data/
+!custom_components/daikin_cycle_ml/data/**

@@ -46,7 +46,12 @@ def reconcile(
     expected_interval_s: float = 30.0,
     gap_factor: float = 3.0,
 ) -> float | None:
-    """Return last_ts if plausibly continuous, else None (restart)."""
+    """Return last_ts if plausibly continuous, else None (restart).
+
+    Public API: kept for external callers and future use. Conceptually
+    overlaps the 120s cap inside _tick_energy and _tick_buh_and_defrost
+    (both clamp dt to avoid wild deltas). Do not wire into the tick path.
+    """
     if last_ts is None:
         return None
     if last_ts > now:

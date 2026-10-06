@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "daikin_cycle_ml"
 NAME = "Daikin Cycle ML"
-VERSION = "1.5.3"
+VERSION = "1.6.0-rc1"
 
 # --- Coordinator ---
 UPDATE_INTERVAL_SECONDS = 30
@@ -56,19 +56,56 @@ MODEL_EPRA08EAV3 = "epra08eav3"
 MODEL_ERLA11DAV3 = "erla11dav3"
 MODEL_CUSTOM = "custom"
 
+MODEL_EPRA04EAV3 = "epra04eav3"
+MODEL_EPRA06EAV3 = "epra06eav3"
+MODEL_EPRA10EAV3 = "epra10eav3"
+MODEL_EPRA11EAV3 = "epra11eav3"
+MODEL_EPRA14EAV3 = "epra14eav3"
+MODEL_EPRA16EAV3 = "epra16eav3"
+MODEL_ERLA04DAV3 = "erla04dav3"
+MODEL_ERLA06DAV3 = "erla06dav3"
+MODEL_ERLA08DAV3 = "erla08dav3"
+MODEL_ERLA12DAV3 = "erla12dav3"
+MODEL_ERLA14DAV3 = "erla14dav3"
+MODEL_ERLA16DAV3 = "erla16dav3"
+
 MODEL_CHOICES = [
     MODEL_BASISPROFIEL,
-    MODEL_EPRA12EAV3,
+    MODEL_EPRA04EAV3,
+    MODEL_EPRA06EAV3,
     MODEL_EPRA08EAV3,
+    MODEL_EPRA10EAV3,
+    MODEL_EPRA11EAV3,
+    MODEL_EPRA12EAV3,
+    MODEL_EPRA14EAV3,
+    MODEL_EPRA16EAV3,
+    MODEL_ERLA04DAV3,
+    MODEL_ERLA06DAV3,
+    MODEL_ERLA08DAV3,
     MODEL_ERLA11DAV3,
+    MODEL_ERLA12DAV3,
+    MODEL_ERLA14DAV3,
+    MODEL_ERLA16DAV3,
     MODEL_CUSTOM,
 ]
 
 MODEL_LABELS = {
     MODEL_BASISPROFIEL: "Basic profile (safe defaults)",
-    MODEL_EPRA12EAV3: "Daikin Altherma 3 H MT - EPRA12EAV3",
+    MODEL_EPRA04EAV3: "Daikin Altherma 3 H MT - EPRA04EAV3",
+    MODEL_EPRA06EAV3: "Daikin Altherma 3 H MT - EPRA06EAV3",
     MODEL_EPRA08EAV3: "Daikin Altherma 3 H MT - EPRA08EAV3",
+    MODEL_EPRA10EAV3: "Daikin Altherma 3 H MT - EPRA10EAV3",
+    MODEL_EPRA11EAV3: "Daikin Altherma 3 H MT - EPRA11EAV3",
+    MODEL_EPRA12EAV3: "Daikin Altherma 3 H MT - EPRA12EAV3",
+    MODEL_EPRA14EAV3: "Daikin Altherma 3 H MT - EPRA14EAV3",
+    MODEL_EPRA16EAV3: "Daikin Altherma 3 H MT - EPRA16EAV3",
+    MODEL_ERLA04DAV3: "Daikin Altherma 3 R - ERLA04DAV3",
+    MODEL_ERLA06DAV3: "Daikin Altherma 3 R - ERLA06DAV3",
+    MODEL_ERLA08DAV3: "Daikin Altherma 3 R - ERLA08DAV3",
     MODEL_ERLA11DAV3: "Daikin Altherma 3 R - ERLA11DAV3",
+    MODEL_ERLA12DAV3: "Daikin Altherma 3 R - ERLA12DAV3",
+    MODEL_ERLA14DAV3: "Daikin Altherma 3 R - ERLA14DAV3",
+    MODEL_ERLA16DAV3: "Daikin Altherma 3 R - ERLA16DAV3",
     MODEL_CUSTOM: "Custom (own attribute mapping)",
 }
 
@@ -187,6 +224,36 @@ DEFAULT_COP_RETENTION_DAYS = 365
 COP_ROLLUP_WINDOW_HOURS = 720
 DEFAULT_COP_ANALYSIS_DAYS = 30
 DEFAULT_COMFORT_MIN_C = 20.0
+DEFAULT_SEASON_START_MONTH = 10
+
+# ---------- v1.6.0-C5: BUH step power by model ----------
+# Daikin Altherma service handbook: BUH is 3kW step1 + 3kW or 6kW step2.
+# Fallback (3.0, 3.0) underestimates EPRA/ERLA 11-16 with step2=6kW.
+BUH_STEP_KW_BY_MODEL: dict[str, tuple[float, float]] = {
+    "EPRA04": (3.0, 3.0),
+    "EPRA06": (3.0, 3.0),
+    "EPRA08": (3.0, 3.0),
+    "EPRA11": (3.0, 6.0),
+    "EPRA12": (3.0, 6.0),
+    "EPRA14": (3.0, 6.0),
+    "EPRA16": (3.0, 6.0),
+    "ERLA04": (3.0, 3.0),
+    "ERLA06": (3.0, 3.0),
+    "ERLA08": (3.0, 3.0),
+    "ERLA11": (3.0, 6.0),
+    "ERLA12": (3.0, 6.0),
+    "ERLA14": (3.0, 6.0),
+    "ERLA16": (3.0, 6.0),
+}
+BUH_STEP_KW_DEFAULT: tuple[float, float] = (3.0, 3.0)
+
+
+def buh_step_kw_for_model(model: str | None) -> tuple[float, float]:
+    """Return (step1_kw, step2_kw) for a model key, fallback (3.0, 3.0)."""
+    if not model:
+        return BUH_STEP_KW_DEFAULT
+    return BUH_STEP_KW_BY_MODEL.get(str(model).upper(), BUH_STEP_KW_DEFAULT)
+
 DEFAULT_COMFORT_MAX_C = 24.0
 K_EMIT_DEFAULT = 0.20
 LWT_STEP_MIN = 1.0
@@ -285,3 +352,29 @@ COP_HOURLY_API_DEFAULT_DAYS = 30
 COP_HOURLY_API_MAX_DAYS = 365
 COP_CURVE_RECENT_HOURS = 48
 COP_CURVE_RECENT_MAX_POINTS = 96
+
+# --- C4: weather-normalized COP degradation (v1.6.0) ---
+DEGRADATION_WINDOW_DAYS = 7
+DEGRADATION_BASELINE_DAYS = 30
+DEGRADATION_MIN_HOURS_PER_BIN = 6
+DEGRADATION_THRESHOLD_PCT = -8.0
+DEGRADATION_CRITICAL_PCT = -15.0
+DEGRADATION_MIN_DAYS = 3
+DEGRADATION_EXCLUSION_SKEW_MAX = 0.15
+DEGRADATION_MIN_SAMPLES_1BIN = 200
+DEGRADATION_MIN_SAMPLES_2BIN = 100
+DEGRADATION_MIN_SAMPLES_3BIN = 80
+DEGRADATION_LWT_SHIFT_C = 5.0
+DEGRADATION_MIN_HOURS_FIT = 10
+DEGRADATION_MIN_SPREAD_C = 5.0
+DEGRADATION_REFRESH_THROTTLE_S = 300.0
+OUTDOOR_BINS: tuple[tuple[float, float, str], ...] = (
+    (-25.0, -10.0, "very_cold"),
+    (-10.0,   0.0, "cold"),
+    (  0.0,   5.0, "cool"),
+    (  5.0,  10.0, "mild"),
+    ( 10.0,  15.0, "warm"),
+    ( 15.0,  25.0, "hot"),
+)
+OUTDOOR_BINS_ORDER: tuple[str, ...] = tuple(b[2] for b in OUTDOOR_BINS)
+

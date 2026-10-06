@@ -32,8 +32,7 @@ def test_version_consistent_in_three_files():
     m = re.search(r"VERSION" + chr(92) + "s*=" + chr(92) + "s*" + chr(34) + "([^" + chr(34) + "]+)" + chr(34), const)
     assert m is not None
     ver = m.group(1)
-    parts = ver.split(".")
-    assert len(parts) == 3 and all(p.isdigit() for p in parts), ver
+    assert re.fullmatch(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", ver), ver
     mf = json.loads((ROOT / "manifest.json").read_text())
     assert mf.get("version") == ver
     pp = (_PROJECT_ROOT / "pyproject.toml").read_text()

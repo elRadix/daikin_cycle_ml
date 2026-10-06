@@ -87,7 +87,8 @@ def test_options_flow_notifications_form():
     entry.runtime_data = None
     type(flow).config_entry = property(lambda self: entry)
     r = asyncio.run(flow.async_step_notifications())
-    assert r['step_id'] == 'notifications'
+    assert r['type'] == 'menu'
+    assert 'notifications_delivery' in r.get('menu_options', [])
 
 
 def test_options_flow_test_notification_submit():

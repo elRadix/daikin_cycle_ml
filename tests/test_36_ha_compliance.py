@@ -45,8 +45,7 @@ def test_version_bumped():
     m = re.search(r'VERSION\s*=\s*"([^"]+)"', const)
     assert m, "VERSION not found in const.py"
     ver = m.group(1)
-    parts = ver.split(".")
-    assert len(parts) == 3 and all(p.isdigit() for p in parts), ver
+    assert re.fullmatch(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", ver), ver
     mf = json.loads((ROOT / "manifest.json").read_text())
     assert mf["version"] == ver
 
@@ -83,8 +82,8 @@ def test_result_step_exists(rel):
 def test_menu_option_descriptions(rel):
     d = json.loads((ROOT / rel).read_text(encoding="utf-8"))
     mod = d["options"]["step"]["init"].get("menu_option_descriptions") or {}
-    for k in ("device", "pendulum", "quality", "notifications",
-              "ml", "maintenance", "test_notification"):
+    for k in ("device", "pendulum", "quality_ml", "notifications",
+              "advanced", "test_notification"):
         assert k in mod, rel + " missing menu description " + k
 
 

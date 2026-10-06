@@ -20,32 +20,33 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfTime
+from homeassistant.const import EntityCategory, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .engine.timer_health import is_stale
 from .const import (
-    ATTR_FLOW_SENSOR,
-    ATTR_INLET_WATER_R4T,
-    ATTR_INV_FREQUENCY_RPS,
-    ATTR_LEAVING_WATER_AFTER_BUH,
-    DOMAIN,
-    RPS_KW_FACTOR,
     UPDATE_INTERVAL_SECONDS,
-    WATER_DENSITY_KG_L,
-    WATER_SPECIFIC_HEAT_KJ_KG_K,
 )
+from .const import buh_step_kw_for_model as _buh_step_kw_for_model
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
-from .entity import DaikinCycleMLEntity
-from .engine.thermal import (  # noqa: F401
+from .engine.thermal import (
     compute_thermal_power_live as _compute_thermal_power_live,
+)
+from .engine.thermal import (
     dt_from_attrs as _dt_from_attrs,
+)
+from .engine.thermal import (
     flow_from_attrs as _flow_from_attrs,
+)
+from .engine.thermal import (
     rps_from_attrs as _rps_from_attrs,
+)
+from .engine.thermal import (
     safe_float as _safe_float,
 )
-
+from .entity import DaikinCycleMLEntity
 
 PARALLEL_UPDATES = 0  # read-only platform, HA serializes updates
 
@@ -91,12 +92,125 @@ def _ratio(num: float, denom: float) -> float | None:
 
 
 
+def _value_cop_normalized_a7w35(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> float | None:
+    """C3a: Carnot-normalized COP at reference A7/W35."""
+    return s.cop_normalized_a7w35
+
+
+def _value_hp_specs(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> str | None:
+    """C3a: configured heat pump model key (specs sensor)."""
+    return s.datasheet_model
+
+
+def _attrs_hp_specs(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    """C3a: full datasheet of the configured model (static specs)."""
+    ds = s.datasheet
+    if not ds:
+        return {
+            "configured": False,
+            "model": s.datasheet_model,
+            "reason": "no datasheet for this model",
+        }
+    return {
+        "configured": True,
+        "model": ds.get("model"),
+        "source": ds.get("source"),
+        "family": ds.get("family"),
+        "kw": ds.get("kw"),
+        "lwt_min": ds.get("lwt_min"),
+        "lwt_max": ds.get("lwt_max"),
+        "outdoor_min_c": ds.get("outdoor_min_c"),
+        "outdoor_max_c": ds.get("outdoor_max_c"),
+        "nom_cop": ds.get("nom_cop"),
+        "scop_w35": ds.get("scop_w35"),
+        "scop_w55": ds.get("scop_w55"),
+        "refrigerant": ds.get("refrigerant"),
+        "gwp": ds.get("gwp"),
+        "charge_kg": ds.get("charge_kg"),
+        "buh_above_c": ds.get("buh_above_c"),
+        "defrost_below_c": ds.get("defrost_below_c"),
+        "off_above_c": ds.get("off_above_c"),
+        "points": list(ds.get("points") or []),
+        "datasheet_sources": (
+            dict(c.datasheet_sources) if c is not None else {}
+        ),
+    }
+
+
+def _attrs_cop_normalized_a7w35(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    """Attributes for cop_normalized_a7w35 sensor (C3a)."""
+    ds = s.datasheet or {}
+    ref_cop = next(
+        (pt.get("cop") for pt in (ds.get("points") or [])
+         if pt.get("label") == "A7/W35"),
+        None,
+    )
+    return {
+        "model": s.datasheet_model,
+        "family": ds.get("family"),
+        "kw": ds.get("kw"),
+        "lwt_min": ds.get("lwt_min"),
+        "lwt_max": ds.get("lwt_max"),
+        "nom_cop": ds.get("nom_cop"),
+        "scop_w35": ds.get("scop_w35"),
+        "scop_w55": ds.get("scop_w55"),
+        "ref_cop_a7w35": ref_cop,
+        "source": ds.get("source"),
+        "cop_normalized_a7w35": s.cop_normalized_a7w35,
+        "cop_measured": s.cop,
+    }
+
+
+def _value_cop_vs_datasheet_pct(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> float | None:
+    """C3a: live COP deviation (%) vs datasheet A7/W35."""
+    return s.cop_vs_datasheet_pct
+
+
+def _attrs_cop_vs_datasheet_pct(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    """Attributes for cop_vs_datasheet_pct sensor (C3a)."""
+    ds = s.datasheet or {}
+    ref_cop = next(
+        (pt.get("cop") for pt in (ds.get("points") or [])
+         if pt.get("label") == "A7/W35"),
+        None,
+    )
+    pct = s.cop_vs_datasheet_pct
+    if pct is None:
+        band = None
+    elif pct >= 0:
+        band = "on_spec"
+    elif pct >= -20:
+        band = "below_spec"
+    else:
+        band = "critical"
+    return {
+        "model": s.datasheet_model,
+        "ref_cop_a7w35": ref_cop,
+        "cop_normalized_a7w35": s.cop_normalized_a7w35,
+        "cop_measured": s.cop,
+        "deviation_pct": pct,
+        "band": band,
+    }
+
+
 def _value_thermal_power_live(
-    s: "DataSnapshot", c: "DaikinCycleMLCoordinator"
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> float | None:
     kw, _ = _compute_thermal_power_live(
-        power_w=c._read_power_w(),
-        cop=c._read_cop(),
+        power_w=s.power_w,
+        cop=s.cop,
         flow_lmin=_flow_from_attrs(s.attrs),
         dt_k=_dt_from_attrs(s.attrs),
         rps=_rps_from_attrs(s.attrs),
@@ -105,10 +219,10 @@ def _value_thermal_power_live(
 
 
 def _attrs_thermal_power_live(
-    s: "DataSnapshot", c: "DaikinCycleMLCoordinator"
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> dict[str, Any]:
-    power_w = c._read_power_w()
-    cop = c._read_cop()
+    power_w = s.power_w
+    cop = s.cop
     flow_lmin = _flow_from_attrs(s.attrs)
     dt_k = _dt_from_attrs(s.attrs)
     rps = _rps_from_attrs(s.attrs)
@@ -247,7 +361,10 @@ def _attrs_quality_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[s
 def _attrs_source_health(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     stale = False
     if s.last_success_ts > 0:
-        stale = (_now() - s.last_success_ts) > 2.0 * UPDATE_INTERVAL_SECONDS
+        stale = is_stale(
+            s.last_success_ts, _now(),
+            2.0 * UPDATE_INTERVAL_SECONDS,
+        )
     return {
         "missing_attrs_count": len(s.missing_attrs),
         "missing_attrs_list": list(s.missing_attrs),
@@ -286,6 +403,29 @@ def _attrs_cop_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, 
     }
 
 
+def _attrs_cop_combined_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
+    data = s.cop_combined_today or {}
+    return {
+        "samples_today": data.get("samples_today"),
+        "cop_min": data.get("cop_min"),
+        "cop_max": data.get("cop_max"),
+        "baseline_cop_verlies_pct": data.get("baseline_cop_verlies_pct"),
+    }
+
+
+def _attrs_spf_state(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
+    data = s.spf_state or {}
+    return {
+        "season_start_month": data.get("season_start_month"),
+        "spf_season_n": data.get("spf_season_n"),
+        "spf_ytd": data.get("spf_ytd"),
+        "spf_ytd_n": data.get("spf_ytd_n"),
+        "scop_365d": data.get("scop_365d"),
+        "scop_365d_n": data.get("scop_365d_n"),
+        "updated_ts": data.get("updated_ts"),
+    }
+
+
 def _cop_hourly_heating_mean(
     period: str,
 ) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], Any]:
@@ -294,6 +434,17 @@ def _cop_hourly_heating_mean(
         data = getattr(s, f"cop_hourly_{period}", None) or {}
         hm = (data.get("by_mode") or {}).get("heating") or {}
         return hm.get("cop_mean")
+    return _fn
+
+
+def _cop_hourly_mode_mean(
+    mode: str, period: str,
+) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], Any]:
+    """Return value_fn: cop_mean for a specific mode + period (C1a)."""
+    def _fn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> Any:
+        data = getattr(s, f"cop_hourly_{period}", None) or {}
+        bm = (data.get("by_mode") or {}).get(mode) or {}
+        return bm.get("cop_mean")
     return _fn
 
 
@@ -311,6 +462,27 @@ def _attrs_cop_hourly(
             "cop_p90": data.get("cop_p90"),
             "cop_min": data.get("cop_min"),
             "cop_max": data.get("cop_max"),
+            "by_mode": data.get("by_mode") or {},
+        }
+    return _fn
+
+
+def _attrs_cop_hourly_mode(
+    mode: str, period: str,
+) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], dict[str, Any]]:
+    """Return attr_fn: mode-specific COP breakdown (C1a)."""
+    def _fn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
+        data = getattr(s, f"cop_hourly_{period}", None) or {}
+        bm = (data.get("by_mode") or {}).get(mode) or {}
+        return {
+            "period": period, "mode": mode,
+            "n_hours": bm.get("n_hours"),
+            "n_samples": bm.get("n_samples"),
+            "cop_mean": bm.get("cop_mean"),
+            "cop_p10": bm.get("cop_p10"),
+            "cop_p90": bm.get("cop_p90"),
+            "cop_min": bm.get("cop_min"),
+            "cop_max": bm.get("cop_max"),
             "by_mode": data.get("by_mode") or {},
         }
     return _fn
@@ -367,6 +539,8 @@ def _attrs_stooklijn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, 
         "bucket": data.get("bucket"),
         "samples": data.get("samples"),
         "buckets": data.get("buckets") or {},
+        "offset_delta_c": data.get("offset_delta_c"),
+        "slope_delta": data.get("slope_delta"),
     }
 
 
@@ -389,6 +563,7 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
         state_class: SensorStateClass | None = None,
         unit: str | None = None,
         icon: str | None = None,
+        entity_category: str | None = None,
     ) -> None:
         super().__init__(coordinator, key, name)
         self._value_fn = value_fn
@@ -401,6 +576,10 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
             self._attr_native_unit_of_measurement = unit
         if icon is not None:
             self._attr_icon = icon
+        if entity_category == "diagnostic":
+            self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        elif entity_category == "config":
+            self._attr_entity_category = EntityCategory.CONFIG
 
     @property
     def native_value(self) -> Any:
@@ -430,6 +609,306 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
             return None
 
 
+def _value_cop_degradation_status(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> Any:
+    return s.cop_degradation_status
+
+
+def _attrs_cop_degradation_status(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    d = s.cop_degradation_detail or {}
+    return {
+        "severity_raw": d.get("severity_raw", "none"),
+        "severity_downgraded": d.get("severity_downgraded", False),
+        "week_pct": d.get("week_pct"),
+        "week_pct_raw": d.get("week_pct_raw"),
+        "lwt_shift_detected": d.get("lwt_shift_detected", False),
+        "lwt_shift_c": d.get("lwt_shift_c"),
+        "threshold_pct": d.get("threshold_pct"),
+        "critical_pct": d.get("critical_pct"),
+        "valid": d.get("valid", False),
+        "updated_ts": d.get("updated_ts"),
+    }
+
+
+def _value_cop_degradation_week_pct(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> Any:
+    return s.cop_degradation_week_pct
+
+
+def _attrs_cop_degradation_week_pct(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    d = s.cop_degradation_detail or {}
+    return {
+        "mode": d.get("mode"),
+        "window_days": d.get("window_days"),
+        "n_samples_recent": d.get("n_samples_recent"),
+        "n_samples_prev": d.get("n_samples_prev"),
+        "n_days_recent": d.get("n_days_recent"),
+        "n_days_prev": d.get("n_days_prev"),
+        "n_bins_used": d.get("n_bins_used"),
+        "dynamic_min_samples": d.get("dynamic_min_samples"),
+        "bins_used": d.get("bins_used", []),
+        "excluded_hours_recent": d.get("excluded_hours_recent"),
+        "excluded_hours_prev": d.get("excluded_hours_prev"),
+        "exclusion_skew": d.get("exclusion_skew"),
+        "lwt_mean_recent": d.get("lwt_mean_recent"),
+        "lwt_mean_prev": d.get("lwt_mean_prev"),
+        "updated_ts": d.get("updated_ts"),
+    }
+
+
+def _value_cop_trend_30d(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> Any:
+    return s.cop_trend_30d
+
+
+def _attrs_cop_trend_30d(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    d = s.cop_trend_detail or {}
+    return {
+        "mode": d.get("mode"),
+        "window_days": d.get("window_days"),
+        "baseline_days": d.get("baseline_days"),
+        "recent_days": d.get("recent_days"),
+        "n_hours_baseline": d.get("n_hours_baseline"),
+        "n_hours_recent": d.get("n_hours_recent"),
+        "outdoor_spread_baseline_c": d.get("outdoor_spread_baseline_c"),
+        "fit_slope": d.get("fit_slope"),
+        "fit_intercept": d.get("fit_intercept"),
+        "fit_r2": d.get("fit_r2"),
+        "cop_predicted_recent": d.get("cop_predicted_recent"),
+        "cop_observed_recent": d.get("cop_observed_recent"),
+        "threshold_pct": d.get("threshold_pct"),
+        "critical_pct": d.get("critical_pct"),
+        "valid": d.get("valid", False),
+        "updated_ts": d.get("updated_ts"),
+    }
+
+
+# ---------- v1.6.0-C5: runtime/BUH/defrost/duty helpers ----------
+
+
+def _local_midnight(now: float) -> float:
+    lt = time.localtime(float(now))
+    return time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1))
+
+
+def _value_runtime_compressor_today_s(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> int:
+    now = _now()
+    total = sum(
+        float(cy.get("duration_s") or 0.0)
+        for cy in c.store.cycles_today(now)
+    )
+    if s.state == "running" and s.cycle_start_ts > 0:
+        total += max(0.0, now - s.cycle_start_ts)
+    return int(total)
+
+
+def _value_runtime_buh_today_s(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> int:
+    snap = c.runtime_snapshot
+    return int(snap["buh_step1_s"] + snap["buh_step2_s"])
+
+
+def _value_compressor_starts_today(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> int:
+    return len(c.store.cycles_today(_now()))
+
+
+def _value_defrost_count_today(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> int:
+    return int(c.runtime_snapshot["defrost_count"])
+
+
+def _value_defrost_duration_today_s(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> int:
+    return int(c.runtime_snapshot["defrost_duration_s"])
+
+
+def _value_duty_cycle_today_pct(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> float:
+    now = _now()
+    runtime = _value_runtime_compressor_today_s(s, c)
+    elapsed = max(1.0, now - _local_midnight(now))
+    return round(100.0 * runtime / elapsed, 2)
+
+
+def _buh_energy_kwh_est(
+    c: DaikinCycleMLCoordinator, step1_s: float, step2_s: float
+) -> float | None:
+    try:
+        model = c.entry.data.get("model") if c.entry else None
+        s1_kw, s2_kw = _buh_step_kw_for_model(model)
+        return round(step1_s * s1_kw / 3600.0 + step2_s * s2_kw / 3600.0, 3)
+    except Exception:
+        return None
+
+
+_ENERGY_MODES = ("heating", "dhw", "cooling")
+
+
+def _value_energy_kwh(
+    mode: str, kind: str
+) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], float]:
+    def _fn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> float:
+        snap = c.energy_snapshot or {}
+        mode_data = snap.get(mode) or {}
+        return round(float(mode_data.get(kind, 0.0)), 3)
+    return _fn
+
+
+def _value_energy_total_kwh(
+    kind: str,
+) -> Callable[[DataSnapshot, DaikinCycleMLCoordinator], float]:
+    def _fn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> float:
+        snap = c.energy_snapshot or {}
+        return round(
+            sum(
+                float((snap.get(m) or {}).get(kind, 0.0))
+                for m in _ENERGY_MODES
+            ),
+            3,
+        )
+    return _fn
+
+
+def _attrs_energy_snapshot(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    snap = c.energy_snapshot or {}
+    out: dict[str, Any] = {}
+    for mode in _ENERGY_MODES:
+        m = snap.get(mode) or {}
+        out[f"{mode}_th_kwh"] = round(float(m.get("th", 0.0)), 3)
+        out[f"{mode}_el_kwh"] = round(float(m.get("el", 0.0)), 3)
+    out["total_th_kwh"] = round(
+        sum(float((snap.get(m) or {}).get("th", 0.0)) for m in _ENERGY_MODES),
+        3,
+    )
+    out["total_el_kwh"] = round(
+        sum(float((snap.get(m) or {}).get("el", 0.0)) for m in _ENERGY_MODES),
+        3,
+    )
+    return out
+
+
+def _attrs_runtime_compressor_today_s(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    now = _now()
+    cycles = c.store.cycles_today(now)
+    by_mode: dict[str, float] = {"heating": 0.0, "dhw": 0.0, "cooling": 0.0}
+    for cy in cycles:
+        mode = cy.get("mode") or "unknown"
+        dur = float(cy.get("duration_s") or 0.0)
+        if mode in by_mode:
+            by_mode[mode] += dur
+    snap = c.runtime_snapshot
+    total = sum(by_mode.values())
+    return {
+        "heating_s": int(by_mode["heating"]),
+        "dhw_s": int(by_mode["dhw"]),
+        "cooling_s": int(by_mode["cooling"]),
+        "cycle_count": len(cycles),
+        "avg_cycle_s": int(total / len(cycles)) if cycles else None,
+        "buh_step1_s": int(snap["buh_step1_s"]),
+        "buh_step2_s": int(snap["buh_step2_s"]),
+    }
+
+
+def _attrs_runtime_buh_today_s(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    snap = c.runtime_snapshot
+    s1 = snap["buh_step1_s"]
+    s2 = snap["buh_step2_s"]
+    return {
+        "step1_s": int(s1),
+        "step2_s": int(s2),
+        "buh_energy_kwh_est": _buh_energy_kwh_est(c, s1, s2),
+    }
+
+
+def _attrs_compressor_starts_today(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    cycles = c.store.cycles_today(_now())
+    per_mode: dict[str, int] = {"heating": 0, "dhw": 0, "cooling": 0}
+    for cy in cycles:
+        mode = cy.get("mode") or "unknown"
+        if mode in per_mode:
+            per_mode[mode] += 1
+    hour_ago = _now() - 3600.0
+    recent = sum(
+        1 for cy in cycles
+        if float(cy.get("start_ts") or 0.0) >= hour_ago
+    )
+    return {
+        "per_mode": per_mode,
+        "starts_last_hour": recent,
+    }
+
+
+def _attrs_defrost_count_today(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    snap = c.runtime_snapshot
+    count = int(snap["defrost_count"])
+    dur = snap["defrost_duration_s"]
+    return {
+        "avg_duration_s": round(dur / count, 1) if count > 0 else None,
+        "last_defrost_ts": snap["last_defrost_ts"] or None,
+    }
+
+
+def _attrs_defrost_duration_today_s(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    snap = c.runtime_snapshot
+    count = int(snap["defrost_count"])
+    dur = snap["defrost_duration_s"]
+    return {
+        "defrost_count": count,
+        "avg_duration_s": round(dur / count, 1) if count > 0 else None,
+    }
+
+
+def _attrs_duty_cycle_today_pct(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    now = _now()
+    runtime = _value_runtime_compressor_today_s(s, c)
+    elapsed = max(1.0, now - _local_midnight(now))
+    pct = 100.0 * runtime / elapsed
+    if pct < 15.0:
+        band = "low"
+    elif pct < 60.0:
+        band = "nominal"
+    elif pct < 85.0:
+        band = "high"
+    else:
+        band = "saturated"
+    return {
+        "runtime_s": runtime,
+        "elapsed_s": int(elapsed),
+        "band": band,
+    }
+
+
 SENSOR_DEFS: list[dict[str, Any]] = [
     {
         "key": "thermal_power_live", "name": "Thermal power live",
@@ -439,6 +918,53 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "icon": "mdi:fire",
         "value_fn": _value_thermal_power_live,
         "attr_fn": _attrs_thermal_power_live,
+    },
+    {
+        "key": "hp_specs", "name": "HP specs",
+        "icon": "mdi:heat-pump-outline",
+        "entity_category": "diagnostic",
+        "value_fn": _value_hp_specs,
+        "attr_fn": _attrs_hp_specs,
+    },
+    {
+        "key": "cop_normalized_a7w35", "name": "COP normalized A7W35",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP",
+        "icon": "mdi:thermometer-lines",
+        "value_fn": _value_cop_normalized_a7w35,
+        "attr_fn": _attrs_cop_normalized_a7w35,
+    },
+    {
+        "key": "cop_vs_datasheet_pct", "name": "COP vs datasheet pct",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "%",
+        "icon": "mdi:chart-bell-curve",
+        "value_fn": _value_cop_vs_datasheet_pct,
+        "attr_fn": _attrs_cop_vs_datasheet_pct,
+    },
+    {
+        "key": "cop_degradation_status", "name": "COP degradation status",
+        "device_class": SensorDeviceClass.ENUM,
+        "options": ["none", "info", "warning", "critical"],
+        "icon": "mdi:chart-line-variant",
+        "value_fn": _value_cop_degradation_status,
+        "attr_fn": _attrs_cop_degradation_status,
+    },
+    {
+        "key": "cop_degradation_week_pct", "name": "COP degradation week pct",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "%",
+        "icon": "mdi:trending-down",
+        "value_fn": _value_cop_degradation_week_pct,
+        "attr_fn": _attrs_cop_degradation_week_pct,
+    },
+    {
+        "key": "cop_trend_30d", "name": "COP trend 30d",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "%",
+        "icon": "mdi:chart-timeline-variant",
+        "value_fn": _value_cop_trend_30d,
+        "attr_fn": _attrs_cop_trend_30d,
     },
     {
         "key": "cycle_state", "name": "Cycle state",
@@ -478,6 +1004,121 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "attr_fn": _attrs_quality_today,
     },
     {
+        "key": "runtime_compressor_today",
+        "name": "Runtime compressor today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.DURATION,
+        "unit": "s",
+        "icon": "mdi:timer-outline",
+        "value_fn": _value_runtime_compressor_today_s,
+        "attr_fn": _attrs_runtime_compressor_today_s,
+    },
+    {
+        "key": "runtime_buh_today",
+        "name": "Runtime BUH today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.DURATION,
+        "unit": "s",
+        "icon": "mdi:fire-alert",
+        "value_fn": _value_runtime_buh_today_s,
+        "attr_fn": _attrs_runtime_buh_today_s,
+    },
+    {
+        "key": "compressor_starts_today",
+        "name": "Compressor starts today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "icon": "mdi:restart",
+        "value_fn": _value_compressor_starts_today,
+        "attr_fn": _attrs_compressor_starts_today,
+    },
+    {
+        "key": "defrost_count_today",
+        "name": "Defrost count today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "icon": "mdi:snowflake-melt",
+        "value_fn": _value_defrost_count_today,
+        "attr_fn": _attrs_defrost_count_today,
+    },
+    {
+        "key": "defrost_duration_today",
+        "name": "Defrost duration today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.DURATION,
+        "unit": "s",
+        "icon": "mdi:timer-sand",
+        "value_fn": _value_defrost_duration_today_s,
+        "attr_fn": _attrs_defrost_duration_today_s,
+    },
+    {
+        "key": "duty_cycle_today",
+        "name": "Duty cycle today",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "%",
+        "icon": "mdi:gauge",
+        "value_fn": _value_duty_cycle_today_pct,
+        "attr_fn": _attrs_duty_cycle_today_pct,
+    },
+    {
+        "key": "electrical_energy_heating_today",
+        "name": "Electrical energy heating today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.ENERGY,
+        "unit": "kWh",
+        "icon": "mdi:lightning-bolt",
+        "value_fn": _value_energy_kwh("heating", "el"),
+        "attr_fn": _attrs_energy_snapshot,
+    },
+    {
+        "key": "electrical_energy_dhw_today",
+        "name": "Electrical energy dhw today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.ENERGY,
+        "unit": "kWh",
+        "icon": "mdi:lightning-bolt",
+        "value_fn": _value_energy_kwh("dhw", "el"),
+        "attr_fn": _attrs_energy_snapshot,
+    },
+    {
+        "key": "electrical_energy_cooling_today",
+        "name": "Electrical energy cooling today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.ENERGY,
+        "unit": "kWh",
+        "icon": "mdi:lightning-bolt",
+        "value_fn": _value_energy_kwh("cooling", "el"),
+        "attr_fn": _attrs_energy_snapshot,
+    },
+    {
+        "key": "electrical_energy_total_today",
+        "name": "Electrical energy total today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.ENERGY,
+        "unit": "kWh",
+        "icon": "mdi:lightning-bolt-circle",
+        "value_fn": _value_energy_total_kwh("el"),
+        "attr_fn": _attrs_energy_snapshot,
+    },
+    {
+        "key": "thermal_energy_heating_today",
+        "name": "Thermal energy heating today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.ENERGY,
+        "unit": "kWh",
+        "icon": "mdi:fire",
+        "value_fn": _value_energy_kwh("heating", "th"),
+        "attr_fn": _attrs_energy_snapshot,
+    },
+    {
+        "key": "thermal_energy_cooling_today",
+        "name": "Thermal energy cooling today",
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "device_class": SensorDeviceClass.ENERGY,
+        "unit": "kWh",
+        "icon": "mdi:snowflake",
+        "value_fn": _value_energy_kwh("cooling", "th"),
+        "attr_fn": _attrs_energy_snapshot,
+    },
+    {
         "key": "source_health", "name": "Source health",
         "device_class": SensorDeviceClass.DURATION,
         "state_class": SensorStateClass.MEASUREMENT,
@@ -505,6 +1146,38 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "icon": "mdi:heat-pump",
         "value_fn": lambda s, c: (s.cop_today or {}).get("cop"),
         "attr_fn": _attrs_cop_today,
+    },
+    {
+        "key": "cop_combined_today", "name": "COP combined today",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP",
+        "icon": "mdi:heat-pump-outline",
+        "value_fn": lambda s, c: (s.cop_combined_today or {}).get("cop"),
+        "attr_fn": _attrs_cop_combined_today,
+    },
+    {
+        "key": "spf_season", "name": "SPF season",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "SPF",
+        "icon": "mdi:calendar-star",
+        "value_fn": lambda s, c: (s.spf_state or {}).get("spf_season"),
+        "attr_fn": _attrs_spf_state,
+    },
+    {
+        "key": "spf_ytd", "name": "SPF YTD",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "SPF",
+        "icon": "mdi:calendar-today",
+        "value_fn": lambda s, c: (s.spf_state or {}).get("spf_ytd"),
+        "attr_fn": _attrs_spf_state,
+    },
+    {
+        "key": "scop_running_365d", "name": "SCOP running 365d",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "SPF",
+        "icon": "mdi:chart-timeline-variant",
+        "value_fn": lambda s, c: (s.spf_state or {}).get("scop_365d"),
+        "attr_fn": _attrs_spf_state,
     },
     {
         "key": "heating_curve_advice", "name": "Heating curve advice",
@@ -544,6 +1217,69 @@ SENSOR_DEFS: list[dict[str, Any]] = [
             "n_points"
         ),
         "attr_fn": _attrs_cop_curve_recent,
+    },
+    {
+        "key": "cop_heating_day", "name": "COP heating (day)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:radiator",
+        "value_fn": _cop_hourly_mode_mean("heating", "day"),
+        "attr_fn": _attrs_cop_hourly_mode("heating", "day"),
+    },
+    {
+        "key": "cop_heating_week", "name": "COP heating (week)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:radiator",
+        "value_fn": _cop_hourly_mode_mean("heating", "week"),
+        "attr_fn": _attrs_cop_hourly_mode("heating", "week"),
+    },
+    {
+        "key": "cop_heating_month", "name": "COP heating (month)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:radiator",
+        "value_fn": _cop_hourly_mode_mean("heating", "month"),
+        "attr_fn": _attrs_cop_hourly_mode("heating", "month"),
+    },
+    {
+        "key": "cop_dhw_day", "name": "COP DHW (day)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:water-boiler",
+        "value_fn": _cop_hourly_mode_mean("dhw", "day"),
+        "attr_fn": _attrs_cop_hourly_mode("dhw", "day"),
+    },
+    {
+        "key": "cop_dhw_week", "name": "COP DHW (week)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:water-boiler",
+        "value_fn": _cop_hourly_mode_mean("dhw", "week"),
+        "attr_fn": _attrs_cop_hourly_mode("dhw", "week"),
+    },
+    {
+        "key": "cop_dhw_month", "name": "COP DHW (month)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:water-boiler",
+        "value_fn": _cop_hourly_mode_mean("dhw", "month"),
+        "attr_fn": _attrs_cop_hourly_mode("dhw", "month"),
+    },
+    {
+        "key": "cop_cooling_day", "name": "COP cooling (day)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:snowflake",
+        "value_fn": _cop_hourly_mode_mean("cooling", "day"),
+        "attr_fn": _attrs_cop_hourly_mode("cooling", "day"),
+    },
+    {
+        "key": "cop_cooling_week", "name": "COP cooling (week)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:snowflake",
+        "value_fn": _cop_hourly_mode_mean("cooling", "week"),
+        "attr_fn": _attrs_cop_hourly_mode("cooling", "week"),
+    },
+    {
+        "key": "cop_cooling_month", "name": "COP cooling (month)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:snowflake",
+        "value_fn": _cop_hourly_mode_mean("cooling", "month"),
+        "attr_fn": _attrs_cop_hourly_mode("cooling", "month"),
     },
 ]
 
@@ -611,6 +1347,7 @@ async def async_setup_entry(
             state_class=spec.get("state_class"),
             unit=spec.get("unit"),
             icon=spec.get("icon"),
+            entity_category=spec.get("entity_category"),
         )
         for spec in SENSOR_DEFS
     ]

@@ -93,7 +93,7 @@ async def test_options_flow_init_menu(hass: HomeAssistant):
 
 
 @pytest.mark.parametrize("step", [
-    "device", "pendulum", "quality", "notifications", "ml", "maintenance",
+    "device", "pendulum", "quality_ml", "notifications", "advanced",
 ])
 async def test_options_flow_menu_navigate(hass: HomeAssistant, step: str):
     entry = _mk_entry()
@@ -102,7 +102,11 @@ async def test_options_flow_menu_navigate(hass: HomeAssistant, step: str):
     r2 = await hass.config_entries.options.async_configure(
         r["flow_id"], user_input={"next_step_id": step},
     )
-    assert r2["type"] == FlowResultType.FORM
+    # notifications is a sub-menu (C11b); other steps are forms
+    if step == "notifications":
+        assert r2["type"] == FlowResultType.MENU
+    else:
+        assert r2["type"] == FlowResultType.FORM
     assert r2["step_id"] == step
 
 
@@ -130,22 +134,39 @@ async def test_options_flow_menu_test_all(hass: HomeAssistant):
 
 # --- SUBMIT tests: raken de handler-bodies in config_flow.py ---
 @pytest.mark.parametrize("step,data", [
-    ("device", {"compressor_rps_threshold": 3, "fallback_power_threshold_w": 200}),
+    ("device", {
+        "sensors": {},
+        "detection": {"compressor_rps_threshold": 3, "fallback_power_threshold_w": 200},
+        "comfort": {},
+    }),
     ("pendulum", {
-        "short_run_threshold_min": 20, "short_off_threshold_min": 5,
-        "pendulum_cycles_per_hour": 4, "pendulum_cycles_per_day": 40,
-        "dhw_pendulum_cycles_per_hour": 3,
-        "setpoint_oscillation_threshold": 10,
-        "setpoint_osc_window_min": 30, "setpoint_osc_min_delta": 0.5,
+        "run_off": {
+            "short_run_threshold_min": 20, "short_off_threshold_min": 5,
+        },
+        "pendulum": {
+            "pendulum_cycles_per_hour": 4, "pendulum_cycles_per_day": 40,
+            "dhw_pendulum_cycles_per_hour": 3,
+        },
+        "setpoint": {
+            "setpoint_oscillation_threshold": 10,
+            "setpoint_osc_window_min": 30, "setpoint_osc_min_delta": 0.5,
+        },
     }),
-    ("quality", {
-        "good_run_threshold_min": 45, "good_dt_threshold_k": 5.0,
-        "good_off_threshold_min": 20, "target_cycles_per_day": 8,
+    ("quality_ml", {
+        "quality": {
+            "good_run_threshold_min": 45, "good_dt_threshold_k": 5.0,
+            "good_off_threshold_min": 20, "target_cycles_per_day": 8,
+        },
+        "adaptive": {
+            "adaptive_thresholds_enabled": True, "adaptive_min_samples": 30,
+        },
     }),
-    ("ml", {"adaptive_thresholds_enabled": True, "adaptive_min_samples": 30}),
-    ("maintenance", {
-        "retention_enabled": True, "cycle_retention_days": 90,
-        "alert_retention_days": 30, "vacuum_enabled": True,
+    ("advanced", {
+        "retention": {
+            "retention_enabled": True, "cycle_retention_days": 90,
+            "alert_retention_days": 30, "vacuum_enabled": True,
+        },
+        "season": {"season_start_month": 10},
     }),
 ])
 async def test_options_step_submit(hass: HomeAssistant, step: str, data: dict):
@@ -170,21 +191,15 @@ async def test_options_notifications_submit(hass: HomeAssistant):
     r = await hass.config_entries.options.async_configure(
         r["flow_id"], user_input={"next_step_id": "notifications"},
     )
+    assert r["type"] == FlowResultType.MENU
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], user_input={"next_step_id": "notifications_delivery"},
+    )
     r2 = await hass.config_entries.options.async_configure(
         r["flow_id"], user_input={
             "persistent_enabled": True,
             "notify_emoji_enabled": True,
             "action_advice_enabled": True,
-            "quiet_hours_enabled": False,
-            "alert_aggregation_minutes": 30,
-            "status_update_enabled": False,
-            "status_update_interval_hours": 24,
-            "notification_language": "en",
-            "alert_group_pendulum": True,
-            "alert_group_short_cycle": True,
-            "alert_group_ml": True,
-            "alert_group_setpoint": True,
-            "alert_group_cop_stooklijn": True,
         },
     )
     assert r2["type"] in (FlowResultType.FORM, FlowResultType.MENU,

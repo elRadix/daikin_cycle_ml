@@ -49,7 +49,7 @@ def test_options_flow_pendulum_has_setpoint_osc():
 
 
 def test_options_flow_notifications_has_language_and_groups():
-    src = inspect.getsource(cf.DaikinCycleMLOptionsFlow.async_step_notifications)
+    src = inspect.getsource(cf.DaikinCycleMLOptionsFlow.async_step_notifications_content)
     for key in (
         "notification_language",
         "alert_group_pendulum",
@@ -66,8 +66,8 @@ def test_translations_pendulum_has_osc_keys():
     for fn in ("en.json", "nl.json"):
         with open(os.path.join(base, fn), encoding="utf-8") as f:
             data = json.load(f)
-        d = data["options"]["step"]["pendulum"]["data"]
-        dd = data["options"]["step"]["pendulum"]["data_description"]
+        d = data["options"]["step"]["pendulum"]["sections"]["setpoint"]["data"]
+        dd = data["options"]["step"]["pendulum"]["sections"]["setpoint"]["data_description"]
         for k in (
             "setpoint_oscillation_threshold",
             "setpoint_osc_window_min",
@@ -82,8 +82,8 @@ def test_translations_notifications_has_language_and_groups():
     for fn in ("en.json", "nl.json"):
         with open(os.path.join(base, fn), encoding="utf-8") as f:
             data = json.load(f)
-        d = data["options"]["step"]["notifications"]["data"]
-        dd = data["options"]["step"]["notifications"]["data_description"]
+        d = data["options"]["step"]["notifications_content"]["data"]
+        dd = data["options"]["step"]["notifications_content"]["data_description"]
         for k in (
             "notification_language",
             "alert_group_pendulum",
@@ -102,9 +102,9 @@ def test_strings_json_mirrors_en():
         s = json.load(f)
     with open(os.path.join(base, "..", "custom_components", "daikin_cycle_ml", "translations", "en.json"), encoding="utf-8") as f:
         e = json.load(f)
-    sd = s["options"]["step"]["notifications"]["data"]
-    ed = e["options"]["step"]["notifications"]["data"]
+    sd = s["options"]["step"]["notifications_content"]["data"]
+    ed = e["options"]["step"]["notifications_content"]["data"]
     assert sd.get("notification_language") == ed.get("notification_language")
-    sp = s["options"]["step"]["pendulum"]["data"]
-    ep = e["options"]["step"]["pendulum"]["data"]
+    sp = s["options"]["step"]["pendulum"]["sections"]["setpoint"]["data"]
+    ep = e["options"]["step"]["pendulum"]["sections"]["setpoint"]["data"]
     assert sp.get("setpoint_oscillation_threshold") == ep.get("setpoint_oscillation_threshold")

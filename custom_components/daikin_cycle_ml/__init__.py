@@ -14,6 +14,10 @@ from .const import VERSION as VERSION
 from .const import GOOD_CYCLE_MIN_SCORE as GOOD_CYCLE_MIN_SCORE
 from .engine.quality_scorer import score_cycle as _score_cycle
 from .coordinator import DaikinCycleMLCoordinator
+from .repairs import (
+    clear_datasheet_load_failed,
+    raise_datasheet_load_failed,
+)
 from .services import async_register_services
 from .api import CopHourlyView
 from .storage.db import CycleDB
@@ -135,6 +139,12 @@ async def _async_backfill_quality(
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Daikin Cycle ML from a config entry."""
     coordinator = DaikinCycleMLCoordinator(hass, entry)
+    try:
+        await coordinator.async_reload_user_datasheets()
+        clear_datasheet_load_failed(hass, entry.entry_id)
+    except Exception as err:
+        _LOGGER.exception("user datasheet store load failed")
+        raise_datasheet_load_failed(hass, entry.entry_id, str(err))
     await _async_setup_database(hass, coordinator)
     await _async_backfill_quality(coordinator)
     await _async_hydrate_store(coordinator)

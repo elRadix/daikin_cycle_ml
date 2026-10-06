@@ -8,10 +8,10 @@ def test_const_domain():
     assert DOMAIN == "daikin_cycle_ml"
 
 
-def test_const_version_1_0_0():
+def test_const_version_semver():
     from custom_components.daikin_cycle_ml import const
-    parts = const.VERSION.split(".")
-    assert len(parts) == 3 and all(p.isdigit() for p in parts), const.VERSION
+    import re
+    assert re.fullmatch(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", const.VERSION), const.VERSION
 
 
 def test_const_core_attributes_count():
