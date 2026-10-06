@@ -730,9 +730,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             state = self.hass.states.get(self.source_entity)
             if state is None:
                 return snap
-            attrs = read(state,
-            custom_map=self.options.get("custom_attribute_map"),
-        )
+            custom_map = (
+                self.options.get("custom_attribute_map")
+                or self.entry.data.get("custom_attribute_map")
+                or self.entry.data.get("attribute_map")
+            )
+            attrs = read(state, custom_map=custom_map)
             snap.attrs = attrs
             snap.missing_attrs = missing_required(attrs)
             snap.last_success_ts = now
