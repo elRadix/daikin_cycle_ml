@@ -85,7 +85,19 @@ def test_reconfigure_basic_step_has_descriptions(path):
 @pytest.mark.parametrize("path", FILES, ids=lambda p: p.name)
 def test_options_step_has_data_description(path):
     data = json.loads(path.read_text(encoding="utf-8"))
-    init = data["options"]["step"]["init"]
-    dd = init.get("data_description", {})
+    dd: set[str] = set()
+    for s in data["options"]["step"].values():
+        dd.update(s.get("data_description", {}).keys())
+        for sec in s.get("sections", {}).values():
+            dd.update(sec.get("data_description", {}).keys())
     for field in OPTIONS_EXPECTED:
         assert field in dd, f"{path.name}: options.{field} no data_description"
+
+
+@pytest.mark.parametrize("path", FILES, ids=lambda p: p.name)
+def test_options_menu_steps_have_no_orphans(path):
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for sid, s in data["options"]["step"].items():
+        if "menu_options" in s:
+            assert "data_description" not in s, f"{path.name}: {sid} orphan dd"
+            assert "data" not in s, f"{path.name}: {sid} orphan data"

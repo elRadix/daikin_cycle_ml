@@ -152,17 +152,6 @@
           "test_notification": "Send test notification now",
           "test_all_notifications": "Send ALL test notifications"
         },
-        "data_description": {
-          "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3.",
-          "short_run_threshold_min": "Cycles shorter than this are flagged. Default 20 min.",
-          "pendulum_cycles_per_day": "Daily cycle count triggering a pendulum alert. Default 40.",
-          "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min.",
-          "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
-          "retention_enabled": "Run daily maintenance at 03:00 local time.",
-          "cycle_retention_days": "Cycles older than N days are rolled up and pruned. Default 90.",
-          "alert_retention_days": "Alerts older than N days are deleted. Default 30.",
-          "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning."
-        },
         "menu_option_descriptions": {
           "device": "Sensors and cycle-detection thresholds",
           "pendulum": "Pendulum and setpoint-oscillation detection",
@@ -171,17 +160,6 @@
           "advanced": "Retention, daily rollup, VACUUM",
           "test_notification": "Send one sample alert to the notify target",
           "test_all_notifications": "One click — sends one of each alert type (filters bypassed)"
-        },
-        "data": {
-          "compressor_rps_threshold": "Compressor RPS threshold",
-          "short_run_threshold_min": "Short run threshold (min)",
-          "pendulum_cycles_per_day": "Pendulum cycles per day",
-          "good_run_threshold_min": "Good run threshold (min)",
-          "persistent_enabled": "Persistent notifications",
-          "retention_enabled": "Retention enabled",
-          "cycle_retention_days": "Cycle retention (days)",
-          "alert_retention_days": "Alert retention (days)",
-          "vacuum_enabled": "VACUUM on maintenance"
         }
       },
       "device": {
