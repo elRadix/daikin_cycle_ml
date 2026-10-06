@@ -203,10 +203,119 @@ def test_dt_s_zero_returns_early() -> None:
     assert a["heating"]["th"] == 0.0
 
 
-def test_dt_s_capped_at_120s() -> None:
-    """Gap of 600 s -> capped at 120 s (R288 candidate, unchanged here)."""
+def test_dt_s_capped_at_300s() -> None:
+    """Gap of 600 s -> capped at 300 s (R288: cap raised from 120 s)."""
     c = _bare(detector_state="running")
     with patch.object(coord_mod, "_compute_thermal_power_live", return_value=(5.0, "flow_dt")):
         c._tick_energy({}, now=SEED_TS + 600.0, mode="heating", power_w=1200.0, cop=4.0)
     a = _acc(c)
-    assert a["heating"]["th"] == pytest.approx(5.0 * 120.0 / 3600.0)
+    assert a["heating"]["th"] == pytest.approx(5.0 * 300.0 / 3600.0)
+
+
+# --- R288: dt_s cap 300s + warn >60s (energy) ------------------------------
+
+
+def test_r288_gap_30s_no_warning_full_dt(caplog) -> None:
+    import logging as _logging
+    c = _bare(detector_state="running")
+    with caplog.at_level(
+        _logging.WARNING,
+        logger="custom_components.daikin_cycle_ml.coordinator",
+    ):
+        with patch.object(
+            coord_mod, "_compute_thermal_power_live", return_value=(5.0, "flow_dt")
+        ):
+            c._tick_energy({}, now=SEED_TS + 30.0, mode="heating",
+                           power_w=1200.0, cop=4.0)
+    assert not any("energy tick gap" in r.getMessage() for r in caplog.records)
+    a = _acc(c)
+    assert a["heating"]["th"] == pytest.approx(5.0 * 30.0 / 3600.0)
+
+
+def test_r288_gap_90s_warns_full_dt(caplog) -> None:
+    import logging as _logging
+    c = _bare(detector_state="running")
+    with caplog.at_level(
+        _logging.WARNING,
+        logger="custom_components.daikin_cycle_ml.coordinator",
+    ):
+        with patch.object(
+            coord_mod, "_compute_thermal_power_live", return_value=(5.0, "flow_dt")
+        ):
+            c._tick_energy({}, now=SEED_TS + 90.0, mode="heating",
+                           power_w=1200.0, cop=4.0)
+    assert any("energy tick gap" in r.getMessage() for r in caplog.records)
+    a = _acc(c)
+    assert a["heating"]["th"] == pytest.approx(5.0 * 90.0 / 3600.0)
+
+
+def test_r288_gap_400s_warns_and_caps_at_300(caplog) -> None:
+    import logging as _logging
+    c = _bare(detector_state="running")
+    with caplog.at_level(
+        _logging.WARNING,
+        logger="custom_components.daikin_cycle_ml.coordinator",
+    ):
+        with patch.object(
+            coord_mod, "_compute_thermal_power_live", return_value=(5.0, "flow_dt")
+        ):
+            c._tick_energy({}, now=SEED_TS + 400.0, mode="heating",
+                           power_w=1200.0, cop=4.0)
+    assert any("energy tick gap" in r.getMessage() for r in caplog.records)
+    a = _acc(c)
+    assert a["heating"]["th"] == pytest.approx(5.0 * 300.0 / 3600.0)
+
+
+# --- R288b: same cap on BUH runtime accumulator ----------------------------
+
+
+def _bare_runtime():
+    c = _bare(detector_state="idle")
+    c._last_runtime_tick_ts = SEED_TS
+    c._buh_step1_s = 0.0
+    c._buh_step2_s = 0.0
+    c._defrost_count_today = 0
+    c._defrost_duration_s = 0.0
+    c._defrost_start_ts = None
+    c._last_defrost_ts = None
+    c._prev_defrost = False
+    return c
+
+
+def test_r288b_gap_30s_no_warning(caplog) -> None:
+    import logging as _logging
+    c = _bare_runtime()
+    attrs = {ATTR_BUH_STEP1: True, ATTR_BUH_STEP2: False}
+    with caplog.at_level(
+        _logging.WARNING,
+        logger="custom_components.daikin_cycle_ml.coordinator",
+    ):
+        c._tick_buh_and_defrost(attrs, now=SEED_TS + 30.0)
+    assert not any("buh tick gap" in r.getMessage() for r in caplog.records)
+    assert c._buh_step1_s == pytest.approx(30.0)
+
+
+def test_r288b_gap_90s_warns_full_dt(caplog) -> None:
+    import logging as _logging
+    c = _bare_runtime()
+    attrs = {ATTR_BUH_STEP1: True, ATTR_BUH_STEP2: False}
+    with caplog.at_level(
+        _logging.WARNING,
+        logger="custom_components.daikin_cycle_ml.coordinator",
+    ):
+        c._tick_buh_and_defrost(attrs, now=SEED_TS + 90.0)
+    assert any("buh tick gap" in r.getMessage() for r in caplog.records)
+    assert c._buh_step1_s == pytest.approx(90.0)
+
+
+def test_r288b_gap_400s_warns_and_caps_at_300(caplog) -> None:
+    import logging as _logging
+    c = _bare_runtime()
+    attrs = {ATTR_BUH_STEP1: True, ATTR_BUH_STEP2: False}
+    with caplog.at_level(
+        _logging.WARNING,
+        logger="custom_components.daikin_cycle_ml.coordinator",
+    ):
+        c._tick_buh_and_defrost(attrs, now=SEED_TS + 400.0)
+    assert any("buh tick gap" in r.getMessage() for r in caplog.records)
+    assert c._buh_step1_s == pytest.approx(300.0)

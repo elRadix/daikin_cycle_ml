@@ -8,6 +8,10 @@ VERSION = "1.6.4"
 # --- Coordinator ---
 UPDATE_INTERVAL_SECONDS = 30
 
+# R288: dt_s cap and warning threshold for energy accumulator.
+ENERGY_DT_CAP_S = 300.0
+ENERGY_DT_WARN_S = 60.0
+
 # --- Source sensor ---
 SOURCE_SENSOR_ENTITY = "sensor.althermasensors"
 
