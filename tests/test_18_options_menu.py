@@ -26,7 +26,7 @@ def _disable_options_reload(hass):
 
 
 STEPS_FORM = (
-    "device", "pendulum", "quality", "ml", "maintenance",
+    "device", "pendulum", "quality_ml", "advanced",
 )
 STEPS = STEPS_FORM
 
@@ -192,10 +192,10 @@ async def test_pendulum_submit_preserves_other_keys(hass):
     assert r["data"]["compressor_rps_threshold"] == 4
 
 
-async def test_quality_submit(hass):
+async def test_quality_ml_submit(hass):
     r = await _start(hass)
     r = await hass.config_entries.options.async_configure(
-        r["flow_id"], user_input={"next_step_id": "quality"}
+        r["flow_id"], user_input={"next_step_id": "quality_ml"}
     )
     r = await hass.config_entries.options.async_configure(
         r["flow_id"],
@@ -206,20 +206,6 @@ async def test_quality_submit(hass):
                 "good_off_threshold_min": 22,
                 "target_cycles_per_day": 9,
             },
-        },
-    )
-    assert r["type"] == "create_entry"
-    assert r["data"]["good_run_threshold_min"] == 50
-
-
-async def test_ml_submit(hass):
-    r = await _start(hass)
-    r = await hass.config_entries.options.async_configure(
-        r["flow_id"], user_input={"next_step_id": "ml"}
-    )
-    r = await hass.config_entries.options.async_configure(
-        r["flow_id"],
-        user_input={
             "adaptive": {
                 "adaptive_thresholds_enabled": True,
                 "adaptive_min_samples": 25,
@@ -227,13 +213,14 @@ async def test_ml_submit(hass):
         },
     )
     assert r["type"] == "create_entry"
+    assert r["data"]["good_run_threshold_min"] == 50
     assert r["data"]["adaptive_min_samples"] == 25
 
 
-async def test_maintenance_submit(hass):
+async def test_advanced_submit(hass):
     r = await _start(hass)
     r = await hass.config_entries.options.async_configure(
-        r["flow_id"], user_input={"next_step_id": "maintenance"}
+        r["flow_id"], user_input={"next_step_id": "advanced"}
     )
     r = await hass.config_entries.options.async_configure(
         r["flow_id"],

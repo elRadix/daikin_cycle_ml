@@ -93,7 +93,7 @@ async def test_options_flow_init_menu(hass: HomeAssistant):
 
 
 @pytest.mark.parametrize("step", [
-    "device", "pendulum", "quality", "notifications", "ml", "maintenance",
+    "device", "pendulum", "quality_ml", "notifications", "advanced",
 ])
 async def test_options_flow_menu_navigate(hass: HomeAssistant, step: str):
     entry = _mk_entry()
@@ -152,16 +152,16 @@ async def test_options_flow_menu_test_all(hass: HomeAssistant):
             "setpoint_osc_window_min": 30, "setpoint_osc_min_delta": 0.5,
         },
     }),
-    ("quality", {
+    ("quality_ml", {
         "quality": {
             "good_run_threshold_min": 45, "good_dt_threshold_k": 5.0,
             "good_off_threshold_min": 20, "target_cycles_per_day": 8,
         },
+        "adaptive": {
+            "adaptive_thresholds_enabled": True, "adaptive_min_samples": 30,
+        },
     }),
-    ("ml", {"adaptive": {
-        "adaptive_thresholds_enabled": True, "adaptive_min_samples": 30,
-    }}),
-    ("maintenance", {
+    ("advanced", {
         "retention": {
             "retention_enabled": True, "cycle_retention_days": 90,
             "alert_retention_days": 30, "vacuum_enabled": True,

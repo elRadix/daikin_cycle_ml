@@ -146,10 +146,9 @@
         "menu_options": {
           "device": "Device",
           "pendulum": "Pendulum",
-          "quality": "Quality",
+          "quality_ml": "Quality & ML",
           "notifications": "Notifications",
-          "ml": "ML learning",
-          "maintenance": "Maintenance",
+          "advanced": "Advanced",
           "test_notification": "Send test notification now",
           "test_all_notifications": "Send ALL test notifications"
         },
@@ -167,10 +166,9 @@
         "menu_option_descriptions": {
           "device": "Sensors and cycle-detection thresholds",
           "pendulum": "Pendulum and setpoint-oscillation detection",
-          "quality": "Quality scoring thresholds",
+          "quality_ml": "Quality scoring thresholds",
           "notifications": "Notify target, quiet hours, alert groups, language",
-          "ml": "Adaptive thresholds and ML learning",
-          "maintenance": "Retention, daily rollup, VACUUM",
+          "advanced": "Retention, daily rollup, VACUUM",
           "test_notification": "Send one sample alert to the notify target",
           "test_all_notifications": "One click — sends one of each alert type (filters bypassed)"
         },
@@ -270,8 +268,8 @@
           }
         }
       },
-      "quality": {
-        "title": "Quality",
+      "quality_ml": {
+        "title": "Quality & ML",
         "description": "Cycle quality scoring (0-100).",
         "sections": {
           "quality": {
@@ -287,6 +285,17 @@
               "good_dt_threshold_k": "Minimum dT (K) for full marks. Default 5.0 K.",
               "good_off_threshold_min": "Minimum off-time for full marks. Default 20 min.",
               "target_cycles_per_day": "Efficiency target used in ratio-based advice. Default 8."
+            }
+          },
+          "adaptive": {
+            "name": "Adaptive learning",
+            "data": {
+              "adaptive_thresholds_enabled": "Adaptive thresholds",
+              "adaptive_min_samples": "Minimum samples"
+            },
+            "data_description": {
+              "adaptive_thresholds_enabled": "Auto-tune thresholds from observed cycles.",
+              "adaptive_min_samples": "Cycles needed before adaptive tuning activates. Default 20."
             }
           }
         }
@@ -307,25 +316,8 @@
           "notifications_test_menu": "Send one or all sample alerts"
         }
       },
-      "ml": {
-        "title": "ML learning",
-        "description": "Adaptive thresholds and anomaly detection.",
-        "sections": {
-          "adaptive": {
-            "name": "Adaptive learning",
-            "data": {
-              "adaptive_thresholds_enabled": "Adaptive thresholds",
-              "adaptive_min_samples": "Minimum samples"
-            },
-            "data_description": {
-              "adaptive_thresholds_enabled": "Auto-tune thresholds from observed cycles.",
-              "adaptive_min_samples": "Cycles needed before adaptive tuning activates. Default 20."
-            }
-          }
-        }
-      },
-      "maintenance": {
-        "title": "Maintenance",
+      "advanced": {
+        "title": "Advanced",
         "description": "Retention and database maintenance.",
         "sections": {
           "retention": {

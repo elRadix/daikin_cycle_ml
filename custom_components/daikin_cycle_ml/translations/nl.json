@@ -146,10 +146,9 @@
         "menu_options": {
           "device": "Apparaat",
           "pendulum": "Pendelen",
-          "quality": "Kwaliteit",
+          "quality_ml": "Kwaliteit & ML",
           "notifications": "Meldingen",
-          "ml": "ML leren",
-          "maintenance": "Onderhoud",
+          "advanced": "Geavanceerd",
           "test_notification": "Testmelding nu versturen",
           "test_all_notifications": "Verstuur ALLE testmeldingen"
         },
@@ -167,10 +166,9 @@
         "menu_option_descriptions": {
           "device": "Sensoren en cyclusdetectie-drempels",
           "pendulum": "Pendel- en setpoint-oscillatiedetectie",
-          "quality": "Kwaliteitsscore-drempels",
+          "quality_ml": "Kwaliteitsscore-drempels",
           "notifications": "Melding-doel, stille uren, alert-groepen, taal",
-          "ml": "Adaptieve drempels en ML-leren",
-          "maintenance": "Retentie, dagelijkse rollup, VACUUM",
+          "advanced": "Retentie, dagelijkse rollup, VACUUM",
           "test_notification": "Stuur één voorbeeldmelding naar het melding-doel",
           "test_all_notifications": "Eén klik — stuurt elk alert-type in één keer (filters omzeild)"
         },
@@ -270,8 +268,8 @@
           }
         }
       },
-      "quality": {
-        "title": "Kwaliteit",
+      "quality_ml": {
+        "title": "Kwaliteit & ML",
         "description": "Kwaliteitsscore van cycli (0-100).",
         "sections": {
           "quality": {
@@ -287,6 +285,17 @@
               "good_dt_threshold_k": "Minimale dT (K) voor volledige score. Standaard 5.0 K.",
               "good_off_threshold_min": "Minimale off-tijd voor volledige score. Standaard 20 min.",
               "target_cycles_per_day": "Efficientiedoel voor ratio-advies. Standaard 8."
+            }
+          },
+          "adaptive": {
+            "name": "Adaptief leren",
+            "data": {
+              "adaptive_thresholds_enabled": "Adaptieve drempels",
+              "adaptive_min_samples": "Minimum aantal samples"
+            },
+            "data_description": {
+              "adaptive_thresholds_enabled": "Drempels automatisch bijstellen op basis van cycli.",
+              "adaptive_min_samples": "Aantal cycli voor adaptieve tuning. Standaard 20."
             }
           }
         }
@@ -307,25 +316,8 @@
           "notifications_test_menu": "Stuur één of alle voorbeeldmeldingen"
         }
       },
-      "ml": {
-        "title": "ML leren",
-        "description": "Adaptieve drempels en anomaliedetectie.",
-        "sections": {
-          "adaptive": {
-            "name": "Adaptief leren",
-            "data": {
-              "adaptive_thresholds_enabled": "Adaptieve drempels",
-              "adaptive_min_samples": "Minimum aantal samples"
-            },
-            "data_description": {
-              "adaptive_thresholds_enabled": "Drempels automatisch bijstellen op basis van cycli.",
-              "adaptive_min_samples": "Aantal cycli voor adaptieve tuning. Standaard 20."
-            }
-          }
-        }
-      },
-      "maintenance": {
-        "title": "Onderhoud",
+      "advanced": {
+        "title": "Geavanceerd",
         "description": "Retentie en database-onderhoud.",
         "sections": {
           "retention": {

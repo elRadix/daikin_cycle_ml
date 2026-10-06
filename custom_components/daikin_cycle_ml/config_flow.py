@@ -540,10 +540,9 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             menu_options=[
                 "device",
                 "pendulum",
-                "quality",
+                "quality_ml",
                 "notifications",
-                "ml",
-                "maintenance",
+                "advanced",
                 "test_notification",
                 "test_all_notifications",
             ],
@@ -660,7 +659,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         })
         return self.async_show_form(step_id="pendulum", data_schema=schema)
 
-    async def async_step_quality(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_quality_ml(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self._save(user_input)
         c: dict[str, Any] = dict(self.config_entry.options or {})
@@ -679,8 +678,17 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                     default=c.get("target_cycles_per_day", DEFAULT_TARGET_CYCLES_PER_DAY)
                 ): _num(1, 100, 1),
             })),
+            vol.Required("adaptive"): section(vol.Schema({
+                vol.Required("adaptive_thresholds_enabled",
+                    default=c.get("adaptive_thresholds_enabled",
+                        DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED),
+                ): bool,
+                vol.Required("adaptive_min_samples",
+                    default=c.get("adaptive_min_samples", DEFAULT_ADAPTIVE_MIN_SAMPLES)
+                ): _num(5, 500, 1),
+            })),
         })
-        return self.async_show_form(step_id="quality", data_schema=schema)
+        return self.async_show_form(step_id="quality_ml", data_schema=schema)
 
     async def async_step_notifications(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Notifications submenu."""
@@ -909,25 +917,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         )
 
 
-    async def async_step_ml(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-
-        if user_input is not None:
-            return self._save(user_input)
-        c: dict[str, Any] = dict(self.config_entry.options or {})
-        schema = vol.Schema({
-            vol.Required("adaptive"): section(vol.Schema({
-                vol.Required("adaptive_thresholds_enabled",
-                    default=c.get("adaptive_thresholds_enabled",
-                        DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED),
-                ): bool,
-                vol.Required("adaptive_min_samples",
-                    default=c.get("adaptive_min_samples", DEFAULT_ADAPTIVE_MIN_SAMPLES)
-                ): _num(5, 500, 1),
-            })),
-        })
-        return self.async_show_form(step_id="ml", data_schema=schema)
-
-    async def async_step_maintenance(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_advanced(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self._save(user_input)
         c: dict[str, Any] = dict(self.config_entry.options or {})
@@ -958,4 +948,4 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 ),
             })),
         })
-        return self.async_show_form(step_id="maintenance", data_schema=schema)
+        return self.async_show_form(step_id="advanced", data_schema=schema)

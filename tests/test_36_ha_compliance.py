@@ -83,8 +83,8 @@ def test_result_step_exists(rel):
 def test_menu_option_descriptions(rel):
     d = json.loads((ROOT / rel).read_text(encoding="utf-8"))
     mod = d["options"]["step"]["init"].get("menu_option_descriptions") or {}
-    for k in ("device", "pendulum", "quality", "notifications",
-              "ml", "maintenance", "test_notification"):
+    for k in ("device", "pendulum", "quality_ml", "notifications",
+              "advanced", "test_notification"):
         assert k in mod, rel + " missing menu description " + k
 
 

@@ -260,7 +260,7 @@ def test_maintenance_translation_has_season_start_month():
     base = Path(__file__).parent.parent / "custom_components" / "daikin_cycle_ml"
     for fn in ("strings.json", "translations/en.json", "translations/nl.json"):
         data = json.loads((base / fn).read_text())
-        season = data["options"]["step"]["maintenance"]["sections"]["season"]
+        season = data["options"]["step"]["advanced"]["sections"]["season"]
         assert "season_start_month" in season["data"]
         assert "season_start_month" in season["data_description"]
 
@@ -339,7 +339,7 @@ def test_runtime_translations_parse_all_3():
         d = json.loads((base / fn).read_text())
         for k in ("spf_season", "spf_ytd", "scop_running_365d", "cop_combined_today"):
             assert k in d["entity"]["sensor"], f"{k} missing in {fn}"
-        season = d["options"]["step"]["maintenance"]["sections"]["season"]
+        season = d["options"]["step"]["advanced"]["sections"]["season"]
         assert "season_start_month" in season["data"]
         assert "season_start_month" in season["data_description"]
 
