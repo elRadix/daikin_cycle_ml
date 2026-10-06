@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS cop_samples (
     outdoor REAL,
     flow_lmin REAL,
     power_stable INTEGER DEFAULT 0,
-    mode TEXT DEFAULT NULL,
+    mode TEXT DEFAULT 'unknown',
     source TEXT DEFAULT 'interval'
 );
 

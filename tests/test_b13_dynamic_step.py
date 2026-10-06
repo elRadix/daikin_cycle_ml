@@ -138,7 +138,7 @@ def test_dataclass_defaults():
     assert a.state == "unknown"
     assert a.step_c == 0
     assert a.delta_c == 0.0
-    assert a.comfort_cap == 3.0
+    assert a.comfort_cap is None
     assert a.urgency == 0.0
 
 

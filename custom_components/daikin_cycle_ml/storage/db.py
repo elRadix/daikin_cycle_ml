@@ -323,6 +323,20 @@ class CycleDB:
         hourly_ok = await self.async_create_cop_hourly_v14()
         return cycles_added, source_ok, hourly_ok
 
+    async def async_migrate_cop_samples_mode_default_v15(self) -> int:
+        # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.
+        await self.async_ensure_cop_samples_table()
+        conn = self._require()
+        cur = await conn.execute(
+            "UPDATE cop_samples SET mode = 'unknown' WHERE mode IS NULL"
+        )
+        try:
+            updated = int(cur.rowcount or 0)
+        finally:
+            await cur.close()
+        await conn.commit()
+        return updated
+
     async def async_insert_features(
         self, cycle_id: int, vector: list[float]
     ) -> None:
@@ -852,7 +866,7 @@ class CycleDB:
                     sample.get("outdoor"),
                     sample.get("flow_lmin"),
                     1 if sample.get("power_stable") else 0,
-                    sample.get("mode"),
+                    sample.get("mode") or "unknown",
                     sample.get("source", "interval"),
                 ),
             )

@@ -1438,7 +1438,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                         'tracking_error': None,
                         'err_indoor': None,
                         'urgency': 0.0,
-                        'comfort_cap': 3.0,
+                        'comfort_cap': None,
                     }
                     self._stooklijn_cache_ts = now
                 return

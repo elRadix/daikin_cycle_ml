@@ -17,6 +17,7 @@ def _mock_db(**kw):
     inst.async_migrate_features_to_v12 = AsyncMock(return_value=0)
     inst.async_migrate_cop_samples_to_v13 = AsyncMock(return_value=0)
     inst.async_migrate_to_v14 = AsyncMock(return_value=(0, True, True))
+    inst.async_migrate_cop_samples_mode_default_v15 = AsyncMock(return_value=0)
     inst.async_integrity_check = AsyncMock(return_value=True)
     for k, v in kw.items():
         setattr(inst, k, v)
@@ -32,6 +33,20 @@ async def test_v11_migration_success_logs(hass):
                return_value=inst):
         await _async_setup_database(hass, coord)
     assert coord._migration_error is None
+
+
+async def test_v15_migration_raises(hass):
+    """Cover v15 except-branch in __init__.py."""
+    coord = MagicMock()
+    coord._migration_error = None
+    inst = _mock_db()
+    inst.async_migrate_cop_samples_mode_default_v15 = AsyncMock(
+        side_effect=RuntimeError("v15 boom")
+    )
+    with patch("custom_components.daikin_cycle_ml.CycleDB",
+               return_value=inst):
+        await _async_setup_database(hass, coord)
+    assert coord._migration_error == "v15 boom"
 
 
 async def test_v13_migration_raises(hass):
