@@ -84,6 +84,30 @@ No cloud. No external API. Everything runs inside your Home Assistant box.
 
 ## 2. What's new
 
+### v1.6.2 — Onboarding modes
+
+Patch release that unblocks onboarding for units whose ESPAltherma firmware
+does not expose every canonical attribute (issue #25).
+
+**Two attribute modes** (screen 1 of the wizard):
+
+- **Automatic** — canonical ESPAltherma names (previous behaviour).
+- **Manual** — map each required attribute to whatever your sensor exposes.
+
+The required set shrinks from 13 to 12: `INV frequency (rps)` is now
+optional. Units without a compressor-frequency attribute can onboard in
+Automatic mode as long as the remaining 12 keys exist, or in Manual mode
+when even those use non-canonical names.
+
+**Manual mapping step** — one text field per required (12) and optional (1)
+attribute. Leave a field empty if the canonical name already exists on the
+sensor; the wizard auto-fills it. Fields with a name that is not present on
+the sensor fail fast with `attribute_not_found`.
+
+**Coordinator fallback** — the custom map is resolved in order:
+`options["custom_attribute_map"]` → `data["custom_attribute_map"]` →
+`data["attribute_map"]`. Existing entries keep working unchanged.
+
 ### v1.6.0 — HVAC Parity
 
 The v1.6.0 release turns the integration from a cycle-detector into a
@@ -450,6 +474,31 @@ Example:
 ---
 
 ## 8. Config flow — step by step
+
+### Workaround: onboarding fails with 'Sensor mist vereiste ESPAltherma-attributen'
+
+If the wizard aborts on screen 1 with this message and you cannot proceed:
+
+1. Re-run **Add Integration**.
+2. On screen 1, switch **Attribute mode** from `Automatic` to `Manual`.
+3. On the next screen, map each canonical attribute to the matching
+   attribute name on your sensor (as visible in **Developer Tools -> States**
+   under the source entity). Leave a field empty if the canonical name
+   already exists on the sensor.
+4. If `INV frequency (rps)` is not exposed by your firmware, leave that
+   field empty - cycle detection falls back to a current-based heuristic.
+
+If `Manual` mode still fails, please open an issue with the output of
+the following snippet, run in **Developer Tools -> Template**:
+
+```
+{% for k in states.sensor.althermasensors.attributes.keys() %}
+{{ k }}
+{% endfor %}
+```
+
+That gives us the exact key list for your firmware.
+
 
 ### 8.1 Setup wizard (8 steps)
 
@@ -1503,6 +1552,9 @@ All six must pass before a release is tagged.
 
 - Source sensor missing one or more required attributes.
 - Verify ESPAltherma fields, or add a custom attribute map.
+- If onboarding blocks on screen 1, switch **Attribute mode** to
+  **Manual** and map each required attribute (see the Custom attribute
+  map section for details).
 
 ### Alerts are noisy
 
