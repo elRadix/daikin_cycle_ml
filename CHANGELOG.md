@@ -5,13 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.6.0-rc1] - 2026-10-06
+## [1.6.0] - 2026-10-06
 
-**Release candidate.** v1.6.0 adds COP intelligence, Daikin datasheet
-integration, and runtime/energy observability. Validate in your heating
-season before promoting to stable.
+v1.6.0 adds COP intelligence, Daikin datasheet integration, and
+runtime/energy observability. Local-only, no cloud dependencies.
 
-[Full diff v1.5.3...v1.6.0-rc1](https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0-rc1)
+[Full diff v1.5.3...v1.6.0](https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0)
 
 ### Added
 
@@ -159,7 +158,7 @@ COP normalization.
 
 ### Install / Update
 
-Via HACS: update to `1.6.0-rc1` (pre-release channel).
+Via HACS: update to `1.6.0`.
 Manual: copy `custom_components/daikin_cycle_ml/` into `/config/custom_components/`, restart HA.
 
 ---
@@ -1340,6 +1339,6 @@ Versioning: https://semver.org/spec/v2.0.0.html
 
 - db.py: maintenance deletes features before cycles (FK-safe)
 
-[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...HEAD
-[1.6.0-rc1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0-rc1
+[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.2...v1.5.3
