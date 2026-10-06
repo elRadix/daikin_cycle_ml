@@ -205,6 +205,28 @@ async def test_user_step_shows_attribute_mode_field(hass: HomeAssistant):
     assert "attribute_mode" in keys
 
 
+async def test_manual_mode_optional_bad_key_errors(hass: HomeAssistant):
+    _set_state(hass)
+    r = await _start(hass)
+    r2 = await hass.config_entries.flow.async_configure(
+        r["flow_id"],
+        {
+            "source_sensor": SOURCE_SENSOR_ENTITY,
+            "model": MODEL_EPRA12EAV3,
+            "attribute_mode": ATTRIBUTE_MODE_MANUAL,
+        },
+    )
+    user_input = {c: "" for c in REQUIRED_ATTRIBUTES}
+    for opt in OPTIONAL_ATTRIBUTES:
+        user_input[opt] = "does.not.exist"
+    r3 = await hass.config_entries.flow.async_configure(
+        r2["flow_id"], user_input=user_input,
+    )
+    assert r3["type"] == FlowResultType.FORM
+    assert r3["step_id"] == "map_attributes"
+    assert r3["errors"]["base"] == "attribute_not_found"
+
+
 def test_strings_has_map_step_and_errors():
     base = Path("custom_components/daikin_cycle_ml")
     for fname in ("strings.json", "translations/en.json", "translations/nl.json"):

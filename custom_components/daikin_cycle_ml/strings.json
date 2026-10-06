@@ -147,7 +147,21 @@
           "BUH Step2": "BUH Step2",
           "LW setpoint (main)": "LW setpoint (main)"
         },
-        "data_description": {}
+        "data_description": {
+          "INV frequency (rps)": "Your sensor's attribute name for the canonical 'INV frequency (rps)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Operation Mode": "Your sensor's attribute name for the canonical 'Operation Mode' field. Leave empty if the canonical name already exists on the sensor.",
+          "I/U operation mode": "Your sensor's attribute name for the canonical 'I/U operation mode' field. Leave empty if the canonical name already exists on the sensor.",
+          "3way valve(On:DHW_Off:Space)": "Your sensor's attribute name for the canonical '3way valve(On:DHW_Off:Space)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Defrost Operation": "Your sensor's attribute name for the canonical 'Defrost Operation' field. Leave empty if the canonical name already exists on the sensor.",
+          "Leaving water temp. after BUH (R2T)": "Your sensor's attribute name for the canonical 'Leaving water temp. after BUH (R2T)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Inlet water temp.(R4T)": "Your sensor's attribute name for the canonical 'Inlet water temp.(R4T)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Outdoor air temp.(R1T)": "Your sensor's attribute name for the canonical 'Outdoor air temp.(R1T)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Flow sensor (l/min)": "Your sensor's attribute name for the canonical 'Flow sensor (l/min)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Water pump operation": "Your sensor's attribute name for the canonical 'Water pump operation' field. Leave empty if the canonical name already exists on the sensor.",
+          "BUH Step1": "Your sensor's attribute name for the canonical 'BUH Step1' field. Leave empty if the canonical name already exists on the sensor.",
+          "BUH Step2": "Your sensor's attribute name for the canonical 'BUH Step2' field. Leave empty if the canonical name already exists on the sensor.",
+          "LW setpoint (main)": "Your sensor's attribute name for the canonical 'LW setpoint (main)' field. Leave empty if the canonical name already exists on the sensor."
+        }
       }
     },
     "error": {
