@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2026-10-06
+
+Patch release: fixes an energy accumulator bug found in production where
+standby power (~21 W from a Shelly 3EM reading) was booked as heating
+consumption when the compressor was idle.
+
+[Full diff v1.6.0...v1.6.1](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.0...v1.6.1)
+
+### Fixed
+
+- Energy tick now requires compressor running OR BUH active before
+  accumulating thermal/electrical kWh (R286). Idle and cooldown ticks are
+  skipped entirely.
+- Unknown cycle modes no longer fall back to "heating" (R287). Those
+  ticks are skipped instead of polluting the heating accumulator.
+- BUH-only fallback added for resistive load (R286b): if thermal
+  computation is unavailable but BUH is active and power is known,
+  accumulate electrical only.
+- Detector state access guarded with try/except; a raising detector is
+  treated as "not running" rather than crashing the tick.
+
+### Added
+
+- Test suite `tests/test_v161_energy_guard.py` with 16 cases covering
+  idle/cooldown skip, standby 21 W over 1 h, unknown-mode skip, per-mode
+  accumulation, cop fallback, BUH step1/step2 only, and dt_s boundaries.
+
+### Notes
+
+- No new entities, no schema change, no options change.
+- Backward compatible.
+- Unblocks cost tracking (C6b/C6c) planned for v1.6.1 main scope.
+
 ## [1.6.0] - 2026-10-06
 
 v1.6.0 adds COP intelligence, Daikin datasheet integration, and
