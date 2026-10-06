@@ -958,14 +958,34 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         power_w: float | None,
         cop: float | None,
     ) -> None:
-        """Accumulate thermal + electrical kWh for one tick. Never raises."""
+        """Accumulate thermal + electrical kWh for one tick. Never raises.
+
+        R286: skip standby/idle/cooldown. Only count ticks where the compressor
+        is running or the BUH is active, to prevent standby power (e.g. 21 W
+        controller draw) from being booked as heating consumption.
+
+        R287: no fallback to "heating" for unknown modes. Unknown means the
+        detector has not classified the cycle yet; those ticks are skipped.
+        """
         try:
             last = self._last_energy_tick_ts or now
             dt_s = max(0.0, min(now - last, 120.0))
             self._last_energy_tick_ts = now
             if dt_s <= 0.0:
                 return
-            m = mode if mode in ("heating", "dhw", "cooling") else "heating"
+            if mode not in ("heating", "dhw", "cooling"):
+                return
+            try:
+                compressor_on = self.detector.state == "running"
+            except Exception:
+                compressor_on = False
+            buh_on = (
+                attrs.get(ATTR_BUH_STEP1) is True
+                or attrs.get(ATTR_BUH_STEP2) is True
+            )
+            if not (compressor_on or buh_on):
+                return
+            m = mode
             kw_th, _src = _compute_thermal_power_live(
                 power_w=power_w,
                 cop=cop,
@@ -974,6 +994,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 rps=_rps_from_attrs(attrs),
             )
             if kw_th is None:
+                # R286b: BUH-only fallback — BUH is resistive, treat as
+                # 100 percent efficient electrical-to-thermal for the
+                # electrical accumulator only. Skip thermal to avoid mixing
+                # with compressor COP-derived values.
+                if buh_on and power_w is not None and power_w > 0.0:
+                    acc = self._ensure_energy_acc()
+                    acc[m]["el"] += (power_w / 1000.0) * dt_s / 3600.0
                 return
             kw_el: float | None = None
             if power_w is not None and power_w > 0.0:
