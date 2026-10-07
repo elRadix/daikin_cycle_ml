@@ -419,6 +419,89 @@ class CycleDB:
 
     # ---------- Batch 11b-1: retention + rollup ----------
 
+    async def async_rollup_day(
+        self, day: str, *, modes: tuple[str, ...] | None = None
+    ) -> int:
+        """Full-recompute daily_summary for one local day (idempotent)."""
+        conn = self._require()
+        try:
+            start_ts = time.mktime(time.strptime(day, "%Y-%m-%d"))
+        except (ValueError, TypeError):
+            return 0
+        end_ts = start_ts + 86400.0
+        sql = (
+            "SELECT end_ts, duration_s, mode, dT_max, rps_avg, quality_score, "
+            "buh_used, defrost_used FROM cycles "
+            "WHERE end_ts IS NOT NULL AND end_ts >= ? AND end_ts < ?"
+        )
+        params: list[Any] = [start_ts, end_ts]
+        if modes:
+            sql += " AND COALESCE(mode,'unknown') IN ("
+            sql += ",".join("?" * len(modes)) + ")"
+            params.extend(modes)
+        async with conn.execute(sql, params) as cur:
+            rows = await cur.fetchall()
+        if not rows:
+            return 0
+        agg: dict[str, dict[str, Any]] = {}
+        for r in rows:
+            mode = r["mode"] or "unknown"
+            a = agg.setdefault(mode, {
+                "cycles": 0, "total_duration_s": 0,
+                "duration_min": None, "duration_max": None,
+                "quality_sum": 0, "dt_max_sum": 0.0, "rps_sum": 0.0,
+                "buh_count": 0, "defrost_count": 0,
+            })
+            a["cycles"] += 1
+            dur = r["duration_s"]
+            if isinstance(dur, (int, float)):
+                a["total_duration_s"] += int(dur)
+                if a["duration_min"] is None or dur < a["duration_min"]:
+                    a["duration_min"] = int(dur)
+                if a["duration_max"] is None or dur > a["duration_max"]:
+                    a["duration_max"] = int(dur)
+            q = r["quality_score"]
+            if isinstance(q, (int, float)):
+                a["quality_sum"] += int(q)
+            dt = r["dT_max"]
+            if isinstance(dt, (int, float)):
+                a["dt_max_sum"] += float(dt)
+            rps = r["rps_avg"]
+            if isinstance(rps, (int, float)):
+                a["rps_sum"] += float(rps)
+            if r["buh_used"]:
+                a["buh_count"] += 1
+            if r["defrost_used"]:
+                a["defrost_count"] += 1
+        now = time.time()
+        for mode, a in agg.items():
+            await conn.execute(
+                """INSERT INTO daily_summary
+                   (day, mode, cycles, total_duration_s, duration_min,
+                    duration_max, quality_sum, dt_max_sum, rps_sum,
+                    buh_count, defrost_count, updated_ts)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                   ON CONFLICT(day, mode) DO UPDATE SET
+                     cycles = excluded.cycles,
+                     total_duration_s = excluded.total_duration_s,
+                     duration_min = excluded.duration_min,
+                     duration_max = excluded.duration_max,
+                     quality_sum = excluded.quality_sum,
+                     dt_max_sum = excluded.dt_max_sum,
+                     rps_sum = excluded.rps_sum,
+                     buh_count = excluded.buh_count,
+                     defrost_count = excluded.defrost_count,
+                     updated_ts = excluded.updated_ts""",
+                (
+                    day, mode, a["cycles"], a["total_duration_s"],
+                    a["duration_min"], a["duration_max"],
+                    a["quality_sum"], a["dt_max_sum"], a["rps_sum"],
+                    a["buh_count"], a["defrost_count"], now,
+                ),
+            )
+        await conn.commit()
+        return len(agg)
+
     async def async_run_maintenance(
         self,
         *,
