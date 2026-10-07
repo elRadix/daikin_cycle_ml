@@ -83,6 +83,8 @@ from .engine.timer_health import clamp_cycle_duration as _clamp_duration
 from .repairs import async_check_repairs
 from .storage.store import CycleStore
 
+from .const import OPTION_DAILY_SUMMARY_LIVE_ENABLED
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -1257,6 +1259,29 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     _LOGGER.warning("cluster assign failed", exc_info=True)
         except Exception:
             _LOGGER.exception("DB persist failed")
+
+        await self._maybe_rollup_day(record)
+
+    async def _maybe_rollup_day(
+        self, record: dict[str, Any]
+    ) -> None:
+        """v1.7.0: live daily-summary rollup on cycle close (idempotent)."""
+        if not (self.options or {}).get(
+            OPTION_DAILY_SUMMARY_LIVE_ENABLED, True
+        ):
+            return
+        if self.db is None:
+            return
+        end_ts = record.get("end_ts")
+        if not isinstance(end_ts, (int, float)):
+            return
+        try:
+            day = time.strftime(
+                "%Y-%m-%d", time.localtime(float(end_ts))
+            )
+            await self.db.async_rollup_day(day)
+        except Exception:
+            _LOGGER.exception("live daily rollup failed")
 
     async def _refresh_cop_today(self, now: float) -> None:
         if self.db is None:
