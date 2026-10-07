@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.7.1-pre.1] - 2026-10-07
+
+Pre-release: daily summary visibility. Card lands in pre.2 after this
+sensor is verified on prod.
+
+### Added
+
+- New sensor `daily_summary_recent`: state = total cycles across all days
+  in `daily_summary`; attributes = full payload (`days[]`, `totals_by_mode{}`,
+  `days_available`, `days_count`, `latest_day`, `oldest_day`).
+- Coordinator cache `coordinator.daily_summary_recent` (public property),
+  refreshed on cycle close (`_maybe_rollup_day`) and primed on startup
+  (`_maybe_backfill_daily_summary`).
+- Translations for the sensor name in strings.json + en.json + nl.json
+  (parity 425 -> 426).
+
+### Changed
+
+- None (card deferred to v1.7.1-pre.2).
+
+### Fixed
+
+- None.
+
+### Notes
+
+- No DB schema change; no new DB method. The sensor reads the existing
+  `db.async_daily_summary` and transforms it in-process.
+- Pre-release only: v1.7.1 final after explicit prod-confirm (R204).
+
 ## [1.7.0] - 2026-10-07
 
 ### Added

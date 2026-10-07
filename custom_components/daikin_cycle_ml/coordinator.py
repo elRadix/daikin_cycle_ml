@@ -212,6 +212,73 @@ def score_and_count(
             )
 
 
+def _compute_daily_summary_recent(
+    rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """v1.7.1: transform daily_summary rows into recent-window payload.
+
+    Returns a dict with "state" (int, total cycles) + attrs payload.
+    Empty rows yields a fully zeroed payload (days=[], totals zeroed).
+    Input rows come from db.async_daily_summary (SELECT * + derived fields).
+    """
+    totals: dict[str, dict[str, Any]] = {
+        "heating": {"days": 0, "cycles": 0, "dur_min": 0.0, "buh": 0, "defrost": 0},
+        "dhw": {"days": 0, "cycles": 0, "dur_min": 0.0, "buh": 0, "defrost": 0},
+        "cooling": {"days": 0, "cycles": 0, "dur_min": 0.0, "buh": 0, "defrost": 0},
+    }
+    if not rows:
+        return {
+            "state": 0,
+            "days_available": 0,
+            "days_count": 0,
+            "latest_day": None,
+            "oldest_day": None,
+            "days": [],
+            "totals_by_mode": totals,
+        }
+    ordered = sorted(
+        rows,
+        key=lambda r: (str(r.get("day")), str(r.get("mode") or "unknown")),
+        reverse=True,
+    )
+    days: list[dict[str, Any]] = []
+    for r in ordered:
+        cycles = int(r.get("cycles") or 0)
+        total_s = int(r.get("total_duration_s") or 0)
+        dur_max_s = int(r.get("duration_max") or 0)
+        q_sum = int(r.get("quality_sum") or 0)
+        days.append({
+            "day": str(r.get("day")),
+            "mode": str(r.get("mode") or "unknown"),
+            "cycles": cycles,
+            "dur_min": round(total_s / 60.0, 1),
+            "dur_min_avg": round(total_s / cycles / 60.0, 1) if cycles else 0.0,
+            "dur_max": round(dur_max_s / 60.0, 1),
+            "quality_avg": round(q_sum / cycles, 1) if cycles else 0.0,
+            "buh": int(r.get("buh_count") or 0),
+            "defrost": int(r.get("defrost_count") or 0),
+        })
+    for d in days:
+        bucket = totals.get(d["mode"])
+        if bucket is None:
+            continue
+        bucket["days"] += 1
+        bucket["cycles"] += d["cycles"]
+        bucket["dur_min"] = round(bucket["dur_min"] + d["dur_min"], 1)
+        bucket["buh"] += d["buh"]
+        bucket["defrost"] += d["defrost"]
+    day_set = {d["day"] for d in days}
+    return {
+        "state": sum(d["cycles"] for d in days),
+        "days_available": len(day_set),
+        "days_count": len(day_set),
+        "latest_day": max(day_set),
+        "oldest_day": min(day_set),
+        "days": days,
+        "totals_by_mode": totals,
+    }
+
+
 class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     """Reads the source sensor every UPDATE_INTERVAL_SECONDS."""
 
@@ -346,6 +413,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cost_month_cache_ts: float = 0.0
 
         self.db: Any = None
+        self._daily_summary_recent: dict[str, Any] | None = None
         super().__init__(
             hass,
             _LOGGER,
@@ -827,6 +895,22 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         return snap
 
     @property
+    def daily_summary_recent(self) -> dict[str, Any] | None:
+        """v1.7.1: cached recent daily-summary payload (public)."""
+        return self._daily_summary_recent
+
+    async def _refresh_daily_summary_recent(self) -> None:
+        """v1.7.1: refresh cached recent daily-summary payload (all days)."""
+        if self.db is None:
+            return
+        try:
+            rows = await self.db.async_daily_summary(days=36500)
+        except Exception:
+            _LOGGER.exception("daily_summary recent refresh failed")
+            return
+        self._daily_summary_recent = _compute_daily_summary_recent(rows)
+
+    @property
     def runtime_snapshot(self) -> dict[str, float]:
         """Read-only snapshot of runtime/BUH/defrost accumulators (R216)."""
         return {
@@ -955,6 +1039,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self.db.async_backfill_daily_summary()
         except Exception:
             _LOGGER.exception("daily_summary backfill failed")
+            return
+        await self._refresh_daily_summary_recent()
 
     async def _restore_energy_acc(self) -> bool:
         """R310: rehydrate energy accumulators. Never raises."""
@@ -1292,6 +1378,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self.db.async_rollup_day(day)
         except Exception:
             _LOGGER.exception("live daily rollup failed")
+            return
+        await self._refresh_daily_summary_recent()
 
     async def _refresh_cop_today(self, now: float) -> None:
         if self.db is None:

@@ -600,6 +600,9 @@
       },
       "thermal_energy_cooling_today": {
         "name": "Thermal energy cooling today"
+      },
+      "daily_summary_recent": {
+        "name": "Daily summary recent"
       }
     },
     "binary_sensor": {

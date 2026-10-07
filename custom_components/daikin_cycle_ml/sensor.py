@@ -909,6 +909,21 @@ def _attrs_duty_cycle_today_pct(
     }
 
 
+def _attrs_daily_summary_recent(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    """v1.7.1: attribute payload for the daily_summary_recent sensor."""
+    payload = c.daily_summary_recent or {}
+    return {
+        "days_available": payload.get("days_available", 0),
+        "days_count": payload.get("days_count", 0),
+        "latest_day": payload.get("latest_day"),
+        "oldest_day": payload.get("oldest_day"),
+        "days": payload.get("days", []),
+        "totals_by_mode": payload.get("totals_by_mode", {}),
+    }
+
+
 SENSOR_DEFS: list[dict[str, Any]] = [
     {
         "key": "thermal_power_live", "name": "Thermal power live",
@@ -1280,6 +1295,13 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "unit": "COP", "icon": "mdi:snowflake",
         "value_fn": _cop_hourly_mode_mean("cooling", "month"),
         "attr_fn": _attrs_cop_hourly_mode("cooling", "month"),
+    },
+    {
+        "key": "daily_summary_recent", "name": "Daily summary recent",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "icon": "mdi:calendar-range",
+        "value_fn": lambda s, c: (c.daily_summary_recent or {}).get("state"),
+        "attr_fn": _attrs_daily_summary_recent,
     },
 ]
 
