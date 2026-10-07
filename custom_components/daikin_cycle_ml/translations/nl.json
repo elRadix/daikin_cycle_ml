@@ -600,6 +600,9 @@
       },
       "thermal_energy_cooling_today": {
         "name": "Thermische energie koeling vandaag"
+      },
+      "daily_summary_recent": {
+        "name": "Recent dagoverzicht"
       }
     },
     "binary_sensor": {
