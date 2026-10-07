@@ -6,8 +6,9 @@ Ready-to-use Lovelace dashboard cards for the **Daikin Cycle ML** integration.
 
 | Card | Description | Preview | Requires |
 |---|---|---|---|
-| [**Simple Card**](cards/simple-card/README.md) | Live phase, hydraulic diagram, COP, quality, alerts, stooklijn advice | <img src="cards/simple-card/preview.png" width="320" alt="Simple Card preview"> | v1.4.0+ |
+| [**Simple Card**](cards/simple-card/README.md) | Live phase, hydraulic diagram, COP, quality, alerts, stooklijn advice | <img src="cards/simple-card/showcase.png" width="320" alt="Simple Card preview"> | v1.4.0+ |
 | [**Heating Curve**](cards/heating-curve/README.md) | HP spec-aware visual with COP heatmap, regression & live position | <img src="cards/heating-curve/preview.png" width="320" alt="Heating Curve preview"> | v1.4.0+ |
+| [**Daily Summary**](cards/daily-summary/README.md) | 8-day cycle history: sparklines, dynamic quality line chart, stacked cycles / duration bars, BUH + defrost events | <img src="cards/daily-summary/showcase.png" width="320" alt="Daily Summary preview"> | v1.7.1+ |
 
 ---
 
@@ -35,6 +36,11 @@ Ready-to-use Lovelace dashboard cards for the **Daikin Cycle ML** integration.
 - `sensor.daikin_cycle_ml_learned_thresholds`
 - `sensor.daikin_cycle_ml_thermal_power_live` (optional, kW callout)
 - 15 binary_sensors (see Simple Card README for the full list)
+
+**Daily Summary only** (additional):
+
+- `sensor.daikin_cycle_ml_daily_summary_recent` (state = total cycles; attrs `days[]`, `totals_by_mode`, `days_available`, `days_count`, `latest_day`, `oldest_day`)
+- `sensor.daikin_cycle_ml_hp_specs` (attrs `model`, `family`, `kw` for the hero)
 
 **Attributes on `sensor.daikin_cycle_ml_cycle_state`:**
 

@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.7.1-pre.2] - 2026-10-07
+
+Pre-release: daily summary dashboard card. Completes the v1.7.1
+pre-release series; v1.7.1 final pending prod visual confirmation.
+
+### Added
+
+- Dashboard card `dashboard/cards/daily-summary/daily-summary.yaml` —
+  full cycle history visual with SVG sparklines, dynamically colored
+  quality line chart, stacked cycles / duration bars, BUH + defrost
+  event strip. Bilingual (NL / EN), auto-scaling, HP-spec-aware hero.
+- Card documentation `dashboard/cards/daily-summary/README.md`.
+- Third showcase slot in root README Showcase section.
+- Daily Summary row + entity requirements in `dashboard/README.md`.
+
+### Changed
+
+- Fixed broken preview image reference for Simple Card in
+  `dashboard/README.md` (`preview.png` -> `showcase.png`, pre-existing bug).
+
+### Fixed
+
+- None.
+
 ## [1.7.1-pre.1] - 2026-10-07
 
 Pre-release: daily summary visibility. Card lands in pre.2 after this

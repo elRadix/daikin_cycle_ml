@@ -7,7 +7,7 @@ weather-normalized degradation trends, runtime + energy accounting, and
 Daikin installer-language curve advice (slope / offset). **Local-only ML,
 no cloud.**
 
-[![Version](https://img.shields.io/badge/version-1.7.1--pre.1-orange.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.7.1-pre.1)
+[![Version](https://img.shields.io/badge/version-1.7.1--pre.2-orange.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.7.1-pre.2)
 [![Tests](https://img.shields.io/badge/tests-2231-brightgreen.svg)](#19-testing)
 [![Coverage](https://img.shields.io/badge/coverage-100.00%25-brightgreen.svg)](#19-testing)
 [![Ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)
@@ -26,10 +26,10 @@ no cloud.**
 
 ## Showcase
 
-| Simple Card | Heating Curve |
-|:---:|:---:|
-| [![Daikin Cycle ML - Simple Card](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/simple-card/showcase.png)](dashboard/cards/simple-card/) | [![Daikin Cycle ML - Heating Curve](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/heating-curve/preview.png)](dashboard/cards/heating-curve/) |
-| *one-glance overview* | *LWT vs outdoor* |
+| Simple Card | Heating Curve | Daily Summary |
+|:---:|:---:|:---:|
+| [![Daikin Cycle ML - Simple Card](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/simple-card/showcase.png)](dashboard/cards/simple-card/) | [![Daikin Cycle ML - Heating Curve](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/heating-curve/preview.png)](dashboard/cards/heating-curve/) | [![Daikin Cycle ML - Daily Summary](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary/showcase.png)](dashboard/cards/daily-summary/) |
+| *one-glance overview* | *LWT vs outdoor* | *8-day cycle history* |
 
 *One-glance dashboard cards - see [dashboard/](dashboard/) for installation.*
 
