@@ -296,6 +296,7 @@ ADAPTIVE_MAX_TARGET_CPD = 100
 
 # model_state key for adaptive thresholds persistence
 MODEL_STATE_ADAPTIVE = "adaptive_thresholds"
+DETECTOR_STATE_KEY = "cycle_detector_state"
 
 DEFAULT_SETPOINT_OSC_WINDOW_MIN = 30
 
