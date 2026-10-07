@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.7] - 2026-10-07
+
+Patch release: R310 accumulator rehydration on coordinator startup and
+non-blocking datasheet JSON loads.
+
+[Full diff v1.6.6...v1.6.7](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.6...v1.6.7)
+
+### Added
+
+- R310: `_restore_runtime_acc()` / `_restore_energy_acc()` in the
+  coordinator, wired into the same setup hook as `_restore_detector_state`
+  (R306). Restores `model_state["runtime_acc.<day>"]` and
+  `model_state["energy_acc.<day>"]` before the first coordinator refresh
+  when the day key matches today. Guards: no-op on day mismatch, missing
+  payload, or malformed payload; never raises.
+- Success log lines on both restore paths for prod-verify grepping.
+- Tests: `test_r310_acc_restore.py` (11 cases).
+
+### Fixed
+
+- HA restart / reload / HACS redownload silently zeroed today's
+  `_energy_acc` / `_runtime_acc`. Observed 2026-10-07: 09:03 CEST restart
+  discarded the 07:11-08:11 heating cycle's 0.41 kWh. Persist had no
+  read-back counterpart.
+- Blocking `read_text` / `open` calls in the event loop from
+  `model_datasheets.load_bundled` and `load_defaults`, flagged by
+  HA 2026.9 during `async_setup_entry` and `_refresh_datasheet_state`.
+  Replaced with `asyncio.get_running_loop().run_in_executor(None, fn)`.
+
+### Changed
+
+- None user-visible beyond the fixes above. No schema change, no entity
+  change, no config change, no string change. Daily accumulators may
+  show higher totals on restart days post-upgrade; that is the intended
+  behavior.
+
 ## [1.6.6] - 2026-10-07
 
 Patch release: cycle detector state persistence (R306) and pump-guard
