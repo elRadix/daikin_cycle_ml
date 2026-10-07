@@ -10,6 +10,8 @@ UPDATE_INTERVAL_SECONDS = 30
 
 # R288: dt_s cap and warning threshold for energy accumulator.
 ENERGY_DT_CAP_S = 300.0
+MAX_CYCLE_DURATION_S = 4 * 3600.0
+"""Absolute maximum cycle duration before forced close (R315)."""
 ENERGY_DT_WARN_S = 60.0
 
 # --- Source sensor ---

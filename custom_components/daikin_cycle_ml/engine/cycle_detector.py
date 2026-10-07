@@ -19,6 +19,7 @@ from ..const import (
     ATTR_WATER_PUMP_OPERATION,
     DEFAULT_COMPRESSOR_RPS_THRESHOLD,
     DEFAULT_FALLBACK_POWER_THRESHOLD_W,
+    MAX_CYCLE_DURATION_S,
     OP_MODE_COOLING,
     OP_MODE_DHW,
     OP_MODE_HEATING,
@@ -63,6 +64,32 @@ def _float_list(value: Any) -> list[float]:
         if isinstance(item, (int, float)):
             out.append(float(item))
     return out
+
+
+def _pump_is_off(value: Any) -> bool:
+    """True if pump is *explicitly* reported off.
+
+    Recognised off-forms: ``False``, ``'OFF'``, ``'FALSE'``, ``'NO'``,
+    or an empty string. Missing (``None``) and any numeric value return
+    ``False`` — a missing attribute is not the same as a reported off,
+    and the ESPAltherma source reports pump as str/bool, never as int.
+
+    R307 originally used ``pump is False``, an identity check. The
+    source attribute passes through attribute_reader._normalize()
+    which may return ``bool``, ``str`` (``'OFF'``/``'ON'``),
+    ``float``, or ``None``. When the value is not the ``False``
+    singleton, the R307 close-path was skipped and the detector
+    could remain RUNNING for hours (issue #49).
+    """
+    if value is False:
+        return True
+    if value is None:
+        return False  # missing attr != reported off; fall-through handles it
+    if isinstance(value, str):
+        return value.strip().upper() in ("OFF", "FALSE", "NO", "")
+    # Numerics (0, 0.0) and any other type are treated as unknown, not off:
+    # the ESPAltherma source reports pump as str ("ON"/"OFF"), never as int.
+    return False
 
 
 def detect_compressor_on(
@@ -269,11 +296,23 @@ class CycleDetector:
         as long as the compressor is still running. Only after
         PUMP_OFF_MAX_SAMPLES consecutive pump-off samples is the cycle
         closed. In IDLE state pump=OFF is still an unconditional skip.
+
+        R315: any RUNNING cycle exceeding MAX_CYCLE_DURATION_S is force-
+        closed on the next tick, regardless of pump/compressor state.
         """
+        # R315: hard cap -- force close any cycle exceeding MAX_CYCLE_DURATION_S.
+        if self._state == STATE_RUNNING and self._start_ts is not None:
+            if (now - self._start_ts) > MAX_CYCLE_DURATION_S:
+                _LOGGER.warning(
+                    "Cycle exceeded hard cap %.0fs (start=%s mode=%s); forcing close",
+                    MAX_CYCLE_DURATION_S, self._start_ts, self._mode,
+                )
+                return self._close(now)
+
         pump = attrs.get(ATTR_WATER_PUMP_OPERATION)
 
         # R307: IDLE + pump=OFF -> no active cycle to protect, skip entirely.
-        if pump is False and self._state == STATE_IDLE:
+        if _pump_is_off(pump) and self._state == STATE_IDLE:
             return None
 
         if self._start_ts is not None and now < self._start_ts:
@@ -283,7 +322,7 @@ class CycleDetector:
         on = detect_compressor_on(attrs, self._options, power_w)
 
         # R307: RUNNING + pump=OFF -> tolerate pump-off while compressor runs.
-        if pump is False and self._state == STATE_RUNNING:
+        if _pump_is_off(pump) and self._state == STATE_RUNNING:
             if on:
                 self._accumulate(attrs)
                 self._pump_off_count += 1
