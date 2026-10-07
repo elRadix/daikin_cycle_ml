@@ -821,8 +821,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.cop = self._read_cop()
             snap.setpoint_oscillating = self._compute_setpoint_oscillating()
             prev_detector_state = self.detector.state
+            # R317: use unit-normalised power (kW->W) so the fallback
+            # threshold compares in watts regardless of source sensor unit.
             record = self.detector.update(
-                attrs, now=now, power_w=self._read_power()
+                attrs, now=now, power_w=self._read_power_w()
             )
             if self.detector.state != prev_detector_state:
                 await self._persist_detector_state()
