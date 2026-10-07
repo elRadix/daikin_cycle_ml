@@ -469,6 +469,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._restore_detector_state()
             await self._restore_runtime_acc()
             await self._restore_energy_acc()
+            await self._maybe_backfill_daily_summary()
             try:
                 if self.db is not None and hasattr(
                     self.db, "async_ensure_cluster_column"
@@ -945,6 +946,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("runtime_acc restore failed")
             return False
+
+    async def _maybe_backfill_daily_summary(self) -> None:
+        """v1.7.0: one-shot backfill of daily_summary on startup."""
+        if self.db is None:
+            return
+        try:
+            await self.db.async_backfill_daily_summary()
+        except Exception:
+            _LOGGER.exception("daily_summary backfill failed")
 
     async def _restore_energy_acc(self) -> bool:
         """R310: rehydrate energy accumulators. Never raises."""
