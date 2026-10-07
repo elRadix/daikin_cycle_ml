@@ -394,3 +394,5 @@ OUTDOOR_BINS: tuple[tuple[float, float, str], ...] = (
 )
 OUTDOOR_BINS_ORDER: tuple[str, ...] = tuple(b[2] for b in OUTDOOR_BINS)
 
+# v1.7.0: one-time guard for daily_summary backfill
+DAILY_SUMMARY_BACKFILL_KEY = "daily_summary_backfilled_v1_7_0"

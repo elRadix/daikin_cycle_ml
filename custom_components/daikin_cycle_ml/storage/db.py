@@ -11,6 +11,7 @@ from typing import Any
 import aiosqlite
 
 from ..ml.features import VECTOR_LEN
+from ..const import DAILY_SUMMARY_BACKFILL_KEY
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -501,6 +502,46 @@ class CycleDB:
             )
         await conn.commit()
         return len(agg)
+
+    async def async_backfill_daily_summary(self) -> int:
+        """One-time backfill: populate daily_summary from existing cycles.
+
+        Guarded by model_state[DAILY_SUMMARY_BACKFILL_KEY]. Returns number
+        of distinct days written. Silent no-op if already run.
+        """
+        try:
+            done = await self.async_get_model_state(
+                DAILY_SUMMARY_BACKFILL_KEY
+            )
+        except Exception:
+            done = None
+        if done:
+            return 0
+        conn = self._require()
+        async with conn.execute(
+            "SELECT DISTINCT end_ts FROM cycles WHERE end_ts IS NOT NULL"
+        ) as cur:
+            rows = await cur.fetchall()
+        days = sorted({
+            time.strftime("%Y-%m-%d", time.localtime(float(r["end_ts"])))
+            for r in rows
+        })
+        written = 0
+        for day in days:
+            try:
+                n = await self.async_rollup_day(day)
+                if n > 0:
+                    written += 1
+            except Exception:
+                _LOGGER.exception("backfill rollup failed for day=%s", day)
+        try:
+            await self.async_set_model_state(
+                DAILY_SUMMARY_BACKFILL_KEY,
+                {"done": True, "days": written},
+            )
+        except Exception:
+            _LOGGER.exception("backfill flag persist failed")
+        return written
 
     async def async_run_maintenance(
         self,

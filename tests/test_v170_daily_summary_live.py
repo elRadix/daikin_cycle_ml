@@ -189,3 +189,56 @@ async def test_maintenance_return_shape_preserved(db):
     assert out["days_rolled_up"] == 2
     assert out["cycles_rolled_up"] == 2
     assert out["cycles_deleted"] == 2
+
+
+# ---------- commit 3: startup backfill ----------
+
+async def test_backfill_populates_from_existing_cycles(db):
+    now = time.time()
+    d1 = now - 2 * 86400.0
+    d2 = now - 1 * 86400.0
+    await _insert_cycle(db, end_ts=d1, mode="heating")
+    await _insert_cycle(db, end_ts=d1 + 60, mode="dhw")
+    await _insert_cycle(db, end_ts=d2, mode="heating")
+    n = await db.async_backfill_daily_summary()
+    assert n == 2
+    rows = await db.async_daily_summary(days=10)
+    assert len(rows) == 3
+
+
+async def test_backfill_guard_prevents_rerun(db):
+    now = time.time()
+    await _insert_cycle(db, end_ts=now - 86400.0, mode="heating")
+    n1 = await db.async_backfill_daily_summary()
+    assert n1 == 1
+    n2 = await db.async_backfill_daily_summary()
+    assert n2 == 0
+
+
+async def test_backfill_empty_db(db):
+    n = await db.async_backfill_daily_summary()
+    assert n == 0
+    from custom_components.daikin_cycle_ml.const import (
+        DAILY_SUMMARY_BACKFILL_KEY,
+    )
+    flag = await db.async_get_model_state(DAILY_SUMMARY_BACKFILL_KEY)
+    assert flag
+
+
+async def test_backfill_survives_rollup_exception(db):
+    now = time.time()
+    await _insert_cycle(db, end_ts=now - 86400.0, mode="heating")
+    orig = db.async_rollup_day
+
+    async def boom(day, **kw):
+        raise RuntimeError("synthetic")
+
+    db.async_rollup_day = boom  # type: ignore[method-assign]
+    n = await db.async_backfill_daily_summary()
+    assert n == 0
+    db.async_rollup_day = orig  # type: ignore[method-assign]
+    from custom_components.daikin_cycle_ml.const import (
+        DAILY_SUMMARY_BACKFILL_KEY,
+    )
+    flag = await db.async_get_model_state(DAILY_SUMMARY_BACKFILL_KEY)
+    assert flag
