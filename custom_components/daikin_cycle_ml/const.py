@@ -399,3 +399,6 @@ DAILY_SUMMARY_BACKFILL_KEY = "daily_summary_backfilled_v1_7_0"
 
 # v1.7.0: live daily summary rollup toggle
 OPTION_DAILY_SUMMARY_LIVE_ENABLED = "daily_summary_live_enabled"
+
+# v1.7.0: default for the live daily summary rollup toggle
+DEFAULT_DAILY_SUMMARY_LIVE_ENABLED = True

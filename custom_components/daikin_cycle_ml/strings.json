@@ -342,13 +342,15 @@
               "retention_enabled": "Retention enabled",
               "cycle_retention_days": "Cycle retention (days)",
               "alert_retention_days": "Alert retention (days)",
-              "vacuum_enabled": "VACUUM after prune"
+              "vacuum_enabled": "VACUUM after prune",
+              "daily_summary_live_enabled": "Live daily summary"
             },
             "data_description": {
               "retention_enabled": "Run daily maintenance at 03:00 local time.",
               "cycle_retention_days": "Cycles older than N days are rolled up and pruned. Default 90.",
               "alert_retention_days": "Alerts older than N days are deleted. Default 30.",
-              "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning."
+              "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning.",
+              "daily_summary_live_enabled": "Update daily summary as each cycle closes. Backfill and maintenance always run."
             }
           },
           "season": {
