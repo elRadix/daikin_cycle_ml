@@ -934,6 +934,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 payload.get("last_defrost_ts", 0.0)
             )
             self._runtime_day_key = today
+            _LOGGER.info(
+                "runtime_acc restored: day=%s buh_s1=%.1f buh_s2=%.1f defrost_n=%d",
+                today, self._buh_step1_s, self._buh_step2_s,
+                self._defrost_count_today,
+            )
             return True
         except Exception:
             _LOGGER.exception("runtime_acc restore failed")
@@ -965,6 +970,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 },
             }
             self._energy_day_key = today
+            _LOGGER.info(
+                "energy_acc restored: day=%s heating_el=%.3f heating_th=%.3f dhw_el=%.3f dhw_th=%.3f",
+                today,
+                self._energy_acc["heating"]["el"],
+                self._energy_acc["heating"]["th"],
+                self._energy_acc["dhw"]["el"],
+                self._energy_acc["dhw"]["th"],
+            )
             return True
         except Exception:
             _LOGGER.exception("energy_acc restore failed")
