@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.6] - 2026-10-07
+
+Patch release: cycle detector state persistence (R306) and pump-guard
+relaxation (R307). Closes the missed-cycle finding from issue #33.
+
+[Full diff v1.6.5...v1.6.6](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.5...v1.6.6)
+
+### Added
+
+- R306: `CycleDetector.to_dict()` / `restore_from_dict()` /
+  `_float_list()` plus `MAX_RESUME_GAP_S = 6h`. Coordinator persists the
+  detector state to `model_state["cycle_detector_state"]` on every
+  transition and restores it in `async_setup_baseline_persistence`.
+- R307: `PUMP_OFF_MAX_SAMPLES = 20`. `pump=OFF` while RUNNING is now a
+  soft signal when the compressor still runs; only 20 consecutive
+  pump-off samples (10 min) close the cycle.
+- `const.py`: `DETECTOR_STATE_KEY = "cycle_detector_state"`.
+- Tests: `test_r306_detector_persistence.py` (6 cases) ·
+  `test_r307_pump_guard.py` (6 cases) ·
+  `test_r306_r307_coverage.py` (12 cases).
+
+### Fixed
+
+- In-progress cycle silently lost on HA reload (issue #33, cause A:
+  reload at 2026-09-26 10:24:43 UTC).
+- First 10 minutes of a DHW run discarded when the compressor started
+  before the water pump (issue #33, cause B).
+
+### Changed
+
+- Behavior-changing for existing users: cycle counts may rise as DHW
+  starts with delayed pump activation are now detected. Expected, not
+  a bug. No schema change, no entity change, no config change.
+
 ## [1.6.5] - 2026-10-06
 
 Patch release: correctness hygiene for COP-analyzer early-returns and
@@ -1496,6 +1530,6 @@ Versioning: https://semver.org/spec/v2.0.0.html
 
 - db.py: maintenance deletes features before cycles (FK-safe)
 
-[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.4...HEAD
+[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.5...HEAD
 [1.6.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.2...v1.5.3
