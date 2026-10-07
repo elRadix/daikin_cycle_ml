@@ -515,90 +515,30 @@ class CycleDB:
         cutoff = time.time() - float(cycle_retention_days) * 86400.0
         alert_cutoff = time.time() - float(alert_retention_days) * 86400.0
 
-        # 1. Read cycles that will be rolled up + pruned
+        # 1. Roll up each affected day (idempotent replace)
         async with conn.execute(
-            "SELECT start_ts, end_ts, duration_s, mode, dT_max, rps_avg, "
-            "quality_score, buh_used, defrost_used FROM cycles "
-            "WHERE end_ts IS NOT NULL AND end_ts < ? "
-            "ORDER BY end_ts ASC",
+            "SELECT end_ts FROM cycles "
+            "WHERE end_ts IS NOT NULL AND end_ts < ?",
             (cutoff,),
         ) as cur:
             rows = await cur.fetchall()
 
-        # 2. Aggregate in Python (local time matches daily_reset_if_needed)
-        agg: dict[tuple[str, str], dict[str, float]] = {}
+        per_day: dict[str, int] = {}
         for r in rows:
-            end_ts = r["end_ts"]
-            if not isinstance(end_ts, (int, float)):
-                continue  # pragma: no cover
-            day = time.strftime("%Y-%m-%d", time.localtime(float(end_ts)))
-            mode = r["mode"] or "unknown"
-            key = (day, mode)
-            a: dict[str, Any] | None = agg.get(key)
-            if a is None:
-                a = {
-                    "cycles": 0,
-                    "total_duration_s": 0,
-                    "duration_min": None,
-                    "duration_max": None,
-                    "quality_sum": 0,
-                    "dt_max_sum": 0.0,
-                    "rps_sum": 0.0,
-                    "buh_count": 0,
-                    "defrost_count": 0,
-                }
-                agg[key] = a
-            a["cycles"] += 1
-            dur = r["duration_s"]
-            if isinstance(dur, (int, float)):
-                a["total_duration_s"] += int(dur)
-                if a["duration_min"] is None or dur < a["duration_min"]:
-                    a["duration_min"] = int(dur)
-                if a["duration_max"] is None or dur > a["duration_max"]:
-                    a["duration_max"] = int(dur)
-            q = r["quality_score"]
-            if isinstance(q, (int, float)):
-                a["quality_sum"] += int(q)
-            dt = r["dT_max"]
-            if isinstance(dt, (int, float)):
-                a["dt_max_sum"] += float(dt)
-            rps = r["rps_avg"]
-            if isinstance(rps, (int, float)):
-                a["rps_sum"] += float(rps)
-            if r["buh_used"]:
-                a["buh_count"] += 1
-            if r["defrost_used"]:
-                a["defrost_count"] += 1
-
-        # 3. Upsert aggregates
-        now = time.time()
-        for (day, mode), a in agg.items():
-            await conn.execute(
-                """INSERT INTO daily_summary
-                   (day, mode, cycles, total_duration_s, duration_min,
-                    duration_max, quality_sum, dt_max_sum, rps_sum,
-                    buh_count, defrost_count, updated_ts)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-                   ON CONFLICT(day, mode) DO UPDATE SET
-                     cycles = cycles + excluded.cycles,
-                     total_duration_s = total_duration_s
-                       + excluded.total_duration_s,
-                     duration_min = MIN(duration_min, excluded.duration_min),
-                     duration_max = MAX(duration_max, excluded.duration_max),
-                     quality_sum = quality_sum + excluded.quality_sum,
-                     dt_max_sum = dt_max_sum + excluded.dt_max_sum,
-                     rps_sum = rps_sum + excluded.rps_sum,
-                     buh_count = buh_count + excluded.buh_count,
-                     defrost_count = defrost_count + excluded.defrost_count,
-                     updated_ts = excluded.updated_ts""",
-                (
-                    day, mode,
-                    a["cycles"], a["total_duration_s"],
-                    a["duration_min"], a["duration_max"],
-                    a["quality_sum"], a["dt_max_sum"], a["rps_sum"],
-                    a["buh_count"], a["defrost_count"], now,
-                ),
+            day = time.strftime(
+                "%Y-%m-%d", time.localtime(float(r["end_ts"]))
             )
+            per_day[day] = per_day.get(day, 0) + 1
+
+        days_rolled_up = 0
+        for day in sorted(per_day):
+            try:
+                n_modes = await self.async_rollup_day(day)
+                days_rolled_up += n_modes
+            except Exception:
+                _LOGGER.exception("rollup failed for day=%s", day)
+
+        cycles_rolled_up = len(rows)
 
         # 4. Prune (features first: FK from features.cycle_id to cycles.id)
         cur = await conn.execute(
@@ -657,8 +597,8 @@ class CycleDB:
             await self.async_vacuum()
 
         return {
-            "days_rolled_up": len(agg),
-            "cycles_rolled_up": len(list(rows)),
+            "days_rolled_up": days_rolled_up,
+            "cycles_rolled_up": cycles_rolled_up,
             "cycles_deleted": cycles_deleted,
             "features_deleted": features_deleted,
             "alerts_deleted": alerts_deleted,

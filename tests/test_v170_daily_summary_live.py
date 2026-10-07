@@ -150,3 +150,42 @@ async def test_rollup_day_buh_defrost_counted(db):
     rows = await db.async_daily_summary(days=1)
     assert rows[0]["buh_count"] == 1
     assert rows[0]["defrost_count"] == 1
+
+
+# ---------- commit 2: maintenance integration ----------
+
+async def test_maintenance_rolls_up_before_prune(db):
+    day_ts = time.time() - 100 * 86400.0
+    await _insert_cycle(db, end_ts=day_ts, mode="heating")
+    await db.async_run_maintenance(
+        cycle_retention_days=90, vacuum=False,
+    )
+    assert await db.async_count("cycles") == 0
+    rows = await db.async_daily_summary(days=365)
+    assert len(rows) == 1
+    assert rows[0]["cycles"] == 1
+
+
+async def test_maintenance_replace_semantics_no_double_count(db):
+    day_ts = time.time() - 100 * 86400.0
+    await _insert_cycle(db, end_ts=day_ts, mode="heating")
+    day = time.strftime("%Y-%m-%d", time.localtime(day_ts))
+    await db.async_rollup_day(day)
+    await db.async_run_maintenance(
+        cycle_retention_days=90, vacuum=False,
+    )
+    rows = await db.async_daily_summary(days=365)
+    assert len(rows) == 1
+    assert rows[0]["cycles"] == 1
+
+
+async def test_maintenance_return_shape_preserved(db):
+    day_ts = time.time() - 100 * 86400.0
+    await _insert_cycle(db, end_ts=day_ts, mode="heating")
+    await _insert_cycle(db, end_ts=day_ts + 60, mode="dhw")
+    out = await db.async_run_maintenance(
+        cycle_retention_days=90, vacuum=False,
+    )
+    assert out["days_rolled_up"] == 2
+    assert out["cycles_rolled_up"] == 2
+    assert out["cycles_deleted"] == 2
