@@ -1,0 +1,850 @@
+type: custom:stack-in-card
+card_mod:
+  style: |
+    ha-card {
+      border: 3px solid #0097E0;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #F5FAFD 0%, #E6F4FB 50%, #D6ECF7 100%);
+      box-shadow: 0 8px 24px rgba(0, 151, 224, 0.25);
+      overflow: visible;
+    }
+cards:
+  - type: custom:mushroom-template-card
+    primary: 📅 DAIKIN CYCLE ML — SUMMARY
+    secondary: Cycli · duur · kwaliteit · events
+    icon: mdi:calendar-range
+    icon_color: blue
+    multiline_secondary: true
+    card_mod:
+      style: >
+        ha-card { background: linear-gradient(135deg,#E3F2FD 0%,#BBDEFB 100%) !important; box-shadow: none; border-bottom: 3px solid #0097E0; border-radius: 0; padding: 12px 16px; }
+
+        .primary { color: #0D47A1 !important; font-weight: 900 !important;
+        font-size: 1.1em !important; text-transform: uppercase; letter-spacing:
+        0.8px; }
+
+        .secondary { color: #1565C0 !important; font-size: 0.9em !important;
+        font-weight: 800 !important; }
+  - type: custom:button-card
+    show_name: false
+    show_icon: false
+    styles:
+      grid:
+        - grid-template-areas: '"content"'
+        - grid-template-columns: 1fr
+      card:
+        - background: none
+        - box-shadow: none
+        - border: none
+        - padding: 10px 10px 8px 10px
+        - overflow: visible
+        - white-space: normal !important
+      custom_fields:
+        content:
+          - width: 100%
+          - white-space: normal !important
+    custom_fields:
+      content: |
+        [[[
+          try {
+            /* ============================================================
+               LANGUAGE
+               ============================================================ */
+            var LANG = 'nl';
+
+            /* ============================================================
+               i18n
+               ============================================================ */
+            var STR = {
+              nl: {
+                summary: 'SAMENVATTING', days: 'dagen', cycles: 'cycli',
+                quality: 'KWAL', heating: 'Verwarming', dhw: 'DHW', cooling: 'Koeling',
+                best_day: 'Beste dag', worst_day: 'Slechtste dag',
+                sparklines: 'Trends', quality_chart: 'Kwaliteit per dag',
+                cycles_chart: 'Cycli per dag', duration_chart: 'Duur per dag',
+                events_chart: 'Events per dag', events: 'Events',
+                clipped: 'geclipt', total: 'totaal', cap: 'max',
+                today: 'vandaag', yesterday: 'gisteren', days_ago: 'd geleden',
+                future: 'toekomst', no_data: 'Geen data',
+                legend_heat: 'Verwarming', legend_dhw: 'DHW',
+                legend_cool: 'Koeling', legend_gem_line: 'gem',
+                legend_buh: 'BUH', legend_defrost: 'Defrost',
+                outlier_warn: 'dag >24u — check data',
+                threshold_legend: 'drempel',
+                tooltip_heating: 'Verwarming', tooltip_dhw: 'DHW',
+                tooltip_cooling: 'Koeling', tooltip_buh: 'BUH',
+                tooltip_defrost: 'Defrost',
+                avg: 'gem', spark_quality: 'Kwaliteit',
+                spark_cycles: 'Cycli/dag', spark_duration: 'Duur/dag',
+                q_good: 'Goed ≥70', q_mid: 'Midden 40-70', q_low: 'Laag <40'
+              },
+              en: {
+                summary: 'SUMMARY', days: 'days', cycles: 'cycles',
+                quality: 'QUAL', heating: 'Heating', dhw: 'DHW', cooling: 'Cooling',
+                best_day: 'Best day', worst_day: 'Worst day',
+                sparklines: 'Trends', quality_chart: 'Quality per day',
+                cycles_chart: 'Cycles per day', duration_chart: 'Duration per day',
+                events_chart: 'Events per day', events: 'Events',
+                clipped: 'clipped', total: 'total', cap: 'max',
+                today: 'today', yesterday: 'yesterday', days_ago: 'd ago',
+                future: 'future', no_data: 'No data',
+                legend_heat: 'Heating', legend_dhw: 'DHW',
+                legend_cool: 'Cooling', legend_gem_line: 'avg',
+                legend_buh: 'BUH', legend_defrost: 'Defrost',
+                outlier_warn: 'day >24h — check data',
+                threshold_legend: 'threshold',
+                tooltip_heating: 'Heating', tooltip_dhw: 'DHW',
+                tooltip_cooling: 'Cooling', tooltip_buh: 'BUH',
+                tooltip_defrost: 'Defrost',
+                avg: 'avg', spark_quality: 'Quality',
+                spark_cycles: 'Cycles/day', spark_duration: 'Duration/day',
+                q_good: 'Good ≥70', q_mid: 'Mid 40-70', q_low: 'Low <40'
+              }
+            };
+            var t = function(k){ return (STR[LANG] && STR[LANG][k]) || (STR.en && STR.en[k]) || k; };
+            var locale = LANG === 'nl' ? 'nl-NL' : 'en-GB';
+
+            /* ============================================================
+               COLORS
+               ============================================================ */
+            var C = {
+              heating: '#E63946', dhw: '#4FC3F7', cooling: '#0D47A1',
+              buh: '#E65100', defrost: '#1976D2', quality: '#2E7D32',
+              gem: '#6A1B9A'
+            };
+            var CBG = {
+              heating: '#FFEBEE', dhw: '#E1F5FE', cooling: '#E3F2FD',
+              buh: '#FFF3E0', defrost: '#E3F2FD', quality: '#E8F5E9',
+              gem: '#F3E5F5'
+            };
+            /* Quality band colors */
+            var QGOOD = '#2E7D32';
+            var QMID  = '#E65100';
+            var QLOW  = '#C62828';
+
+            /* ============================================================
+               HELPERS
+               ============================================================ */
+            var stStr = function(s,d){ if(d===undefined)d='—'; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='none'||x.state==='')return d; return x.state; };
+            var hasV = function(v){ return v!==null && v!==undefined && v!=='' && String(v)!=='None' && String(v)!=='unknown' && String(v)!=='unavailable'; };
+            var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.',','); };
+            var v2 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(2).replace('.',','); };
+            var vI = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Math.round(parseFloat(v)).toString(); };
+            var attr = function(id,n,d){ try{ var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
+            var aN = function(id,n,d){ var v=attr(id,n,null); if(v===null)return d; var x=parseFloat(v); return isNaN(x)?d:x; };
+
+            var fmtBigNum = function(v){
+              if(!hasV(v)||isNaN(parseFloat(v))) return '—';
+              var n = Number(v); var neg = n < 0; n = Math.abs(n); var s;
+              if(n >= 1000000) s = (n/1000000).toFixed(1).replace('.',',')+'M';
+              else if(n >= 10000) s = Math.round(n/1000)+'k';
+              else if(n >= 1000) s = (n/1000).toFixed(1).replace('.',',')+'k';
+              else s = String(Math.round(n));
+              return neg ? '-'+s : s;
+            };
+            var fmtBigHours = function(h){
+              if(!hasV(h)||isNaN(parseFloat(h))) return '—';
+              var n = Number(h);
+              if(n >= 24*7) return Math.round(n/24)+'d';
+              if(n >= 24) return Math.round(n)+'h';
+              if(n >= 10) return n.toFixed(0)+'h';
+              if(n >= 1) return n.toFixed(1).replace('.',',')+'h';
+              return Math.round(n*60)+'m';
+            };
+            var fmtBigMin = function(m){
+              if(!hasV(m)||isNaN(parseFloat(m))) return '—';
+              var n = Number(m);
+              if(n >= 1440) return Math.round(n/1440)+'d';
+              if(n >= 120) return Math.round(n/60)+'h';
+              if(n >= 60) return (n/60).toFixed(1).replace('.',',')+'h';
+              return Math.round(n)+'m';
+            };
+
+            var weekday = function(iso){
+              if(!iso) return '';
+              try{ var d = new Date(iso + 'T12:00:00'); return d.toLocaleDateString(locale, {weekday:'short'}); }
+              catch(e){ return ''; }
+            };
+            var shortDate = function(iso){
+              if(!iso) return '—';
+              try{ var d = new Date(iso + 'T12:00:00'); return d.toLocaleDateString(locale, {day:'numeric', month:'short'}); }
+              catch(e){ return iso; }
+            };
+            var fmtDay = function(iso){
+              if(!iso) return '—';
+              try{ var d = new Date(iso + 'T12:00:00'); return d.toLocaleDateString(locale, {day:'2-digit', month:'2-digit'}); }
+              catch(e){ var p=String(iso).split('-'); return p.length>=3 ? p[2]+'/'+p[1] : iso; }
+            };
+            var relDays = function(iso){
+              if(!iso) return '';
+              try{
+                var d = new Date(iso + 'T12:00:00');
+                var today = new Date(); today.setHours(12,0,0,0);
+                var diff = Math.round((today - d) / 86400000);
+                if(diff === 0) return t('today');
+                if(diff === 1) return t('yesterday');
+                if(diff < 0) return t('future');
+                return diff + t('days_ago');
+              }catch(e){ return ''; }
+            };
+            var qColor = function(q){ return q===null||q===undefined?'#546E7A':(q>=70?QGOOD:q>=40?QMID:QLOW); };
+            var roundNice = function(v){
+              if(v <= 0) return 1;
+              var mag = Math.pow(10, Math.floor(Math.log10(v)));
+              var norm = v / mag; var nice;
+              if(norm <= 1) nice = 1;
+              else if(norm <= 2) nice = 2;
+              else if(norm <= 5) nice = 5;
+              else nice = 10;
+              return nice * mag;
+            };
+
+            /* ============================================================
+               READ
+               ============================================================ */
+            var SUMMARY = 'sensor.daikin_cycle_ml_daily_summary_recent';
+            var SPECS = 'sensor.daikin_cycle_ml_hp_specs';
+            var totalCycles = parseInt(stStr(SUMMARY, '0'), 10) || 0;
+            var daysAvail = aN(SUMMARY, 'days_available', 0);
+            var latestDay = attr(SUMMARY, 'latest_day', null);
+            var oldestDay = attr(SUMMARY, 'oldest_day', null);
+            var rawDays = attr(SUMMARY, 'days', []);
+            var totals = attr(SUMMARY, 'totals_by_mode', {});
+
+            /* HP specs (for hero only) */
+            var specModel = attr(SPECS, 'model', null);
+            var specFamily = attr(SPECS, 'family', null);
+            var specKw = aN(SPECS, 'kw', null);
+
+            /* ============================================================
+               GROUP BY DATE
+               ============================================================ */
+            var byDate = {};
+            for(var ri = 0; ri < rawDays.length; ri++){
+              var rd = rawDays[ri];
+              var dayKey = rd.day;
+              if(!dayKey) continue;
+              if(!byDate[dayKey]){
+                byDate[dayKey] = {
+                  day: dayKey, cycles: 0, dur_min: 0, dur_max: 0,
+                  quality_sum: 0, quality_n: 0,
+                  buh: 0, defrost: 0,
+                  modes: { heating:{cycles:0,dur:0}, dhw:{cycles:0,dur:0}, cooling:{cycles:0,dur:0} }
+                };
+              }
+              var e = byDate[dayKey];
+              e.cycles += (rd.cycles || 0);
+              e.dur_min += (rd.dur_min || 0);
+              if(hasV(rd.dur_max) && parseFloat(rd.dur_max) > e.dur_max) e.dur_max = parseFloat(rd.dur_max);
+              if(hasV(rd.quality_avg)){
+                e.quality_sum += parseFloat(rd.quality_avg);
+                e.quality_n += 1;
+              }
+              e.buh += (rd.buh || 0);
+              e.defrost += (rd.defrost || 0);
+              var mkey = rd.mode || 'unknown';
+              if(e.modes[mkey]){
+                e.modes[mkey].cycles += (rd.cycles || 0);
+                e.modes[mkey].dur += (rd.dur_min || 0);
+              }
+            }
+            var daysArr = Object.keys(byDate).map(function(k){
+              var e = byDate[k];
+              e.quality_avg = e.quality_n > 0 ? e.quality_sum / e.quality_n : null;
+              return e;
+            }).sort(function(a,b){ return a.day < b.day ? -1 : 1; });
+
+            /* ============================================================
+               TOTALS
+               ============================================================ */
+            var heating = totals.heating || {days:0, cycles:0, dur_min:0, buh:0, defrost:0};
+            var dhw = totals.dhw || {days:0, cycles:0, dur_min:0, buh:0, defrost:0};
+            var cooling = totals.cooling || {days:0, cycles:0, dur_min:0, buh:0, defrost:0};
+
+            var qualityVals = daysArr.filter(function(d){ return d.quality_avg !== null; }).map(function(d){ return d.quality_avg; });
+            var avgQuality = qualityVals.length > 0 ? qualityVals.reduce(function(a,v){ return a+v; }, 0) / qualityVals.length : null;
+            var totalHours = daysArr.reduce(function(a,d){ return a + d.dur_min; }, 0) / 60;
+            var totalBuh = daysArr.reduce(function(a,d){ return a + d.buh; }, 0);
+            var totalDefrost = daysArr.reduce(function(a,d){ return a + d.defrost; }, 0);
+            var qColorAll = qColor(avgQuality);
+
+            var hasCooling = (cooling.cycles > 0);
+            var hasDHW = (dhw.cycles > 0);
+            var hasBuh = (totalBuh > 0);
+            var hasDefrost = (totalDefrost > 0);
+            var hasHeating = (heating.cycles > 0);
+            var hasQuality = (qualityVals.length > 0);
+
+            var outlierDays = daysArr.filter(function(d){ return d.dur_min > 1440; });
+            var hasOutliers = outlierDays.length > 0;
+
+            var realDurations = daysArr.filter(function(d){ return d.dur_min > 0 && d.dur_min <= 1440; })
+              .map(function(d){ return d.dur_min / 60; })
+              .sort(function(a,b){ return a-b; });
+            var p95 = realDurations.length > 0 ? realDurations[Math.floor(realDurations.length * 0.95)] : 4;
+            var maxReal = realDurations.length > 0 ? realDurations[realDurations.length-1] : 4;
+            var c2Cap = Math.max(4, Math.min(24, roundNice(Math.max(p95 * 1.15, 4))));
+            if(maxReal <= 24 && maxReal <= c2Cap * 1.3) c2Cap = Math.max(4, Math.ceil(maxReal));
+
+            /* ============================================================
+               INSIGHTS
+               ============================================================ */
+            var byQuality = daysArr.filter(function(d){ return d.quality_avg !== null; })
+              .slice().sort(function(a,b){ return b.quality_avg - a.quality_avg; });
+            var bestDay = byQuality.length > 0 ? byQuality[0] : null;
+            var worstDay = byQuality.length > 1 ? byQuality[byQuality.length-1] : null;
+
+            var avgCyclesPerDay = daysArr.length > 0 ? totalCycles / daysArr.length : null;
+            var avgRuntimePerDay = daysArr.length > 0 ? totalHours / daysArr.length : null;
+            var avgCycleDur = totalCycles > 0 ? (totalHours * 60) / totalCycles : null;
+            var buhRate = totalCycles > 0 ? (totalBuh / totalCycles * 100) : null;
+            var defrostRate = totalCycles > 0 ? (totalDefrost / totalCycles * 100) : null;
+
+            var half = Math.floor(daysArr.length / 2);
+            var avgQ = function(arr){
+              var q = arr.filter(function(d){ return d.quality_avg !== null; });
+              return q.length > 0 ? q.reduce(function(a,d){ return a + d.quality_avg; }, 0) / q.length : null;
+            };
+            var qFirst = avgQ(daysArr.slice(0, half));
+            var qSecond = avgQ(daysArr.slice(half));
+            var trendDiff = (qFirst !== null && qSecond !== null) ? (qSecond - qFirst) : null;
+            var qualityTrend = 'flat';
+            if(trendDiff !== null){
+              if(trendDiff > 5) qualityTrend = 'up';
+              else if(trendDiff < -5) qualityTrend = 'down';
+            }
+            var trendColor = qualityTrend==='up'?QGOOD:qualityTrend==='down'?QLOW:'#546E7A';
+            var trendIcon  = qualityTrend==='up'?'📈':qualityTrend==='down'?'📉':'➡️';
+            var buhRateColor = buhRate===null?'#546E7A':(buhRate<=10?QGOOD:buhRate<=25?QMID:QLOW);
+            var defrostRateColor = defrostRate===null?'#546E7A':(defrostRate<=15?QGOOD:defrostRate<=35?QMID:QLOW);
+
+            /* ============================================================
+               CHART DIMENSIONS
+               ============================================================ */
+            var numDays = daysArr.length;
+            var chartW = 500;
+            var c1H = 200;
+            var c2H = 185;
+            var qcH = 145;  /* quality chart height */
+
+            var plotBase = chartW - 80;
+            var c1BarW = Math.max(3, Math.min(40, (plotBase / Math.max(1, numDays)) * 0.6));
+            var c2BarW = c1BarW;
+
+            var c1MaxRaw = Math.max.apply(null, daysArr.map(function(d){ return d.cycles; }));
+            if(!isFinite(c1MaxRaw) || c1MaxRaw < 1) c1MaxRaw = 1;
+            var c1Max = roundNice(c1MaxRaw);
+            var c1PadL = Math.max(34, 20 + String(Math.round(c1Max)).length * 8);
+            var c2PadL = Math.max(40, 26 + String(Math.round(c2Cap)).length * 8);
+
+            var labelEvery = 1;
+            if(numDays > 14) labelEvery = 2;
+            if(numDays > 30) labelEvery = 3;
+            if(numDays > 45) labelEvery = 5;
+            if(numDays > 60) labelEvery = 7;
+            var showDateLabel = numDays <= 21;
+
+            /* ============================================================
+               SPARKLINES (COMPACT)
+               ============================================================ */
+            var sparkW = 500, sparkH = 62;
+            var panW = 155, panGap = 17;
+            var panH = 36;
+            var panPadL = 4, panPadR = 4, panPadT = 18, panPadB = 4;
+
+            var sparkData = [
+              { title: t('spark_quality'), color: C.quality, bg: CBG.quality,
+                data: daysArr.map(function(d){ return d.quality_avg; }),
+                yMin: 0, yMax: 100,
+                fmt: function(v){ return Math.round(v)+'%'; } },
+              { title: t('spark_cycles'), color: C.heating, bg: CBG.heating,
+                data: daysArr.map(function(d){ return d.cycles; }),
+                yMin: 0, yMax: null,
+                fmt: function(v){ return String(Math.round(v)); } },
+              { title: t('spark_duration'), color: C.cooling, bg: CBG.cooling,
+                data: daysArr.map(function(d){ return d.dur_min / 60; }),
+                yMin: 0, yMax: null,
+                fmt: function(v){ return v < 10 ? v.toFixed(1).replace('.',',')+'h' : Math.round(v)+'h'; } }
+            ];
+
+            var spark = '<svg viewBox="0 0 '+sparkW+' '+sparkH+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">';
+            for(var pi = 0; pi < sparkData.length; pi++){
+              var p = sparkData[pi];
+              var panX = pi * (panW + panGap);
+              var plotX0 = panX + panPadL;
+              var plotX1 = panX + panW - panPadR;
+              var plotY0 = panPadT;
+              var plotY1 = panPadT + panH;
+              var plotW = plotX1 - plotX0;
+              var plotH = plotY1 - plotY0;
+
+              var vals = p.data.filter(function(v){ return hasV(v) && isFinite(parseFloat(v)); }).map(function(v){ return parseFloat(v); });
+              var dMax = vals.length > 0 ? Math.max.apply(null, vals) : 1;
+              var dMin = vals.length > 0 ? Math.min.apply(null, vals) : 0;
+              if(p.yMin !== null) dMin = p.yMin;
+              if(p.yMax !== null) dMax = p.yMax;
+              var range = dMax - dMin;
+              if(range <= 0) range = 1;
+              var yMax = dMax + range * 0.10;
+              var yMin = Math.max(p.yMin !== null ? p.yMin : 0, dMin - range * 0.10);
+              if(yMax - yMin <= 0) yMax = yMin + 1;
+
+              var xStep = plotW / Math.max(1, p.data.length - 1);
+              var px = function(i){ return plotX0 + i * xStep; };
+              var py = function(v){ return plotY1 - ((v - yMin) / (yMax - yMin)) * plotH; };
+
+              spark += '<rect x="'+panX+'" y="0" width="'+panW+'" height="'+sparkH+'" rx="7" fill="'+p.bg+'"/>';
+              spark += '<text x="'+(panX + 7)+'" y="11" font-family="ui-monospace,monospace" font-size="8" font-weight="900" fill="'+p.color+'" letter-spacing="0.3">'+p.title.toUpperCase()+'</text>';
+
+              var pathD = '';
+              var firstX = null, lastX = null;
+              var started = false;
+              for(var si2 = 0; si2 < p.data.length; si2++){
+                var vv = p.data[si2];
+                if(!hasV(vv) || !isFinite(parseFloat(vv))) continue;
+                var vx = px(si2);
+                var vy = py(parseFloat(vv));
+                if(!started){ pathD += 'M'+vx+','+vy; firstX = vx; started = true; }
+                else pathD += ' L'+vx+','+vy;
+                lastX = vx;
+              }
+
+              if(started){
+                var areaD = pathD + ' L' + lastX + ',' + plotY1 + ' L' + firstX + ',' + plotY1 + ' Z';
+                spark += '<path d="'+areaD+'" fill="'+p.color+'" opacity="0.15" stroke="none"/>';
+                spark += '<path d="'+pathD+'" fill="none" stroke="'+p.color+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>';
+                for(var si3 = 0; si3 < p.data.length; si3++){
+                  var vv2 = p.data[si3];
+                  if(!hasV(vv2) || !isFinite(parseFloat(vv2))) continue;
+                  var dvx = px(si3);
+                  var dvy = py(parseFloat(vv2));
+                  var isLast = (si3 === p.data.length - 1);
+                  if(isLast){
+                    spark += '<circle cx="'+dvx+'" cy="'+dvy+'" r="3" fill="white" stroke="'+p.color+'" stroke-width="2"/>';
+                  } else if(numDays <= 10){
+                    spark += '<circle cx="'+dvx+'" cy="'+dvy+'" r="1.8" fill="'+p.color+'"/>';
+                  }
+                }
+              }
+
+              spark += '<line x1="'+plotX0+'" y1="'+plotY1+'" x2="'+plotX1+'" y2="'+plotY1+'" stroke="'+p.color+'" stroke-width="1" opacity="0.25"/>';
+
+              var lastV = p.data[p.data.length - 1];
+              var currentTxt = hasV(lastV) && isFinite(parseFloat(lastV)) ? p.fmt(parseFloat(lastV)) : '—';
+              spark += '<text x="'+(panX + panW - 7)+'" y="11" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" font-weight="900" fill="'+p.color+'">'+currentTxt+'</text>';
+            }
+            spark += '</svg>';
+
+            /* ============================================================
+               QUALITY PER DAY CHART (dynamic colors)
+               ============================================================ */
+            var qcPadL = 34, qcPadR = 12, qcPadT = 24, qcPadB = showDateLabel ? 52 : 40;
+            var qcPlotW = chartW - qcPadL - qcPadR;
+            var qcPlotH = qcH - qcPadT - qcPadB;
+            var qcSlot = qcPlotW / Math.max(1, numDays);
+            var qcx = function(i){ return qcPadL + i * qcSlot + qcSlot/2; };
+            var qcy = function(v){ return qcPadT + qcPlotH - (Math.max(0,Math.min(100,v)) / 100) * qcPlotH; };
+
+            var qc = '<svg viewBox="0 0 '+chartW+' '+qcH+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">';
+            /* Zone bands */
+            qc += '<rect x="'+qcPadL+'" y="'+qcy(100)+'" width="'+qcPlotW+'" height="'+(qcy(70)-qcy(100))+'" fill="'+QGOOD+'" opacity="0.08"/>';
+            qc += '<rect x="'+qcPadL+'" y="'+qcy(70)+'" width="'+qcPlotW+'" height="'+(qcy(40)-qcy(70))+'" fill="'+QMID+'" opacity="0.06"/>';
+            qc += '<rect x="'+qcPadL+'" y="'+qcy(40)+'" width="'+qcPlotW+'" height="'+(qcy(0)-qcy(40))+'" fill="'+QLOW+'" opacity="0.06"/>';
+            /* Zone labels (right) */
+            qc += '<text x="'+(qcPadL+qcPlotW-4)+'" y="'+(qcy(85)+4)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+QGOOD+'" opacity="0.7">'+t('q_good')+'</text>';
+            qc += '<text x="'+(qcPadL+qcPlotW-4)+'" y="'+(qcy(55)+4)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+QMID+'" opacity="0.7">'+t('q_mid')+'</text>';
+            qc += '<text x="'+(qcPadL+qcPlotW-4)+'" y="'+(qcy(20)+4)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+QLOW+'" opacity="0.7">'+t('q_low')+'</text>';
+            /* Grid + Y labels */
+            for(var qgi = 0; qgi <= 4; qgi++){
+              var qgv = 25 * qgi;
+              var qgy = qcy(qgv);
+              qc += '<line x1="'+qcPadL+'" y1="'+qgy+'" x2="'+(qcPadL+qcPlotW)+'" y2="'+qgy+'" stroke="rgba(13,71,161,0.10)" stroke-width="1"/>';
+              qc += '<text x="'+(qcPadL-4)+'" y="'+(qgy+4)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="#0D47A1">'+qgv+'</text>';
+            }
+            /* Average baseline */
+            if(avgQuality !== null){
+              var qBy = qcy(avgQuality);
+              qc += '<line x1="'+qcPadL+'" y1="'+qBy+'" x2="'+(qcPadL+qcPlotW)+'" y2="'+qBy+'" stroke="'+C.gem+'" stroke-width="2" stroke-dasharray="5,4" opacity="0.75"><title>'+t('avg')+': '+vI(avgQuality)+'%</title></line>';
+            }
+            /* Line segments — dynamically colored per segment */
+            var validPts = [];
+            for(var qdi = 0; qdi < daysArr.length; qdi++){
+              var dq = daysArr[qdi];
+              if(dq.quality_avg === null) continue;
+              validPts.push({i: qdi, q: dq.quality_avg, day: dq.day, x: qcx(qdi), y: qcy(dq.quality_avg)});
+            }
+            /* Draw segments with dynamic colors */
+            if(validPts.length >= 2){
+              for(var se = 0; se < validPts.length - 1; se++){
+                var a = validPts[se];
+                var b = validPts[se+1];
+                var segColor = qColor((a.q + b.q) / 2);
+                qc += '<line x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'" stroke="'+segColor+'" stroke-width="2.5" stroke-linecap="round"/>';
+              }
+            }
+            /* Dots with dynamic colors */
+            for(var vi2 = 0; vi2 < validPts.length; vi2++){
+              var pt = validPts[vi2];
+              var pcol = qColor(pt.q);
+              qc += '<circle cx="'+pt.x+'" cy="'+pt.y+'" r="6" fill="white" stroke="'+pcol+'" stroke-width="2.5"><title>'+weekday(pt.day)+' '+fmtDay(pt.day)+' · Q '+vI(pt.q)+'%</title></circle>';
+              qc += '<circle cx="'+pt.x+'" cy="'+pt.y+'" r="2.2" fill="'+pcol+'"/>';
+              /* Value label above dot */
+              if(numDays <= 21){
+                qc += '<text x="'+pt.x+'" y="'+(pt.y-11)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="'+pcol+'">'+vI(pt.q)+'</text>';
+              }
+            }
+            /* X-axis labels */
+            for(var xi = 0; xi < daysArr.length; xi++){
+              if(xi % labelEvery === 0){
+                var xd = daysArr[xi];
+                var xpos = qcx(xi);
+                var labelY = qcPadT + qcPlotH + 14;
+                qc += '<text x="'+xpos+'" y="'+labelY+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="#0D47A1">'+weekday(xd.day)+'</text>';
+                if(showDateLabel){
+                  qc += '<text x="'+xpos+'" y="'+(labelY+12)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="#546E7A">'+fmtDay(xd.day)+'</text>';
+                }
+              }
+            }
+            /* Axes */
+            qc += '<line x1="'+qcPadL+'" y1="'+(qcPadT+qcPlotH)+'" x2="'+(qcPadL+qcPlotW)+'" y2="'+(qcPadT+qcPlotH)+'" stroke="#0D47A1" stroke-width="1.5"/>';
+            qc += '<line x1="'+qcPadL+'" y1="'+qcPadT+'" x2="'+qcPadL+'" y2="'+(qcPadT+qcPlotH)+'" stroke="#0D47A1" stroke-width="1.5"/>';
+            /* Trend indicator top-left */
+            if(trendDiff !== null){
+              var tIcon2 = trendDiff > 5 ? '📈' : trendDiff < -5 ? '📉' : '➡️';
+              var tCol2 = trendDiff > 5 ? QGOOD : trendDiff < -5 ? QLOW : '#546E7A';
+              qc += '<text x="'+(qcPadL+4)+'" y="'+(qcPadT+14)+'" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="'+tCol2+'">'+tIcon2+' '+((trendDiff>0?'+':'')+vI(trendDiff))+'%</text>';
+            }
+            qc += '</svg>';
+
+            /* ============================================================
+               CYCLES CHART
+               ============================================================ */
+            var c1PadR = 12, c1PadT = 24, c1PadB = showDateLabel ? 52 : 40;
+            var c1PlotW = chartW - c1PadL - c1PadR;
+            var c1PlotH = c1H - c1PadT - c1PadB;
+            var c1Slot = c1PlotW / Math.max(1, numDays);
+            var c1x = function(i){ return c1PadL + i * c1Slot + (c1Slot - c1BarW)/2; };
+            var c1y = function(v){ return c1PadT + c1PlotH - (v / c1Max) * c1PlotH; };
+            var c1StepCount = Math.min(5, c1Max);
+            var c1StepVal = c1Max / c1StepCount;
+
+            var c1 = '<svg viewBox="0 0 '+chartW+' '+c1H+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">';
+            for(var yi = 0; yi <= c1StepCount; yi++){
+              var yv = Math.round(c1StepVal * yi);
+              var yy = c1y(yv);
+              c1 += '<line x1="'+c1PadL+'" y1="'+yy+'" x2="'+(c1PadL+c1PlotW)+'" y2="'+yy+'" stroke="rgba(13,71,161,0.08)" stroke-width="1"/>';
+              c1 += '<text x="'+(c1PadL-4)+'" y="'+(yy+4)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="#0D47A1">'+yv+'</text>';
+            }
+            if(avgCyclesPerDay !== null && avgCyclesPerDay > 0 && avgCyclesPerDay <= c1Max){
+              var avgY1 = c1y(avgCyclesPerDay);
+              c1 += '<line x1="'+c1PadL+'" y1="'+avgY1+'" x2="'+(c1PadL+c1PlotW)+'" y2="'+avgY1+'" stroke="'+C.gem+'" stroke-width="2" stroke-dasharray="5,3" opacity="0.75"><title>'+t('avg')+' '+v1(avgCyclesPerDay)+'</title></line>';
+            }
+            for(var i = 0; i < daysArr.length; i++){
+              var d = daysArr[i];
+              var hc = (d.modes.heating && d.modes.heating.cycles) || 0;
+              var dc = (d.modes.dhw && d.modes.dhw.cycles) || 0;
+              var cc = (d.modes.cooling && d.modes.cooling.cycles) || 0;
+              var hCh = (hc / c1Max) * c1PlotH;
+              var dCh = (dc / c1Max) * c1PlotH;
+              var cCh = (cc / c1Max) * c1PlotH;
+              var x = c1x(i);
+              var yBase = c1PadT + c1PlotH;
+              if(hCh > 0) c1 += '<rect x="'+x+'" y="'+(yBase-hCh)+'" width="'+c1BarW+'" height="'+hCh+'" fill="'+C.heating+'" rx="1.5"><title>'+weekday(d.day)+' '+fmtDay(d.day)+' · '+t('tooltip_heating')+' '+hc+'×</title></rect>';
+              if(dCh > 0) c1 += '<rect x="'+x+'" y="'+(yBase-hCh-dCh)+'" width="'+c1BarW+'" height="'+dCh+'" fill="'+C.dhw+'" rx="1.5"><title>'+weekday(d.day)+' '+fmtDay(d.day)+' · '+t('tooltip_dhw')+' '+dc+'×</title></rect>';
+              if(cCh > 0) c1 += '<rect x="'+x+'" y="'+(yBase-hCh-dCh-cCh)+'" width="'+c1BarW+'" height="'+cCh+'" fill="'+C.cooling+'" rx="1.5"><title>'+weekday(d.day)+' '+fmtDay(d.day)+' · '+t('tooltip_cooling')+' '+cc+'×</title></rect>';
+              if(d.cycles > 0 && numDays <= 21){
+                c1 += '<text x="'+(x+c1BarW/2)+'" y="'+(yBase-hCh-dCh-cCh-5)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="#0D47A1">'+d.cycles+'</text>';
+              }
+              if(i % labelEvery === 0){
+                var wd = weekday(d.day);
+                var labelY1 = yBase + 14;
+                c1 += '<text x="'+(x+c1BarW/2)+'" y="'+labelY1+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="#0D47A1">'+wd+'</text>';
+                if(showDateLabel){
+                  c1 += '<text x="'+(x+c1BarW/2)+'" y="'+(labelY1+12)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="#546E7A">'+fmtDay(d.day)+'</text>';
+                }
+              }
+            }
+            c1 += '<line x1="'+c1PadL+'" y1="'+(c1PadT+c1PlotH)+'" x2="'+(c1PadL+c1PlotW)+'" y2="'+(c1PadT+c1PlotH)+'" stroke="#0D47A1" stroke-width="1.5"/>';
+            c1 += '<line x1="'+c1PadL+'" y1="'+c1PadT+'" x2="'+c1PadL+'" y2="'+(c1PadT+c1PlotH)+'" stroke="#0D47A1" stroke-width="1.5"/>';
+            c1 += '</svg>';
+
+            /* ============================================================
+               DURATION CHART
+               ============================================================ */
+            var c2PadR = 12, c2PadT = 24, c2PadB = showDateLabel ? 52 : 40;
+            var c2PlotW = chartW - c2PadL - c2PadR;
+            var c2PlotH = c2H - c2PadT - c2PadB;
+            var c2MaxH = c2Cap;
+            var c2Slot = c2PlotW / Math.max(1, numDays);
+            var c2x = function(i){ return c2PadL + i * c2Slot + (c2Slot - c2BarW)/2; };
+            var c2y = function(v){ return c2PadT + c2PlotH - (Math.min(v, c2MaxH) / c2MaxH) * c2PlotH; };
+            var c2StepCount = 4;
+            var c2StepVal = c2MaxH / c2StepCount;
+
+            var c2 = '<svg viewBox="0 0 '+chartW+' '+c2H+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">';
+            for(var yi2 = 0; yi2 <= c2StepCount; yi2++){
+              var v2h = c2StepVal * yi2;
+              var yy2 = c2y(v2h);
+              var lbl = v2h < 1 ? v2h.toFixed(1).replace('.',',') : Math.round(v2h).toString();
+              c2 += '<line x1="'+c2PadL+'" y1="'+yy2+'" x2="'+(c2PadL+c2PlotW)+'" y2="'+yy2+'" stroke="rgba(13,71,161,0.08)" stroke-width="1"/>';
+              c2 += '<text x="'+(c2PadL-4)+'" y="'+(yy2+4)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="#0D47A1">'+lbl+'h</text>';
+            }
+            for(var i2 = 0; i2 < daysArr.length; i2++){
+              var d2 = daysArr[i2];
+              var hours = d2.dur_min / 60;
+              var clipped = hours > c2MaxH;
+              var displayH = Math.min(hours, c2MaxH);
+              var hCh2 = (displayH / c2MaxH) * c2PlotH;
+              var x2 = c2x(i2);
+              var yBase2 = c2PadT + c2PlotH;
+              var hHeat = ((d2.modes.heating && d2.modes.heating.dur) || 0) / 60;
+              var hDHW = ((d2.modes.dhw && d2.modes.dhw.dur) || 0) / 60;
+              var totalH = hHeat + hDHW;
+              var scaleH = totalH > 0 ? displayH / totalH : 0;
+              var heatPx = ((hHeat * scaleH) / c2MaxH) * c2PlotH;
+              var dhwPx = ((hDHW * scaleH) / c2MaxH) * c2PlotH;
+              if(heatPx > 0) c2 += '<rect x="'+x2+'" y="'+(yBase2-heatPx)+'" width="'+c2BarW+'" height="'+heatPx+'" fill="'+C.heating+'" rx="1.5"><title>'+t('tooltip_heating')+' '+v1(hHeat)+'h</title></rect>';
+              if(dhwPx > 0) c2 += '<rect x="'+x2+'" y="'+(yBase2-heatPx-dhwPx)+'" width="'+c2BarW+'" height="'+dhwPx+'" fill="'+C.dhw+'" rx="1.5"><title>'+t('tooltip_dhw')+' '+v1(hDHW)+'h</title></rect>';
+              if(clipped){
+                c2 += '<line x1="'+(x2-2)+'" y1="'+(yBase2-hCh2)+'" x2="'+(x2+c2BarW+2)+'" y2="'+(yBase2-hCh2)+'" stroke="'+QLOW+'" stroke-width="2.5"><title>'+t('clipped')+' — '+v1(hours)+'h</title></line>';
+              }
+              if(numDays <= 21){
+                var label = hours < 1 ? vI(hours*60)+'m' : hours.toFixed(1).replace('.',',')+'h';
+                var lc = clipped ? QLOW : '#0D47A1';
+                var prefix = clipped ? '⚠' : '';
+                c2 += '<text x="'+(x2+c2BarW/2)+'" y="'+(yBase2-hCh2-6)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+lc+'">'+prefix+label+'</text>';
+              }
+              if(i2 % labelEvery === 0){
+                var wd2 = weekday(d2.day);
+                var labelY2 = yBase2 + 14;
+                c2 += '<text x="'+(x2+c2BarW/2)+'" y="'+labelY2+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="#0D47A1">'+wd2+'</text>';
+                if(showDateLabel){
+                  c2 += '<text x="'+(x2+c2BarW/2)+'" y="'+(labelY2+12)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="#546E7A">'+fmtDay(d2.day)+'</text>';
+                }
+              }
+            }
+            c2 += '<line x1="'+c2PadL+'" y1="'+(c2PadT+c2PlotH)+'" x2="'+(c2PadL+c2PlotW)+'" y2="'+(c2PadT+c2PlotH)+'" stroke="#0D47A1" stroke-width="1.5"/>';
+            c2 += '<line x1="'+c2PadL+'" y1="'+c2PadT+'" x2="'+c2PadL+'" y2="'+(c2PadT+c2PlotH)+'" stroke="#0D47A1" stroke-width="1.5"/>';
+            c2 += '</svg>';
+
+            /* ============================================================
+               EVENT STRIP
+               ============================================================ */
+            var showBuhRow = hasBuh;
+            var showDefrostRow = hasDefrost;
+            var stRows = (showBuhRow ? 1 : 0) + (showDefrostRow ? 1 : 0);
+            var stW = chartW;
+            var stPadL = Math.max(56, 26 + 24);
+            var stPadR = 12;
+            var stPlotW = stW - stPadL - stPadR;
+            var stSlot = stPlotW / Math.max(1, numDays);
+            var stRowH = 24;
+            var stPadT = 8;
+            var stPadB = showDateLabel ? 32 : 20;
+            var stH = stPadT + Math.max(1, stRows) * stRowH + stPadB;
+
+            var strip = '<svg viewBox="0 0 '+stW+' '+stH+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">';
+            if(stRows === 0){
+              strip += '<text x="'+(stW/2)+'" y="'+(stH/2+4)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="900" fill="#546E7A">'+t('no_data')+'</text>';
+            } else {
+              var rowIdx = 0;
+              if(showBuhRow){
+                var ry1 = stPadT + rowIdx * stRowH;
+                strip += '<rect x="'+stPadL+'" y="'+ry1+'" width="'+stPlotW+'" height="20" rx="4" fill="'+CBG.buh+'"/>';
+                strip += '<text x="'+(stPadL-6)+'" y="'+(ry1+14)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="'+C.buh+'">⚡ '+t('legend_buh')+'</text>';
+                rowIdx++;
+              }
+              if(showDefrostRow){
+                var ry2 = stPadT + rowIdx * stRowH;
+                strip += '<rect x="'+stPadL+'" y="'+ry2+'" width="'+stPlotW+'" height="20" rx="4" fill="'+CBG.defrost+'"/>';
+                strip += '<text x="'+(stPadL-6)+'" y="'+(ry2+14)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="'+C.defrost+'">❄️ '+t('legend_defrost')+'</text>';
+              }
+              for(var si = 0; si < daysArr.length; si++){
+                var sd = daysArr[si];
+                var xc = stPadL + si * stSlot + stSlot/2;
+                var badgeW = Math.min(stSlot * 0.5, 26);
+                var badgeFontSize = badgeW < 14 ? 8 : (badgeW < 20 ? 9 : 10);
+                rowIdx = 0;
+                if(showBuhRow){
+                  var yb = stPadT + rowIdx * stRowH;
+                  if(sd.buh > 0){
+                    strip += '<rect x="'+(xc-badgeW/2)+'" y="'+yb+'" width="'+badgeW+'" height="20" rx="3" fill="'+C.buh+'"><title>'+weekday(sd.day)+' '+fmtDay(sd.day)+' · '+sd.buh+'× '+t('tooltip_buh')+'</title></rect>';
+                    strip += '<text x="'+xc+'" y="'+(yb+14)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="'+badgeFontSize+'" font-weight="900" fill="white">'+sd.buh+'</text>';
+                  } else {
+                    strip += '<text x="'+xc+'" y="'+(yb+14)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" font-weight="700" fill="rgba(230,81,0,0.25)">·</text>';
+                  }
+                  rowIdx++;
+                }
+                if(showDefrostRow){
+                  var yd = stPadT + rowIdx * stRowH;
+                  if(sd.defrost > 0){
+                    strip += '<rect x="'+(xc-badgeW/2)+'" y="'+yd+'" width="'+badgeW+'" height="20" rx="3" fill="'+C.defrost+'"><title>'+weekday(sd.day)+' '+fmtDay(sd.day)+' · '+sd.defrost+'× '+t('tooltip_defrost')+'</title></rect>';
+                    strip += '<text x="'+xc+'" y="'+(yd+14)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="'+badgeFontSize+'" font-weight="900" fill="white">'+sd.defrost+'</text>';
+                  } else {
+                    strip += '<text x="'+xc+'" y="'+(yd+14)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" font-weight="700" fill="rgba(25,118,210,0.25)">·</text>';
+                  }
+                }
+                if(si % labelEvery === 0){
+                  var wdS = weekday(sd.day);
+                  strip += '<text x="'+xc+'" y="'+(stH-6)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="#0D47A1">'+wdS+'</text>';
+                }
+              }
+            }
+            strip += '</svg>';
+
+            /* ============================================================
+               CHIP HELPERS
+               ============================================================ */
+            var chip = function(color, bg, label, title){
+              var tt = title ? ' title="'+title+'"' : '';
+              return '<span'+tt+' style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:9px;background:'+bg+';border:1px solid '+color+'55;font-size:0.65em;font-weight:900;color:'+color+';white-space:nowrap;line-height:1.2;">'
+                + '<span style="width:6px;height:6px;border-radius:50%;background:'+color+';flex-shrink:0;"></span>'
+                + label + '</span>';
+            };
+            var chipRow = function(arr, extra){
+              var s = '<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:6px;padding-top:6px;border-top:1px dashed rgba(25,118,210,0.15);">';
+              for(var ci = 0; ci < arr.length; ci++){
+                s += chip(arr[ci].col, arr[ci].bg, arr[ci].label, arr[ci].title);
+              }
+              if(extra){
+                s += '<span style="font-size:0.6em;font-weight:800;color:#546E7A;margin-left:auto;white-space:nowrap;">'+extra+'</span>';
+              }
+              s += '</div>';
+              return s;
+            };
+
+            /* ============================================================
+               RENDER
+               ============================================================ */
+            var r = '<div style="font-family:var(--primary-font-family);width:100%;box-sizing:border-box;white-space:normal;">';
+            r += '<style>'
+              + '.d-sec{background:white;border:2.5px solid #1976D2;border-radius:12px;padding:10px;margin-bottom:8px;box-sizing:border-box;min-width:0;overflow:hidden;box-shadow:0 2px 6px rgba(25,118,210,0.08);white-space:normal !important}'
+              + '.d-hdr{font-size:0.82em;font-weight:900;color:#0D47A1;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;padding-bottom:6px;border-bottom:2px solid #E3F2FD;display:flex;justify-content:space-between;align-items:center;gap:6px;min-width:0}'
+              + '.d-hdr>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}'
+              + '.d-hdr>span:last-child{flex-shrink:0;font-size:0.85em;color:#1565C0;font-weight:900;white-space:nowrap}'
+              + '</style>';
+
+            /* ===== HERO ===== */
+            r += '<div style="background:linear-gradient(135deg,rgba(25,118,210,0.12),rgba(25,118,210,0.03));border:2.5px solid #1976D2;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-sizing:border-box;">';
+            r += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;">';
+            r += '<div style="display:flex;align-items:center;gap:12px;min-width:0;">';
+            r += '<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:white;border-radius:10px;border:2px solid #1976D2;font-size:24px;">🌡️</div>';
+            r += '<div style="min-width:0;">';
+            r += '<div style="font-size:0.55em;color:#1565C0;font-weight:900;text-transform:uppercase;letter-spacing:0.6px;">DAIKIN CYCLE ML</div>';
+            r += '<div style="font-size:1.05em;color:#0D47A1;font-weight:900;letter-spacing:0.3px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(specModel?specModel.toUpperCase():'—')+'</div>';
+            r += '<div style="font-size:0.72em;color:#546E7A;font-weight:800;font-family:ui-monospace,monospace;margin-top:1px;">'+(specFamily||'—')+(specKw?' · '+vI(specKw)+' kW':'')+'</div>';
+            r += '</div></div>';
+            r += '<div style="text-align:right;flex-shrink:0;">';
+            r += '<div style="font-size:0.55em;color:#1565C0;font-weight:900;text-transform:uppercase;letter-spacing:0.6px;">'+t('quality')+'</div>';
+            r += '<div style="font-family:ui-monospace,monospace;font-size:1.35em;color:'+qColorAll+';font-weight:900;line-height:1;">'+(avgQuality===null?'—':vI(avgQuality)+'%')+'</div>';
+            r += '<div style="font-family:ui-monospace,monospace;font-size:0.72em;color:'+trendColor+';font-weight:900;line-height:1;margin-top:3px;">'+trendIcon+' '+((trendDiff===null)?t('avg'):((trendDiff>0?'+':'')+vI(trendDiff)+'%'))+'</div>';
+            r += '</div></div>';
+            r += '<div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px dashed rgba(25,118,210,0.20);gap:8px;flex-wrap:wrap;">';
+            r += '<div style="font-size:0.72em;color:#0D47A1;font-weight:900;font-family:ui-monospace,monospace;">'+fmtBigNum(totalCycles)+' '+t('cycles')+' · '+fmtBigHours(totalHours)+' · '+vI(daysAvail)+' '+t('days')+'</div>';
+            r += '<div style="font-size:0.65em;color:#546E7A;font-weight:800;font-family:ui-monospace,monospace;">'+fmtDay(oldestDay)+' → '+fmtDay(latestDay)+'</div>';
+            r += '</div>';
+            var tileCount = (hasHeating?1:0) + (hasDHW?1:0) + (hasCooling?1:0);
+            if(tileCount > 0){
+              r += '<div style="display:grid;grid-template-columns:repeat('+tileCount+',1fr);gap:5px;margin-top:8px;">';
+              var miniTile = function(icon, label, val, color, bg){
+                return '<div style="padding:6px 4px;border-radius:8px;background:'+bg+';border:2px solid '+color+';text-align:center;box-sizing:border-box;">'
+                  +'<div style="font-size:0.85em;line-height:1;">'+icon+'</div>'
+                  +'<div style="font-size:0.5em;font-weight:900;text-transform:uppercase;color:'+color+';margin-top:2px;letter-spacing:0.3px;">'+label+'</div>'
+                  +'<div style="font-family:ui-monospace,monospace;font-size:1.05em;font-weight:900;color:'+color+';line-height:1;margin-top:2px;">'+val+'</div>'
+                  +'</div>';
+              };
+              if(hasHeating) r += miniTile('🔥', t('heating').substring(0,5), fmtBigNum(heating.cycles), C.heating, CBG.heating);
+              if(hasDHW) r += miniTile('🚿', t('dhw'), fmtBigNum(dhw.cycles), C.dhw, CBG.dhw);
+              if(hasCooling) r += miniTile('🧊', t('cooling').substring(0,5), fmtBigNum(cooling.cycles), C.cooling, CBG.cooling);
+              r += '</div>';
+            }
+            if(hasOutliers){
+              r += '<div style="margin-top:8px;padding:6px 10px;border-radius:8px;background:rgba(198,40,40,0.10);border-left:3px solid '+QLOW+';font-size:0.7em;font-weight:900;color:'+QLOW+';">'
+                + '🚨 ' + outlierDays.length + ' × ' + t('outlier_warn')
+                + '</div>';
+            }
+            r += '</div>';
+
+            /* ===== BEST / WORST ===== */
+            if(bestDay || worstDay){
+              r += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">';
+              var dayCard = function(icon, label, day, color){
+                if(!day) return '<div class="d-sec" style="margin:0;padding:8px;"><div style="text-align:center;color:#546E7A;font-size:0.75em;font-weight:800;padding:8px;">'+t('no_data')+'</div></div>';
+                var dc = qColor(day.quality_avg);
+                var rel = relDays(day.day);
+                return '<div class="d-sec" style="margin:0;padding:10px 12px;border-color:'+color+';border-width:2.5px;">'
+                  +'<div style="font-size:0.7em;font-weight:900;text-transform:uppercase;letter-spacing:0.4px;color:'+color+';margin-bottom:3px;">'+icon+' '+label+'</div>'
+                  +'<div style="font-size:0.85em;font-weight:900;color:#0D47A1;font-family:ui-monospace,monospace;margin-bottom:5px;">'+shortDate(day.day)+' · <span style="color:#1565C0;">'+rel+'</span></div>'
+                  +'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+                  + '<div style="font-family:ui-monospace,monospace;font-size:1.4em;font-weight:900;color:'+dc+';line-height:1;">'+(day.quality_avg===null?'—':vI(day.quality_avg)+'%')+'</div>'
+                  + '<div style="font-family:ui-monospace,monospace;font-size:0.8em;font-weight:900;color:#37474F;">'+vI(day.cycles)+'c · '+fmtBigMin(day.dur_min)+'</div>'
+                  +'</div>'
+                  +'</div>';
+              };
+              r += dayCard('🏆', t('best_day'), bestDay, QGOOD);
+              r += dayCard('⚠️', t('worst_day'), worstDay, QLOW);
+              r += '</div>';
+            }
+
+            /* ===== SPARKLINES (compact) ===== */
+            r += '<div class="d-sec">';
+            r += '<div class="d-hdr"><span>📈 '+t('sparklines')+'</span><span>'+vI(numDays)+' '+t('days')+'</span></div>';
+            r += spark;
+            r += '</div>';
+
+            /* ===== QUALITY PER DAY (dynamic colors) ===== */
+            if(hasQuality){
+              r += '<div class="d-sec">';
+              r += '<div class="d-hdr"><span>⭐ '+t('quality_chart')+'</span><span>'+t('avg')+' '+vI(avgQuality)+'%</span></div>';
+              r += qc;
+              r += chipRow([
+                {col:QGOOD, bg:'#E8F5E9', label:t('q_good')},
+                {col:QMID, bg:'#FFF3E0', label:t('q_mid')},
+                {col:QLOW, bg:'#FFEBEE', label:t('q_low')},
+                {col:C.gem, bg:'#F3E5F5', label:'┄ '+t('avg')}
+              ], vI(qualityVals.length)+' '+t('days'));
+              r += '</div>';
+            }
+
+            /* ===== CYCLES CHART ===== */
+            r += '<div class="d-sec">';
+            r += '<div class="d-hdr"><span>🔄 '+t('cycles_chart')+'</span><span>'+t('avg')+' '+v1(avgCyclesPerDay)+'/d</span></div>';
+            r += c1;
+            var cyclesChips = [];
+            if(hasHeating) cyclesChips.push({col:C.heating, bg:CBG.heating, label:t('legend_heat')});
+            if(hasDHW) cyclesChips.push({col:C.dhw, bg:CBG.dhw, label:t('legend_dhw')});
+            if(hasCooling) cyclesChips.push({col:C.cooling, bg:CBG.cooling, label:t('legend_cool')});
+            cyclesChips.push({col:C.gem, bg:CBG.gem, label:'┄ '+t('legend_gem_line')});
+            r += chipRow(cyclesChips, fmtBigNum(totalCycles)+' '+t('total'));
+            r += '</div>';
+
+            /* ===== DURATION CHART ===== */
+            r += '<div class="d-sec">';
+            r += '<div class="d-hdr"><span>⏱️ '+t('duration_chart')+'</span><span>'+t('cap')+' '+v1(c2Cap)+'h</span></div>';
+            r += c2;
+            var durChips = [];
+            if(hasHeating) durChips.push({col:C.heating, bg:CBG.heating, label:t('legend_heat')});
+            if(hasDHW) durChips.push({col:C.dhw, bg:CBG.dhw, label:t('legend_dhw')});
+            if(hasOutliers) durChips.push({col:QLOW, bg:'#FFEBEE', label:'⚠ '+t('clipped')});
+            r += chipRow(durChips, fmtBigHours(totalHours)+' '+t('total'));
+            r += '</div>';
+
+            /* ===== EVENTS ===== */
+            if(hasBuh || hasDefrost){
+              r += '<div class="d-sec">';
+              r += '<div class="d-hdr"><span>⚡❄️ '+t('events_chart')+'</span><span>'+fmtBigNum(totalBuh)+' '+t('legend_buh')+' · '+fmtBigNum(totalDefrost)+' '+t('legend_defrost')+'</span></div>';
+              r += strip;
+              var evChips = [];
+              if(hasBuh) evChips.push({col:C.buh, bg:CBG.buh, label:'⚡ '+t('legend_buh')+' '+vI(buhRate)+'%'});
+              if(hasDefrost) evChips.push({col:C.defrost, bg:CBG.defrost, label:'❄️ '+t('legend_defrost')+' '+vI(defrostRate)+'%'});
+              r += chipRow(evChips, t('threshold_legend')+': 15% · 35%');
+              r += '</div>';
+            }
+
+            r += '</div>';
+            return r;
+          } catch(e) {
+            var errMsg = (e && e.message) ? e.message : String(e);
+            return '<div style="padding:16px;color:#C62828;font-family:monospace;font-weight:800;font-size:0.75em;">⚠️ Summary error: ' + errMsg + '</div>';
+          }
+        ]]]
