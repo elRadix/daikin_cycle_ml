@@ -1,6 +1,7 @@
 """DataUpdateCoordinator for Daikin Cycle ML."""
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import logging
 import time
@@ -464,6 +465,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 _LOGGER.exception("Baseline restore failed")
             await self.async_load_adaptive_state()
             await self._restore_detector_state()
+            await self._restore_runtime_acc()
+            await self._restore_energy_acc()
             try:
                 if self.db is not None and hasattr(
                     self.db, "async_ensure_cluster_column"
@@ -910,6 +913,63 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("energy_acc persist failed")
 
+    async def _restore_runtime_acc(self) -> bool:
+        """R310: rehydrate runtime accumulators. Never raises."""
+        if self.db is None:
+            return False
+        try:
+            today = time.strftime("%Y-%m-%d", time.localtime(time.time()))
+            payload = await self.db.async_get_model_state(
+                f"runtime_acc.{today}"
+            )
+            if not isinstance(payload, dict) or payload.get("day") != today:
+                return False
+            self._buh_step1_s = float(payload.get("buh_step1_s", 0.0))
+            self._buh_step2_s = float(payload.get("buh_step2_s", 0.0))
+            self._defrost_count_today = int(payload.get("defrost_count", 0))
+            self._defrost_duration_s = float(
+                payload.get("defrost_duration_s", 0.0)
+            )
+            self._last_defrost_ts = float(
+                payload.get("last_defrost_ts", 0.0)
+            )
+            self._runtime_day_key = today
+            return True
+        except Exception:
+            _LOGGER.exception("runtime_acc restore failed")
+            return False
+
+    async def _restore_energy_acc(self) -> bool:
+        """R310: rehydrate energy accumulators. Never raises."""
+        if self.db is None:
+            return False
+        try:
+            today = time.strftime("%Y-%m-%d", time.localtime(time.time()))
+            payload = await self.db.async_get_model_state(
+                f"energy_acc.{today}"
+            )
+            if not isinstance(payload, dict) or payload.get("day") != today:
+                return False
+            self._energy_acc = {
+                "heating": {
+                    "th": float(payload.get("heating_th_kwh", 0.0)),
+                    "el": float(payload.get("heating_el_kwh", 0.0)),
+                },
+                "dhw": {
+                    "th": float(payload.get("dhw_th_kwh", 0.0)),
+                    "el": float(payload.get("dhw_el_kwh", 0.0)),
+                },
+                "cooling": {
+                    "th": float(payload.get("cooling_th_kwh", 0.0)),
+                    "el": float(payload.get("cooling_el_kwh", 0.0)),
+                },
+            }
+            self._energy_day_key = today
+            return True
+        except Exception:
+            _LOGGER.exception("energy_acc restore failed")
+            return False
+
     async def _maybe_persist_accumulators(self, now: float) -> None:
         """Persist runtime + energy accumulators throttled at 300s.
 
@@ -1316,8 +1376,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._datasheet_user = await _load_user_datasheets(
             self.hass, self.entry.entry_id
         )
+        _bundled = await asyncio.get_running_loop().run_in_executor(
+            None, _load_bundled_datasheets
+        )
         self._datasheet_merged = _merge_datasheets(
-            _load_bundled_datasheets(), self._datasheet_user
+            _bundled, self._datasheet_user
         )
         self._datasheet_cache = {}
         self._datasheet_user_loaded = True
@@ -1347,12 +1410,17 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     "user datasheet store unreadable; falling back to bundled"
                 )
                 self._datasheet_user = {}
-                self._datasheet_merged = _merge_datasheets(
-                    _load_bundled_datasheets(), {}
+                _bundled = await asyncio.get_running_loop().run_in_executor(
+                    None, _load_bundled_datasheets
                 )
+                self._datasheet_merged = _merge_datasheets(_bundled, {})
                 self._datasheet_user_loaded = True
         if not self._datasheet_defaults:
-            self._datasheet_defaults = _load_datasheet_defaults()
+            self._datasheet_defaults = (
+                await asyncio.get_running_loop().run_in_executor(
+                    None, _load_datasheet_defaults
+                )
+            )
         try:
             model = self.entry.data.get("model", MODEL_BASISPROFIEL)
         except Exception:
