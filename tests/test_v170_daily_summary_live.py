@@ -297,3 +297,21 @@ async def test_backfill_write_guard_exception(db):
         assert n == 1
     finally:
         db.async_set_model_state = orig  # type: ignore[method-assign]
+
+
+async def test_maintenance_multiple_days(db):
+    """Cover multi-iteration loop in async_run_maintenance (533->530)."""
+    now = time.time()
+    day_a = now - 100 * 86400.0
+    day_b = now - 101 * 86400.0
+    await _insert_cycle(db, end_ts=day_a, mode="heating")
+    await _insert_cycle(db, end_ts=day_b, mode="heating")
+    out = await db.async_run_maintenance(
+        cycle_retention_days=90, vacuum=False,
+    )
+    assert out["cycles_deleted"] == 2
+    assert out["cycles_rolled_up"] == 2
+    assert out["days_rolled_up"] == 2
+    rows = await db.async_daily_summary(days=365)
+    assert len(rows) == 2
+    assert all(r["cycles"] == 1 for r in rows)
