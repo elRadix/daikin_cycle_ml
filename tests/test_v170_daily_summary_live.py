@@ -315,3 +315,42 @@ async def test_maintenance_multiple_days(db):
     rows = await db.async_daily_summary(days=365)
     assert len(rows) == 2
     assert all(r["cycles"] == 1 for r in rows)
+
+
+async def test_backfill_multi_day_all_zero(db):
+    """Cover 533->530 when n==0 across a multi-day loop."""
+    now = time.time()
+    await _insert_cycle(db, end_ts=now - 86400.0, mode="heating")
+    await _insert_cycle(db, end_ts=now - 2 * 86400.0, mode="heating")
+    orig = db.async_rollup_day
+
+    async def zero(day, **kw):
+        return 0
+
+    db.async_rollup_day = zero  # type: ignore[method-assign]
+    try:
+        n = await db.async_backfill_daily_summary()
+        assert n == 0
+    finally:
+        db.async_rollup_day = orig  # type: ignore[method-assign]
+
+
+async def test_backfill_multi_day_mixed_zero_positive(db):
+    """Cover both if-branches across the same multi-day loop."""
+    now = time.time()
+    await _insert_cycle(db, end_ts=now - 86400.0, mode="heating")
+    await _insert_cycle(db, end_ts=now - 2 * 86400.0, mode="heating")
+    orig = db.async_rollup_day
+    seen: list[str] = []
+
+    async def mixed(day, **kw):
+        seen.append(day)
+        return 1 if len(seen) == 1 else 0
+
+    db.async_rollup_day = mixed  # type: ignore[method-assign]
+    try:
+        n = await db.async_backfill_daily_summary()
+        assert n == 1
+        assert len(seen) == 2
+    finally:
+        db.async_rollup_day = orig  # type: ignore[method-assign]
