@@ -84,7 +84,7 @@ def test_contract_unit_implies_state_class():
 
 
 def test_contract_count_27():
-    assert len(SENSOR_DEFS) == 45
+    assert len(SENSOR_DEFS) == 46
 
 
 # ================================================================
