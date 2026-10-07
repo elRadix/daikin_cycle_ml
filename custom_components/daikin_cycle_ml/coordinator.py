@@ -83,6 +83,8 @@ from .engine.timer_health import clamp_cycle_duration as _clamp_duration
 from .repairs import async_check_repairs
 from .storage.store import CycleStore
 
+from .const import OPTION_DAILY_SUMMARY_LIVE_ENABLED
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -467,6 +469,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._restore_detector_state()
             await self._restore_runtime_acc()
             await self._restore_energy_acc()
+            await self._maybe_backfill_daily_summary()
             try:
                 if self.db is not None and hasattr(
                     self.db, "async_ensure_cluster_column"
@@ -944,6 +947,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.exception("runtime_acc restore failed")
             return False
 
+    async def _maybe_backfill_daily_summary(self) -> None:
+        """v1.7.0: one-shot backfill of daily_summary on startup."""
+        if self.db is None:
+            return
+        try:
+            await self.db.async_backfill_daily_summary()
+        except Exception:
+            _LOGGER.exception("daily_summary backfill failed")
+
     async def _restore_energy_acc(self) -> bool:
         """R310: rehydrate energy accumulators. Never raises."""
         if self.db is None:
@@ -1257,6 +1269,29 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     _LOGGER.warning("cluster assign failed", exc_info=True)
         except Exception:
             _LOGGER.exception("DB persist failed")
+
+        await self._maybe_rollup_day(record)
+
+    async def _maybe_rollup_day(
+        self, record: dict[str, Any]
+    ) -> None:
+        """v1.7.0: live daily-summary rollup on cycle close (idempotent)."""
+        if not (self.options or {}).get(
+            OPTION_DAILY_SUMMARY_LIVE_ENABLED, True
+        ):
+            return
+        if self.db is None:
+            return
+        end_ts = record.get("end_ts")
+        if not isinstance(end_ts, (int, float)):
+            return
+        try:
+            day = time.strftime(
+                "%Y-%m-%d", time.localtime(float(end_ts))
+            )
+            await self.db.async_rollup_day(day)
+        except Exception:
+            _LOGGER.exception("live daily rollup failed")
 
     async def _refresh_cop_today(self, now: float) -> None:
         if self.db is None:

@@ -342,13 +342,15 @@
               "retention_enabled": "Retentie ingeschakeld",
               "cycle_retention_days": "Cyclus-retentie (dagen)",
               "alert_retention_days": "Melding-retentie (dagen)",
-              "vacuum_enabled": "VACUUM na opschonen"
+              "vacuum_enabled": "VACUUM na opschonen",
+              "daily_summary_live_enabled": "Live dagelijkse samenvatting"
             },
             "data_description": {
               "retention_enabled": "Dagelijks onderhoud om 03:00 lokale tijd.",
               "cycle_retention_days": "Cycli ouder dan N dagen worden gerold. Standaard 90.",
               "alert_retention_days": "Meldingen ouder dan N dagen verwijderd. Standaard 30.",
-              "vacuum_enabled": "SQLite VACUUM om ruimte vrij te maken."
+              "vacuum_enabled": "SQLite VACUUM om ruimte vrij te maken.",
+              "daily_summary_live_enabled": "Werk de dagelijkse samenvatting bij zodra een cyclus eindigt. Backfill en onderhoud blijven altijd lopen."
             }
           },
           "season": {

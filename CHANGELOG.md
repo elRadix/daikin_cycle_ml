@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.7.0] - 2026-10-07
+
+### Added
+
+- Live daily summary rollup: `daily_summary` table populated as each cycle closes (#42).
+- New option `daily_summary_live_enabled` in OptionsFlow > Advanced > Retention (default True).
+- One-time startup backfill: historic cycles populate `daily_summary` on first startup after upgrade.
+
+### Changed
+
+- `async_run_maintenance` refactored to call `async_rollup_day` per affected day before prune. Idempotent replace semantics eliminate prior double-count risk.
+
+### Fixed
+
+- `daily_summary` stays empty on fresh installs. Root cause (Anomaly D, 2026-10-07): aggregation scoped to retention cutoff only, so no cycles qualified until 365d elapsed.
+
+### Notes
+
+- Existing installs: backfill runs once on next HA restart; no user action required.
+- Rollback to v1.6.7 leaves `daily_summary` populated but idle; no data loss.
+
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),

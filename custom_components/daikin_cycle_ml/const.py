@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "daikin_cycle_ml"
 NAME = "Daikin Cycle ML"
-VERSION = "1.6.7"
+VERSION = "1.7.0"
 
 # --- Coordinator ---
 UPDATE_INTERVAL_SECONDS = 30
@@ -394,3 +394,11 @@ OUTDOOR_BINS: tuple[tuple[float, float, str], ...] = (
 )
 OUTDOOR_BINS_ORDER: tuple[str, ...] = tuple(b[2] for b in OUTDOOR_BINS)
 
+# v1.7.0: one-time guard for daily_summary backfill
+DAILY_SUMMARY_BACKFILL_KEY = "daily_summary_backfilled_v1_7_0"
+
+# v1.7.0: live daily summary rollup toggle
+OPTION_DAILY_SUMMARY_LIVE_ENABLED = "daily_summary_live_enabled"
+
+# v1.7.0: default for the live daily summary rollup toggle
+DEFAULT_DAILY_SUMMARY_LIVE_ENABLED = True

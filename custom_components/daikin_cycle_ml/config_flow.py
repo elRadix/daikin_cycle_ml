@@ -6,6 +6,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
+from .const import DEFAULT_DAILY_SUMMARY_LIVE_ENABLED
 
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -1038,6 +1039,10 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 ): _num(1, 365, 1, "d"),
                 vol.Required("vacuum_enabled",
                     default=c.get("vacuum_enabled", DEFAULT_VACUUM_ENABLED)
+                ): bool,
+                vol.Required("daily_summary_live_enabled",
+                    default=c.get("daily_summary_live_enabled",
+                                DEFAULT_DAILY_SUMMARY_LIVE_ENABLED)
                 ): bool,
             })),
             vol.Required("season"): section(vol.Schema({
