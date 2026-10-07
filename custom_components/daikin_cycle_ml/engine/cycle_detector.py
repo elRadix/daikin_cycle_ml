@@ -44,6 +44,27 @@ def _safe_float(value: Any) -> float | None:
     return None
 
 
+MAX_RESUME_GAP_S: float = 6 * 3600.0
+"""Maximum gap (seconds) at which a RUNNING detector state may be resumed."""
+
+
+PUMP_OFF_MAX_SAMPLES: int = 20
+"""Consecutive pump-off samples in RUNNING before closing the cycle."""
+
+
+def _float_list(value: Any) -> list[float]:
+    """Return a list of floats, dropping non-numeric entries."""
+    if not isinstance(value, list):
+        return []
+    out: list[float] = []
+    for item in value:
+        if isinstance(item, bool):
+            continue
+        if isinstance(item, (int, float)):
+            out.append(float(item))
+    return out
+
+
 def detect_compressor_on(
     attrs: Mapping[str, Any],
     options: Mapping[str, Any] | None = None,
@@ -111,6 +132,7 @@ class CycleDetector:
         self._buh_used = False
         self._defrost_used = False
         self._thermal_kw_samples: list[float] = []
+        self._pump_off_count: int = 0
 
     @property
     def state(self) -> str:
@@ -127,6 +149,48 @@ class CycleDetector:
             "defrost_used": self._defrost_used,
         }
 
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize RUNNING state. IDLE serializes to empty dict."""
+        if self._state != STATE_RUNNING:
+            return {}
+        return {
+            "state": self._state,
+            "start_ts": self._start_ts,
+            "mode": self._mode,
+            "rps_samples": list(self._rps_samples),
+            "dt_samples": list(self._dt_samples),
+            "outdoor_samples": list(self._outdoor_samples),
+            "buh_used": self._buh_used,
+            "defrost_used": self._defrost_used,
+            "thermal_kw_samples": list(self._thermal_kw_samples),
+        }
+
+    def restore_from_dict(self, payload: Any, now: float) -> None:
+        """Restore RUNNING state. Silent no-op on invalid or stale payload."""
+        if not isinstance(payload, dict) or not payload:
+            return
+        if payload.get("state") != STATE_RUNNING:
+            return
+        start_ts = payload.get("start_ts")
+        if isinstance(start_ts, bool) or not isinstance(start_ts, (int, float)):
+            return
+        gap = now - float(start_ts)
+        if gap > MAX_RESUME_GAP_S:
+            _LOGGER.warning(
+                "Detector resume gap %.0fs exceeds max %.0fs; abandoning cycle",
+                gap, MAX_RESUME_GAP_S,
+            )
+            return
+        self._state = STATE_RUNNING
+        self._start_ts = float(start_ts)
+        self._mode = str(payload.get("mode") or "unknown")
+        self._rps_samples = _float_list(payload.get("rps_samples"))
+        self._dt_samples = _float_list(payload.get("dt_samples"))
+        self._outdoor_samples = _float_list(payload.get("outdoor_samples"))
+        self._buh_used = bool(payload.get("buh_used", False))
+        self._defrost_used = bool(payload.get("defrost_used", False))
+        self._thermal_kw_samples = _float_list(payload.get("thermal_kw_samples"))
+
     def _reset_running(self) -> None:
         self._state = STATE_IDLE
         self._start_ts = None
@@ -137,6 +201,7 @@ class CycleDetector:
         self._buh_used = False
         self._defrost_used = False
         self._thermal_kw_samples = []
+        self._pump_off_count = 0
 
     def _accumulate(self, attrs: Mapping[str, Any]) -> None:
         rps = _safe_float(attrs.get(ATTR_INV_FREQUENCY_RPS))
@@ -198,17 +263,37 @@ class CycleDetector:
         now: float,
         power_w: float | None = None,
     ) -> dict[str, Any] | None:
-        """Process one sample. Returns cycle record on close, else None."""
+        """Process one sample. Returns cycle record on close, else None.
+
+        R307: pump=OFF in RUNNING state is a soft signal, not a hard stop,
+        as long as the compressor is still running. Only after
+        PUMP_OFF_MAX_SAMPLES consecutive pump-off samples is the cycle
+        closed. In IDLE state pump=OFF is still an unconditional skip.
+        """
         pump = attrs.get(ATTR_WATER_PUMP_OPERATION)
-        if pump is False:
-            # Water pump off while compressor claims to run: data glitch.
-            # Ignore this sample entirely (no cycle start, no accumulation).
+
+        # R307: IDLE + pump=OFF -> no active cycle to protect, skip entirely.
+        if pump is False and self._state == STATE_IDLE:
             return None
+
         if self._start_ts is not None and now < self._start_ts:
             _LOGGER.debug("Clock skew detected (now < start_ts), ignoring sample")
             return None
 
         on = detect_compressor_on(attrs, self._options, power_w)
+
+        # R307: RUNNING + pump=OFF -> tolerate pump-off while compressor runs.
+        if pump is False and self._state == STATE_RUNNING:
+            if on:
+                self._accumulate(attrs)
+                self._pump_off_count += 1
+                if self._pump_off_count >= PUMP_OFF_MAX_SAMPLES:
+                    return self._close(now)
+                return None
+            return self._close(now)
+
+        # Any sample with pump != OFF resets the tolerance counter.
+        self._pump_off_count = 0
 
         if self._state == STATE_IDLE:
             if on:

@@ -463,6 +463,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             except Exception:
                 _LOGGER.exception("Baseline restore failed")
             await self.async_load_adaptive_state()
+            await self._restore_detector_state()
             try:
                 if self.db is not None and hasattr(
                     self.db, "async_ensure_cluster_column"
@@ -745,9 +746,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.power_w = self._read_power_w()
             snap.cop = self._read_cop()
             snap.setpoint_oscillating = self._compute_setpoint_oscillating()
+            prev_detector_state = self.detector.state
             record = self.detector.update(
                 attrs, now=now, power_w=self._read_power()
             )
+            if self.detector.state != prev_detector_state:
+                await self._persist_detector_state()
             self._accumulate_cycle_samples(attrs)
             if record is not None:
                 score_and_count(record, self.options, self.store, now)
@@ -1749,6 +1753,38 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 return True
         except Exception:
             _LOGGER.exception("adaptive load failed")
+        return False
+
+    async def _persist_detector_state(self) -> None:
+        """Persist detector state to model_state. Never raises."""
+        if self.db is None:
+            return
+        try:
+            from .const import DETECTOR_STATE_KEY
+            payload = self.detector.to_dict()
+            await self.db.async_set_model_state(DETECTOR_STATE_KEY, payload)
+        except Exception:
+            _LOGGER.exception("detector state persist failed")
+
+    async def _restore_detector_state(self) -> bool:
+        """Restore detector state from model_state. Never raises."""
+        if self.db is None:
+            return False
+        try:
+            from .const import DETECTOR_STATE_KEY
+            payload = await self.db.async_get_model_state(DETECTOR_STATE_KEY)
+            if not payload:
+                return False
+            self.detector.restore_from_dict(payload, time.time())
+            if self.detector.state == "running":
+                snap = self.detector.snapshot()
+                _LOGGER.info(
+                    "Detector state restored: start_ts=%s mode=%s",
+                    snap.get("start_ts"), snap.get("mode"),
+                )
+                return True
+        except Exception:
+            _LOGGER.exception("detector state restore failed")
         return False
 
     def _track_setpoint(self, attrs: dict[str, Any]) -> int:
