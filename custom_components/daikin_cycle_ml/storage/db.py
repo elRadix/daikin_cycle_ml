@@ -579,7 +579,7 @@ class CycleDB:
             except Exception:
                 _LOGGER.exception("rollup failed for day=%s", day)
 
-        cycles_rolled_up = len(rows)
+        cycles_rolled_up = sum(per_day.values())
 
         # 4. Prune (features first: FK from features.cycle_id to cycles.id)
         cur = await conn.execute(

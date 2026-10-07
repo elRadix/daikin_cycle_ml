@@ -242,3 +242,58 @@ async def test_backfill_survives_rollup_exception(db):
     )
     flag = await db.async_get_model_state(DAILY_SUMMARY_BACKFILL_KEY)
     assert flag
+
+
+# ---------- commit 8: coverage of exception handlers ----------
+
+async def test_maintenance_rollup_exception_swallowed(db):
+    now = time.time()
+    await _insert_cycle(
+        db, end_ts=now - 100 * 86400.0, mode="heating",
+    )
+    orig = db.async_rollup_day
+
+    async def boom(day, **kw):
+        raise RuntimeError("synthetic")
+
+    db.async_rollup_day = boom  # type: ignore[method-assign]
+    try:
+        out = await db.async_run_maintenance(
+            cycle_retention_days=90, vacuum=False,
+        )
+        assert out["cycles_deleted"] >= 1
+        assert out["days_rolled_up"] == 0
+    finally:
+        db.async_rollup_day = orig  # type: ignore[method-assign]
+
+
+async def test_backfill_read_guard_exception(db):
+    now = time.time()
+    await _insert_cycle(db, end_ts=now - 86400.0, mode="heating")
+    orig = db.async_get_model_state
+
+    async def boom(key, default=None):
+        raise RuntimeError("synthetic")
+
+    db.async_get_model_state = boom  # type: ignore[method-assign]
+    try:
+        n = await db.async_backfill_daily_summary()
+        assert n == 1
+    finally:
+        db.async_get_model_state = orig  # type: ignore[method-assign]
+
+
+async def test_backfill_write_guard_exception(db):
+    now = time.time()
+    await _insert_cycle(db, end_ts=now - 86400.0, mode="heating")
+    orig = db.async_set_model_state
+
+    async def boom(key, value):
+        raise RuntimeError("synthetic")
+
+    db.async_set_model_state = boom  # type: ignore[method-assign]
+    try:
+        n = await db.async_backfill_daily_summary()
+        assert n == 1
+    finally:
+        db.async_set_model_state = orig  # type: ignore[method-assign]
