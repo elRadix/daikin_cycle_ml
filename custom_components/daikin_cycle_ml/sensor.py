@@ -1290,7 +1290,14 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "attr_fn": _attrs_cop_hourly_mode("cooling", "week"),
     },
     {
-        "key": "daily_summary_recent", "name": "Recent daily summary",
+        "key": "cop_cooling_month", "name": "COP cooling (month)",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP", "icon": "mdi:snowflake",
+        "value_fn": _cop_hourly_mode_mean("cooling", "month"),
+        "attr_fn": _attrs_cop_hourly_mode("cooling", "month"),
+    },
+    {
+        "key": "daily_summary_recent", "name": "Daily summary recent",
         "state_class": SensorStateClass.MEASUREMENT,
         "icon": "mdi:calendar-range",
         "value_fn": lambda s, c: (c.daily_summary_recent or {}).get("state"),

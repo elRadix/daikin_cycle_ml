@@ -300,7 +300,7 @@ def test_sensor_def_has_value_and_attr_fn() -> None:
     )
     assert callable(entry["value_fn"])
     assert entry["attr_fn"] is s_mod._attrs_daily_summary_recent
-    assert entry["name"] == "Recent daily summary"
+    assert entry["name"] == "Daily summary recent"
     assert entry["icon"] == "mdi:calendar-range"
 
 

@@ -16,6 +16,7 @@ class _Coord(DaikinCycleMLCoordinator):
 async def test_backfill_wiring_happy_path():
     db = AsyncMock()
     db.async_backfill_daily_summary = AsyncMock(return_value=3)
+    db.async_daily_summary = AsyncMock(return_value=[])
     c = _Coord(db)
     await c._maybe_backfill_daily_summary()
     db.async_backfill_daily_summary.assert_awaited_once()

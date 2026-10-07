@@ -21,6 +21,7 @@ class _Coord(DaikinCycleMLCoordinator):
 async def test_maybe_rollup_day_happy_path():
     db = AsyncMock()
     db.async_rollup_day = AsyncMock(return_value=1)
+    db.async_daily_summary = AsyncMock(return_value=[])
     c = _Coord({"daily_summary_live_enabled": True}, db)
     end_ts = time.time()
     await c._maybe_rollup_day({"end_ts": end_ts})
@@ -31,6 +32,7 @@ async def test_maybe_rollup_day_happy_path():
 async def test_maybe_rollup_day_default_enabled():
     db = AsyncMock()
     db.async_rollup_day = AsyncMock(return_value=1)
+    db.async_daily_summary = AsyncMock(return_value=[])
     c = _Coord({}, db)
     await c._maybe_rollup_day({"end_ts": time.time()})
     db.async_rollup_day.assert_awaited_once()
@@ -75,6 +77,7 @@ async def test_process_new_cycle_invokes_rollup(monkeypatch):
     db.async_insert_features = AsyncMock()
     db.async_update_cycle_cluster = AsyncMock()
     db.async_rollup_day = AsyncMock(return_value=1)
+    db.async_daily_summary = AsyncMock(return_value=[])
     c = _Coord(
         {"daily_summary_live_enabled": True,
          "action_advice_enabled": False},
