@@ -14,11 +14,38 @@
 - `tests/test_smart_import_config_flow.py` (8 tests)
 - Anti-alias guard: R2T (after BUH) never resolves to R1T (before BUH) -
   prevents COP~11 artefact on hybrid setups (issue #51, case julG)
+- Wizard split UX (issue #54):
+  - New `config.step.model_custom_info` (Page A) - identity + optional
+    HP spec JSON textarea
+  - New `config.step.attribute_mapping` (Page B) - JSON / manual choice
+  - `config.step.attribute_mapping_advanced` (Page C) - renamed from
+    `model_custom`; the old step-id is kept as a live redirect for one
+    release cycle (HA persists in-progress flow step-ids across restart)
+  - Public `validate_spec(raw)` in `engine/model_datasheets.py`
+  - `_OPTIONAL_MODEL_KEYS` + `_REFRIGERANT_ENUM` in `engine/model_datasheets.py`
+  - `tests/test_v181_hp_spec_builder.py` (30 tests)
+  - `tests/test_v181_wizard_split_page_b.py` (12 tests)
+  - `tests/test_v181_wizard_split_page_c.py` (7 tests)
+  - `tests/test_r327_no_whitespace_in_translations.py` (1 test)
 
 ### Changed
 - `config_flow.async_step_user` - automatic mode now falls back to
   smart-import when exact canonical matching fails and >= 3 canonicals
   resolve. Exact-match path unchanged (backward-compat tested).
+- `config_flow.async_step_model_custom_info` - accepts optional
+  `custom_datasheet_json`; empty submits `None` to inherit Basic profile
+- `config_flow.async_step_attribute_mapping` - JSON branch routes to
+  `attribute_mapping_advanced`; Manual branch routes to `map_attributes`
+- `config_flow.async_step_model_custom` - deprecated redirect to
+  `async_step_attribute_mapping_advanced` (kept for one release cycle)
+- i18n parity 15/15/15 -> 16/16/16 (new `attribute_mapping_advanced` key;
+  deprecated `model_custom` key retained)
+
+### Fixed
+- Hassfest `[TRANSLATIONS]` error on the HP-spec JSON description: the
+  `config.step.model_custom_info.data_description.custom_datasheet_json`
+  string had a trailing newline. Fixed + regression guard `R327`
+  (`tests/test_r327_no_whitespace_in_translations.py`).
 
 ## [1.7.2] - 2026-10-08
 
