@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.8.0-dev] - Unreleased
+
+### Added
+- Smart auto-import for non-canonical ESPAltherma setups (issue #51):
+  - Laag 1 - entity discovery via canonical-attribute overlap scoring
+  - Laag 2 - alias table + normalized matching (14+ community variants)
+  - Laag 3 - fuzzy fallback (Jaccard + register-code conflict guard)
+  - Laag 4 - diagnostic wizard step (`config.step.diagnose`, i18n EN/NL)
+  - Laag 5 - register-value sanity check + 3-phase hint
+- `engine/smart_import.py` - pure module, 5 layers, 100% branch coverage
+- `tests/test_smart_import.py` (47 tests)
+- `tests/test_smart_import_config_flow.py` (8 tests)
+- Anti-alias guard: R2T (after BUH) never resolves to R1T (before BUH) -
+  prevents COP~11 artefact on hybrid setups (issue #51, case julG)
+
+### Changed
+- `config_flow.async_step_user` - automatic mode now falls back to
+  smart-import when exact canonical matching fails and >= 3 canonicals
+  resolve. Exact-match path unchanged (backward-compat tested).
+
 ## [1.7.2] - 2026-10-08
 
 ### Fixed
