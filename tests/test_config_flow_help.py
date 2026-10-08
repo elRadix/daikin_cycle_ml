@@ -18,6 +18,7 @@ FILES = [
 EXPECTED = {
     "user": ["source_sensor", "model"],
     "model_custom": ["custom_attribute_map"],
+    "attribute_mapping_advanced": ["custom_attribute_map"],
     "cycle": [
         "compressor_rps_threshold",
         "power_sensor_entity",

@@ -32,6 +32,7 @@ else:
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
+from .engine.model_datasheets import validate_spec
 
 from .const import (
     ATTRIBUTE_MODE_AUTO,
@@ -191,6 +192,19 @@ def _flatten_notify_choice(value: Any) -> str:
                 return inner
     return ""
 
+_SPEC_EXAMPLE_MIN = '{"family": "Altherma 3 R", "kw": 8.0, "lwt_min": 25.0, "lwt_max": 55.0, "nom_cop": 4.6}'
+_SPEC_EXAMPLE_FULL = '{\n  "family": "Altherma 3 R",\n  "kw": 8.0,\n  "lwt_min": 25.0,\n  "lwt_max": 55.0,\n  "nom_cop": 4.6,\n  "refrigerant": "R32",\n  "buh_kw": 3.0,\n  "max_flow_lmin": 22.0,\n  "noise_db": 58.0,\n  "points": [\n    {"label": "A7/W35", "t_out": 7.0, "t_lwc": 35.0, "cop": 4.60},\n    {"label": "A2/W35", "t_out": 2.0, "t_lwc": 35.0, "cop": 3.85},\n    {"label": "A-7/W35", "t_out": -7.0, "t_lwc": 35.0, "cop": 2.60},\n    {"label": "A7/W45", "t_out": 7.0, "t_lwc": 45.0, "cop": 3.40}\n  ]\n}'
+
+_MAPPING_MODE_SELECTOR = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=[
+            selector.SelectOptionDict(value="json", label="JSON"),
+            selector.SelectOptionDict(value="manual", label="Manual"),
+        ],
+        mode=selector.SelectSelectorMode.LIST,
+    )
+)
+
 class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
     """8-step config wizard. Supports fresh setup + full reconfigure."""
 
@@ -225,7 +239,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                     self._data.update(user_input)
                     self._data["attribute_mode"] = ATTRIBUTE_MODE_AUTO
                     if user_input["model"] == MODEL_CUSTOM:
-                        return await self.async_step_model_custom()
+                        return await self.async_step_model_custom_info()
                     return await self.async_step_attributes()
                 # Smart fallback (issue #51, Laag 1-3)
                 smart_map: dict[str, str] = {}
@@ -283,7 +297,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             # Drop internal key before finalize (defensive, mirrors _bad_attrs)
             self._data.pop("_smart_available", None)
             if self._data.get("model") == MODEL_CUSTOM:
-                return await self.async_step_model_custom()
+                return await self.async_step_model_custom_info()
             return await self.async_step_attributes()
         lines: list[str] = []
         for m in report.matches:
@@ -302,7 +316,79 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             },
         )
 
-    async def async_step_model_custom(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_model_custom_info(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Page A (issue #54): custom heat pump identity + optional spec JSON."""
+        errors: dict[str, str] = {}
+        last_raw = ""
+        if user_input is not None:
+            last_raw = (user_input.get("custom_datasheet_json") or "").strip()
+            if not last_raw:
+                self._data["custom_datasheet"] = None
+                return await self.async_step_attribute_mapping()
+            try:
+                parsed = json.loads(last_raw)
+            except (ValueError, json.JSONDecodeError):
+                errors["custom_datasheet_json"] = "invalid_json"
+            else:
+                spec, spec_errs = validate_spec(parsed)
+                if spec_errs:
+                    _LOGGER.warning(
+                        "Invalid custom datasheet spec: %s", spec_errs
+                    )
+                    errors["custom_datasheet_json"] = "invalid_spec"
+                else:
+                    self._data["custom_datasheet"] = spec
+                    return await self.async_step_attribute_mapping()
+        schema = vol.Schema({
+            vol.Optional(
+                "custom_datasheet_json",
+                default=last_raw,
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(multiline=True)
+            ),
+        })
+        return self.async_show_form(
+            step_id="model_custom_info",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "spec_example_min": _SPEC_EXAMPLE_MIN,
+                "spec_example_full": _SPEC_EXAMPLE_FULL,
+            },
+        )
+
+    async def async_step_attribute_mapping(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Page B (issue #54): choose JSON (advanced) vs manual per-attribute."""
+        if user_input is not None:
+            mode = user_input.get("mapping_mode", "json")
+            if mode == "manual":
+                return await self.async_step_map_attributes()
+            return await self.async_step_attribute_mapping_advanced()
+        schema = vol.Schema({
+            vol.Required(
+                "mapping_mode",
+                default="json",
+            ): _MAPPING_MODE_SELECTOR,
+        })
+        return self.async_show_form(
+            step_id="attribute_mapping",
+            data_schema=schema,
+        )
+
+    async def async_step_model_custom(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Deprecated redirect to attribute_mapping_advanced (issue #54, commit 4)."""
+        return await self.async_step_attribute_mapping_advanced(user_input)
+
+    async def async_step_attribute_mapping_advanced(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Page C (issue #54): advanced JSON attribute map (renamed from model_custom)."""
         errors: dict[str, str] = {}
         if user_input is not None:
             raw = user_input.get("custom_attribute_map") or ""
@@ -324,7 +410,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
         })
         return self.async_show_form(
-            step_id="model_custom", data_schema=schema, errors=errors
+            step_id="attribute_mapping_advanced", data_schema=schema, errors=errors
         )
 
     async def async_step_map_attributes(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

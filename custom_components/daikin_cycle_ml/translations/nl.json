@@ -25,6 +25,16 @@
           "custom_attribute_map": "JSON-object dat standaardsleutels aan attribuutnamen koppelt. Zie de documentatie voor het exacte formaat."
         }
       },
+      "model_custom_info": {
+        "title": "Aangepaste warmtepomp",
+        "description": "Jouw warmtepomp is niet een van de meegeleverde Daikin-modellen.\n\nEen aangepaste keuze erft de **Basisprofiel**-defaults (veilige fallback). Je kunt detectiedrempels, comfortgrenzen en COP-analyse later bijstellen via het Options-menu van de integratie.\n\nDe volgende pagina koppelt je ESPAltherma-attribuutnamen aan de canonieke sleutels van de integratie.",
+        "data": {
+          "custom_datasheet_json": "Warmtepomp specificatie (JSON, optioneel)"
+        },
+        "data_description": {
+          "custom_datasheet_json": "Optionele spec voor uw warmtepomp. Laat leeg voor de Basisprofiel-standaardwaarden.\n\n**Minimaal vereiste velden:** `family` (str), `kw` (float), `lwt_min` (float), `lwt_max` (float), `nom_cop` (float).\n\n**Optionele velden:** `bivalent` (bool), `buh_kw` (float), `refrigerant` (R32 / R290 / R410A), `min_modulation_kw` (float), `max_flow_lmin` (float), `noise_db` (float).\n\n**Optionele COP-curve punten:** lijst van objecten met sleutels `label`, `t_out`, `t_lwc`, `cop`.\n\n**Minimaal voorbeeld:**\n\n    {spec_example_min}\n\n**Voorbeeld met COP-curve:**\n\n    {spec_example_full}"
+        }
+      },
       "attributes": {
         "title": "Attribuut-controle",
         "description": "Kern-attributen op de bronsensor: **{present} / {total}** aanwezig.\n\n**Aanwezig:**\n{present_list}\n\n**Ontbrekend:**\n{missing_list}"
@@ -166,6 +176,26 @@
       "diagnose": {
         "title": "Smart auto-import diagnose",
         "description": "Automatisch gedetecteerde attributen (issue #51).\n\n**Matches:**\n{report_lines}\n\n**Waarschuwingen:**\n{warnings}\n\n**Ontbrekende canonicals:** {missing_count}\n\nControleer voordat je verder gaat. Onopgeloste attributen kun je handmatig mappen in de volgende stap."
+      },
+      "attribute_mapping": {
+        "title": "Attribuut-mapping",
+        "description": "Uw ESPAltherma-setup kan attribuutnamen gebruiken die afwijken van de canonieke sleutels van de integratie. Kies hoe u ze wilt koppelen.\n\n**JSON** - plak een JSON-object dat canonieke sleutels koppelt aan uw ESPAltherma-attribuutnamen. Voor gevorderde gebruikers. De volgende pagina toont het 13-attributen voorbeeld.\n\n**Handmatig** - één tekstveld per attribuut. Handig als u een formulier verkiest boven JSON.",
+        "data": {
+          "mapping_mode": "Mapping-modus"
+        },
+        "data_description": {
+          "mapping_mode": "JSON voor gevorderd (één object), Handmatig voor een formulier per attribuut."
+        }
+      },
+      "attribute_mapping_advanced": {
+        "title": "Geavanceerde attribuutkoppeling",
+        "description": "Plak een JSON-object dat canonieke sleutels koppelt aan uw ESPAltherma-attribuutnamen. Laat leeg om de profiel-defaults te gebruiken.",
+        "data": {
+          "custom_attribute_map": "Custom attribute map (JSON)"
+        },
+        "data_description": {
+          "custom_attribute_map": "JSON-object dat standaardsleutels aan attribuutnamen koppelt. Zie de documentatie voor het exacte formaat."
+        }
       }
     },
     "error": {

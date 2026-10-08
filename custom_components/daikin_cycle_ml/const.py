@@ -112,7 +112,7 @@ MODEL_LABELS = {
     MODEL_ERLA12DAV3: "Daikin Altherma 3 R - ERLA12DAV3",
     MODEL_ERLA14DAV3: "Daikin Altherma 3 R - ERLA14DAV3",
     MODEL_ERLA16DAV3: "Daikin Altherma 3 R - ERLA16DAV3",
-    MODEL_CUSTOM: "Custom (own attribute mapping)",
+    MODEL_CUSTOM: "Custom (own heat pump)",
 }
 
 # --- Core attribute keys (fixed set, not user-selectable) ---

@@ -201,7 +201,7 @@ async def test_diagnose_submit_custom_model_routes_to_model_custom(
         result["flow_id"], {}
     )
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "model_custom"
+    assert result["step_id"] == "model_custom_info"
 
 
 # =========================================================================

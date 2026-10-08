@@ -531,15 +531,25 @@ the following snippet, run in **Developer Tools -> Template**:
 That gives us the exact key list for your firmware.
 
 
-### 8.1 Setup wizard (9 steps)
+### 8.1 Setup wizard
 
-Flow:
+Flow (v1.8.0-dev — issue #54 split the Custom branch into pages A/B/C):
 
 ```
-user → model_custom (conditional) → diagnose (conditional, v1.8.0)
-     → attributes (check) → cycle → pendulum → quality
-     → notifications → finalize
+user
+  ├── Model != Custom → [diagnose, v1.8.0] → attributes → cycle → …
+  └── Model = Custom
+        → model_custom_info          (Page A — identity + optional HP spec JSON)
+        → attribute_mapping          (Page B — choose JSON or manual)
+             ├── JSON   → attribute_mapping_advanced  (Page C — full JSON map)
+             └── Manual → map_attributes              (per-attribute form)
+        → attributes → cycle → …
 ```
+
+Core path (Model != Custom): user → attributes → cycle → pendulum →
+quality → notifications → finalize. The Custom branch inserts up to
+three extra pages; diagnose (v1.8.0 smart auto-import) is inserted when
+at least 3 canonicals resolve via alias or fuzzy matching.
 
 #### Step 1 — `user` (Source & model)
 
@@ -552,16 +562,44 @@ Available models (v1.6.0, 17 total): 15 bundled Daikin models
 (8 EPRA + 7 ERLA) plus `Custom`. Bundled models get datasheet-backed
 COP normalization via `cop_normalized_a7w35`.
 
-#### Step 2 — `model_custom` *(only shown when Model = Custom)*
+#### Step 2 — `model_custom_info` *(only shown when Model = Custom)*
+
+**Page A of the v1.8.0 wizard split (issue #54).**
 
 | Field | Type | Notes |
 |---|---|---|
-| `custom_attribute_map` | JSON textarea | See §7 |
+| `custom_datasheet_json` | JSON textarea (optional) | HP spec — required: `family`, `kw`, `lwt_min`, `lwt_max`, `nom_cop`; optional: `bivalent`, `buh_kw`, `refrigerant` (`R32`/`R290`/`R410A`), `min_modulation_kw`, `max_flow_lmin`, `noise_db`, `points[]` |
+
+Leave empty to inherit the Basic profile defaults. Validated at wizard
+time via `engine.model_datasheets.validate_spec`. Malformed JSON or
+invalid spec → inline error, wizard does not advance.
+
+#### Step 3 — `attribute_mapping` *(only shown when Model = Custom)*
+
+**Page B of the v1.8.0 wizard split (issue #54).**
+
+| Field | Type | Notes |
+|---|---|---|
+| `mapping_mode` | list selector | `JSON` (advanced, 13-attribute example) or `Manual` (per-attribute form) |
+
+`JSON` routes to `attribute_mapping_advanced`; `Manual` routes to
+`map_attributes`.
+
+#### Step 4 — `attribute_mapping_advanced` *(JSON path only)*
+
+**Page C of the v1.8.0 wizard split (issue #54).** Previously named
+`model_custom`; the old step-id is kept as a live redirect for one
+release cycle, because HA persists in-progress flow step-ids across
+restart.
+
+| Field | Type | Notes |
+|---|---|---|
+| `custom_attribute_map` | JSON textarea | Canonical-key → ESPAltherma-attribute-name map (see §7) |
 
 Validated at wizard time. Invalid JSON → inline error, wizard does not
 advance.
 
-#### Step 3 — `diagnose` *(conditional, new in v1.8.0)*
+#### Step 5 — `diagnose` *(conditional, new in v1.8.0)*
 
 Shown only when the smart auto-import fallback triggered (>= 3 canonicals
 resolvable via alias or fuzzy matching, see §7). Displays per canonical:
@@ -573,13 +611,13 @@ resolvable via alias or fuzzy matching, see §7). Displays per canonical:
 Read-only screen; submit continues to Step 4. Unresolved attributes can
 be mapped manually in the following step.
 
-#### Step 4 — `attributes` (warning-only)
+#### Step 6 — `attributes` (warning-only)
 
 Shows how many of the 13 core attributes are present on the selected
 source sensor. Missing ones are listed but do **not** block the wizard.
 You can proceed and fix later.
 
-#### Step 5 — `cycle` (Cycle detection)
+#### Step 7 — `cycle` (Cycle detection)
 
 | Field | Default | Range | Notes |
 |---|---|---|---|
@@ -588,7 +626,7 @@ You can proceed and fix later.
 | `fallback_power_threshold_w` | 200 | 10–10000 | Used when RPS missing |
 | `indoor_temp_sensor` | (none) | entity | Enables `indoor_temp_avg` in ML vector |
 
-#### Step 6 — `pendulum` (Pendulum thresholds)
+#### Step 8 — `pendulum` (Pendulum thresholds)
 
 | Field | Default | Range |
 |---|---|---|
@@ -597,7 +635,7 @@ You can proceed and fix later.
 | `pendulum_cycles_per_day` | 40 | 1–200 |
 | `dhw_pendulum_cycles_per_hour` | 3 | 1–20 |
 
-#### Step 7 — `quality` (Quality thresholds)
+#### Step 9 — `quality` (Quality thresholds)
 
 | Field | Default | Range |
 |---|---|---|
@@ -606,7 +644,7 @@ You can proceed and fix later.
 | `good_off_threshold_min` | 20 | 1–240 |
 | `target_cycles_per_day` | 8 | 1–100 |
 
-#### Step 8 — `notifications` (Wizard-basic notifications)
+#### Step 10 — `notifications` (Wizard-basic notifications)
 
 | Field | Default |
 |---|---|
@@ -620,7 +658,7 @@ You can proceed and fix later.
 > advice, status updates, aggregation window) is available in the Options
 > menu, screen 5 — see §8.2.
 
-#### Step 9 — `finalize`
+#### Step 11 — `finalize`
 
 Review screen. Submit → integration starts polling every 30 seconds.
 
