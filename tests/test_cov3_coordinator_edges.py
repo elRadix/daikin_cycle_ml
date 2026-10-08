@@ -246,7 +246,7 @@ def test_build_alert_context_z_none_top_dim_none():
         anomaly=SimpleNamespace(max_abs_z=None, top_dim=None, severity=None),
     )
     ctx = c._build_alert_context(snap)
-    assert ctx["ml_anomaly"]["z_max"] == "\u2014"
+    assert ctx["ml_anomaly"]["z_max"] is None
 
 
 def test_build_alert_context_top_dim_out_of_range():

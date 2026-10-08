@@ -433,7 +433,7 @@ def test_build_alert_context_f_formatter_invalid():
         advice=[], anomaly=None, last_record=None,
     )
     ctx = c._build_alert_context(snap)
-    assert ctx["pendulum"]["outdoor"] == "\u2014"
+    assert ctx["pendulum"]["outdoor"] is None
 
 
 def test_build_alert_context_top_dim_out_of_range():

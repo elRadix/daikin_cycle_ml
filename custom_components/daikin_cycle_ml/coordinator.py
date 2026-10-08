@@ -27,6 +27,10 @@ from .const import (
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
     ATTR_DEFROST_OPERATION,
+    ATTR_FLOW_SENSOR,
+    ATTR_INDOOR_AMBIENT_R1T,
+    ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_OUTDOOR_AIR_R1T,
     buh_step_kw_for_model as _buh_step_kw_for_model,
     DEFAULT_COMFORT_MIN_C,
     DOMAIN,
@@ -2330,13 +2334,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     def _snap_attr(self, snap: Any, *keys: str) -> Any:
         attrs = {}
         if snap is not None:
-            a = getattr(snap, "attributes", None)
-            if isinstance(a, dict):
-                attrs = a
-            elif hasattr(snap, "raw_attrs"):
-                a2 = getattr(snap, "raw_attrs", None)
-                if isinstance(a2, dict):
-                    attrs = a2
+            for _attr_name in ("attrs", "attributes", "raw_attrs"):
+                _a = getattr(snap, _attr_name, None)
+                if isinstance(_a, dict) and _a:
+                    attrs = _a
+                    break
         for k in keys:
             v = attrs.get(k)
             if v is not None:
@@ -2400,14 +2402,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             cph = int(self.store.cycles_in_window(now, 3600))
         with contextlib.suppress(Exception):
             cyc_today = len(self.store.cycles_today(now))
+        # SB-2 (R331): global advice bleed disabled in v1.8.1.
+        # Per-alert advice comes from ALERT_ADVICE in status_report.
+        # Previous block (snap.advice[0].title -> advice_text)
+        # removed: every alert carried the same first-advice string
+        # (e.g. 'Low dT' bled onto ML-anomaly alerts).
+        # See git history / R331 for pre-fix version.
         advice_text = ""
-        advice_list = (getattr(snap, "advice", None) or []) if snap else []
-        if advice_list:
-            _first = advice_list[0]
-            _t = (getattr(_first, 'title', None)
-                  or getattr(_first, 'text', None) or '')
-            if _t:
-                advice_text = "\n\u2022 " + str(_t)
+        # (end SB-2 block)
         mode_str = "unknown"
         if snap is not None:
             _m = str(getattr(snap, "mode", "") or "").strip()
@@ -2422,22 +2424,44 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                         mode_str = _lm
             except Exception:
                 pass
+        if mode_str == "unknown":
+            _mode_raw = self._snap_attr(
+                snap, "operation_mode", "I/U operation mode"
+            )
+            if _mode_raw:
+                _mode_s = str(_mode_raw).strip().lower()
+                if _mode_s in ("heating", "cooling", "dhw"):
+                    mode_str = _mode_s
+                elif "heat" in _mode_s:
+                    mode_str = "heating"
+                elif "cool" in _mode_s:
+                    mode_str = "cooling"
+                elif "dhw" in _mode_s or "water" in _mode_s:
+                    mode_str = "dhw"
         lwt_set = self._setpoint_current(snap)
         lwt_tgt = self._setpoint_target(snap)
         delta = self._setpoint_delta(snap)
-        out_t = self._snap_attr(snap, "outdoor_temp", "outdoor", "ATTR_OUTDOOR")
-        lwt_act = self._snap_attr(snap, "leaving_water_temp", "lwt", "ATTR_LWT")
-        in_t = self._snap_attr(snap, "indoor_temp", "indoor", "ATTR_INDOOR")
-        flow = self._snap_attr(snap, "flow_lmin", "flow", "ATTR_FLOW")
+        out_t = self._snap_attr(
+            snap, "outdoor_temp", "outdoor", ATTR_OUTDOOR_AIR_R1T
+        )
+        lwt_act = self._snap_attr(
+            snap, "leaving_water_temp", "lwt", ATTR_LEAVING_WATER_AFTER_BUH
+        )
+        in_t = self._snap_attr(
+            snap, "indoor_temp", "indoor", ATTR_INDOOR_AMBIENT_R1T
+        )
+        flow = self._snap_attr(
+            snap, "flow_lmin", "flow", ATTR_FLOW_SENSOR
+        )
         avg_dur = self._avg_duration_min()
 
-        def _f(v: Any, digits: int = 1) -> str:
+        def _f(v: Any, digits: int = 1) -> str | None:
             if v is None:
-                return "\u2014"
+                return None
             try:
                 return ("%." + str(digits) + "f") % float(v)
             except (TypeError, ValueError):
-                return "\u2014"
+                return None
 
         ctx = {
             "pendulum": {
@@ -2445,7 +2469,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "target_cpd": opts.get("pendulum_cycles_per_day", 40),
                 "cph": cph, "cycles_today": cyc_today,
                 "mode": mode_str, "lwt_setpoint": _f(lwt_set),
-                "avg_duration_min": avg_dur if avg_dur is not None else "\u2014",
+                "avg_duration_min": avg_dur,
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "pendulum_hourly": {
@@ -2453,7 +2477,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "target_cpd": opts.get("pendulum_cycles_per_day", 40),
                 "cph": cph, "cycles_today": cyc_today,
                 "mode": mode_str, "lwt_setpoint": _f(lwt_set),
-                "avg_duration_min": avg_dur if avg_dur is not None else "\u2014",
+                "avg_duration_min": avg_dur,
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "pendulum_daily": {
@@ -2461,26 +2485,26 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "target_cpd": opts.get("pendulum_cycles_per_day", 40),
                 "cph": cph, "cycles_today": cyc_today,
                 "mode": mode_str, "lwt_setpoint": _f(lwt_set),
-                "avg_duration_min": avg_dur if avg_dur is not None else "\u2014",
+                "avg_duration_min": avg_dur,
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "short_run": {
                 "threshold_min": opts.get("short_run_threshold_min", 20),
-                "duration_min": "\u2014", "mode": mode_str,
+                "duration_min": None, "mode": mode_str,
                 "lwt_setpoint": _f(lwt_set), "lwt_actual": _f(lwt_act),
                 "indoor": _f(in_t), "flow": _f(flow),
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "short_off": {
                 "threshold_min": opts.get("short_off_threshold_min", 5),
-                "off_min": "\u2014", "mode": mode_str,
+                "off_min": None, "mode": mode_str,
                 "lwt_setpoint": _f(lwt_set),
                 "indoor": _f(in_t), "flow": _f(flow),
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "ml_anomaly": {
-                "mode": mode_str, "z_max": "\u2014", "top_dim": "\u2014",
-                "avg_duration_min": avg_dur if avg_dur is not None else "\u2014",
+                "mode": mode_str, "z_max": None, "top_dim": None,
+                "avg_duration_min": avg_dur,
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "setpoint_osc": {
@@ -2502,7 +2526,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         try:
             off = self.store.off_time_since_last(now)
             if off is not None:
-                ctx["short_off"]["off_min"] = int(off / 60)
+                ctx["short_off"]["off_min"] = max(1, round(off / 60))
         except Exception:
             _LOGGER.debug("alert ctx short_off failed", exc_info=True)
         anomaly = getattr(snap, "anomaly", None) if snap else None
