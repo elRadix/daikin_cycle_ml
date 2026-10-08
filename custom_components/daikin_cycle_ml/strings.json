@@ -186,6 +186,16 @@
         "data_description": {
           "mapping_mode": "JSON for advanced (single object), Manual for a per-attribute form."
         }
+      },
+      "attribute_mapping_advanced": {
+        "title": "Advanced attribute mapping",
+        "description": "Paste a JSON object that maps canonical keys to your ESPAltherma attribute names. Leave empty to use the profile defaults.",
+        "data": {
+          "custom_attribute_map": "Custom attribute map (JSON)"
+        },
+        "data_description": {
+          "custom_attribute_map": "JSON object mapping standard keys to attribute names. See the documentation for the exact format."
+        }
       }
     },
     "error": {

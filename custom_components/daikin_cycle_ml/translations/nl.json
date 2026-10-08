@@ -186,6 +186,16 @@
         "data_description": {
           "mapping_mode": "JSON voor gevorderd (één object), Handmatig voor een formulier per attribuut."
         }
+      },
+      "attribute_mapping_advanced": {
+        "title": "Geavanceerde attribuutkoppeling",
+        "description": "Plak een JSON-object dat canonieke sleutels koppelt aan uw ESPAltherma-attribuutnamen. Laat leeg om de profiel-defaults te gebruiken.",
+        "data": {
+          "custom_attribute_map": "Custom attribute map (JSON)"
+        },
+        "data_description": {
+          "custom_attribute_map": "JSON-object dat standaardsleutels aan attribuutnamen koppelt. Zie de documentatie voor het exacte formaat."
+        }
       }
     },
     "error": {

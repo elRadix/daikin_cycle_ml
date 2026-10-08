@@ -367,7 +367,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             mode = user_input.get("mapping_mode", "json")
             if mode == "manual":
                 return await self.async_step_map_attributes()
-            return await self.async_step_model_custom()
+            return await self.async_step_attribute_mapping_advanced()
         schema = vol.Schema({
             vol.Required(
                 "mapping_mode",
@@ -379,7 +379,16 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=schema,
         )
 
-    async def async_step_model_custom(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def async_step_model_custom(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Deprecated redirect to attribute_mapping_advanced (issue #54, commit 4)."""
+        return await self.async_step_attribute_mapping_advanced(user_input)
+
+    async def async_step_attribute_mapping_advanced(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Page C (issue #54): advanced JSON attribute map (renamed from model_custom)."""
         errors: dict[str, str] = {}
         if user_input is not None:
             raw = user_input.get("custom_attribute_map") or ""
@@ -401,7 +410,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
         })
         return self.async_show_form(
-            step_id="model_custom", data_schema=schema, errors=errors
+            step_id="attribute_mapping_advanced", data_schema=schema, errors=errors
         )
 
     async def async_step_map_attributes(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
