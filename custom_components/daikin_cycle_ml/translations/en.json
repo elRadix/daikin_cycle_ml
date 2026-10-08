@@ -27,7 +27,13 @@
       },
       "model_custom_info": {
         "title": "Custom heat pump",
-        "description": "Your heat pump is not one of the bundled Daikin models.\n\nA custom selection inherits the **Basic profile** defaults (safe fallback). You can tune detection thresholds, comfort bounds, and COP analysis later in the integration Options menu.\n\nThe next page maps your ESPAltherma attribute names to the integration's canonical keys."
+        "description": "Your heat pump is not one of the bundled Daikin models.\n\nA custom selection inherits the **Basic profile** defaults (safe fallback). You can tune detection thresholds, comfort bounds, and COP analysis later in the integration Options menu.\n\nThe next page maps your ESPAltherma attribute names to the integration's canonical keys.",
+        "data": {
+          "custom_datasheet_json": "Heat pump spec (JSON, optional)"
+        },
+        "data_description": {
+          "custom_datasheet_json": "Optional spec for your heat pump. Leave empty to use the Basic profile defaults.\n\n**Minimum required fields:** `family` (str), `kw` (float), `lwt_min` (float), `lwt_max` (float), `nom_cop` (float).\n\n**Optional fields:** `bivalent` (bool), `buh_kw` (float), `refrigerant` (R32 / R290 / R410A), `min_modulation_kw` (float), `max_flow_lmin` (float), `noise_db` (float).\n\n**Optional COP curve points:** list of objects with keys `label`, `t_out`, `t_lwc`, `cop`.\n\n**Minimal example:**\n\n    {spec_example_min}\n\n**Example with COP curve:**\n\n    {spec_example_full}\n"
+        }
       },
       "attributes": {
         "title": "Attribute check",

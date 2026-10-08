@@ -34,26 +34,92 @@ _COP_MIN, _COP_MAX = 0.5, 10.0
 _REQUIRED_MODEL_KEYS = {"family", "kw", "lwt_min", "lwt_max", "nom_cop"}
 _REQUIRED_POINT_KEYS = {"label", "t_out", "t_lwc", "cop"}
 
+_OPTIONAL_MODEL_KEYS = {
+    "bivalent",
+    "buh_kw",
+    "refrigerant",
+    "min_modulation_kw",
+    "max_flow_lmin",
+    "noise_db",
+}
+_REFRIGERANT_ENUM = {"R32", "R290", "R410A"}
+_BUH_KW_MIN, _BUH_KW_MAX = 0.0, 20.0
+_MIN_MOD_KW_MIN, _MIN_MOD_KW_MAX = 0.0, 20.0
+_MAX_FLOW_LMIN_MIN, _MAX_FLOW_LMIN_MAX = 0.0, 100.0
+_NOISE_DB_MIN, _NOISE_DB_MAX = 20.0, 90.0
 
-def _validate_model(key: str, entry: Any) -> list[str]:
-    """Return list of validation errors (empty = valid)."""
+
+def _validate_optional(entry: dict[str, Any]) -> list[str]:
+    """Validate optional spec fields (no key prefix). Empty list = valid."""
     errs: list[str] = []
-    if not isinstance(entry, dict):
-        return [f"{key}: not a dict"]
+    if "bivalent" in entry and not isinstance(entry["bivalent"], bool):
+        errs.append(
+            f"bivalent must be bool, got {type(entry['bivalent']).__name__}"
+        )
+    if "refrigerant" in entry:
+        r = entry["refrigerant"]
+        if r not in _REFRIGERANT_ENUM:
+            errs.append(f"refrigerant {r!r} not in {sorted(_REFRIGERANT_ENUM)}")
+    for fname, lo, hi in (
+        ("buh_kw", _BUH_KW_MIN, _BUH_KW_MAX),
+        ("min_modulation_kw", _MIN_MOD_KW_MIN, _MIN_MOD_KW_MAX),
+        ("max_flow_lmin", _MAX_FLOW_LMIN_MIN, _MAX_FLOW_LMIN_MAX),
+        ("noise_db", _NOISE_DB_MIN, _NOISE_DB_MAX),
+    ):
+        if fname not in entry:
+            continue
+        v = entry[fname]
+        if (
+            isinstance(v, bool)
+            or not isinstance(v, (int, float))
+            or not (lo <= v <= hi)
+        ):
+            errs.append(f"{fname}={v!r} out of range [{lo},{hi}]")
+    return errs
+
+
+def _validate_required_ranges(entry: dict[str, Any]) -> list[str]:
+    """Numeric semantics on required fields: kw > 0, lwt_min < lwt_max."""
+    errs: list[str] = []
+    kw = entry.get("kw")
+    if kw is not None and (
+        isinstance(kw, bool)
+        or not isinstance(kw, (int, float))
+        or kw <= 0
+    ):
+        errs.append(f"kw={kw!r} must be > 0")
+    lmin = entry.get("lwt_min")
+    lmax = entry.get("lwt_max")
+    if (
+        isinstance(lmin, (int, float))
+        and not isinstance(lmin, bool)
+        and isinstance(lmax, (int, float))
+        and not isinstance(lmax, bool)
+        and lmin >= lmax
+    ):
+        errs.append(f"lwt_min={lmin!r} >= lwt_max={lmax!r}")
+    return errs
+
+
+def _validate_spec_only(entry: dict[str, Any]) -> list[str]:
+    """Validate a single model entry (no key prefix). Empty = valid."""
+    errs: list[str] = []
     missing = _REQUIRED_MODEL_KEYS - set(entry)
     if missing:
-        errs.append(f"{key}: missing {sorted(missing)}")
+        errs.append(f"missing {sorted(missing)}")
+    errs.extend(_validate_optional(entry))
+    errs.extend(_validate_required_ranges(entry))
     pts = entry.get("points", [])
     if not isinstance(pts, list):
-        errs.append(f"{key}: points not a list")
+        errs.append("points not a list")
         return errs
     for i, p in enumerate(pts):
         if not isinstance(p, dict):
-            errs.append(f"{key}.points[{i}]: not a dict")
+            errs.append(f"points[{i}]: not a dict")
             continue
         miss = _REQUIRED_POINT_KEYS - set(p)
         if miss:
-            errs.append(f"{key}.points[{i}]: missing {sorted(miss)}")
+            errs.append(f"points[{i}]: missing {sorted(miss)}")
             continue
         for fname, lo, hi in (
             ("t_out", _T_OUT_MIN, _T_OUT_MAX),
@@ -61,11 +127,22 @@ def _validate_model(key: str, entry: Any) -> list[str]:
             ("cop", _COP_MIN, _COP_MAX),
         ):
             v = p.get(fname)
-            if not isinstance(v, (int, float)) or not (lo <= v <= hi):
+            if (
+                isinstance(v, bool)
+                or not isinstance(v, (int, float))
+                or not (lo <= v <= hi)
+            ):
                 errs.append(
-                    f"{key}.points[{i}].{fname}={v!r} out of range [{lo},{hi}]"
+                    f"points[{i}].{fname}={v!r} out of range [{lo},{hi}]"
                 )
     return errs
+
+
+def _validate_model(key: str, entry: Any) -> list[str]:
+    """Return list of validation errors (empty = valid)."""
+    if not isinstance(entry, dict):
+        return [f"{key}: not a dict"]
+    return [f"{key}: {e}" for e in _validate_spec_only(entry)]
 
 
 def _parse_payload(raw: Any, origin: str) -> dict[str, Any]:
@@ -144,6 +221,21 @@ def validate_user_payload(raw: Any) -> tuple[dict[str, Any], list[str]]:
             continue
         clean[k] = v
     return clean, errors
+
+
+def validate_spec(raw: Any) -> tuple[dict[str, Any], list[str]]:
+    """Validate a single model spec (issue #54, Page A).
+
+    Returns (clean_spec, errors). On any error, clean_spec == {}.
+    Distinct from validate_user_payload which expects the full
+    payload wrapper dict (schema_version + models map).
+    """
+    if not isinstance(raw, dict):
+        return {}, ["root: not a dict"]
+    errs = _validate_spec_only(raw)
+    if errs:
+        return {}, errs
+    return dict(raw), []
 
 
 def parse_user_payload(raw: Any) -> dict[str, Any]:
