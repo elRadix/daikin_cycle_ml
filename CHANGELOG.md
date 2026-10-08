@@ -1,5 +1,55 @@
 # Changelog
 
+## [1.8.1] - 2026-10-08
+
+### Fixed
+
+- **Alert notifications rendered blank sensor values** (R331). Three
+  stacked bugs in the alert context pipeline:
+  - `_snap_attr` read `snap.attributes`, but `DataSnapshot` uses
+    `snap.attrs` — every lookup silently returned `None`.
+  - Four callsites passed string literals (`"ATTR_OUTDOOR"`,
+    `"ATTR_LWT"`, `"ATTR_INDOOR"`, `"ATTR_FLOW"`) that do not exist as
+    constants. Replaced with real const values; added missing
+    `ATTR_INDOOR_AMBIENT_R1T` to `const.py`.
+  - `_f(None)` returned the string `—` (em-dash) instead of `None`,
+    which was then interpolated by `ALERT_SCHEMA` templates as a
+    suffix (`— °C`, `— min`, `— l/min`). `_f` now returns `None`;
+    `build_rich_alert` renders a bare `—` when any template field
+    resolves to `None`.
+- **`short_off` `off_min` floored at 1 minute** (SB-1) — a 30s
+  off-time was truncated to `0 min`, producing the contradictory
+  "Off-tijd 0 min" against a "drempel 5.0 min" in the notification.
+- **Global advice bleed disabled** (SB-2) — the first `snap.advice`
+  item was previously injected into every alert context, causing
+  `Low dT` to appear on ML-anomaly and `short_off` notifications.
+  Per-alert advice now comes from `ALERT_ADVICE` in
+  `engine/status_report.py`.
+- **Mode fallback from `attrs["operation_mode"]`** (SB-3) — when both
+  `snap.mode` and `last_cycle.mode` are unknown, the alert context
+  now falls back to the raw operation-mode attribute, preventing the
+  "Modus: onbekend" symptom on ML-anomaly notifications.
+
+### Tests
+
+- `tests/test_v181_alert_render_ctx.py` — 12 new tests covering the
+  three-layer fix, mode fallback branches, and sentinel semantics.
+- 6 existing assertions updated in `test_build_alert_context.py`,
+  `test_52e_coordinator_coverage.py`, `test_cov3_coordinator_edges.py`.
+- Coverage: 100.00% (6279 stmts / 1808 branches).
+
+### Rule
+
+- New rule **R331**: `DataSnapshot.attrs` is the canonical attribute
+  source. `_snap_attr` must read `attrs` first, fall back to
+  `attributes` / `raw_attrs`. Sentinels must be `None`, never `—`.
+  Guard: `tests/test_v181_alert_render_ctx.py`.
+
+### Release note
+
+- Released without the standard 72h observation window (R204) and
+  without the kmeans gate (R318), at owner direction.
+
 ## [1.8.0] - 2026-10-08
 
 ### Added
@@ -1751,7 +1801,8 @@ Versioning: https://semver.org/spec/v2.0.0.html
 
 - db.py: maintenance deletes features before cycles (FK-safe)
 
-[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.8.1...HEAD
+[1.8.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.7.2...v1.8.0
 [1.6.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.2...v1.5.3
