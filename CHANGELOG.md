@@ -47,6 +47,18 @@
   string had a trailing newline. Fixed + regression guard `R327`
   (`tests/test_r327_no_whitespace_in_translations.py`).
 
+
+- Wizard routing: selecting **model=Custom** together with
+  **attribute_mode=manual** on the first page skipped Page A
+  (`model_custom_info`) entirely and jumped straight to `map_attributes`.
+  Users in this path never saw the HP-spec textarea, and the resulting
+  flow had a different shape than the AUTO path. Fixed by mirroring the
+  AUTO-branch Custom check inside the MANUAL branch of `async_step_user`.
+  Regression guard **R330** added - any model=Custom submission must
+  route to `model_custom_info` regardless of attribute_mode. Found during
+  post-merge observation of `a093df3`; landed as `de3090e` (PR #56)
+  before v1.8.0 tag.
+
 ## [1.7.2] - 2026-10-08
 
 ### Fixed

@@ -533,23 +533,35 @@ That gives us the exact key list for your firmware.
 
 ### 8.1 Setup wizard
 
-Flow (v1.8.0-dev — issue #54 split the Custom branch into pages A/B/C):
+**Wizard paths (v1.8.0 — issue #54 split the Custom branch into Pages A/B/C)**
 
-```
-user
-  ├── Model != Custom → [diagnose, v1.8.0] → attributes → cycle → …
-  └── Model = Custom
-        → model_custom_info          (Page A — identity + optional HP spec JSON)
-        → attribute_mapping          (Page B — choose JSON or manual)
-             ├── JSON   → attribute_mapping_advanced  (Page C — full JSON map)
-             └── Manual → map_attributes              (per-attribute form)
-        → attributes → cycle → …
-```
+| Selection on Step 1 | Wizard path |
+|---|---|
+| Model != Custom, auto | user → attributes → cycle → pendulum → quality → notifications → finalize |
+| Model != Custom, manual | user → map_attributes → attributes → cycle → pendulum → quality → notifications → finalize |
+| Model = Custom, auto, all canonicals present | user → **Page A** → **Page B** → **Page C** → attributes → cycle → pendulum → quality → notifications → finalize |
+| Model = Custom, auto, 3+ canonicals via alias/fuzzy | user → **diagnose** → **Page A** → **Page B** → **Page C** → attributes → cycle → pendulum → quality → notifications → finalize |
+| Model = Custom, manual | user → **Page A** → **Page B** → **map_attributes** → attributes → cycle → pendulum → quality → notifications → finalize |
 
-Core path (Model != Custom): user → attributes → cycle → pendulum →
-quality → notifications → finalize. The Custom branch inserts up to
-three extra pages; diagnose (v1.8.0 smart auto-import) is inserted when
-at least 3 canonicals resolve via alias or fuzzy matching.
+**Page reference**
+
+| Page | step_id | Purpose |
+|---|---|---|
+| Page A | `model_custom_info` | HP identity + optional HP-spec JSON |
+| Page B | `attribute_mapping` | Choose JSON vs manual mapping |
+| Page C | `attribute_mapping_advanced` | Paste the JSON attribute map (renamed from `model_custom`) |
+
+**Why Custom needs three pages**
+
+Non-Custom models ship with a built-in profile, so both the heat-pump spec
+and the attribute mapping are implicit. Custom has neither, so the wizard
+collects them separately on Pages A/B/C.
+
+**Upgrading with a wizard open**
+
+If a wizard was mid-flight when the upgrade landed, it survives — the
+old step-id `model_custom` still routes to Page C as a live redirect for
+one release cycle. Removal planned for v1.9.0.
 
 #### Step 1 — `user` (Source & model)
 
