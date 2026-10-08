@@ -8,7 +8,7 @@ Daikin installer-language curve advice (slope / offset). **Local-only ML,
 no cloud.**
 
 [![Version](https://img.shields.io/badge/version-1.8.1-orange.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.8.1)
-[![Tests](https://img.shields.io/badge/tests-2671-brightgreen.svg)](#19-testing)
+[![Tests](https://img.shields.io/badge/tests-2673-brightgreen.svg)](#19-testing)
 [![Coverage](https://img.shields.io/badge/coverage-100.00%25-brightgreen.svg)](#19-testing)
 [![Ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)
 [![Pylint](https://img.shields.io/badge/pylint-10.00%2F10-brightgreen.svg)](https://pylint.readthedocs.io/)
