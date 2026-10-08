@@ -144,6 +144,29 @@ send_test_notification:
       required: false
       selector:
         text: null
+    alert_kind:
+      name: Alert kind
+      description: Send a specific alert type as a test.
+      required: false
+      selector:
+        select:
+          options:
+            - status_summary
+            - all_alerts
+            - pendulum_hourly
+            - pendulum_daily
+            - short_run
+            - short_off
+            - ml_anomaly
+            - setpoint_osc
+            - cop_low
+            - stooklijn_advies
+    ignore_filters:
+      name: Ignore filters
+      description: Bypass quiet hours, aggregation, and group gating.
+      required: false
+      selector:
+        boolean: null
 export_cop_hourly:
   name: Export COP hourly
   description: Export aggregated COP-per-hour rows as JSON or CSV.

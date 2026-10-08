@@ -27,7 +27,7 @@ def _first_msg(bkey, ctx):
 
 def test_pendulum_hourly_real_numbers():
     ctx = {
-        "pendulum": {
+        "pendulum_hourly": {
             "cph": 6, "target_cph": 4,
             "cycles_today": 42, "target_cpd": 40,
             "advice": "",
@@ -42,7 +42,7 @@ def test_pendulum_hourly_real_numbers():
 
 def test_pendulum_daily_real_numbers():
     ctx = {
-        "pendulum": {
+        "pendulum_daily": {
             "cph": 1, "target_cph": 4,
             "cycles_today": 42, "target_cpd": 40,
             "advice": "",

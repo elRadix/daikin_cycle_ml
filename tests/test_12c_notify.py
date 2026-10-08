@@ -19,7 +19,7 @@ def test_severity_emoji_map_complete():
 
 
 def test_alert_type_emoji_map_covers_core():
-    for k in ("pendulum", "short_run", "short_off", "ml_anomaly", "setpoint_osc"):
+    for k in ("pendulum_hourly", "pendulum_daily", "short_run", "short_off", "ml_anomaly", "setpoint_osc"):
         assert k in ALERT_TYPE_EMOJI
         assert ALERT_TYPE_EMOJI[k]
 

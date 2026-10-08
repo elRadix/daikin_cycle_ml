@@ -180,7 +180,8 @@ STATE_IDLE = "idle"
 STATE_RUNNING = "running"
 
 # --- Notification IDs (fixed -> overwrite, no spam) ---
-NOTIF_ID_PENDULUM = f"{DOMAIN}_pendulum"
+NOTIF_ID_PENDULUM_HOURLY = f"{DOMAIN}_pendulum_hourly"
+NOTIF_ID_PENDULUM_DAILY = f"{DOMAIN}_pendulum_daily"
 NOTIF_ID_SHORT_RUN = f"{DOMAIN}_short_run"
 NOTIF_ID_SHORT_OFF = f"{DOMAIN}_short_off"
 NOTIF_ID_ML_ANOMALY = f"{DOMAIN}_ml_anomaly"
@@ -215,7 +216,8 @@ SEVERITY_EMOJI = {
 }
 
 ALERT_TYPE_EMOJI = {
-    "pendulum": EMOJI_PENDULUM,
+    "pendulum_hourly": EMOJI_PENDULUM,
+    "pendulum_daily": EMOJI_PENDULUM,
     "short_run": EMOJI_SHORT_RUN,
     "short_off": EMOJI_SHORT_OFF,
     "ml_anomaly": EMOJI_ML_ANOMALY,
@@ -327,7 +329,8 @@ ALERT_GROUPS = [
 ]
 
 ALERT_GROUP_MAP = {
-    "pendulum": ALERT_GROUP_PENDULUM,
+    "pendulum_hourly": ALERT_GROUP_PENDULUM,
+    "pendulum_daily": ALERT_GROUP_PENDULUM,
     "short_run": ALERT_GROUP_SHORT_CYCLE,
     "short_off": ALERT_GROUP_SHORT_CYCLE,
     "ml_anomaly": ALERT_GROUP_ML,

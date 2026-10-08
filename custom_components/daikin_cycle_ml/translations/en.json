@@ -845,6 +845,14 @@
         "target": {
           "name": "Target override",
           "description": "Optional override of the configured notify target."
+        },
+        "alert_kind": {
+          "name": "Alert kind",
+          "description": "Send a specific alert type as a test. Omit for a plain passthrough message."
+        },
+        "ignore_filters": {
+          "name": "Ignore filters",
+          "description": "Bypass quiet hours, aggregation, and group gating."
         }
       }
     },

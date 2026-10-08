@@ -75,7 +75,7 @@ def test_single_pendulum_hourly():
     out = evaluate_alerts({"pendulum_hourly": True}, {}, now=1e9)
     assert len(out) == 1
     assert isinstance(out[0], AlertSpec)
-    assert out[0].alert_type == "pendulum"
+    assert out[0].alert_type == "pendulum_hourly"
     assert out[0].severity == SEV_WARNING
     assert out[0].notif_id.startswith("daikin_cycle_ml_")
 
@@ -92,13 +92,14 @@ def test_short_off_single_alert():
     assert out[0].alert_type == "short_off"
 
 
-def test_two_triggers_same_type_deduped():
-    # both pendulum triggers -> single alert
+def test_pendulum_hourly_and_daily_both_fire():
+    # v1.9.0 PR B: hourly and daily are distinct alert types
     out = evaluate_alerts(
         {"pendulum_hourly": True, "pendulum_daily": True}, {}, now=1e9
     )
-    assert len(out) == 1
-    assert out[0].alert_type == "pendulum"
+    assert len(out) == 2
+    types = sorted(a.alert_type for a in out)
+    assert types == ["pendulum_daily", "pendulum_hourly"]
 
 
 def test_multiple_distinct_types_emitted():
@@ -107,7 +108,7 @@ def test_multiple_distinct_types_emitted():
         {}, now=1e9,
     )
     types = sorted(a.alert_type for a in out)
-    assert types == ["pendulum", "short_off", "short_run"]
+    assert types == ["pendulum_hourly", "short_off", "short_run"]
 
 
 def test_result_is_list_of_alert_specs():
