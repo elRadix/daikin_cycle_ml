@@ -273,3 +273,30 @@ Active tracker: see issue pinned on the repository.
 Rationale: a merged PR cannot serve as a tracker (GitHub locks it).
 Issues have native checklists, comments, and cross-links, and close
 only when the work is done.
+
+## Bootstrap rule (added 2026-10-08)
+
+Every handoff document includes a bootstrap block: a single paste that
+fetches full session state and pending actions. The handoff does not
+duplicate what the block fetches. The block reports:
+
+1. Git state: HEAD, branch, tree, tag deref, origin/main
+2. Last 5 commits
+3. Open PRs
+4. Open issues
+5. Pinned issues (tracker)
+6. Active tracker: pending checklist items
+7. Active tracker: done checklist items
+8. Active tracker: last 5 comments
+9. Recent CI runs on main
+10. Next action line
+
+A second block (run on the HA host, not in the dev container) reports
+production state: HA Core version, entity count, daikin error tail.
+
+SOP.md references the current active tracker issue number explicitly.
+When the tracker changes (a new multi-PR effort), the bootstrap block
+in the new handoff points at the new issue.
+
+Rationale: eliminates guesswork in fresh sessions. The handoff stays
+small; the live state comes from GitHub via the bootstrap block.
