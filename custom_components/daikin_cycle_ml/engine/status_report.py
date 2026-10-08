@@ -8,10 +8,12 @@ from typing import Any
 
 try:
     from ..const import (
+        COP_LOW_THRESHOLD,
         STOOKLIJN_STATE_LABEL_EN,
         STOOKLIJN_STATE_LABEL_NL,
     )
 except Exception:  # pragma: no cover
+    COP_LOW_THRESHOLD = 2.5
     STOOKLIJN_STATE_LABEL_EN = {}
     STOOKLIJN_STATE_LABEL_NL = {}
 
@@ -278,7 +280,7 @@ def build_cop_low_report(cop: Any, samples: Any, *, language: str = "en", emoji_
     else:
         lines = ["Daikin Cycle ML \u2014 " + title, ts, DIV]
     lines.append(_row("\U0001F4C9", lbl_cop, (f"{float(cop):.2f}"), emojis=emoji_enabled))
-    lines.append(_row("\U0001F3AF", lbl_th, "2.50", emojis=emoji_enabled))
+    lines.append(_row("\U0001F3AF", lbl_th, f"{COP_LOW_THRESHOLD:.2f}", emojis=emoji_enabled))
     lines.append(_row("\U0001F4E6", lbl_smp, str(int(samples)), emojis=emoji_enabled))
     lines.append(DIV)
     return "\n".join(lines)

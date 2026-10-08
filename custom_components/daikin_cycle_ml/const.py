@@ -339,6 +339,15 @@ ALERT_GROUP_MAP = {
     "stooklijn_advies": ALERT_GROUP_COP_STOOKLIJN,
 }
 
+# Alert thresholds (PR C: unify magic numbers)
+COP_LOW_THRESHOLD = 2.5
+COP_LOW_MIN_SAMPLES = 3
+STOOKLIJN_MIN_CONFIDENCE = 0.7
+STOOKLIJN_MIN_SAVINGS_PCT = 5.0
+
+# Demo fixture for OptionsFlow test emitters (rendered delta below threshold)
+TEST_ALERT_DELTA = 0.1
+
 # Stooklijn advice state -> display label (Batch 39c)
 STOOKLIJN_STATE_LABEL_EN = {
     "keep": "Keep current LWT",
