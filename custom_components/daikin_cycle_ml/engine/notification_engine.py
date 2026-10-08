@@ -246,6 +246,32 @@ def _opt_float(
         return default
 
 
+def passes_filters(
+    alert_type: str,
+    severity: str,
+    options: Mapping[str, Any] | None,
+    now: float,
+) -> bool:
+    """Shared alert gate: group gating + quiet hours.
+
+    Extracted from evaluate_alerts so standalone emitters
+    (cop_low, stooklijn_advies) apply the same filtering rules.
+    Critical severity bypasses quiet hours; group gating applies to all.
+    """
+    options = options or {}
+    group = ALERT_GROUP_MAP.get(alert_type)
+    if group and options.get(f"alert_group_{group}", True) is False:
+        _LOGGER.debug("group disabled: %s (%s)", alert_type, group)
+        return False
+    if severity != SEV_CRITICAL and bool(options.get("quiet_hours_enabled", False)):
+        start = _parse_hhmm(options.get("quiet_hours_start"), DEFAULT_QUIET_START)
+        end = _parse_hhmm(options.get("quiet_hours_end"), DEFAULT_QUIET_END)
+        if _in_quiet_hours(now, start, end):
+            _LOGGER.debug("quiet hours: suppressing %s", alert_type)
+            return False
+    return True
+
+
 def evaluate_alerts(
     binary_states: Mapping[str, bool],
     options: Mapping[str, Any] | None,
@@ -276,16 +302,8 @@ def evaluate_alerts(
         _lang = "en"
     _lang_templates = ALERT_TEMPLATES[_lang]
 
-    quiet_enabled = bool(options.get("quiet_hours_enabled", False))
     agg_min = _opt_float(options, "alert_aggregation_minutes", DEFAULT_AGG_MIN)
     persistent_enabled = bool(options.get("persistent_enabled", True))
-
-    if quiet_enabled:
-        start = _parse_hhmm(options.get("quiet_hours_start"), DEFAULT_QUIET_START)
-        end = _parse_hhmm(options.get("quiet_hours_end"), DEFAULT_QUIET_END)
-        quiet = _in_quiet_hours(now, start, end)
-    else:
-        quiet = False
 
     emitted: dict[str, AlertSpec] = {}
     for bkey, spec in BINARY_ALERT_MAP.items():
@@ -297,12 +315,7 @@ def evaluate_alerts(
         # BINARY_ALERT_MAP alert_types unique, so this is currently dead.
         if alert_type in emitted:  # pragma: no cover
             continue
-        _grp = ALERT_GROUP_MAP.get(alert_type)
-        if _grp and options.get(f"alert_group_{_grp}", True) is False:
-            _LOGGER.debug("group disabled: %s (%s)", alert_type, _grp)
-            continue
-        if severity != SEV_CRITICAL and quiet:
-            _LOGGER.debug("quiet hours: suppressing %s", alert_type)
+        if not passes_filters(alert_type, severity, options, now):
             continue
         prev = last_sent.get(alert_type)
         if isinstance(prev, (int, float)) and (now - float(prev)) < agg_min * 60.0:

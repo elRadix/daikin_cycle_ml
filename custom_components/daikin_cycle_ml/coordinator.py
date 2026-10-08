@@ -46,6 +46,11 @@ from .const import (
     DEGRADATION_WINDOW_DAYS,
     ENERGY_DT_CAP_S,
     ENERGY_DT_WARN_S,
+    COP_LOW_MIN_SAMPLES,
+    COP_LOW_THRESHOLD,
+    STOOKLIJN_MIN_CONFIDENCE,
+    STOOKLIJN_MIN_SAVINGS_PCT,
+    TEST_ALERT_DELTA,
 )
 from .engine.cop_degradation import (
     analyze_degradation,
@@ -79,7 +84,11 @@ from .engine.model_datasheets import (
     merge as _merge_datasheets,
 )
 from .engine.model_profiles import defaults_for
-from .engine.notification_engine import build_status_message, evaluate_alerts
+from .engine.notification_engine import (
+    build_status_message,
+    evaluate_alerts,
+    passes_filters,
+)
 from .engine.quality_scorer import score_cycle
 from .ml.adaptive_thresholds import AdaptiveThresholds
 from .ml.clustering import classify_clusters, nearest_centroid
@@ -1791,10 +1800,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         cop = cop_today.get('cop')
         if not isinstance(cop, (int, float)):
             return
-        if float(cop) >= 2.5:
+        if float(cop) >= COP_LOW_THRESHOLD:
             return
         samples = cop_today.get('samples_today') or 0
-        if samples < 3:
+        if samples < COP_LOW_MIN_SAMPLES:
+            return
+        if not passes_filters('cop_low', 'warning', self.options, now):
             return
         last = self._last_alert_sent.get('cop_low', 0.0)
         if (now - last) < 20 * 3600.0:
@@ -1802,7 +1813,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         from types import SimpleNamespace
 
         from .engine.notification_engine import build_cop_low_message
-        msg = build_cop_low_message(float(cop), int(samples))
+        msg = build_cop_low_message(
+            float(cop), int(samples),
+            language=self.options.get('notification_language', 'en'),
+            emoji_enabled=bool(self.options.get('notify_emoji_enabled', True)),
+        )
         alert = SimpleNamespace(
             persistent=True,
             message=msg,
@@ -1834,7 +1849,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             float(cache.get('comfort_impact') or 0.0)
         except (TypeError, ValueError):
             return
-        if betrouw < 0.7 or besparing < 5.0:
+        if (betrouw < STOOKLIJN_MIN_CONFIDENCE
+                or besparing < STOOKLIJN_MIN_SAVINGS_PCT):
+            return
+        if not passes_filters('stooklijn_advies', 'warning', self.options, now):
             return
         last = self._last_alert_sent.get('stooklijn_advies', 0.0)
         if (now - last) < 20 * 3600.0:
@@ -1842,7 +1860,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         from types import SimpleNamespace
 
         from .engine.notification_engine import build_stooklijn_message
-        msg = build_stooklijn_message(cache)
+        msg = build_stooklijn_message(
+            cache,
+            language=self.options.get('notification_language', 'en'),
+            emoji_enabled=bool(self.options.get('notify_emoji_enabled', True)),
+        )
         alert = SimpleNamespace(
             persistent=True,
             message=msg,
@@ -2582,7 +2604,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         persistent = bool(opts.get("persistent_enabled", True))
 
         if alert_kind == "cop_low":
-            msg = build_cop_low_message(2.1, 8)
+            msg = build_cop_low_message(
+                COP_LOW_THRESHOLD - TEST_ALERT_DELTA, 8,
+                language=opts.get("notification_language", "en"),
+                emoji_enabled=bool(opts.get("notify_emoji_enabled", True)),
+            )
             spec = AlertSpec(
                 alert_type="cop_low",
                 severity="warning",
@@ -2602,7 +2628,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "betrouwbaarheid": 0.75,
                 "samples": 42,
             }
-            msg = build_stooklijn_message(fake)
+            msg = build_stooklijn_message(
+                fake,
+                language=opts.get("notification_language", "en"),
+                emoji_enabled=bool(opts.get("notify_emoji_enabled", True)),
+            )
             spec = AlertSpec(
                 alert_type="stooklijn_advies",
                 severity="warning",
