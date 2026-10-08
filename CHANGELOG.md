@@ -17,6 +17,12 @@
     suffix (`— °C`, `— min`, `— l/min`). `_f` now returns `None`;
     `build_rich_alert` renders a bare `—` when any template field
     resolves to `None`.
+- **Setpoint helpers used string literals instead of constants**
+  (R331-B) — `_setpoint_current` and `_setpoint_target` passed
+  `"ATTR_LWT_SETPOINT"` / `"ATTR_TARGET_LWT"` (which do not exist).
+  Replaced with the real constants `ATTR_LW_SETPOINT` and the new
+  `ATTR_TARGET_COND_TEMP`. Rendered `LWT setpoint`, `LWT doel` and
+  `Setpoint-swing` values had been silently blank.
 - **`short_off` `off_min` floored at 1 minute** (SB-1) — a 30s
   off-time was truncated to `0 min`, producing the contradictory
   "Off-tijd 0 min" against a "drempel 5.0 min" in the notification.
@@ -32,8 +38,9 @@
 
 ### Tests
 
-- `tests/test_v181_alert_render_ctx.py` — 12 new tests covering the
-  three-layer fix, mode fallback branches, and sentinel semantics.
+- `tests/test_v181_alert_render_ctx.py` — 14 new tests covering the
+  three-layer fix, mode fallback branches, sentinel semantics, and the
+  R331-B setpoint-helper fix (see below).
 - 6 existing assertions updated in `test_build_alert_context.py`,
   `test_52e_coordinator_coverage.py`, `test_cov3_coordinator_edges.py`.
 - Coverage: 100.00% (6279 stmts / 1808 branches).
