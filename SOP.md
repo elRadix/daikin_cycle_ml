@@ -249,3 +249,27 @@ Regels R93, R94, R95, R97-R101, R103-R132 leven alleen in handoff-chat-historie
 Backfill naar SOP.md is een openstaande taak (niet docs-triviaal - vereist
 per-regel recon + format-matching). Zie handoff v17.0 DEEL 15.1 #2.
 
+
+## Tracker rule (added 2026-10-08)
+
+For any multi-PR effort, create one tracking issue before opening the
+first child PR. The issue body carries:
+
+- The design doc or audit content
+- A per-PR checklist (one section per PR)
+- Follow-up items
+- Locked decisions
+
+Every child PR references the issue number in its body. On completion
+of each child PR, update the issue checklist (tick the box, comment
+with the merge commit hash). The issue is closed only when the final
+release ships.
+
+Handoff sections 15 (tasks) and 16 (backlog) reference the tracker
+issue number. They do not duplicate its content.
+
+Active tracker: see issue pinned on the repository.
+
+Rationale: a merged PR cannot serve as a tracker (GitHub locks it).
+Issues have native checklists, comments, and cross-links, and close
+only when the work is done.
