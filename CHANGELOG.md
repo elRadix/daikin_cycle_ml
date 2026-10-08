@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.8.0-dev] - Unreleased
+## [1.8.0] - 2026-10-08
 
 ### Added
 - Smart auto-import for non-canonical ESPAltherma setups (issue #51):
@@ -1751,6 +1751,7 @@ Versioning: https://semver.org/spec/v2.0.0.html
 
 - db.py: maintenance deletes features before cycles (FK-safe)
 
-[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.5...HEAD
+[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.7.2...v1.8.0
 [1.6.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.2...v1.5.3
