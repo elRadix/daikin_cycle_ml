@@ -130,6 +130,7 @@ ATTR_WATER_PUMP_OPERATION = "Water pump operation"
 ATTR_BUH_STEP1 = "BUH Step1"
 ATTR_BUH_STEP2 = "BUH Step2"
 ATTR_LW_SETPOINT = "LW setpoint (main)"
+ATTR_TARGET_COND_TEMP = "Target Cond. Temp."
 
 CORE_ATTRIBUTES = [
     ATTR_INV_FREQUENCY_RPS,

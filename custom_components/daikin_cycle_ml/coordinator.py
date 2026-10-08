@@ -30,7 +30,9 @@ from .const import (
     ATTR_FLOW_SENSOR,
     ATTR_INDOOR_AMBIENT_R1T,
     ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_LW_SETPOINT,
     ATTR_OUTDOOR_AIR_R1T,
+    ATTR_TARGET_COND_TEMP,
     buh_step_kw_for_model as _buh_step_kw_for_model,
     DEFAULT_COMFORT_MIN_C,
     DOMAIN,
@@ -2348,7 +2350,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     def _setpoint_current(self, snap: Any) -> Any:
         v = self._snap_attr(snap,
             "lwt_setpoint", "target_lwt", "lw_setpoint",
-            "ATTR_LWT_SETPOINT", "setpoint")
+            ATTR_LW_SETPOINT, "setpoint")
         if v is not None:
             return v
         hist = getattr(self, "_setpoint_history", None) or []
@@ -2362,7 +2364,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     def _setpoint_target(self, snap: Any) -> Any:
         return self._snap_attr(snap,
             "target_lwt", "lwt_target", "calculated_lwt",
-            "ATTR_TARGET_LWT", "target_cond_temp")
+            ATTR_TARGET_COND_TEMP, "target_cond_temp")
 
     def _setpoint_delta(self, snap: Any) -> Any:
         hist = getattr(self, "_setpoint_history", None) or []
