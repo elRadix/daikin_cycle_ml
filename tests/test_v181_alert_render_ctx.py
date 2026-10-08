@@ -163,3 +163,17 @@ def test_mode_fallback_no_match_stays_unknown():
     c, snap = _coord_with_snapshot({"operation_mode": "Standby"})
     ctx = c._build_alert_context(snap)
     assert ctx["pendulum"]["mode"] == "unknown"
+
+
+# ---------- R331-B: setpoint helpers use real constants ----------
+
+def test_setpoint_current_reads_lw_setpoint_attr():
+    """R331-B: _setpoint_current hits LW setpoint (main)."""
+    c, snap = _coord_with_snapshot({"LW setpoint (main)": 29.0})
+    assert c._setpoint_current(snap) == 29.0
+
+
+def test_setpoint_target_reads_target_cond_temp_attr():
+    """R331-B: _setpoint_target hits Target Cond. Temp."""
+    c, snap = _coord_with_snapshot({"Target Cond. Temp.": 26.09})
+    assert c._setpoint_target(snap) == 26.09
