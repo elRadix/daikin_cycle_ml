@@ -64,22 +64,22 @@ def test_store_exceptions_are_swallowed():
     assert ctx["pendulum"]["cycles_today"] == 0
 
 
-def test_advice_title_extracted():
+def test_advice_title_not_bled_sb2():
     adv = MagicMock()
     adv.title = "Widen hysteresis"
     c = _bare_coord(store=_default_store_mock())
     snap = DataSnapshot(advice=[adv])
     ctx = c._build_alert_context(snap)
-    assert "Widen hysteresis" in ctx["pendulum"]["advice"]
+    assert ctx["pendulum"]["advice"] == ""
 
 
-def test_advice_falls_back_to_text_attr():
+def test_advice_text_attr_not_bled_sb2():
     adv = MagicMock(spec=["text"])
     adv.text = "Legacy text"
     c = _bare_coord(store=_default_store_mock())
     snap = DataSnapshot(advice=[adv])
     ctx = c._build_alert_context(snap)
-    assert "Legacy text" in ctx["pendulum"]["advice"]
+    assert ctx["pendulum"]["advice"] == ""
 
 
 def test_last_record_duration_min():
@@ -95,7 +95,7 @@ def test_last_record_bad_duration_safe():
     c = _bare_coord(store=st)
     snap = DataSnapshot(last_record={"duration_s": "junk"})
     ctx = c._build_alert_context(snap)
-    assert ctx["short_run"]["duration_min"] in ("?", "\u2014")
+    assert ctx["short_run"]["duration_min"] is None
 
 
 def test_off_time_filled():
@@ -138,7 +138,7 @@ def test_anomaly_bad_z_safe():
     c = _bare_coord(store=_default_store_mock())
     snap = DataSnapshot(anomaly=anom)
     ctx = c._build_alert_context(snap)
-    assert ctx["ml_anomaly"]["z_max"] in ("?", "\u2014")
+    assert ctx["ml_anomaly"]["z_max"] is None
 
 
 def test_setpoint_osc_context_uses_history_len():

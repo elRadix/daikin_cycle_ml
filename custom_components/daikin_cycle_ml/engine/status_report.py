@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as _dt
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -15,6 +16,7 @@ except Exception:  # pragma: no cover
     STOOKLIJN_STATE_LABEL_NL = {}
 
 DIV = "\u2501" * 22
+_TPL_FIELD_RE = re.compile(r"\{(\w+)\}")
 
 GREETINGS = {
     "en": {
@@ -434,10 +436,14 @@ def build_rich_alert(alert_type: str, severity: str, context: Mapping[str, Any],
     rows = ALERT_SCHEMA.get(alert_type) or []
     for emoji, label_key, tpl in rows:
         label = labels.get(label_key, label_key)
-        try:
-            val = tpl.format(**ctx)
-        except (KeyError, IndexError, ValueError):
+        _fields = _TPL_FIELD_RE.findall(tpl)
+        if any(ctx.get(_fn) in (None, "\u2014") for _fn in _fields):
             val = "\u2014"
+        else:
+            try:
+                val = tpl.format(**ctx)
+            except (KeyError, IndexError, ValueError):  # pragma: no cover
+                val = "\u2014"
         lines.append(_row(emoji, label, val, emojis=emoji_enabled))
     builtin = ALERT_ADVICE.get(language, {}).get(alert_type)
     advice = ctx.get("advice") or builtin
