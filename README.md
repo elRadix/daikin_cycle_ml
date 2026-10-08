@@ -84,6 +84,31 @@ No cloud. No external API. Everything runs inside your Home Assistant box.
 
 ## 2. What's new
 
+### v1.8.0-dev — Smart auto-import
+
+Feature release that unblocks onboarding for ESPAltherma users whose
+sensor entity or attribute names diverge from the canonical form
+(issue #51, ~50 users analysed in the Tweakers ESPAltherma topic).
+
+**What it does:**
+
+- **Entity discovery** — scans `sensor.*` entities for overlap with the
+  13 canonical attributes and scores candidates. The default
+  `sensor.althermasensors` still works; renamed entities such as
+  `sensor.altherma` or `sensor.none_althermasensors` are auto-detected.
+- **Alias table + fuzzy matching** — 14+ community variants
+  (benthouse, akaQ, Videopac, ...) resolve via alias table, then
+  normalized string match, then Jaccard similarity as fallback.
+- **Anti-alias guard** — `Leaving water temp. after BUH (R2T)` never
+  resolves to a `R1T` variant; prevents the COP≈11 artefact on hybrid
+  setups (issue #51, case julG).
+- **Diagnose screen** — new wizard step shows per canonical which key
+  was matched (`EXACT` / `ALIAS` / `FUZZY` / `MISSING`) plus sanity
+  warnings for suspicious constant values.
+
+Target release: v1.8.0. Currently under development on
+`feature/smart-auto-import-51`.
+
 ### v1.6.2 — Onboarding modes
 
 Patch release that unblocks onboarding for units whose ESPAltherma firmware
@@ -477,6 +502,12 @@ Example:
 
 ### Workaround: onboarding fails with 'Sensor mist vereiste ESPAltherma-attributen'
 
+> **v1.8.0-dev note:** the wizard now falls back to smart auto-import
+> when the canonical set does not match. Before switching to Manual
+> mode, make sure you run the current `main` branch (or v1.8.0+ once
+> released). The Manual workaround below remains valid for older versions
+> and for setups that use drastically different attribute names.
+
 If the wizard aborts on screen 1 with this message and you cannot proceed:
 
 1. Re-run **Add Integration**.
@@ -500,13 +531,14 @@ the following snippet, run in **Developer Tools -> Template**:
 That gives us the exact key list for your firmware.
 
 
-### 8.1 Setup wizard (8 steps)
+### 8.1 Setup wizard (9 steps)
 
 Flow:
 
 ```
-user → model_custom (conditional) → attributes (check)
-     → cycle → pendulum → quality → notifications → finalize
+user → model_custom (conditional) → diagnose (conditional, v1.8.0)
+     → attributes (check) → cycle → pendulum → quality
+     → notifications → finalize
 ```
 
 #### Step 1 — `user` (Source & model)
@@ -529,13 +561,25 @@ COP normalization via `cop_normalized_a7w35`.
 Validated at wizard time. Invalid JSON → inline error, wizard does not
 advance.
 
-#### Step 3 — `attributes` (warning-only)
+#### Step 3 — `diagnose` *(conditional, new in v1.8.0)*
+
+Shown only when the smart auto-import fallback triggered (>= 3 canonicals
+resolvable via alias or fuzzy matching, see §7). Displays per canonical:
+
+- Resolved key name + match-kind (`EXACT` / `ALIAS` / `FUZZY` / `MISSING`)
+- Sanity warnings for suspicious constant values (hint at wrong `.h` file)
+- 3-phase hint when `Inverter usage` is present
+
+Read-only screen; submit continues to Step 4. Unresolved attributes can
+be mapped manually in the following step.
+
+#### Step 4 — `attributes` (warning-only)
 
 Shows how many of the 13 core attributes are present on the selected
 source sensor. Missing ones are listed but do **not** block the wizard.
 You can proceed and fix later.
 
-#### Step 4 — `cycle` (Cycle detection)
+#### Step 5 — `cycle` (Cycle detection)
 
 | Field | Default | Range | Notes |
 |---|---|---|---|
@@ -544,7 +588,7 @@ You can proceed and fix later.
 | `fallback_power_threshold_w` | 200 | 10–10000 | Used when RPS missing |
 | `indoor_temp_sensor` | (none) | entity | Enables `indoor_temp_avg` in ML vector |
 
-#### Step 5 — `pendulum` (Pendulum thresholds)
+#### Step 6 — `pendulum` (Pendulum thresholds)
 
 | Field | Default | Range |
 |---|---|---|
@@ -553,7 +597,7 @@ You can proceed and fix later.
 | `pendulum_cycles_per_day` | 40 | 1–200 |
 | `dhw_pendulum_cycles_per_hour` | 3 | 1–20 |
 
-#### Step 6 — `quality` (Quality thresholds)
+#### Step 7 — `quality` (Quality thresholds)
 
 | Field | Default | Range |
 |---|---|---|
@@ -562,7 +606,7 @@ You can proceed and fix later.
 | `good_off_threshold_min` | 20 | 1–240 |
 | `target_cycles_per_day` | 8 | 1–100 |
 
-#### Step 7 — `notifications` (Wizard-basic notifications)
+#### Step 8 — `notifications` (Wizard-basic notifications)
 
 | Field | Default |
 |---|---|
@@ -576,7 +620,7 @@ You can proceed and fix later.
 > advice, status updates, aggregation window) is available in the Options
 > menu, screen 5 — see §8.2.
 
-#### Step 8 — `finalize`
+#### Step 9 — `finalize`
 
 Review screen. Submit → integration starts polling every 30 seconds.
 

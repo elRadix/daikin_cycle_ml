@@ -84,6 +84,7 @@ from .const import (
     SOURCE_SENSOR_ENTITY,
 )
 from .engine.model_profiles import expected_attributes
+from .engine.smart_import import build_diagnostic, resolve_canonical
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -216,19 +217,31 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 self._data["attribute_mode"] = ATTRIBUTE_MODE_MANUAL
                 return await self.async_step_map_attributes()
             else:
-                missing = [
+                available = set(state.attributes.keys())
+                missing_exact = [
                     k for k in REQUIRED_ATTRIBUTES if k not in state.attributes
                 ]
-                if missing:
-                    _LOGGER.warning("Missing required attrs: %s", missing)
-                    errors["source_sensor"] = "missing_attributes"
-                    missing_list = missing
-                else:
+                if not missing_exact:
                     self._data.update(user_input)
                     self._data["attribute_mode"] = ATTRIBUTE_MODE_AUTO
                     if user_input["model"] == MODEL_CUSTOM:
                         return await self.async_step_model_custom()
                     return await self.async_step_attributes()
+                # Smart fallback (issue #51, Laag 1-3)
+                smart_map: dict[str, str] = {}
+                for canonical in REQUIRED_ATTRIBUTES:
+                    m = resolve_canonical(canonical, available)
+                    if m.actual_key is not None:
+                        smart_map[canonical] = m.actual_key
+                if len(smart_map) >= 3:
+                    self._data.update(user_input)
+                    self._data["attribute_mode"] = ATTRIBUTE_MODE_AUTO
+                    self._data["attribute_map"] = smart_map
+                    self._data["_smart_available"] = sorted(available)
+                    return await self.async_step_diagnose()
+                _LOGGER.warning("Missing required attrs: %s", missing_exact)
+                errors["source_sensor"] = "missing_attributes"
+                missing_list = missing_exact
         schema = vol.Schema({
             vol.Required(
                 "source_sensor",
@@ -252,6 +265,40 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                     "\n".join("\u2022 " + m for m in missing_list)
                     if missing_list else "none"
                 ),
+            },
+        )
+
+    async def async_step_diagnose(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Show smart-import diagnostic report (issue #51, Laag 4+5)."""
+        source_id = self._data.get("source_sensor", SOURCE_SENSOR_ENTITY)
+        state = self.hass.states.get(source_id) if source_id else None
+        available = set(self._data.get("_smart_available") or [])
+        attrs: dict[str, Any] = dict(state.attributes) if state is not None else {}
+        report = build_diagnostic(
+            canonicals=tuple(REQUIRED_ATTRIBUTES),
+            available=available,
+            attrs=attrs,
+        )
+        if user_input is not None:
+            # Drop internal key before finalize (defensive, mirrors _bad_attrs)
+            self._data.pop("_smart_available", None)
+            if self._data.get("model") == MODEL_CUSTOM:
+                return await self.async_step_model_custom()
+            return await self.async_step_attributes()
+        lines: list[str] = []
+        for m in report.matches:
+            kind = m.kind.upper().ljust(7)
+            target = m.actual_key or "-"
+            lines.append(f"{m.canonical}  [{kind}]  {target}")
+        report_text = "\n".join(lines) if lines else "none"
+        warnings_text = "\n".join(report.warnings) if report.warnings else "none"
+        return self.async_show_form(
+            step_id="diagnose",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "report_lines": report_text,
+                "warnings": warnings_text,
+                "missing_count": str(len(report.missing)),
             },
         )
 

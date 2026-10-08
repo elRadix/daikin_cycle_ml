@@ -162,6 +162,10 @@
           "BUH Step2": "Your sensor's attribute name for the canonical 'BUH Step2' field. Leave empty if the canonical name already exists on the sensor.",
           "LW setpoint (main)": "Your sensor's attribute name for the canonical 'LW setpoint (main)' field. Leave empty if the canonical name already exists on the sensor."
         }
+      },
+      "diagnose": {
+        "title": "Smart auto-import diagnostic",
+        "description": "Automatic attribute detection report (issue #51).\n\n**Matches:**\n{report_lines}\n\n**Warnings:**\n{warnings}\n\n**Missing canonicals:** {missing_count}\n\nReview before continuing. Unresolved attributes can be mapped manually in the following step."
       }
     },
     "error": {
