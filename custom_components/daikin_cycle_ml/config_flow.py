@@ -225,7 +225,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                     self._data.update(user_input)
                     self._data["attribute_mode"] = ATTRIBUTE_MODE_AUTO
                     if user_input["model"] == MODEL_CUSTOM:
-                        return await self.async_step_model_custom()
+                        return await self.async_step_model_custom_info()
                     return await self.async_step_attributes()
                 # Smart fallback (issue #51, Laag 1-3)
                 smart_map: dict[str, str] = {}
@@ -283,7 +283,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             # Drop internal key before finalize (defensive, mirrors _bad_attrs)
             self._data.pop("_smart_available", None)
             if self._data.get("model") == MODEL_CUSTOM:
-                return await self.async_step_model_custom()
+                return await self.async_step_model_custom_info()
             return await self.async_step_attributes()
         lines: list[str] = []
         for m in report.matches:
@@ -300,6 +300,17 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 "warnings": warnings_text,
                 "missing_count": str(len(report.missing)),
             },
+        )
+
+    async def async_step_model_custom_info(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Info-only page for custom heat pump model (issue #54, Page A)."""
+        if user_input is not None:
+            return await self.async_step_model_custom()
+        return self.async_show_form(
+            step_id="model_custom_info",
+            data_schema=vol.Schema({}),
         )
 
     async def async_step_model_custom(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

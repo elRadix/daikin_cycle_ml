@@ -25,6 +25,10 @@
           "custom_attribute_map": "JSON object mapping standard keys to attribute names. See the documentation for the exact format."
         }
       },
+      "model_custom_info": {
+        "title": "Custom heat pump",
+        "description": "Your heat pump is not one of the bundled Daikin models.\n\nA custom selection inherits the **Basic profile** defaults (safe fallback). You can tune detection thresholds, comfort bounds, and COP analysis later in the integration Options menu.\n\nThe next page maps your ESPAltherma attribute names to the integration's canonical keys."
+      },
       "attributes": {
         "title": "Attribute check",
         "description": "Core attributes on the source sensor: **{present} / {total}** present.\n\n**Present:**\n{present_list}\n\n**Missing:**\n{missing_list}"

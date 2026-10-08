@@ -25,6 +25,10 @@
           "custom_attribute_map": "JSON-object dat standaardsleutels aan attribuutnamen koppelt. Zie de documentatie voor het exacte formaat."
         }
       },
+      "model_custom_info": {
+        "title": "Aangepaste warmtepomp",
+        "description": "Jouw warmtepomp is niet een van de meegeleverde Daikin-modellen.\n\nEen aangepaste keuze erft de **Basisprofiel**-defaults (veilige fallback). Je kunt detectiedrempels, comfortgrenzen en COP-analyse later bijstellen via het Options-menu van de integratie.\n\nDe volgende pagina koppelt je ESPAltherma-attribuutnamen aan de canonieke sleutels van de integratie."
+      },
       "attributes": {
         "title": "Attribuut-controle",
         "description": "Kern-attributen op de bronsensor: **{present} / {total}** aanwezig.\n\n**Aanwezig:**\n{present_list}\n\n**Ontbrekend:**\n{missing_list}"

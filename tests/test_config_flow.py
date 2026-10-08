@@ -104,6 +104,8 @@ async def test_custom_model_step_valid(hass):
         result["flow_id"],
         {"source_sensor": SOURCE_SENSOR_ENTITY, "model": MODEL_CUSTOM},
     )
+    assert result["step_id"] == "model_custom_info"
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["step_id"] == "model_custom"
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"custom_attribute_map": '{"INV frequency (rps)": "my_rps"}'}
@@ -120,6 +122,8 @@ async def test_custom_model_step_invalid_json(hass):
         result["flow_id"],
         {"source_sensor": SOURCE_SENSOR_ENTITY, "model": MODEL_CUSTOM},
     )
+    assert result["step_id"] == "model_custom_info"
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"custom_attribute_map": "not json {"}
     )
