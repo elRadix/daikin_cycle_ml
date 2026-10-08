@@ -32,7 +32,7 @@
           "custom_datasheet_json": "Warmtepomp specificatie (JSON, optioneel)"
         },
         "data_description": {
-          "custom_datasheet_json": "Optionele spec voor uw warmtepomp. Laat leeg voor de Basisprofiel-standaardwaarden.\n\n**Minimaal vereiste velden:** `family` (str), `kw` (float), `lwt_min` (float), `lwt_max` (float), `nom_cop` (float).\n\n**Optionele velden:** `bivalent` (bool), `buh_kw` (float), `refrigerant` (R32 / R290 / R410A), `min_modulation_kw` (float), `max_flow_lmin` (float), `noise_db` (float).\n\n**Optionele COP-curve punten:** lijst van objecten met sleutels `label`, `t_out`, `t_lwc`, `cop`.\n\n**Minimaal voorbeeld:**\n\n    {spec_example_min}\n\n**Voorbeeld met COP-curve:**\n\n    {spec_example_full}\n"
+          "custom_datasheet_json": "Optionele spec voor uw warmtepomp. Laat leeg voor de Basisprofiel-standaardwaarden.\n\n**Minimaal vereiste velden:** `family` (str), `kw` (float), `lwt_min` (float), `lwt_max` (float), `nom_cop` (float).\n\n**Optionele velden:** `bivalent` (bool), `buh_kw` (float), `refrigerant` (R32 / R290 / R410A), `min_modulation_kw` (float), `max_flow_lmin` (float), `noise_db` (float).\n\n**Optionele COP-curve punten:** lijst van objecten met sleutels `label`, `t_out`, `t_lwc`, `cop`.\n\n**Minimaal voorbeeld:**\n\n    {spec_example_min}\n\n**Voorbeeld met COP-curve:**\n\n    {spec_example_full}"
         }
       },
       "attributes": {
