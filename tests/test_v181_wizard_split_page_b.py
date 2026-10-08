@@ -133,3 +133,46 @@ def test_i18n_attribute_mapping_key_present():
         assert step is not None, rel
         assert "mapping_mode" in step.get("data", {}), rel
         assert "mapping_mode" in step.get("data_description", {}), rel
+
+
+# ---------- R330: model=Custom must reach Page A regardless of attribute_mode ----------
+
+def _wizard_with_state(attrs: dict) -> object:
+    """Wizard with a live-looking source state (attrs dict present)."""
+    flow = cf.DaikinCycleMLConfigFlow()
+    h = MagicMock()
+    state = MagicMock()
+    state.attributes = attrs
+    h.states = MagicMock()
+    h.states.get = MagicMock(return_value=state)
+    h.config_entries = MagicMock()
+    h.services = MagicMock()
+    flow.hass = h
+    flow._data = {}
+    flow._options = {}
+    flow._reconfigure_entry = None
+    return flow
+
+
+def test_manual_mode_with_custom_routes_to_page_a():
+    """R330: model=Custom + manual mode must route to model_custom_info (Page A)."""
+    flow = _wizard_with_state({"R1T": 30.0})
+    r = asyncio.run(flow.async_step_user(user_input={
+        "source_sensor": "sensor.althermasensors",
+        "model": "custom",
+        "attribute_mode": "manual",
+    }))
+    assert r["type"] == "form"
+    assert r["step_id"] == "model_custom_info"
+
+
+def test_manual_mode_with_non_custom_routes_to_map_attributes():
+    """Regression: model != Custom + manual must still route to map_attributes."""
+    flow = _wizard_with_state({"R1T": 30.0})
+    r = asyncio.run(flow.async_step_user(user_input={
+        "source_sensor": "sensor.althermasensors",
+        "model": "epra12eav3",
+        "attribute_mode": "manual",
+    }))
+    assert r["type"] == "form"
+    assert r["step_id"] == "map_attributes"

@@ -6,7 +6,6 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
-from .const import DEFAULT_DAILY_SUMMARY_LIVE_ENABLED
 
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -14,6 +13,8 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
+
+from .const import DEFAULT_DAILY_SUMMARY_LIVE_ENABLED
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import (
@@ -32,7 +33,6 @@ else:
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
-from .engine.model_datasheets import validate_spec
 
 from .const import (
     ATTRIBUTE_MODE_AUTO,
@@ -84,6 +84,7 @@ from .const import (
     REQUIRED_ATTRIBUTES,
     SOURCE_SENSOR_ENTITY,
 )
+from .engine.model_datasheets import validate_spec
 from .engine.model_profiles import expected_attributes
 from .engine.smart_import import build_diagnostic, resolve_canonical
 
@@ -229,6 +230,8 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             elif mode == ATTRIBUTE_MODE_MANUAL:
                 self._data.update(user_input)
                 self._data["attribute_mode"] = ATTRIBUTE_MODE_MANUAL
+                if user_input["model"] == MODEL_CUSTOM:
+                    return await self.async_step_model_custom_info()
                 return await self.async_step_map_attributes()
             else:
                 available = set(state.attributes.keys())
