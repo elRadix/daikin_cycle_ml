@@ -21,7 +21,8 @@ def test_const_alert_groups():
     assert set(const.ALERT_GROUPS) == {
         "pendulum", "short_cycle", "ml", "setpoint", "cop_stooklijn",
     }
-    assert const.ALERT_GROUP_MAP["pendulum"] == "pendulum"
+    assert const.ALERT_GROUP_MAP["pendulum_hourly"] == "pendulum"
+    assert const.ALERT_GROUP_MAP["pendulum_daily"] == "pendulum"
     assert const.ALERT_GROUP_MAP["short_run"] == "short_cycle"
     assert const.ALERT_GROUP_MAP["short_off"] == "short_cycle"
     assert const.ALERT_GROUP_MAP["ml_anomaly"] == "ml"

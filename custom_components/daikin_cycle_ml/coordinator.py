@@ -2078,12 +2078,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             int(self.options.get("short_run_threshold_min", 20)),
         ) * 60
         short_off_th = self._effective_threshold(
-            "good_off_threshold_min",
+            "short_off_threshold_min",
             int(self.options.get("short_off_threshold_min", 5)),
         ) * 60
         pend_hour = int(self.options.get("pendulum_cycles_per_hour", 4))
         pend_day = self._effective_threshold(
-            "target_cycles_per_day",
+            "pendulum_cycles_per_day",
             int(self.options.get("pendulum_cycles_per_day", 40)),
         )
 
@@ -2548,10 +2548,6 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                         ctx["ml_anomaly"]["top_dim"] = "dim " + str(td)
                 except Exception:
                     _LOGGER.debug("alert ctx top_dim failed", exc_info=True)
-            if getattr(anomaly, "severity", None):
-                ctx["ml_anomaly"]["mode"] = str(
-                    getattr(snap, "mode", "unknown")
-                )
         return ctx
 
     async def async_emit_test_alert(
@@ -2762,9 +2758,6 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return
         domain, service = svc.split(".", 1)
         payload: dict[str, Any] = {"message": alert.message}
-        ctx = getattr(alert, "context", None)
-        if isinstance(ctx, dict):
-            payload.update(ctx)
         try:
             await self.hass.services.async_call(
                 domain, service, payload, blocking=False,

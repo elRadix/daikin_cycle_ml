@@ -112,8 +112,8 @@ def test_a32_alert_short_off():
 
 
 def test_a32_alert_pendulum_hourly():
-    ctx = {"pendulum": {"cph": 5, "target_cph": 4,
-                        "cycles_today": 42, "target_cpd": 40, "advice": ""}}
+    ctx = {"pendulum_hourly": {"cph": 5, "target_cph": 4,
+                               "cycles_today": 42, "target_cpd": 40, "advice": ""}}
     out = evaluate_alerts(
         {"pendulum_hourly": True}, {}, now=1e9, context=ctx, language="en",
     )
@@ -121,8 +121,8 @@ def test_a32_alert_pendulum_hourly():
 
 
 def test_a32_alert_pendulum_daily():
-    ctx = {"pendulum": {"cph": 5, "target_cph": 4,
-                        "cycles_today": 42, "target_cpd": 40, "advice": ""}}
+    ctx = {"pendulum_daily": {"cph": 5, "target_cph": 4,
+                              "cycles_today": 42, "target_cpd": 40, "advice": ""}}
     out = evaluate_alerts(
         {"pendulum_daily": True}, {}, now=1e9, context=ctx, language="en",
     )

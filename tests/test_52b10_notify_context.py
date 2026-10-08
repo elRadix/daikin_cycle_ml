@@ -46,7 +46,8 @@ def test_alertspec_context_explicit():
 
 # --- _emit_alert context forwarding ---
 
-def test_emit_alert_forwards_context_to_notify():
+def test_emit_alert_does_not_forward_context_to_notify():
+    """v1.9.0 PR B (bug 4.6): payload no longer merges AlertSpec.context."""
     c = _mk(options={"notify_service": "notify.telegram"})
     spec = AlertSpec(
         alert_type="t", severity="warning", message="hello",
@@ -57,9 +58,9 @@ def test_emit_alert_forwards_context_to_notify():
     calls = c.hass.services.async_call.await_args_list
     notify_call = [x for x in calls if x.args[0] == "notify"][0]
     payload = notify_call.args[2]
-    assert payload["message"] == "hello"
-    assert payload["mode"] == "heating"
-    assert payload["cop"] == 2.1
+    assert payload == {"message": "hello"}
+    assert "mode" not in payload
+    assert "cop" not in payload
 
 
 def test_emit_alert_no_context_still_works():

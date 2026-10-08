@@ -55,6 +55,8 @@ ATTR_MODE = "mode"
 ATTR_PAYLOAD = "payload"
 ATTR_SOURCE_URL = "source_url"
 ATTR_MODEL_KEY = "model_key"
+ATTR_ALERT_KIND = "alert_kind"
+ATTR_IGNORE_FILTERS = "ignore_filters"
 
 SCHEMA_RESET = vol.Schema({
     vol.Required(ATTR_ENTRY_ID): str,
@@ -91,6 +93,8 @@ SCHEMA_SEND_TEST = vol.Schema({
     vol.Optional(ATTR_ENTRY_ID): str,
     vol.Optional(ATTR_MESSAGE): str,
     vol.Optional(ATTR_TARGET): str,
+    vol.Optional(ATTR_ALERT_KIND): str,
+    vol.Optional(ATTR_IGNORE_FILTERS): bool,
 })
 
 SCHEMA_EXPORT_COP_HOURLY = vol.Schema({
@@ -303,6 +307,19 @@ async def _handle_send_test_notification(
     coord = _resolve_optional_coordinator(
         hass, call.data.get(ATTR_ENTRY_ID)
     )
+    alert_kind = call.data.get(ATTR_ALERT_KIND)
+    if alert_kind:
+        msg = await coord.async_emit_test_alert(
+            str(alert_kind),
+            ignore_filters=bool(
+                call.data.get(ATTR_IGNORE_FILTERS, False)
+            ),
+        )
+        return {
+            "ok": True,
+            "alert_kind": str(alert_kind),
+            "message": msg,
+        }
     from .engine.notification_engine import async_send_notification
     opts = getattr(coord, "options", None) or {}
     target = call.data.get(ATTR_TARGET) or opts.get("notify_service") or ""

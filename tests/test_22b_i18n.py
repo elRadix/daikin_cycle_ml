@@ -111,7 +111,7 @@ def test_setpoint_osc_renders_threshold():
 
 
 def test_pendulum_hourly_renders_cph():
-    ctx = {"pendulum": {
+    ctx = {"pendulum_hourly": {
         "cph": 5, "target_cph": 4,
         "cycles_today": 42, "target_cpd": 40,
         "advice": "",

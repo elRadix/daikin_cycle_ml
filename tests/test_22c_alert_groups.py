@@ -61,7 +61,7 @@ def test_partial_disable_keeps_other_groups():
     )
     types = {a.alert_type for a in out}
     assert "short_run" not in types
-    assert "pendulum" in types
+    assert "pendulum_hourly" in types
 
 
 def test_group_enabled_explicitly_still_fires():

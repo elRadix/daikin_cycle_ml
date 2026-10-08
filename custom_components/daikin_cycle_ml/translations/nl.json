@@ -845,6 +845,14 @@
         "target": {
           "name": "Target-override",
           "description": "Optionele override van het geconfigureerde notify-target."
+        },
+        "alert_kind": {
+          "name": "Type melding",
+          "description": "Verstuur een specifiek alert-type als test. Weglaten voor een gewoon bericht."
+        },
+        "ignore_filters": {
+          "name": "Negeer filters",
+          "description": "Omzeil stille uren, aggregatie en groepsfiltering."
         }
       }
     },

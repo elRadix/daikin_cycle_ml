@@ -10,7 +10,8 @@ from ..const import (
     ALERT_GROUP_MAP,
     ALERT_TYPE_EMOJI,
     NOTIF_ID_ML_ANOMALY,
-    NOTIF_ID_PENDULUM,
+    NOTIF_ID_PENDULUM_DAILY,
+    NOTIF_ID_PENDULUM_HOURLY,
     NOTIF_ID_SETPOINT_OSC,
     NOTIF_ID_SHORT_OFF,
     NOTIF_ID_SHORT_RUN,
@@ -135,12 +136,12 @@ ALERT_TEMPLATES: dict[str, dict[str, str]] = {
 
 BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
     "pendulum_hourly": (
-        "pendulum",
+        "pendulum_hourly",
         SEV_WARNING,
         "Pendulum hourly\n{cph} cycles/h (target \u2264 {target_cph}){advice}",
     ),
     "pendulum_daily": (
-        "pendulum",
+        "pendulum_daily",
         SEV_WARNING,
         "Pendulum daily\n{cycles_today} cycles today (target \u2264 {target_cpd}){advice}",
     ),
@@ -167,7 +168,8 @@ BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
 }
 
 NOTIF_ID_BY_TYPE = {
-    "pendulum": NOTIF_ID_PENDULUM,
+    "pendulum_hourly": NOTIF_ID_PENDULUM_HOURLY,
+    "pendulum_daily": NOTIF_ID_PENDULUM_DAILY,
     "short_run": NOTIF_ID_SHORT_RUN,
     "short_off": NOTIF_ID_SHORT_OFF,
     "ml_anomaly": NOTIF_ID_ML_ANOMALY,
@@ -291,7 +293,9 @@ def evaluate_alerts(
             continue
         alert_type, severity, default_tmpl = spec
         tmpl = _lang_templates.get(bkey, default_tmpl)
-        if alert_type in emitted:
+        # Defensive: guards future alert_type collisions. PR B made all
+        # BINARY_ALERT_MAP alert_types unique, so this is currently dead.
+        if alert_type in emitted:  # pragma: no cover
             continue
         _grp = ALERT_GROUP_MAP.get(alert_type)
         if _grp and options.get(f"alert_group_{_grp}", True) is False:
