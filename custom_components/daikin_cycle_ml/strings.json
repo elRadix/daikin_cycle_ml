@@ -176,6 +176,16 @@
       "diagnose": {
         "title": "Smart auto-import diagnostic",
         "description": "Automatic attribute detection report (issue #51).\n\n**Matches:**\n{report_lines}\n\n**Warnings:**\n{warnings}\n\n**Missing canonicals:** {missing_count}\n\nReview before continuing. Unresolved attributes can be mapped manually in the following step."
+      },
+      "attribute_mapping": {
+        "title": "Attribute mapping",
+        "description": "Your ESPAltherma setup may use attribute names that differ from the integration's canonical keys. Choose how to map them.\n\n**JSON** - paste a JSON object that maps canonical keys to your ESPAltherma attribute names. Best for advanced users. The next page shows the 13-attribute example.\n\n**Manual** - one text field per attribute. Best if you prefer a form over JSON.",
+        "data": {
+          "mapping_mode": "Mapping mode"
+        },
+        "data_description": {
+          "mapping_mode": "JSON for advanced (single object), Manual for a per-attribute form."
+        }
       }
     },
     "error": {

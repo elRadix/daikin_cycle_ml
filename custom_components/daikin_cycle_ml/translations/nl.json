@@ -176,6 +176,16 @@
       "diagnose": {
         "title": "Smart auto-import diagnose",
         "description": "Automatisch gedetecteerde attributen (issue #51).\n\n**Matches:**\n{report_lines}\n\n**Waarschuwingen:**\n{warnings}\n\n**Ontbrekende canonicals:** {missing_count}\n\nControleer voordat je verder gaat. Onopgeloste attributen kun je handmatig mappen in de volgende stap."
+      },
+      "attribute_mapping": {
+        "title": "Attribuut-mapping",
+        "description": "Uw ESPAltherma-setup kan attribuutnamen gebruiken die afwijken van de canonieke sleutels van de integratie. Kies hoe u ze wilt koppelen.\n\n**JSON** - plak een JSON-object dat canonieke sleutels koppelt aan uw ESPAltherma-attribuutnamen. Voor gevorderde gebruikers. De volgende pagina toont het 13-attributen voorbeeld.\n\n**Handmatig** - één tekstveld per attribuut. Handig als u een formulier verkiest boven JSON.",
+        "data": {
+          "mapping_mode": "Mapping-modus"
+        },
+        "data_description": {
+          "mapping_mode": "JSON voor gevorderd (één object), Handmatig voor een formulier per attribuut."
+        }
       }
     },
     "error": {

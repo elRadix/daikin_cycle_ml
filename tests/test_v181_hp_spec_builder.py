@@ -197,7 +197,7 @@ def test_step_info_empty_routes_none():
     r = asyncio.run(flow.async_step_model_custom_info(user_input={
         "custom_datasheet_json": "",
     }))
-    assert r["step_id"] == "model_custom"
+    assert r["step_id"] == "attribute_mapping"
     assert flow._data["custom_datasheet"] is None
 
 
@@ -206,7 +206,7 @@ def test_step_info_whitespace_routes_none():
     r = asyncio.run(flow.async_step_model_custom_info(user_input={
         "custom_datasheet_json": "   \n  ",
     }))
-    assert r["step_id"] == "model_custom"
+    assert r["step_id"] == "attribute_mapping"
     assert flow._data["custom_datasheet"] is None
 
 
@@ -219,7 +219,7 @@ def test_step_info_valid_routes_with_spec():
     r = asyncio.run(flow.async_step_model_custom_info(user_input={
         "custom_datasheet_json": raw,
     }))
-    assert r["step_id"] == "model_custom"
+    assert r["step_id"] == "attribute_mapping"
     assert flow._data["custom_datasheet"]["kw"] == 8.0
 
 

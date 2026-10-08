@@ -304,4 +304,4 @@ def test_model_custom_info_submit_routes_to_model_custom():
     assert r['type'] == 'form'
     assert r['step_id'] == 'model_custom_info'
     r = asyncio.run(flow.async_step_model_custom_info(user_input={}))
-    assert r['step_id'] == 'model_custom'
+    assert r['step_id'] == 'attribute_mapping'
