@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.7.2] - 2026-10-08
+
+### Fixed
+- Cycle detector stuck in RUNNING up to 46h (issue #49). Root cause:
+  pump is False identity check failed when ESPAltherma _normalize()
+  returned string 'OFF', None, or numeric values. Both pump-check
+  sites now use _pump_is_off() helper (R316).
+- MAX_CYCLE_DURATION_S hard-cap added (R315) - any RUNNING cycle
+  exceeding 4h is force-closed on next tick. Safety net for edge cases
+  beyond R307.
+- Detector call-site now uses _read_power_w() (kW to W conversion)
+  instead of raw _read_power() (R317) - kW-domain sensors would have
+  compared 0.5W threshold against 200W power.
+
+### Added
+- const.MAX_CYCLE_DURATION_S = 4 * 3600.0
+- engine.cycle_detector._pump_is_off() helper
+- Tests: test_v172_cycle_hardcap.py (8), test_v172_pump_is_off.py (33)
+
+### Changed
+- tests/test_coordinator.py - 2 tests aangepast (fixture _valid_attrs semantiek)
+
 ## [1.7.1] - 2026-10-07
 
 Stable release. Promotes the v1.7.1 pre-release series to production
