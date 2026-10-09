@@ -1872,6 +1872,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         try:
             await self._emit_alert(alert)
             self._last_alert_sent['cop_low'] = now
+            self._schedule_alert_save()
         except Exception:
             _LOGGER.exception('cop_low notify failed')
 
@@ -1914,6 +1915,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         try:
             await self._emit_alert(alert)
             self._last_alert_sent['stooklijn_advies'] = now
+            self._schedule_alert_save()
         except Exception:
             _LOGGER.exception('stooklijn notify failed')
 
@@ -2807,6 +2809,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             for alert in alerts:
                 await self._emit_alert(alert)
                 self._last_alert_sent[alert.alert_type] = now
+                self._schedule_alert_save()
         except Exception:
             _LOGGER.exception("Alert dispatch failed")
 
