@@ -154,6 +154,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _async_setup_database(hass, coordinator)
     await _async_backfill_quality(coordinator)
     await _async_hydrate_store(coordinator)
+    try:
+        await coordinator.async_setup_alert_persistence()
+    except Exception:
+        _LOGGER.exception('Failed to setup alert persistence')
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
     try:
@@ -190,12 +194,17 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
     coordinator = getattr(entry, "runtime_data", None)
     if coordinator is not None:
+        try:
+            await coordinator._async_persist_last_alert_sent()
+        except Exception:  # pragma: no cover
+            _LOGGER.exception('Failed to flush alert persistence on unload')
         for _attr in (
             "_maintenance_unsub",
             "_baseline_save_unsub",
             "_kmeans_unsub",
             "_status_update_unsub",
             "_stooklijn_unsub",
+            "_alert_save_unsub",
         ):
             _unsub = getattr(coordinator, _attr, None)
             if _unsub is not None:

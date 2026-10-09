@@ -35,6 +35,7 @@ from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 
 from .const import (
+    ALERT_DEDUP_DEFAULTS,
     ATTRIBUTE_MODE_AUTO,
     ATTRIBUTE_MODE_MANUAL,
     DEFAULT_ACTION_ADVICE_ENABLED,
@@ -939,6 +940,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 "notifications_delivery",
                 "notifications_quiet_hours",
                 "notifications_content",
+                "notifications_dedup",
                 "notifications_test_menu",
             ],
         )
@@ -1023,6 +1025,25 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             ): bool,
         })
         return self.async_show_form(step_id="notifications_content", data_schema=schema)
+
+    async def async_step_notifications_dedup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Per-alert dedup windows (PR D, ALERTS_V2.md 4.7)."""
+        if user_input is not None:
+            return self._save(user_input)
+        c: dict[str, Any] = dict(self.config_entry.options or {})
+        schema: dict[Any, Any] = {}
+        for _alert_type, _default in ALERT_DEDUP_DEFAULTS.items():
+            _key = f"alert_agg_{_alert_type}_min"
+            schema[vol.Required(
+                _key,
+                default=c.get(_key, _default),
+            )] = _num(1, 10080, 1, "min")
+        return self.async_show_form(
+            step_id="notifications_dedup",
+            data_schema=vol.Schema(schema),
+        )
 
     async def async_step_notifications_test_menu(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Submenu for test notifications."""

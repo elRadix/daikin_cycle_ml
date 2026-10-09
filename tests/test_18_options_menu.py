@@ -77,6 +77,7 @@ async def test_notifications_is_menu_with_subsections(hass):
         "notifications_delivery",
         "notifications_quiet_hours",
         "notifications_content",
+        "notifications_dedup",
         "notifications_test_menu",
     }
 

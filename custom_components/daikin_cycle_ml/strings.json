@@ -478,6 +478,30 @@
           "alert_group_cop_stooklijn": "Daily COP and heat-curve advice alerts."
         }
       },
+      "notifications_dedup": {
+        "title": "Alert deduplication windows",
+        "description": "Minimum minutes between consecutive alerts of the same type. Applies to evaluate_alerts-routed alerts and the standalone cop_low and stooklijn_advies emitters.",
+        "data": {
+          "alert_agg_pendulum_hourly_min": "Pendulum hourly window",
+          "alert_agg_pendulum_daily_min": "Pendulum daily window",
+          "alert_agg_short_run_min": "Short run window",
+          "alert_agg_short_off_min": "Short off window",
+          "alert_agg_ml_anomaly_min": "ML anomaly window",
+          "alert_agg_setpoint_osc_min": "Setpoint oscillation window",
+          "alert_agg_cop_low_min": "COP low window",
+          "alert_agg_stooklijn_advies_min": "Heating curve advice window"
+        },
+        "data_description": {
+          "alert_agg_pendulum_hourly_min": "Default 60 min.",
+          "alert_agg_pendulum_daily_min": "Default 1440 min (24 h).",
+          "alert_agg_short_run_min": "Default 30 min.",
+          "alert_agg_short_off_min": "Default 30 min.",
+          "alert_agg_ml_anomaly_min": "Default 60 min.",
+          "alert_agg_setpoint_osc_min": "Default 30 min.",
+          "alert_agg_cop_low_min": "Default 30 min.",
+          "alert_agg_stooklijn_advies_min": "Default 10080 min (7 days)."
+        }
+      },
       "notifications_test_menu": {
         "title": "Test notifications",
         "description": "Send a sample alert to your notify target.",

@@ -16,6 +16,7 @@ from homeassistant.helpers.event import (
     async_track_time_change,
     async_track_time_interval,
 )
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 # v1.4.1 BUG-2 / BUG-3: score wiring + threshold.
@@ -51,6 +52,9 @@ from .const import (
     STOOKLIJN_MIN_CONFIDENCE,
     STOOKLIJN_MIN_SAVINGS_PCT,
     TEST_ALERT_DELTA,
+    ALERT_STORE_VERSION,
+    ALERT_STORE_KEY,
+    ALERT_STORE_SAVE_DELAY,
 )
 from .engine.cop_degradation import (
     analyze_degradation,
@@ -369,6 +373,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._db_integrity_ok: bool = True
         self._migration_error: str | None = None
         self._last_alert_sent: dict[str, float] = {}
+        self._alert_store: Any = None
+        self._alert_save_unsub: Any = None
         self._setpoint_history: deque[tuple[float, float]] = deque()
         self._last_setpoint: float | None = None
         self._maintenance_unsub: Any = None
@@ -434,6 +440,43 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER,
             name=DOMAIN,
             update_interval=timedelta(seconds=UPDATE_INTERVAL_SECONDS),
+        )
+
+    async def async_setup_alert_persistence(self) -> None:
+        """Hydrate _last_alert_sent from HA Store."""
+        from homeassistant.helpers.storage import Store
+        self._alert_store = Store(
+            self.hass, ALERT_STORE_VERSION, ALERT_STORE_KEY,
+        )
+        raw = await self._alert_store.async_load() or {}
+        data = raw.get("data", {}) if isinstance(raw, dict) else {}
+        last = data.get("last_sent", {}) if isinstance(data, dict) else {}
+        self._last_alert_sent = {
+            str(k): float(v)
+            for k, v in last.items()
+            if isinstance(v, (int, float))
+        }
+
+    async def _async_persist_last_alert_sent(self) -> None:
+        """Flush _last_alert_sent to HA Store."""
+        if self._alert_store is None:
+            return
+        await self._alert_store.async_save(
+            {"data": {"last_sent": dict(self._last_alert_sent)}}
+        )
+
+    def _schedule_alert_save(self) -> None:
+        """Debounced save: coalesce writes over ALERT_STORE_SAVE_DELAY."""
+        if self._alert_store is None:
+            return
+        if self._alert_save_unsub is not None:
+            self._alert_save_unsub()
+        async def _on_fire(_now: Any) -> None:
+            await self._async_persist_last_alert_sent()
+        self._alert_save_unsub = async_call_later(
+            self.hass,
+            ALERT_STORE_SAVE_DELAY,
+            _on_fire,
         )
 
     async def async_setup_maintenance(self) -> None:
@@ -1808,7 +1851,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not passes_filters('cop_low', 'warning', self.options, now):
             return
         last = self._last_alert_sent.get('cop_low', 0.0)
-        if (now - last) < 20 * 3600.0:
+        _cop_window_min = float(
+            self.options.get('alert_agg_cop_low_min', 30)
+        )
+        if (now - last) < _cop_window_min * 60.0:
             return
         from types import SimpleNamespace
 
@@ -1832,6 +1878,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         try:
             await self._emit_alert(alert)
             self._last_alert_sent['cop_low'] = now
+            self._schedule_alert_save()
         except Exception:
             _LOGGER.exception('cop_low notify failed')
 
@@ -1855,7 +1902,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not passes_filters('stooklijn_advies', 'warning', self.options, now):
             return
         last = self._last_alert_sent.get('stooklijn_advies', 0.0)
-        if (now - last) < 20 * 3600.0:
+        _stook_window_min = float(
+            self.options.get('alert_agg_stooklijn_advies_min', 10080)
+        )
+        if (now - last) < _stook_window_min * 60.0:
             return
         from types import SimpleNamespace
 
@@ -1874,6 +1924,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         try:
             await self._emit_alert(alert)
             self._last_alert_sent['stooklijn_advies'] = now
+            self._schedule_alert_save()
         except Exception:
             _LOGGER.exception('stooklijn notify failed')
 
@@ -2767,6 +2818,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             for alert in alerts:
                 await self._emit_alert(alert)
                 self._last_alert_sent[alert.alert_type] = now
+                self._schedule_alert_save()
         except Exception:
             _LOGGER.exception("Alert dispatch failed")
 

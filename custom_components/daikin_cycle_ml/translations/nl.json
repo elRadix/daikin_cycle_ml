@@ -478,6 +478,30 @@
           "alert_group_cop_stooklijn": "Dagelijkse COP- en stooklijn-adviesmeldingen."
         }
       },
+      "notifications_dedup": {
+        "title": "Dempingsvensters voor meldingen",
+        "description": "Minimale minuten tussen opeenvolgende meldingen van hetzelfde type. Geldt voor meldingen via evaluate_alerts en voor de standalone cop_low- en stooklijn_advies-meldingen.",
+        "data": {
+          "alert_agg_pendulum_hourly_min": "Pendelvenster per uur",
+          "alert_agg_pendulum_daily_min": "Pendelvenster per dag",
+          "alert_agg_short_run_min": "Korte-loopvenster",
+          "alert_agg_short_off_min": "Korte-stopvenster",
+          "alert_agg_ml_anomaly_min": "ML-anomalievenster",
+          "alert_agg_setpoint_osc_min": "Setpoint-oscillatievenster",
+          "alert_agg_cop_low_min": "COP-laagvenster",
+          "alert_agg_stooklijn_advies_min": "Stooklijn-adviesvenster"
+        },
+        "data_description": {
+          "alert_agg_pendulum_hourly_min": "Standaard 60 min.",
+          "alert_agg_pendulum_daily_min": "Standaard 1440 min (24 u).",
+          "alert_agg_short_run_min": "Standaard 30 min.",
+          "alert_agg_short_off_min": "Standaard 30 min.",
+          "alert_agg_ml_anomaly_min": "Standaard 60 min.",
+          "alert_agg_setpoint_osc_min": "Standaard 30 min.",
+          "alert_agg_cop_low_min": "Standaard 30 min.",
+          "alert_agg_stooklijn_advies_min": "Standaard 10080 min (7 dagen)."
+        }
+      },
       "notifications_test_menu": {
         "title": "Testmeldingen",
         "description": "Stuur een voorbeeldmelding naar je melding-doel.",

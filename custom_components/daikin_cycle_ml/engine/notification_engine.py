@@ -8,6 +8,8 @@ from typing import Any
 
 from ..const import (
     ALERT_GROUP_MAP,
+    ALERT_DEDUP_OPTION_PREFIX,
+    ALERT_DEDUP_OPTION_SUFFIX,
     ALERT_TYPE_EMOJI,
     NOTIF_ID_ML_ANOMALY,
     NOTIF_ID_PENDULUM_DAILY,
@@ -317,9 +319,14 @@ def evaluate_alerts(
             continue
         if not passes_filters(alert_type, severity, options, now):
             continue
+        _per_key = f"{ALERT_DEDUP_OPTION_PREFIX}{alert_type}{ALERT_DEDUP_OPTION_SUFFIX}"
+        _per_min = _opt_float(options, _per_key, agg_min)
         prev = last_sent.get(alert_type)
-        if isinstance(prev, (int, float)) and (now - float(prev)) < agg_min * 60.0:
-            _LOGGER.debug("aggregation window: suppressing %s", alert_type)
+        if isinstance(prev, (int, float)) and (now - float(prev)) < _per_min * 60.0:
+            _LOGGER.debug(
+                "aggregation window (%s, %s min): suppressing %s",
+                _per_key, _per_min, alert_type,
+            )
             continue
         notif_id = NOTIF_ID_BY_TYPE.get(alert_type, f"daikin_cycle_ml_{alert_type}")
         ctx = context.get(alert_type) if context else None
