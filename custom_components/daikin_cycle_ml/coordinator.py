@@ -1848,7 +1848,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not passes_filters('cop_low', 'warning', self.options, now):
             return
         last = self._last_alert_sent.get('cop_low', 0.0)
-        if (now - last) < 20 * 3600.0:
+        _cop_window_min = float(
+            self.options.get('alert_agg_cop_low_min', 30)
+        )
+        if (now - last) < _cop_window_min * 60.0:
             return
         from types import SimpleNamespace
 
@@ -1896,7 +1899,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not passes_filters('stooklijn_advies', 'warning', self.options, now):
             return
         last = self._last_alert_sent.get('stooklijn_advies', 0.0)
-        if (now - last) < 20 * 3600.0:
+        _stook_window_min = float(
+            self.options.get('alert_agg_stooklijn_advies_min', 10080)
+        )
+        if (now - last) < _stook_window_min * 60.0:
             return
         from types import SimpleNamespace
 
