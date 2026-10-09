@@ -26,6 +26,10 @@ def test_template_keys_match_binary_alert_map():
         "buh_excessive",
         "source_stale",
         "missing_attributes",
+        # PR F
+        "dhw_pendulum",
+        "high_cycle_rate",
+        "cop_vs_datasheet_low",
     }
     for key in BINARY_ALERT_MAP:
         if key in _pr_e_new:
