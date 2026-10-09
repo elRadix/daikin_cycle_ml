@@ -471,12 +471,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return
         if self._alert_save_unsub is not None:
             self._alert_save_unsub()
+        async def _on_fire(_now: Any) -> None:
+            await self._async_persist_last_alert_sent()
         self._alert_save_unsub = async_call_later(
             self.hass,
             ALERT_STORE_SAVE_DELAY,
-            lambda _now: self.hass.async_create_task(
-                self._async_persist_last_alert_sent()
-            ),
+            _on_fire,
         )
 
     async def async_setup_maintenance(self) -> None:
