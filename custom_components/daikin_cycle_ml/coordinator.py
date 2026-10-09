@@ -2595,6 +2595,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             except (TypeError, ValueError):
                 return None
 
+        _ce = getattr(self, "config_entry", None)
         ctx = {
             "pendulum": {
                 "target_cph": opts.get("pendulum_cycles_per_hour", 4),
@@ -2682,14 +2683,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "source_stale": {
                 "age_s": _f(round(now - float(getattr(snap, "last_success_ts", 0.0) or 0.0), 1)) if getattr(snap, "last_success_ts", 0) else 0.0,
                 "threshold_s": 60.0,
-                "source_sensor": ((getattr(self, "config_entry", None).data.get("source_sensor", "?")) if getattr(self, "config_entry", None) else "?"),
+                "source_sensor": (_ce.data.get("source_sensor", "?") if _ce else "?"),
                 "mode": mode_str,
                 "advice": advice_text,
             },
             "missing_attributes": {
                 "missing_count": len(getattr(snap, "missing_attrs", []) or []),
                 "missing_list": (", ".join((getattr(snap, "missing_attrs", []) or [])[:3]) + ("…" if len(getattr(snap, "missing_attrs", []) or []) > 3 else "")),
-                "source_sensor": ((getattr(self, "config_entry", None).data.get("source_sensor", "?")) if getattr(self, "config_entry", None) else "?"),
+                "source_sensor": (_ce.data.get("source_sensor", "?") if _ce else "?"),
                 "mode": mode_str,
                 "advice": advice_text,
             },
