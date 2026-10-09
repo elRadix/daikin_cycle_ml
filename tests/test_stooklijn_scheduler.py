@@ -16,6 +16,8 @@ def _bare(db=None, options=None, hass=None):
     c.hass.services = MagicMock()
     c.hass.services.async_call = AsyncMock()
     c._last_alert_sent = {}
+    c._alert_store = None
+    c._alert_save_unsub = None
     c._stooklijn_cache = {}
     c._stooklijn_cache_ts = 0.0
     c._cop_today_cache = {}
@@ -111,7 +113,7 @@ async def test_notify_stooklijn_skips_low_saving():
 
 
 async def test_notify_stooklijn_sends():
-    c = _bare()
+    c = _bare(options={"alert_agg_stooklijn_advies_min": 1})
     await c._maybe_notify_stooklijn(100000.0, {
         'state': 'lower_lwt',
         'betrouwbaarheid': 0.85, 'besparing_cop_pct': 8.0,
