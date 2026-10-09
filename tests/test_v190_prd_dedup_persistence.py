@@ -307,3 +307,13 @@ def test_i18n_dedup_keys_present_in_all_files() -> None:
             assert field in steps["notifications_dedup"]["data_description"], (
                 f"{f.name} dd missing {field}"
             )
+
+
+async def test_persist_noop_without_store() -> None:
+    """_async_persist_last_alert_sent returns early when store is None.
+
+    Covers the guard branch inside the persist method.
+    """
+    c = _bare_alert(store=None)
+    # Should not raise; _alert_store is None so early return
+    await c._async_persist_last_alert_sent()
