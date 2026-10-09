@@ -940,6 +940,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 "notifications_delivery",
                 "notifications_quiet_hours",
                 "notifications_content",
+                "notifications_dedup",
                 "notifications_test_menu",
             ],
         )
