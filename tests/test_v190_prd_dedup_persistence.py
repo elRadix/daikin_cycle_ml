@@ -317,3 +317,37 @@ async def test_persist_noop_without_store() -> None:
     c = _bare_alert(store=None)
     # Should not raise; _alert_store is None so early return
     await c._async_persist_last_alert_sent()
+
+
+
+async def test_schedule_alert_save_fires_callback(monkeypatch: Any) -> None:
+    """The registered callback actually calls _async_persist_last_alert_sent."""
+    from datetime import datetime, timezone
+
+    fired: list[bool] = []
+
+    def _fake_acl(hass: Any, delay: float, cb: Any) -> Any:
+        # Schedule the returned coroutine so it runs on the loop
+        coro = cb(datetime.now(timezone.utc))
+        if asyncio.iscoroutine(coro):
+            asyncio.ensure_future(coro)
+        fired.append(True)
+        return lambda: None
+
+    import custom_components.daikin_cycle_ml.coordinator as coord_mod
+    monkeypatch.setattr(coord_mod, "async_call_later", _fake_acl)
+
+    store = _fake_store()
+    c = _bare_alert(store=store)
+    c._last_alert_sent = {"cop_low": 42.0}
+
+    c._schedule_alert_save()
+
+    # Let the scheduled coroutine run to completion
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
+
+    assert fired == [True]
+    store.async_save.assert_awaited_once()
+    payload = store.async_save.call_args[0][0]
+    assert payload == {"data": {"last_sent": {"cop_low": 42.0}}}
