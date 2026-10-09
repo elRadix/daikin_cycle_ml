@@ -940,6 +940,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 "notifications_delivery",
                 "notifications_quiet_hours",
                 "notifications_content",
+                "notifications_enabled",
                 "notifications_dedup",
                 "notifications_test_menu",
             ],
@@ -1023,8 +1024,37 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             vol.Required("alert_group_cop_stooklijn",
                 default=c.get("alert_group_cop_stooklijn", True)
             ): bool,
+            vol.Required("alert_group_component_health",
+                default=c.get("alert_group_component_health", True)
+            ): bool,
+            vol.Required("alert_group_data_quality",
+                default=c.get("alert_group_data_quality", True)
+            ): bool,
         })
         return self.async_show_form(step_id="notifications_content", data_schema=schema)
+
+    async def async_step_notifications_enabled(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Per-alert enable/disable (PR E, ALERTS_V2.md §10)."""
+        if user_input is not None:
+            return self._save(user_input)
+        c: dict[str, Any] = dict(self.config_entry.options or {})
+        schema = vol.Schema({
+            vol.Required("alert_enabled_cop_degradation",
+                default=c.get("alert_enabled_cop_degradation", True)): bool,
+            vol.Required("alert_enabled_defrost_excessive",
+                default=c.get("alert_enabled_defrost_excessive", True)): bool,
+            vol.Required("alert_enabled_buh_excessive",
+                default=c.get("alert_enabled_buh_excessive", True)): bool,
+            vol.Required("alert_enabled_source_stale",
+                default=c.get("alert_enabled_source_stale", True)): bool,
+            vol.Required("alert_enabled_missing_attributes",
+                default=c.get("alert_enabled_missing_attributes", True)): bool,
+        })
+        return self.async_show_form(
+            step_id="notifications_enabled", data_schema=schema,
+        )
 
     async def async_step_notifications_dedup(
         self, user_input: dict[str, Any] | None = None
