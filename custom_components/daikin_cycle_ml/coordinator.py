@@ -2171,6 +2171,31 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             getattr(snap, "anomaly", None)
             and getattr(snap.anomaly, "is_anomaly", False)
         )
+        # PR E: P1 alert triggers (v1.9.0)
+        from .binary_sensor import SOURCE_STALE_FACTOR
+        from .const import (
+            BUH_7D_RATIO_THRESHOLD_DEFAULT,
+            COP_DEGRADATION_WEEK_PCT_THRESHOLD,
+            DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
+            UPDATE_INTERVAL_SECONDS,
+        )
+        _cop_week_pct = getattr(snap, "cop_degradation_week_pct", None)
+        is_cop_degradation = (
+            isinstance(_cop_week_pct, (int, float))
+            and _cop_week_pct < COP_DEGRADATION_WEEK_PCT_THRESHOLD
+        )
+        _defrost_thr = int(self.options.get(
+            "defrost_7d_count_threshold", DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
+        ))
+        is_defrost_excessive = self._defrost_7d_sum > _defrost_thr
+        _buh_thr = float(self.options.get(
+            "buh_7d_ratio_threshold", BUH_7D_RATIO_THRESHOLD_DEFAULT,
+        ))
+        is_buh_excessive = self._buh_7d_ratio > _buh_thr
+        _last_ok = float(getattr(snap, "last_success_ts", 0.0) or 0.0)
+        _stale_thr = SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS
+        is_source_stale = _last_ok > 0 and (now - _last_ok) > _stale_thr
+        is_missing_attributes = len(getattr(snap, "missing_attrs", []) or []) > 0
         return {
             "short_run": bool(is_short_run),
             "short_off": bool(is_short_off),
@@ -2178,6 +2203,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "pendulum_daily": bool(is_pend_d),
             "ml_anomaly": is_ml_anom,
             "setpoint_osc": self._compute_setpoint_oscillating(),
+            "cop_degradation": bool(is_cop_degradation),
+            "defrost_excessive": bool(is_defrost_excessive),
+            "buh_excessive": bool(is_buh_excessive),
+            "source_stale": bool(is_source_stale),
+            "missing_attributes": bool(is_missing_attributes),
         }
 
     def _assign_cluster(self, vector: list[float]) -> int | None:
