@@ -2721,7 +2721,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._emit_alert(spec)
             parts.append("=== " + bkey + " ===\n" + msg)
 
-        cop_msg = build_cop_low_report(2.10, 8, language=lang, emoji_enabled=emoji)
+        cop_msg = build_cop_low_report(
+            COP_LOW_THRESHOLD - TEST_ALERT_DELTA, 8,
+            language=lang, emoji_enabled=emoji,
+        )
         await self._emit_alert(AlertSpec(
             alert_type="cop_low", severity="warning",
             message=cop_msg,
