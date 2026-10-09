@@ -357,13 +357,15 @@
           "notifications_delivery": "Delivery",
           "notifications_quiet_hours": "Quiet hours and status",
           "notifications_content": "Content and language",
-          "notifications_test_menu": "Test notifications"
+          "notifications_test_menu": "Test notifications",
+          "notifications_enabled": "Per-alert enables"
         },
         "menu_option_descriptions": {
           "notifications_delivery": "Persistent notifications, notify target, emoji, action advice",
           "notifications_quiet_hours": "Quiet hours window, dedup window, periodic status updates",
           "notifications_content": "Language and per-alert-group toggles",
-          "notifications_test_menu": "Send one or all sample alerts"
+          "notifications_test_menu": "Send one or all sample alerts",
+          "notifications_enabled": "Turn individual alerts on or off"
         }
       },
       "advanced": {
@@ -467,7 +469,9 @@
           "alert_group_short_cycle": "Alert: short cycle",
           "alert_group_ml": "Alert: ML anomaly",
           "alert_group_setpoint": "Alert: setpoint oscillation",
-          "alert_group_cop_stooklijn": "Alert: COP / heat curve"
+          "alert_group_cop_stooklijn": "Alert: COP / heat curve",
+          "alert_group_component_health": "Alert: component health",
+          "alert_group_data_quality": "Alert: data quality"
         },
         "data_description": {
           "notification_language": "Language for alert messages. Default English.",
@@ -475,7 +479,9 @@
           "alert_group_short_cycle": "Short-run and short-off alerts.",
           "alert_group_ml": "ML anomaly alerts (z-score).",
           "alert_group_setpoint": "LWT setpoint oscillation alerts.",
-          "alert_group_cop_stooklijn": "Daily COP and heat-curve advice alerts."
+          "alert_group_cop_stooklijn": "Daily COP and heat-curve advice alerts.",
+          "alert_group_component_health": "Defrost and backup-heater health alerts.",
+          "alert_group_data_quality": "Source-stale and missing-attributes alerts."
         }
       },
       "notifications_dedup": {
@@ -489,7 +495,12 @@
           "alert_agg_ml_anomaly_min": "ML anomaly window",
           "alert_agg_setpoint_osc_min": "Setpoint oscillation window",
           "alert_agg_cop_low_min": "COP low window",
-          "alert_agg_stooklijn_advies_min": "Heating curve advice window"
+          "alert_agg_stooklijn_advies_min": "Heating curve advice window",
+          "alert_agg_cop_degradation_min": "COP degradation window",
+          "alert_agg_defrost_excessive_min": "Defrost excessive window",
+          "alert_agg_buh_excessive_min": "Backup heater window",
+          "alert_agg_source_stale_min": "Source stale window",
+          "alert_agg_missing_attributes_min": "Missing attributes window"
         },
         "data_description": {
           "alert_agg_pendulum_hourly_min": "Default 60 min.",
@@ -499,7 +510,12 @@
           "alert_agg_ml_anomaly_min": "Default 60 min.",
           "alert_agg_setpoint_osc_min": "Default 30 min.",
           "alert_agg_cop_low_min": "Default 30 min.",
-          "alert_agg_stooklijn_advies_min": "Default 10080 min (7 days)."
+          "alert_agg_stooklijn_advies_min": "Default 10080 min (7 days).",
+          "alert_agg_cop_degradation_min": "Default 1440 min (24 h).",
+          "alert_agg_defrost_excessive_min": "Default 1440 min (24 h).",
+          "alert_agg_buh_excessive_min": "Default 1440 min (24 h).",
+          "alert_agg_source_stale_min": "Default 60 min.",
+          "alert_agg_missing_attributes_min": "Default 60 min."
         }
       },
       "notifications_test_menu": {
@@ -512,6 +528,24 @@
         "menu_option_descriptions": {
           "test_notification": "Pick an alert type and send one sample",
           "test_all_notifications": "One click sends one of each alert type"
+        }
+      },
+      "notifications_enabled": {
+        "title": "Per-alert enable",
+        "description": "Enable or disable individual alerts. Disabled alerts still respect group and quiet-hours gating.",
+        "data": {
+          "alert_enabled_cop_degradation": "Enable COP degradation alert",
+          "alert_enabled_defrost_excessive": "Enable defrost excessive alert",
+          "alert_enabled_buh_excessive": "Enable backup-heater excessive alert",
+          "alert_enabled_source_stale": "Enable source-stale alert",
+          "alert_enabled_missing_attributes": "Enable missing-attributes alert"
+        },
+        "data_description": {
+          "alert_enabled_cop_degradation": "Fires when week-over-week COP drops below -15%.",
+          "alert_enabled_defrost_excessive": "Fires when 7d defrost count exceeds the threshold.",
+          "alert_enabled_buh_excessive": "Fires when 7d backup-heater cycle ratio exceeds the threshold.",
+          "alert_enabled_source_stale": "Fires when the source sensor stops updating (critical).",
+          "alert_enabled_missing_attributes": "Fires when required source attributes are absent."
         }
       }
     }

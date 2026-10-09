@@ -41,6 +41,8 @@ from .const import (
     MODEL_BASISPROFIEL,
     SOURCE_SENSOR_ENTITY,
     UPDATE_INTERVAL_SECONDS,
+    BUH_7D_RATIO_THRESHOLD_DEFAULT,
+    DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
 
     DEGRADATION_BASELINE_DAYS,
     DEGRADATION_REFRESH_THROTTLE_S,
@@ -373,6 +375,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._db_integrity_ok: bool = True
         self._migration_error: str | None = None
         self._last_alert_sent: dict[str, float] = {}
+        # PR E: 7d rollup cache (refreshed before each dispatch)
+        self._defrost_7d_sum: int = 0
+        self._buh_7d_count: int = 0
+        self._buh_7d_ratio: float = 0.0
         self._alert_store: Any = None
         self._alert_save_unsub: Any = None
         self._setpoint_history: deque[tuple[float, float]] = deque()
@@ -2143,6 +2149,27 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return False
         return len(hist) >= th
 
+    async def _refresh_7d_rollups(self) -> None:
+        """PR E: refresh 7d aggregate cache (defrost count, BUH ratio).
+
+        Never raises. On failure, cached values remain unchanged so a
+        transient DB error does not silently disable the alerts.
+        """
+        _db = getattr(self, "db", None)
+        if _db is None:
+            return
+        try:
+            rows = await _db.async_daily_summary(days=7)
+            self._defrost_7d_sum = sum(
+                int(r.get("defrost_count", 0) or 0) for r in rows
+            )
+            _buh = sum(int(r.get("buh_count", 0) or 0) for r in rows)
+            _cyc = sum(int(r.get("cycles", 0) or 0) for r in rows)
+            self._buh_7d_count = _buh
+            self._buh_7d_ratio = round(_buh / _cyc, 3) if _cyc > 0 else 0.0
+        except Exception:
+            _LOGGER.exception("7d rollup refresh failed")
+
     def _alert_binary_states(self, snap: DataSnapshot) -> dict[str, bool]:
         """Snapshot the 4 alert-relevant binary states."""
         now = time.time()
@@ -2171,6 +2198,33 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             getattr(snap, "anomaly", None)
             and getattr(snap.anomaly, "is_anomaly", False)
         )
+        # PR E: P1 alert triggers (v1.9.0)
+        from .binary_sensor import SOURCE_STALE_FACTOR
+        from .const import (
+            BUH_7D_RATIO_THRESHOLD_DEFAULT,
+            COP_DEGRADATION_WEEK_PCT_THRESHOLD,
+            DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
+            UPDATE_INTERVAL_SECONDS,
+        )
+        _cop_week_pct = getattr(snap, "cop_degradation_week_pct", None)
+        is_cop_degradation = (
+            isinstance(_cop_week_pct, (int, float))
+            and _cop_week_pct < COP_DEGRADATION_WEEK_PCT_THRESHOLD
+        )
+        _defrost_thr = int(self.options.get(
+            "defrost_7d_count_threshold", DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
+        ))
+        _defrost_7d = int(getattr(self, "_defrost_7d_sum", 0) or 0)
+        is_defrost_excessive = _defrost_7d > _defrost_thr
+        _buh_thr = float(self.options.get(
+            "buh_7d_ratio_threshold", BUH_7D_RATIO_THRESHOLD_DEFAULT,
+        ))
+        _buh_7d_ratio = float(getattr(self, "_buh_7d_ratio", 0.0) or 0.0)
+        is_buh_excessive = _buh_7d_ratio > _buh_thr
+        _last_ok = float(getattr(snap, "last_success_ts", 0.0) or 0.0)
+        _stale_thr = SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS
+        is_source_stale = _last_ok > 0 and (now - _last_ok) > _stale_thr
+        is_missing_attributes = len(getattr(snap, "missing_attrs", []) or []) > 0
         return {
             "short_run": bool(is_short_run),
             "short_off": bool(is_short_off),
@@ -2178,6 +2232,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "pendulum_daily": bool(is_pend_d),
             "ml_anomaly": is_ml_anom,
             "setpoint_osc": self._compute_setpoint_oscillating(),
+            "cop_degradation": bool(is_cop_degradation),
+            "defrost_excessive": bool(is_defrost_excessive),
+            "buh_excessive": bool(is_buh_excessive),
+            "source_stale": bool(is_source_stale),
+            "missing_attributes": bool(is_missing_attributes),
         }
 
     def _assign_cluster(self, vector: list[float]) -> int | None:
@@ -2538,6 +2597,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             except (TypeError, ValueError):
                 return None
 
+        _ce = getattr(self, "config_entry", None)
         ctx = {
             "pendulum": {
                 "target_cph": opts.get("pendulum_cycles_per_hour", 4),
@@ -2589,6 +2649,51 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "lwt_setpoint": _f(lwt_set),
                 "lwt_target": _f(lwt_tgt if lwt_tgt is not None else lwt_set),
                 "delta_max": _f(delta), "mode": mode_str,
+                "advice": advice_text,
+            },
+            # PR E: P1 alert contexts (v1.9.0)
+            "cop_degradation": {
+                "week_pct": _f(getattr(snap, "cop_degradation_week_pct", None)),
+                "threshold_pct": "-15",
+                "trend_30d": _f(getattr(snap, "cop_trend_30d", None)),
+                "mode": mode_str,
+                "outdoor": _f(out_t),
+                "advice": advice_text,
+            },
+            "defrost_excessive": {
+                "count_7d": int(getattr(self, "_defrost_7d_sum", 0) or 0),
+                "threshold": int(opts.get(
+                    "defrost_7d_count_threshold",
+                    DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
+                )),
+                "duration_7d_min": 0,
+                "mode": mode_str,
+                "outdoor": _f(out_t),
+                "advice": advice_text,
+            },
+            "buh_excessive": {
+                "buh_ratio_7d": float(getattr(self, "_buh_7d_ratio", 0.0) or 0.0),
+                "threshold_ratio": float(opts.get(
+                    "buh_7d_ratio_threshold",
+                    BUH_7D_RATIO_THRESHOLD_DEFAULT,
+                )),
+                "buh_count_7d": int(getattr(self, "_buh_7d_count", 0) or 0),
+                "mode": mode_str,
+                "outdoor": _f(out_t),
+                "advice": advice_text,
+            },
+            "source_stale": {
+                "age_s": _f(round(now - float(getattr(snap, "last_success_ts", 0.0) or 0.0), 1)) if getattr(snap, "last_success_ts", 0) else 0.0,
+                "threshold_s": 60.0,
+                "source_sensor": (_ce.data.get("source_sensor", "?") if _ce else "?"),
+                "mode": mode_str,
+                "advice": advice_text,
+            },
+            "missing_attributes": {
+                "missing_count": len(getattr(snap, "missing_attrs", []) or []),
+                "missing_list": (", ".join((getattr(snap, "missing_attrs", []) or [])[:3]) + ("…" if len(getattr(snap, "missing_attrs", []) or []) > 3 else "")),
+                "source_sensor": (_ce.data.get("source_sensor", "?") if _ce else "?"),
+                "mode": mode_str,
                 "advice": advice_text,
             },
         }
@@ -2808,6 +2913,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
         """Evaluate + emit alerts. Never raises."""
         try:
+            await self._refresh_7d_rollups()
             states = self._alert_binary_states(snap)
             now = time.time()
             alerts = evaluate_alerts(

@@ -20,6 +20,7 @@ def test_const_language_keys():
 def test_const_alert_groups():
     assert set(const.ALERT_GROUPS) == {
         "pendulum", "short_cycle", "ml", "setpoint", "cop_stooklijn",
+        "component_health", "data_quality",
     }
     assert const.ALERT_GROUP_MAP["pendulum_hourly"] == "pendulum"
     assert const.ALERT_GROUP_MAP["pendulum_daily"] == "pendulum"
@@ -29,6 +30,11 @@ def test_const_alert_groups():
     assert const.ALERT_GROUP_MAP["setpoint_osc"] == "setpoint"
     assert const.ALERT_GROUP_MAP["cop_low"] == "cop_stooklijn"
     assert const.ALERT_GROUP_MAP["stooklijn_advies"] == "cop_stooklijn"
+    assert const.ALERT_GROUP_MAP["cop_degradation"] == "cop_stooklijn"
+    assert const.ALERT_GROUP_MAP["defrost_excessive"] == "component_health"
+    assert const.ALERT_GROUP_MAP["buh_excessive"] == "component_health"
+    assert const.ALERT_GROUP_MAP["source_stale"] == "data_quality"
+    assert const.ALERT_GROUP_MAP["missing_attributes"] == "data_quality"
 
 
 def test_language_selector_present():

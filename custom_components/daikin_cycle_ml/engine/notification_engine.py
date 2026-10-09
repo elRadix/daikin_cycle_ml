@@ -12,6 +12,11 @@ from ..const import (
     ALERT_DEDUP_OPTION_SUFFIX,
     ALERT_TYPE_EMOJI,
     NOTIF_ID_ML_ANOMALY,
+    NOTIF_ID_COP_DEGRADATION,
+    NOTIF_ID_DEFROST_EXCESSIVE,
+    NOTIF_ID_BUH_EXCESSIVE,
+    NOTIF_ID_SOURCE_STALE,
+    NOTIF_ID_MISSING_ATTRIBUTES,
     NOTIF_ID_PENDULUM_DAILY,
     NOTIF_ID_PENDULUM_HOURLY,
     NOTIF_ID_SETPOINT_OSC,
@@ -167,6 +172,31 @@ BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
         SEV_WARNING,
         "Setpoint oscillation\n{osc_count} changes in {window_min} min{advice}",
     ),
+    "cop_degradation": (
+        "cop_degradation",
+        SEV_WARNING,
+        "COP degradation\n{week_pct}% vs last week (threshold \u2264 {threshold_pct}%){advice}",
+    ),
+    "defrost_excessive": (
+        "defrost_excessive",
+        SEV_WARNING,
+        "Defrost excessive\n{count_7d} defrosts in 7d (threshold \u2264 {threshold}){advice}",
+    ),
+    "buh_excessive": (
+        "buh_excessive",
+        SEV_WARNING,
+        "Backup heater excessive\nBUH ratio {buh_ratio_7d} over 7d (threshold \u2264 {threshold_ratio}){advice}",
+    ),
+    "source_stale": (
+        "source_stale",
+        SEV_CRITICAL,
+        "Source sensor stale\nNo update for {age_s} s (threshold {threshold_s} s){advice}",
+    ),
+    "missing_attributes": (
+        "missing_attributes",
+        SEV_WARNING,
+        "Missing attributes\n{missing_count} required attributes absent{advice}",
+    ),
 }
 
 NOTIF_ID_BY_TYPE = {
@@ -176,6 +206,11 @@ NOTIF_ID_BY_TYPE = {
     "short_off": NOTIF_ID_SHORT_OFF,
     "ml_anomaly": NOTIF_ID_ML_ANOMALY,
     "setpoint_osc": NOTIF_ID_SETPOINT_OSC,
+    "cop_degradation": NOTIF_ID_COP_DEGRADATION,
+    "defrost_excessive": NOTIF_ID_DEFROST_EXCESSIVE,
+    "buh_excessive": NOTIF_ID_BUH_EXCESSIVE,
+    "source_stale": NOTIF_ID_SOURCE_STALE,
+    "missing_attributes": NOTIF_ID_MISSING_ATTRIBUTES,
 }
 
 

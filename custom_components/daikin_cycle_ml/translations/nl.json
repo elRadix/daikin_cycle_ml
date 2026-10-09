@@ -357,13 +357,15 @@
           "notifications_delivery": "Verzending",
           "notifications_quiet_hours": "Stille uren en status",
           "notifications_content": "Inhoud en taal",
-          "notifications_test_menu": "Testmeldingen"
+          "notifications_test_menu": "Testmeldingen",
+          "notifications_enabled": "Per-alert schakelaars"
         },
         "menu_option_descriptions": {
           "notifications_delivery": "Blijvende meldingen, melding-doel, emoji, actie-advies",
           "notifications_quiet_hours": "Stille-uren venster, dedup-venster, periodieke statusupdates",
           "notifications_content": "Taal en per-alertgroep schakelaars",
-          "notifications_test_menu": "Stuur één of alle voorbeeldmeldingen"
+          "notifications_test_menu": "Stuur één of alle voorbeeldmeldingen",
+          "notifications_enabled": "Zet individuele meldingen aan of uit"
         }
       },
       "advanced": {
@@ -467,7 +469,9 @@
           "alert_group_short_cycle": "Alert: korte cyclus",
           "alert_group_ml": "Alert: ML-anomalie",
           "alert_group_setpoint": "Alert: setpoint-oscillatie",
-          "alert_group_cop_stooklijn": "Alert: COP / stooklijn"
+          "alert_group_cop_stooklijn": "Alert: COP / stooklijn",
+          "alert_group_component_health": "Alert: componentgezondheid",
+          "alert_group_data_quality": "Alert: datakwaliteit"
         },
         "data_description": {
           "notification_language": "Taal voor alert-berichten. Standaard Engels.",
@@ -475,7 +479,9 @@
           "alert_group_short_cycle": "Korte-run en korte-off meldingen.",
           "alert_group_ml": "ML-anomalie meldingen (z-score).",
           "alert_group_setpoint": "LWT setpoint-oscillatie meldingen.",
-          "alert_group_cop_stooklijn": "Dagelijkse COP- en stooklijn-adviesmeldingen."
+          "alert_group_cop_stooklijn": "Dagelijkse COP- en stooklijn-adviesmeldingen.",
+          "alert_group_component_health": "Ontdooi- en backup-heater gezondheidsmeldingen.",
+          "alert_group_data_quality": "Bronsensor-verouderd en ontbrekende-attributen meldingen."
         }
       },
       "notifications_dedup": {
@@ -489,7 +495,12 @@
           "alert_agg_ml_anomaly_min": "ML-anomalievenster",
           "alert_agg_setpoint_osc_min": "Setpoint-oscillatievenster",
           "alert_agg_cop_low_min": "COP-laagvenster",
-          "alert_agg_stooklijn_advies_min": "Stooklijn-adviesvenster"
+          "alert_agg_stooklijn_advies_min": "Stooklijn-adviesvenster",
+          "alert_agg_cop_degradation_min": "COP-degradatievenster",
+          "alert_agg_defrost_excessive_min": "Overmatig-ontdooivenster",
+          "alert_agg_buh_excessive_min": "Backup-heatervenster",
+          "alert_agg_source_stale_min": "Bronsensor-verouderdvenster",
+          "alert_agg_missing_attributes_min": "Ontbrekende-attributenvenster"
         },
         "data_description": {
           "alert_agg_pendulum_hourly_min": "Standaard 60 min.",
@@ -499,7 +510,12 @@
           "alert_agg_ml_anomaly_min": "Standaard 60 min.",
           "alert_agg_setpoint_osc_min": "Standaard 30 min.",
           "alert_agg_cop_low_min": "Standaard 30 min.",
-          "alert_agg_stooklijn_advies_min": "Standaard 10080 min (7 dagen)."
+          "alert_agg_stooklijn_advies_min": "Standaard 10080 min (7 dagen).",
+          "alert_agg_cop_degradation_min": "Standaard 1440 min (24 u).",
+          "alert_agg_defrost_excessive_min": "Standaard 1440 min (24 u).",
+          "alert_agg_buh_excessive_min": "Standaard 1440 min (24 u).",
+          "alert_agg_source_stale_min": "Standaard 60 min.",
+          "alert_agg_missing_attributes_min": "Standaard 60 min."
         }
       },
       "notifications_test_menu": {
@@ -512,6 +528,24 @@
         "menu_option_descriptions": {
           "test_notification": "Kies een alert-type en stuur één voorbeeld",
           "test_all_notifications": "Eén klik stuurt elk alert-type"
+        }
+      },
+      "notifications_enabled": {
+        "title": "Meldingen per alert",
+        "description": "Schakel individuele meldingen in of uit. Uitgeschakelde meldingen respecteren nog steeds groep- en stille-uren filters.",
+        "data": {
+          "alert_enabled_cop_degradation": "COP-degradatie melding inschakelen",
+          "alert_enabled_defrost_excessive": "Overmatig ontdooien melding inschakelen",
+          "alert_enabled_buh_excessive": "Backup heater overmatig melding inschakelen",
+          "alert_enabled_source_stale": "Bronsensor-verouderd melding inschakelen",
+          "alert_enabled_missing_attributes": "Ontbrekende attributen melding inschakelen"
+        },
+        "data_description": {
+          "alert_enabled_cop_degradation": "Meldt wanneer de week-op-week COP onder -15% zakt.",
+          "alert_enabled_defrost_excessive": "Meldt wanneer het 7d-ontdooiaantal de drempel overschrijdt.",
+          "alert_enabled_buh_excessive": "Meldt wanneer de 7d backup heater-cyclusratio de drempel overschrijdt.",
+          "alert_enabled_source_stale": "Meldt wanneer de bronsensor niet meer bijwerkt (kritiek).",
+          "alert_enabled_missing_attributes": "Meldt wanneer vereiste bronattributen ontbreken."
         }
       }
     }

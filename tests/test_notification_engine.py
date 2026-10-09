@@ -209,4 +209,6 @@ def test_map_covers_core_trigger_keys():
 def test_map_contains_both_severities_defined():
     severities = {spec[1] for spec in BINARY_ALERT_MAP.values()}
     assert SEV_WARNING in severities
-    assert SEV_CRITICAL not in severities  # only warning by default
+    # PR E: source_stale is critical severity.
+    assert SEV_CRITICAL in severities
+    assert BINARY_ALERT_MAP["source_stale"][1] == SEV_CRITICAL

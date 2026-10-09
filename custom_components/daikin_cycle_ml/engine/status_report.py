@@ -296,6 +296,11 @@ ALERT_TITLES = {
         "setpoint_osc":   "LWT-setpoint oscillating",
         "cop_low":        "Day COP low",
         "stooklijn_advies": "Stooklijn advice",
+        "cop_degradation": "COP degradation",
+        "defrost_excessive": "Defrost excessive",
+        "buh_excessive": "Backup heater excessive",
+        "source_stale": "Source sensor stale",
+        "missing_attributes": "Missing attributes",
     },
     "nl": {
         "pendulum_hourly": "Pendelen gedetecteerd (per uur)",
@@ -306,6 +311,11 @@ ALERT_TITLES = {
         "setpoint_osc":   "LWT-setpoint oscilleert",
         "cop_low":        "Dag-COP laag",
         "stooklijn_advies": "Stooklijn advies",
+        "cop_degradation": "COP-degradatie",
+        "defrost_excessive": "Overmatig ontdooien",
+        "buh_excessive": "Backup heater overmatig",
+        "source_stale": "Bronsensor verouderd",
+        "missing_attributes": "Ontbrekende attributen",
     },
 }
 
@@ -322,6 +332,14 @@ ALERT_LABELS = {
         "avg_duration": "Avg duration", "delta_max": "Setpoint swing",
         "cop": "COP", "severity": "Severity",
         "indoor": "Indoor", "flow": "Flow",
+        "week_pct": "Week", "threshold_pct": "Threshold",
+        "trend_30d": "Trend 30d",
+        "count_7d": "Count 7d", "duration_7d_min": "Duration 7d",
+        "buh_ratio_7d": "BUH ratio", "threshold_ratio": "Threshold",
+        "buh_count_7d": "BUH count 7d",
+        "age_s": "Age", "threshold_s": "Threshold",
+        "source_sensor": "Source",
+        "missing_count": "Missing", "missing_list": "Which",
     },
     "nl": {
         "cycles_hour": "Cycli / uur", "target_hour": "Doel",
@@ -335,6 +353,14 @@ ALERT_LABELS = {
         "avg_duration": "Gem. duur", "delta_max": "Setpoint-swing",
         "cop": "COP", "severity": "Ernst",
         "indoor": "Binnen", "flow": "Flow",
+        "week_pct": "Week", "threshold_pct": "Drempel",
+        "trend_30d": "Trend 30d",
+        "count_7d": "Aantal 7d", "duration_7d_min": "Duur 7d",
+        "buh_ratio_7d": "BUH-ratio", "threshold_ratio": "Drempel",
+        "buh_count_7d": "BUH-aantal 7d",
+        "age_s": "Leeftijd", "threshold_s": "Drempel",
+        "source_sensor": "Bron",
+        "missing_count": "Ontbrekend", "missing_list": "Welke",
     },
 }
 
@@ -347,6 +373,11 @@ ALERT_EMOJI = {
     "setpoint_osc":   "\U0001F3AF",
     "cop_low":        "\U0001F4C9",
     "stooklijn_advies": "\U0001F4C9",
+    "cop_degradation": "\U0001F4C9",
+    "defrost_excessive": "\u2744\uFE0F",
+    "buh_excessive": "\U0001F525",
+    "source_stale": "\U0001F4E1",
+    "missing_attributes": "\u2753",
 }
 
 ALERT_SCHEMA = {
@@ -400,6 +431,39 @@ ALERT_SCHEMA = {
         ("\U0001F501", "changes", "{osc_count} \u00d7"),
         ("\u23F1\uFE0F", "window", "{window_min} min"),
         ("\U0001F3AF", "threshold", "{threshold} \u00d7"),
+        ("\U0001F501", "mode", "{mode}"),
+    ],
+    "cop_degradation": [
+        ("\U0001F4C9", "week_pct", "{week_pct}%"),
+        ("\U0001F3AF", "threshold", "\u2264 {threshold_pct}%"),
+        ("\U0001F4C8", "trend_30d", "{trend_30d}"),
+        ("\U0001F501", "mode", "{mode}"),
+        ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
+    ],
+    "defrost_excessive": [
+        ("\u2744\uFE0F", "count_7d", "{count_7d} / 7d"),
+        ("\U0001F3AF", "threshold", "\u2264 {threshold}"),
+        ("\u23F1\uFE0F", "duration_7d_min", "{duration_7d_min} min"),
+        ("\U0001F501", "mode", "{mode}"),
+        ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
+    ],
+    "buh_excessive": [
+        ("\U0001F525", "buh_ratio_7d", "{buh_ratio_7d}"),
+        ("\U0001F3AF", "threshold_ratio", "\u2264 {threshold_ratio}"),
+        ("\U0001F4C8", "buh_count_7d", "{buh_count_7d}"),
+        ("\U0001F501", "mode", "{mode}"),
+        ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
+    ],
+    "source_stale": [
+        ("\U0001F4E1", "age_s", "{age_s} s"),
+        ("\U0001F3AF", "threshold_s", "{threshold_s} s"),
+        ("\U0001F517", "source_sensor", "{source_sensor}"),
+        ("\U0001F501", "mode", "{mode}"),
+    ],
+    "missing_attributes": [
+        ("\u2753", "missing_count", "{missing_count}"),
+        ("\U0001F4CB", "missing_list", "{missing_list}"),
+        ("\U0001F517", "source_sensor", "{source_sensor}"),
         ("\U0001F501", "mode", "{mode}"),
     ],
 }
@@ -476,6 +540,16 @@ ALERT_ADVICE = {
             "Check recent setpoint / weather / DHW changes."),
         "setpoint_osc": ("\u2022 Lock the LWT setpoint or raise thermostat "
             "hysteresis."),
+        "cop_degradation": ("\u2022 COP dropped sharply vs last week. Check "
+            "refrigerant charge, filters, outdoor unit cleanliness."),
+        "defrost_excessive": ("\u2022 Frequent defrost cycles. Check outdoor "
+            "humidity, defrost sensor, and outdoor unit airflow."),
+        "buh_excessive": ("\u2022 Backup heater running often. Check heat pump "
+            "sizing, outdoor temperature, and defrost performance."),
+        "source_stale": ("\u2022 Source sensor stopped updating. Check ESPAltherma "
+            "connection and MQTT / ESPHome link."),
+        "missing_attributes": ("\u2022 Source is missing required attributes. "
+            "Check ESPAltherma template / register mapping."),
     },
     "nl": {
         "pendulum_hourly": ("\u2022 Controleer setpoint-delta, hysterese en "
@@ -490,5 +564,15 @@ ALERT_ADVICE = {
             "Controleer recente setpoint / weer / SWW-wijzigingen."),
         "setpoint_osc": ("\u2022 Vergrendel het LWT-setpoint of verhoog "
             "de thermostaat-hysterese."),
+        "cop_degradation": ("\u2022 COP sterk gedaald t.o.v. vorige week. "
+            "Controleer koelmiddel, filters en buitenunit."),
+        "defrost_excessive": ("\u2022 Veel ontdooicycli. Controleer "
+            "luchtvochtigheid, ontdooisensor en luchtstroom buitenunit."),
+        "buh_excessive": ("\u2022 Backup heater draait vaak. Controleer "
+            "WP-capaciteit, buitentemperatuur en ontdooigedrag."),
+        "source_stale": ("\u2022 Bronsensor werkt niet meer bij. Controleer "
+            "ESPAltherma-verbinding en MQTT / ESPHome-koppeling."),
+        "missing_attributes": ("\u2022 Bron mist vereiste attributen. "
+            "Controleer ESPAltherma-template / registermapping."),
     },
 }

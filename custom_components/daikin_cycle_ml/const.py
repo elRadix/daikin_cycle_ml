@@ -186,6 +186,11 @@ NOTIF_ID_SHORT_RUN = f"{DOMAIN}_short_run"
 NOTIF_ID_SHORT_OFF = f"{DOMAIN}_short_off"
 NOTIF_ID_ML_ANOMALY = f"{DOMAIN}_ml_anomaly"
 NOTIF_ID_SETPOINT_OSC = f"{DOMAIN}_setpoint_osc"
+NOTIF_ID_COP_DEGRADATION = f"{DOMAIN}_cop_degradation"
+NOTIF_ID_DEFROST_EXCESSIVE = f"{DOMAIN}_defrost_excessive"
+NOTIF_ID_BUH_EXCESSIVE = f"{DOMAIN}_buh_excessive"
+NOTIF_ID_SOURCE_STALE = f"{DOMAIN}_source_stale"
+NOTIF_ID_MISSING_ATTRIBUTES = f"{DOMAIN}_missing_attributes"
 
 # --- Brine exclusion (confirmed absent on EPRA12: always 0) ---
 BRINE_ALWAYS_ZERO = True
@@ -222,6 +227,11 @@ ALERT_TYPE_EMOJI = {
     "short_off": EMOJI_SHORT_OFF,
     "ml_anomaly": EMOJI_ML_ANOMALY,
     "setpoint_osc": EMOJI_SETPOINT,
+    "cop_degradation": "\U0001F4C9",
+    "defrost_excessive": "\u2744\uFE0F",
+    "buh_excessive": "\U0001F525",
+    "source_stale": "\U0001F4E1",
+    "missing_attributes": "\u2753",
 }
 
 # Status update (periodic summary) - opt-in, default off
@@ -319,6 +329,8 @@ ALERT_GROUP_SHORT_CYCLE = "short_cycle"
 ALERT_GROUP_ML = "ml"
 ALERT_GROUP_SETPOINT = "setpoint"
 ALERT_GROUP_COP_STOOKLIJN = "cop_stooklijn"
+ALERT_GROUP_COMPONENT_HEALTH = "component_health"
+ALERT_GROUP_DATA_QUALITY = "data_quality"
 
 ALERT_GROUPS = [
     ALERT_GROUP_PENDULUM,
@@ -326,6 +338,8 @@ ALERT_GROUPS = [
     ALERT_GROUP_ML,
     ALERT_GROUP_SETPOINT,
     ALERT_GROUP_COP_STOOKLIJN,
+    ALERT_GROUP_COMPONENT_HEALTH,
+    ALERT_GROUP_DATA_QUALITY,
 ]
 
 ALERT_GROUP_MAP = {
@@ -337,6 +351,11 @@ ALERT_GROUP_MAP = {
     "setpoint_osc": ALERT_GROUP_SETPOINT,
     "cop_low": ALERT_GROUP_COP_STOOKLIJN,
     "stooklijn_advies": ALERT_GROUP_COP_STOOKLIJN,
+    "cop_degradation": ALERT_GROUP_COP_STOOKLIJN,
+    "defrost_excessive": ALERT_GROUP_COMPONENT_HEALTH,
+    "buh_excessive": ALERT_GROUP_COMPONENT_HEALTH,
+    "source_stale": ALERT_GROUP_DATA_QUALITY,
+    "missing_attributes": ALERT_GROUP_DATA_QUALITY,
 }
 
 # Alert thresholds (PR C: unify magic numbers)
@@ -347,6 +366,11 @@ STOOKLIJN_MIN_SAVINGS_PCT = 5.0
 
 # Demo fixture for OptionsFlow test emitters (rendered delta below threshold)
 TEST_ALERT_DELTA = 0.1
+
+# --- PR E: P1 alert thresholds (v1.9.0) ---
+COP_DEGRADATION_WEEK_PCT_THRESHOLD = -15.0
+DEFROST_7D_COUNT_THRESHOLD_DEFAULT = 30
+BUH_7D_RATIO_THRESHOLD_DEFAULT = 0.15
 
 # Stooklijn advice state -> display label (Batch 39c)
 STOOKLIJN_STATE_LABEL_EN = {
@@ -434,5 +458,10 @@ ALERT_DEDUP_DEFAULTS: dict[str, int] = {
     "setpoint_osc": 30,
     "cop_low": 30,
     "stooklijn_advies": 10080,
+    "cop_degradation": 1440,
+    "defrost_excessive": 1440,
+    "buh_excessive": 1440,
+    "source_stale": 60,
+    "missing_attributes": 60,
 }
 
