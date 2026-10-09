@@ -59,3 +59,23 @@ async def test_notifications_dedup_renders_form(hass):
     for alert_type in const.ALERT_DEDUP_DEFAULTS:
         expected = f"alert_agg_{alert_type}_min"
         assert expected in field_names, f"missing field {expected}"
+
+
+async def test_notifications_dedup_submits_values(hass):
+    """Submitting the dedup form reaches the _save path (user_input not None)."""
+    r = await _start(hass)
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], user_input={"next_step_id": "notifications"}
+    )
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], user_input={"next_step_id": "notifications_dedup"}
+    )
+    assert r["type"] == "form"
+    payload = {
+        f"alert_agg_{k}_min": v
+        for k, v in const.ALERT_DEDUP_DEFAULTS.items()
+    }
+    r = await hass.config_entries.options.async_configure(
+        r["flow_id"], user_input=payload
+    )
+    assert r["type"] == "create_entry"
