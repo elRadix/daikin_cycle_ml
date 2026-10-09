@@ -301,6 +301,9 @@ ALERT_TITLES = {
         "buh_excessive": "Backup heater excessive",
         "source_stale": "Source sensor stale",
         "missing_attributes": "Missing attributes",
+        "dhw_pendulum": "DHW pendulum detected",
+        "high_cycle_rate": "High cycle rate",
+        "cop_vs_datasheet_low": "COP below datasheet",
     },
     "nl": {
         "pendulum_hourly": "Pendelen gedetecteerd (per uur)",
@@ -316,6 +319,9 @@ ALERT_TITLES = {
         "buh_excessive": "Backup heater overmatig",
         "source_stale": "Bronsensor verouderd",
         "missing_attributes": "Ontbrekende attributen",
+        "dhw_pendulum": "SWW-pendelen gedetecteerd",
+        "high_cycle_rate": "Hoge cyclusfrequentie",
+        "cop_vs_datasheet_low": "COP onder datasheet",
     },
 }
 
@@ -340,6 +346,9 @@ ALERT_LABELS = {
         "age_s": "Age", "threshold_s": "Threshold",
         "source_sensor": "Source",
         "missing_count": "Missing", "missing_list": "Which",
+        "dhw_cph": "DHW cycles/h", "target_cph": "Target",
+        "multiplier": "Multiplier", "pct_diff": "Diff",
+        "cop_expected": "Expected",
     },
     "nl": {
         "cycles_hour": "Cycli / uur", "target_hour": "Doel",
@@ -361,6 +370,9 @@ ALERT_LABELS = {
         "age_s": "Leeftijd", "threshold_s": "Drempel",
         "source_sensor": "Bron",
         "missing_count": "Ontbrekend", "missing_list": "Welke",
+        "dhw_cph": "SWW-cycli/uur", "target_cph": "Doel",
+        "multiplier": "Factor", "pct_diff": "Verschil",
+        "cop_expected": "Verwacht",
     },
 }
 
@@ -378,6 +390,9 @@ ALERT_EMOJI = {
     "buh_excessive": "\U0001F525",
     "source_stale": "\U0001F4E1",
     "missing_attributes": "\u2753",
+    "dhw_pendulum": "\U0001F6BF",
+    "high_cycle_rate": "\U0001F504",
+    "cop_vs_datasheet_low": "\U0001F4CA",
 }
 
 ALERT_SCHEMA = {
@@ -466,6 +481,24 @@ ALERT_SCHEMA = {
         ("\U0001F517", "source_sensor", "{source_sensor}"),
         ("\U0001F501", "mode", "{mode}"),
     ],
+    "dhw_pendulum": [
+        ("\U0001F6BF", "dhw_cph", "{dhw_cph}"),
+        ("\U0001F3AF", "target_cph", "\u2264 {target_cph}"),
+        ("\U0001F501", "mode", "{mode}"),
+        ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
+    ],
+    "high_cycle_rate": [
+        ("\U0001F504", "cycles_hour", "{cph}"),
+        ("\U0001F3AF", "target_cph", "\u2264 {target_cph} \u00d7 {multiplier}"),
+        ("\U0001F501", "mode", "{mode}"),
+        ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
+    ],
+    "cop_vs_datasheet_low": [
+        ("\U0001F4CA", "pct_diff", "{pct_diff}%"),
+        ("\U0001F3AF", "cop_expected", "vs {cop_expected}"),
+        ("\U0001F501", "mode", "{mode}"),
+        ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
+    ],
 }
 
 
@@ -521,9 +554,9 @@ def build_rich_alert(alert_type: str, severity: str, context: Mapping[str, Any],
 
 SEVERITY_LABELS = {
     "en": {"critical": "critical", "warning": "warning",
-           "watch": "watch", "normal": "normal"},
+           "watch": "watch", "normal": "normal", "info": "info"},
     "nl": {"critical": "kritiek", "warning": "waarschuwing",
-           "watch": "let op", "normal": "normaal"},
+           "watch": "let op", "normal": "normaal", "info": "informatie"},
 }
 
 ALERT_ADVICE = {
@@ -550,6 +583,12 @@ ALERT_ADVICE = {
             "connection and MQTT / ESPHome link."),
         "missing_attributes": ("\u2022 Source is missing required attributes. "
             "Check ESPAltherma template / register mapping."),
+        "dhw_pendulum": ("\u2022 DHW is cycling too often. Check DHW tank "
+            "setpoint, hysteresis, and 3-way valve behaviour."),
+        "high_cycle_rate": ("\u2022 Cycle rate above 1.5\u00d7 target. Check "
+            "setpoint delta, hysteresis and heat curve."),
+        "cop_vs_datasheet_low": ("\u2022 COP below datasheet expectation. Check "
+            "refrigerant charge, filters, outdoor unit cleanliness."),
     },
     "nl": {
         "pendulum_hourly": ("\u2022 Controleer setpoint-delta, hysterese en "
@@ -574,5 +613,11 @@ ALERT_ADVICE = {
             "ESPAltherma-verbinding en MQTT / ESPHome-koppeling."),
         "missing_attributes": ("\u2022 Bron mist vereiste attributen. "
             "Controleer ESPAltherma-template / registermapping."),
+        "dhw_pendulum": ("\u2022 SWW pendelt te vaak. Controleer "
+            "SWW-tanksetpoint, hysterese en 3-wegklep."),
+        "high_cycle_rate": ("\u2022 Cyclusfrequentie > 1,5\u00d7 doel. "
+            "Controleer setpoint-delta, hysterese en stooklijn."),
+        "cop_vs_datasheet_low": ("\u2022 COP onder datasheet-verwachting. "
+            "Controleer koelmiddel, filters en buitenunit."),
     },
 }
