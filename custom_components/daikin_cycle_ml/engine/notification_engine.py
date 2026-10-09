@@ -8,6 +8,8 @@ from typing import Any
 
 from ..const import (
     ALERT_GROUP_MAP,
+    ALERT_DEDUP_OPTION_PREFIX,
+    ALERT_DEDUP_OPTION_SUFFIX,
     ALERT_TYPE_EMOJI,
     NOTIF_ID_ML_ANOMALY,
     NOTIF_ID_PENDULUM_DAILY,
