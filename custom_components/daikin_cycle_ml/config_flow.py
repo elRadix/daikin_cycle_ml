@@ -1051,6 +1051,12 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 default=c.get("alert_enabled_source_stale", True)): bool,
             vol.Required("alert_enabled_missing_attributes",
                 default=c.get("alert_enabled_missing_attributes", True)): bool,
+            vol.Required("alert_enabled_dhw_pendulum",
+                default=c.get("alert_enabled_dhw_pendulum", True)): bool,
+            vol.Required("alert_enabled_high_cycle_rate",
+                default=c.get("alert_enabled_high_cycle_rate", True)): bool,
+            vol.Required("alert_enabled_cop_vs_datasheet_low",
+                default=c.get("alert_enabled_cop_vs_datasheet_low", True)): bool,
         })
         return self.async_show_form(
             step_id="notifications_enabled", data_schema=schema,
