@@ -500,7 +500,10 @@
           "alert_agg_defrost_excessive_min": "Overmatig-ontdooivenster",
           "alert_agg_buh_excessive_min": "Backup-heatervenster",
           "alert_agg_source_stale_min": "Bronsensor-verouderdvenster",
-          "alert_agg_missing_attributes_min": "Ontbrekende-attributenvenster"
+          "alert_agg_missing_attributes_min": "Ontbrekende-attributenvenster",
+          "alert_agg_dhw_pendulum_min": "SWW-pendelvenster",
+          "alert_agg_high_cycle_rate_min": "Hoge-cyclusfrequentievenster",
+          "alert_agg_cop_vs_datasheet_low_min": "COP-vs-datasheetvenster"
         },
         "data_description": {
           "alert_agg_pendulum_hourly_min": "Standaard 60 min.",
@@ -515,7 +518,10 @@
           "alert_agg_defrost_excessive_min": "Standaard 1440 min (24 u).",
           "alert_agg_buh_excessive_min": "Standaard 1440 min (24 u).",
           "alert_agg_source_stale_min": "Standaard 60 min.",
-          "alert_agg_missing_attributes_min": "Standaard 60 min."
+          "alert_agg_missing_attributes_min": "Standaard 60 min.",
+          "alert_agg_dhw_pendulum_min": "Standaard 60 min.",
+          "alert_agg_high_cycle_rate_min": "Standaard 60 min.",
+          "alert_agg_cop_vs_datasheet_low_min": "Standaard 1440 min (24 u)."
         }
       },
       "notifications_test_menu": {
@@ -538,14 +544,20 @@
           "alert_enabled_defrost_excessive": "Overmatig ontdooien melding inschakelen",
           "alert_enabled_buh_excessive": "Backup heater overmatig melding inschakelen",
           "alert_enabled_source_stale": "Bronsensor-verouderd melding inschakelen",
-          "alert_enabled_missing_attributes": "Ontbrekende attributen melding inschakelen"
+          "alert_enabled_missing_attributes": "Ontbrekende attributen melding inschakelen",
+          "alert_enabled_dhw_pendulum": "SWW-pendelen melding inschakelen",
+          "alert_enabled_high_cycle_rate": "Hoge cyclusfrequentie melding inschakelen",
+          "alert_enabled_cop_vs_datasheet_low": "COP onder datasheet melding inschakelen"
         },
         "data_description": {
           "alert_enabled_cop_degradation": "Meldt wanneer de week-op-week COP onder -15% zakt.",
           "alert_enabled_defrost_excessive": "Meldt wanneer het 7d-ontdooiaantal de drempel overschrijdt.",
           "alert_enabled_buh_excessive": "Meldt wanneer de 7d backup heater-cyclusratio de drempel overschrijdt.",
           "alert_enabled_source_stale": "Meldt wanneer de bronsensor niet meer bijwerkt (kritiek).",
-          "alert_enabled_missing_attributes": "Meldt wanneer vereiste bronattributen ontbreken."
+          "alert_enabled_missing_attributes": "Meldt wanneer vereiste bronattributen ontbreken.",
+          "alert_enabled_dhw_pendulum": "Meldt wanneer SWW-cycli per uur het doel bereiken.",
+          "alert_enabled_high_cycle_rate": "Meldt wanneer de cyclusfrequentie 1,5× het uurlijkse doel overschrijdt.",
+          "alert_enabled_cop_vs_datasheet_low": "Meldt wanneer de COP meer dan 10% onder de datasheetwaarde zakt."
         }
       }
     }

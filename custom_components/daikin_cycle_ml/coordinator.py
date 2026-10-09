@@ -57,6 +57,10 @@ from .const import (
     ALERT_STORE_VERSION,
     ALERT_STORE_KEY,
     ALERT_STORE_SAVE_DELAY,
+    COP_VS_DATASHEET_LOW_PCT,
+    DEFAULT_DHW_PENDULUM_CPH,
+    HIGH_CYCLE_RATE_MULTIPLIER,
+    MODE_DHW,
 )
 from .engine.cop_degradation import (
     analyze_degradation,
@@ -2225,6 +2229,24 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         _stale_thr = SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS
         is_source_stale = _last_ok > 0 and (now - _last_ok) > _stale_thr
         is_missing_attributes = len(getattr(snap, "missing_attrs", []) or []) > 0
+        # PR F: P2 alert triggers (v1.9.0)
+        _dhw_cph = 0
+        with contextlib.suppress(Exception):
+            _dhw_cph = int(self.store.cycles_in_window_mode(now, 3600, MODE_DHW))
+        _dhw_thr = int(self.options.get(
+            "dhw_pendulum_cycles_per_hour", DEFAULT_DHW_PENDULUM_CPH,
+        ))
+        is_dhw_pendulum = _dhw_cph >= _dhw_thr
+        _hcr_cph = 0
+        with contextlib.suppress(Exception):
+            _hcr_cph = int(self.store.cycles_in_window(now, 3600))
+        _hcr_base = int(self.options.get("pendulum_cycles_per_hour", 4))
+        is_high_cycle_rate = _hcr_cph > _hcr_base * HIGH_CYCLE_RATE_MULTIPLIER
+        _cop_ds_pct = getattr(snap, "cop_vs_datasheet_pct", None)
+        is_cop_vs_datasheet_low = (
+            isinstance(_cop_ds_pct, (int, float))
+            and _cop_ds_pct < COP_VS_DATASHEET_LOW_PCT
+        )
         return {
             "short_run": bool(is_short_run),
             "short_off": bool(is_short_off),
@@ -2237,6 +2259,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "buh_excessive": bool(is_buh_excessive),
             "source_stale": bool(is_source_stale),
             "missing_attributes": bool(is_missing_attributes),
+            "dhw_pendulum": bool(is_dhw_pendulum),
+            "high_cycle_rate": bool(is_high_cycle_rate),
+            "cop_vs_datasheet_low": bool(is_cop_vs_datasheet_low),
         }
 
     def _assign_cluster(self, vector: list[float]) -> int | None:
@@ -2536,6 +2561,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             cph = int(self.store.cycles_in_window(now, 3600))
         with contextlib.suppress(Exception):
             cyc_today = len(self.store.cycles_today(now))
+        _dhw_cph_ctx = 0
+        with contextlib.suppress(Exception):
+            _dhw_cph_ctx = int(self.store.cycles_in_window_mode(now, 3600, MODE_DHW))
         # SB-2 (R331): global advice bleed disabled in v1.8.1.
         # Per-alert advice comes from ALERT_ADVICE in status_report.
         # Previous block (snap.advice[0].title -> advice_text)
@@ -2694,6 +2722,34 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "missing_list": (", ".join((getattr(snap, "missing_attrs", []) or [])[:3]) + ("…" if len(getattr(snap, "missing_attrs", []) or []) > 3 else "")),
                 "source_sensor": (_ce.data.get("source_sensor", "?") if _ce else "?"),
                 "mode": mode_str,
+                "advice": advice_text,
+            },
+            # PR F: P2 alert contexts (v1.9.0)
+            "dhw_pendulum": {
+                "dhw_cph": int(_dhw_cph_ctx),
+                "target_cph": int(opts.get(
+                    "dhw_pendulum_cycles_per_hour", DEFAULT_DHW_PENDULUM_CPH,
+                )),
+                "mode": mode_str,
+                "outdoor": _f(out_t),
+                "advice": advice_text,
+            },
+            "high_cycle_rate": {
+                "cph": int(cph),
+                "target_cph": int(opts.get("pendulum_cycles_per_hour", 4)),
+                "multiplier": float(HIGH_CYCLE_RATE_MULTIPLIER),
+                "mode": mode_str,
+                "outdoor": _f(out_t),
+                "advice": advice_text,
+            },
+            "cop_vs_datasheet_low": {
+                "pct_diff": _f(getattr(snap, "cop_vs_datasheet_pct", None)),
+                "cop_expected": str(
+                    getattr(self, "_datasheet_cache", {}).get("cop_expected")
+                    or "datasheet"
+                ),
+                "mode": mode_str,
+                "outdoor": _f(out_t),
                 "advice": advice_text,
             },
         }

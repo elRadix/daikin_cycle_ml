@@ -17,6 +17,9 @@ from ..const import (
     NOTIF_ID_BUH_EXCESSIVE,
     NOTIF_ID_SOURCE_STALE,
     NOTIF_ID_MISSING_ATTRIBUTES,
+    NOTIF_ID_DHW_PENDULUM,
+    NOTIF_ID_HIGH_CYCLE_RATE,
+    NOTIF_ID_COP_VS_DATASHEET_LOW,
     NOTIF_ID_PENDULUM_DAILY,
     NOTIF_ID_PENDULUM_HOURLY,
     NOTIF_ID_SETPOINT_OSC,
@@ -40,6 +43,7 @@ DEFAULT_AGG_MIN = 30
 
 SEV_WARNING = "warning"
 SEV_CRITICAL = "critical"
+SEV_INFO = "info"
 
 
 @dataclass(frozen=True)
@@ -197,6 +201,21 @@ BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
         SEV_WARNING,
         "Missing attributes\n{missing_count} required attributes absent{advice}",
     ),
+    "dhw_pendulum": (
+        "dhw_pendulum",
+        SEV_WARNING,
+        "DHW pendulum\n{dhw_cph} DHW cycles/h (target \u2264 {target_cph}){advice}",
+    ),
+    "high_cycle_rate": (
+        "high_cycle_rate",
+        SEV_WARNING,
+        "High cycle rate\n{cph} cycles/h (\u2264 {target_cph} \u00d7 {multiplier}){advice}",
+    ),
+    "cop_vs_datasheet_low": (
+        "cop_vs_datasheet_low",
+        SEV_INFO,
+        "COP below datasheet\n{pct_diff}% vs expected {cop_expected}{advice}",
+    ),
 }
 
 NOTIF_ID_BY_TYPE = {
@@ -211,6 +230,9 @@ NOTIF_ID_BY_TYPE = {
     "buh_excessive": NOTIF_ID_BUH_EXCESSIVE,
     "source_stale": NOTIF_ID_SOURCE_STALE,
     "missing_attributes": NOTIF_ID_MISSING_ATTRIBUTES,
+    "dhw_pendulum": NOTIF_ID_DHW_PENDULUM,
+    "high_cycle_rate": NOTIF_ID_HIGH_CYCLE_RATE,
+    "cop_vs_datasheet_low": NOTIF_ID_COP_VS_DATASHEET_LOW,
 }
 
 

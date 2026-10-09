@@ -191,6 +191,9 @@ NOTIF_ID_DEFROST_EXCESSIVE = f"{DOMAIN}_defrost_excessive"
 NOTIF_ID_BUH_EXCESSIVE = f"{DOMAIN}_buh_excessive"
 NOTIF_ID_SOURCE_STALE = f"{DOMAIN}_source_stale"
 NOTIF_ID_MISSING_ATTRIBUTES = f"{DOMAIN}_missing_attributes"
+NOTIF_ID_DHW_PENDULUM = f"{DOMAIN}_dhw_pendulum"
+NOTIF_ID_HIGH_CYCLE_RATE = f"{DOMAIN}_high_cycle_rate"
+NOTIF_ID_COP_VS_DATASHEET_LOW = f"{DOMAIN}_cop_vs_datasheet_low"
 
 # --- Brine exclusion (confirmed absent on EPRA12: always 0) ---
 BRINE_ALWAYS_ZERO = True
@@ -208,6 +211,9 @@ EMOJI_SHORT_RUN = "\u23F1"
 EMOJI_SHORT_OFF = "\U0001F4A4"
 EMOJI_ML_ANOMALY = "\U0001F9E0"
 EMOJI_SETPOINT = "\U0001F3AF"
+EMOJI_DHW_PENDULUM = "\U0001F6BF"
+EMOJI_HIGH_CYCLE_RATE = "\U0001F504"
+EMOJI_COP_VS_DATASHEET = "\U0001F4CA"
 
 SEVERITY_EMOJI = {
     "critical": EMOJI_CRITICAL,
@@ -232,6 +238,9 @@ ALERT_TYPE_EMOJI = {
     "buh_excessive": "\U0001F525",
     "source_stale": "\U0001F4E1",
     "missing_attributes": "\u2753",
+    "dhw_pendulum": EMOJI_DHW_PENDULUM,
+    "high_cycle_rate": EMOJI_HIGH_CYCLE_RATE,
+    "cop_vs_datasheet_low": EMOJI_COP_VS_DATASHEET,
 }
 
 # Status update (periodic summary) - opt-in, default off
@@ -356,6 +365,9 @@ ALERT_GROUP_MAP = {
     "buh_excessive": ALERT_GROUP_COMPONENT_HEALTH,
     "source_stale": ALERT_GROUP_DATA_QUALITY,
     "missing_attributes": ALERT_GROUP_DATA_QUALITY,
+    "dhw_pendulum": ALERT_GROUP_PENDULUM,
+    "high_cycle_rate": ALERT_GROUP_SHORT_CYCLE,
+    "cop_vs_datasheet_low": ALERT_GROUP_COP_STOOKLIJN,
 }
 
 # Alert thresholds (PR C: unify magic numbers)
@@ -371,6 +383,10 @@ TEST_ALERT_DELTA = 0.1
 COP_DEGRADATION_WEEK_PCT_THRESHOLD = -15.0
 DEFROST_7D_COUNT_THRESHOLD_DEFAULT = 30
 BUH_7D_RATIO_THRESHOLD_DEFAULT = 0.15
+
+# --- PR F: P2 alert thresholds (v1.9.0) ---
+COP_VS_DATASHEET_LOW_PCT = -10.0
+HIGH_CYCLE_RATE_MULTIPLIER = 1.5
 
 # Stooklijn advice state -> display label (Batch 39c)
 STOOKLIJN_STATE_LABEL_EN = {
@@ -463,5 +479,8 @@ ALERT_DEDUP_DEFAULTS: dict[str, int] = {
     "buh_excessive": 1440,
     "source_stale": 60,
     "missing_attributes": 60,
+    "dhw_pendulum": 60,
+    "high_cycle_rate": 60,
+    "cop_vs_datasheet_low": 1440,
 }
 

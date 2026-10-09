@@ -500,7 +500,10 @@
           "alert_agg_defrost_excessive_min": "Defrost excessive window",
           "alert_agg_buh_excessive_min": "Backup heater window",
           "alert_agg_source_stale_min": "Source stale window",
-          "alert_agg_missing_attributes_min": "Missing attributes window"
+          "alert_agg_missing_attributes_min": "Missing attributes window",
+          "alert_agg_dhw_pendulum_min": "DHW pendulum window",
+          "alert_agg_high_cycle_rate_min": "High cycle rate window",
+          "alert_agg_cop_vs_datasheet_low_min": "COP vs datasheet window"
         },
         "data_description": {
           "alert_agg_pendulum_hourly_min": "Default 60 min.",
@@ -515,7 +518,10 @@
           "alert_agg_defrost_excessive_min": "Default 1440 min (24 h).",
           "alert_agg_buh_excessive_min": "Default 1440 min (24 h).",
           "alert_agg_source_stale_min": "Default 60 min.",
-          "alert_agg_missing_attributes_min": "Default 60 min."
+          "alert_agg_missing_attributes_min": "Default 60 min.",
+          "alert_agg_dhw_pendulum_min": "Default 60 min.",
+          "alert_agg_high_cycle_rate_min": "Default 60 min.",
+          "alert_agg_cop_vs_datasheet_low_min": "Default 1440 min (24 h)."
         }
       },
       "notifications_test_menu": {
@@ -538,14 +544,20 @@
           "alert_enabled_defrost_excessive": "Enable defrost excessive alert",
           "alert_enabled_buh_excessive": "Enable backup-heater excessive alert",
           "alert_enabled_source_stale": "Enable source-stale alert",
-          "alert_enabled_missing_attributes": "Enable missing-attributes alert"
+          "alert_enabled_missing_attributes": "Enable missing-attributes alert",
+          "alert_enabled_dhw_pendulum": "Enable DHW pendulum alert",
+          "alert_enabled_high_cycle_rate": "Enable high cycle rate alert",
+          "alert_enabled_cop_vs_datasheet_low": "Enable COP below datasheet alert"
         },
         "data_description": {
           "alert_enabled_cop_degradation": "Fires when week-over-week COP drops below -15%.",
           "alert_enabled_defrost_excessive": "Fires when 7d defrost count exceeds the threshold.",
           "alert_enabled_buh_excessive": "Fires when 7d backup-heater cycle ratio exceeds the threshold.",
           "alert_enabled_source_stale": "Fires when the source sensor stops updating (critical).",
-          "alert_enabled_missing_attributes": "Fires when required source attributes are absent."
+          "alert_enabled_missing_attributes": "Fires when required source attributes are absent.",
+          "alert_enabled_dhw_pendulum": "Fires when DHW cycles per hour reach the target.",
+          "alert_enabled_high_cycle_rate": "Fires when cycle rate exceeds 1.5× the hourly target.",
+          "alert_enabled_cop_vs_datasheet_low": "Fires when COP drops more than 10% below the datasheet value."
         }
       }
     }
