@@ -2154,10 +2154,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         Never raises. On failure, cached values remain unchanged so a
         transient DB error does not silently disable the alerts.
         """
-        if self.db is None:
+        _db = getattr(self, "db", None)
+        if _db is None:
             return
         try:
-            rows = await self.db.async_daily_summary(days=7)
+            rows = await _db.async_daily_summary(days=7)
             self._defrost_7d_sum = sum(
                 int(r.get("defrost_count", 0) or 0) for r in rows
             )
