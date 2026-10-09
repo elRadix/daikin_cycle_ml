@@ -377,6 +377,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._last_alert_sent: dict[str, float] = {}
         # PR E: 7d rollup cache (refreshed before each dispatch)
         self._defrost_7d_sum: int = 0
+        self._buh_7d_count: int = 0
         self._buh_7d_ratio: float = 0.0
         self._alert_store: Any = None
         self._alert_save_unsub: Any = None
@@ -2164,6 +2165,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             )
             _buh = sum(int(r.get("buh_count", 0) or 0) for r in rows)
             _cyc = sum(int(r.get("cycles", 0) or 0) for r in rows)
+            self._buh_7d_count = _buh
             self._buh_7d_ratio = round(_buh / _cyc, 3) if _cyc > 0 else 0.0
         except Exception:
             _LOGGER.exception("7d rollup refresh failed")
@@ -2675,7 +2677,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     "buh_7d_ratio_threshold",
                     BUH_7D_RATIO_THRESHOLD_DEFAULT,
                 )),
-                "buh_count_7d": 0,
+                "buh_count_7d": int(getattr(self, "_buh_7d_count", 0) or 0),
                 "mode": mode_str,
                 "outdoor": _f(out_t),
                 "advice": advice_text,
