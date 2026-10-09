@@ -41,6 +41,8 @@ from .const import (
     MODEL_BASISPROFIEL,
     SOURCE_SENSOR_ENTITY,
     UPDATE_INTERVAL_SECONDS,
+    BUH_7D_RATIO_THRESHOLD_DEFAULT,
+    DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
 
     DEGRADATION_BASELINE_DAYS,
     DEGRADATION_REFRESH_THROTTLE_S,
@@ -2643,6 +2645,51 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "lwt_setpoint": _f(lwt_set),
                 "lwt_target": _f(lwt_tgt if lwt_tgt is not None else lwt_set),
                 "delta_max": _f(delta), "mode": mode_str,
+                "advice": advice_text,
+            },
+            # PR E: P1 alert contexts (v1.9.0)
+            "cop_degradation": {
+                "week_pct": _f(getattr(snap, "cop_degradation_week_pct", None)),
+                "threshold_pct": "-15",
+                "trend_30d": _f(getattr(snap, "cop_trend_30d", None)),
+                "mode": mode_str,
+                "outdoor": _f(out_t),
+                "advice": advice_text,
+            },
+            "defrost_excessive": {
+                "count_7d": int(getattr(self, "_defrost_7d_sum", 0) or 0),
+                "threshold": int(opts.get(
+                    "defrost_7d_count_threshold",
+                    DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
+                )),
+                "duration_7d_min": 0,
+                "mode": mode_str,
+                "outdoor": _f(out_t),
+                "advice": advice_text,
+            },
+            "buh_excessive": {
+                "buh_ratio_7d": float(getattr(self, "_buh_7d_ratio", 0.0) or 0.0),
+                "threshold_ratio": float(opts.get(
+                    "buh_7d_ratio_threshold",
+                    BUH_7D_RATIO_THRESHOLD_DEFAULT,
+                )),
+                "buh_count_7d": 0,
+                "mode": mode_str,
+                "outdoor": _f(out_t),
+                "advice": advice_text,
+            },
+            "source_stale": {
+                "age_s": _f(round(now - float(getattr(snap, "last_success_ts", 0.0) or 0.0), 1)) if getattr(snap, "last_success_ts", 0) else 0.0,
+                "threshold_s": 60.0,
+                "source_sensor": ((getattr(self, "config_entry", None).data.get("source_sensor", "?")) if getattr(self, "config_entry", None) else "?"),
+                "mode": mode_str,
+                "advice": advice_text,
+            },
+            "missing_attributes": {
+                "missing_count": len(getattr(snap, "missing_attrs", []) or []),
+                "missing_list": (", ".join((getattr(snap, "missing_attrs", []) or [])[:3]) + ("…" if len(getattr(snap, "missing_attrs", []) or []) > 3 else "")),
+                "source_sensor": ((getattr(self, "config_entry", None).data.get("source_sensor", "?")) if getattr(self, "config_entry", None) else "?"),
+                "mode": mode_str,
                 "advice": advice_text,
             },
         }
