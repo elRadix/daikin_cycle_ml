@@ -16,6 +16,7 @@ from homeassistant.helpers.event import (
     async_track_time_change,
     async_track_time_interval,
 )
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 # v1.4.1 BUG-2 / BUG-3: score wiring + threshold.
@@ -369,6 +370,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._db_integrity_ok: bool = True
         self._migration_error: str | None = None
         self._last_alert_sent: dict[str, float] = {}
+        self._alert_store: Any = None
+        self._alert_save_unsub: Any = None
         self._setpoint_history: deque[tuple[float, float]] = deque()
         self._last_setpoint: float | None = None
         self._maintenance_unsub: Any = None
@@ -434,6 +437,43 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER,
             name=DOMAIN,
             update_interval=timedelta(seconds=UPDATE_INTERVAL_SECONDS),
+        )
+
+    async def async_setup_alert_persistence(self) -> None:
+        """Hydrate _last_alert_sent from HA Store."""
+        from homeassistant.helpers.storage import Store
+        self._alert_store = Store(
+            self.hass, ALERT_STORE_VERSION, ALERT_STORE_KEY,
+        )
+        raw = await self._alert_store.async_load() or {}
+        data = raw.get("data", {}) if isinstance(raw, dict) else {}
+        last = data.get("last_sent", {}) if isinstance(data, dict) else {}
+        self._last_alert_sent = {
+            str(k): float(v)
+            for k, v in last.items()
+            if isinstance(v, (int, float))
+        }
+
+    async def _async_persist_last_alert_sent(self) -> None:
+        """Flush _last_alert_sent to HA Store."""
+        if self._alert_store is None:
+            return
+        await self._alert_store.async_save(
+            {"data": {"last_sent": dict(self._last_alert_sent)}}
+        )
+
+    def _schedule_alert_save(self) -> None:
+        """Debounced save: coalesce writes over ALERT_STORE_SAVE_DELAY."""
+        if self._alert_store is None:
+            return
+        if self._alert_save_unsub is not None:
+            self._alert_save_unsub()
+        self._alert_save_unsub = async_call_later(
+            self.hass,
+            ALERT_STORE_SAVE_DELAY,
+            lambda _now: self.hass.async_create_task(
+                self._async_persist_last_alert_sent()
+            ),
         )
 
     async def async_setup_maintenance(self) -> None:
