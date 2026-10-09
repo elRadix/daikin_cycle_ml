@@ -373,6 +373,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._db_integrity_ok: bool = True
         self._migration_error: str | None = None
         self._last_alert_sent: dict[str, float] = {}
+        # PR E: 7d rollup cache (refreshed before each dispatch)
+        self._defrost_7d_sum: int = 0
+        self._buh_7d_ratio: float = 0.0
         self._alert_store: Any = None
         self._alert_save_unsub: Any = None
         self._setpoint_history: deque[tuple[float, float]] = deque()
@@ -2143,6 +2146,25 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return False
         return len(hist) >= th
 
+    async def _refresh_7d_rollups(self) -> None:
+        """PR E: refresh 7d aggregate cache (defrost count, BUH ratio).
+
+        Never raises. On failure, cached values remain unchanged so a
+        transient DB error does not silently disable the alerts.
+        """
+        if self.db is None:
+            return
+        try:
+            rows = await self.db.async_daily_summary(days=7)
+            self._defrost_7d_sum = sum(
+                int(r.get("defrost_count", 0) or 0) for r in rows
+            )
+            _buh = sum(int(r.get("buh_count", 0) or 0) for r in rows)
+            _cyc = sum(int(r.get("cycles", 0) or 0) for r in rows)
+            self._buh_7d_ratio = round(_buh / _cyc, 3) if _cyc > 0 else 0.0
+        except Exception:
+            _LOGGER.exception("7d rollup refresh failed")
+
     def _alert_binary_states(self, snap: DataSnapshot) -> dict[str, bool]:
         """Snapshot the 4 alert-relevant binary states."""
         now = time.time()
@@ -2187,11 +2209,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         _defrost_thr = int(self.options.get(
             "defrost_7d_count_threshold", DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
         ))
-        is_defrost_excessive = self._defrost_7d_sum > _defrost_thr
+        _defrost_7d = int(getattr(self, "_defrost_7d_sum", 0) or 0)
+        is_defrost_excessive = _defrost_7d > _defrost_thr
         _buh_thr = float(self.options.get(
             "buh_7d_ratio_threshold", BUH_7D_RATIO_THRESHOLD_DEFAULT,
         ))
-        is_buh_excessive = self._buh_7d_ratio > _buh_thr
+        _buh_7d_ratio = float(getattr(self, "_buh_7d_ratio", 0.0) or 0.0)
+        is_buh_excessive = _buh_7d_ratio > _buh_thr
         _last_ok = float(getattr(snap, "last_success_ts", 0.0) or 0.0)
         _stale_thr = SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS
         is_source_stale = _last_ok > 0 and (now - _last_ok) > _stale_thr
@@ -2838,6 +2862,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
         """Evaluate + emit alerts. Never raises."""
         try:
+            await self._refresh_7d_rollups()
             states = self._alert_binary_states(snap)
             now = time.time()
             alerts = evaluate_alerts(
