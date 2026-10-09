@@ -418,3 +418,21 @@ OPTION_DAILY_SUMMARY_LIVE_ENABLED = "daily_summary_live_enabled"
 
 # v1.7.0: default for the live daily summary rollup toggle
 DEFAULT_DAILY_SUMMARY_LIVE_ENABLED = True
+
+# --- PR D: alert dedup persistence (v1.9.0) ---
+ALERT_STORE_KEY = "daikin_cycle_ml.alerts"
+ALERT_STORE_VERSION = 1
+ALERT_STORE_SAVE_DELAY = 5.0
+ALERT_DEDUP_OPTION_PREFIX = "alert_agg_"
+ALERT_DEDUP_OPTION_SUFFIX = "_min"
+ALERT_DEDUP_DEFAULTS: dict[str, int] = {
+    "pendulum_hourly": 60,
+    "pendulum_daily": 1440,
+    "short_run": 30,
+    "short_off": 30,
+    "ml_anomaly": 60,
+    "setpoint_osc": 30,
+    "cop_low": 30,
+    "stooklijn_advies": 10080,
+}
+
