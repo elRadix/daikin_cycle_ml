@@ -36,7 +36,7 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
     §4.10 dead template system removal         c1f0a98   landed
     §4.14 emoji map consolidation              c43bb87   landed
     Q4 setpoint_osc reversal gate              —         pending
-    §19 rewrite + drop §21 box                 —         pending
+    §19 rewrite + drop §21 box                 8ae5009   landed (via C5)
     Plan-B live-fire                           —         pending (manual)
     Push branch + PR G                         —         pending
 

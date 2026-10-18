@@ -73,7 +73,7 @@ Paste inside HA host SSH shell (docker exec heredoc pattern).
     DONE      §4.14 emoji consolidation                     c43bb87
     DONE      C5 agent docs (this commit)                   —
     RED       Q4 setpoint_osc reversal gate                 pending
-    RED       §19 rewrite + §21 drop (docs)                 pending
+    DONE      §19 rewrite + §21 drop (docs)                 8ae5009 (via C5)
     RED       Plan-B live-fire (manual)                     pending
     RED       Push branch + create PR G                     pending
     ORANGE    §4.12 / §4.13 verify/close tracker boxes      pending
