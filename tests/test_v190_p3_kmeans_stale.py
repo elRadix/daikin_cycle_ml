@@ -300,3 +300,78 @@ async def test_persist_attempt_success_without_extra():
     assert payload["consecutive_failures"] == 0
     assert payload["last_failure_reason"] is None
     assert "last_ok_ts" in payload
+
+
+# ==================================================================
+# C2 — registration tests
+# ==================================================================
+
+def test_notif_id_kmeans_retrain_stale_constant():
+    from custom_components.daikin_cycle_ml.const import (
+        NOTIF_ID_KMEANS_RETRAIN_STALE, DOMAIN,
+    )
+    assert NOTIF_ID_KMEANS_RETRAIN_STALE == f"{DOMAIN}_kmeans_retrain_stale"
+
+
+def test_alert_type_emoji_has_kmeans_retrain_stale():
+    from custom_components.daikin_cycle_ml.const import ALERT_TYPE_EMOJI
+    assert "kmeans_retrain_stale" in ALERT_TYPE_EMOJI
+    assert ALERT_TYPE_EMOJI["kmeans_retrain_stale"] == "\u2699\ufe0f"
+
+
+def test_alert_dedup_defaults_has_kmeans_retrain_stale():
+    from custom_components.daikin_cycle_ml.const import ALERT_DEDUP_DEFAULTS
+    assert "kmeans_retrain_stale" in ALERT_DEDUP_DEFAULTS
+    assert ALERT_DEDUP_DEFAULTS["kmeans_retrain_stale"] == 1440
+
+
+def test_binary_alert_map_has_kmeans_retrain_stale():
+    from custom_components.daikin_cycle_ml.engine.notification_engine import (
+        BINARY_ALERT_MAP, SEV_INFO,
+    )
+    assert "kmeans_retrain_stale" in BINARY_ALERT_MAP
+    bkey, sev, tmpl = BINARY_ALERT_MAP["kmeans_retrain_stale"]
+    assert bkey == "kmeans_retrain_stale"
+    assert sev == SEV_INFO
+    assert "{hours_since_ok}" in tmpl
+    assert "{consecutive_failures}" in tmpl
+    assert "{advice}" in tmpl
+
+
+def test_notif_id_by_type_has_kmeans_retrain_stale():
+    from custom_components.daikin_cycle_ml.engine.notification_engine import (
+        NOTIF_ID_BY_TYPE,
+    )
+    from custom_components.daikin_cycle_ml.const import (
+        NOTIF_ID_KMEANS_RETRAIN_STALE,
+    )
+    assert NOTIF_ID_BY_TYPE["kmeans_retrain_stale"] == NOTIF_ID_KMEANS_RETRAIN_STALE
+
+
+def test_i18n_notifications_enabled_has_kmeans_key():
+    import json
+    from pathlib import Path
+    for fname in ("strings.json", "translations/en.json", "translations/nl.json"):
+        path = Path("custom_components/daikin_cycle_ml") / fname
+        d = json.loads(path.read_text(encoding="utf-8"))
+        ne = d["options"]["step"]["notifications_enabled"]["data"]
+        assert "alert_enabled_kmeans_retrain_stale" in ne, f"missing in {fname}"
+        assert len(ne) == 10, f"{fname} has {len(ne)}, expected 10"
+
+
+def test_i18n_notifications_dedup_has_kmeans_key():
+    import json
+    from pathlib import Path
+    for fname in ("strings.json", "translations/en.json", "translations/nl.json"):
+        path = Path("custom_components/daikin_cycle_ml") / fname
+        d = json.loads(path.read_text(encoding="utf-8"))
+        nd = d["options"]["step"]["notifications_dedup"]["data"]
+        assert "alert_agg_kmeans_retrain_stale_min" in nd, f"missing in {fname}"
+        assert len(nd) == 18, f"{fname} has {len(nd)}, expected 18"
+
+
+def test_config_flow_notifications_enabled_has_kmeans_field():
+    """config_flow source contains the new toggle in notifications_enabled."""
+    from pathlib import Path
+    src = Path("custom_components/daikin_cycle_ml/config_flow.py").read_text(encoding="utf-8")
+    assert 'alert_enabled_kmeans_retrain_stale' in src

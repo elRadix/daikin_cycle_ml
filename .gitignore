@@ -18,3 +18,4 @@ data/
 !custom_components/daikin_cycle_ml/data/**
 .deepseek/
 DEEPSEEK.md
+.planb/
