@@ -206,3 +206,44 @@ async def test_compute_db_retention_stale_db_error_returns_empty():
     result = await obj._compute_db_retention_stale()
     assert result == {}
 
+# ---------- C4b: ALERT_LABELS field labels ----------
+
+
+def test_alert_labels_en_present():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_LABELS
+    labels = ALERT_LABELS["en"]
+    assert labels["stale_alerts"] == "Stale alerts"
+    assert labels["stale_cycles"] == "Stale cycles"
+    assert labels["alert_retention_days"] == "Alert retention"
+    assert labels["cycle_retention_days"] == "Cycle retention"
+
+
+def test_alert_labels_nl_present():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_LABELS
+    labels = ALERT_LABELS["nl"]
+    assert labels["stale_alerts"] == "Verouderde meldingen"
+    assert labels["stale_cycles"] == "Verouderde cycli"
+    assert labels["alert_retention_days"] == "Melding-retentie"
+    assert labels["cycle_retention_days"] == "Cyclus-retentie"
+
+
+def test_alert_renders_labels_not_raw_keys():
+    """Regression: build_rich_alert must render labels, not fallback to key."""
+    from custom_components.daikin_cycle_ml.engine.status_report import build_rich_alert
+    ctx = {
+        "stale_alerts": 42,
+        "stale_cycles": 7,
+        "alert_retention_days": 90,
+        "cycle_retention_days": 365,
+        "mode": "heating",
+    }
+    msg = build_rich_alert("db_retention_warning", "info", ctx, language="en")
+    # Labels render with spaces:
+    assert "Stale alerts" in msg
+    assert "Stale cycles" in msg
+    assert "Alert retention" in msg
+    assert "Cycle retention" in msg
+    # Raw keys do NOT appear collapsed:
+    assert "stalealerts" not in msg
+    assert "stalecycles" not in msg
+
