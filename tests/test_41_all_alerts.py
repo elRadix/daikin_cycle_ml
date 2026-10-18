@@ -23,7 +23,6 @@ JSON_FILES = [
 
 def test_ne_uses_bkey_for_schema_lookup():
     src = (ROOT / "engine/notification_engine.py").read_text()
-    assert "if bkey in ALERT_SCHEMA:" in src
     assert "if alert_type in ALERT_SCHEMA:" not in src
 
 

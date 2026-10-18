@@ -2,40 +2,8 @@
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.engine.notification_engine import (
-    ALERT_TEMPLATES,
-    ALERT_TEMPLATES_EN,
-    ALERT_TEMPLATES_NL,
-    BINARY_ALERT_MAP,
     evaluate_alerts,
 )
-
-
-def test_templates_have_en_nl():
-    assert "en" in ALERT_TEMPLATES
-    assert "nl" in ALERT_TEMPLATES
-    assert set(ALERT_TEMPLATES_EN.keys()) == set(ALERT_TEMPLATES_NL.keys())
-
-
-def test_template_keys_match_binary_alert_map():
-    # PR E: new alerts intentionally skip the dead template dicts
-    # (ALERT_TEMPLATES_EN/NL are scheduled for removal in PR G).
-    # Only assert parity for the pre-PR-E alert types.
-    _pr_e_new = {
-        "cop_degradation",
-        "defrost_excessive",
-        "buh_excessive",
-        "source_stale",
-        "missing_attributes",
-        # PR F
-        "dhw_pendulum",
-        "high_cycle_rate",
-        "cop_vs_datasheet_low",
-    }
-    for key in BINARY_ALERT_MAP:
-        if key in _pr_e_new:
-            continue
-        assert key in ALERT_TEMPLATES_EN
-        assert key in ALERT_TEMPLATES_NL
 
 
 def test_evaluate_alerts_default_en():
