@@ -193,7 +193,7 @@ def test_rich_alert_all_schemas_render():
         'osc_count': 8, 'window_min': 30, 'threshold': 6,
         'lwt_setpoint': '32.0', 'lwt_target': '34.0', 'delta_max': '2.5',
         'lwt_actual': '35.2', 'indoor': '21.3', 'flow': '8.2',
-        'outdoor': '12.4', 'avg_duration_min': 22,
+        'outdoor': '12.4', 'last_duration_min': 22,
     }
     for bkey in ALERT_SCHEMA:
         for lang in ('en', 'nl'):
