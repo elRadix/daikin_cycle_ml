@@ -2151,7 +2151,25 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         hist = self._setpoint_history
         if hist is None:
             return False
-        return len(hist) >= th
+        if len(hist) < th:
+            return False
+        # Q4: require at least one direction reversal (sign flip of
+        # consecutive deltas). Guards against slow monotonic drift.
+        vals: list[float] = []
+        for item in hist:
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                try:
+                    vals.append(float(item[1]))
+                except (TypeError, ValueError):
+                    continue
+        if len(vals) < th:
+            return False
+        for i in range(len(vals) - 2):
+            d1 = vals[i + 1] - vals[i]
+            d2 = vals[i + 2] - vals[i + 1]
+            if (d1 > 0) != (d2 > 0):
+                return True
+        return False
 
     async def _refresh_7d_rollups(self) -> None:
         """PR E: refresh 7d aggregate cache (defrost count, BUH ratio).
