@@ -32,7 +32,6 @@ from custom_components.daikin_cycle_ml.engine.notification_engine import (
 )
 from custom_components.daikin_cycle_ml.engine.status_report import (
     ALERT_ADVICE,
-    ALERT_EMOJI,
     ALERT_LABELS,
     ALERT_SCHEMA,
     ALERT_TITLES,
@@ -110,7 +109,7 @@ def test_alert_titles_en_nl():
 
 def test_alert_emoji_entries():
     for at in PRF_ALERTS:
-        assert at in ALERT_EMOJI
+        assert at in ALERT_TYPE_EMOJI
 
 
 def test_alert_advice_en_nl():

@@ -8,12 +8,16 @@ from typing import Any
 
 try:
     from ..const import (
+        ALERT_TYPE_EMOJI,
         COP_LOW_THRESHOLD,
+        SEVERITY_EMOJI,
         STOOKLIJN_STATE_LABEL_EN,
         STOOKLIJN_STATE_LABEL_NL,
     )
 except Exception:  # pragma: no cover
+    ALERT_TYPE_EMOJI = {}
     COP_LOW_THRESHOLD = 2.5
+    SEVERITY_EMOJI = {}
     STOOKLIJN_STATE_LABEL_EN = {}
     STOOKLIJN_STATE_LABEL_NL = {}
 
@@ -63,11 +67,6 @@ MODE_LABELS = {
     "nl": {"heating": "verwarmen", "cooling": "koelen", "dhw": "SWW", "unknown": "onbekend"},
 }
 
-SEVERITY_EMOJI = {
-    "normal": "\u2705", "watch": "\U0001F7E1", "warn": "\U0001F7E0",
-    "warning": "\U0001F7E0", "critical": "\U0001F534",
-    "ok": "\u2705", "info": "\U0001F535",
-}
 
 
 def hour_bucket(hour: int) -> str:
@@ -376,24 +375,6 @@ ALERT_LABELS = {
     },
 }
 
-ALERT_EMOJI = {
-    "pendulum_hourly": "\U0001F501",
-    "pendulum_daily":  "\U0001F501",
-    "short_run":      "\u23F1\uFE0F",
-    "short_off":      "\U0001F4A4",
-    "ml_anomaly":     "\U0001F9E0",
-    "setpoint_osc":   "\U0001F3AF",
-    "cop_low":        "\U0001F4C9",
-    "stooklijn_advies": "\U0001F4C9",
-    "cop_degradation": "\U0001F4C9",
-    "defrost_excessive": "\u2744\uFE0F",
-    "buh_excessive": "\U0001F525",
-    "source_stale": "\U0001F4E1",
-    "missing_attributes": "\u2753",
-    "dhw_pendulum": "\U0001F6BF",
-    "high_cycle_rate": "\U0001F504",
-    "cop_vs_datasheet_low": "\U0001F4CA",
-}
 
 ALERT_SCHEMA = {
     "pendulum_hourly": [
@@ -509,7 +490,7 @@ def build_rich_alert(alert_type: str, severity: str, context: Mapping[str, Any],
     labels = ALERT_LABELS[language]
     titles = ALERT_TITLES.get(language, ALERT_TITLES["en"])
     title = titles.get(alert_type, alert_type)
-    type_e = ALERT_EMOJI.get(alert_type, "")
+    type_e = ALERT_TYPE_EMOJI.get(alert_type, "")
     sev_e = SEVERITY_EMOJI.get(severity, "")
     head_e = type_e or sev_e or "\U0001F514"
     now = _dt.datetime.now()
