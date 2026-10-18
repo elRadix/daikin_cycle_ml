@@ -52,7 +52,7 @@ DEFAULT_ALERT_AGGREGATION_MIN = 30
 DEFAULT_ACTION_ADVICE_ENABLED = True
 DEFAULT_RETENTION_ENABLED = True
 DEFAULT_CYCLE_RETENTION_DAYS = 90
-DEFAULT_ALERT_RETENTION_DAYS = 30
+DEFAULT_ALERT_RETENTION_DAYS = 90
 DEFAULT_VACUUM_ENABLED = True
 
 # --- Model identifiers ---
@@ -238,6 +238,8 @@ ALERT_TYPE_EMOJI = {
     "buh_excessive": "\U0001F525",
     "source_stale": "\U0001F4E1",
     "missing_attributes": "\u2753",
+    "cop_low": "\U0001F4C9",
+    "stooklijn_advies": "\U0001F4C9",
     "dhw_pendulum": EMOJI_DHW_PENDULUM,
     "high_cycle_rate": EMOJI_HIGH_CYCLE_RATE,
     "cop_vs_datasheet_low": EMOJI_COP_VS_DATASHEET,

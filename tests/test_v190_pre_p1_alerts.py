@@ -19,6 +19,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.daikin_cycle_ml import const
 from custom_components.daikin_cycle_ml.const import (
+    ALERT_TYPE_EMOJI,
     ALERT_GROUP_COMPONENT_HEALTH,
     ALERT_GROUP_DATA_QUALITY,
     ALERT_GROUP_COP_STOOKLIJN,
@@ -38,7 +39,6 @@ from custom_components.daikin_cycle_ml.engine.notification_engine import (
 )
 from custom_components.daikin_cycle_ml.engine.status_report import (
     ALERT_ADVICE,
-    ALERT_EMOJI,
     ALERT_SCHEMA,
     ALERT_TITLES,
     build_rich_alert,
@@ -419,8 +419,8 @@ def test_titles_present_both_langs(alert_type: str) -> None:
 
 @pytest.mark.parametrize("alert_type", _PR_E_NEW)
 def test_emoji_present(alert_type: str) -> None:
-    assert alert_type in ALERT_EMOJI
-    assert ALERT_EMOJI[alert_type]
+    assert alert_type in ALERT_TYPE_EMOJI
+    assert ALERT_TYPE_EMOJI[alert_type]
 
 
 @pytest.mark.parametrize("alert_type", _PR_E_NEW)

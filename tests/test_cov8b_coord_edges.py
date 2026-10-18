@@ -116,7 +116,7 @@ def test_cov8b_build_alert_context_no_duration():
     c._setpoint_target = MagicMock(return_value=None)
     c._setpoint_delta = MagicMock(return_value=None)
     c._snap_attr = MagicMock(return_value=None)
-    c._avg_duration_min = MagicMock(return_value=None)
+    c._last_duration_min = MagicMock(return_value=None)
     snap = SimpleNamespace(last_record={"mode": "heating"}, advice=[])
     result = c._build_alert_context(snap)
     assert "short_run" in result

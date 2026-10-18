@@ -5,8 +5,8 @@ import datetime as _dt
 
 import pytest
 
+from custom_components.daikin_cycle_ml.const import ALERT_TYPE_EMOJI
 from custom_components.daikin_cycle_ml.engine.status_report import (
-    ALERT_EMOJI,
     ALERT_LABELS,
     ALERT_SCHEMA,
     ALERT_TITLES,
@@ -49,7 +49,7 @@ def test_rich_alert_has_advice_when_present(alert_type):
 @pytest.mark.parametrize("alert_type", ALL_TYPES)
 def test_rich_alert_emoji_toggle(alert_type):
     out = build_rich_alert(alert_type, 'warning', {}, emoji_enabled=False)
-    assert ALERT_EMOJI.get(alert_type, '\U0001F514') not in out
+    assert ALERT_TYPE_EMOJI.get(alert_type, '\U0001F514') not in out
 
 
 @pytest.mark.parametrize("alert_type", ALL_TYPES)
@@ -65,4 +65,4 @@ def test_rich_alert_has_types_in_schema():
 
 def test_rich_alert_all_types_have_emoji():
     for t in ALL_TYPES:
-        assert t in ALERT_EMOJI
+        assert t in ALERT_TYPE_EMOJI

@@ -2151,7 +2151,25 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         hist = self._setpoint_history
         if hist is None:
             return False
-        return len(hist) >= th
+        if len(hist) < th:
+            return False
+        # Q4: require at least one direction reversal (sign flip of
+        # consecutive deltas). Guards against slow monotonic drift.
+        vals: list[float] = []
+        for item in hist:
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                try:
+                    vals.append(float(item[1]))
+                except (TypeError, ValueError):
+                    continue
+        if len(vals) < th:
+            return False
+        for i in range(len(vals) - 2):
+            d1 = vals[i + 1] - vals[i]
+            d2 = vals[i + 2] - vals[i + 1]
+            if (d1 > 0) != (d2 > 0):
+                return True
+        return False
 
     async def _refresh_7d_rollups(self) -> None:
         """PR E: refresh 7d aggregate cache (defrost count, BUH ratio).
@@ -2541,7 +2559,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return None
         return max(vals) - min(vals)
 
-    def _avg_duration_min(self) -> int | None:
+    def _last_duration_min(self) -> int | None:
         try:
             last = self.store.last_cycle()
             if isinstance(last, dict):
@@ -2549,7 +2567,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 if d is not None:
                     return int(float(d) / 60)
         except Exception:
-            _LOGGER.debug("avg_duration_min failed", exc_info=True)
+            _LOGGER.debug("last_duration_min failed", exc_info=True)
         return None
 
     def _build_alert_context(self, snap: Any) -> dict[str, Any]:
@@ -2615,7 +2633,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         flow = self._snap_attr(
             snap, "flow_lmin", "flow", ATTR_FLOW_SENSOR
         )
-        avg_dur = self._avg_duration_min()
+        avg_dur = self._last_duration_min()
 
         def _f(v: Any, digits: int = 1) -> str | None:
             if v is None:
@@ -2632,7 +2650,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "target_cpd": opts.get("pendulum_cycles_per_day", 40),
                 "cph": cph, "cycles_today": cyc_today,
                 "mode": mode_str, "lwt_setpoint": _f(lwt_set),
-                "avg_duration_min": avg_dur,
+                "last_duration_min": avg_dur,
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "pendulum_hourly": {
@@ -2640,7 +2658,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "target_cpd": opts.get("pendulum_cycles_per_day", 40),
                 "cph": cph, "cycles_today": cyc_today,
                 "mode": mode_str, "lwt_setpoint": _f(lwt_set),
-                "avg_duration_min": avg_dur,
+                "last_duration_min": avg_dur,
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "pendulum_daily": {
@@ -2648,7 +2666,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "target_cpd": opts.get("pendulum_cycles_per_day", 40),
                 "cph": cph, "cycles_today": cyc_today,
                 "mode": mode_str, "lwt_setpoint": _f(lwt_set),
-                "avg_duration_min": avg_dur,
+                "last_duration_min": avg_dur,
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "short_run": {
@@ -2667,7 +2685,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             },
             "ml_anomaly": {
                 "mode": mode_str, "z_max": None, "top_dim": None,
-                "avg_duration_min": avg_dur,
+                "last_duration_min": avg_dur,
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "setpoint_osc": {

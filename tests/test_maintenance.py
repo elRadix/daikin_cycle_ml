@@ -209,7 +209,7 @@ def test_schema_override():
 def test_new_defaults_defined():
     assert DEFAULT_RETENTION_ENABLED is True
     assert DEFAULT_CYCLE_RETENTION_DAYS == 90
-    assert DEFAULT_ALERT_RETENTION_DAYS == 30
+    assert DEFAULT_ALERT_RETENTION_DAYS == 90
     assert DEFAULT_VACUUM_ENABLED is True
 
 

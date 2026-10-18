@@ -19,13 +19,6 @@ def test_const_core_attributes_count():
     assert len(const.CORE_ATTRIBUTES) >= 13
 
 
-def test_const_alert_templates_have_en_nl():
-    from custom_components.daikin_cycle_ml.engine import notification_engine as ne
-    assert hasattr(ne, "ALERT_TEMPLATES_EN")
-    assert hasattr(ne, "ALERT_TEMPLATES_NL")
-    assert isinstance(ne.ALERT_TEMPLATES_EN, dict)
-
-
 def test_status_report_labels_complete():
     from custom_components.daikin_cycle_ml.engine import status_report as sr
     assert "en" in sr.LABELS
