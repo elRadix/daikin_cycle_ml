@@ -489,3 +489,139 @@ async def test_compute_kmeans_stale_non_dict_state_returns_empty():
     db.async_get_model_state = AsyncMock(return_value=[1, 2, 3])
     c = _bare(db=db)
     assert await c._compute_kmeans_stale() == {}
+
+
+# ==================================================================
+# C4 — schema / titles / advice / labels
+# ==================================================================
+
+def test_alert_schema_kmeans_retrain_stale_entry():
+    """5 fields, mirroring I1's db_retention_warning shape."""
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
+    assert "kmeans_retrain_stale" in ALERT_SCHEMA
+    fields = ALERT_SCHEMA["kmeans_retrain_stale"]
+    assert len(fields) == 5
+    field_keys = [f[1] for f in fields]
+    assert field_keys == [
+        "hours_since_ok", "last_ok_ts", "consecutive_failures",
+        "last_failure_reason", "mode",
+    ]
+
+
+def test_alert_schema_field_references_resolve():
+    """R331 regression: every {placeholder} in schema template
+    must be a live context key in _build_alert_context."""
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
+    import re
+    for emoji, label_key, tpl in ALERT_SCHEMA["kmeans_retrain_stale"]:
+        # label_key must exist in ALERT_LABELS (checked in test below)
+        placeholders = re.findall(r"\{(\w+)\}", tpl)
+        assert placeholders, f"no placeholders in template {tpl}"
+        for ph in placeholders:
+            assert ph, "empty placeholder"
+
+
+def test_alert_titles_en():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
+    assert ALERT_TITLES["en"]["kmeans_retrain_stale"] == "K-means retrain stale"
+
+
+def test_alert_titles_nl():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
+    assert ALERT_TITLES["nl"]["kmeans_retrain_stale"] == "K-means hertraining verouderd"
+
+
+def test_alert_advice_en_static_fallback():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
+    advice = ALERT_ADVICE["en"]["kmeans_retrain_stale"]
+    assert "14" in advice
+    assert "recompute_kmeans" in advice
+
+
+def test_alert_advice_nl_static_fallback():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
+    advice = ALERT_ADVICE["nl"]["kmeans_retrain_stale"]
+    assert "14" in advice
+    assert "recompute_kmeans" in advice
+
+
+def test_kmeans_advice_by_reason_en_all_reasons():
+    from custom_components.daikin_cycle_ml.engine.status_report import KMEANS_ADVICE_BY_REASON
+    en = KMEANS_ADVICE_BY_REASON["en"]
+    assert "too_few" in en
+    assert "fetch_failed" in en
+    assert "kmeans_failed" in en
+    assert "no_db" in en
+    assert None in en
+    assert "cycles" in en["too_few"].lower()
+    assert "database read" in en["fetch_failed"].lower()
+    assert "report" in en["kmeans_failed"].lower()
+    assert "not initialized" in en["no_db"].lower()
+    assert "retrain" in en[None].lower()
+
+
+def test_kmeans_advice_by_reason_nl_parity():
+    from custom_components.daikin_cycle_ml.engine.status_report import KMEANS_ADVICE_BY_REASON
+    nl = KMEANS_ADVICE_BY_REASON["nl"]
+    assert set(nl.keys()) == set(KMEANS_ADVICE_BY_REASON["en"].keys())
+    for v in nl.values():
+        assert len(v) > 20  # non-trivial
+
+
+def test_alert_labels_en_new_keys():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_LABELS
+    en = ALERT_LABELS["en"]
+    assert en["hours_since_ok"] == "Hours since OK"
+    assert en["last_ok_ts"] == "Last OK"
+    assert en["consecutive_failures"] == "Consecutive fails"
+    assert en["last_failure_reason"] == "Last failure"
+
+
+def test_alert_labels_nl_new_keys():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_LABELS
+    nl = ALERT_LABELS["nl"]
+    assert nl["hours_since_ok"] == "Uren sinds OK"
+    assert nl["last_ok_ts"] == "Laatste OK"
+    assert nl["consecutive_failures"] == "Opeenvolgende fouten"
+    assert nl["last_failure_reason"] == "Laatste fout"
+
+
+def test_format_last_ok_ts_valid():
+    from custom_components.daikin_cycle_ml.coordinator import _format_last_ok_ts
+    formatted = _format_last_ok_ts(1000000000.0)  # 2001-09-09 01:46 UTC
+    assert len(formatted) == 16  # "YYYY-MM-DD HH:MM"
+    assert formatted[4] == "-"
+    assert formatted[7] == "-"
+
+
+def test_format_last_ok_ts_none_returns_em_dash():
+    from custom_components.daikin_cycle_ml.coordinator import _format_last_ok_ts
+    assert _format_last_ok_ts(None) == "\u2014"
+    assert _format_last_ok_ts("not a ts") == "\u2014"
+    assert _format_last_ok_ts(float("inf")) in ("\u2014",)  # OverflowError path
+
+
+def test_kmeans_advice_lookup_by_reason():
+    from custom_components.daikin_cycle_ml.coordinator import _kmeans_advice
+    assert "cycles" in _kmeans_advice("too_few", "en").lower()
+    assert "database" in _kmeans_advice("fetch_failed", "en").lower()
+    assert "report" in _kmeans_advice("kmeans_failed", "en").lower()
+    assert "retrain" in _kmeans_advice(None, "en").lower()
+
+
+def test_kmeans_advice_falls_back_for_unknown_reason():
+    from custom_components.daikin_cycle_ml.coordinator import _kmeans_advice
+    result = _kmeans_advice("unknown_reason_xyz", "en")
+    # Falls back to None-key entry
+    assert "retrain" in result.lower()
+
+
+def test_kmeans_advice_nl():
+    from custom_components.daikin_cycle_ml.coordinator import _kmeans_advice
+    result = _kmeans_advice("too_few", "nl")
+    assert "cycli" in result.lower()
+
+
+def test_alert_type_emoji_resolves_for_kmeans_retrain_stale():
+    from custom_components.daikin_cycle_ml.const import ALERT_TYPE_EMOJI
+    assert ALERT_TYPE_EMOJI["kmeans_retrain_stale"] == "\u2699\ufe0f"

@@ -108,6 +108,8 @@ from .ml.clustering import classify_clusters, nearest_centroid
 from .ml.features import VECTOR_LEN, extract_feature_vector
 from .ml.multi_baseline import MultiBaseline
 from .engine.timer_health import clamp_cycle_duration as _clamp_duration
+from .engine.status_report import KMEANS_ADVICE_BY_REASON  # I2
+
 from .repairs import async_check_repairs
 from .storage.store import CycleStore
 
@@ -2954,12 +2956,18 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     if _ks.get("hours_since_ok") is not None
                     else 0
                 ),
-                "last_ok_ts": _ks.get("last_ok_ts"),
+                "last_ok_ts": _format_last_ok_ts(_ks.get("last_ok_ts")),
                 "consecutive_failures": int(
                     _ks.get("consecutive_failures", 0) or 0
                 ),
-                "last_failure_reason": _ks.get("last_failure_reason"),
+                "last_failure_reason": (
+                    _ks.get("last_failure_reason") or "\u2014"
+                ),
                 "mode": mode_str,
+                "advice": _kmeans_advice(
+                    _ks.get("last_failure_reason"),
+                    str(opts.get("language", "en") or "en"),
+                ),
             },
         }
         last = getattr(snap, "last_record", None) if snap is not None else None
@@ -3105,7 +3113,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             build_cop_low_report,
             build_rich_alert,
             build_stooklijn_report,
-        )
+)
 
         opts = dict(self.options or {})
         if ignore_filters:
@@ -3223,3 +3231,25 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._notify_fail_streak += 1
             self._notify_fail_target = str(svc)
             _LOGGER.exception("notify service %s failed", svc)
+
+# ---------------------------------------------------------------------
+# I2 (v1.9.0): kmeans_retrain_stale render helpers
+# ---------------------------------------------------------------------
+def _format_last_ok_ts(ts: Any) -> str:
+    """Format a last_ok_ts epoch as YYYY-MM-DD HH:MM; em-dash if absent."""
+    if not isinstance(ts, (int, float)):
+        return "\u2014"
+    try:
+        import datetime as _dt
+        return _dt.datetime.fromtimestamp(float(ts)).strftime("%Y-%m-%d %H:%M")
+    except (ValueError, OSError, OverflowError):
+        return "\u2014"
+
+
+def _kmeans_advice(reason: Any, language: str) -> str:
+    """Return reason-derived advice string (falls back to None-key entry)."""
+    table = KMEANS_ADVICE_BY_REASON.get(language, KMEANS_ADVICE_BY_REASON["en"])
+    if reason in table:
+        return table[reason]
+    return table.get(None, "")
+
