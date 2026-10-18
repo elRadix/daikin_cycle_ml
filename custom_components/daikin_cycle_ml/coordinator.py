@@ -63,6 +63,7 @@ from .const import (
     MODE_DHW,
     DEFAULT_ALERT_RETENTION_DAYS,
     DEFAULT_CYCLE_RETENTION_DAYS,
+    KMEANS_STALE_AFTER_DAYS,
 )
 from .engine.cop_degradation import (
     analyze_degradation,
@@ -387,6 +388,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._buh_7d_ratio: float = 0.0
         # I1: db_retention_warning cache (refreshed in _refresh_7d_rollups)
         self._db_retention_stale: dict[str, Any] = {}
+        # I2: kmeans_retrain_stale cache (refreshed in _refresh_7d_rollups)
+        self._kmeans_stale: dict[str, Any] = {}
         self._alert_store: Any = None
         self._alert_save_unsub: Any = None
         self._setpoint_history: deque[tuple[float, float]] = deque()
@@ -2246,6 +2249,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             # sub-helper swallows its own exceptions and returns
             # an empty dict on failure, leaving the previous cache in place)
             self._db_retention_stale = await self._compute_db_retention_stale()
+            # I2: kmeans_retrain_stale cache (same pattern, helper swallows exceptions)
+            self._kmeans_stale = await self._compute_kmeans_stale()
         except Exception:
             _LOGGER.exception("7d rollup refresh failed")
 
@@ -2283,6 +2288,55 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             }
         except Exception:
             _LOGGER.exception("db_retention count failed")
+            return {}
+
+    async def _compute_kmeans_stale(self) -> dict[str, Any]:
+        """I2: compute kmeans retrain staleness for kmeans_retrain_stale.
+
+        Returns {} on failure or no DB, so a transient error leaves
+        the previous cached state in place (alert stays suppressed
+        rather than false-firing). Does not fire if last_ok_ts is
+        absent (fresh install or legacy payload without I2 fields).
+        """
+        _db = getattr(self, "db", None)
+        if _db is None:
+            return {}
+        try:
+            data = await _db.async_get_model_state(
+                "kmeans_state", default={}
+            ) or {}
+            if not isinstance(data, dict):
+                return {}
+            last_ok_ts = data.get("last_ok_ts")
+            _failures_raw = data.get("consecutive_failures", 0)
+            try:
+                _failures_i = int(_failures_raw) if _failures_raw is not None else 0
+            except (TypeError, ValueError):
+                _failures_i = 0
+            if last_ok_ts is None:
+                return {
+                    "fired": False,
+                    "hours_since_ok": None,
+                    "last_ok_ts": None,
+                    "last_attempt_ts": data.get("last_attempt_ts"),
+                    "consecutive_failures": _failures_i,
+                    "last_failure_reason": data.get("last_failure_reason"),
+                    "stale_after_days": KMEANS_STALE_AFTER_DAYS,
+                }
+            now = time.time()
+            hours_since_ok = (now - float(last_ok_ts)) / 3600.0
+            fired = hours_since_ok > KMEANS_STALE_AFTER_DAYS * 24
+            return {
+                "fired": fired,
+                "hours_since_ok": round(hours_since_ok, 1),
+                "last_ok_ts": float(last_ok_ts),
+                "last_attempt_ts": data.get("last_attempt_ts"),
+                "consecutive_failures": _failures_i,
+                "last_failure_reason": data.get("last_failure_reason"),
+                "stale_after_days": KMEANS_STALE_AFTER_DAYS,
+            }
+        except Exception:
+            _LOGGER.exception("kmeans stale count failed")
             return {}
 
     def _alert_binary_states(self, snap: DataSnapshot) -> dict[str, bool]:
@@ -2375,6 +2429,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "cop_vs_datasheet_low": bool(is_cop_vs_datasheet_low),
             "db_retention_warning": bool(
                 getattr(self, "_db_retention_stale", {}).get("fired", False)
+            ),
+            "kmeans_retrain_stale": bool(
+                getattr(self, "_kmeans_stale", {}).get("fired", False)
             ),
         }
 
@@ -2740,6 +2797,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 return None
 
         _ce = getattr(self, "config_entry", None)
+        _ks = getattr(self, "_kmeans_stale", {}) or {}
         ctx = {
             "pendulum": {
                 "target_cph": opts.get("pendulum_cycles_per_hour", 4),
@@ -2889,6 +2947,19 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 ),
                 "mode": mode_str,
                 "advice": advice_text,
+            },
+            "kmeans_retrain_stale": {
+                "hours_since_ok": (
+                    int(round(_ks.get("hours_since_ok", 0) or 0))
+                    if _ks.get("hours_since_ok") is not None
+                    else 0
+                ),
+                "last_ok_ts": _ks.get("last_ok_ts"),
+                "consecutive_failures": int(
+                    _ks.get("consecutive_failures", 0) or 0
+                ),
+                "last_failure_reason": _ks.get("last_failure_reason"),
+                "mode": mode_str,
             },
         }
         last = getattr(snap, "last_record", None) if snap is not None else None

@@ -375,3 +375,117 @@ def test_config_flow_notifications_enabled_has_kmeans_field():
     from pathlib import Path
     src = Path("custom_components/daikin_cycle_ml/config_flow.py").read_text(encoding="utf-8")
     assert 'alert_enabled_kmeans_retrain_stale' in src
+
+
+# ==================================================================
+# C3 — _compute_kmeans_stale cache helper + _alert_binary_states key
+# ==================================================================
+
+@pytest.mark.asyncio
+async def test_compute_kmeans_stale_no_db():
+    """Empty dict when db is None."""
+    c = _bare(db=None)
+    assert await c._compute_kmeans_stale() == {}
+
+
+@pytest.mark.asyncio
+async def test_compute_kmeans_stale_fresh_install_no_last_ok():
+    """last_ok_ts absent -> fired=False, hours_since_ok=None."""
+    db = MagicMock()
+    db.async_get_model_state = AsyncMock(return_value={})
+    c = _bare(db=db)
+    result = await c._compute_kmeans_stale()
+    assert result["fired"] is False
+    assert result["hours_since_ok"] is None
+    assert result["last_ok_ts"] is None
+    assert result["stale_after_days"] == 14
+
+
+@pytest.mark.asyncio
+async def test_compute_kmeans_stale_13_days_no_fire():
+    """13 days old: fired=False (under 14-day threshold)."""
+    import time as _t
+    db = MagicMock()
+    db.async_get_model_state = AsyncMock(
+        return_value={"last_ok_ts": _t.time() - 13 * 86400},
+    )
+    c = _bare(db=db)
+    result = await c._compute_kmeans_stale()
+    assert result["fired"] is False
+    assert 300 < result["hours_since_ok"] < 330  # ~312 hours
+
+
+@pytest.mark.asyncio
+async def test_compute_kmeans_stale_15_days_fires():
+    """15 days old: fired=True."""
+    import time as _t
+    db = MagicMock()
+    db.async_get_model_state = AsyncMock(
+        return_value={"last_ok_ts": _t.time() - 15 * 86400},
+    )
+    c = _bare(db=db)
+    result = await c._compute_kmeans_stale()
+    assert result["fired"] is True
+    assert result["hours_since_ok"] > 14 * 24
+
+
+@pytest.mark.asyncio
+async def test_compute_kmeans_stale_db_exception_returns_empty():
+    """DB read exception: returns {}, cache untouched."""
+    db = MagicMock()
+    db.async_get_model_state = AsyncMock(side_effect=RuntimeError("boom"))
+    c = _bare(db=db)
+    assert await c._compute_kmeans_stale() == {}
+
+
+@pytest.mark.asyncio
+async def test_compute_kmeans_stale_corrupted_failures_count():
+    """Non-numeric consecutive_failures -> coerced to 0, no crash."""
+    import time as _t
+    db = MagicMock()
+    db.async_get_model_state = AsyncMock(
+        return_value={
+            "last_ok_ts": _t.time() - 15 * 86400,
+            "consecutive_failures": "not_a_number",
+        },
+    )
+    c = _bare(db=db)
+    result = await c._compute_kmeans_stale()
+    assert result["consecutive_failures"] == 0
+
+
+def test_alert_binary_states_has_kmeans_retrain_stale_key():
+    """_alert_binary_states returns kmeans_retrain_stale based on cache."""
+    from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+    c = _bare(db=None)
+    # Inject minimum attrs the function reads
+    import time as _t
+    c.options = {}
+    c.store = MagicMock()
+    c.store.last_cycle = MagicMock(return_value={})
+    c.store.off_time_since_last = MagicMock(return_value=None)
+    c.store.cycles_in_window = MagicMock(return_value=0)
+    c.store.cycles_today = MagicMock(return_value=[])
+    c.store.cycles_in_window_mode = MagicMock(return_value=0)
+    c._defrost_7d_sum = 0
+    c._buh_7d_ratio = 0.0
+    c._db_retention_stale = {}
+    c._kmeans_stale = {"fired": True}
+
+    states = c._alert_binary_states(DataSnapshot())
+    assert "kmeans_retrain_stale" in states
+    assert states["kmeans_retrain_stale"] is True
+
+    c._kmeans_stale = {"fired": False}
+    states = c._alert_binary_states(DataSnapshot())
+    assert states["kmeans_retrain_stale"] is False
+
+
+@pytest.mark.asyncio
+async def test_compute_kmeans_stale_non_dict_state_returns_empty():
+    """Coverage: line 2308-2309 — non-dict data returns {}."""
+    db = MagicMock()
+    # Legacy corrupted: kmeans_state is a list instead of dict
+    db.async_get_model_state = AsyncMock(return_value=[1, 2, 3])
+    c = _bare(db=db)
+    assert await c._compute_kmeans_stale() == {}
