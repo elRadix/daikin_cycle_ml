@@ -303,6 +303,7 @@ ALERT_TITLES = {
         "dhw_pendulum": "DHW pendulum detected",
         "high_cycle_rate": "High cycle rate",
         "cop_vs_datasheet_low": "COP below datasheet",
+        "db_retention_warning": "Database retention warning",
     },
     "nl": {
         "pendulum_hourly": "Pendelen gedetecteerd (per uur)",
@@ -321,6 +322,7 @@ ALERT_TITLES = {
         "dhw_pendulum": "SWW-pendelen gedetecteerd",
         "high_cycle_rate": "Hoge cyclusfrequentie",
         "cop_vs_datasheet_low": "COP onder datasheet",
+        "db_retention_warning": "Database-retentie waarschuwing",
     },
 }
 
@@ -480,6 +482,13 @@ ALERT_SCHEMA = {
         ("\U0001F501", "mode", "{mode}"),
         ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
     ],
+    "db_retention_warning": [
+        ("\U0001F5C4\uFE0F", "stale_alerts", "{stale_alerts}"),
+        ("\U0001F5C4\uFE0F", "stale_cycles", "{stale_cycles}"),
+        ("\U0001F3AF", "alert_retention_days", "{alert_retention_days} d"),
+        ("\U0001F3AF", "cycle_retention_days", "{cycle_retention_days} d"),
+        ("\U0001F501", "mode", "{mode}"),
+    ],
 }
 
 
@@ -570,6 +579,8 @@ ALERT_ADVICE = {
             "setpoint delta, hysteresis and heat curve."),
         "cop_vs_datasheet_low": ("\u2022 COP below datasheet expectation. Check "
             "refrigerant charge, filters, outdoor unit cleanliness."),
+        "db_retention_warning": ("\u2022 Database not being pruned. Check that "
+            "maintenance runs at 03:00 local and no manual runs have failed."),
     },
     "nl": {
         "pendulum_hourly": ("\u2022 Controleer setpoint-delta, hysterese en "
@@ -600,5 +611,8 @@ ALERT_ADVICE = {
             "Controleer setpoint-delta, hysterese en stooklijn."),
         "cop_vs_datasheet_low": ("\u2022 COP onder datasheet-verwachting. "
             "Controleer koelmiddel, filters en buitenunit."),
+        "db_retention_warning": ("\u2022 Database wordt niet opgeruimd. "
+            "Controleer of onderhoud draait (03:00 lokaal) en geen "
+            "handmatige runs zijn mislukt."),
     },
 }

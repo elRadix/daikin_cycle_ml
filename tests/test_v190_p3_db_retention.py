@@ -71,3 +71,44 @@ def test_i18n_key_counts_equal():
         counts.append(len(blk))
     assert len(set(counts)) == 1, f"i18n parity mismatch: {counts}"
     assert counts[0] == 9, f"expected 9 toggles, got {counts[0]}"
+
+# ---------- C3: schema / titles / advice ----------
+
+
+def test_alert_schema_entry():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
+    assert "db_retention_warning" in ALERT_SCHEMA
+    fields = ALERT_SCHEMA["db_retention_warning"]
+    assert isinstance(fields, list)
+    assert len(fields) == 5
+    keys = [f[1] for f in fields]
+    assert "stale_alerts" in keys
+    assert "stale_cycles" in keys
+    assert "alert_retention_days" in keys
+    assert "cycle_retention_days" in keys
+    assert "mode" in keys
+
+
+def test_alert_titles_en():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
+    assert ALERT_TITLES["en"]["db_retention_warning"] == "Database retention warning"
+
+
+def test_alert_titles_nl():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
+    assert ALERT_TITLES["nl"]["db_retention_warning"] == "Database-retentie waarschuwing"
+
+
+def test_alert_advice_en():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
+    advice = ALERT_ADVICE["en"]["db_retention_warning"]
+    assert "Database" in advice
+    assert "maintenance" in advice
+
+
+def test_alert_advice_nl():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
+    advice = ALERT_ADVICE["nl"]["db_retention_warning"]
+    assert "Database" in advice
+    assert "onderhoud" in advice
+
