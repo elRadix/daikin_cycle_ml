@@ -112,3 +112,97 @@ def test_alert_advice_nl():
     assert "Database" in advice
     assert "onderhoud" in advice
 
+# ---------- C4: dispatch wiring ----------
+
+import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
+
+
+@pytest.mark.asyncio
+async def test_compute_db_retention_stale_no_db():
+    """No db -> returns empty dict, cache unchanged."""
+    from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+    from custom_components.daikin_cycle_ml import coordinator as coord_mod
+
+    # Build minimal coordinator-like object via __new__
+    cls = coord_mod.DaikinCycleMLCoordinator
+    obj = cls.__new__(cls)
+    obj.db = None
+    obj.options = {}
+    result = await obj._compute_db_retention_stale()
+    assert result == {}
+
+
+@pytest.mark.asyncio
+async def test_compute_db_retention_stale_under_threshold():
+    """Both counts under 100 -> fired=False."""
+    from custom_components.daikin_cycle_ml import coordinator as coord_mod
+    cls = coord_mod.DaikinCycleMLCoordinator
+    obj = cls.__new__(cls)
+    obj.db = MagicMock()
+    obj.db.async_count_alerts_before = AsyncMock(return_value=42)
+    obj.db.async_count_cycles_before = AsyncMock(return_value=7)
+    obj.options = {}
+    result = await obj._compute_db_retention_stale()
+    assert result["fired"] is False
+    assert result["stale_alerts"] == 42
+    assert result["stale_cycles"] == 7
+
+
+@pytest.mark.asyncio
+async def test_compute_db_retention_stale_alerts_fired():
+    """stale_alerts > 100 -> fired=True regardless of cycles."""
+    from custom_components.daikin_cycle_ml import coordinator as coord_mod
+    cls = coord_mod.DaikinCycleMLCoordinator
+    obj = cls.__new__(cls)
+    obj.db = MagicMock()
+    obj.db.async_count_alerts_before = AsyncMock(return_value=500)
+    obj.db.async_count_cycles_before = AsyncMock(return_value=0)
+    obj.options = {}
+    result = await obj._compute_db_retention_stale()
+    assert result["fired"] is True
+
+
+@pytest.mark.asyncio
+async def test_compute_db_retention_stale_cycles_fired():
+    """stale_cycles > 100 -> fired=True regardless of alerts."""
+    from custom_components.daikin_cycle_ml import coordinator as coord_mod
+    cls = coord_mod.DaikinCycleMLCoordinator
+    obj = cls.__new__(cls)
+    obj.db = MagicMock()
+    obj.db.async_count_alerts_before = AsyncMock(return_value=0)
+    obj.db.async_count_cycles_before = AsyncMock(return_value=150)
+    obj.options = {}
+    result = await obj._compute_db_retention_stale()
+    assert result["fired"] is True
+
+
+@pytest.mark.asyncio
+async def test_compute_db_retention_stale_boundary_exactly_100():
+    """Exactly 100 does NOT fire (strict >)."""
+    from custom_components.daikin_cycle_ml import coordinator as coord_mod
+    cls = coord_mod.DaikinCycleMLCoordinator
+    obj = cls.__new__(cls)
+    obj.db = MagicMock()
+    obj.db.async_count_alerts_before = AsyncMock(return_value=100)
+    obj.db.async_count_cycles_before = AsyncMock(return_value=100)
+    obj.options = {}
+    result = await obj._compute_db_retention_stale()
+    assert result["fired"] is False
+
+
+@pytest.mark.asyncio
+async def test_compute_db_retention_stale_db_error_returns_empty():
+    """DB exception -> returns {} so cache is preserved."""
+    from custom_components.daikin_cycle_ml import coordinator as coord_mod
+    cls = coord_mod.DaikinCycleMLCoordinator
+    obj = cls.__new__(cls)
+    obj.db = MagicMock()
+    obj.db.async_count_alerts_before = AsyncMock(
+        side_effect=RuntimeError("db fail")
+    )
+    obj.db.async_count_cycles_before = AsyncMock(return_value=0)
+    obj.options = {}
+    result = await obj._compute_db_retention_stale()
+    assert result == {}
+

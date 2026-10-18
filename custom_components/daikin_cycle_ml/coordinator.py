@@ -61,6 +61,8 @@ from .const import (
     DEFAULT_DHW_PENDULUM_CPH,
     HIGH_CYCLE_RATE_MULTIPLIER,
     MODE_DHW,
+    DEFAULT_ALERT_RETENTION_DAYS,
+    DEFAULT_CYCLE_RETENTION_DAYS,
 )
 from .engine.cop_degradation import (
     analyze_degradation,
@@ -383,6 +385,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._defrost_7d_sum: int = 0
         self._buh_7d_count: int = 0
         self._buh_7d_ratio: float = 0.0
+        # I1: db_retention_warning cache (refreshed in _refresh_7d_rollups)
+        self._db_retention_stale: dict[str, Any] = {}
         self._alert_store: Any = None
         self._alert_save_unsub: Any = None
         self._setpoint_history: deque[tuple[float, float]] = deque()
@@ -2189,8 +2193,48 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _cyc = sum(int(r.get("cycles", 0) or 0) for r in rows)
             self._buh_7d_count = _buh
             self._buh_7d_ratio = round(_buh / _cyc, 3) if _cyc > 0 else 0.0
+            # I1: db_retention_warning cache (never raises here;
+            # sub-helper swallows its own exceptions and returns
+            # an empty dict on failure, leaving the previous cache in place)
+            self._db_retention_stale = await self._compute_db_retention_stale()
         except Exception:
             _LOGGER.exception("7d rollup refresh failed")
+
+    async def _compute_db_retention_stale(self) -> dict[str, Any]:
+        """I1: count rows past retention for db_retention_warning.
+
+        Returns {} on failure or no DB, so a transient error leaves
+        the previous cached state in place (alert stays suppressed
+        rather than false-firing).
+        """
+        _db = getattr(self, "db", None)
+        if _db is None:
+            return {}
+        try:
+            opts = dict(self.options or {})
+            alert_days = int(opts.get(
+                "alert_retention_days", DEFAULT_ALERT_RETENTION_DAYS,
+            ))
+            cycle_days = int(opts.get(
+                "cycle_retention_days", DEFAULT_CYCLE_RETENTION_DAYS,
+            ))
+            now = time.time()
+            stale_alerts = await _db.async_count_alerts_before(
+                now - alert_days * 86400.0
+            )
+            stale_cycles = await _db.async_count_cycles_before(
+                now - cycle_days * 86400.0
+            )
+            return {
+                "fired": (stale_alerts > 100) or (stale_cycles > 100),
+                "stale_alerts": int(stale_alerts),
+                "stale_cycles": int(stale_cycles),
+                "alert_retention_days": alert_days,
+                "cycle_retention_days": cycle_days,
+            }
+        except Exception:
+            _LOGGER.exception("db_retention count failed")
+            return {}
 
     def _alert_binary_states(self, snap: DataSnapshot) -> dict[str, bool]:
         """Snapshot the 4 alert-relevant binary states."""
@@ -2280,6 +2324,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "dhw_pendulum": bool(is_dhw_pendulum),
             "high_cycle_rate": bool(is_high_cycle_rate),
             "cop_vs_datasheet_low": bool(is_cop_vs_datasheet_low),
+            "db_retention_warning": bool(
+                getattr(self, "_db_retention_stale", {}).get("fired", False)
+            ),
         }
 
     def _assign_cluster(self, vector: list[float]) -> int | None:
@@ -2768,6 +2815,30 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 ),
                 "mode": mode_str,
                 "outdoor": _f(out_t),
+                "advice": advice_text,
+            },
+            "db_retention_warning": {
+                "stale_alerts": int(
+                    getattr(self, "_db_retention_stale", {}).get(
+                        "stale_alerts", 0
+                    )
+                ),
+                "stale_cycles": int(
+                    getattr(self, "_db_retention_stale", {}).get(
+                        "stale_cycles", 0
+                    )
+                ),
+                "alert_retention_days": int(
+                    getattr(self, "_db_retention_stale", {}).get(
+                        "alert_retention_days", DEFAULT_ALERT_RETENTION_DAYS
+                    )
+                ),
+                "cycle_retention_days": int(
+                    getattr(self, "_db_retention_stale", {}).get(
+                        "cycle_retention_days", DEFAULT_CYCLE_RETENTION_DAYS
+                    )
+                ),
+                "mode": mode_str,
                 "advice": advice_text,
             },
         }
