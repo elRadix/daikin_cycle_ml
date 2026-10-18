@@ -503,7 +503,8 @@
           "alert_agg_missing_attributes_min": "Missing attributes window",
           "alert_agg_dhw_pendulum_min": "DHW pendulum window",
           "alert_agg_high_cycle_rate_min": "High cycle rate window",
-          "alert_agg_cop_vs_datasheet_low_min": "COP vs datasheet window"
+          "alert_agg_cop_vs_datasheet_low_min": "COP vs datasheet window",
+          "alert_agg_db_retention_warning_min": "Database retention warning dedup window"
         },
         "data_description": {
           "alert_agg_pendulum_hourly_min": "Default 60 min.",
@@ -521,7 +522,8 @@
           "alert_agg_missing_attributes_min": "Default 60 min.",
           "alert_agg_dhw_pendulum_min": "Default 60 min.",
           "alert_agg_high_cycle_rate_min": "Default 60 min.",
-          "alert_agg_cop_vs_datasheet_low_min": "Default 1440 min (24 h)."
+          "alert_agg_cop_vs_datasheet_low_min": "Default 1440 min (24 h).",
+          "alert_agg_db_retention_warning_min": "Database retention warning dedup window"
         }
       },
       "notifications_test_menu": {
@@ -547,7 +549,8 @@
           "alert_enabled_missing_attributes": "Enable missing-attributes alert",
           "alert_enabled_dhw_pendulum": "Enable DHW pendulum alert",
           "alert_enabled_high_cycle_rate": "Enable high cycle rate alert",
-          "alert_enabled_cop_vs_datasheet_low": "Enable COP below datasheet alert"
+          "alert_enabled_cop_vs_datasheet_low": "Enable COP below datasheet alert",
+          "alert_enabled_db_retention_warning": "Enable database-retention warning"
         },
         "data_description": {
           "alert_enabled_cop_degradation": "Fires when week-over-week COP drops below -15%.",
@@ -557,7 +560,8 @@
           "alert_enabled_missing_attributes": "Fires when required source attributes are absent.",
           "alert_enabled_dhw_pendulum": "Fires when DHW cycles per hour reach the target.",
           "alert_enabled_high_cycle_rate": "Fires when cycle rate exceeds 1.5× the hourly target.",
-          "alert_enabled_cop_vs_datasheet_low": "Fires when COP drops more than 10% below the datasheet value."
+          "alert_enabled_cop_vs_datasheet_low": "Fires when COP drops more than 10% below the datasheet value.",
+          "alert_enabled_db_retention_warning": "Enable database-retention warning"
         }
       }
     }

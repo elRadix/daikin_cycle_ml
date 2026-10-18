@@ -1096,3 +1096,34 @@ class CycleDB:
             return float(row[0])
         except Exception:
             return None
+
+
+    async def async_count_alerts_before(self, cutoff_ts: float) -> int:
+        """Count alert rows with ts < cutoff_ts (retention candidates)."""
+        if self._conn is None:
+            return 0
+        try:
+            cur = await self._conn.execute(
+                "SELECT COUNT(*) FROM alerts WHERE ts < ?", (float(cutoff_ts),)
+            )
+            row = await cur.fetchone()
+            await cur.close()
+            return int(row[0]) if row else 0
+        except Exception:
+            return 0
+
+    async def async_count_cycles_before(self, cutoff_ts: float) -> int:
+        """Count cycle rows past retention (end_ts not null and < cutoff)."""
+        if self._conn is None:
+            return 0
+        try:
+            cur = await self._conn.execute(
+                "SELECT COUNT(*) FROM cycles "
+                "WHERE end_ts IS NOT NULL AND end_ts < ?",
+                (float(cutoff_ts),),
+            )
+            row = await cur.fetchone()
+            await cur.close()
+            return int(row[0]) if row else 0
+        except Exception:
+            return 0

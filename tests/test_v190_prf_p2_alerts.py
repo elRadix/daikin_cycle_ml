@@ -207,10 +207,10 @@ def test_translation_keys_parity(fname):
     path = ROOT / "custom_components" / "daikin_cycle_ml" / fname
     data = json.loads(path.read_text(encoding="utf-8"))
     st = data["options"]["step"]
-    assert len(st["notifications_enabled"]["data"]) == 8
-    assert len(st["notifications_enabled"]["data_description"]) == 8
-    assert len(st["notifications_dedup"]["data"]) == 16
-    assert len(st["notifications_dedup"]["data_description"]) == 16
+    assert len(st["notifications_enabled"]["data"]) == 9
+    assert len(st["notifications_enabled"]["data_description"]) == 9
+    assert len(st["notifications_dedup"]["data"]) == 17
+    assert len(st["notifications_dedup"]["data_description"]) == 17
 
 
 # --- labels present in both languages ---
@@ -225,22 +225,22 @@ def test_new_label_keys_present(lang):
 # --- invariants: totals expected after PR F ---
 
 def test_schema_total():
-    assert len(ALERT_SCHEMA) == 14
+    assert len(ALERT_SCHEMA) == 15
 
 
 def test_binary_alert_map_total():
-    assert len(BINARY_ALERT_MAP) == 14
+    assert len(BINARY_ALERT_MAP) == 15
 
 
 def test_notif_id_by_type_total():
-    assert len(NOTIF_ID_BY_TYPE) == 14
+    assert len(NOTIF_ID_BY_TYPE) == 15
 
 
 def test_alert_titles_totals():
-    assert len(ALERT_TITLES["en"]) == 16
-    assert len(ALERT_TITLES["nl"]) == 16
+    assert len(ALERT_TITLES["en"]) == 17
+    assert len(ALERT_TITLES["nl"]) == 17
 
 
 def test_alert_advice_totals():
-    assert len(ALERT_ADVICE["en"]) == 14
-    assert len(ALERT_ADVICE["nl"]) == 14
+    assert len(ALERT_ADVICE["en"]) == 15
+    assert len(ALERT_ADVICE["nl"]) == 15
