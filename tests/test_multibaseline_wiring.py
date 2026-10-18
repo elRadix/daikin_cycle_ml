@@ -271,6 +271,8 @@ async def test_run_kmeans_happy():
     recs = [_rec(100.0 + i * 5000) for i in range(9)]
     db = MagicMock()
     db.async_fetch_cycles = AsyncMock(return_value=recs)
+    # I2 C1: async_run_kmeans now reads existing kmeans_state before merging
+    db.async_get_model_state = AsyncMock(return_value=None)
     db.async_set_model_state = AsyncMock()
     c = _coord(db=db)
     out = await c.async_run_kmeans(days=7)
@@ -285,6 +287,8 @@ async def test_run_kmeans_saves_ts():
     recs = [_rec(100.0 + i * 5000) for i in range(5)]
     db = MagicMock()
     db.async_fetch_cycles = AsyncMock(return_value=recs)
+    # I2 C1: async_run_kmeans now reads existing kmeans_state before merging
+    db.async_get_model_state = AsyncMock(return_value=None)
     db.async_set_model_state = AsyncMock()
     c = _coord(db=db)
     await c.async_run_kmeans()

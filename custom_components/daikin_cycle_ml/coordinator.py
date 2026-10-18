@@ -802,6 +802,51 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("Scheduled kmeans failed")
 
+    async def _persist_kmeans_attempt(
+        self,
+        ok: bool,
+        reason: str | None = None,
+        n: int | None = None,
+        k: int | None = None,
+        extra: dict[str, Any] | None = None,
+    ) -> None:
+        """I2: persist a kmeans attempt. Never raises.
+
+        Merges into existing kmeans_state so legacy {centroids, labels, ts}
+        payloads are preserved. On success also updates last_ok_ts and
+        zeroes failure counters; on failure increments consecutive_failures
+        and records last_failure_reason.
+        """
+        _db = getattr(self, "db", None)
+        if _db is None:
+            return
+        try:
+            existing = await _db.async_get_model_state("kmeans_state", default={})
+        except Exception:
+            _LOGGER.exception("kmeans persist: read failed")
+            return
+        state: dict[str, Any] = dict(existing) if isinstance(existing, dict) else {}
+        now = time.time()
+        state["last_attempt_ts"] = now
+        if ok:
+            if extra:
+                state.update(extra)
+            state["last_ok_ts"] = now
+            state["consecutive_failures"] = 0
+            state["last_failure_reason"] = None
+        else:
+            prev = state.get("consecutive_failures", 0)
+            try:
+                prev_i = int(prev)
+            except (TypeError, ValueError):
+                prev_i = 0
+            state["consecutive_failures"] = prev_i + 1
+            state["last_failure_reason"] = reason
+        try:
+            await _db.async_set_model_state("kmeans_state", state)
+        except Exception:
+            _LOGGER.exception("kmeans persist: write failed")
+
     async def async_run_kmeans(self, days: int = 7) -> dict[str, Any]:
         """Cluster last N days of cycles into 3 groups."""
         if self.db is None:
@@ -812,21 +857,25 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             cycles = await self.db.async_fetch_cycles(days=days)
         except Exception:
             _LOGGER.exception("kmeans fetch failed")
+            await self._persist_kmeans_attempt(ok=False, reason="fetch_failed")
             return {"ok": False, "reason": "fetch_failed"}
         vectors = extract_many(cycles)
         if len(vectors) < 3:
+            await self._persist_kmeans_attempt(
+                ok=False, reason="too_few", n=len(vectors),
+            )
             return {"ok": False, "reason": "too_few", "n": len(vectors)}
         try:
             result = kmeans(vectors, k=3)
         except Exception:
             _LOGGER.exception("kmeans run failed")
+            await self._persist_kmeans_attempt(ok=False, reason="kmeans_failed")
             return {"ok": False, "reason": "kmeans_failed"}
         payload = labels_to_dict(result)
         payload["ts"] = time.time()
-        try:
-            await self.db.async_set_model_state("kmeans_state", payload)
-        except Exception:
-            _LOGGER.exception("kmeans save failed")
+        await self._persist_kmeans_attempt(
+            ok=True, n=len(vectors), k=result.k, extra=payload,
+        )
         return {"ok": True, "n": len(vectors), "k": result.k}
     def _read_power(self) -> float | None:
         if not self.power_sensor:
