@@ -3184,7 +3184,20 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "advice": "",
             },
         }
+        # Resolve last cycle record: prefer per-tick snap.last_record
+        # (set on cycle-completion ticks), fall back to persisted store
+        # for non-completion ticks. Fixes duration_min showing em-dash
+        # despite sensor.last_cycle rendering real data.
         last = getattr(snap, "last_record", None) if snap is not None else None
+        if not isinstance(last, dict) or not isinstance(
+            last.get("duration_s"), (int, float)
+        ):
+            try:
+                _store_last = self.store.last_cycle()
+                if isinstance(_store_last, dict):
+                    last = _store_last
+            except Exception:
+                pass
         if isinstance(last, dict):
             dur = last.get("duration_s")
             if dur is not None:

@@ -640,3 +640,48 @@ async def test_compute_all_modes_corrupt_energy_falls_back_zero():
     assert result["baseline_el_mean"] == 0.0
     assert result["samples"] == 0
     assert result["threshold_sigma"] == 2.0
+
+
+# ---------- C6: short_run duration_min store fallback ----------
+
+def test_build_alert_context_short_run_falls_back_to_store():
+    """When snap.last_record is None, duration_min comes from store.last_cycle."""
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator,
+        DataSnapshot,
+    )
+    c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
+    # Provide required attrs accessed by _build_alert_context
+    c.options = {}
+    c._kmeans_stale = {}
+    c._db_retention_stale = {}
+    c._energy_daily_anomaly = {}
+    class _Store:
+        def last_cycle(self):
+            return {"duration_s": 900}
+    c.store = _Store()
+    snap = DataSnapshot()
+    snap.last_record = None
+    ctx = c._build_alert_context(snap)
+    assert ctx["short_run"]["duration_min"] == 15
+
+
+def test_build_alert_context_short_run_store_raises_keeps_none():
+    """Store.last_cycle() exception -> duration_min stays None (graceful)."""
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator,
+        DataSnapshot,
+    )
+    c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
+    c.options = {}
+    c._kmeans_stale = {}
+    c._db_retention_stale = {}
+    c._energy_daily_anomaly = {}
+    class _Store:
+        def last_cycle(self):
+            raise RuntimeError("db down")
+    c.store = _Store()
+    snap = DataSnapshot()
+    snap.last_record = None
+    ctx = c._build_alert_context(snap)
+    assert ctx["short_run"]["duration_min"] is None
