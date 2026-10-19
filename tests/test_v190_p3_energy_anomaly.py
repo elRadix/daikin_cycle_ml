@@ -546,3 +546,47 @@ def test_energy_daily_anomaly_label_keys():
 def test_energy_daily_anomaly_renders_emoji():
     from custom_components.daikin_cycle_ml.const import ALERT_TYPE_EMOJI
     assert ALERT_TYPE_EMOJI["energy_daily_anomaly"] == "\u26a1\ufe0f"
+
+
+# ---------- C5: dispatch / render end-to-end ----------
+
+def test_energy_daily_anomaly_build_rich_alert_en():
+    """Fired ctx renders via build_rich_alert with all schema fields."""
+    from custom_components.daikin_cycle_ml.engine.status_report import build_rich_alert
+    ctx = {
+        "today_el_kwh": 15.5,
+        "baseline_el_mean": 5.0,
+        "baseline_el_sigma": 1.0,
+        "z_score": 10.5,
+        "mode": "heating",
+        "advice": "Check valves.",
+    }
+    out = build_rich_alert("energy_daily_anomaly", "info", ctx, language="en")
+    assert "Energy daily anomaly" in out
+    assert "15.5" in out
+    assert "heating" in out
+    assert "10.5" in out
+
+
+def test_energy_daily_anomaly_binary_alert_map_format():
+    """BINARY_ALERT_MAP template formats with fire ctx (no literal {placeholders})."""
+    from custom_components.daikin_cycle_ml.engine.notification_engine import (
+        BINARY_ALERT_MAP,
+        _format_message,
+    )
+    _, _, template = BINARY_ALERT_MAP["energy_daily_anomaly"]
+    ctx = {
+        "today_el_kwh": 15.5,
+        "baseline_el_mean": 5.0,
+        "baseline_el_sigma": 1.0,
+        "z_score": 10.5,
+        "mode": "heating",
+        "advice": " Check valves.",
+    }
+    out = _format_message(template, ctx)
+    assert "15.5" in out
+    assert "heating" in out
+    assert "Energy daily anomaly" in out
+    # No unresolved placeholders for the fields we populated
+    for placeholder in ("{today_el_kwh}", "{mode}", "{z_score}", "{baseline_el_mean}"):
+        assert placeholder not in out, f"unresolved {placeholder}"
