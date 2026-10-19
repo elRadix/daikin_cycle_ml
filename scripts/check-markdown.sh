@@ -73,9 +73,10 @@ check_file() {
     fc=$(grep -cE '^~~~' "$f" || true)
     (( fc % 2 == 0 )) || report_fail "$f" "unclosed tilde fence ($fc markers, must be even)"
 
-    # 7. Heading level jumps (# -> ### without ##)
+    # 7. Heading level jumps (# -> ### without ##) — skip inside code fences
     awk '
-        /^#+ / {
+        /^```/ { in_fence = !in_fence; next }
+        !in_fence && /^#+ / {
             match($0, /^#+/)
             lvl = RLENGTH
             if (prev > 0 && lvl > prev + 1) {
@@ -118,6 +119,71 @@ check_file() {
     mcount=$(printf '%s\n' "$markers" | grep -c . || true)
     if [[ "$mcount" -gt 1 ]]; then
         report_warn "$f" "mixed unordered list markers: $(printf '%s' "$markers" | tr '\n' ' ')"
+    fi
+
+    # 14. HTML tags outside code fence (and outside inline code) — whitelist-based
+    # Skips dashboard/ directory (Lovelace card READMEs legitimately use <img> etc.)
+    case "$f" in
+        ./dashboard/*|dashboard/*) : ;;
+        *)
+            awk '
+                BEGIN {
+                    split("a abbr article aside b blockquote br button canvas caption code col colgroup dd del details dfn dialog div dl dt em embed fieldset figcaption figure footer form h1 h2 h3 h4 h5 h6 header hr html i iframe img input ins kbd label legend li link main mark menu meta meter nav noscript object ol optgroup option output p param picture pre progress q rp rt ruby s samp script section select small source span strong style sub summary sup table tbody td template textarea tfoot th thead time title tr track u ul var video wbr", html_tags, " ")
+                    for (i in html_tags) known[html_tags[i]] = 1
+                }
+                /^```/ { in_fence = !in_fence; next }
+                !in_fence {
+                    line = $0
+                    gsub(/`[^`]*`/, "", line)
+                    while (match(line, /<\/?[a-zA-Z][a-zA-Z0-9]*[ >]/)) {
+                        tag = substr(line, RSTART, RLENGTH)
+                        sub(/^<?\/?/, "", tag)
+                        sub(/[ >].*$/, "", tag)
+                        if (tag in known) {
+                            printf "  FAIL [%s:%d]: HTML tag <%s> outside code fence\n", FILENAME, NR, tag
+                            bad = 1
+                            break
+                        }
+                        line = substr(line, RSTART + RLENGTH)
+                    }
+                }
+                END { if (bad) exit 1; exit 0 }
+            ' "$f" || FAIL=1
+            ;;
+    esac
+
+    # 15. Raw RST markers
+    if grep -qE '\.\. (note|warning|tip|code)::' "$f" 2>/dev/null; then
+        report_fail "$f" "contains raw RST directive"
+    fi
+    if grep -qE '^\[[a-zA-Z0-9_-]+\]_' "$f" 2>/dev/null; then
+        report_fail "$f" "contains RST-style link reference"
+    fi
+
+    # 16. Non-ASCII whitespace (NBSP U+00A0, en/em spaces, zero-width, BOM)
+    if perl -CSD -ne 'exit 1 if /[\x{00A0}\x{2000}-\x{200B}\x{FEFF}]/' "$f" 2>/dev/null; then :; else
+        report_fail "$f" "contains non-ASCII whitespace (NBSP/en-space/ZWSP/BOM)"
+    fi
+
+    # 17. Mixed fence styles in same file
+    bt=$(grep -cE '^```' "$f" || true)
+    td=$(grep -cE '^~~~' "$f" || true)
+    if (( bt > 0 && td > 0 )); then
+        report_fail "$f" "mixed fence styles (backtick + tilde)"
+    fi
+
+    # 18. Unbalanced bold markers (odd ** count outside fences)
+    awk '
+        /^```/ { in_fence = !in_fence; next }
+        !in_fence { n = gsub(/\*\*/, "**"); total += n }
+        END { if (total % 2 != 0) { printf "  FAIL [%s]: unbalanced ** bold markers (odd count)\n", FILENAME; exit 1 } exit 0 }
+    ' "$f" || FAIL=1
+
+    # 19. WARN: mixed bullet indent within one file
+    i2=$(grep -cE '^  [-*+] ' "$f" 2>/dev/null || true)
+    i4=$(grep -cE '^    [-*+] ' "$f" 2>/dev/null || true)
+    if [[ "${i2:-0}" -gt 0 && "${i4:-0}" -gt 0 ]]; then
+        report_warn "$f" "mixed bullet indent (2-space and 4-space both present)"
     fi
 }
 
