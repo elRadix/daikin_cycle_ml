@@ -1,5 +1,52 @@
 # Changelog
 
+## [1.9.0] - 2026-10-20
+
+Alerts v2, 3 new P3 alerts, and full documentation restructure.
+
+### Added
+
+- **3 new alerts:**
+  - `db_retention_warning` — DB retention not running
+  - `kmeans_retrain_stale` — clustering hasn't succeeded in 14+ days
+  - `energy_daily_anomaly` — daily electrical kWh more than 2σ above baseline
+- **11 per-alert toggles** in OptionsFlow `notifications_enabled`
+- **19 per-alert dedup windows** in OptionsFlow `notifications_dedup`
+- **`recompute_kmeans` service** — force k-means retrain on demand
+- **`avg_duration_7d_min`** context field on 3 pendulum/ML alerts (J)
+- **`async_defrost_duration_since`** DB helper for accurate 7-day defrost totals (I7)
+- **`samples` row** in `energy_daily_anomaly` alert schema (I7)
+
+### Changed
+
+- `cop_low` + `stooklijn_advies` route through shared filter chain
+- Per-alert dedup windows replace single global aggregation setting
+- `energy_daily_anomaly` splits display-candidate vs fire-candidate
+- Q4 fix: `setpoint_osc` no longer fires on monotonic drift (requires reversal)
+- `DEFAULT_ALERT_RETENTION_DAYS` 30 → 90 (I7 cleanup)
+- `_build_alert_context` falls back to `store.last_cycle()` when `snap.last_record` empty (I6 C6)
+
+### Fixed
+
+- `pendulum_daily` collision + `short_off` mismatch + `ml_anomaly` mode overwrite
+- `last_alert_sent` was in-memory only — now persisted to HA Store
+- `defrost_excessive.duration_7d_min` was hardcoded 0 — now real 7-day sum (I7)
+- `energy_daily_anomaly` misleading 0.0 sigma/z when n<2 — now em-dash `None` (I7)
+- `energy_acc.<today>` silently wiped on runtime restore failure (I8) — decoupled day-key gates
+- Retention fallback literals 90/30 in coordinator/db.py → const names (I7)
+
+### Documentation
+
+- **README split into 8 docs** in `docs/` (Configuration, Entities, Alerts, ML, Database, Development, Troubleshooting, Upgrade) — landing page + deep dives
+- **AGENTS.md consolidated** — SOP.md merged in, 23 sections, single source of truth
+- **QA pipeline** — `scripts/bootstrap.sh`, `scripts/ci-local.sh`, `scripts/pre-push` (4-gate local parity)
+- **Markdown guard** — `scripts/check-markdown.sh` with 19 checks + CI workflow
+- **R374–R384 promoted** to ACTIVE/CANDIDATES in AGENTS.md (11 new rules)
+
+### Removed
+
+- SOP.md (content merged into AGENTS.md)
+
 ## [1.8.1] - 2026-10-08
 
 ### Fixed
