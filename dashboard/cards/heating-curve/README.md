@@ -1,7 +1,7 @@
 # 🔥 Heating Curve Card
 
-**Version:** 1.0.0  
-**Requires:** daikin_cycle_ml ≥ v1.4.0  
+**Version:** 1.0.0
+**Requires:** daikin_cycle_ml ≥ v1.4.0
 **HA Core:** 2026.9+
 
 A production-ready Lovelace dashboard card visualizing the heating curve of
@@ -319,10 +319,10 @@ The card **automatically detects** language from your integration settings.
 **How it works:**
 
 1. You set language in the integration OptionsFlow:
-   ```
+```
    Settings → Devices & Services → Daikin Cycle ML → Configure
      → Notification language: [nl] [en]
-   ```
+```
 
 2. Integration exposes `configured_language` attribute on
    `sensor.daikin_cycle_ml_cycle_state`
@@ -365,7 +365,7 @@ settings.
 ### Adding a new language
 
 1. Add a new key to the `STR` object in JS:
-   ```js
+```js
    var STR = {
      nl: { ... },
      en: { ... },
@@ -375,12 +375,12 @@ settings.
        // ... all keys
      }
    };
-   ```
+```
 
 2. Update detection logic:
-   ```js
+```js
    var LANG = (STR[cfgLang] ? cfgLang : 'en');
-   ```
+```
 
 ---
 
@@ -703,7 +703,7 @@ var callW = 100;  // try 90 or 80
 var copDay = st('sensor.daikin_cycle_ml_cop_mean_day', null);
 
 // With:
-var copDay = st('sensor.daikin_cycle_ml_cop_mean_day', null) 
+var copDay = st('sensor.daikin_cycle_ml_cop_mean_day', null)
           || st('sensor.daikin_cycle_ml_cop_today', null);
 ```
 
@@ -736,10 +736,10 @@ var copDay = st('sensor.daikin_cycle_ml_cop_mean_day', null)
 1. Install `card-mod` via HACS
 2. Hard refresh browser
 3. Verify in Developer Tools → Console:
-   ```js
+```js
    customElements.get('card-mod')
    // Should return: class CardMod extends HTMLElement
-   ```
+```
 
 ### Buckets show stale values
 
@@ -751,9 +751,9 @@ var copDay = st('sensor.daikin_cycle_ml_cop_mean_day', null)
 - Lovelace refreshes on state change automatically
 - If stuck, press Ctrl+Shift+R (hard refresh)
 - Check the underlying sensor:
-  ```jinja
+```jinja
   {{ state_attr('sensor.daikin_cycle_ml_heating_curve_advice','buckets') }}
-  ```
+```
 
 ---
 
@@ -824,11 +824,11 @@ trusting the formula.
 **Not currently.** The card is SVG-only. To export:
 1. Use `devtools → template` to read raw attributes
 2. Or query SQLite directly:
-   ```bash
+```bash
    docker exec homeassistant sqlite3 \
      /config/.storage/daikin_cycle_ml.db \
      "SELECT * FROM cop_samples WHERE ts > strftime('%s','now') - 86400*7;"
-   ```
+```
 
 ### Why is the DHW mode sometimes invisible?
 
@@ -883,12 +883,12 @@ feature requests, please open an issue with the `dashboard` label.
 - Browser console errors (F12 → Console tab)
 - Screenshot of the issue
 - Output of the debug template:
-  ```jinja
+```jinja
   Model:    {{ state_attr('sensor.daikin_cycle_ml_cycle_state','configured_model') }}
   Language: {{ state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') }}
   State:    {{ states('sensor.daikin_cycle_ml_heating_curve_advice') }}
   Buckets:  {{ state_attr('sensor.daikin_cycle_ml_heating_curve_advice','buckets') }}
-  ```
+```
 
 ---
 

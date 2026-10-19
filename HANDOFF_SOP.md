@@ -123,4 +123,3 @@ Never use --global in container - affects other repos.
 | R143 | New PR = new branch from upstream/master |
 | R144 | Sync fork-master before new PR |
 | R145 | Fork identity local, never --global |
-

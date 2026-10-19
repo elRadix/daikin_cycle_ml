@@ -1,0 +1,15 @@
+name: Markdown
+on:
+  push:
+    branches: [main]
+    paths: ['**.md', 'scripts/check-markdown.sh']
+  pull_request:
+    paths: ['**.md', 'scripts/check-markdown.sh']
+  workflow_dispatch:
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run markdown guard
+        run: bash scripts/check-markdown.sh
