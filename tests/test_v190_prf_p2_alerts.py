@@ -225,7 +225,7 @@ def test_new_label_keys_present(lang):
 # --- invariants: totals expected after PR F ---
 
 def test_schema_total():
-    assert len(ALERT_SCHEMA) == 16
+    assert len(ALERT_SCHEMA) == 17
 
 
 def test_binary_alert_map_total():
@@ -237,10 +237,10 @@ def test_notif_id_by_type_total():
 
 
 def test_alert_titles_totals():
-    assert len(ALERT_TITLES["en"]) == 18
-    assert len(ALERT_TITLES["nl"]) == 18
+    assert len(ALERT_TITLES["en"]) == 19
+    assert len(ALERT_TITLES["nl"]) == 19
 
 
 def test_alert_advice_totals():
-    assert len(ALERT_ADVICE["en"]) == 16
-    assert len(ALERT_ADVICE["nl"]) == 16
+    assert len(ALERT_ADVICE["en"]) == 17
+    assert len(ALERT_ADVICE["nl"]) == 17

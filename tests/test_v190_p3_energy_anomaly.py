@@ -509,3 +509,40 @@ async def test_compute_lower_z_after_fire_kept_first():
     assert result["fired"] is True
     assert result["mode"] == "heating"
     assert result["z_score"] == round((10.0 - 5.0) / (1.0 / 10) ** 0.5, 2)
+
+
+# ---------- C4: schema / titles / advice / labels ----------
+
+def test_energy_daily_anomaly_schema_has_5_fields():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
+    assert "energy_daily_anomaly" in ALERT_SCHEMA
+    entry = ALERT_SCHEMA["energy_daily_anomaly"]
+    assert len(entry) == 5
+    fields = [f[1] for f in entry]
+    assert fields == ["today_el_kwh", "baseline_el_mean", "baseline_el_sigma", "z_score", "mode"]
+
+
+def test_energy_daily_anomaly_titles():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
+    assert ALERT_TITLES["en"]["energy_daily_anomaly"] == "Energy daily anomaly"
+    assert ALERT_TITLES["nl"]["energy_daily_anomaly"] == "Energie-dagelijkse afwijking"
+
+
+def test_energy_daily_anomaly_advice():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
+    assert "energy_daily_anomaly" in ALERT_ADVICE["en"]
+    assert "energy_daily_anomaly" in ALERT_ADVICE["nl"]
+    assert len(ALERT_ADVICE["en"]["energy_daily_anomaly"]) > 10
+    assert len(ALERT_ADVICE["nl"]["energy_daily_anomaly"]) > 10
+
+
+def test_energy_daily_anomaly_label_keys():
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_LABELS
+    for lang in ("en", "nl"):
+        for key in ("today_el_kwh", "baseline_el_mean", "baseline_el_sigma", "z_score"):
+            assert key in ALERT_LABELS[lang], f"ALERT_LABELS[{lang}] missing {key}"
+
+
+def test_energy_daily_anomaly_renders_emoji():
+    from custom_components.daikin_cycle_ml.const import ALERT_TYPE_EMOJI
+    assert ALERT_TYPE_EMOJI["energy_daily_anomaly"] == "\u26a1\ufe0f"
