@@ -1059,6 +1059,8 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 default=c.get("alert_enabled_cop_vs_datasheet_low", True)): bool,
             vol.Required("alert_enabled_db_retention_warning",
                 default=c.get("alert_enabled_db_retention_warning", True)): bool,
+            vol.Required("alert_enabled_kmeans_retrain_stale",
+                default=c.get("alert_enabled_kmeans_retrain_stale", True)): bool,
         })
         return self.async_show_form(
             step_id="notifications_enabled", data_schema=schema,

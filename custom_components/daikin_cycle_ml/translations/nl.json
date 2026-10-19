@@ -504,7 +504,8 @@
           "alert_agg_dhw_pendulum_min": "SWW-pendelvenster",
           "alert_agg_high_cycle_rate_min": "Hoge-cyclusfrequentievenster",
           "alert_agg_cop_vs_datasheet_low_min": "COP-vs-datasheetvenster",
-          "alert_agg_db_retention_warning_min": "Database-retentie waarschuwing dedup-venster"
+          "alert_agg_db_retention_warning_min": "Database-retentie waarschuwing dedup-venster",
+          "alert_agg_kmeans_retrain_stale_min": "K-means hertraining verouderd dedup-venster"
         },
         "data_description": {
           "alert_agg_pendulum_hourly_min": "Standaard 60 min.",
@@ -523,7 +524,8 @@
           "alert_agg_dhw_pendulum_min": "Standaard 60 min.",
           "alert_agg_high_cycle_rate_min": "Standaard 60 min.",
           "alert_agg_cop_vs_datasheet_low_min": "Standaard 1440 min (24 u).",
-          "alert_agg_db_retention_warning_min": "Database-retentie waarschuwing dedup-venster"
+          "alert_agg_db_retention_warning_min": "Database-retentie waarschuwing dedup-venster",
+          "alert_agg_kmeans_retrain_stale_min": "K-means hertraining verouderd dedup-venster"
         }
       },
       "notifications_test_menu": {
@@ -550,7 +552,8 @@
           "alert_enabled_dhw_pendulum": "SWW-pendelen melding inschakelen",
           "alert_enabled_high_cycle_rate": "Hoge cyclusfrequentie melding inschakelen",
           "alert_enabled_cop_vs_datasheet_low": "COP onder datasheet melding inschakelen",
-          "alert_enabled_db_retention_warning": "Database-retentie waarschuwing inschakelen"
+          "alert_enabled_db_retention_warning": "Database-retentie waarschuwing inschakelen",
+          "alert_enabled_kmeans_retrain_stale": "K-means hertraining verouderd melding inschakelen"
         },
         "data_description": {
           "alert_enabled_cop_degradation": "Meldt wanneer de week-op-week COP onder -15% zakt.",
@@ -561,7 +564,8 @@
           "alert_enabled_dhw_pendulum": "Meldt wanneer SWW-cycli per uur het doel bereiken.",
           "alert_enabled_high_cycle_rate": "Meldt wanneer de cyclusfrequentie 1,5× het uurlijkse doel overschrijdt.",
           "alert_enabled_cop_vs_datasheet_low": "Meldt wanneer de COP meer dan 10% onder de datasheetwaarde zakt.",
-          "alert_enabled_db_retention_warning": "Database-retentie waarschuwing inschakelen"
+          "alert_enabled_db_retention_warning": "Database-retentie waarschuwing inschakelen",
+          "alert_enabled_kmeans_retrain_stale": "K-means hertraining verouderd melding inschakelen"
         }
       }
     }
@@ -959,6 +963,20 @@
         "model_key": {
           "name": "Model-key",
           "description": "Model-key om uit de user store te verwijderen."
+        }
+      }
+    },
+    "recompute_kmeans": {
+      "name": "Herbereken k-means",
+      "description": "Start een k-means hertraining op de laatste N dagen cycli en meld het resultaat.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "days": {
+          "name": "Dagen",
+          "description": "Trainingsvenster in dagen."
         }
       }
     }

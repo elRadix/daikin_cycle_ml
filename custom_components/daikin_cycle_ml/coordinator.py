@@ -63,6 +63,7 @@ from .const import (
     MODE_DHW,
     DEFAULT_ALERT_RETENTION_DAYS,
     DEFAULT_CYCLE_RETENTION_DAYS,
+    KMEANS_STALE_AFTER_DAYS,
 )
 from .engine.cop_degradation import (
     analyze_degradation,
@@ -107,6 +108,8 @@ from .ml.clustering import classify_clusters, nearest_centroid
 from .ml.features import VECTOR_LEN, extract_feature_vector
 from .ml.multi_baseline import MultiBaseline
 from .engine.timer_health import clamp_cycle_duration as _clamp_duration
+from .engine.status_report import KMEANS_ADVICE_BY_REASON  # I2
+
 from .repairs import async_check_repairs
 from .storage.store import CycleStore
 
@@ -387,6 +390,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._buh_7d_ratio: float = 0.0
         # I1: db_retention_warning cache (refreshed in _refresh_7d_rollups)
         self._db_retention_stale: dict[str, Any] = {}
+        # I2: kmeans_retrain_stale cache (refreshed in _refresh_7d_rollups)
+        self._kmeans_stale: dict[str, Any] = {}
         self._alert_store: Any = None
         self._alert_save_unsub: Any = None
         self._setpoint_history: deque[tuple[float, float]] = deque()
@@ -802,6 +807,51 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("Scheduled kmeans failed")
 
+    async def _persist_kmeans_attempt(
+        self,
+        ok: bool,
+        reason: str | None = None,
+        n: int | None = None,
+        k: int | None = None,
+        extra: dict[str, Any] | None = None,
+    ) -> None:
+        """I2: persist a kmeans attempt. Never raises.
+
+        Merges into existing kmeans_state so legacy {centroids, labels, ts}
+        payloads are preserved. On success also updates last_ok_ts and
+        zeroes failure counters; on failure increments consecutive_failures
+        and records last_failure_reason.
+        """
+        _db = getattr(self, "db", None)
+        if _db is None:
+            return
+        try:
+            existing = await _db.async_get_model_state("kmeans_state", default={})
+        except Exception:
+            _LOGGER.exception("kmeans persist: read failed")
+            return
+        state: dict[str, Any] = dict(existing) if isinstance(existing, dict) else {}
+        now = time.time()
+        state["last_attempt_ts"] = now
+        if ok:
+            if extra:
+                state.update(extra)
+            state["last_ok_ts"] = now
+            state["consecutive_failures"] = 0
+            state["last_failure_reason"] = None
+        else:
+            prev = state.get("consecutive_failures", 0)
+            try:
+                prev_i = int(prev)
+            except (TypeError, ValueError):
+                prev_i = 0
+            state["consecutive_failures"] = prev_i + 1
+            state["last_failure_reason"] = reason
+        try:
+            await _db.async_set_model_state("kmeans_state", state)
+        except Exception:
+            _LOGGER.exception("kmeans persist: write failed")
+
     async def async_run_kmeans(self, days: int = 7) -> dict[str, Any]:
         """Cluster last N days of cycles into 3 groups."""
         if self.db is None:
@@ -812,21 +862,25 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             cycles = await self.db.async_fetch_cycles(days=days)
         except Exception:
             _LOGGER.exception("kmeans fetch failed")
+            await self._persist_kmeans_attempt(ok=False, reason="fetch_failed")
             return {"ok": False, "reason": "fetch_failed"}
         vectors = extract_many(cycles)
         if len(vectors) < 3:
+            await self._persist_kmeans_attempt(
+                ok=False, reason="too_few", n=len(vectors),
+            )
             return {"ok": False, "reason": "too_few", "n": len(vectors)}
         try:
             result = kmeans(vectors, k=3)
         except Exception:
             _LOGGER.exception("kmeans run failed")
+            await self._persist_kmeans_attempt(ok=False, reason="kmeans_failed")
             return {"ok": False, "reason": "kmeans_failed"}
         payload = labels_to_dict(result)
         payload["ts"] = time.time()
-        try:
-            await self.db.async_set_model_state("kmeans_state", payload)
-        except Exception:
-            _LOGGER.exception("kmeans save failed")
+        await self._persist_kmeans_attempt(
+            ok=True, n=len(vectors), k=result.k, extra=payload,
+        )
         return {"ok": True, "n": len(vectors), "k": result.k}
     def _read_power(self) -> float | None:
         if not self.power_sensor:
@@ -2197,6 +2251,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             # sub-helper swallows its own exceptions and returns
             # an empty dict on failure, leaving the previous cache in place)
             self._db_retention_stale = await self._compute_db_retention_stale()
+            # I2: kmeans_retrain_stale cache (same pattern, helper swallows exceptions)
+            self._kmeans_stale = await self._compute_kmeans_stale()
         except Exception:
             _LOGGER.exception("7d rollup refresh failed")
 
@@ -2234,6 +2290,55 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             }
         except Exception:
             _LOGGER.exception("db_retention count failed")
+            return {}
+
+    async def _compute_kmeans_stale(self) -> dict[str, Any]:
+        """I2: compute kmeans retrain staleness for kmeans_retrain_stale.
+
+        Returns {} on failure or no DB, so a transient error leaves
+        the previous cached state in place (alert stays suppressed
+        rather than false-firing). Does not fire if last_ok_ts is
+        absent (fresh install or legacy payload without I2 fields).
+        """
+        _db = getattr(self, "db", None)
+        if _db is None:
+            return {}
+        try:
+            data = await _db.async_get_model_state(
+                "kmeans_state", default={}
+            ) or {}
+            if not isinstance(data, dict):
+                return {}
+            last_ok_ts = data.get("last_ok_ts")
+            _failures_raw = data.get("consecutive_failures", 0)
+            try:
+                _failures_i = int(_failures_raw) if _failures_raw is not None else 0
+            except (TypeError, ValueError):
+                _failures_i = 0
+            if last_ok_ts is None:
+                return {
+                    "fired": False,
+                    "hours_since_ok": None,
+                    "last_ok_ts": None,
+                    "last_attempt_ts": data.get("last_attempt_ts"),
+                    "consecutive_failures": _failures_i,
+                    "last_failure_reason": data.get("last_failure_reason"),
+                    "stale_after_days": KMEANS_STALE_AFTER_DAYS,
+                }
+            now = time.time()
+            hours_since_ok = (now - float(last_ok_ts)) / 3600.0
+            fired = hours_since_ok > KMEANS_STALE_AFTER_DAYS * 24
+            return {
+                "fired": fired,
+                "hours_since_ok": round(hours_since_ok, 1),
+                "last_ok_ts": float(last_ok_ts),
+                "last_attempt_ts": data.get("last_attempt_ts"),
+                "consecutive_failures": _failures_i,
+                "last_failure_reason": data.get("last_failure_reason"),
+                "stale_after_days": KMEANS_STALE_AFTER_DAYS,
+            }
+        except Exception:
+            _LOGGER.exception("kmeans stale count failed")
             return {}
 
     def _alert_binary_states(self, snap: DataSnapshot) -> dict[str, bool]:
@@ -2326,6 +2431,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "cop_vs_datasheet_low": bool(is_cop_vs_datasheet_low),
             "db_retention_warning": bool(
                 getattr(self, "_db_retention_stale", {}).get("fired", False)
+            ),
+            "kmeans_retrain_stale": bool(
+                getattr(self, "_kmeans_stale", {}).get("fired", False)
             ),
         }
 
@@ -2691,6 +2799,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 return None
 
         _ce = getattr(self, "config_entry", None)
+        _ks = getattr(self, "_kmeans_stale", {}) or {}
         ctx = {
             "pendulum": {
                 "target_cph": opts.get("pendulum_cycles_per_hour", 4),
@@ -2841,6 +2950,25 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "mode": mode_str,
                 "advice": advice_text,
             },
+            "kmeans_retrain_stale": {
+                "hours_since_ok": (
+                    int(round(_ks.get("hours_since_ok", 0) or 0))
+                    if _ks.get("hours_since_ok") is not None
+                    else 0
+                ),
+                "last_ok_ts": _format_last_ok_ts(_ks.get("last_ok_ts")),
+                "consecutive_failures": int(
+                    _ks.get("consecutive_failures", 0) or 0
+                ),
+                "last_failure_reason": (
+                    _ks.get("last_failure_reason") or "\u2014"
+                ),
+                "mode": mode_str,
+                "advice": _kmeans_advice(
+                    _ks.get("last_failure_reason"),
+                    str(opts.get("language", "en") or "en"),
+                ),
+            },
         }
         last = getattr(snap, "last_record", None) if snap is not None else None
         if isinstance(last, dict):
@@ -2985,7 +3113,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             build_cop_low_report,
             build_rich_alert,
             build_stooklijn_report,
-        )
+)
 
         opts = dict(self.options or {})
         if ignore_filters:
@@ -3103,3 +3231,25 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._notify_fail_streak += 1
             self._notify_fail_target = str(svc)
             _LOGGER.exception("notify service %s failed", svc)
+
+# ---------------------------------------------------------------------
+# I2 (v1.9.0): kmeans_retrain_stale render helpers
+# ---------------------------------------------------------------------
+def _format_last_ok_ts(ts: Any) -> str:
+    """Format a last_ok_ts epoch as YYYY-MM-DD HH:MM; em-dash if absent."""
+    if not isinstance(ts, (int, float)):
+        return "\u2014"
+    try:
+        import datetime as _dt
+        return _dt.datetime.fromtimestamp(float(ts)).strftime("%Y-%m-%d %H:%M")
+    except (ValueError, OSError, OverflowError):
+        return "\u2014"
+
+
+def _kmeans_advice(reason: Any, language: str) -> str:
+    """Return reason-derived advice string (falls back to None-key entry)."""
+    table = KMEANS_ADVICE_BY_REASON.get(language, KMEANS_ADVICE_BY_REASON["en"])
+    if reason in table:
+        return table[reason]
+    return table.get(None, "")
+

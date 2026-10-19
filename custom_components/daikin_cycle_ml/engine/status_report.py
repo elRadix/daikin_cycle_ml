@@ -304,6 +304,7 @@ ALERT_TITLES = {
         "high_cycle_rate": "High cycle rate",
         "cop_vs_datasheet_low": "COP below datasheet",
         "db_retention_warning": "Database retention warning",
+        "kmeans_retrain_stale": "K-means retrain stale",
     },
     "nl": {
         "pendulum_hourly": "Pendelen gedetecteerd (per uur)",
@@ -323,6 +324,7 @@ ALERT_TITLES = {
         "high_cycle_rate": "Hoge cyclusfrequentie",
         "cop_vs_datasheet_low": "COP onder datasheet",
         "db_retention_warning": "Database-retentie waarschuwing",
+        "kmeans_retrain_stale": "K-means hertraining verouderd",
     },
 }
 
@@ -346,6 +348,10 @@ ALERT_LABELS = {
         "stale_alerts": "Stale alerts", "stale_cycles": "Stale cycles",
         "alert_retention_days": "Alert retention",
         "cycle_retention_days": "Cycle retention",
+        "hours_since_ok": "Hours since OK",
+        "last_ok_ts": "Last OK",
+        "consecutive_failures": "Consecutive fails",
+        "last_failure_reason": "Last failure",
         "buh_count_7d": "BUH count 7d",
         "age_s": "Age", "threshold_s": "Threshold",
         "source_sensor": "Source",
@@ -374,6 +380,10 @@ ALERT_LABELS = {
         "stale_cycles": "Verouderde cycli",
         "alert_retention_days": "Melding-retentie",
         "cycle_retention_days": "Cyclus-retentie",
+        "hours_since_ok": "Uren sinds OK",
+        "last_ok_ts": "Laatste OK",
+        "consecutive_failures": "Opeenvolgende fouten",
+        "last_failure_reason": "Laatste fout",
         "buh_count_7d": "BUH-aantal 7d",
         "age_s": "Leeftijd", "threshold_s": "Drempel",
         "source_sensor": "Bron",
@@ -496,6 +506,13 @@ ALERT_SCHEMA = {
         ("\U0001F3AF", "cycle_retention_days", "{cycle_retention_days} d"),
         ("\U0001F501", "mode", "{mode}"),
     ],
+    "kmeans_retrain_stale": [
+        ("\u2699\ufe0f", "hours_since_ok", "{hours_since_ok} h"),
+        ("\U0001F4C5", "last_ok_ts", "{last_ok_ts}"),
+        ("\U0001F504", "consecutive_failures", "{consecutive_failures}"),
+        ("\U0001F4CB", "last_failure_reason", "{last_failure_reason}"),
+        ("\U0001F501", "mode", "{mode}"),
+    ],
 }
 
 
@@ -588,6 +605,7 @@ ALERT_ADVICE = {
             "refrigerant charge, filters, outdoor unit cleanliness."),
         "db_retention_warning": ("\u2022 Database not being pruned. Check that "
             "maintenance runs at 03:00 local and no manual runs have failed."),
+        "kmeans_retrain_stale": ("\u2022 Weekly retrain has not succeeded in 14+ days. Run daikin_cycle_ml.recompute_kmeans from Developer Tools \u2192 Services, or restart HA Core."),
     },
     "nl": {
         "pendulum_hourly": ("\u2022 Controleer setpoint-delta, hysterese en "
@@ -621,5 +639,66 @@ ALERT_ADVICE = {
         "db_retention_warning": ("\u2022 Database wordt niet opgeruimd. "
             "Controleer of onderhoud draait (03:00 lokaal) en geen "
             "handmatige runs zijn mislukt."),
+        "kmeans_retrain_stale": ("\u2022 Wekelijkse hertraining is al 14+ dagen niet gelukt. Voer daikin_cycle_ml.recompute_kmeans uit via Developer Tools \u2192 Services, of herstart HA Core."),
+    },
+}
+
+# ---------------------------------------------------------------------
+# I2 (v1.9.0): dynamic advice by last_failure_reason for
+# kmeans_retrain_stale. The base ALERT_ADVICE entry above is the
+# fallback when no reason-specific text applies. _build_alert_context
+# in coordinator.py overrides ctx["advice"] with the reason-derived
+# string (build_rich_alert prefers ctx["advice"] over the builtin).
+# ---------------------------------------------------------------------
+KMEANS_ADVICE_BY_REASON: dict[str, dict[str | None, str]] = {
+    "en": {
+        "too_few": (
+            "Not enough cycles in the last 7 days for training "
+            "(needs at least 3, ideally 20 or more). No action needed "
+            "\u2014 retrain resumes when cycles return."
+        ),
+        "fetch_failed": (
+            "Database read failed. Check HA logs for 'kmeans fetch "
+            "failed'. If it persists, restart HA Core."
+        ),
+        "kmeans_failed": (
+            "Clustering algorithm failed. Please report this at "
+            "github.com/elRadix/daikin_cycle_ml/issues."
+        ),
+        "no_db": (
+            "Database not initialized. Check integration is loaded: "
+            "Settings \u2192 Devices & Services \u2192 Daikin Cycle ML."
+        ),
+        None: (
+            "Weekly retrain has not fired. Possible HA Core scheduler "
+            "issue. Try restarting HA Core, then run "
+            "daikin_cycle_ml.recompute_kmeans to force a retrain."
+        ),
+    },
+    "nl": {
+        "too_few": (
+            "Te weinig cycli in de laatste 7 dagen voor training "
+            "(minimaal 3, ideaal 20 of meer). Geen actie nodig "
+            "\u2014 hertraining hervat zodra er weer cycli zijn."
+        ),
+        "fetch_failed": (
+            "Database-leesfout. Controleer HA-logs op 'kmeans fetch "
+            "failed'. Herstart HA Core als dit aanhoudt."
+        ),
+        "kmeans_failed": (
+            "Cluster-algoritme faalde. Meld dit op "
+            "github.com/elRadix/daikin_cycle_ml/issues."
+        ),
+        "no_db": (
+            "Database niet ge\u00efnitialiseerd. Controleer of de "
+            "integratie geladen is: Instellingen \u2192 Apparaten & "
+            "Diensten \u2192 Daikin Cycle ML."
+        ),
+        None: (
+            "Wekelijkse hertraining is niet uitgevoerd. Mogelijk HA "
+            "Core scheduler-probleem. Herstart HA Core en voer "
+            "daikin_cycle_ml.recompute_kmeans uit om een hertraining "
+            "te forceren."
+        ),
     },
 }

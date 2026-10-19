@@ -21,6 +21,7 @@ from ..const import (
     NOTIF_ID_HIGH_CYCLE_RATE,
     NOTIF_ID_COP_VS_DATASHEET_LOW,
     NOTIF_ID_DB_RETENTION_WARNING,
+    NOTIF_ID_KMEANS_RETRAIN_STALE,
     NOTIF_ID_PENDULUM_DAILY,
     NOTIF_ID_PENDULUM_HOURLY,
     NOTIF_ID_SETPOINT_OSC,
@@ -138,6 +139,11 @@ BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
         SEV_INFO,
         "Database retention warning\n{stale_alerts} stale alerts, {stale_cycles} stale cycles{advice}",
     ),
+    "kmeans_retrain_stale": (
+        "kmeans_retrain_stale",
+        SEV_INFO,
+        "K-means retrain stale\n{hours_since_ok} h since OK ({consecutive_failures} fails){advice}",
+    ),
 }
 
 NOTIF_ID_BY_TYPE = {
@@ -156,6 +162,7 @@ NOTIF_ID_BY_TYPE = {
     "high_cycle_rate": NOTIF_ID_HIGH_CYCLE_RATE,
     "cop_vs_datasheet_low": NOTIF_ID_COP_VS_DATASHEET_LOW,
     "db_retention_warning": NOTIF_ID_DB_RETENTION_WARNING,
+    "kmeans_retrain_stale": NOTIF_ID_KMEANS_RETRAIN_STALE,
 }
 
 
