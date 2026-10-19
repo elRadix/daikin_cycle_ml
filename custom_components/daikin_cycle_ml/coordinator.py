@@ -2353,13 +2353,21 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     async def _compute_energy_daily_anomaly(self) -> dict[str, Any]:
         """I6: compute today's electrical energy anomaly vs per-mode baseline.
 
-        Reads thermal_daily_baseline from model_state, compares today's
-        *_el_kwh (from energy_acc.<today>) against mean + 2*sigma per mode.
-        Fires only when today_el_kwh > mean + 2*sigma AND > floor (2.0 kWh)
-        AND n >= 7. Gap-skip: missing days are skipped silently in Welford.
+        Always populates candidate fields (mode, today_el_kwh, baseline_el_mean,
+        baseline_el_sigma, z_score, samples) from the most-relevant mode even
+        when the alert does not fire, so Test-all and diagnostics show real
+        current state instead of zeros.
 
-        Returns {} on failure/no-DB so transient errors leave the previous
-        cache in place (matches I1/I2 suppression pattern).
+        Display candidate = highest today_el_kwh.
+        Fire candidate    = highest z-score among modes passing all gates
+                            (n >= MIN_DAYS, sigma > 0, today_el >= FLOOR,
+                            z > SIGMA_THRESHOLD).
+        If a fire candidate exists, it drives the result and fired=True.
+        Else the display candidate drives the result with fired=False.
+        If no candidate at all (all energies corrupt), returns zero-dict.
+
+        Returns {} on DB failure/no-DB so transient errors leave the
+        previous cache in place (matches I1/I2 suppression pattern).
         """
         _db = getattr(self, "db", None)
         if _db is None:
@@ -2378,55 +2386,76 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             if not isinstance(energy_today, dict):
                 return {}
 
-            best: dict[str, Any] = {
-                "fired": False,
-                "mode": None,
-                "today_el_kwh": 0.0,
-                "baseline_el_mean": 0.0,
-                "baseline_el_sigma": 0.0,
-                "z_score": 0.0,
-                "samples": 0,
-                "threshold_sigma": ENERGY_ANOMALY_SIGMA_THRESHOLD,
-            }
+            best_display: dict[str, Any] | None = None
+            best_display_el = -1.0
+            best_fire: dict[str, Any] | None = None
+            best_fire_z = 0.0
 
             for mode in ("heating", "dhw", "cooling"):
-                b = baseline_state.get(mode)
-                if not isinstance(b, dict):
-                    continue
                 try:
-                    n = int(b.get("n", 0) or 0)
-                    mean = float(b.get("mean", 0.0) or 0.0)
-                    m2 = float(b.get("m2", 0.0) or 0.0)
+                    today_el = float(
+                        energy_today.get(f"{mode}_el_kwh", 0.0) or 0.0
+                    )
                 except (TypeError, ValueError):
                     continue
+
+                n = 0
+                mean = 0.0
+                sigma = 0.0
+                b = baseline_state.get(mode)
+                if isinstance(b, dict):
+                    try:
+                        n = int(b.get("n", 0) or 0)
+                        mean = float(b.get("mean", 0.0) or 0.0)
+                        m2 = float(b.get("m2", 0.0) or 0.0)
+                    except (TypeError, ValueError):
+                        n, mean, m2 = 0, 0.0, 0.0
+                    sigma = (m2 / n) ** 0.5 if n > 0 else 0.0
+
+                z = (today_el - mean) / sigma if sigma > 0 else 0.0
+                candidate = {
+                    "mode": mode,
+                    "today_el_kwh": round(today_el, 2),
+                    "baseline_el_mean": round(mean, 2),
+                    "baseline_el_sigma": round(sigma, 2),
+                    "z_score": round(z, 2),
+                    "samples": n,
+                }
+
+                if today_el > best_display_el:
+                    best_display = candidate
+                    best_display_el = today_el
+
                 if n < ENERGY_ANOMALY_MIN_DAYS:
                     continue
-                # n >= ENERGY_ANOMALY_MIN_DAYS (= 7) guaranteed by guard above,
-                # so (m2 / n) cannot divide by zero.
-                sigma = (m2 / n) ** 0.5
                 if sigma <= 0.0:
-                    continue
-                try:
-                    today_el = float(energy_today.get(f"{mode}_el_kwh", 0.0) or 0.0)
-                except (TypeError, ValueError):
                     continue
                 if today_el < ENERGY_ANOMALY_FLOOR_KWH:
                     continue
-                z = (today_el - mean) / sigma
                 if z <= ENERGY_ANOMALY_SIGMA_THRESHOLD:
                     continue
-                if z > best["z_score"]:
-                    best = {
-                        "fired": True,
-                        "mode": mode,
-                        "today_el_kwh": round(today_el, 2),
-                        "baseline_el_mean": round(mean, 2),
-                        "baseline_el_sigma": round(sigma, 2),
-                        "z_score": round(z, 2),
-                        "samples": n,
-                        "threshold_sigma": ENERGY_ANOMALY_SIGMA_THRESHOLD,
-                    }
-            return best
+                if best_fire is None or z > best_fire_z:
+                    best_fire = candidate
+                    best_fire_z = z
+
+            if best_fire is not None:
+                result = dict(best_fire)
+                result["fired"] = True
+            elif best_display is not None:
+                result = dict(best_display)
+                result["fired"] = False
+            else:
+                result = {
+                    "fired": False,
+                    "mode": None,
+                    "today_el_kwh": 0.0,
+                    "baseline_el_mean": 0.0,
+                    "baseline_el_sigma": 0.0,
+                    "z_score": 0.0,
+                    "samples": 0,
+                }
+            result["threshold_sigma"] = ENERGY_ANOMALY_SIGMA_THRESHOLD
+            return result
         except Exception:
             _LOGGER.exception("energy anomaly count failed")
             return {}

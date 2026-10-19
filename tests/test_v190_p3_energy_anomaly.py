@@ -476,7 +476,13 @@ async def test_compute_none_exceed_no_fire():
     c = _bare(db=db)
     result = await c._compute_energy_daily_anomaly()
     assert result["fired"] is False
-    assert result["mode"] is None
+    # Display mode = heating (highest today_el=6.0)
+    assert result["mode"] == "heating"
+    assert result["today_el_kwh"] == 6.0
+    assert result["baseline_el_mean"] == 5.0
+    assert result["baseline_el_sigma"] == 2.0
+    assert result["z_score"] == 0.5
+    assert result["samples"] == 10
 
 
 @pytest.mark.asyncio
@@ -590,3 +596,47 @@ def test_energy_daily_anomaly_binary_alert_map_format():
     # No unresolved placeholders for the fields we populated
     for placeholder in ("{today_el_kwh}", "{mode}", "{z_score}", "{baseline_el_mean}"):
         assert placeholder not in out, f"unresolved {placeholder}"
+
+
+@pytest.mark.asyncio
+async def test_compute_display_populated_when_not_fired_n_lt_min():
+    """Prod state: n=1 baseline, today 5.88 kWh -> display shows real values, not zeros."""
+    db = MagicMock()
+    baseline = {
+        "heating": {"n": 1, "mean": 2.51, "m2": 0.0},
+        "dhw":     {"n": 0, "mean": 0.0, "m2": 0.0},
+        "cooling": {"n": 0, "mean": 0.0, "m2": 0.0},
+    }
+    today = {"heating_el_kwh": 5.88}
+    db.async_get_model_state = AsyncMock(side_effect=[baseline, today])
+    c = _bare(db=db)
+    result = await c._compute_energy_daily_anomaly()
+    assert result["fired"] is False
+    assert result["mode"] == "heating"
+    assert result["today_el_kwh"] == 5.88
+    assert result["baseline_el_mean"] == 2.51
+    assert result["baseline_el_sigma"] == 0.0
+    assert result["z_score"] == 0.0
+    assert result["samples"] == 1
+    assert result["threshold_sigma"] == 2.0
+
+
+@pytest.mark.asyncio
+async def test_compute_all_modes_corrupt_energy_falls_back_zero():
+    """All 3 modes' today_el corrupt -> fallback zero-dict, fired False."""
+    db = MagicMock()
+    baseline = {
+        "heating": {"n": 10, "mean": 5.0, "m2": 40.0},
+        "dhw":     {"n": 10, "mean": 3.0, "m2": 40.0},
+        "cooling": {"n": 10, "mean": 1.0, "m2": 40.0},
+    }
+    today = {"heating_el_kwh": "bad", "dhw_el_kwh": "bad", "cooling_el_kwh": "bad"}
+    db.async_get_model_state = AsyncMock(side_effect=[baseline, today])
+    c = _bare(db=db)
+    result = await c._compute_energy_daily_anomaly()
+    assert result["fired"] is False
+    assert result["mode"] is None
+    assert result["today_el_kwh"] == 0.0
+    assert result["baseline_el_mean"] == 0.0
+    assert result["samples"] == 0
+    assert result["threshold_sigma"] == 2.0
