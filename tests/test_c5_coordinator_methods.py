@@ -94,6 +94,7 @@ async def test_persist_runtime_acc_empty_day_returns():
 @pytest.mark.asyncio
 async def test_persist_runtime_acc_success():
     db = MagicMock()
+    db.async_get_model_state = AsyncMock(return_value=None)
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db, runtime_day_key="2026-10-05")
     c._buh_step1_s = 10.0
@@ -135,6 +136,7 @@ async def test_persist_energy_acc_empty_day_returns():
 @pytest.mark.asyncio
 async def test_persist_energy_acc_success():
     db = MagicMock()
+    db.async_get_model_state = AsyncMock(return_value=None)
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db, energy_day_key="2026-10-05")
     c._energy_acc = {

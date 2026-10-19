@@ -937,6 +937,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._persist_runtime_acc()
         if self._energy_day_key and self._energy_day_key != _day_now:
             await self._persist_energy_acc()
+        # v1.9.1 I9: retry restore if startup restore was skipped/failed
+        if not self._energy_day_key and self.db is not None:
+            await self._restore_energy_acc()
+        if not self._runtime_day_key and self.db is not None:
+            await self._restore_runtime_acc()
         self._maybe_reset_daily_accumulators(now)
         try:
             state = self.hass.states.get(self.source_entity)
@@ -1106,10 +1111,45 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             }
 
     async def _persist_runtime_acc(self) -> None:
-        """Persist runtime accumulators to model_state. Never raises."""
+        """Persist runtime accumulators to model_state. Never raises.
+
+        v1.9.1 I9: self-healing guard. Same rationale as _persist_energy_acc.
+        """
         if self.db is None or not self._runtime_day_key:
             return
         try:
+            existing = await self.db.async_get_model_state(
+                f"runtime_acc.{self._runtime_day_key}"
+            )
+            if (
+                isinstance(existing, dict)
+                and existing.get("day") == self._runtime_day_key
+            ):
+                db_total = (
+                    float(existing.get("buh_step1_s") or 0.0)
+                    + float(existing.get("buh_step2_s") or 0.0)
+                    + float(existing.get("defrost_duration_s") or 0.0)
+                )
+                mem_total = (
+                    self._buh_step1_s
+                    + self._buh_step2_s
+                    + self._defrost_duration_s
+                )
+                if db_total > mem_total and db_total > 0.0:
+                    _LOGGER.warning(
+                        "runtime_acc: refusing overwrite (db=%.1fs > mem=%.1fs); restoring from DB",
+                        db_total, mem_total,
+                    )
+                    self._buh_step1_s = float(existing.get("buh_step1_s", 0.0))
+                    self._buh_step2_s = float(existing.get("buh_step2_s", 0.0))
+                    self._defrost_count_today = int(existing.get("defrost_count", 0))
+                    self._defrost_duration_s = float(
+                        existing.get("defrost_duration_s", 0.0)
+                    )
+                    self._last_defrost_ts = float(
+                        existing.get("last_defrost_ts", 0.0)
+                    )
+                    return
             await self.db.async_set_model_state(
                 f"runtime_acc.{self._runtime_day_key}",
                 {
@@ -1125,10 +1165,47 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.exception("runtime_acc persist failed")
 
     async def _persist_energy_acc(self) -> None:
-        """Persist energy accumulators to model_state. Never raises."""
+        """Persist energy accumulators to model_state. Never raises.
+
+        v1.9.1 I9: self-healing guard. If the DB already contains a higher
+        total than memory (typically after a failed restore zeroed memory
+        but the DB still holds real data), restore from DB instead of
+        overwriting. Prevents the boot-wipe loop where every restart
+        silently destroys the day's accumulated energy.
+        """
         if self.db is None or not self._energy_day_key:
             return
         try:
+            existing = await self.db.async_get_model_state(
+                f"energy_acc.{self._energy_day_key}"
+            )
+            if (
+                isinstance(existing, dict)
+                and existing.get("day") == self._energy_day_key
+            ):
+                db_total = sum(
+                    float(existing.get(f"{m}_{k}_kwh") or 0.0)
+                    for m in ("heating", "dhw", "cooling")
+                    for k in ("th", "el")
+                )
+                mem_total = sum(
+                    self._energy_acc[m][k]
+                    for m in ("heating", "dhw", "cooling")
+                    for k in ("th", "el")
+                )
+                if db_total > mem_total and db_total > 0.0:
+                    _LOGGER.warning(
+                        "energy_acc: refusing overwrite (db=%.4f > mem=%.4f); restoring from DB",
+                        db_total, mem_total,
+                    )
+                    self._energy_acc = {
+                        m: {
+                            "th": float(existing.get(f"{m}_th_kwh") or 0.0),
+                            "el": float(existing.get(f"{m}_el_kwh") or 0.0),
+                        }
+                        for m in ("heating", "dhw", "cooling")
+                    }
+                    return
             payload: dict[str, Any] = {"day": self._energy_day_key}
             for mode in ("heating", "dhw", "cooling"):
                 payload[f"{mode}_th_kwh"] = self._energy_acc[mode]["th"]
@@ -1148,7 +1225,17 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             payload = await self.db.async_get_model_state(
                 f"runtime_acc.{today}"
             )
-            if not isinstance(payload, dict) or payload.get("day") != today:
+            if not isinstance(payload, dict):
+                _LOGGER.warning(
+                    "runtime_acc restore: payload not dict (type=%s)",
+                    type(payload).__name__,
+                )
+                return False
+            if payload.get("day") != today:
+                _LOGGER.warning(
+                    "runtime_acc restore: day mismatch (db=%s today=%s)",
+                    payload.get("day"), today,
+                )
                 return False
             self._buh_step1_s = float(payload.get("buh_step1_s", 0.0))
             self._buh_step2_s = float(payload.get("buh_step2_s", 0.0))
@@ -1190,7 +1277,17 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             payload = await self.db.async_get_model_state(
                 f"energy_acc.{today}"
             )
-            if not isinstance(payload, dict) or payload.get("day") != today:
+            if not isinstance(payload, dict):
+                _LOGGER.warning(
+                    "energy_acc restore: payload not dict (type=%s)",
+                    type(payload).__name__,
+                )
+                return False
+            if payload.get("day") != today:
+                _LOGGER.warning(
+                    "energy_acc restore: day mismatch (db=%s today=%s)",
+                    payload.get("day"), today,
+                )
                 return False
             self._energy_acc = {
                 "heating": {
