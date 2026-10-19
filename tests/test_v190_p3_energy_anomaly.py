@@ -519,13 +519,13 @@ async def test_compute_lower_z_after_fire_kept_first():
 
 # ---------- C4: schema / titles / advice / labels ----------
 
-def test_energy_daily_anomaly_schema_has_5_fields():
+def test_energy_daily_anomaly_schema_has_6_fields():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
     assert "energy_daily_anomaly" in ALERT_SCHEMA
     entry = ALERT_SCHEMA["energy_daily_anomaly"]
-    assert len(entry) == 5
+    assert len(entry) == 6  # I7: samples row added
     fields = [f[1] for f in entry]
-    assert fields == ["today_el_kwh", "baseline_el_mean", "baseline_el_sigma", "z_score", "mode"]
+    assert fields == ["today_el_kwh", "baseline_el_mean", "baseline_el_sigma", "z_score", "samples", "mode"]
 
 
 def test_energy_daily_anomaly_titles():
@@ -615,8 +615,8 @@ async def test_compute_display_populated_when_not_fired_n_lt_min():
     assert result["mode"] == "heating"
     assert result["today_el_kwh"] == 5.88
     assert result["baseline_el_mean"] == 2.51
-    assert result["baseline_el_sigma"] == 0.0
-    assert result["z_score"] == 0.0
+    assert result["baseline_el_sigma"] is None  # I7: None when n<2
+    assert result["z_score"] is None  # I7: None when n<2
     assert result["samples"] == 1
     assert result["threshold_sigma"] == 2.0
 
@@ -637,7 +637,7 @@ async def test_compute_all_modes_corrupt_energy_falls_back_zero():
     assert result["fired"] is False
     assert result["mode"] is None
     assert result["today_el_kwh"] == 0.0
-    assert result["baseline_el_mean"] == 0.0
+    assert result["baseline_el_mean"] is None  # I7: None when no candidates
     assert result["samples"] == 0
     assert result["threshold_sigma"] == 2.0
 
