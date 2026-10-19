@@ -49,6 +49,8 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
     R353  getattr(self, name, default) in _build_alert_context /
           _alert_binary_states. Never direct attribute access.
     R355  Assert-guarded patch reports count != 1: run git status BEFORE retry.
+    R369  No backticks in gh body-file heredocs — use Python writer + sanity-check.
+    R370  Source-mutation: inspect → mutate → verify. Never blind sed on assumed line.
 
 ### Handoff + multi-repo (R133-R145)
 
@@ -81,6 +83,12 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
     R357  Post-cut substring guards use word-boundary regex.
           db_avg_duration_min contains _avg_duration_min.
     R358  Structural source-grep tests break on legit refactor.
+    R365  Alert-registry grow → sweep len(X) AND len(X[key]) across all test files.
+    R366  No `except Exception:` in new helpers — never swallow NameError/AttributeError.
+    R368  ALERT_LABELS entry required per context key; missing key = render KeyError.
+    R371  set -uo pipefail + RC gates for grep-heavy heredocs; never set -euo with grep.
+    R372  sed -n '<line>p' is authoritative over grep when they disagree.
+    R373  Alert cache snapshot MUST fall back to store query for per-tick fields.
     R374  stdin-reading cmds in bash -s heredocs consume rest of body — append </dev/null.
     R375  Multi-mutation Python patch >1.5KB → split into ≤1.5KB chunks with per-chunk verify.
     R376  Container paths in bare paste — wrap with docker exec -i daikin_cycle_dev bash -lc 'bash -s'.
