@@ -159,3 +159,29 @@ async def test_restore_runtime_logs_day_mismatch():
         ok = await c._restore_runtime_acc()
     assert ok is False
     assert log.warning.called
+
+
+@pytest.mark.asyncio
+async def test_persist_runtime_overwrites_when_mem_higher():
+    """Memory > DB → normal persist runs (no restore).
+
+    Covers the false branch of the runtime persist inner guard
+    (coordinator.py line 1138 -> 1153).
+    """
+    db = MagicMock()
+    db.async_get_model_state = AsyncMock(return_value={
+        "day": "2026-10-05",
+        "buh_step1_s": 10.0,
+        "buh_step2_s": 20.0,
+        "defrost_count": 3,
+        "defrost_duration_s": 300.0,
+        "last_defrost_ts": 999.0,
+    })
+    db.async_set_model_state = AsyncMock()
+    c = _bare(db=db, runtime_day_key="2026-10-05")
+    c._buh_step1_s = 999.0
+    await c._persist_runtime_acc()
+    db.async_set_model_state.assert_awaited_once()
+    key, payload = db.async_set_model_state.call_args[0]
+    assert key == "runtime_acc.2026-10-05"
+    assert payload["buh_step1_s"] == 999.0
