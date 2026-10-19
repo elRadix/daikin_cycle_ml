@@ -1129,7 +1129,6 @@ change was needed for it.
   recon batch RECON_C_COVERAGE_DELTA (commit c097197).
 
 
-
 ## [1.1.0] - 2026-09-27
 
 ### Added
@@ -1309,18 +1308,10 @@ change was needed for it.
 - Versie-asserts in tests bijgewerkt naar 1.0.0
 
 
-
 All notable changes to Daikin Cycle ML.
 
 Format: https://keepachangelog.com/en/1.1.0/
 Versioning: https://semver.org/spec/v2.0.0.html
-
-
-
-
-
-
-
 
 
 ## [0.7.0] - 2026-09-26
