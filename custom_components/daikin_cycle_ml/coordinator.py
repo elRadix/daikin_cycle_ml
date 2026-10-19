@@ -935,6 +935,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         _day_now = time.strftime("%Y-%m-%d", time.localtime(float(now)))
         if self._runtime_day_key and self._runtime_day_key != _day_now:
             await self._persist_runtime_acc()
+        if self._energy_day_key and self._energy_day_key != _day_now:
             await self._persist_energy_acc()
         self._maybe_reset_daily_accumulators(now)
         try:
@@ -1086,21 +1087,23 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         Throttled persist after each tick via _maybe_persist_accumulators.
         """
         day = time.strftime("%Y-%m-%d", time.localtime(float(now)))
-        if self._runtime_day_key == day:
-            return
-        self._runtime_day_key = day
-        self._buh_step1_s = 0.0
-        self._buh_step2_s = 0.0
-        self._prev_defrost = False
-        self._defrost_start_ts = None
-        self._defrost_count_today = 0
-        self._defrost_duration_s = 0.0
-        self._energy_day_key = day
-        self._energy_acc = {
-            "heating": {"th": 0.0, "el": 0.0},
-            "dhw":     {"th": 0.0, "el": 0.0},
-            "cooling": {"th": 0.0, "el": 0.0},
-        }
+        # I8: decoupled gates — runtime and energy resets are independent so
+        # that a failed restore in one subsystem cannot wipe the other.
+        if self._runtime_day_key != day:
+            self._runtime_day_key = day
+            self._buh_step1_s = 0.0
+            self._buh_step2_s = 0.0
+            self._prev_defrost = False
+            self._defrost_start_ts = None
+            self._defrost_count_today = 0
+            self._defrost_duration_s = 0.0
+        if self._energy_day_key != day:
+            self._energy_day_key = day
+            self._energy_acc = {
+                "heating": {"th": 0.0, "el": 0.0},
+                "dhw":     {"th": 0.0, "el": 0.0},
+                "cooling": {"th": 0.0, "el": 0.0},
+            }
 
     async def _persist_runtime_acc(self) -> None:
         """Persist runtime accumulators to model_state. Never raises."""

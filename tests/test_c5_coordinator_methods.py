@@ -172,6 +172,7 @@ def test_maybe_reset_same_day_noop():
     now = time.time()
     day = time.strftime("%Y-%m-%d", time.localtime(now))
     c._runtime_day_key = day
+    c._energy_day_key = day  # I8: decoupled — set both for true noop
     c._buh_step1_s = 100.0
     c._maybe_reset_daily_accumulators(now)
     assert c._buh_step1_s == 100.0
