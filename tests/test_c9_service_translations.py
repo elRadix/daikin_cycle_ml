@@ -11,6 +11,7 @@ EXPECTED_SERVICES = {
     "export_cycles",
     "label_cycle",
     "recompute_baseline",
+    "recompute_kmeans",
     "run_maintenance",
     "send_test_notification",
     "export_cop_hourly",

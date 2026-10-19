@@ -34,6 +34,7 @@ SERVICE_RESET_COUNTERS = "reset_counters"
 SERVICE_EXPORT_CYCLES = "export_cycles"
 SERVICE_LABEL_CYCLE = "label_cycle"
 SERVICE_RECOMPUTE_BASELINE = "recompute_baseline"
+SERVICE_RECOMPUTE_KMEANS = "recompute_kmeans"
 SERVICE_RUN_MAINTENANCE = "run_maintenance"
 SERVICE_SEND_TEST_NOTIFICATION = "send_test_notification"
 SERVICE_EXPORT_COP_HOURLY = "export_cop_hourly"
@@ -80,6 +81,11 @@ SCHEMA_BASELINE = vol.Schema({
     vol.Optional(ATTR_DAYS, default=7): vol.All(int, vol.Range(min=1, max=365)),
 })
 
+
+SCHEMA_RECOMPUTE_KMEANS = vol.Schema({
+    vol.Required(ATTR_ENTRY_ID): str,
+    vol.Optional(ATTR_DAYS, default=7): vol.All(int, vol.Range(min=1, max=365)),
+})
 
 SCHEMA_RUN_MAINTENANCE = vol.Schema({
     vol.Required(ATTR_ENTRY_ID): str,
@@ -287,6 +293,51 @@ async def _handle_recompute_baseline(hass: HomeAssistant, call: ServiceCall) -> 
     return await _do_recompute_baseline(coord, call.data[ATTR_DAYS])
 
 
+async def _handle_recompute_kmeans(
+    hass: HomeAssistant, call: ServiceCall
+) -> dict[str, Any]:
+    """Trigger a kmeans retrain, notify the user, return the result."""
+    coord = _resolve_coordinator(hass, call.data[ATTR_ENTRY_ID])
+    days = int(call.data.get(ATTR_DAYS, 7))
+    _raw = await coord.async_run_kmeans(days=days)
+    result: dict[str, Any] = dict(_raw) if isinstance(_raw, dict) else {"ok": False, "reason": "bad_result"}
+    _fire_kmeans_notification(hass, result)
+    return result
+
+
+def _fire_kmeans_notification(
+    hass: HomeAssistant, result: dict[str, Any]
+) -> None:
+    """Emit a persistent notification describing the kmeans retrain outcome."""
+    from .engine.status_report import KMEANS_ADVICE_BY_REASON
+    try:
+        if result.get("ok"):
+            n = int(result.get("n", 0) or 0)
+            k = int(result.get("k", 0) or 0)
+            msg = f"K-means retrain succeeded \u2014 {n} cycles, {k} clusters"
+            title = "Daikin Cycle ML \u2014 K-means retrain"
+        else:
+            reason = str(result.get("reason", "unknown"))
+            table = KMEANS_ADVICE_BY_REASON.get(
+                "en", KMEANS_ADVICE_BY_REASON["en"]
+            )
+            advice = table.get(reason) or table.get(None, "")
+            msg = f"K-means retrain failed \u2014 {reason}. {advice}"
+            title = "Daikin Cycle ML \u2014 K-means retrain failed"
+        hass.async_create_task(hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": title,
+                "message": msg,
+                "notification_id": f"daikin_cycle_ml_recompute_kmeans_{int(time.time())}",
+            },
+            blocking=False,
+        ))
+    except Exception:
+        _LOGGER.exception("recompute_kmeans notification failed")
+
+
 async def _handle_run_maintenance(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
     coord = _resolve_coordinator(hass, call.data[ATTR_ENTRY_ID])
     runner = getattr(coord, "async_run_maintenance", None)
@@ -421,6 +472,12 @@ async def async_register_services(hass: HomeAssistant) -> None:
         DOMAIN, SERVICE_IMPORT_DATASHEET,
         partial(_handle_import_datasheet, hass),
         schema=SCHEMA_IMPORT_DATASHEET,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_RECOMPUTE_KMEANS,
+        partial(_handle_recompute_kmeans, hass),
+        schema=SCHEMA_RECOMPUTE_KMEANS,
         supports_response=SupportsResponse.ONLY,
     )
     hass.services.async_register(

@@ -965,6 +965,20 @@
           "description": "Model key to remove from user store."
         }
       }
+    },
+    "recompute_kmeans": {
+      "name": "Recompute k-means",
+      "description": "Trigger a k-means retrain on the last N days of cycles and notify the outcome.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "days": {
+          "name": "Days",
+          "description": "Training window in days."
+        }
+      }
     }
   },
   "selector": {

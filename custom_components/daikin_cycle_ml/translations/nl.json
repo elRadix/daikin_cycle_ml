@@ -965,6 +965,20 @@
           "description": "Model-key om uit de user store te verwijderen."
         }
       }
+    },
+    "recompute_kmeans": {
+      "name": "Herbereken k-means",
+      "description": "Start een k-means hertraining op de laatste N dagen cycli en meld het resultaat.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID."
+        },
+        "days": {
+          "name": "Dagen",
+          "description": "Trainingsvenster in dagen."
+        }
+      }
     }
   },
   "selector": {
