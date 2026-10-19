@@ -547,7 +547,7 @@ class CycleDB:
         self,
         *,
         cycle_retention_days: int = 90,
-        alert_retention_days: int = 30,
+        alert_retention_days: int = 90,  # matches const.DEFAULT_ALERT_RETENTION_DAYS
         cop_retention_days: int = 365,
         vacuum: bool = True,
     ) -> dict[str, int]:
@@ -1087,6 +1087,26 @@ class CycleDB:
         try:
             cur = await self._conn.execute(
                 "SELECT AVG(duration_s) FROM cycles WHERE end_ts >= ?",
+                (float(since_ts),),
+            )
+            row = await cur.fetchone()
+            await cur.close()
+            if not row or row[0] is None:
+                return None
+            return float(row[0])
+        except Exception:
+            return None
+
+    async def async_defrost_duration_since(
+        self, since_ts: float
+    ) -> float | None:
+        """Sum duration_s of defrost cycles with end_ts >= since_ts, or None."""
+        if self._conn is None:
+            return None
+        try:
+            cur = await self._conn.execute(
+                "SELECT SUM(duration_s) FROM cycles "
+                "WHERE defrost_used = 1 AND end_ts >= ?",
                 (float(since_ts),),
             )
             row = await cur.fetchone()

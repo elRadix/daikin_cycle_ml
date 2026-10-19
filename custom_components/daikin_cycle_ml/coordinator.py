@@ -389,6 +389,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._last_alert_sent: dict[str, float] = {}
         # PR E: 7d rollup cache (refreshed before each dispatch)
         self._defrost_7d_sum: int = 0
+        self._defrost_7d_duration_s: float = 0.0
         self._buh_7d_count: int = 0
         self._buh_7d_ratio: float = 0.0
         # I1: db_retention_warning cache (refreshed in _refresh_7d_rollups)
@@ -558,12 +559,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         cdays = (
             int(cycle_retention_days)
             if cycle_retention_days is not None
-            else int(opts.get('cycle_retention_days', 90))
+            else int(opts.get('cycle_retention_days', DEFAULT_CYCLE_RETENTION_DAYS))
         )
         adays = (
             int(alert_retention_days)
             if alert_retention_days is not None
-            else int(opts.get('alert_retention_days', 30))
+            else int(opts.get('alert_retention_days', DEFAULT_ALERT_RETENTION_DAYS))
         )
         dovac = (
             bool(vacuum)
@@ -2250,6 +2251,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._defrost_7d_sum = sum(
                 int(r.get("defrost_count", 0) or 0) for r in rows
             )
+            try:
+                _dds = await _db.async_defrost_duration_since(
+                    time.time() - (7 * 86400)
+                )
+                self._defrost_7d_duration_s = float(_dds or 0.0)
+            except Exception:
+                _LOGGER.debug("defrost 7d duration failed", exc_info=True)
             _buh = sum(int(r.get("buh_count", 0) or 0) for r in rows)
             _cyc = sum(int(r.get("cycles", 0) or 0) for r in rows)
             self._buh_7d_count = _buh
@@ -2419,9 +2427,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 candidate = {
                     "mode": mode,
                     "today_el_kwh": round(today_el, 2),
-                    "baseline_el_mean": round(mean, 2),
-                    "baseline_el_sigma": round(sigma, 2),
-                    "z_score": round(z, 2),
+                    "baseline_el_mean": round(mean, 2) if n >= 1 else None,
+                    "baseline_el_sigma": round(sigma, 2) if n >= 2 else None,
+                    "z_score": round(z, 2) if n >= 2 and sigma > 0 else None,
                     "samples": n,
                 }
 
@@ -2452,9 +2460,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     "fired": False,
                     "mode": None,
                     "today_el_kwh": 0.0,
-                    "baseline_el_mean": 0.0,
-                    "baseline_el_sigma": 0.0,
-                    "z_score": 0.0,
+                    "baseline_el_mean": None,
+                    "baseline_el_sigma": None,
+                    "z_score": None,
                     "samples": 0,
                 }
             result["threshold_sigma"] = ENERGY_ANOMALY_SIGMA_THRESHOLD
@@ -3027,6 +3035,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         _ks = getattr(self, "_kmeans_stale", {}) or {}
         _ea = getattr(self, "_energy_daily_anomaly", {}) or {}
         _ad = getattr(self, "_avg_duration_7d_min", None)
+        _d7d = int(round(float(getattr(self, "_defrost_7d_duration_s", 0.0) or 0.0) / 60.0))
         ctx = {
             "pendulum": {
                 "target_cph": opts.get("pendulum_cycles_per_hour", 4),
@@ -3098,7 +3107,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     "defrost_7d_count_threshold",
                     DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
                 )),
-                "duration_7d_min": 0,
+                "duration_7d_min": _d7d,
                 "mode": mode_str,
                 "outdoor": _f(out_t),
                 "advice": advice_text,
@@ -3202,9 +3211,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "energy_daily_anomaly": {
                 "mode": (_ea.get("mode") or mode_str or "\u2014"),
                 "today_el_kwh": float(_ea.get("today_el_kwh", 0.0) or 0.0),
-                "baseline_el_mean": float(_ea.get("baseline_el_mean", 0.0) or 0.0),
-                "baseline_el_sigma": float(_ea.get("baseline_el_sigma", 0.0) or 0.0),
-                "z_score": float(_ea.get("z_score", 0.0) or 0.0),
+                "baseline_el_mean": _ea.get("baseline_el_mean"),
+                "baseline_el_sigma": _ea.get("baseline_el_sigma"),
+                "z_score": _ea.get("z_score"),
+                "samples": int(_ea.get("samples", 0) or 0),
                 "advice": "",
             },
         }
