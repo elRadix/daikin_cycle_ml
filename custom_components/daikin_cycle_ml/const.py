@@ -202,6 +202,7 @@ NOTIF_ID_HIGH_CYCLE_RATE = f"{DOMAIN}_high_cycle_rate"
 NOTIF_ID_COP_VS_DATASHEET_LOW = f"{DOMAIN}_cop_vs_datasheet_low"
 NOTIF_ID_DB_RETENTION_WARNING = f"{DOMAIN}_db_retention_warning"
 NOTIF_ID_KMEANS_RETRAIN_STALE = f"{DOMAIN}_kmeans_retrain_stale"
+NOTIF_ID_ENERGY_DAILY_ANOMALY = f"{DOMAIN}_energy_daily_anomaly"
 
 # --- Brine exclusion (confirmed absent on EPRA12: always 0) ---
 BRINE_ALWAYS_ZERO = True
@@ -253,6 +254,7 @@ ALERT_TYPE_EMOJI = {
     "cop_vs_datasheet_low": EMOJI_COP_VS_DATASHEET,
     "db_retention_warning": "\U0001F5C4\uFE0F",
     "kmeans_retrain_stale": "\u2699\uFE0F",
+    "energy_daily_anomaly": "\u26A1\uFE0F",
 }
 
 # Status update (periodic summary) - opt-in, default off
@@ -496,5 +498,6 @@ ALERT_DEDUP_DEFAULTS: dict[str, int] = {
     "cop_vs_datasheet_low": 1440,
     "db_retention_warning": 1440,
     "kmeans_retrain_stale": 1440,
+    "energy_daily_anomaly": 1440,
 }
 

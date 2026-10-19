@@ -2608,6 +2608,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "kmeans_retrain_stale": bool(
                 getattr(self, "_kmeans_stale", {}).get("fired", False)
             ),
+            "energy_daily_anomaly": bool(
+                getattr(self, "_energy_daily_anomaly", {}).get("fired", False)
+            ),
         }
 
     def _assign_cluster(self, vector: list[float]) -> int | None:
@@ -2973,6 +2976,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
         _ce = getattr(self, "config_entry", None)
         _ks = getattr(self, "_kmeans_stale", {}) or {}
+        _ea = getattr(self, "_energy_daily_anomaly", {}) or {}
         ctx = {
             "pendulum": {
                 "target_cph": opts.get("pendulum_cycles_per_hour", 4),
@@ -3141,6 +3145,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     _ks.get("last_failure_reason"),
                     str(opts.get("language", "en") or "en"),
                 ),
+            },
+            "energy_daily_anomaly": {
+                "mode": (_ea.get("mode") or mode_str or "\u2014"),
+                "today_el_kwh": float(_ea.get("today_el_kwh", 0.0) or 0.0),
+                "baseline_el_mean": float(_ea.get("baseline_el_mean", 0.0) or 0.0),
+                "baseline_el_sigma": float(_ea.get("baseline_el_sigma", 0.0) or 0.0),
+                "z_score": float(_ea.get("z_score", 0.0) or 0.0),
+                "advice": "",
             },
         }
         last = getattr(snap, "last_record", None) if snap is not None else None

@@ -22,6 +22,7 @@ from ..const import (
     NOTIF_ID_COP_VS_DATASHEET_LOW,
     NOTIF_ID_DB_RETENTION_WARNING,
     NOTIF_ID_KMEANS_RETRAIN_STALE,
+    NOTIF_ID_ENERGY_DAILY_ANOMALY,
     NOTIF_ID_PENDULUM_DAILY,
     NOTIF_ID_PENDULUM_HOURLY,
     NOTIF_ID_SETPOINT_OSC,
@@ -144,6 +145,11 @@ BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
         SEV_INFO,
         "K-means retrain stale\n{hours_since_ok} h since OK ({consecutive_failures} fails){advice}",
     ),
+    "energy_daily_anomaly": (
+        "energy_daily_anomaly",
+        SEV_INFO,
+        "Energy daily anomaly\n{mode} {today_el_kwh} kWh \u00b7 {z_score}\u03c3 (baseline {baseline_el_mean}\u00b1{baseline_el_sigma}){advice}",
+    ),
 }
 
 NOTIF_ID_BY_TYPE = {
@@ -163,6 +169,7 @@ NOTIF_ID_BY_TYPE = {
     "cop_vs_datasheet_low": NOTIF_ID_COP_VS_DATASHEET_LOW,
     "db_retention_warning": NOTIF_ID_DB_RETENTION_WARNING,
     "kmeans_retrain_stale": NOTIF_ID_KMEANS_RETRAIN_STALE,
+    "energy_daily_anomaly": NOTIF_ID_ENERGY_DAILY_ANOMALY,
 }
 
 

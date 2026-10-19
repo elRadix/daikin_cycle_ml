@@ -70,7 +70,7 @@ def test_i18n_key_counts_equal():
         blk = d["options"]["step"]["notifications_enabled"]["data"]
         counts.append(len(blk))
     assert len(set(counts)) == 1, f"i18n parity mismatch: {counts}"
-    assert counts[0] == 10, f"expected 10 toggles, got {counts[0]}"
+    assert counts[0] == 11, f"expected 11 toggles, got {counts[0]}"
 
 # ---------- C3: schema / titles / advice ----------
 
