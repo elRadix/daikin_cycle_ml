@@ -397,6 +397,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._kmeans_stale: dict[str, Any] = {}
         # I6: energy_daily_anomaly cache (refreshed in _refresh_7d_rollups)
         self._energy_daily_anomaly: dict[str, Any] = {}
+        # J: avg_duration_7d_min cache (refreshed in _refresh_7d_rollups)
+        self._avg_duration_7d_min: int | None = None
         self._alert_store: Any = None
         self._alert_save_unsub: Any = None
         self._setpoint_history: deque[tuple[float, float]] = deque()
@@ -2262,6 +2264,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._persist_energy_baseline()
             # I6: energy_daily_anomaly cache (same pattern)
             self._energy_daily_anomaly = await self._compute_energy_daily_anomaly()
+            self._avg_duration_7d_min = await self._compute_avg_duration_7d_min()
         except Exception:
             _LOGGER.exception("7d rollup refresh failed")
 
@@ -2930,6 +2933,23 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.debug("last_duration_min failed", exc_info=True)
         return None
 
+    async def _compute_avg_duration_7d_min(self) -> int | None:
+        """Average cycle duration (minutes) over last 7d, or None."""
+        db = getattr(self, "db", None)
+        if db is None:
+            return None
+        getter = getattr(db, "async_avg_duration_since", None)
+        if getter is None:
+            return None
+        try:
+            avg_s = await getter(time.time() - (7 * 86400))
+        except Exception:
+            _LOGGER.debug("avg_duration_7d_min query failed", exc_info=True)
+            return None
+        if avg_s is None:
+            return None
+        return int(round(float(avg_s) / 60.0))
+
     def _build_alert_context(self, snap: Any) -> dict[str, Any]:
         opts = self.options or {}
         now = time.time()
@@ -3006,6 +3026,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         _ce = getattr(self, "config_entry", None)
         _ks = getattr(self, "_kmeans_stale", {}) or {}
         _ea = getattr(self, "_energy_daily_anomaly", {}) or {}
+        _ad = getattr(self, "_avg_duration_7d_min", None)
         ctx = {
             "pendulum": {
                 "target_cph": opts.get("pendulum_cycles_per_hour", 4),
@@ -3021,6 +3042,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "cph": cph, "cycles_today": cyc_today,
                 "mode": mode_str, "lwt_setpoint": _f(lwt_set),
                 "last_duration_min": avg_dur,
+                "avg_duration_7d_min": _ad,
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "pendulum_daily": {
@@ -3029,6 +3051,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "cph": cph, "cycles_today": cyc_today,
                 "mode": mode_str, "lwt_setpoint": _f(lwt_set),
                 "last_duration_min": avg_dur,
+                "avg_duration_7d_min": _ad,
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "short_run": {
@@ -3048,6 +3071,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "ml_anomaly": {
                 "mode": mode_str, "z_max": None, "top_dim": None,
                 "last_duration_min": avg_dur,
+                "avg_duration_7d_min": _ad,
                 "outdoor": _f(out_t), "advice": advice_text,
             },
             "setpoint_osc": {

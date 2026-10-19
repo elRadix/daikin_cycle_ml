@@ -340,7 +340,7 @@ ALERT_LABELS = {
         "changes": "Changes", "window": "Window",
         "lwt_setpoint": "LWT setpoint", "lwt_target": "LWT target",
         "lwt_actual": "LWT actual", "outdoor": "Outdoor",
-        "last_duration": "Last duration", "delta_max": "Setpoint swing",
+        "last_duration": "Last duration", "avg_duration_7d": "Avg duration 7d", "delta_max": "Setpoint swing",
         "cop": "COP", "severity": "Severity",
         "indoor": "Indoor", "flow": "Flow",
         "week_pct": "Week", "threshold_pct": "Threshold",
@@ -375,7 +375,7 @@ ALERT_LABELS = {
         "changes": "Wijzigingen", "window": "Venster",
         "lwt_setpoint": "LWT setpoint", "lwt_target": "LWT doel",
         "lwt_actual": "LWT actueel", "outdoor": "Buiten",
-        "last_duration": "Laatste duur", "delta_max": "Setpoint-swing",
+        "last_duration": "Laatste duur", "avg_duration_7d": "Gem. duur 7d", "delta_max": "Setpoint-swing",
         "cop": "COP", "severity": "Ernst",
         "indoor": "Binnen", "flow": "Flow",
         "week_pct": "Week", "threshold_pct": "Drempel",
@@ -412,6 +412,7 @@ ALERT_SCHEMA = {
         ("\U0001F501", "mode", "{mode}"),
         ("\U0001F321\uFE0F", "lwt_setpoint", "{lwt_setpoint} \u00b0C"),
         ("\u23F1\uFE0F", "last_duration", "{last_duration_min} min"),
+        ("\u23F1\uFE0F", "avg_duration_7d", "{avg_duration_7d_min} min"),
         ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
     ],
     "pendulum_daily": [
@@ -420,6 +421,7 @@ ALERT_SCHEMA = {
         ("\U0001F501", "mode", "{mode}"),
         ("\U0001F321\uFE0F", "lwt_setpoint", "{lwt_setpoint} \u00b0C"),
         ("\u23F1\uFE0F", "last_duration", "{last_duration_min} min"),
+        ("\u23F1\uFE0F", "avg_duration_7d", "{avg_duration_7d_min} min"),
         ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
     ],
     "short_run": [
@@ -447,6 +449,7 @@ ALERT_SCHEMA = {
         ("\U0001F4C8", "zscore", "{z_max}"),
         ("\U0001F3AF", "top_dim", "{top_dim}"),
         ("\u23F1\uFE0F", "last_duration", "{last_duration_min} min"),
+        ("\u23F1\uFE0F", "avg_duration_7d", "{avg_duration_7d_min} min"),
         ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
     ],
     "setpoint_osc": [
