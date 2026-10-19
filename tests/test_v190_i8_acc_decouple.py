@@ -103,7 +103,9 @@ def _stub_update(c):
 
 @pytest.mark.asyncio
 async def test_update_persist_both_stale():
-    c = _bare(); c.db = AsyncMock(); c.db.async_set_model_state = AsyncMock()
+    c = _bare()
+    c.db = AsyncMock()
+    c.db.async_set_model_state = AsyncMock()
     _stub_update(c)
     c._runtime_day_key = "2020-01-01"
     c._energy_day_key = "2020-01-01"
@@ -113,7 +115,9 @@ async def test_update_persist_both_stale():
 
 @pytest.mark.asyncio
 async def test_update_persist_energy_only_when_runtime_empty():
-    c = _bare(); c.db = AsyncMock(); c.db.async_set_model_state = AsyncMock()
+    c = _bare()
+    c.db = AsyncMock()
+    c.db.async_set_model_state = AsyncMock()
     _stub_update(c)
     c._runtime_day_key = ""
     c._energy_day_key = "2020-01-01"
@@ -124,7 +128,9 @@ async def test_update_persist_energy_only_when_runtime_empty():
 
 @pytest.mark.asyncio
 async def test_update_persist_runtime_only_when_energy_empty():
-    c = _bare(); c.db = AsyncMock(); c.db.async_set_model_state = AsyncMock()
+    c = _bare()
+    c.db = AsyncMock()
+    c.db.async_set_model_state = AsyncMock()
     _stub_update(c)
     c._runtime_day_key = "2020-01-01"
     c._energy_day_key = ""
