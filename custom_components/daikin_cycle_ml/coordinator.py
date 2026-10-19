@@ -64,6 +64,9 @@ from .const import (
     DEFAULT_ALERT_RETENTION_DAYS,
     DEFAULT_CYCLE_RETENTION_DAYS,
     KMEANS_STALE_AFTER_DAYS,
+    ENERGY_ANOMALY_FLOOR_KWH,
+    ENERGY_ANOMALY_MIN_DAYS,
+    ENERGY_ANOMALY_SIGMA_THRESHOLD,
 )
 from .engine.cop_degradation import (
     analyze_degradation,
@@ -392,6 +395,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._db_retention_stale: dict[str, Any] = {}
         # I2: kmeans_retrain_stale cache (refreshed in _refresh_7d_rollups)
         self._kmeans_stale: dict[str, Any] = {}
+        # I6: energy_daily_anomaly cache (refreshed in _refresh_7d_rollups)
+        self._energy_daily_anomaly: dict[str, Any] = {}
         self._alert_store: Any = None
         self._alert_save_unsub: Any = None
         self._setpoint_history: deque[tuple[float, float]] = deque()
@@ -2253,6 +2258,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._db_retention_stale = await self._compute_db_retention_stale()
             # I2: kmeans_retrain_stale cache (same pattern, helper swallows exceptions)
             self._kmeans_stale = await self._compute_kmeans_stale()
+            # I6: finalize yesterday's baseline (before compute uses it)
+            await self._persist_energy_baseline()
+            # I6: energy_daily_anomaly cache (same pattern)
+            self._energy_daily_anomaly = await self._compute_energy_daily_anomaly()
         except Exception:
             _LOGGER.exception("7d rollup refresh failed")
 
@@ -2340,6 +2349,199 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("kmeans stale count failed")
             return {}
+
+    async def _compute_energy_daily_anomaly(self) -> dict[str, Any]:
+        """I6: compute today's electrical energy anomaly vs per-mode baseline.
+
+        Always populates candidate fields (mode, today_el_kwh, baseline_el_mean,
+        baseline_el_sigma, z_score, samples) from the most-relevant mode even
+        when the alert does not fire, so Test-all and diagnostics show real
+        current state instead of zeros.
+
+        Display candidate = highest today_el_kwh.
+        Fire candidate    = highest z-score among modes passing all gates
+                            (n >= MIN_DAYS, sigma > 0, today_el >= FLOOR,
+                            z > SIGMA_THRESHOLD).
+        If a fire candidate exists, it drives the result and fired=True.
+        Else the display candidate drives the result with fired=False.
+        If no candidate at all (all energies corrupt), returns zero-dict.
+
+        Returns {} on DB failure/no-DB so transient errors leave the
+        previous cache in place (matches I1/I2 suppression pattern).
+        """
+        _db = getattr(self, "db", None)
+        if _db is None:
+            return {}
+        try:
+            baseline_state = await _db.async_get_model_state(
+                "thermal_daily_baseline", default={}
+            ) or {}
+            if not isinstance(baseline_state, dict):
+                return {}
+
+            today = time.strftime("%Y-%m-%d", time.localtime())
+            energy_today = await _db.async_get_model_state(
+                f"energy_acc.{today}", default={}
+            ) or {}
+            if not isinstance(energy_today, dict):
+                return {}
+
+            best_display: dict[str, Any] | None = None
+            best_display_el = -1.0
+            best_fire: dict[str, Any] | None = None
+            best_fire_z = 0.0
+
+            for mode in ("heating", "dhw", "cooling"):
+                try:
+                    today_el = float(
+                        energy_today.get(f"{mode}_el_kwh", 0.0) or 0.0
+                    )
+                except (TypeError, ValueError):
+                    continue
+
+                n = 0
+                mean = 0.0
+                sigma = 0.0
+                b = baseline_state.get(mode)
+                if isinstance(b, dict):
+                    try:
+                        n = int(b.get("n", 0) or 0)
+                        mean = float(b.get("mean", 0.0) or 0.0)
+                        m2 = float(b.get("m2", 0.0) or 0.0)
+                    except (TypeError, ValueError):
+                        n, mean, m2 = 0, 0.0, 0.0
+                    sigma = (m2 / n) ** 0.5 if n > 0 else 0.0
+
+                z = (today_el - mean) / sigma if sigma > 0 else 0.0
+                candidate = {
+                    "mode": mode,
+                    "today_el_kwh": round(today_el, 2),
+                    "baseline_el_mean": round(mean, 2),
+                    "baseline_el_sigma": round(sigma, 2),
+                    "z_score": round(z, 2),
+                    "samples": n,
+                }
+
+                if today_el > best_display_el:
+                    best_display = candidate
+                    best_display_el = today_el
+
+                if n < ENERGY_ANOMALY_MIN_DAYS:
+                    continue
+                if sigma <= 0.0:
+                    continue
+                if today_el < ENERGY_ANOMALY_FLOOR_KWH:
+                    continue
+                if z <= ENERGY_ANOMALY_SIGMA_THRESHOLD:
+                    continue
+                if best_fire is None or z > best_fire_z:
+                    best_fire = candidate
+                    best_fire_z = z
+
+            if best_fire is not None:
+                result = dict(best_fire)
+                result["fired"] = True
+            elif best_display is not None:
+                result = dict(best_display)
+                result["fired"] = False
+            else:
+                result = {
+                    "fired": False,
+                    "mode": None,
+                    "today_el_kwh": 0.0,
+                    "baseline_el_mean": 0.0,
+                    "baseline_el_sigma": 0.0,
+                    "z_score": 0.0,
+                    "samples": 0,
+                }
+            result["threshold_sigma"] = ENERGY_ANOMALY_SIGMA_THRESHOLD
+            return result
+        except Exception:
+            _LOGGER.exception("energy anomaly count failed")
+            return {}
+
+    async def _persist_energy_baseline(self) -> None:
+        """I6: finalize yesterday's electrical kWh into per-mode Welford baseline.
+
+        Runs from _refresh_7d_rollups (1h tick). For each mode, if
+        last_day in thermal_daily_baseline != yesterday, read
+        energy_acc.<yesterday> from model_state and Welford-update the
+        {mean, m2, n, last_day} state, then persist.
+
+        Gap-skip: if energy_acc.<yesterday> is missing (restart, outage),
+        it is treated as empty (all modes zero); last_day advances without
+        a Welford update so the gap is skipped, not retried. If a single
+        mode's value is 0 or corrupt, only that mode's last_day advances
+        with no update. Matches design decision "skip gaps silently".
+
+        Never raises; DB failures leave baseline untouched.
+        """
+        _db = getattr(self, "db", None)
+        if _db is None:
+            return
+        try:
+            state = await _db.async_get_model_state(
+                "thermal_daily_baseline", default={}
+            ) or {}
+            if not isinstance(state, dict):
+                state = {}
+
+            # Ensure every mode key exists
+            for mode in ("heating", "dhw", "cooling"):
+                if not isinstance(state.get(mode), dict):
+                    state[mode] = {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": ""}
+
+            # Yesterday's local-day key (matches _energy_day_key convention)
+            yesterday = time.strftime(
+                "%Y-%m-%d", time.localtime(time.time() - 86400.0)
+            )
+
+            energy_y = await _db.async_get_model_state(
+                f"energy_acc.{yesterday}", default={}
+            ) or {}
+            if not isinstance(energy_y, dict):
+                return
+
+            changed = False
+            for mode in ("heating", "dhw", "cooling"):
+                b = state[mode]
+                if b.get("last_day") == yesterday:
+                    continue  # already finalized
+                try:
+                    x = float(energy_y.get(f"{mode}_el_kwh", 0.0) or 0.0)
+                except (TypeError, ValueError):
+                    continue
+                if x <= 0.0:
+                    # Nothing to contribute; still advance last_day to avoid
+                    # repeatedly scanning the same empty day.
+                    b["last_day"] = yesterday
+                    changed = True
+                    continue
+                # Welford update
+                try:
+                    n = int(b.get("n", 0) or 0)
+                    mean = float(b.get("mean", 0.0) or 0.0)
+                    m2 = float(b.get("m2", 0.0) or 0.0)
+                except (TypeError, ValueError):
+                    n, mean, m2 = 0, 0.0, 0.0
+                n_new = n + 1
+                delta = x - mean
+                mean_new = mean + delta / n_new
+                delta2 = x - mean_new
+                m2_new = m2 + delta * delta2
+                b["mean"] = mean_new
+                b["m2"] = m2_new
+                b["n"] = n_new
+                b["last_day"] = yesterday
+                changed = True
+
+            if changed:
+                await _db.async_set_model_state("thermal_daily_baseline", state)
+        except Exception:
+            _LOGGER.exception("energy baseline finalize failed")
+            return
+
+
 
     def _alert_binary_states(self, snap: DataSnapshot) -> dict[str, bool]:
         """Snapshot the 4 alert-relevant binary states."""
@@ -2434,6 +2636,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             ),
             "kmeans_retrain_stale": bool(
                 getattr(self, "_kmeans_stale", {}).get("fired", False)
+            ),
+            "energy_daily_anomaly": bool(
+                getattr(self, "_energy_daily_anomaly", {}).get("fired", False)
             ),
         }
 
@@ -2800,6 +3005,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
         _ce = getattr(self, "config_entry", None)
         _ks = getattr(self, "_kmeans_stale", {}) or {}
+        _ea = getattr(self, "_energy_daily_anomaly", {}) or {}
         ctx = {
             "pendulum": {
                 "target_cph": opts.get("pendulum_cycles_per_hour", 4),
@@ -2969,8 +3175,29 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     str(opts.get("language", "en") or "en"),
                 ),
             },
+            "energy_daily_anomaly": {
+                "mode": (_ea.get("mode") or mode_str or "\u2014"),
+                "today_el_kwh": float(_ea.get("today_el_kwh", 0.0) or 0.0),
+                "baseline_el_mean": float(_ea.get("baseline_el_mean", 0.0) or 0.0),
+                "baseline_el_sigma": float(_ea.get("baseline_el_sigma", 0.0) or 0.0),
+                "z_score": float(_ea.get("z_score", 0.0) or 0.0),
+                "advice": "",
+            },
         }
+        # Resolve last cycle record: prefer per-tick snap.last_record
+        # (set on cycle-completion ticks), fall back to persisted store
+        # for non-completion ticks. Fixes duration_min showing em-dash
+        # despite sensor.last_cycle rendering real data.
         last = getattr(snap, "last_record", None) if snap is not None else None
+        if not isinstance(last, dict) or not isinstance(
+            last.get("duration_s"), (int, float)
+        ):
+            try:
+                _store_last = self.store.last_cycle()
+                if isinstance(_store_last, dict):
+                    last = _store_last
+            except Exception:
+                pass
         if isinstance(last, dict):
             dur = last.get("duration_s")
             if dur is not None:

@@ -305,6 +305,7 @@ ALERT_TITLES = {
         "cop_vs_datasheet_low": "COP below datasheet",
         "db_retention_warning": "Database retention warning",
         "kmeans_retrain_stale": "K-means retrain stale",
+        "energy_daily_anomaly": "Energy daily anomaly",
     },
     "nl": {
         "pendulum_hourly": "Pendelen gedetecteerd (per uur)",
@@ -325,6 +326,7 @@ ALERT_TITLES = {
         "cop_vs_datasheet_low": "COP onder datasheet",
         "db_retention_warning": "Database-retentie waarschuwing",
         "kmeans_retrain_stale": "K-means hertraining verouderd",
+        "energy_daily_anomaly": "Energie-dagelijkse afwijking",
     },
 }
 
@@ -359,6 +361,10 @@ ALERT_LABELS = {
         "dhw_cph": "DHW cycles/h", "target_cph": "Target",
         "multiplier": "Multiplier", "pct_diff": "Diff",
         "cop_expected": "Expected",
+        "today_el_kwh": "Today kWh",
+        "baseline_el_mean": "Baseline mean",
+        "baseline_el_sigma": "Baseline sigma",
+        "z_score": "Z-score",
     },
     "nl": {
         "cycles_hour": "Cycli / uur", "target_hour": "Doel",
@@ -391,6 +397,10 @@ ALERT_LABELS = {
         "dhw_cph": "SWW-cycli/uur", "target_cph": "Doel",
         "multiplier": "Factor", "pct_diff": "Verschil",
         "cop_expected": "Verwacht",
+        "today_el_kwh": "Vandaag kWh",
+        "baseline_el_mean": "Baseline gemiddelde",
+        "baseline_el_sigma": "Baseline sigma",
+        "z_score": "Z-score",
     },
 }
 
@@ -513,6 +523,13 @@ ALERT_SCHEMA = {
         ("\U0001F4CB", "last_failure_reason", "{last_failure_reason}"),
         ("\U0001F501", "mode", "{mode}"),
     ],
+    "energy_daily_anomaly": [
+        ("\u26A1\uFE0F", "today_el_kwh", "{today_el_kwh} kWh"),
+        ("\U0001F4CA", "baseline_el_mean", "{baseline_el_mean} kWh"),
+        ("\U0001F4C8", "baseline_el_sigma", "\u00b1 {baseline_el_sigma} kWh"),
+        ("\U0001F4CF", "z_score", "{z_score}\u03c3"),
+        ("\U0001F501", "mode", "{mode}"),
+    ],
 }
 
 
@@ -606,6 +623,7 @@ ALERT_ADVICE = {
         "db_retention_warning": ("\u2022 Database not being pruned. Check that "
             "maintenance runs at 03:00 local and no manual runs have failed."),
         "kmeans_retrain_stale": ("\u2022 Weekly retrain has not succeeded in 14+ days. Run daikin_cycle_ml.recompute_kmeans from Developer Tools \u2192 Services, or restart HA Core."),
+        "energy_daily_anomaly": ("\u2022 Daily electrical energy is more than 2 sigma above the 30-day baseline. Check for excessive demand, stuck valves, or unusual operating conditions."),
     },
     "nl": {
         "pendulum_hourly": ("\u2022 Controleer setpoint-delta, hysterese en "
@@ -640,6 +658,7 @@ ALERT_ADVICE = {
             "Controleer of onderhoud draait (03:00 lokaal) en geen "
             "handmatige runs zijn mislukt."),
         "kmeans_retrain_stale": ("\u2022 Wekelijkse hertraining is al 14+ dagen niet gelukt. Voer daikin_cycle_ml.recompute_kmeans uit via Developer Tools \u2192 Services, of herstart HA Core."),
+        "energy_daily_anomaly": ("\u2022 Dagelijkse elektrische energie is meer dan 2 sigma boven de 30-daagse baseline. Controleer op overmatige vraag, vastgelopen kleppen of ongewone omstandigheden."),
     },
 }
 
