@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.1] - 2026-10-20
+
+### Fixed
+
+- Energy accumulators reset to 0 on HA reboot. Root cause: silent failure in `_restore_energy_acc` / `_restore_runtime_acc` on boot left `_day_key` empty; first tick zeroed memory and persist overwrote the DB row with zeros. Three-layer fix: self-healing persist (restore from DB if DB > memory before overwrite), retry restore in `_async_update_data`, and WARNING logs on the silent restore paths. Prevents the boot-wipe loop even if restore keeps failing for any future reason.
+
+### Added
+
+- 9 new tests in `tests/test_v191_energy_acc_self_healing.py` covering the self-healing persist, retry, and logging branches (both runtime and energy paths).
+
 ## [1.9.0] - 2026-10-20
 
 Alerts v2, 3 new P3 alerts, and full documentation restructure.
