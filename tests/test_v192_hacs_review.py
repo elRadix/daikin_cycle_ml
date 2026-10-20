@@ -104,3 +104,29 @@ def test_flatten_empty_passthrough():
     from custom_components.daikin_cycle_ml.config_flow import _flatten_notify_choice
     assert _flatten_notify_choice(None) == ""
     assert _flatten_notify_choice("") == ""
+
+
+
+def test_async_setup_database_uses_executor(monkeypatch, tmp_path):
+    import custom_components.daikin_cycle_ml as init_mod
+    calls = []
+    async def fake_exec(fn, *a, **kw):
+        calls.append(fn)
+        return fn()
+    h = MagicMock()
+    h.config.config_dir = str(tmp_path)
+    h.async_add_executor_job = fake_exec
+    class FakeDB:
+        def __init__(self, p): pass
+        async def async_open(self): pass
+        async def async_initialize(self): pass
+        async def async_migrate_features_to_v11(self): return 0
+        async def async_migrate_features_to_v12(self): pass
+        def __getattr__(self, name):
+            async def _noop(*a, **kw): return None
+            return _noop
+    monkeypatch.setattr(init_mod, 'CycleDB', FakeDB)
+    coord = MagicMock()
+    coord._migration_error = None
+    asyncio.run(init_mod._async_setup_database(h, coord))
+    assert len(calls) >= 1
