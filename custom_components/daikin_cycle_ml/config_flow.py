@@ -179,6 +179,13 @@ def _default_notify_choice(hass: HomeAssistant, current: Any) -> str | None:
 
 
 def _flatten_notify_choice(value: Any) -> str:
+    r = _flatten_notify_choice_impl(value)
+    if r and not r.startswith("notify."):
+        return ""
+    return r
+
+
+def _flatten_notify_choice_impl(value: Any) -> str:
     if value is None:
         return ""
     if isinstance(value, str):

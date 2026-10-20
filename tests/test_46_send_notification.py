@@ -86,7 +86,7 @@ def test_legacy_async_services_raises():
 def test_generic_domain_fallback():
     h = _hass_no_entity({})
     ok = asyncio.run(async_send_notification(h, 'persistent_notification.create', 'hi'))
-    assert ok is True
+    assert ok is False
 
 
 def test_generic_domain_fallback_exception():

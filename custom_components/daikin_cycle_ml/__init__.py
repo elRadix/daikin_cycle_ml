@@ -51,7 +51,11 @@ async def _async_setup_database(
     """Open + initialize SQLite DB, attach to coordinator (best-effort)."""
     db_path = Path(hass.config.config_dir) / DB_RELATIVE
     try:
-        db_path.parent.mkdir(parents=True, exist_ok=True)
+        await hass.async_add_executor_job(
+            lambda: db_path.parent.mkdir(
+                parents=True, exist_ok=True
+            )
+        )
         db = CycleDB(db_path)
         await db.async_open()
         await db.async_initialize()

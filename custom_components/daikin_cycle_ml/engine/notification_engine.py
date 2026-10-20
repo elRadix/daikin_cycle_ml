@@ -410,12 +410,8 @@ async def async_send_notification(
     except Exception:
         _LOGGER.debug("notify entity path failed", exc_info=True)
     if _domain != "notify":
-        try:
-            await hass.services.async_call(
-                _domain, _name, {"message": message},
-                blocking=False,
-            )
-            return True
-        except Exception:
-            return False
+        _LOGGER.warning(
+            "Refused non-notify target %s", target
+        )
+        return False
     return False

@@ -147,6 +147,7 @@ async def test_migration_runs_through_real_registry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """_migrate_entity_ids must rename legacy slugs in the real registry."""
+    from custom_components.daikin_cycle_ml import sensor as _sensor_mod
     registry = er.async_get(hass)
 
     legacy = registry.async_get_or_create(
@@ -160,6 +161,13 @@ async def test_migration_runs_through_real_registry(
             legacy.entity_id, new_entity_id="sensor.daikin_cycle_ml",
         )
     assert registry.async_get("sensor.daikin_cycle_ml") is not None
+
+    _real = _sensor_mod.er.async_entries_for_config_entry
+    def _owned(reg, eid):
+        if eid == "r194_mig_test":
+            return [legacy]
+        return _real(reg, eid)
+    monkeypatch.setattr(_sensor_mod.er, "async_entries_for_config_entry", _owned)
 
     await _setup_integration(hass, monkeypatch, entry_id="r194_mig_test")
 
@@ -175,6 +183,7 @@ async def test_v140_key_rename_migrates_through_real_registry(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """v1.4.0: _migrate_entity_ids renames legacy keys via real registry."""
+    from custom_components.daikin_cycle_ml import sensor as _sensor_mod
     registry = er.async_get(hass)
     entry_id = "r140_key_mig"
     pairs = (
@@ -183,6 +192,7 @@ async def test_v140_key_rename_migrates_through_real_registry(
         ("stooklijn_advies", "heating_curve_advice"),
     )
 
+    legacies = []
     for old_key, _new_key in pairs:
         legacy = registry.async_get_or_create(
             domain="sensor",
@@ -191,6 +201,14 @@ async def test_v140_key_rename_migrates_through_real_registry(
             suggested_object_id="daikin_cycle_ml_%s" % old_key,
         )
         assert legacy.entity_id == "sensor.daikin_cycle_ml_%s" % old_key
+        legacies.append(legacy)
+
+    _real = _sensor_mod.er.async_entries_for_config_entry
+    def _owned(reg, eid):
+        if eid == entry_id:
+            return legacies
+        return _real(reg, eid)
+    monkeypatch.setattr(_sensor_mod.er, "async_entries_for_config_entry", _owned)
 
     await _setup_integration(hass, monkeypatch, entry_id=entry_id)
 
