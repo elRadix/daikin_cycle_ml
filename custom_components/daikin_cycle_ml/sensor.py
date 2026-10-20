@@ -30,6 +30,7 @@ from .const import (
     UPDATE_INTERVAL_SECONDS,
 )
 from .const import buh_step_kw_for_model as _buh_step_kw_for_model
+from .const import DOMAIN
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
 from .engine.thermal import (
     compute_thermal_power_live as _compute_thermal_power_live,
@@ -1317,6 +1318,15 @@ def _migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
       same registry row (no orphan).
     """
     registry = er.async_get(hass)
+    entry_id = entry.entry_id
+    entry_domain = entry.domain
+    owned = {
+        e.entity_id
+        for e in er.async_entries_for_config_entry(
+            registry, entry_id
+        )
+        if e.platform == DOMAIN
+    }
 
     # v1.3.1 slug-only fixes (unique_id unchanged).
     slug_fixes = {
@@ -1326,12 +1336,10 @@ def _migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
         "sensor.daikin_cycle_ml_cop_curve_48h": "sensor.daikin_cycle_ml_cop_curve_recent",
     }
     for old_eid, new_eid in slug_fixes.items():
-        if registry.async_get(old_eid) and not registry.async_get(new_eid):
+        if old_eid in owned and registry.async_get(new_eid) is None:
             registry.async_update_entity(old_eid, new_entity_id=new_eid)
 
     # v1.4.0 key renames: entity_id + unique_id + translation_key.
-    entry_id = entry.entry_id
-    entry_domain = entry.domain
     key_fixes = {
         "today": "cycles_today",
         "cop_vandaag": "cop_today",
@@ -1340,7 +1348,7 @@ def _migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
     for old_key, new_key in key_fixes.items():
         old_eid = "sensor.daikin_cycle_ml_" + old_key
         new_eid = "sensor.daikin_cycle_ml_" + new_key
-        if registry.async_get(old_eid) and not registry.async_get(new_eid):
+        if old_eid in owned and registry.async_get(new_eid) is None:
             registry.async_update_entity(
                 old_eid,
                 new_entity_id=new_eid,

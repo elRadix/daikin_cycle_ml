@@ -130,3 +130,44 @@ def test_async_setup_database_uses_executor(monkeypatch, tmp_path):
     coord._migration_error = None
     asyncio.run(init_mod._async_setup_database(h, coord))
     assert len(calls) >= 1
+
+
+
+async def test_migrate_skips_foreign_entity(hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from homeassistant.helpers import entity_registry as er
+    from custom_components.daikin_cycle_ml.const import DOMAIN
+    from custom_components.daikin_cycle_ml.sensor import _migrate_entity_ids
+    foreign = MockConfigEntry(domain=DOMAIN, entry_id='foreign1', data={})
+    foreign.add_to_hass(hass)
+    own = MockConfigEntry(domain=DOMAIN, entry_id='own1', data={})
+    own.add_to_hass(hass)
+    reg = er.async_get(hass)
+    reg.async_get_or_create(
+        'sensor', DOMAIN, 'foreign_uq', suggested_object_id='daikin_cycle_ml_today',
+        config_entry=foreign,
+    )
+    _migrate_entity_ids(hass, own)
+    after = reg.async_get('sensor.daikin_cycle_ml_today')
+    assert after is not None
+    assert after.config_entry_id == 'foreign1'
+    assert after.unique_id == 'foreign_uq'
+
+
+async def test_migrate_renames_own_entity(hass):
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from homeassistant.helpers import entity_registry as er
+    from custom_components.daikin_cycle_ml.const import DOMAIN
+    from custom_components.daikin_cycle_ml.sensor import _migrate_entity_ids
+    own = MockConfigEntry(domain=DOMAIN, entry_id='own1', data={})
+    own.add_to_hass(hass)
+    reg = er.async_get(hass)
+    reg.async_get_or_create(
+        'sensor', DOMAIN, 'own_uq', suggested_object_id='daikin_cycle_ml_today',
+        config_entry=own,
+    )
+    _migrate_entity_ids(hass, own)
+    assert reg.async_get('sensor.daikin_cycle_ml_today') is None
+    new = reg.async_get('sensor.daikin_cycle_ml_cycles_today')
+    assert new is not None
+    assert new.unique_id == 'daikin_cycle_ml_own1_cycles_today'
