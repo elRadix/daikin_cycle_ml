@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -12,11 +11,6 @@ from custom_components.daikin_cycle_ml.engine.attribute_reader import read
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "custom_components" / "daikin_cycle_ml" / "manifest.json"
 
-
-def test_categories_present_and_bounded():
-    cats = json.loads(MANIFEST.read_text())["categories"]
-    assert cats == ["climate.heat_pumps_air_conditioning", "energy"]
-    assert 1 <= len(cats) <= 3
 
 
 def test_v2_input_keeps_legacy_keys():

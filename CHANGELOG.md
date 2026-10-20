@@ -3,11 +3,15 @@
 ## [1.11.0] - 2026-10-21
 
 ### Added
-- Manifest `categories` for the HA integration catalogue:
-  `climate.heat_pumps_air_conditioning`, `energy`.
 - ESPAltherma v2 attribute compatibility layer. Legacy v1 attributes are
   preserved; canonical v2 English names are materialised beside them.
   Lookup is tolerant of v2 punctuation/spacing and translated v1 labels.
+
+### Deferred
+- Manifest `categories` for the HA integration catalogue
+  (`climate.heat_pumps_air_conditioning`, `energy`) — deferred pending
+  `hassfest:latest` image update. Code/test ready; re-add once the image
+  schema includes the `categories` key.
 
 ### Compatibility
 - No entity or unique-ID changes. English v1 users are unaffected.
