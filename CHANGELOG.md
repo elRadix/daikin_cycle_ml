@@ -1,5 +1,47 @@
 # Changelog
 
+## [1.9.2] - 2026-10-20
+
+### Security
+
+- **`send_test_notification` target escalation** (hacs/default#11345 item 1).
+  `target` and the `notify_service` option accepted any `domain.service`,
+  which was then called via `hass.services.async_call(...)` with no user
+  context. A non-admin HA user could invoke admin-only services such as
+  `homeassistant.stop` through this path. Fixed at four layers: engine
+  rejects non-`notify.*` before dispatch; schema requires `notify.*` prefix;
+  handler returns `{"ok": false, "error": ...}` on a bad option; config
+  flow sanitizes non-`notify.*` to empty. Anyone relying on the old
+  behaviour was invoking the vulnerability.
+
+- **`_migrate_entity_ids` wrong-row rename** (item 2). The migration looked
+  up entities by entity-id string without verifying they belong to this
+  config entry, so with a second config entry it could rename foreign rows
+  and inject this entry's `unique_id`. Fixed via
+  `er.async_entries_for_config_entry(registry, entry_id)` plus a
+  `platform == DOMAIN` filter. Closes the migration-path class of #75.
+  Orphaned entities with `config_entry_id=None` will no longer be renamed;
+  manual cleanup in the entity registry is the correct remediation. This
+  is the fix, not a regression.
+
+### Fixed
+
+- **`mkdir` on event loop** (item 3). `_async_setup_database` called
+  `db_path.parent.mkdir(...)` synchronously. Moved to
+  `hass.async_add_executor_job`.
+
+### Changed
+
+- **README install order** (item 4). HACS catalog search is now the primary
+  path; custom-repository is a labeled fallback (the integration is not
+  yet in the default catalog; submission pending in hacs/default#11345).
+
+### Tests
+
+- 15 new tests in `tests/test_v192_hacs_review.py` covering all four guards.
+  Three existing tests updated to declare entity ownership; one existing
+  test assertion encoded the pre-fix vulnerability as expected behaviour.
+
 ## [1.9.1] - 2026-10-20
 
 ### Fixed
@@ -1856,7 +1898,10 @@ Versioning: https://semver.org/spec/v2.0.0.html
 
 - db.py: maintenance deletes features before cycles (FK-safe)
 
-[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.8.1...HEAD
+[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.2...HEAD
+[1.9.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.1...v1.9.2
+[1.9.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.0...v1.9.1
+[1.9.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.7.2...v1.8.0
 [1.6.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0

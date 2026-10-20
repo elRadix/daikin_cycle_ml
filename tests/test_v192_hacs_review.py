@@ -64,16 +64,19 @@ def test_schema_accepts_notify_target():
 
 def test_handler_refuses_option_injected_target(monkeypatch):
     from custom_components.daikin_cycle_ml import services as svc
-    bad = MagicMock(); bad.options = {"notify_service": "light.turn_on"}
+    bad = MagicMock()
+    bad.options = {"notify_service": "light.turn_on"}
     monkeypatch.setattr(svc, "_resolve_optional_coordinator", lambda h, e: bad)
-    c = MagicMock(); c.data = {"target": None, "entry_id": None, "alert_kind": None}
+    c = MagicMock()
+    c.data = {"target": None, "entry_id": None, "alert_kind": None}
     r = asyncio.run(svc._handle_send_test_notification(MagicMock(), c))
     assert r["ok"] is False and "notify" in r["error"]
 
 
 def test_handler_accepts_notify_target(monkeypatch):
     from custom_components.daikin_cycle_ml import services as svc
-    coord = MagicMock(); coord.options = {}
+    coord = MagicMock()
+    coord.options = {}
     monkeypatch.setattr(svc, "_resolve_optional_coordinator", lambda h, e: coord)
     async def fake(h, t, m): return True
     monkeypatch.setattr(
