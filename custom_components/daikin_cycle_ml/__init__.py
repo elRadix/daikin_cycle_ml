@@ -12,6 +12,8 @@ from homeassistant.helpers import config_validation as cv
 from .const import DOMAIN as DOMAIN
 from .const import VERSION as VERSION
 from .const import GOOD_CYCLE_MIN_SCORE as GOOD_CYCLE_MIN_SCORE
+from .const import DB_FILENAME as DB_FILENAME
+from .const import DB_FILENAME_TEMPLATE as DB_FILENAME_TEMPLATE
 from .engine.quality_scorer import score_cycle as _score_cycle
 from .coordinator import DaikinCycleMLCoordinator
 from .repairs import (
@@ -21,12 +23,12 @@ from .repairs import (
 from .services import async_register_services
 from .api import CopHourlyView
 from .storage.db import CycleDB
+from .storage.migration import async_migrate_legacy_db
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[str] = ["sensor", "binary_sensor"]
 
-DB_RELATIVE = Path(".storage") / "daikin_cycle_ml.db"
 
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -46,10 +48,30 @@ async def async_setup(hass: HomeAssistant, _config: dict[str, Any]) -> bool:
 
 
 async def _async_setup_database(
-    hass: HomeAssistant, coordinator: DaikinCycleMLCoordinator
+    hass: HomeAssistant,
+    coordinator: DaikinCycleMLCoordinator,
+    entry: ConfigEntry | None = None,
 ) -> None:
     """Open + initialize SQLite DB, attach to coordinator (best-effort)."""
-    db_path = Path(hass.config.config_dir) / DB_RELATIVE
+    if entry is not None:
+        migration = await async_migrate_legacy_db(hass, entry)
+        if migration.status == "error":
+            _LOGGER.warning(
+                "legacy DB migration error: %s", migration.error
+            )
+        elif migration.status == "multi":
+            _LOGGER.info(
+                "legacy DB assigned to %s",
+                migration.assigned_entry_id,
+            )
+    if entry is None:
+        db_path = Path(hass.config.config_dir) / ".storage" / DB_FILENAME
+    else:
+        db_path = (
+            Path(hass.config.config_dir)
+            / ".storage"
+            / DB_FILENAME_TEMPLATE.format(entry_id=entry.entry_id)
+        )
     try:
         await hass.async_add_executor_job(
             lambda: db_path.parent.mkdir(
@@ -155,7 +177,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as err:
         _LOGGER.exception("user datasheet store load failed")
         raise_datasheet_load_failed(hass, entry.entry_id, str(err))
-    await _async_setup_database(hass, coordinator)
+    await _async_setup_database(hass, coordinator, entry)
     await _async_backfill_quality(coordinator)
     await _async_hydrate_store(coordinator)
     try:
@@ -225,3 +247,37 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.exception("Failed closing Cycle DB")
     _LOGGER.info("Daikin Cycle ML unloaded entry %s", entry.entry_id)
     return True
+
+
+async def async_remove_entry(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
+    """Delete per-entry SQLite DB when the config entry is removed.
+
+    Fixes pre-existing orphan bug: prior to v1.10.0 the shared DB was
+    left on disk after entry removal. Now each entry cleans up its own
+    file. Legacy `.legacy-<ts>` and backup files are preserved - those
+    are user artifacts, not integration state.
+
+    Never raises. Log-and-continue on OSError.
+    """
+    from .storage.migration import _per_entry_db_path
+
+    db_path = _per_entry_db_path(hass, entry.entry_id)
+    if not db_path.exists():
+        _LOGGER.debug(
+            "per-entry DB %s already absent, nothing to remove", db_path
+        )
+        return
+    try:
+        await hass.async_add_executor_job(db_path.unlink)
+    except OSError:
+        _LOGGER.exception(
+            "failed to delete per-entry DB %s on entry removal", db_path
+        )
+        return
+    _LOGGER.info(
+        "per-entry DB %s deleted (entry %s removed)",
+        db_path,
+        entry.entry_id,
+    )

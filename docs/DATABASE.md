@@ -10,6 +10,56 @@ Cross-references: [CONFIGURATION.md](CONFIGURATION.md) (retention options), [ENT
 
 ---
 
+## Per-entry DB files (v1.10.0+)
+
+As of v1.10.0, each config entry has its own SQLite file. Schema is
+identical for every file; only the filename scoping changed.
+
+### File layout
+
+    /config/.storage/
+        daikin_cycle_ml_<entry_id>.db   per-entry live DB (v1.10.0+)
+        daikin_cycle_ml.db              legacy shared DB (pre-v1.10.0)
+        daikin_cycle_ml.db.legacy-<ts>  archived copy (archive_legacy_db)
+        .daikin_cycle_ml_v1100_migrated migration marker
+    /config/.daikin_backups/
+        daikin_cycle_ml.db.backup-<ts>  pre-migration backup
+
+### How migration works
+
+First async_setup_entry after upgrade calls
+storage.migration.async_migrate_legacy_db(hass, entry):
+
+1. Marker file exists -> already (idempotent)
+2. No legacy, but per-entry files exist -> already (recovery)
+3. No legacy, nothing else -> skipped
+4. Backup legacy to /config/.daikin_backups/
+5. Single-entry: rename daikin_cycle_ml.db -> daikin_cycle_ml_<id>.db
+6. Multi-entry: rename to oldest entry's per-entry file, raise
+   legacy_db_multi_entry repair issue for the other entries
+7. Verify file size unchanged after rename; rollback on mismatch
+8. Write marker file
+
+Migration never raises. All failures return MigrationResult with
+status="error" and a human-readable error field.
+
+### Diagnostics
+
+async_get_config_entry_diagnostics includes database.per_entry
+(per-entry file paths, sizes, table counts) and database.legacy
+(the legacy file if still present). Both use read-only sqlite3
+connections (?mode=ro), so diagnostics never trigger a schema
+migration on a file it is inspecting.
+
+### Manual operations
+
+- Inspect counts: sqlite3 /config/.storage/daikin_cycle_ml_<id>.db "SELECT COUNT(*) FROM cycles"
+- Export all tables: service daikin_cycle_ml.export_legacy_db
+- Archive: service daikin_cycle_ml.archive_legacy_db
+- Reassign: service daikin_cycle_ml.assign_legacy_db
+
+---
+
 ## Contents
 
 - [1. Storage overview](#1-storage-overview)

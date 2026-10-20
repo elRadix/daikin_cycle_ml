@@ -2,11 +2,15 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
+from pathlib import Path
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+
+from .const import DB_FILENAME, DB_FILENAME_TEMPLATE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -118,6 +122,71 @@ async def _cop_summary(coord: Any) -> dict[str, Any]:
     return out
 
 
+
+def _count_tables_sync(db_path: Path) -> dict[str, int]:
+    """Read-only table counts for one DB file. Never raises."""
+    counts: dict[str, int] = {}
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    except sqlite3.Error:
+        return counts
+    try:
+        for table in DB_TABLES:
+            try:
+                cur = conn.execute(f"SELECT COUNT(*) FROM {table}")  # noqa: S608
+                row = cur.fetchone()
+                if row is not None:  # pragma: no branch
+                    counts[table] = int(row[0])
+            except sqlite3.OperationalError:
+                pass
+    finally:
+        conn.close()
+    return counts
+
+
+def _safe_size(path: Path) -> int:
+    """Return file size or 0 if stat() fails (e.g. file just vanished)."""
+    try:
+        return path.stat().st_size
+    except OSError:  # pragma: no cover
+        return 0
+
+
+async def _enum_db_files(hass: HomeAssistant) -> dict[str, Any]:
+    """Enumerate per-entry DB files + legacy DB in .storage/. Never raises."""
+    storage = Path(hass.config.config_dir) / ".storage"
+    pattern = DB_FILENAME_TEMPLATE.format(entry_id="*")
+
+    def _scan() -> dict[str, Any]:
+        per_entry: dict[str, Any] = {}
+        for f in storage.glob(pattern):
+            entry_id = f.stem.removeprefix("daikin_cycle_ml_")
+            size = _safe_size(f)
+            per_entry[entry_id] = {
+                "path": str(f),
+                "size_bytes": size,
+                "counts": _count_tables_sync(f),
+            }
+        legacy_path = storage / DB_FILENAME
+        legacy: dict[str, Any] | None = None
+        if legacy_path.exists():
+            size = _safe_size(legacy_path)
+            legacy = {
+                "path": str(legacy_path),
+                "size_bytes": size,
+                "counts": _count_tables_sync(legacy_path),
+            }
+        return {"per_entry": per_entry, "legacy": legacy}
+
+    try:
+        return await hass.async_add_executor_job(_scan)
+    except (OSError, TypeError):
+        # TypeError: MagicMock test env (async_add_executor_job not awaitable)
+        _LOGGER.debug("diagnostics: enum_db_files failed", exc_info=True)
+        return {"per_entry": {}, "legacy": None}
+
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> dict[str, Any]:
@@ -136,6 +205,7 @@ async def async_get_config_entry_diagnostics(
     attrs = getattr(snap, "attrs", {}) or {}
     attrs_sample = dict(list(attrs.items())[:ATTRS_SAMPLE_CAP])
 
+    db_files = await _enum_db_files(hass)
     return {
         "entry": {
             "entry_id": entry.entry_id,
@@ -169,5 +239,7 @@ async def async_get_config_entry_diagnostics(
             "is_open": bool(getattr(db, "is_open", False)),
             "counts": await _db_counts(db),
             "extra": await _db_extra(db),
+            "per_entry": db_files["per_entry"],
+            "legacy": db_files["legacy"],
         },
     }

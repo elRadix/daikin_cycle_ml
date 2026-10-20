@@ -17,6 +17,9 @@ EXPECTED_SERVICES = {
     "export_cop_hourly",
     "import_datasheet",
     "remove_user_datasheet",
+    "assign_legacy_db",
+    "archive_legacy_db",
+    "export_legacy_db",
 }
 
 

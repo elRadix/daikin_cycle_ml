@@ -4,7 +4,7 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 **Local-only. No cloud. No accounts.** Everything runs inside your Home Assistant box.
 
-[![Version](https://img.shields.io/badge/version-1.9.1-orange.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.9.1)
+[![Version](https://img.shields.io/badge/version-1.10.0-orange.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/tag/v1.10.0)
 [![Tests](https://img.shields.io/badge/tests-6724-brightgreen.svg)](#quality)
 [![Coverage](https://img.shields.io/badge/coverage-100.00%25-brightgreen.svg)](#quality)
 [![Ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)

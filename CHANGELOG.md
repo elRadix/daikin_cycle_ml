@@ -1,5 +1,87 @@
 # Changelog
 
+## [1.10.0] - 2026-10-20
+
+### Breaking changes
+
+- **Per-entry SQLite database file.** The integration historically used a
+  single shared `/config/.storage/daikin_cycle_ml.db` across all config
+  entries. Historical aggregate tables (`daily_summary`, `cop_hourly`,
+  `cop_samples`) had no `entry_id` scoping, so multi-entry users saw
+  cross-entry data leaks (issue #75). v1.10.0 splits the DB per config
+  entry: `daikin_cycle_ml_<entry_id>.db`.
+
+  **Single-entry users (majority):** silent automatic migration on first
+  setup after upgrade. Legacy file is backed up to `/config/.daikin_backups/`,
+  then renamed to per-entry file. Zero data loss, zero user action.
+
+  **Multi-entry users:** legacy file is assigned to the **oldest entry**
+  (by config-entry registration order). A repair issue
+  (`legacy_db_multi_entry`) appears, disclosing the auto-assignment and
+  pointing to three correction services: `assign_legacy_db`,
+  `archive_legacy_db`, `export_legacy_db`.
+
+  **Concurrent-usage limitation:** if both entries ran simultaneously on
+  the shared DB before v1.10.0, per-entry historical attribution is
+  unrecoverable — the data was physically interleaved. The repair issue
+  and export service make this visible and auditable. Single-entry and
+  new-install users are not affected.
+
+### Added
+
+- Per-entry SQLite database file `daikin_cycle_ml_<entry_id>.db` — issue #75.
+- `storage/migration.py`: idempotent, marker-guarded, backup-first
+  migration with size-verified rename and rollback on mismatch.
+- `daikin_cycle_ml.assign_legacy_db` service — move the per-entry DB from
+  one config entry to another. Fails if target already has its own.
+- `daikin_cycle_ml.archive_legacy_db` service — rename live per-entry DB
+  to `daikin_cycle_ml.db.legacy-<timestamp>`. Preserved for audit.
+- `daikin_cycle_ml.export_legacy_db` service — dump all 7 tables to CSV
+  plus `manifest.json` under `/config/daikin_cycle_ml_export_<entry>_<ts>/`.
+- Repair issue `legacy_db_multi_entry` — discloses auto-assignment for
+  multi-entry users and offers correction via the three services.
+- Diagnostics: `database.per_entry` enumerates every `daikin_cycle_ml_*.db`
+  file with per-entry file size and table counts. `database.legacy` is
+  reported when the legacy file exists.
+
+### Changed
+
+- `_async_setup_database` now takes a `ConfigEntry` parameter to resolve
+  the per-entry DB path. Third argument is optional (`None` = legacy path,
+  for backward compatibility with tests and external callers).
+- `services.yaml` new entries use the `config_entry:` selector instead of
+  `text: null`. Existing 10 services still use `text: null`; modernization
+  scheduled for a future release.
+
+### Fixed
+
+- Issue #75: historical COP/SPF aggregates shared across config entries.
+- `async_remove_entry` now deletes the per-entry DB on config-entry
+  removal. Previously no `async_remove_entry` handler existed at all, so
+  the shared DB was orphaned after every entry removal. User artifacts
+  (`.legacy-<ts>` and `.daikin_backups/`) are preserved.
+
+### Tests
+
+- `tests/test_v1100_per_entry_db.py` — migration paths, all branches,
+  marker-recovery, size-mismatch rollback.
+- `tests/test_v1100_legacy_db_services.py` (15 tests) — 3 services,
+  happy paths and error branches.
+- `tests/test_v1100_diag_per_entry.py` (6 tests) — per-entry enumeration,
+  read-only table counts.
+- `tests/test_v1100_setup_entry_migration.py` (1 test) — end-to-end
+  migration via `async_setup_entry`.
+- Total coverage: 7056 stmts / 2000 branches, **100.00%**.
+
+### Known limitations
+
+- Multi-entry users who ran entries concurrently before v1.10.0 cannot
+  recover per-entry historical attribution (physically unrecoverable).
+  Use `export_legacy_db` to audit, `archive_legacy_db` to start fresh.
+- Alerts store `daikin_cycle_ml.alerts` remains shared across entries.
+  Per-entry split tracked as follow-up issue. Impact: dedup windows are
+  cross-entry, no data corruption.
+
 ## [1.9.2] - 2026-10-20
 
 ### Security
@@ -1898,7 +1980,8 @@ Versioning: https://semver.org/spec/v2.0.0.html
 
 - db.py: maintenance deletes features before cycles (FK-safe)
 
-[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.2...HEAD
+[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.2...v1.10.0
 [1.9.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.8.1...v1.9.0

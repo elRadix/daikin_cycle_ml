@@ -5,8 +5,11 @@ import csv
 import io
 import json
 import logging
+import shutil
+import sqlite3
 import time
 from functools import partial
+from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
@@ -19,11 +22,12 @@ from homeassistant.core import (
 )
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import DOMAIN
+from .const import DB_FILENAME, DB_FILENAME_TEMPLATE, DOMAIN
 from .engine import model_datasheets as md
 from .repairs import (
     clear_datasheet_import_invalid,
     clear_datasheet_schema_unknown,
+    clear_legacy_db_multi_entry,
     raise_datasheet_import_invalid,
     raise_datasheet_schema_unknown,
 )
@@ -40,6 +44,9 @@ SERVICE_SEND_TEST_NOTIFICATION = "send_test_notification"
 SERVICE_EXPORT_COP_HOURLY = "export_cop_hourly"
 SERVICE_IMPORT_DATASHEET = "import_datasheet"
 SERVICE_REMOVE_USER_DATASHEET = "remove_user_datasheet"
+SERVICE_ASSIGN_LEGACY_DB = "assign_legacy_db"
+SERVICE_ARCHIVE_LEGACY_DB = "archive_legacy_db"
+SERVICE_EXPORT_LEGACY_DB = "export_legacy_db"
 ATTR_MESSAGE = "message"
 ATTR_TARGET = "target"
 ATTR_CYCLE_RETENTION_DAYS = "cycle_retention_days"
@@ -58,6 +65,7 @@ ATTR_SOURCE_URL = "source_url"
 ATTR_MODEL_KEY = "model_key"
 ATTR_ALERT_KIND = "alert_kind"
 ATTR_IGNORE_FILTERS = "ignore_filters"
+ATTR_TARGET_ENTRY_ID = "target_entry_id"
 
 SCHEMA_RESET = vol.Schema({
     vol.Required(ATTR_ENTRY_ID): str,
@@ -124,6 +132,17 @@ SCHEMA_IMPORT_DATASHEET = vol.Schema({
 SCHEMA_REMOVE_USER_DATASHEET = vol.Schema({
     vol.Required(ATTR_ENTRY_ID): str,
     vol.Required(ATTR_MODEL_KEY): str,
+})
+
+SCHEMA_ASSIGN_LEGACY_DB = vol.Schema({
+    vol.Required(ATTR_ENTRY_ID): str,
+    vol.Required(ATTR_TARGET_ENTRY_ID): str,
+})
+SCHEMA_ARCHIVE_LEGACY_DB = vol.Schema({
+    vol.Required(ATTR_ENTRY_ID): str,
+})
+SCHEMA_EXPORT_LEGACY_DB = vol.Schema({
+    vol.Required(ATTR_ENTRY_ID): str,
 })
 
 
@@ -439,6 +458,240 @@ async def _handle_remove_user_datasheet(
     return {"removed": removed, "model_key": model_key}
 
 
+
+async def _handle_assign_legacy_db(
+    hass: HomeAssistant, call: ServiceCall
+) -> dict[str, Any]:
+    """Move the per-entry DB from one config entry to another.
+
+    Multi-entry correction: legacy data was auto-assigned to the oldest
+    entry during migration. This service moves that live per-entry DB to
+    a different config entry that does not yet have its own DB. Both
+    entries must be reloaded for the change to take effect.
+    """
+    source_id = str(call.data[ATTR_ENTRY_ID])
+    target_id = str(call.data[ATTR_TARGET_ENTRY_ID])
+
+    if source_id == target_id:
+        return {"ok": False, "reason": "source_equals_target"}
+
+    target_entry = hass.config_entries.async_get_entry(target_id)
+    if target_entry is None:
+        return {"ok": False, "reason": "target_entry_not_found"}
+
+    storage = Path(hass.config.config_dir) / ".storage"
+    source_db = storage / DB_FILENAME_TEMPLATE.format(entry_id=source_id)
+    target_db = storage / DB_FILENAME_TEMPLATE.format(entry_id=target_id)
+
+    if not source_db.exists():
+        return {
+            "ok": False,
+            "reason": "no_source_db",
+            "source_path": str(source_db),
+        }
+    if target_db.exists():
+        return {
+            "ok": False,
+            "reason": "target_already_has_db",
+            "target_path": str(target_db),
+        }
+
+    try:
+        await hass.async_add_executor_job(source_db.replace, target_db)
+    except OSError as err:
+        _LOGGER.exception(
+            "assign_legacy_db: rename %s -> %s failed",
+            source_db,
+            target_db,
+        )
+        return {
+            "ok": False,
+            "reason": "rename_failed",
+            "error": str(err),
+        }
+
+    clear_legacy_db_multi_entry(hass, source_id)
+    clear_legacy_db_multi_entry(hass, target_id)
+    _LOGGER.info(
+        "assign_legacy_db: %s moved to entry %s", source_db, target_id
+    )
+    return {
+        "ok": True,
+        "source_entry_id": source_id,
+        "target_entry_id": target_id,
+        "new_db_path": str(target_db),
+        "reload_required": [source_id, target_id],
+    }
+
+
+
+EXPORT_TABLES = (
+    "cycles",
+    "features",
+    "cop_samples",
+    "cop_hourly",
+    "daily_summary",
+    "alerts",
+    "model_state",
+)
+
+
+def _export_table_csv(
+    db_path: Path, table: str, out_dir: Path
+) -> int:
+    """Write one table to CSV (read-only). Returns row count."""
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    try:
+        cur = conn.execute(f"SELECT * FROM {table}")  # noqa: S608
+        cols = [d[0] for d in cur.description]
+        n = 0
+        csv_path = out_dir / f"{table}.csv"
+        with csv_path.open("w", encoding="utf-8", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(cols)
+            for row in cur:
+                w.writerow(row)
+                n += 1
+        return n
+    finally:
+        conn.close()
+
+
+async def _handle_archive_legacy_db(
+    hass: HomeAssistant, call: ServiceCall
+) -> dict[str, Any]:
+    """Archive the current per-entry DB as `.legacy-<ts>`.
+
+    Multi-entry correction: user wants to discard the mixed historical
+    data that landed on one entry after migration, keeping a preserved
+    copy for audit. Entry reload is required to open a fresh DB. The
+    archived file is written to /config/.storage/daikin_cycle_ml.db
+    .legacy-<timestamp> - this is the only place `.legacy-*` files are
+    created by the integration.
+    """
+    entry_id = str(call.data[ATTR_ENTRY_ID])
+    storage = Path(hass.config.config_dir) / ".storage"
+    live_db = storage / DB_FILENAME_TEMPLATE.format(entry_id=entry_id)
+    if not live_db.exists():
+        return {
+            "ok": False,
+            "reason": "no_db_file",
+            "live_path": str(live_db),
+        }
+    ts = time.strftime("%Y%m%d-%H%M%S")
+    archived = storage / f"{DB_FILENAME}.legacy-{ts}"
+    try:
+        await hass.async_add_executor_job(live_db.replace, archived)
+    except OSError as err:
+        _LOGGER.exception(
+            "archive_legacy_db: rename %s -> %s failed",
+            live_db,
+            archived,
+        )
+        return {
+            "ok": False,
+            "reason": "rename_failed",
+            "error": str(err),
+        }
+    clear_legacy_db_multi_entry(hass, entry_id)
+    _LOGGER.info("archive_legacy_db: %s -> %s", live_db, archived)
+    return {
+        "ok": True,
+        "entry_id": entry_id,
+        "archived_path": str(archived),
+        "reload_required": [entry_id],
+    }
+
+
+
+async def _handle_export_legacy_db(
+    hass: HomeAssistant, call: ServiceCall
+) -> dict[str, Any]:
+    """Export the per-entry DB to CSV files + manifest.json.
+
+    Multi-entry correction: user inspects the mixed historical data
+    that landed on one entry after migration. Each table is written as
+    a separate CSV in /config/daikin_cycle_ml_export_<entry>_<ts>/,
+    with manifest.json listing row counts and any per-table errors.
+    """
+    entry_id = str(call.data[ATTR_ENTRY_ID])
+    storage = Path(hass.config.config_dir) / ".storage"
+    live_db = storage / DB_FILENAME_TEMPLATE.format(entry_id=entry_id)
+    if not live_db.exists():
+        return {
+            "ok": False,
+            "reason": "no_db_file",
+            "live_path": str(live_db),
+        }
+    ts = time.strftime("%Y%m%d-%H%M%S")
+    out_dir = (
+        Path(hass.config.config_dir)
+        / f"daikin_cycle_ml_export_{entry_id}_{ts}"
+    )
+    try:
+        await hass.async_add_executor_job(
+            partial(out_dir.mkdir, parents=True, exist_ok=False)
+        )
+    except OSError as err:
+        _LOGGER.exception(
+            "export_legacy_db: mkdir %s failed", out_dir
+        )
+        return {
+            "ok": False,
+            "reason": "mkdir_failed",
+            "error": str(err),
+        }
+    table_counts: dict[str, int] = {}
+    errors: dict[str, str] = {}
+    for table in EXPORT_TABLES:
+        try:
+            n = await hass.async_add_executor_job(
+                _export_table_csv, live_db, table, out_dir
+            )
+            table_counts[table] = n
+        except (sqlite3.Error, OSError) as err:
+            errors[table] = str(err)
+    manifest = {
+        "entry_id": entry_id,
+        "source_db": str(live_db),
+        "export_dir": str(out_dir),
+        "timestamp": ts,
+        "tables": table_counts,
+        "errors": errors,
+    }
+    try:
+        await hass.async_add_executor_job(
+            partial(
+                (out_dir / "manifest.json").write_text,
+                json.dumps(manifest, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+        )
+    except OSError as err:
+        _LOGGER.exception(
+            "export_legacy_db: manifest write failed", exc_info=True
+        )
+        return {
+            "ok": False,
+            "reason": "manifest_write_failed",
+            "error": str(err),
+            "export_dir": str(out_dir),
+        }
+    _LOGGER.info(
+        "export_legacy_db: %s -> %s (%d tables)",
+        live_db,
+        out_dir,
+        len(table_counts),
+    )
+    return {
+        "ok": True,
+        "entry_id": entry_id,
+        "export_dir": str(out_dir),
+        "tables": table_counts,
+        "errors": errors,
+    }
+
+
 async def async_register_services(hass: HomeAssistant) -> None:
     """Idempotent registration at DOMAIN level."""
     if hass.services.has_service(DOMAIN, SERVICE_SEND_TEST_NOTIFICATION):
@@ -489,6 +742,24 @@ async def async_register_services(hass: HomeAssistant) -> None:
         DOMAIN, SERVICE_REMOVE_USER_DATASHEET,
         partial(_handle_remove_user_datasheet, hass),
         schema=SCHEMA_REMOVE_USER_DATASHEET,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_ASSIGN_LEGACY_DB,
+        partial(_handle_assign_legacy_db, hass),
+        schema=SCHEMA_ASSIGN_LEGACY_DB,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_ARCHIVE_LEGACY_DB,
+        partial(_handle_archive_legacy_db, hass),
+        schema=SCHEMA_ARCHIVE_LEGACY_DB,
+        supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_EXPORT_LEGACY_DB,
+        partial(_handle_export_legacy_db, hass),
+        schema=SCHEMA_EXPORT_LEGACY_DB,
         supports_response=SupportsResponse.ONLY,
     )
     _LOGGER.info("Daikin Cycle ML services registered")

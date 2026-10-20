@@ -10,6 +10,52 @@ Cross-references: [DATABASE.md](DATABASE.md) (schema migrations), [CONFIGURATION
 
 ---
 
+## Latest: v1.10.0
+
+**Released:** 2026-10-20
+**Breaking:** only for multi-entry users with pre-existing history
+
+### What changes
+
+The integration historically stored its SQLite DB in a single shared
+file (`/config/.storage/daikin_cycle_ml.db`) across all config entries.
+This caused cross-entry data leaks in the historical aggregate tables
+(`daily_summary`, `cop_hourly`, `cop_samples`). v1.10.0 gives each
+config entry its own DB file: `/config/.storage/daikin_cycle_ml_<entry_id>.db`.
+
+### What you need to do
+
+**Single-entry users (majority): nothing.** First setup after upgrade
+silently migrates the legacy DB to `daikin_cycle_ml_<entry_id>.db` with
+a backup in `/config/.daikin_backups/`. Zero downtime, zero data loss.
+
+**Multi-entry users: verify the auto-assignment.** The legacy DB is
+assigned to your oldest entry (by config-entry registration order). A
+repair issue `legacy_db_multi_entry` appears. Three services are
+available to correct the assignment if needed:
+
+- `daikin_cycle_ml.assign_legacy_db` — move the DB to a different entry
+- `daikin_cycle_ml.archive_legacy_db` — archive and start fresh
+- `daikin_cycle_ml.export_legacy_db` — dump to CSV for audit
+
+After calling any of these services, reload both affected config
+entries (Settings > Devices & Services > Daikin Cycle ML > Reload).
+
+### Known limitation
+
+If two or more entries ran concurrently on the shared DB before v1.10.0,
+per-entry historical attribution is not recoverable — the data was
+physically interleaved. The repair issue and export service make this
+visible. New cycles/samples from v1.10.0 forward are fully isolated.
+
+### Rollback
+
+Not supported. Once migrated, downgrading to v1.9.x will create a fresh
+legacy DB (the per-entry files will be ignored). If you need to revert,
+restore the backup from `/config/.daikin_backups/` manually.
+
+---
+
 ## Contents
 
 - [1. Quick upgrade checklist](#1-quick-upgrade-checklist)
