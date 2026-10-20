@@ -804,7 +804,7 @@
     },
     "legacy_db_multi_entry": {
       "title": "Oude DB-data toegewezen aan één entry",
-      "description": "De historische Daikin Cycle ML-database is aangemaakt vóór v1.10.0 en bevat data van meerdere config entries. Deze is toegewezen aan '{assigned_title}' (oudste entry). Oud bestand bewaard op: {legacy_path}. Aantal entries: {n_entries}. Is de toewijzing onjuist, gebruik dan de service daikin_cycle_ml.assign_legacy_db. Om te archiveren (opnieuw beginnen), gebruik daikin_cycle_ml.archive_legacy_db. Voor CSV-export gebruik daikin_cycle_ml.export_legacy_db."
+      "description": "De historische Daikin Cycle ML-database is aangemaakt vóór v1.10.0 en bevat data van meerdere config entries. Deze is toegewezen aan {assigned_title} (oudste entry). Oud bestand bewaard op: {legacy_path}. Aantal entries: {n_entries}. Is de toewijzing onjuist, gebruik dan de service daikin_cycle_ml.assign_legacy_db. Om te archiveren (opnieuw beginnen), gebruik daikin_cycle_ml.archive_legacy_db. Voor CSV-export gebruik daikin_cycle_ml.export_legacy_db."
     }
   },
   "services": {
