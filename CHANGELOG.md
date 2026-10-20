@@ -1980,7 +1980,8 @@ Versioning: https://semver.org/spec/v2.0.0.html
 
 - db.py: maintenance deletes features before cycles (FK-safe)
 
-[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.2...HEAD
+[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.2...v1.10.0
 [1.9.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.8.1...v1.9.0
