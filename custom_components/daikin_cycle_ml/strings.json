@@ -801,6 +801,10 @@
     "datasheet_load_failed": {
       "title": "User datasheet store unreadable",
       "description": "Could not load user datasheet store: {reason}"
+    },
+    "legacy_db_multi_entry": {
+      "title": "Legacy DB data assigned to one entry",
+      "description": "The historical Daikin Cycle ML database was created before v1.10.0 and contains data from multiple config entries. It has been assigned to '{assigned_title}' (oldest entry). Legacy file preserved at: {legacy_path}. Entries present: {n_entries}. If the assignment is wrong, use the daikin_cycle_ml.assign_legacy_db service. To archive (start fresh), use daikin_cycle_ml.archive_legacy_db. To export as CSV, use daikin_cycle_ml.export_legacy_db."
     }
   },
   "services": {

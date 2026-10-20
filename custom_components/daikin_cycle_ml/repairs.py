@@ -22,6 +22,7 @@ NOTIFY_FAIL_THRESHOLD = 3
 ISSUE_DATASHEET_IMPORT_INVALID = "datasheet_import_invalid"
 ISSUE_DATASHEET_SCHEMA_UNKNOWN = "datasheet_schema_unknown"
 ISSUE_DATASHEET_LOAD_FAILED = "datasheet_load_failed"
+ISSUE_LEGACY_DB_MULTI_ENTRY = "legacy_db_multi_entry"
 
 
 async def async_check_repairs(
@@ -191,3 +192,35 @@ def clear_datasheet_load_failed(hass: HomeAssistant, entry_id: str) -> None:
         hass, DOMAIN, f"{ISSUE_DATASHEET_LOAD_FAILED}_{entry_id}"
     )
 
+
+
+def raise_legacy_db_multi_entry(
+    hass: HomeAssistant,
+    entry_id: str,
+    assigned_title: str,
+    legacy_path: str,
+    n_entries: int,
+) -> None:
+    """Create legacy_db_multi_entry issue (is_fixable=False in v1.10.0)."""
+    issue_id = f"{ISSUE_LEGACY_DB_MULTI_ENTRY}_{entry_id}"
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=ISSUE_LEGACY_DB_MULTI_ENTRY,
+        translation_placeholders={
+            "assigned_title": assigned_title,
+            "legacy_path": legacy_path,
+            "n_entries": str(n_entries),
+        },
+    )
+
+
+def clear_legacy_db_multi_entry(
+    hass: HomeAssistant, entry_id: str
+) -> None:
+    ir.async_delete_issue(
+        hass, DOMAIN, f"{ISSUE_LEGACY_DB_MULTI_ENTRY}_{entry_id}"
+    )

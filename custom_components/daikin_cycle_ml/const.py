@@ -501,3 +501,8 @@ ALERT_DEDUP_DEFAULTS: dict[str, int] = {
     "energy_daily_anomaly": 1440,
 }
 
+
+# v1.10.0 #75 — per-entry DB file migration
+DB_FILENAME = "daikin_cycle_ml.db"
+DB_FILENAME_TEMPLATE = "daikin_cycle_ml_{entry_id}.db"
+DB_LEGACY_MARKER_FILENAME = ".daikin_cycle_ml_v1100_migrated"
