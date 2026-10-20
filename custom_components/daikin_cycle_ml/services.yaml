@@ -283,7 +283,7 @@ assign_legacy_db:
           integration: daikin_cycle_ml
 archive_legacy_db:
   name: Archive legacy DB
-  description: Rename the current per-entry DB to .legacy-<timestamp> and start fresh on next reload. Preserved for audit.
+  description: Rename the current per-entry DB to .legacy-[timestamp] and start fresh on next reload. Preserved for audit.
   fields:
     entry_id:
       name: Config entry
@@ -294,7 +294,7 @@ archive_legacy_db:
           integration: daikin_cycle_ml
 export_legacy_db:
   name: Export legacy DB
-  description: Export all tables from the entry DB to CSV files plus manifest.json in /config/daikin_cycle_ml_export_<entry_id>_<timestamp>/.
+  description: Export all tables from the entry DB to CSV files plus manifest.json in /config/daikin_cycle_ml_export_[entry_id]_[timestamp]/.
   fields:
     entry_id:
       name: Config entry

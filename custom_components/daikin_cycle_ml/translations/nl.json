@@ -1004,7 +1004,7 @@
     },
     "archive_legacy_db": {
       "name": "Legacy DB archiveren",
-      "description": "Hernoem de huidige per-item DB naar .legacy-<timestamp> en start opnieuw bij de volgende herlaad. Bewaard voor controle.",
+      "description": "Hernoem de huidige per-item DB naar .legacy-[timestamp] en start opnieuw bij de volgende herlaad. Bewaard voor controle.",
       "fields": {
         "entry_id": {
           "name": "Configuratie-item",
@@ -1014,7 +1014,7 @@
     },
     "export_legacy_db": {
       "name": "Legacy DB exporteren",
-      "description": "Exporteer alle tabellen van de item-DB naar CSV-bestanden plus manifest.json in /config/daikin_cycle_ml_export_<entry_id>_<timestamp>/.",
+      "description": "Exporteer alle tabellen van de item-DB naar CSV-bestanden plus manifest.json in /config/daikin_cycle_ml_export_[entry_id]_[timestamp]/.",
       "fields": {
         "entry_id": {
           "name": "Configuratie-item",
