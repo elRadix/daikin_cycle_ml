@@ -987,6 +987,40 @@
           "description": "Trainingsvenster in dagen."
         }
       }
+    },
+    "assign_legacy_db": {
+      "name": "Legacy DB toewijzen",
+      "description": "Verplaats de per-item SQLite DB van het ene configuratie-item naar het andere. Beide items moeten opnieuw geladen worden voordat de wijziging effect heeft.",
+      "fields": {
+        "entry_id": {
+          "name": "Bron-item",
+          "description": "Configuratie-item waarvan de DB verplaatst moet worden."
+        },
+        "target_entry_id": {
+          "name": "Doel-item",
+          "description": "Configuratie-item dat eigenaar moet worden van de DB. Mislukt als dit item al een eigen DB heeft."
+        }
+      }
+    },
+    "archive_legacy_db": {
+      "name": "Legacy DB archiveren",
+      "description": "Hernoem de huidige per-item DB naar .legacy-<timestamp> en start opnieuw bij de volgende herlaad. Bewaard voor controle.",
+      "fields": {
+        "entry_id": {
+          "name": "Configuratie-item",
+          "description": "Item waarvan de actieve DB gearchiveerd moet worden."
+        }
+      }
+    },
+    "export_legacy_db": {
+      "name": "Legacy DB exporteren",
+      "description": "Exporteer alle tabellen van de item-DB naar CSV-bestanden plus manifest.json in /config/daikin_cycle_ml_export_<entry_id>_<timestamp>/.",
+      "fields": {
+        "entry_id": {
+          "name": "Configuratie-item",
+          "description": "Item waarvan de DB geëxporteerd moet worden."
+        }
+      }
     }
   },
   "selector": {

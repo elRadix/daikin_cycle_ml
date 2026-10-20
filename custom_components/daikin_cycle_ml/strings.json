@@ -987,6 +987,40 @@
           "description": "Training window in days."
         }
       }
+    },
+    "assign_legacy_db": {
+      "name": "Assign legacy DB",
+      "description": "Move the per-entry SQLite DB from one config entry to another. Both entries must be reloaded for the change to take effect.",
+      "fields": {
+        "entry_id": {
+          "name": "Source entry",
+          "description": "Config entry whose DB should be moved."
+        },
+        "target_entry_id": {
+          "name": "Target entry",
+          "description": "Config entry that should own the DB. Fails if it already has its own DB."
+        }
+      }
+    },
+    "archive_legacy_db": {
+      "name": "Archive legacy DB",
+      "description": "Rename the current per-entry DB to .legacy-<timestamp> and start fresh on next reload. Preserved for audit.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Entry whose live DB should be archived."
+        }
+      }
+    },
+    "export_legacy_db": {
+      "name": "Export legacy DB",
+      "description": "Export all tables from the entry DB to CSV files plus manifest.json in /config/daikin_cycle_ml_export_<entry_id>_<timestamp>/.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Entry whose DB should be exported."
+        }
+      }
     }
   },
   "selector": {
