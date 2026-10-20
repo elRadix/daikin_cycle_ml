@@ -45,3 +45,42 @@ def test_accept_notify_entity_path():
     ok = asyncio.run(async_send_notification(h, 'notify.mobile_app_phone', 'hi'))
     assert ok is True
     assert h.services.async_call.call_count == 1
+
+
+
+def test_schema_rejects_non_notify_target():
+    import pytest
+    import voluptuous as vol
+    from custom_components.daikin_cycle_ml.services import SCHEMA_SEND_TEST
+    with pytest.raises(vol.Invalid):
+        SCHEMA_SEND_TEST({"target": "light.turn_on"})
+
+
+def test_schema_accepts_notify_target():
+    from custom_components.daikin_cycle_ml.services import SCHEMA_SEND_TEST
+    out = SCHEMA_SEND_TEST({"target": "notify.mobile_app_phone"})
+    assert out["target"] == "notify.mobile_app_phone"
+
+
+def test_handler_refuses_option_injected_target(monkeypatch):
+    from custom_components.daikin_cycle_ml import services as svc
+    bad = MagicMock(); bad.options = {"notify_service": "light.turn_on"}
+    monkeypatch.setattr(svc, "_resolve_optional_coordinator", lambda h, e: bad)
+    c = MagicMock(); c.data = {"target": None, "entry_id": None, "alert_kind": None}
+    r = asyncio.run(svc._handle_send_test_notification(MagicMock(), c))
+    assert r["ok"] is False and "notify" in r["error"]
+
+
+def test_handler_accepts_notify_target(monkeypatch):
+    from custom_components.daikin_cycle_ml import services as svc
+    coord = MagicMock(); coord.options = {}
+    monkeypatch.setattr(svc, "_resolve_optional_coordinator", lambda h, e: coord)
+    async def fake(h, t, m): return True
+    monkeypatch.setattr(
+        "custom_components.daikin_cycle_ml.engine.notification_engine.async_send_notification",
+        fake,
+    )
+    c = MagicMock()
+    c.data = {"target": "notify.mobile_app_phone", "entry_id": None, "alert_kind": None, "message": "hi"}
+    r = asyncio.run(svc._handle_send_test_notification(MagicMock(), c))
+    assert r["ok"] is True

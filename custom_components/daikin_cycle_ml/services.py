@@ -98,7 +98,9 @@ SCHEMA_RUN_MAINTENANCE = vol.Schema({
 SCHEMA_SEND_TEST = vol.Schema({
     vol.Optional(ATTR_ENTRY_ID): str,
     vol.Optional(ATTR_MESSAGE): str,
-    vol.Optional(ATTR_TARGET): str,
+    vol.Optional(ATTR_TARGET): vol.All(
+        str, vol.Match(r"^notify\.[a-z0-9_]+\Z")
+    ),
     vol.Optional(ATTR_ALERT_KIND): str,
     vol.Optional(ATTR_IGNORE_FILTERS): bool,
 })
@@ -374,6 +376,9 @@ async def _handle_send_test_notification(
     from .engine.notification_engine import async_send_notification
     opts = getattr(coord, "options", None) or {}
     target = call.data.get(ATTR_TARGET) or opts.get("notify_service") or ""
+    if target and not target.startswith("notify."):
+        _LOGGER.warning("Refused non-notify target %s", target)
+        return {"ok": False, "target": target, "error": "target must be notify.*"}
     msg = (
         call.data.get(ATTR_MESSAGE)
         or "Daikin Cycle ML: test notification"
