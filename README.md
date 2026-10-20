@@ -202,12 +202,22 @@ Complete, per-topic guides are in `docs/`:
 ### Install via HACS
 
 1. Install [HACS](https://hacs.xyz/docs/setup/download) if you haven't already
-2. **HACS → Integrations → three dots (top right) → Custom repositories**
-3. Add `https://github.com/elRadix/daikin_cycle_ml` with category **Integration**
-4. Click **Add** → find **Daikin Cycle ML** in the list → **Download**
-5. **Restart Home Assistant** (Settings → System → Restart)
-6. **Settings → Devices & Services → Add Integration → "Daikin Cycle ML"**
-7. Follow the wizard
+2. **HACS → Integrations → search "Daikin Cycle ML"**
+3. Select **Daikin Cycle ML** → **Download**
+4. **Restart Home Assistant** (Settings → System → Restart)
+5. **Settings → Devices & Services → Add Integration → "Daikin Cycle ML"**
+6. Follow the wizard
+
+#### Integration not appearing in the HACS search?
+
+The integration may not yet be listed in the HACS default catalog (submission pending). If the HACS search finds nothing, add it as a custom repository:
+
+1. **HACS → Integrations → three dots (top right) → Custom repositories**
+2. Add `https://github.com/elRadix/daikin_cycle_ml` with category **Integration**
+3. Click **Add** → find **Daikin Cycle ML** in the list → **Download**
+4. **Restart Home Assistant** (Settings → System → Restart)
+5. **Settings → Devices & Services → Add Integration → "Daikin Cycle ML"**
+6. Follow the wizard
 
 ### Manual install
 
