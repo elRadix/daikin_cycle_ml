@@ -84,3 +84,23 @@ def test_handler_accepts_notify_target(monkeypatch):
     c.data = {"target": "notify.mobile_app_phone", "entry_id": None, "alert_kind": None, "message": "hi"}
     r = asyncio.run(svc._handle_send_test_notification(MagicMock(), c))
     assert r["ok"] is True
+
+
+
+def test_flatten_rejects_non_notify():
+    from custom_components.daikin_cycle_ml.config_flow import _flatten_notify_choice
+    assert _flatten_notify_choice("light.turn_on") == ""
+    assert _flatten_notify_choice("homeassistant.stop") == ""
+    assert _flatten_notify_choice({"active_choice": "service", "service": "light.turn_on"}) == ""
+
+
+def test_flatten_accepts_notify():
+    from custom_components.daikin_cycle_ml.config_flow import _flatten_notify_choice
+    assert _flatten_notify_choice("notify.mobile_app_phone") == "notify.mobile_app_phone"
+    assert _flatten_notify_choice({"active_choice": "entity", "entity": "notify.x"}) == "notify.x"
+
+
+def test_flatten_empty_passthrough():
+    from custom_components.daikin_cycle_ml.config_flow import _flatten_notify_choice
+    assert _flatten_notify_choice(None) == ""
+    assert _flatten_notify_choice("") == ""
