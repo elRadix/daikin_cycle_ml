@@ -11,11 +11,15 @@
   "documentation": "https://github.com/elRadix/daikin_cycle_ml",
   "integration_type": "hub",
   "iot_class": "calculated",
+  "categories": [
+    "climate.heat_pumps_air_conditioning",
+    "energy"
+  ],
   "issue_tracker": "https://github.com/elRadix/daikin_cycle_ml/issues",
   "loggers": [
     "custom_components.daikin_cycle_ml"
   ],
   "quality_scale": "gold",
   "requirements": [],
-  "version": "1.10.0"
+  "version": "1.11.0"
 }

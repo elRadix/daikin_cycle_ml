@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from ..const import REQUIRED_ATTRIBUTES
+from .attribute_compat import build_compat_view
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -91,7 +92,8 @@ def read(
     raw = getattr(state, "attributes", None)
     if not isinstance(raw, Mapping):
         return {}
-    result = {key: _normalize(val) for key, val in raw.items()}
+    compat = build_compat_view(raw)
+    result = {key: _normalize(val) for key, val in compat.items()}
 
     if custom_map:
         for standard, actual in custom_map.items():
