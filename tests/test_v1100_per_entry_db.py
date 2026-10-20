@@ -339,3 +339,62 @@ async def test_setup_database_migration_multi_logs(hass, tmp_path):
     ):
         await _async_setup_database(hass, coord, entry)
     assert coord.db is inst
+
+
+
+async def test_remove_entry_deletes_db(mig_env):
+    """v1.10.0 #75: per-entry DB deleted on entry removal."""
+    from custom_components.daikin_cycle_ml import async_remove_entry
+    hass, tmp_path = mig_env
+    entry = _make_entry("a")
+    db_file = _per_entry(tmp_path, "a")
+    db_file.write_bytes(b"db-content")
+    await async_remove_entry(hass, entry)
+    assert not db_file.exists()
+
+
+async def test_remove_entry_missing_db_no_error(mig_env):
+    """Missing DB: silent no-op, no exception."""
+    from custom_components.daikin_cycle_ml import async_remove_entry
+    hass, tmp_path = mig_env
+    entry = _make_entry("a")
+    await async_remove_entry(hass, entry)
+
+
+async def test_remove_entry_unlink_fails_logs(mig_env, monkeypatch):
+    """OSError on unlink is logged, not raised (R366)."""
+    from custom_components.daikin_cycle_ml import async_remove_entry
+    hass, tmp_path = mig_env
+    entry = _make_entry("a")
+    db_file = _per_entry(tmp_path, "a")
+    db_file.write_bytes(b"db-content")
+
+    async def boom(fn):
+        raise OSError("unlink fail")
+
+    monkeypatch.setattr(hass, "async_add_executor_job", boom)
+    await async_remove_entry(hass, entry)
+    assert db_file.exists()
+
+
+async def test_remove_entry_preserves_legacy_and_backups(mig_env):
+    """Legacy and backup files survive removal."""
+    from custom_components.daikin_cycle_ml import async_remove_entry
+    hass, tmp_path = mig_env
+    entry = _make_entry("a")
+    db_file = _per_entry(tmp_path, "a")
+    db_file.write_bytes(b"db")
+    legacy_file = (
+        _storage(tmp_path) / "daikin_cycle_ml.db.legacy-20260101-120000"
+    )
+    legacy_file.write_bytes(b"legacy")
+    backup_dir = tmp_path / ".daikin_backups"
+    backup_dir.mkdir()
+    backup_file = backup_dir / "daikin_cycle_ml.db.backup-20260101-120000"
+    backup_file.write_bytes(b"backup")
+
+    await async_remove_entry(hass, entry)
+
+    assert not db_file.exists()
+    assert legacy_file.exists()
+    assert backup_file.exists()

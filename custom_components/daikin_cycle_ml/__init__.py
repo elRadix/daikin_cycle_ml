@@ -247,3 +247,37 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.exception("Failed closing Cycle DB")
     _LOGGER.info("Daikin Cycle ML unloaded entry %s", entry.entry_id)
     return True
+
+
+async def async_remove_entry(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
+    """Delete per-entry SQLite DB when the config entry is removed.
+
+    Fixes pre-existing orphan bug: prior to v1.10.0 the shared DB was
+    left on disk after entry removal. Now each entry cleans up its own
+    file. Legacy `.legacy-<ts>` and backup files are preserved - those
+    are user artifacts, not integration state.
+
+    Never raises. Log-and-continue on OSError.
+    """
+    from .storage.migration import _per_entry_db_path
+
+    db_path = _per_entry_db_path(hass, entry.entry_id)
+    if not db_path.exists():
+        _LOGGER.debug(
+            "per-entry DB %s already absent, nothing to remove", db_path
+        )
+        return
+    try:
+        await hass.async_add_executor_job(db_path.unlink)
+    except OSError:
+        _LOGGER.exception(
+            "failed to delete per-entry DB %s on entry removal", db_path
+        )
+        return
+    _LOGGER.info(
+        "per-entry DB %s deleted (entry %s removed)",
+        db_path,
+        entry.entry_id,
+    )
