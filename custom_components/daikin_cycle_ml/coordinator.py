@@ -1041,6 +1041,19 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.attrs = attrs
             snap.missing_attrs = missing_required(attrs)
             snap.last_success_ts = now
+            if snap.missing_attrs:
+                # v1.12.1 (#109): freeze detector when source
+                # publishes partial attrs. Post-restart ESPAltherma
+                # may not be ready; advancing detector with empty
+                # rps force-closes the running cycle -> phantom
+                # ~60s off-gap -> short_off alert. last_success_ts
+                # is intentionally NOT frozen so source_stale still
+                # tracks real sensor liveness.
+                _frozen = self.detector.snapshot()
+                snap.state = self.detector.state
+                snap.mode = _frozen.get("mode", "unknown")
+                snap.cycle_start_ts = float(_frozen.get("start_ts") or 0.0)
+                return snap
             self._track_setpoint(attrs)
             snap.power_w = self._read_power_w()
             snap.cop = self._read_cop()
