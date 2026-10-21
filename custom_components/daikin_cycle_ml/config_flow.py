@@ -87,6 +87,8 @@ from .const import (
 )
 from .engine.model_datasheets import validate_spec
 from .engine.model_profiles import expected_attributes
+from .engine.attribute_compat import build_compat_view
+from .engine.attribute_reader import missing_required
 from .engine.smart_import import build_diagnostic, resolve_canonical
 
 _LOGGER = logging.getLogger(__name__)
@@ -243,9 +245,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 return await self.async_step_map_attributes()
             else:
                 available = set(state.attributes.keys())
-                missing_exact = [
-                    k for k in REQUIRED_ATTRIBUTES if k not in state.attributes
-                ]
+                missing_exact = missing_required(state.attributes)
                 if not missing_exact:
                     self._data.update(user_input)
                     self._data["attribute_mode"] = ATTRIBUTE_MODE_AUTO
@@ -429,7 +429,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         source_id = self._data.get("source_sensor", SOURCE_SENSOR_ENTITY)
         state = self.hass.states.get(source_id) if source_id else None
-        available = set(state.attributes.keys()) if state else set()
+        available = set(build_compat_view(state.attributes).keys()) if state else set()
 
         if user_input is not None:
             mapping: dict[str, str] = {}
@@ -509,8 +509,8 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         if state is None:
             missing = list(expected)
         else:
-            attrs = state.attributes
-            normalized = {cmap.get(k, k): v for k, v in attrs.items()}
+            compat_attrs = build_compat_view(state.attributes)
+            normalized = {cmap.get(k, k): v for k, v in compat_attrs.items()}
             for key in expected:
                 if normalized.get(key) is None:
                     missing.append(key)
@@ -733,10 +733,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             if state is None:
                 errors["source_sensor"] = "entity_not_found"
             else:
-                missing = [
-                    k for k in REQUIRED_ATTRIBUTES
-                    if k not in state.attributes
-                ]
+                missing = missing_required(state.attributes)
                 if missing:
                     _LOGGER.warning(
                         "Reconfigure missing attrs: %s", missing
