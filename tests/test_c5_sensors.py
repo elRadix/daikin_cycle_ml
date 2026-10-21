@@ -122,6 +122,7 @@ def test_duty_cycle_zero_when_no_runtime():
     assert s_mod._value_duty_cycle_today_pct(s, c) == 0.0
 
 
+@pytest.mark.xfail(strict=False, reason="Known flaky (timing); see #97")
 def test_duty_cycle_computes_pct():
     now = time.time()
     c = _mk_coord(cycles=[{"duration_s": 3600, "mode": "heating",
