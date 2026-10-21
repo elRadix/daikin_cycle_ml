@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.11.1] - 2026-10-21
+
+### Fixed
+
+- ESPAltherma definition files that label the outdoor sensor
+  `R1T-Outdoor air temp.` (e.g. ALTHERMA LT_CA_CB, both v1 and v2 builds) now
+  resolve the required `Outdoor air temp.(R1T)` attribute. Fixes the
+  "Reconfigure missing attrs: ['Outdoor air temp.(R1T)']" repair issue and
+  restores `outdoor_temp` on new cycles and daily summaries. Historical rows
+  are not backfilled.
+- Added a regression test built from a real 174-attribute v2 device dump;
+  asserts every entry in `REQUIRED_ATTRIBUTES` resolves.
+
+
 ## [1.11.0] - 2026-10-21
 
 ### Added
