@@ -6,7 +6,10 @@ from custom_components.daikin_cycle_ml.engine.attribute_compat import (
     detect_schema,
     normalize_key,
 )
-from custom_components.daikin_cycle_ml.engine.attribute_reader import read
+from custom_components.daikin_cycle_ml.engine.attribute_reader import (
+    missing_required,
+    read,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "custom_components" / "daikin_cycle_ml" / "manifest.json"
@@ -99,3 +102,30 @@ def test_read_still_honors_custom_map():
     out = read(state, custom_map={"Inlet water temp.(R4T)": "Custom Inlet"})
     assert out["Inlet water temp.(R4T)"] == 25.5
     assert "Custom Inlet" not in out
+
+
+def test_outdoor_air_temp_alias_from_definition_label():
+    view = build_compat_view({"R1T-Outdoor air temp.": 9.6})
+    assert view["Outdoor air temp.(R1T)"] == 9.6
+    assert view["R1T-Outdoor air temp."] == 9.6
+
+
+_LIVE_DUMP = {
+    "Operation Mode": "Heating",
+    "I/U operation mode": "Heating",
+    "3way valve(On:DHW_Off:Space)": False,
+    "Defrost Operation": False,
+    "Leaving water temp. after BUH (R2T)": 28.5,
+    "Inlet water temp.(R4T)": 25.5,
+    "R1T-Outdoor air temp.": 9.6,
+    "Flow sensor (l/min)": 12.4,
+    "Water pump operation": True,
+    "BUH Step1": False,
+    "BUH Step2": False,
+    "LW setpoint (main)": 30,
+}
+
+
+def test_all_required_attributes_resolve_from_real_device_dump():
+    out = read(SimpleNamespace(attributes=_LIVE_DUMP))
+    assert missing_required(out) == []

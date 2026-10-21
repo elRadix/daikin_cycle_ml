@@ -29,6 +29,11 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
         "Inlet water temp. (R4T)",
         "Inlet water temp.(C)",
     ),
+    "Outdoor air temp.(R1T)": (
+        "R1T-Outdoor air temp.",
+        "Outdoor air temp. (R1T)",
+        "Outdoor air temp.(C)",
+    ),
     "Refrig. Temp. liquid side (R3T)": (
         "Refrig. Temp. liquid side(R3T)",
     ),
