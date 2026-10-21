@@ -333,6 +333,8 @@ def _attrs_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]
     cycles = c.store.cycles_today(_now())
     durations = [cy.get("duration_s") for cy in cycles]
     short_runs = c.store.get("short_runs_today", 0)
+    transient = [cy for cy in cycles if cy.get("is_transient")]
+    non_transient = [cy for cy in cycles if not cy.get("is_transient")]
     avg_dur = _avg(durations)
     avg_off = _avg_off_time(cycles)
     max_dur = _max_or_none(durations)
@@ -342,6 +344,9 @@ def _attrs_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]
         "short_runs": short_runs,
         "short_offs": c.store.get("short_offs_today", 0),
         "short_ratio_pct": _ratio(short_runs, len(cycles)),
+        "transient_cycles_today": len(transient),
+        "non_transient_cycles_today": len(non_transient),
+        "transient_ratio_pct": _ratio(len(transient), len(cycles)),
         "avg_duration_min": round(avg_dur / 60.0, 2) if avg_dur else None,
         "avg_off_time_min": round(avg_off / 60.0, 2) if avg_off else None,
         "longest_cycle_min": round(max_dur / 60.0, 2) if max_dur else None,

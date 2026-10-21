@@ -50,6 +50,10 @@ from .const import (
     ENERGY_DT_CAP_S,
     ENERGY_DT_WARN_S,
     ENERGY_PERSIST_INTERVAL_S,
+    TRANSIENT_MAX_DURATION_S,
+    TRANSIENT_NEAR_MAX_DURATION_S,
+    TRANSIENT_NEAR_MAX_DT_K,
+    TRANSIENT_NEAR_MIN_RPS,
     COP_LOW_MIN_SAMPLES,
     COP_LOW_THRESHOLD,
     STOOKLIJN_MIN_CONFIDENCE,
@@ -208,6 +212,31 @@ def _weighted_mean_stdev(
     if var < 0.0:
         var = 0.0
     return mean, var ** 0.5
+
+def _classify_transient(record: dict[str, Any]) -> bool:
+    """v1.12.0 (#105): startup-transient classifier.
+
+    Rule (mirrors the SQL backfill in async_initialize):
+      transient if duration_s < TRANSIENT_MAX_DURATION_S (120s)
+      OR (duration_s < TRANSIENT_NEAR_MAX_DURATION_S (300s)
+          AND dT_max < TRANSIENT_NEAR_MAX_DT_K (3.0K)
+          AND rps_max >= TRANSIENT_NEAR_MIN_RPS (40.0))
+    """
+    dur = record.get("duration_s")
+    if isinstance(dur, (int, float)) and dur < TRANSIENT_MAX_DURATION_S:
+        return True
+    if isinstance(dur, (int, float)) and dur < TRANSIENT_NEAR_MAX_DURATION_S:
+        dt = record.get("dT_max")
+        rps = record.get("rps_max")
+        if (
+            isinstance(dt, (int, float))
+            and dt < TRANSIENT_NEAR_MAX_DT_K
+            and isinstance(rps, (int, float))
+            and rps >= TRANSIENT_NEAR_MIN_RPS
+        ):
+            return True
+    return False
+
 
 def score_and_count(
     record: dict[str, Any],
@@ -1015,6 +1044,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 await self._persist_detector_state()
             self._accumulate_cycle_samples(attrs)
             if record is not None:
+                # v1.12.0 (#105): classify transient before scoring/insert
+                record["is_transient"] = int(_classify_transient(record))
                 score_and_count(record, self.options, self.store, now)
                 self.store.add_cycle(record)
                 snap.last_record = record
@@ -1721,7 +1752,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     "adaptive observe_cycle failed", exc_info=True
                 )
             per_mode = self.baseline.get(mode)
-            per_mode.update(vector)
+            if not record.get("is_transient"):
+                # v1.12.0 (#105): skip baseline update on transients
+                per_mode.update(vector)
             result = evaluate_anomaly(vector, per_mode, self.options)
             snap.anomaly = result
             if self.options.get("action_advice_enabled", True):
@@ -2850,7 +2883,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         off = self.store.off_time_since_last(now)
         is_short_off = off is not None and off < short_off_th
         is_pend_h = self.store.cycles_in_window(now, 3600) >= pend_hour
-        is_pend_d = len(self.store.cycles_today(now)) >= pend_day
+        is_pend_d = (
+            len(self.store.non_transient_today(now)) >= pend_day
+        )
         is_ml_anom = bool(
             getattr(snap, "anomaly", None)
             and getattr(snap.anomaly, "is_anomaly", False)
@@ -2892,7 +2927,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         is_dhw_pendulum = _dhw_cph >= _dhw_thr
         _hcr_cph = 0
         with contextlib.suppress(Exception):
-            _hcr_cph = int(self.store.cycles_in_window(now, 3600))
+            _hcr_cph = int(self.store.non_transient_in_window(now, 3600))
         _hcr_base = int(self.options.get("pendulum_cycles_per_hour", 4))
         is_high_cycle_rate = _hcr_cph > _hcr_base * HIGH_CYCLE_RATE_MULTIPLIER
         _cop_ds_pct = getattr(snap, "cop_vs_datasheet_pct", None)
