@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.12.1] - 2026-10-21
+
+**Patch release.** Fixes the restart phantom short_off from #109.
+
+### Fixed
+- Restart phantom short_off (#109). When ESPAltherma is not
+  initialised at HA boot, the coordinator advanced the detector
+  with missing rps, force-closing the running cycle and producing
+  a phantom ~60s off-gap that triggered short_off. The detector
+  now freezes until required attributes return.
+
 ## [1.12.0] - 2026-10-21
 
 **Data-integrity release.** Six issues, 11 commits. Closes every
