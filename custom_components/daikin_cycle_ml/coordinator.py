@@ -2294,6 +2294,37 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.exception("adaptive load failed")
         return False
 
+    async def _async_flush_accumulators(self) -> None:
+        """v1.12.0 (#104): best-effort flush of all accumulators.
+
+        Called from async_unload_entry (before db.async_close) and
+        _async_handle_shutdown (HA EVENT_HOMEASSISTANT_STOP).
+
+        Each flush is isolated so one failure never blocks downstream
+        (R378 pattern). Idempotent — safe to call twice if both the
+        stop event and entry unload fire during shutdown.
+        """
+        for _name in (
+            "_persist_runtime_acc",
+            "_persist_energy_acc",
+            "_persist_detector_state",
+        ):
+            try:
+                await getattr(self, _name)()
+            except Exception:
+                _LOGGER.exception("flush %s failed", _name)
+
+    async def _async_handle_shutdown(self, _event: Any = None) -> None:
+        """v1.12.0 (#104): HA shutdown handler — flush all accumulators.
+
+        Registered via entry.async_on_unload(hass.bus.async_listen_once(
+        EVENT_HOMEASSISTANT_STOP, ...)) in async_setup_entry. Fires on
+        graceful HA stop (OS reboot, docker stop, `ha core restart`).
+        Does NOT close the DB — HA tears down the entry via unload.
+        """
+        _LOGGER.info("Daikin Cycle ML shutdown flush")
+        await self._async_flush_accumulators()
+
     async def _persist_detector_state(self) -> None:
         """Persist detector state to model_state. Never raises."""
         if self.db is None:
