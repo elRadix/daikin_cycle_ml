@@ -1204,6 +1204,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         overwriting. Prevents the boot-wipe loop where every restart
         silently destroys the day's accumulated energy.
         """
+        self._ensure_energy_acc()  # guarantees _energy_hwm on __new__-tests
         if self.db is None or not self._energy_day_key:
             return
         try:
@@ -1238,13 +1239,21 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     }
                     for m in ("heating", "dhw", "cooling"):
                         for k in ("th", "el"):
-                            if self._energy_acc[m][k] > self._energy_hwm[m][k]:
-                                self._energy_hwm[m][k] = self._energy_acc[m][k]
+                            loaded_hwm = float(
+                                existing.get(f"{m}_{k}_hwm_kwh") or 0.0
+                            )
+                            self._energy_hwm[m][k] = max(
+                                self._energy_hwm[m][k],
+                                loaded_hwm,
+                                self._energy_acc[m][k],
+                            )
                     return
             payload: dict[str, Any] = {"day": self._energy_day_key}
             for mode in ("heating", "dhw", "cooling"):
                 payload[f"{mode}_th_kwh"] = self._energy_acc[mode]["th"]
                 payload[f"{mode}_el_kwh"] = self._energy_acc[mode]["el"]
+                payload[f"{mode}_th_hwm_kwh"] = self._energy_hwm[mode]["th"]
+                payload[f"{mode}_el_hwm_kwh"] = self._energy_hwm[mode]["el"]
             await self.db.async_set_model_state(
                 f"energy_acc.{self._energy_day_key}", payload
             )
@@ -1352,6 +1361,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                         )
                     else:
                         self._energy_acc[m][k] = loaded[m][k]
+                    loaded_hwm = float(
+                        payload.get(f"{m}_{k}_hwm_kwh") or 0.0
+                    )
+                    if same_day:
+                        self._energy_hwm[m][k] = max(
+                            self._energy_hwm[m][k], loaded_hwm
+                        )
+                    else:
+                        self._energy_hwm[m][k] = loaded_hwm
                     if self._energy_acc[m][k] > self._energy_hwm[m][k]:
                         self._energy_hwm[m][k] = self._energy_acc[m][k]
             self._energy_day_key = today
