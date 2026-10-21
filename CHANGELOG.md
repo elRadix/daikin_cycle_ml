@@ -1,5 +1,126 @@
 # Changelog
 
+## [1.12.0] - 2026-10-21
+
+**Data-integrity release.** Six issues, 11 commits. Closes every
+durability gap found in the v88.0 post-release audit plus five wiring
+bugs where production code existed, compiled, tested, and never
+actually fired.
+
+### Added
+
+- **DB-first cycle persist** (#103). Cycle rows are written to SQLite
+  *before* the ML pipeline runs. Any ML exception cannot leave the
+  cycle in-memory-only.
+- **Graceful shutdown flush** (#104). `EVENT_HOMEASSISTANT_STOP` plus
+  unload-entry flush persists runtime, energy, and detector state
+  before HA tears down. Zero loss on restart, reload, or reboot.
+- **`_energy_hwm` persistence** (#101). Per-day high-water-mark stored
+  in `model_state.energy_acc.<day>`. Hard-crash loss bounded to one
+  persist tick.
+- **Transient classification** (#105). Schema v16 adds `is_transient`
+  to `cycles`. Startup transients (`<120 s`, or `<300 s` with
+  `dT_max < 3 K` and `rps_max >= 40`) tagged at close. Baseline,
+  `pendulum_daily`, `high_cycle_rate` exclude them. New sensor
+  attrs on `sensor.cycles_today`: `transient_cycles_today`,
+  `non_transient_cycles_today`, `transient_ratio_pct`.
+- **`thermal_kw_avg` persistence** (#107). Column added, INSERT and
+  SELECT wired. Before: in-memory only, lost on restart.
+- **`model_state` retention** (#106). `energy_acc.*` /
+  `runtime_acc.*` older than 400 days pruned in `_run_maintenance`.
+
+### Changed
+
+- **Energy persist interval 300 s → 30 s** (#101). Aligns with
+  `UPDATE_INTERVAL_SECONDS`. Hard-crash loss bounded to ≤1 tick
+  instead of ≤5 min. WAL mode handles the 10× write amplification.
+- **`short_cycle_ratio` into `score_cycle`** (#105). Parameter was
+  accepted since v1.4 but never passed. `PENALTY_HIGH_RATIO = 20`
+  now fires on high-short-cycle days.
+- **`record_short_run` / `record_short_off` called** (#105). Dead
+  code since v1.4. `short_runs_today` / `short_offs_today`
+  counters now accurate.
+
+### Fixed
+
+- **Counter drift in `CycleStore`** (#101). `add_cycle` never
+  incremented `cycles_today`; only `hydrate_from_rows` did. After
+  restart the counter froze at the hydrate value while
+  `good_cycles_today` / `bad_cycles_today` kept incrementing. Prod
+  showed `cycles_today=3` vs `good+bad=6`. Separately,
+  `hydrate_from_rows` failed to restore `cycles_total` and
+  `cycles_{mode}`, resetting them to zero on every restart (prod:
+  `cycles_total=3` vs `cycle_count=116`).
+- **Feature-vector divergence** (#103). DB persist block called
+  `extract_feature_vector` *without* `thermal_kw_avg`, ML block
+  called it *with*. Two vectors per cycle: stored features did not
+  match the inputs that produced each cluster. Both calls now pass
+  `thermal_kw_avg=record['thermal_kw_avg']`.
+- **Cycle-close ordering** (#103). ML pipeline ran before
+  `async_insert_cycle`. Crash mid-ML lost the cycle entirely. DB
+  write now completes before ML work; ML exceptions cannot destroy
+  the durable row.
+- **Shutdown gap** (#104). `async_unload_entry` did not flush
+  accumulators; no `EVENT_HOMEASSISTANT_STOP` handler existed.
+  Graceful HA stop lost up to 300 s. Both paths now flush via
+  `_async_flush_accumulators` with per-subsystem isolation (R378).
+- **Dead counters** (#105). `record_short_run` / `record_short_off`
+  on `CycleStore` had zero callers. `short_runs_today` /
+  `short_offs_today` always 0. Binary sensor `short_run=on` while
+  the counter attribute showed 0 — silent contradiction. Wired into
+  `score_and_count`.
+- **Dead scorer parameter** (#105). `score_cycle(short_cycle_ratio=)`
+  accepted since v1.4 but never passed. `PENALTY_HIGH_RATIO = 20`
+  never fired. Now computed from store counters; denominator
+  includes current cycle.
+- **`thermal_kw_avg` gap** (#107). Column missing from `cycles`.
+  Value in `last_cycle.thermal_kw_avg` never survived restart.
+  Schema v16 adds column, INSERT and hydration SELECT.
+- **Transient pollution** (#105). 34 % of prod cycles are startup
+  transients. Counted as real, polluted per-mode baselines
+  (`per_mode.update`), inflated `pendulum_daily` and
+  `high_cycle_rate`. Schema v16 classifies at close; baseline,
+  pendulum, target exclude them.
+- **`model_state` growth** (#106). One `energy_acc.<day>` and one
+  `runtime_acc.<day>` key per day, never pruned. 400-day retention
+  added to `_run_maintenance`.
+
+### Data Integrity Guarantees
+
+| Scenario | Before v1.12.0 | After v1.12.0 |
+|---|---|---|
+| HA graceful restart | ≤300 s loss | **Zero loss** |
+| Config entry reload | ≤300 s loss | **Zero loss** |
+| Container stop / HAOS reboot | ≤300 s loss | **Zero loss** |
+| Cycle close (normal) | ML-first, up to 100 ms window | **DB-first, ~0 ms** |
+| Cycle close (ML exception) | Cycle may be lost | **Durable regardless of ML** |
+| Hard power loss / `kill -9` | ≤300 s | **≤30 s** (one persist tick) |
+| Counter consistency | Drift after restart | **Invariant always** |
+
+### Statistics
+
+| Metric | v1.11.3 | v1.12.0 | Delta |
+|---|---|---|---|
+| Commits in release | — | **11** | — |
+| Test count | 3124 | **3193** | **+69** |
+| Statement coverage | 100.00 % | **100.00 %** | — |
+| Branch coverage | 100.00 % | **100.00 %** | — |
+| Source statements | 7136 | **7230** | +94 |
+| Source branches | 2044 | **2066** | +22 |
+| Modules | 37 | **37** | — |
+| Schema version | v15 | **v16** | +1 |
+| Issues closed | — | **6** | — |
+| Breaking changes | — | **0** | — |
+
+Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#103](https://github.com/elRadix/daikin_cycle_ml/issues/103), [#104](https://github.com/elRadix/daikin_cycle_ml/issues/104), [#105](https://github.com/elRadix/daikin_cycle_ml/issues/105), [#106](https://github.com/elRadix/daikin_cycle_ml/issues/106), [#107](https://github.com/elRadix/daikin_cycle_ml/issues/107)
+
+### Links
+
+- [Full diff](https://github.com/elRadix/daikin_cycle_ml/compare/v1.11.3...v1.12.0)
+- [Documentation](https://github.com/elRadix/daikin_cycle_ml#readme)
+- [Upgrade notes](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/UPGRADE.md)
+- [Issue tracker](https://github.com/elRadix/daikin_cycle_ml/issues)
+
 ## [1.11.3] - 2026-10-21
 
 ### Fixed
