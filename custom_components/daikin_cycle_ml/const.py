@@ -13,6 +13,7 @@ ENERGY_DT_CAP_S = 300.0
 MAX_CYCLE_DURATION_S = 4 * 3600.0
 """Absolute maximum cycle duration before forced close (R315)."""
 ENERGY_DT_WARN_S = 60.0
+ENERGY_PERSIST_INTERVAL_S = 30.0
 
 # --- Source sensor ---
 SOURCE_SENSOR_ENTITY = "sensor.althermasensors"

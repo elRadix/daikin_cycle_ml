@@ -49,6 +49,7 @@ from .const import (
     DEGRADATION_WINDOW_DAYS,
     ENERGY_DT_CAP_S,
     ENERGY_DT_WARN_S,
+    ENERGY_PERSIST_INTERVAL_S,
     COP_LOW_MIN_SAMPLES,
     COP_LOW_THRESHOLD,
     STOOKLIJN_MIN_CONFIDENCE,
@@ -1387,12 +1388,16 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return False
 
     async def _maybe_persist_accumulators(self, now: float) -> None:
-        """Persist runtime + energy accumulators throttled at 300s.
+        """Persist runtime + energy accumulators throttled at 30s.
 
         Called from _async_update_data after each tick. Without this,
         accumulators are lost on HA restart (C5a known gap).
+
+        v1.12.0: interval reduced 300s -> 30s to align with the tick.
+        Bounds hard-crash loss to at most one tick instead of up to
+        five minutes. Write amplification is negligible in WAL mode.
         """
-        interval = 300.0
+        interval = ENERGY_PERSIST_INTERVAL_S
         if (now - self._last_runtime_persist_ts) >= interval:
             await self._persist_runtime_acc()
             self._last_runtime_persist_ts = now
