@@ -27,6 +27,7 @@ class CycleStore:
         while len(self._cycles) > self.maxlen:
             self._cycles.popleft()
         self._counters["cycles_total"] = self._counters.get("cycles_total", 0) + 1
+        self._counters["cycles_today"] = self._counters.get("cycles_today", 0) + 1
         mode = stored.get("mode")
         if isinstance(mode, str):
             key = f"cycles_{mode}"
@@ -104,6 +105,11 @@ class CycleStore:
         while len(self._cycles) > self.maxlen:
             self._cycles.popleft()
         today = time.strftime("%Y-%m-%d", time.localtime())
+        self._counters["cycles_total"] = len(self._cycles)
+        for _m in ("heating", "dhw", "cooling"):
+            self._counters[f"cycles_{_m}"] = sum(
+                1 for c in self._cycles if c.get("mode") == _m
+            )
         # v1.4.4: mark day so daily_reset_if_needed is a no-op today.
         # Uses Any-alias to satisfy mypy (matches daily_reset_if_needed).
         _any: dict[str, Any] = self._counters
