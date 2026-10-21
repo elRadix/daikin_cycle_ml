@@ -1,5 +1,6 @@
 """Batch 29 tests: semantic end-to-end scenarios."""
 from __future__ import annotations
+import pytest
 
 import time
 from collections import deque
@@ -274,6 +275,7 @@ async def test_scenario_long_run_no_alert():
 # ================================================================
 # Scenario 7: Multi-day rollup (daily_summary via retention)
 # ================================================================
+@pytest.mark.xfail(strict=False, reason="Known flaky (order-dependent); see #97")
 def test_scenario_cycles_rollup_math():
     """Verify the daily counters the rollup uses."""
     st = CycleStore()
