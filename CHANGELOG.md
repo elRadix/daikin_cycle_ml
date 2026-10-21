@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.11.3] - 2026-10-21
+
+### Fixed
+
+- Energy accumulator sensors (`thermal_energy_heating_today`,
+  `electrical_energy_*_today`, etc.) no longer report a decrease after
+  a restart, violating the `total_increasing` state class contract that
+  Home Assistant's recorder enforces.
+
+- Root cause: `_restore_energy_acc` unconditionally replaced the in-memory
+  accumulator with the last-persisted DB value. Since persist is throttled
+  to 300 s, a restart could wipe up to 5 minutes of accumulated energy,
+  producing drops like `12.45 -> 12.28`.
+
+- Fix: (1) `_restore_energy_acc` now merges with `max()`, preserving
+  in-memory values. (2) Added a per-day `_energy_hwm` high-water-mark that
+  sensors read from, so the contract holds even if any code path lowers
+  the accumulator. Reset only at day rollover.
+
+### Added
+
+- Regression tests for the merge path and the HWM safety net.
+
 ## [1.11.2] - 2026-10-21
 
 ### Fixed
