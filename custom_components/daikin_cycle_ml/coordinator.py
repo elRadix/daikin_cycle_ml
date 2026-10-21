@@ -1619,13 +1619,59 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if _raw_dur is not None:
             _max_min = int(self.options.get("max_cycle_duration_min", 240))
             record["duration_s"] = _clamp_duration(_raw_dur, _max_min)
-        cop_avg, lwt_avg, indoor_avg = await self._collect_cycle_averages(record)
+        cop_avg, lwt_avg, indoor_avg = await self._collect_cycle_averages(
+            record
+        )
+
+        # v1.12.0 (#103): DB-first persist. Cycle row must be durable
+        # BEFORE the ML pipeline runs. Pre-v1.12.0 the cycle insert
+        # happened AFTER ML, so any ML exception or slow await widened
+        # the crash-loss window for this cycle.
+        cid: int | None = None
+        if self.db is not None:  # pragma: no branch
+            try:
+                cid = await self.db.async_insert_cycle(record)
+            except Exception:
+                _LOGGER.exception("DB persist cycle failed")
+                cid = None
+
+        # v1.12.0 (#103): features block. Always includes thermal_kw_avg
+        # so the stored feature vector matches the ML pipeline's view.
+        # Pre-v1.12.0 this call was missing thermal_kw_avg, producing a
+        # different feature row than ML saw — latent drift.
+        if cid is not None:  # pragma: no branch
+            try:
+                vec = extract_feature_vector(
+                    record,
+                    cop_avg=cop_avg,
+                    lwt_avg=lwt_avg,
+                    indoor_temp_avg=indoor_avg,
+                    thermal_kw_avg=record.get("thermal_kw_avg") or 0.0,
+                )
+                await self.db.async_insert_features(cid, vec)
+                try:
+                    cid_val = self._assign_cluster(vec)
+                    if cid_val is not None:
+                        snap.cluster_id = cid_val
+                        await self.db.async_update_cycle_cluster(
+                            cid, cid_val
+                        )
+                except Exception:
+                    _LOGGER.warning(
+                        "cluster assign failed", exc_info=True
+                    )
+            except Exception:
+                _LOGGER.exception("DB features persist failed")
+
+        # ML pipeline (best-effort, never blocks cycle durability).
         try:
-            vector = extract_feature_vector(record, cop_avg=cop_avg,
+            vector = extract_feature_vector(
+                record,
+                cop_avg=cop_avg,
                 lwt_avg=lwt_avg,
                 indoor_temp_avg=indoor_avg,
-            thermal_kw_avg=record.get("thermal_kw_avg") or 0.0,
-        )
+                thermal_kw_avg=record.get("thermal_kw_avg") or 0.0,
+            )
             mode = record.get("mode") or snap.mode or "unknown"
             try:
                 self.adaptive.observe_cycle(
@@ -1634,7 +1680,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     record.get("off_s"),
                 )
             except Exception:
-                _LOGGER.warning("adaptive observe_cycle failed", exc_info=True)
+                _LOGGER.warning(
+                    "adaptive observe_cycle failed", exc_info=True
+                )
             per_mode = self.baseline.get(mode)
             per_mode.update(vector)
             result = evaluate_anomaly(vector, per_mode, self.options)
@@ -1646,31 +1694,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("ML pipeline failed")
 
-        if self.db is None:
-            return
-        try:
-            cid = await self.db.async_insert_cycle(record)
-            if cid is not None:  # pragma: no branch
-                vec = extract_feature_vector(
-                    record,
-                    cop_avg=cop_avg,
-                    lwt_avg=lwt_avg,
-                    indoor_temp_avg=indoor_avg,
-                )
-                await self.db.async_insert_features(cid, vec)
-                try:
-                    cid_val = self._assign_cluster(vec)
-                    if cid_val is not None:
-                        snap.cluster_id = cid_val
-                        await self.db.async_update_cycle_cluster(
-                            cid, cid_val
-                        )
-                except Exception:
-                    _LOGGER.warning("cluster assign failed", exc_info=True)
-        except Exception:
-            _LOGGER.exception("DB persist failed")
-
-        await self._maybe_rollup_day(record)
+        # Daily rollup only when DB available (matches pre-v1.12.0
+        # `if self.db is None: return` behaviour before rollup).
+        if self.db is not None:  # pragma: no branch
+            await self._maybe_rollup_day(record)
 
     async def _maybe_rollup_day(
         self, record: dict[str, Any]
