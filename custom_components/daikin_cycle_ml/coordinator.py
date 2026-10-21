@@ -224,6 +224,32 @@ def score_and_count(
         off_s = store.off_time_since_last(now)
     except Exception:
         off_s = None
+
+    # v1.12.0 (#105 wiring): record short run / short off events.
+    # Pre-v1.12.0 these store methods had zero callers, so
+    # short_runs_today / short_offs_today sensor attributes always
+    # showed 0 even when the corresponding binary sensors flagged
+    # short events. Each call is isolated so a counter failure
+    # cannot block cycle scoring (R378 pattern).
+    _opts = options or {}
+    _sr_min = int(_opts.get("short_run_threshold_min", 20))
+    _so_min = int(_opts.get("short_off_threshold_min", 5))
+    _dur = record.get("duration_s")
+    if isinstance(_dur, (int, float)) and _dur < _sr_min * 60:
+        try:
+            store.record_short_run()
+        except Exception:
+            _LOGGER.warning(
+                "record_short_run failed", exc_info=True
+            )
+    if isinstance(off_s, (int, float)) and off_s < _so_min * 60:
+        try:
+            store.record_short_off()
+        except Exception:
+            _LOGGER.warning(
+                "record_short_off failed", exc_info=True
+            )
+
     try:
         record["quality_score"] = score_cycle(
             record, options, off_time_s=off_s
