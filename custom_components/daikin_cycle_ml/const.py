@@ -15,6 +15,16 @@ MAX_CYCLE_DURATION_S = 4 * 3600.0
 ENERGY_DT_WARN_S = 60.0
 ENERGY_PERSIST_INTERVAL_S = 30.0
 
+# v1.12.0 (#105): transient cycle classification thresholds
+# A cycle is transient if: duration < TRANSIENT_MAX_DURATION_S
+# OR (duration < TRANSIENT_NEAR_MAX_DURATION_S
+#     AND dT_max < TRANSIENT_NEAR_MAX_DT_K
+#     AND rps_max >= TRANSIENT_NEAR_MIN_RPS)
+TRANSIENT_MAX_DURATION_S = 120
+TRANSIENT_NEAR_MAX_DURATION_S = 300
+TRANSIENT_NEAR_MAX_DT_K = 3.0
+TRANSIENT_NEAR_MIN_RPS = 40.0
+
 # --- Source sensor ---
 SOURCE_SENSOR_ENTITY = "sensor.althermasensors"
 

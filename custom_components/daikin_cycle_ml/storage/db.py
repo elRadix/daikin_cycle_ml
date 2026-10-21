@@ -54,6 +54,46 @@ class CycleDB:
         await conn.executescript(schema)
         await conn.commit()
 
+        # v1.12.0 (#105, #107): schema v16 migration. Idempotent.
+        # - is_transient: adds column + backfills historical transients
+        # - thermal_kw_avg: adds column (NULL for historical, populated
+        #   going forward via INSERT in async_insert_cycle)
+        from ..const import (
+            TRANSIENT_MAX_DURATION_S,
+            TRANSIENT_NEAR_MAX_DURATION_S,
+            TRANSIENT_NEAR_MAX_DT_K,
+            TRANSIENT_NEAR_MIN_RPS,
+        )
+        cursor = await conn.execute("PRAGMA table_info(cycles)")
+        existing_cols = {row[1] for row in await cursor.fetchall()}
+        await cursor.close()
+        if "is_transient" not in existing_cols:
+            await conn.execute(
+                "ALTER TABLE cycles ADD COLUMN "
+                "is_transient INTEGER DEFAULT 0"
+            )
+        if "thermal_kw_avg" not in existing_cols:
+            await conn.execute(
+                "ALTER TABLE cycles ADD COLUMN thermal_kw_avg REAL"
+            )
+        # Idempotent backfill: only touches is_transient=0 rows
+        # matching the classification rule. Zero rows after first run.
+        await conn.execute(
+            f"""UPDATE cycles SET is_transient = 1
+                WHERE is_transient = 0
+                  AND (
+                    (duration_s IS NOT NULL
+                     AND duration_s < {TRANSIENT_MAX_DURATION_S})
+                    OR (duration_s IS NOT NULL
+                        AND duration_s < {TRANSIENT_NEAR_MAX_DURATION_S}
+                        AND dT_max IS NOT NULL
+                        AND dT_max < {TRANSIENT_NEAR_MAX_DT_K}
+                        AND rps_max IS NOT NULL
+                        AND rps_max >= {TRANSIENT_NEAR_MIN_RPS})
+                  )"""
+        )
+        await conn.commit()
+
     async def async_close(self) -> None:
         if self._conn is None:
             return
@@ -70,7 +110,8 @@ class CycleDB:
             "SELECT start_ts, end_ts, duration_s, mode, dT_max, dT_avg, "
             "rps_max, rps_avg, outdoor_temp, buh_used, defrost_used, "
             "quality_score, label, cluster_id, cop_avg, "
-            "cop_sample_count, cop_sample_stdev, cop_confidence "
+            "cop_sample_count, cop_sample_stdev, cop_confidence, "
+            "thermal_kw_avg, is_transient "
             "FROM cycles ORDER BY start_ts DESC LIMIT ?",
             (limit,),
         )
@@ -83,6 +124,7 @@ class CycleDB:
             "buh_used", "defrost_used", "quality_score", "label",
             "cluster_id", "cop_avg", "cop_sample_count",
             "cop_sample_stdev", "cop_confidence",
+            "thermal_kw_avg", "is_transient",
         )
         return [dict(zip(cols, r)) for r in reversed(raw_list)]
 
@@ -147,8 +189,9 @@ class CycleDB:
                (start_ts, end_ts, duration_s, mode, dT_max, dT_avg,
                 rps_max, rps_avg, outdoor_temp, buh_used, defrost_used,
                 quality_score, label,
-                cop_avg, cop_sample_count, cop_sample_stdev, cop_confidence)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                cop_avg, cop_sample_count, cop_sample_stdev,
+                cop_confidence, thermal_kw_avg, is_transient)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 record.get("start_ts"),
                 record.get("end_ts"),
@@ -167,6 +210,8 @@ class CycleDB:
                 record.get("cop_sample_count"),
                 record.get("cop_sample_stdev"),
                 record.get("cop_confidence"),
+                record.get("thermal_kw_avg"),
+                int(bool(record.get("is_transient", 0))),
             ),
         )
         try:
