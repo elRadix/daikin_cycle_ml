@@ -250,9 +250,20 @@ def score_and_count(
                 "record_short_off failed", exc_info=True
             )
 
+    # v1.12.0 (#105): compute short-cycle ratio for scorer.
+    # Counters updated above, so short_runs_today includes this cycle.
+    # cycles_today is incremented by add_cycle AFTER score_and_count
+    # runs, so add +1 to include the current cycle in the denominator.
+    # +1 makes denominator >= 1 by construction; no zero guard needed.
+    # Percent (0-100), matching DEFAULT_SHORT_CYCLE_RATIO (50).
+    _short_today = store.get("short_runs_today", 0)
+    _cycles_denom = store.get("cycles_today", 0) + 1
+    _ratio_pct = round(100.0 * _short_today / _cycles_denom, 2)
+
     try:
         record["quality_score"] = score_cycle(
-            record, options, off_time_s=off_s
+            record, options, off_time_s=off_s,
+            short_cycle_ratio=_ratio_pct,
         )
     except Exception:
         _LOGGER.warning("score_cycle failed", exc_info=True)
