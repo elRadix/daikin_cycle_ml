@@ -588,12 +588,41 @@ class CycleDB:
             _LOGGER.exception("backfill flag persist failed")
         return written
 
+    async def async_prune_model_state(
+        self, *, retention_days: int = 400,
+    ) -> int:
+        """Prune energy_acc.<day> / runtime_acc.<day> older than cutoff.
+
+        v1.12.0 (#106): keys use the ISO date suffix for retention
+        (not updated_ts) because every persist tick re-touches the key.
+        Date-suffix compare is immutable. Returns rows deleted.
+        """
+        conn = self._require()
+        cutoff_ts = time.time() - float(retention_days) * 86400.0
+        cutoff_day = time.strftime(
+            "%Y-%m-%d", time.localtime(cutoff_ts)
+        )
+        cur = await conn.execute(
+            "DELETE FROM model_state "
+            "WHERE (key LIKE 'energy_acc.%' "
+            "       AND substr(key, 12) < ?) "
+            "   OR (key LIKE 'runtime_acc.%' "
+            "       AND substr(key, 13) < ?)",
+            (cutoff_day, cutoff_day),
+        )
+        try:
+            n = cur.rowcount or 0
+        finally:
+            await cur.close()
+        return n
+
     async def async_run_maintenance(
         self,
         *,
         cycle_retention_days: int = 90,
         alert_retention_days: int = 90,  # matches const.DEFAULT_ALERT_RETENTION_DAYS
         cop_retention_days: int = 365,
+        model_state_retention_days: int = 400,
         vacuum: bool = True,
     ) -> dict[str, int]:
         """Aggregate old cycles, prune, optionally vacuum. Atomic rollup+prune."""
@@ -676,6 +705,16 @@ class CycleDB:
         except Exception:
             _LOGGER.exception("cop_hourly prune failed")
 
+        # v1.12.0 (#106): prune old energy/runtime accumulator keys.
+        # model_state table otherwise grows ~2 keys/day forever.
+        model_state_deleted = 0
+        try:
+            model_state_deleted = await self.async_prune_model_state(
+                retention_days=int(model_state_retention_days),
+            )
+        except Exception:
+            _LOGGER.exception("model_state prune failed")
+
         await conn.commit()
 
         # 5. VACUUM outside any transaction
@@ -689,6 +728,7 @@ class CycleDB:
             "features_deleted": features_deleted,
             "alerts_deleted": alerts_deleted,
             "cop_deleted": cop_deleted,
+            "model_state_deleted": model_state_deleted,
         }
 
     async def async_vacuum(self) -> bool:

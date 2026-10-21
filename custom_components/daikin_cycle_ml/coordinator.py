@@ -67,6 +67,7 @@ from .const import (
     HIGH_CYCLE_RATE_MULTIPLIER,
     MODE_DHW,
     DEFAULT_ALERT_RETENTION_DAYS,
+    DEFAULT_MODEL_STATE_RETENTION_DAYS,
     DEFAULT_CYCLE_RETENTION_DAYS,
     KMEANS_STALE_AFTER_DAYS,
     ENERGY_ANOMALY_FLOOR_KWH,
@@ -604,6 +605,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         *,
         cycle_retention_days: int | None = None,
         alert_retention_days: int | None = None,
+        model_state_retention_days: int | None = None,
         vacuum: bool | None = None,
         force: bool = False,
     ) -> dict[str, Any]:
@@ -640,6 +642,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             if alert_retention_days is not None
             else int(opts.get('alert_retention_days', DEFAULT_ALERT_RETENTION_DAYS))
         )
+        mdays = (
+            int(model_state_retention_days)
+            if model_state_retention_days is not None
+            else int(opts.get(
+                'model_state_retention_days',
+                DEFAULT_MODEL_STATE_RETENTION_DAYS,
+            ))
+        )
         dovac = (
             bool(vacuum)
             if vacuum is not None
@@ -649,6 +659,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             result = await self.db.async_run_maintenance(
                 cycle_retention_days=cdays,
                 alert_retention_days=adays,
+                model_state_retention_days=mdays,
                 vacuum=dovac,
             )
         except Exception as err:
