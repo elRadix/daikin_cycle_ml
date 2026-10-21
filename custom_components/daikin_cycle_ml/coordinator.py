@@ -49,6 +49,11 @@ from .const import (
     DEGRADATION_WINDOW_DAYS,
     ENERGY_DT_CAP_S,
     ENERGY_DT_WARN_S,
+    ENERGY_PERSIST_INTERVAL_S,
+    TRANSIENT_MAX_DURATION_S,
+    TRANSIENT_NEAR_MAX_DURATION_S,
+    TRANSIENT_NEAR_MAX_DT_K,
+    TRANSIENT_NEAR_MIN_RPS,
     COP_LOW_MIN_SAMPLES,
     COP_LOW_THRESHOLD,
     STOOKLIJN_MIN_CONFIDENCE,
@@ -62,6 +67,7 @@ from .const import (
     HIGH_CYCLE_RATE_MULTIPLIER,
     MODE_DHW,
     DEFAULT_ALERT_RETENTION_DAYS,
+    DEFAULT_MODEL_STATE_RETENTION_DAYS,
     DEFAULT_CYCLE_RETENTION_DAYS,
     KMEANS_STALE_AFTER_DAYS,
     ENERGY_ANOMALY_FLOOR_KWH,
@@ -208,6 +214,31 @@ def _weighted_mean_stdev(
         var = 0.0
     return mean, var ** 0.5
 
+def _classify_transient(record: dict[str, Any]) -> bool:
+    """v1.12.0 (#105): startup-transient classifier.
+
+    Rule (mirrors the SQL backfill in async_initialize):
+      transient if duration_s < TRANSIENT_MAX_DURATION_S (120s)
+      OR (duration_s < TRANSIENT_NEAR_MAX_DURATION_S (300s)
+          AND dT_max < TRANSIENT_NEAR_MAX_DT_K (3.0K)
+          AND rps_max >= TRANSIENT_NEAR_MIN_RPS (40.0))
+    """
+    dur = record.get("duration_s")
+    if isinstance(dur, (int, float)) and dur < TRANSIENT_MAX_DURATION_S:
+        return True
+    if isinstance(dur, (int, float)) and dur < TRANSIENT_NEAR_MAX_DURATION_S:
+        dt = record.get("dT_max")
+        rps = record.get("rps_max")
+        if (
+            isinstance(dt, (int, float))
+            and dt < TRANSIENT_NEAR_MAX_DT_K
+            and isinstance(rps, (int, float))
+            and rps >= TRANSIENT_NEAR_MIN_RPS
+        ):
+            return True
+    return False
+
+
 def score_and_count(
     record: dict[str, Any],
     options: dict[str, Any] | None,
@@ -223,9 +254,46 @@ def score_and_count(
         off_s = store.off_time_since_last(now)
     except Exception:
         off_s = None
+
+    # v1.12.0 (#105 wiring): record short run / short off events.
+    # Pre-v1.12.0 these store methods had zero callers, so
+    # short_runs_today / short_offs_today sensor attributes always
+    # showed 0 even when the corresponding binary sensors flagged
+    # short events. Each call is isolated so a counter failure
+    # cannot block cycle scoring (R378 pattern).
+    _opts = options or {}
+    _sr_min = int(_opts.get("short_run_threshold_min", 20))
+    _so_min = int(_opts.get("short_off_threshold_min", 5))
+    _dur = record.get("duration_s")
+    if isinstance(_dur, (int, float)) and _dur < _sr_min * 60:
+        try:
+            store.record_short_run()
+        except Exception:
+            _LOGGER.warning(
+                "record_short_run failed", exc_info=True
+            )
+    if isinstance(off_s, (int, float)) and off_s < _so_min * 60:
+        try:
+            store.record_short_off()
+        except Exception:
+            _LOGGER.warning(
+                "record_short_off failed", exc_info=True
+            )
+
+    # v1.12.0 (#105): compute short-cycle ratio for scorer.
+    # Counters updated above, so short_runs_today includes this cycle.
+    # cycles_today is incremented by add_cycle AFTER score_and_count
+    # runs, so add +1 to include the current cycle in the denominator.
+    # +1 makes denominator >= 1 by construction; no zero guard needed.
+    # Percent (0-100), matching DEFAULT_SHORT_CYCLE_RATIO (50).
+    _short_today = store.get("short_runs_today", 0)
+    _cycles_denom = store.get("cycles_today", 0) + 1
+    _ratio_pct = round(100.0 * _short_today / _cycles_denom, 2)
+
     try:
         record["quality_score"] = score_cycle(
-            record, options, off_time_s=off_s
+            record, options, off_time_s=off_s,
+            short_cycle_ratio=_ratio_pct,
         )
     except Exception:
         _LOGGER.warning("score_cycle failed", exc_info=True)
@@ -537,6 +605,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         *,
         cycle_retention_days: int | None = None,
         alert_retention_days: int | None = None,
+        model_state_retention_days: int | None = None,
         vacuum: bool | None = None,
         force: bool = False,
     ) -> dict[str, Any]:
@@ -573,6 +642,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             if alert_retention_days is not None
             else int(opts.get('alert_retention_days', DEFAULT_ALERT_RETENTION_DAYS))
         )
+        mdays = (
+            int(model_state_retention_days)
+            if model_state_retention_days is not None
+            else int(opts.get(
+                'model_state_retention_days',
+                DEFAULT_MODEL_STATE_RETENTION_DAYS,
+            ))
+        )
         dovac = (
             bool(vacuum)
             if vacuum is not None
@@ -582,6 +659,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             result = await self.db.async_run_maintenance(
                 cycle_retention_days=cdays,
                 alert_retention_days=adays,
+                model_state_retention_days=mdays,
                 vacuum=dovac,
             )
         except Exception as err:
@@ -977,6 +1055,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 await self._persist_detector_state()
             self._accumulate_cycle_samples(attrs)
             if record is not None:
+                # v1.12.0 (#105): classify transient before scoring/insert
+                record["is_transient"] = int(_classify_transient(record))
                 score_and_count(record, self.options, self.store, now)
                 self.store.add_cycle(record)
                 snap.last_record = record
@@ -1204,6 +1284,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         overwriting. Prevents the boot-wipe loop where every restart
         silently destroys the day's accumulated energy.
         """
+        self._ensure_energy_acc()  # guarantees _energy_hwm on __new__-tests
         if self.db is None or not self._energy_day_key:
             return
         try:
@@ -1238,13 +1319,21 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     }
                     for m in ("heating", "dhw", "cooling"):
                         for k in ("th", "el"):
-                            if self._energy_acc[m][k] > self._energy_hwm[m][k]:
-                                self._energy_hwm[m][k] = self._energy_acc[m][k]
+                            loaded_hwm = float(
+                                existing.get(f"{m}_{k}_hwm_kwh") or 0.0
+                            )
+                            self._energy_hwm[m][k] = max(
+                                self._energy_hwm[m][k],
+                                loaded_hwm,
+                                self._energy_acc[m][k],
+                            )
                     return
             payload: dict[str, Any] = {"day": self._energy_day_key}
             for mode in ("heating", "dhw", "cooling"):
                 payload[f"{mode}_th_kwh"] = self._energy_acc[mode]["th"]
                 payload[f"{mode}_el_kwh"] = self._energy_acc[mode]["el"]
+                payload[f"{mode}_th_hwm_kwh"] = self._energy_hwm[mode]["th"]
+                payload[f"{mode}_el_hwm_kwh"] = self._energy_hwm[mode]["el"]
             await self.db.async_set_model_state(
                 f"energy_acc.{self._energy_day_key}", payload
             )
@@ -1352,6 +1441,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                         )
                     else:
                         self._energy_acc[m][k] = loaded[m][k]
+                    loaded_hwm = float(
+                        payload.get(f"{m}_{k}_hwm_kwh") or 0.0
+                    )
+                    if same_day:
+                        self._energy_hwm[m][k] = max(
+                            self._energy_hwm[m][k], loaded_hwm
+                        )
+                    else:
+                        self._energy_hwm[m][k] = loaded_hwm
                     if self._energy_acc[m][k] > self._energy_hwm[m][k]:
                         self._energy_hwm[m][k] = self._energy_acc[m][k]
             self._energy_day_key = today
@@ -1369,12 +1467,16 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return False
 
     async def _maybe_persist_accumulators(self, now: float) -> None:
-        """Persist runtime + energy accumulators throttled at 300s.
+        """Persist runtime + energy accumulators throttled at 30s.
 
         Called from _async_update_data after each tick. Without this,
         accumulators are lost on HA restart (C5a known gap).
+
+        v1.12.0: interval reduced 300s -> 30s to align with the tick.
+        Bounds hard-crash loss to at most one tick instead of up to
+        five minutes. Write amplification is negligible in WAL mode.
         """
-        interval = 300.0
+        interval = ENERGY_PERSIST_INTERVAL_S
         if (now - self._last_runtime_persist_ts) >= interval:
             await self._persist_runtime_acc()
             self._last_runtime_persist_ts = now
@@ -1596,43 +1698,34 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if _raw_dur is not None:
             _max_min = int(self.options.get("max_cycle_duration_min", 240))
             record["duration_s"] = _clamp_duration(_raw_dur, _max_min)
-        cop_avg, lwt_avg, indoor_avg = await self._collect_cycle_averages(record)
-        try:
-            vector = extract_feature_vector(record, cop_avg=cop_avg,
-                lwt_avg=lwt_avg,
-                indoor_temp_avg=indoor_avg,
-            thermal_kw_avg=record.get("thermal_kw_avg") or 0.0,
+        cop_avg, lwt_avg, indoor_avg = await self._collect_cycle_averages(
+            record
         )
-            mode = record.get("mode") or snap.mode or "unknown"
-            try:
-                self.adaptive.observe_cycle(
-                    mode,
-                    record.get("duration_s"),
-                    record.get("off_s"),
-                )
-            except Exception:
-                _LOGGER.warning("adaptive observe_cycle failed", exc_info=True)
-            per_mode = self.baseline.get(mode)
-            per_mode.update(vector)
-            result = evaluate_anomaly(vector, per_mode, self.options)
-            snap.anomaly = result
-            if self.options.get("action_advice_enabled", True):
-                snap.advice = generate_advice(
-                    result, record, mode=snap.mode, options=self.options
-                )
-        except Exception:
-            _LOGGER.exception("ML pipeline failed")
 
-        if self.db is None:
-            return
-        try:
-            cid = await self.db.async_insert_cycle(record)
-            if cid is not None:  # pragma: no branch
+        # v1.12.0 (#103): DB-first persist. Cycle row must be durable
+        # BEFORE the ML pipeline runs. Pre-v1.12.0 the cycle insert
+        # happened AFTER ML, so any ML exception or slow await widened
+        # the crash-loss window for this cycle.
+        cid: int | None = None
+        if self.db is not None:  # pragma: no branch
+            try:
+                cid = await self.db.async_insert_cycle(record)
+            except Exception:
+                _LOGGER.exception("DB persist cycle failed")
+                cid = None
+
+        # v1.12.0 (#103): features block. Always includes thermal_kw_avg
+        # so the stored feature vector matches the ML pipeline's view.
+        # Pre-v1.12.0 this call was missing thermal_kw_avg, producing a
+        # different feature row than ML saw — latent drift.
+        if cid is not None:  # pragma: no branch
+            try:
                 vec = extract_feature_vector(
                     record,
                     cop_avg=cop_avg,
                     lwt_avg=lwt_avg,
                     indoor_temp_avg=indoor_avg,
+                    thermal_kw_avg=record.get("thermal_kw_avg") or 0.0,
                 )
                 await self.db.async_insert_features(cid, vec)
                 try:
@@ -1643,11 +1736,49 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                             cid, cid_val
                         )
                 except Exception:
-                    _LOGGER.warning("cluster assign failed", exc_info=True)
-        except Exception:
-            _LOGGER.exception("DB persist failed")
+                    _LOGGER.warning(
+                        "cluster assign failed", exc_info=True
+                    )
+            except Exception:
+                _LOGGER.exception("DB features persist failed")
 
-        await self._maybe_rollup_day(record)
+        # ML pipeline (best-effort, never blocks cycle durability).
+        try:
+            vector = extract_feature_vector(
+                record,
+                cop_avg=cop_avg,
+                lwt_avg=lwt_avg,
+                indoor_temp_avg=indoor_avg,
+                thermal_kw_avg=record.get("thermal_kw_avg") or 0.0,
+            )
+            mode = record.get("mode") or snap.mode or "unknown"
+            try:
+                self.adaptive.observe_cycle(
+                    mode,
+                    record.get("duration_s"),
+                    record.get("off_s"),
+                )
+            except Exception:
+                _LOGGER.warning(
+                    "adaptive observe_cycle failed", exc_info=True
+                )
+            per_mode = self.baseline.get(mode)
+            if not record.get("is_transient"):
+                # v1.12.0 (#105): skip baseline update on transients
+                per_mode.update(vector)
+            result = evaluate_anomaly(vector, per_mode, self.options)
+            snap.anomaly = result
+            if self.options.get("action_advice_enabled", True):
+                snap.advice = generate_advice(
+                    result, record, mode=snap.mode, options=self.options
+                )
+        except Exception:
+            _LOGGER.exception("ML pipeline failed")
+
+        # Daily rollup only when DB available (matches pre-v1.12.0
+        # `if self.db is None: return` behaviour before rollup).
+        if self.db is not None:  # pragma: no branch
+            await self._maybe_rollup_day(record)
 
     async def _maybe_rollup_day(
         self, record: dict[str, Any]
@@ -2271,6 +2402,37 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.exception("adaptive load failed")
         return False
 
+    async def _async_flush_accumulators(self) -> None:
+        """v1.12.0 (#104): best-effort flush of all accumulators.
+
+        Called from async_unload_entry (before db.async_close) and
+        _async_handle_shutdown (HA EVENT_HOMEASSISTANT_STOP).
+
+        Each flush is isolated so one failure never blocks downstream
+        (R378 pattern). Idempotent — safe to call twice if both the
+        stop event and entry unload fire during shutdown.
+        """
+        for _name in (
+            "_persist_runtime_acc",
+            "_persist_energy_acc",
+            "_persist_detector_state",
+        ):
+            try:
+                await getattr(self, _name)()
+            except Exception:
+                _LOGGER.exception("flush %s failed", _name)
+
+    async def _async_handle_shutdown(self, _event: Any = None) -> None:
+        """v1.12.0 (#104): HA shutdown handler — flush all accumulators.
+
+        Registered via entry.async_on_unload(hass.bus.async_listen_once(
+        EVENT_HOMEASSISTANT_STOP, ...)) in async_setup_entry. Fires on
+        graceful HA stop (OS reboot, docker stop, `ha core restart`).
+        Does NOT close the DB — HA tears down the entry via unload.
+        """
+        _LOGGER.info("Daikin Cycle ML shutdown flush")
+        await self._async_flush_accumulators()
+
     async def _persist_detector_state(self) -> None:
         """Persist detector state to model_state. Never raises."""
         if self.db is None:
@@ -2732,7 +2894,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         off = self.store.off_time_since_last(now)
         is_short_off = off is not None and off < short_off_th
         is_pend_h = self.store.cycles_in_window(now, 3600) >= pend_hour
-        is_pend_d = len(self.store.cycles_today(now)) >= pend_day
+        is_pend_d = (
+            len(self.store.non_transient_today(now)) >= pend_day
+        )
         is_ml_anom = bool(
             getattr(snap, "anomaly", None)
             and getattr(snap.anomaly, "is_anomaly", False)
@@ -2774,7 +2938,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         is_dhw_pendulum = _dhw_cph >= _dhw_thr
         _hcr_cph = 0
         with contextlib.suppress(Exception):
-            _hcr_cph = int(self.store.cycles_in_window(now, 3600))
+            _hcr_cph = int(self.store.non_transient_in_window(now, 3600))
         _hcr_base = int(self.options.get("pendulum_cycles_per_hour", 4))
         is_high_cycle_rate = _hcr_cph > _hcr_base * HIGH_CYCLE_RATE_MULTIPLIER
         _cop_ds_pct = getattr(snap, "cop_vs_datasheet_pct", None)

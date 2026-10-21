@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS cycles (
     cop_sample_count INTEGER,
     cop_sample_stdev REAL,
     cop_confidence TEXT,
+    thermal_kw_avg REAL,
+    is_transient INTEGER DEFAULT 0,
     UNIQUE(start_ts)
 );
 

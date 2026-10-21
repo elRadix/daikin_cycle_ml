@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.daikin_cycle_ml.const import (
+    ENERGY_PERSIST_INTERVAL_S,
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
     ATTR_DEFROST_OPERATION,
@@ -348,48 +349,54 @@ def test_tick_energy_no_kw_el_via_rps():
 
 
 async def test_maybe_persist_both_fire():
+    T = ENERGY_PERSIST_INTERVAL_S
     c = _bare(db=AsyncMock())
     c._runtime_day_key = "2026-10-05"
     c._energy_day_key = "2026-10-05"
     c._last_runtime_persist_ts = 0.0
     c._last_energy_persist_ts = 0.0
-    await c._maybe_persist_accumulators(1000.0)
-    assert c._last_runtime_persist_ts == 1000.0
-    assert c._last_energy_persist_ts == 1000.0
+    await c._maybe_persist_accumulators(2 * T)
+    assert c._last_runtime_persist_ts == 2 * T
+    assert c._last_energy_persist_ts == 2 * T
     assert c.db.async_set_model_state.await_count == 2
 
 
 async def test_maybe_persist_both_skip_within_throttle():
+    T = ENERGY_PERSIST_INTERVAL_S
     c = _bare(db=AsyncMock())
     c._runtime_day_key = "2026-10-05"
     c._energy_day_key = "2026-10-05"
     c._last_runtime_persist_ts = 1000.0
     c._last_energy_persist_ts = 1000.0
-    await c._maybe_persist_accumulators(1100.0)
+    await c._maybe_persist_accumulators(1000.0 + T / 2)
     assert c._last_runtime_persist_ts == 1000.0
     assert c._last_energy_persist_ts == 1000.0
     assert c.db.async_set_model_state.await_count == 0
 
 
 async def test_maybe_persist_runtime_skip_energy_fire():
+    T = ENERGY_PERSIST_INTERVAL_S
     c = _bare(db=AsyncMock())
     c._runtime_day_key = "2026-10-05"
     c._energy_day_key = "2026-10-05"
     c._last_runtime_persist_ts = 1000.0
     c._last_energy_persist_ts = 0.0
-    await c._maybe_persist_accumulators(1100.0)
+    now = 1000.0 + T / 2
+    await c._maybe_persist_accumulators(now)
     assert c._last_runtime_persist_ts == 1000.0
-    assert c._last_energy_persist_ts == 1100.0
+    assert c._last_energy_persist_ts == now
 
 
 async def test_maybe_persist_runtime_fire_energy_skip():
+    T = ENERGY_PERSIST_INTERVAL_S
     c = _bare(db=AsyncMock())
     c._runtime_day_key = "2026-10-05"
     c._energy_day_key = "2026-10-05"
     c._last_runtime_persist_ts = 0.0
     c._last_energy_persist_ts = 1000.0
-    await c._maybe_persist_accumulators(1100.0)
-    assert c._last_runtime_persist_ts == 1100.0
+    now = 1000.0 + T / 2
+    await c._maybe_persist_accumulators(now)
+    assert c._last_runtime_persist_ts == now
     assert c._last_energy_persist_ts == 1000.0
 
 

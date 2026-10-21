@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "daikin_cycle_ml"
 NAME = "Daikin Cycle ML"
-VERSION = "1.11.3"
+VERSION = "1.12.0"
 
 # --- Coordinator ---
 UPDATE_INTERVAL_SECONDS = 30
@@ -13,6 +13,17 @@ ENERGY_DT_CAP_S = 300.0
 MAX_CYCLE_DURATION_S = 4 * 3600.0
 """Absolute maximum cycle duration before forced close (R315)."""
 ENERGY_DT_WARN_S = 60.0
+ENERGY_PERSIST_INTERVAL_S = 30.0
+
+# v1.12.0 (#105): transient cycle classification thresholds
+# A cycle is transient if: duration < TRANSIENT_MAX_DURATION_S
+# OR (duration < TRANSIENT_NEAR_MAX_DURATION_S
+#     AND dT_max < TRANSIENT_NEAR_MAX_DT_K
+#     AND rps_max >= TRANSIENT_NEAR_MIN_RPS)
+TRANSIENT_MAX_DURATION_S = 120
+TRANSIENT_NEAR_MAX_DURATION_S = 300
+TRANSIENT_NEAR_MAX_DT_K = 3.0
+TRANSIENT_NEAR_MIN_RPS = 40.0
 
 # --- Source sensor ---
 SOURCE_SENSOR_ENTITY = "sensor.althermasensors"
@@ -273,6 +284,7 @@ ADAPTIVE_MIN_SAMPLES_UPPER_BOUND = 500
 COP_SENSOR_ENTITY = "sensor.altherma_global_cop"
 DEFAULT_COP_SAMPLE_INTERVAL_SECONDS = 600
 DEFAULT_COP_RETENTION_DAYS = 365
+DEFAULT_MODEL_STATE_RETENTION_DAYS = 400
 
 # v1.4.2
 COP_ROLLUP_WINDOW_HOURS = 720

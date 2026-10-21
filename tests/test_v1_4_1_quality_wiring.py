@@ -27,8 +27,16 @@ class _BadCoord:
 
 
 class _StoreStub:
+    """Minimal CycleStore-compatible fake for score_and_count tests.
+
+    Matches the CycleStore interface required by score_and_count:
+    off_time_since_last, increment, get, record_short_run, record_short_off.
+    cycles_today starts at 1 to represent "scoring a cycle mid-day,
+    with at least one prior cycle already counted today".
+    """
+
     def __init__(self, raise_off=False, raise_inc=False):
-        self._counters = {}
+        self._counters = {"cycles_today": 1}
         self._raise_off = raise_off
         self._raise_inc = raise_inc
 
@@ -42,6 +50,15 @@ class _StoreStub:
             raise RuntimeError('inc boom')
         self._counters[key] = self._counters.get(key, 0) + delta
         return self._counters[key]
+
+    def get(self, key, default=None):
+        return self._counters.get(key, default)
+
+    def record_short_run(self):
+        return self.increment("short_runs_today")
+
+    def record_short_off(self):
+        return self.increment("short_offs_today")
 
 
 # --- _cluster_label (BUG-4) ---

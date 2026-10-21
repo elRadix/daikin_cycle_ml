@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 
@@ -186,6 +187,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.exception('Failed to setup alert persistence')
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
+    entry.async_on_unload(
+        hass.bus.async_listen_once(
+            EVENT_HOMEASSISTANT_STOP,
+            coordinator._async_handle_shutdown,
+        )
+    )
     try:
         await coordinator.async_setup_maintenance()
     except Exception:
@@ -220,6 +227,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
     coordinator = getattr(entry, "runtime_data", None)
     if coordinator is not None:
+        try:
+            await coordinator._async_flush_accumulators()
+        except Exception:  # pragma: no cover
+            _LOGGER.exception('Failed to flush accumulators on unload')
         try:
             await coordinator._async_persist_last_alert_sent()
         except Exception:  # pragma: no cover
