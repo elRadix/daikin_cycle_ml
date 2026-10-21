@@ -129,3 +129,22 @@ _LIVE_DUMP = {
 def test_all_required_attributes_resolve_from_real_device_dump():
     out = read(SimpleNamespace(attributes=_LIVE_DUMP))
     assert missing_required(out) == []
+
+
+def test_missing_required_accepts_raw_v2_dump():
+    """Config flow (setup wizard + reconfigure) passes raw state.attributes."""
+    assert missing_required(_LIVE_DUMP) == []
+
+
+def test_missing_required_still_reports_genuinely_missing():
+    raw = dict(_LIVE_DUMP)
+    del raw["R1T-Outdoor air temp."]
+    missing = missing_required(raw)
+    assert "Outdoor air temp.(R1T)" in missing
+
+
+def test_missing_required_treats_placeholder_as_missing():
+    raw = dict(_LIVE_DUMP)
+    raw["R1T-Outdoor air temp."] = "---"
+    missing = missing_required(raw)
+    assert "Outdoor air temp.(R1T)" in missing

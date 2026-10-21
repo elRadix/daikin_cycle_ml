@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.11.2] - 2026-10-21
+
+### Fixed
+
+- Config flow and reconfigure now honor the ESPAltherma attribute compat
+  view, matching the coordinator. Fixes false-positive reconfigure warnings
+  and wrong "core attributes" counts on definition files that label the
+  outdoor sensor `R1T-Outdoor air temp.`. Also makes manual mapping accept
+  either the canonical or the alias name.
+
+- Reconfigure no longer logs "missing attrs" for a raw-attribute source
+  that actually provides the attribute under an aliased key.
+
+### Added
+
+- Three regression tests: raw v2 dump resolves, genuinely missing values
+  are still reported, and placeholder values (`---`) count as missing.
+
+
 ## [1.11.1] - 2026-10-21
 
 ### Fixed

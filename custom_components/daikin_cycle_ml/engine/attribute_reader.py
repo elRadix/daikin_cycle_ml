@@ -104,5 +104,16 @@ def read(
 
 
 def missing_required(attrs: Mapping[str, Any]) -> list[str]:
-    """Return required attribute keys that are absent or None."""
-    return [key for key in REQUIRED_ATTRIBUTES if attrs.get(key) is None]
+    """Return required attribute keys that are absent or None.
+
+    Accepts raw ESPAltherma attributes OR the output of read(). The
+    compat view is applied internally so definition-file aliases
+    (e.g. ``R1T-Outdoor air temp.``) resolve to canonical names.
+    Values are normalized before the None check so placeholders
+    such as ``---`` count as missing.
+    """
+    compat = build_compat_view(attrs)
+    return [
+        key for key in REQUIRED_ATTRIBUTES
+        if _normalize(compat.get(key)) is None
+    ]
