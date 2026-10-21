@@ -455,6 +455,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "dhw":     {"th": 0.0, "el": 0.0},
             "cooling": {"th": 0.0, "el": 0.0},
         }
+        # v1.11.3: per-day high-water-mark for total_increasing sensors.
+        # Never decreases within a day. Reset only at day rollover.
+        self._energy_hwm: dict[str, dict[str, float]] = {
+            "heating": {"th": 0.0, "el": 0.0},
+            "dhw":     {"th": 0.0, "el": 0.0},
+            "cooling": {"th": 0.0, "el": 0.0},
+        }
         self._last_energy_tick_ts: float = 0.0
         # ---------- v1.6.0-C6b: cost caches ----------
         self._cost_month_cache: dict[str, Any] = {}
@@ -1065,15 +1072,27 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
     @property
     def energy_snapshot(self) -> dict[str, dict[str, float]]:
-        """Read-only snapshot of energy accumulators (R216)."""
-        acc = self._ensure_energy_acc()
-        return {mode: dict(vals) for mode, vals in acc.items()}
+        """Read-only snapshot of energy accumulators (R216).
+
+        v1.11.3: returns the high-water-mark, not the live accumulator.
+        Guarantees the total_increasing contract the recorder enforces:
+        a value reported once must never be reported lower within the
+        same day. The live accumulator can transiently dip (e.g. a
+        throttled DB persist being restored over a newer in-memory value),
+        but the HWM never does. Day rollover resets both together, which
+        the recorder correctly interprets as a new accumulation period.
+        """
+        self._ensure_energy_acc()  # guarantees _energy_hwm exists too
+        return {mode: dict(vals) for mode, vals in self._energy_hwm.items()}
 
     def _ensure_energy_acc(self) -> dict[str, dict[str, float]]:
         """Return the instance-owned energy accumulator dict.
 
         Lazy-init: needed because __new__-based tests skip __init__.
         Without this, _tick_energy would mutate a class-shared dict.
+
+        v1.11.3: also lazy-inits _energy_hwm (high-water-mark) so
+        __new__-based tests and restored-from-DB paths always have it.
         """
         acc = self.__dict__.get("_energy_acc")
         if acc is None:
@@ -1083,6 +1102,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "cooling": {"th": 0.0, "el": 0.0},
             }
             self._energy_acc = acc
+        hwm = self.__dict__.get("_energy_hwm")
+        if hwm is None:
+            self._energy_hwm = {
+                "heating": {"th": 0.0, "el": 0.0},
+                "dhw":     {"th": 0.0, "el": 0.0},
+                "cooling": {"th": 0.0, "el": 0.0},
+            }
         return acc
 
     def _maybe_reset_daily_accumulators(self, now: float) -> None:
@@ -1105,6 +1131,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if self._energy_day_key != day:
             self._energy_day_key = day
             self._energy_acc = {
+                "heating": {"th": 0.0, "el": 0.0},
+                "dhw":     {"th": 0.0, "el": 0.0},
+                "cooling": {"th": 0.0, "el": 0.0},
+            }
+            self._energy_hwm = {
                 "heating": {"th": 0.0, "el": 0.0},
                 "dhw":     {"th": 0.0, "el": 0.0},
                 "cooling": {"th": 0.0, "el": 0.0},
@@ -1205,6 +1236,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                         }
                         for m in ("heating", "dhw", "cooling")
                     }
+                    for m in ("heating", "dhw", "cooling"):
+                        for k in ("th", "el"):
+                            if self._energy_acc[m][k] > self._energy_hwm[m][k]:
+                                self._energy_hwm[m][k] = self._energy_acc[m][k]
                     return
             payload: dict[str, Any] = {"day": self._energy_day_key}
             for mode in ("heating", "dhw", "cooling"):
@@ -1273,6 +1308,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if self.db is None:
             return False
         try:
+            # v1.11.3: guarantees _energy_hwm exists even on __new__-based
+            # tests (which skip __init__). Same lazy-init pattern as
+            # _ensure_energy_acc for _energy_acc itself.
+            self._ensure_energy_acc()
             today = time.strftime("%Y-%m-%d", time.localtime(time.time()))
             payload = await self.db.async_get_model_state(
                 f"energy_acc.{today}"
@@ -1289,7 +1328,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     payload.get("day"), today,
                 )
                 return False
-            self._energy_acc = {
+            loaded = {
                 "heating": {
                     "th": float(payload.get("heating_th_kwh", 0.0)),
                     "el": float(payload.get("heating_el_kwh", 0.0)),
@@ -1303,6 +1342,18 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     "el": float(payload.get("cooling_el_kwh", 0.0)),
                 },
             }
+            same_day = (self._energy_day_key == today)
+            for m in ("heating", "dhw", "cooling"):
+                for k in ("th", "el"):
+                    if same_day:
+                        # v1.11.3: merge, never lower. DB is up to 300s stale.
+                        self._energy_acc[m][k] = max(
+                            self._energy_acc[m][k], loaded[m][k]
+                        )
+                    else:
+                        self._energy_acc[m][k] = loaded[m][k]
+                    if self._energy_acc[m][k] > self._energy_hwm[m][k]:
+                        self._energy_hwm[m][k] = self._energy_acc[m][k]
             self._energy_day_key = today
             _LOGGER.info(
                 "energy_acc restored: day=%s heating_el=%.3f heating_th=%.3f dhw_el=%.3f dhw_th=%.3f",
@@ -1437,8 +1488,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 kw_el = kw_th / cop
             acc = self._ensure_energy_acc()
             acc[m]["th"] += kw_th * dt_s / 3600.0
+            if acc[m]["th"] > self._energy_hwm[m]["th"]:
+                self._energy_hwm[m]["th"] = acc[m]["th"]
             if kw_el is not None:
                 acc[m]["el"] += kw_el * dt_s / 3600.0
+                if acc[m]["el"] > self._energy_hwm[m]["el"]:
+                    self._energy_hwm[m]["el"] = acc[m]["el"]
         except Exception:
             _LOGGER.exception("energy tick failed")
 
