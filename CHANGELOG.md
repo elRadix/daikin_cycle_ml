@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.12.2] - 2026-10-21
+
+**Data-integrity patch.** Closes the remaining v89.0 DB-integrity
+findings plus enables WAL durability properly.
+
+### Added
+- WAL journal mode enabled for production DBs (#113). CycleDB now takes a `journal_mode` parameter (default `delete` for tests, `wal` for prod). Includes `synchronous=NORMAL` and `busy_timeout=5000` for concurrent-reader safety.
+
+### Fixed
+- `async_prune_cop_hourly` cutoff now uses hours-since-epoch to match `ts_hour` storage (#111). Prior mismatch silently wiped the entire `cop_hourly` table on every maintenance cycle.
+- `mode='unknown'` for cycles with valid compressor data now auto-corrected on migration (#112). Per-mode aggregation no longer undercounts heating.
+- `thermal_kw_avg` backfilled for all historical cycles from `features.vector_json[11]` (#114). Recovery is lossless.
+- Stale `daily_summary` rows with `mode='unknown'` deleted and rebuilt during migration (#112).
+
+### Changed
+- v17 data migration runs once per DB (marker-guarded). Idempotent, safe for all schema levels v14–v16.
+
 ## [1.12.1] - 2026-10-21
 
 **Patch release.** Fixes the restart phantom short_off from #109.

@@ -79,7 +79,7 @@ async def _async_setup_database(
                 parents=True, exist_ok=True
             )
         )
-        db = CycleDB(db_path)
+        db = CycleDB(db_path, journal_mode="wal")
         await db.async_open()
         await db.async_initialize()
         try:
@@ -117,6 +117,17 @@ async def _async_setup_database(
             _LOGGER.exception('v15 mode-default migration failed')
             if coordinator._migration_error is None:  # pragma: no branch
                 coordinator._migration_error = str(err)
+        # v1.12.2 (#112, #114): data migration — reclassify unknown-mode
+        # cycles with valid compressor data, backfill thermal_kw_avg
+        # from features.vector_json[11], rebuild affected DS days.
+        # Runs AFTER v11-v15 so vector_json is guaranteed 12-dim.
+        # Non-critical: failure degrades gracefully (no _migration_error),
+        # since data-only fix — cycle inserts keep working regardless.
+        try:
+            v17 = await db.async_migrate_to_v17()
+            _LOGGER.info("v17 data migration: %s", v17)
+        except Exception:
+            _LOGGER.exception('v17 data migration failed')
         try:
             coordinator._db_integrity_ok = await db.async_integrity_check()
         except Exception:
