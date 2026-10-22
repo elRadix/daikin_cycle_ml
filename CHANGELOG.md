@@ -1,5 +1,48 @@
 # Changelog
 
+## [1.12.3] - 2026-10-22
+
+**DHW compound-mode detection fix.** Closes #116 forward half.
+
+### Added
+- `classify_mode` now token-splits I/U operation mode on `+` and `/`
+  separators, correctly handling compound strings like `Heating + DHW`
+  and `Cooling + DHW`. DHW wins over heating/cooling in compound mode
+  because the 3-way valve is diverted to the tank (heating paused).
+- `CycleDetector._should_split` -- mode-token-transition splitter with
+  valve-corroborated debounce (30s with valve ON, 60s without). Valve
+  alone never splits (Daikin valve rests ON on power-loss fail-safe).
+- `binary_sensor._attr_contains_mode` -- token-based helper; used by
+  `_is_dhw_active` so compound mode fires the DHW binary sensor.
+- Constants `VALVE_DEBOUNCE_S = 30.0`, `MODE_DEBOUNCE_S = 60.0`.
+- 2 new persisted detector state fields (`pending_mode`,
+  `pending_mode_since`); backward-compatible with old payloads.
+
+### Changed
+- `_is_dhw_active` now uses token-contains matching via
+  `_attr_contains_mode` (exact-match was the bug for compound modes).
+- Cycle detector closes the current cycle and opens a fresh DHW cycle
+  when I/U mode transitions to include `dhw` during a running heating
+  cycle (both cycles reach DB with correct mode).
+
+### Fixed
+- DHW reheat runs misclassified as heating when Daikin reported
+  `Heating + DHW`. Confirmed on 3/3 production instances (#116).
+  - `sensor.cop_dhw_today` / `_day` / `_week` / `_month` now update.
+  - `binary_sensor.dhw_active` fires during real DHW runs.
+  - `daily_summary` DHW rows populate going forward.
+  - `cop_hourly` mode bucketing correct for new samples.
+
+### Version
+- 1.12.3 across const.py, manifest.json, pyproject.toml, CHANGELOG.md.
+
+### Known limitations
+- Historical misclassified cycles still need v1.12.4 migration.
+- Prod 2 shows `mixed_heating_then_dhw` shape -- requires cycle
+  splitting in v1.12.4 (not just relabeling).
+- 4-hour cycles (14400s) flagged as v1.13.0 investigation.
+- Short defrost artifacts (0-60s, defrost=1) deferred to v1.13.0.
+
 ## [1.12.2] - 2026-10-21
 
 **Data-integrity patch.** Closes the remaining v89.0 DB-integrity

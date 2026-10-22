@@ -60,6 +60,22 @@ def _attr_is_mode(attrs: dict[str, Any], key: str, mode_lower: str) -> bool:
     return False
 
 
+def _attr_contains_mode(
+    attrs: dict[str, Any], key: str, mode_lower: str,
+) -> bool:
+    """True if the attr string contains mode_lower as a token.
+
+    Handles compound modes like "Heating + DHW" and "Cooling/DHW".
+    Reference: issue #116, handoff v91.0 R441/R442.
+    """
+    raw = attrs.get(key)
+    if not isinstance(raw, str):
+        return False
+    s = raw.strip().lower().replace("/", "+")
+    tokens = {t.strip() for t in s.split("+") if t.strip()}
+    return mode_lower in tokens
+
+
 def _is_short_run(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     last = c.store.last_cycle()
     if not last:
@@ -127,7 +143,7 @@ def _is_dhw_active(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     (fail-safe for boiler priority on power loss). Valve state alone
     is therefore NOT a valid DHW signal.
     """
-    if not _attr_is_mode(s.attrs, ATTR_IU_OPERATION_MODE, MODE_DHW):
+    if not _attr_contains_mode(s.attrs, ATTR_IU_OPERATION_MODE, MODE_DHW):
         return False
     if s.state == "running":
         return True

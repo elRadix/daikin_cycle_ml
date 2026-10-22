@@ -17,6 +17,7 @@ from ..const import (
     ATTR_OPERATION_MODE,
     ATTR_OUTDOOR_AIR_R1T,
     ATTR_WATER_PUMP_OPERATION,
+    ATTR_3WAY_VALVE,
     DEFAULT_COMPRESSOR_RPS_THRESHOLD,
     DEFAULT_FALLBACK_POWER_THRESHOLD_W,
     MAX_CYCLE_DURATION_S,
@@ -51,6 +52,31 @@ MAX_RESUME_GAP_S: float = 6 * 3600.0
 
 PUMP_OFF_MAX_SAMPLES: int = 20
 """Consecutive pump-off samples in RUNNING before closing the cycle."""
+
+
+VALVE_DEBOUNCE_S: float = 30.0
+"""Debounce for valve-corroborated mode transitions."""
+
+
+MODE_DEBOUNCE_S: float = 60.0
+"""Debounce for mode-string transitions without valve corroboration."""
+
+
+def _mode_tokens(raw: str) -> set[str]:
+    """Split "Heating + DHW" / "Cooling/DHW" into lowercase tokens."""
+    s = raw.strip().lower().replace("/", "+")
+    return {t.strip() for t in s.split("+") if t.strip()}
+
+
+def _parse_valve(attrs: Mapping[str, Any]) -> str | None:
+    """Return ON/OFF from 3-way valve attr, or None if absent/invalid."""
+    if not isinstance(attrs, Mapping):
+        return None
+    raw = attrs.get(ATTR_3WAY_VALVE)
+    if not isinstance(raw, str):
+        return None
+    v = raw.strip().upper()
+    return v if v in ("ON", "OFF") else None
 
 
 def _float_list(value: Any) -> list[float]:
@@ -112,22 +138,28 @@ def detect_compressor_on(
 
 
 def classify_mode(attrs: Mapping[str, Any]) -> str:
-    """Return 'heating' | 'cooling' | 'dhw' | 'unknown'.
+    """Return "heating"|"cooling"|"dhw"|"unknown".
 
-    Primary source is I/U operation mode (Operation Mode reports
-    Fan Only as fallback when the compressor is off).
+    Token-based matching handles compound I/U modes like
+    "Heating + DHW" and "Cooling/DHW". DHW wins because the 3-way
+    valve is diverted to the tank and heating is paused (not
+    concurrent). Reference: issue #116, handoff v91.0 R441/R442.
     """
     iu = attrs.get(ATTR_IU_OPERATION_MODE)
     if isinstance(iu, str):
-        low = iu.strip().lower()
+        tokens = _mode_tokens(iu)
+        if OP_MODE_DHW.lower() in tokens:
+            return "dhw"
         for key, val in _MODE_MAP.items():
-            if low == val:
+            if val in tokens:
                 return key
     op = attrs.get(ATTR_OPERATION_MODE)
     if isinstance(op, str):
-        low = op.strip().lower()
+        tokens = _mode_tokens(op)
+        if OP_MODE_DHW.lower() in tokens:
+            return "dhw"
         for key, val in _MODE_MAP.items():
-            if low == val:
+            if val in tokens:
                 return key
     return "unknown"
 
@@ -160,6 +192,8 @@ class CycleDetector:
         self._defrost_used = False
         self._thermal_kw_samples: list[float] = []
         self._pump_off_count: int = 0
+        self._pending_mode: str | None = None
+        self._pending_mode_since: float = 0.0
 
     @property
     def state(self) -> str:
@@ -190,6 +224,8 @@ class CycleDetector:
             "buh_used": self._buh_used,
             "defrost_used": self._defrost_used,
             "thermal_kw_samples": list(self._thermal_kw_samples),
+            "pending_mode": self._pending_mode,
+            "pending_mode_since": self._pending_mode_since,
         }
 
     def restore_from_dict(self, payload: Any, now: float) -> None:
@@ -217,6 +253,14 @@ class CycleDetector:
         self._buh_used = bool(payload.get("buh_used", False))
         self._defrost_used = bool(payload.get("defrost_used", False))
         self._thermal_kw_samples = _float_list(payload.get("thermal_kw_samples"))
+        _pm = payload.get("pending_mode")
+        self._pending_mode = _pm if isinstance(_pm, str) else None
+        _pms = payload.get("pending_mode_since")
+        self._pending_mode_since = (
+            float(_pms)
+            if isinstance(_pms, (int, float)) and not isinstance(_pms, bool)
+            else 0.0
+        )
 
     def _reset_running(self) -> None:
         self._state = STATE_IDLE
@@ -229,6 +273,8 @@ class CycleDetector:
         self._defrost_used = False
         self._thermal_kw_samples = []
         self._pump_off_count = 0
+        self._pending_mode = None
+        self._pending_mode_since = 0.0
 
     def _accumulate(self, attrs: Mapping[str, Any]) -> None:
         rps = _safe_float(attrs.get(ATTR_INV_FREQUENCY_RPS))
@@ -283,6 +329,30 @@ class CycleDetector:
         }
         self._reset_running()
         return record
+
+    def _should_split(self, attrs: Mapping[str, Any], now: float) -> bool:
+        """Return True if RUNNING cycle should split to DHW here.
+
+        Only splits on I/U mode token transition to DHW. Valve ON
+        corroborates and shortens debounce (30s vs 60s). Valve alone
+        never splits -- Daikin 3-way valve rests ON on power-loss
+        fail-safe (tests/test_52a_dhw_dtk.py, test_31cd_coverage.py).
+        """
+        if self._mode == "dhw":
+            return False
+        if classify_mode(attrs) != "dhw":
+            self._pending_mode = None
+            self._pending_mode_since = 0.0
+            return False
+        debounce = (
+            VALVE_DEBOUNCE_S if _parse_valve(attrs) == "ON"
+            else MODE_DEBOUNCE_S
+        )
+        if self._pending_mode != "dhw":
+            self._pending_mode = "dhw"
+            self._pending_mode_since = now
+            return False
+        return (now - self._pending_mode_since) >= debounce
 
     def update(
         self,
@@ -343,6 +413,13 @@ class CycleDetector:
             return None
 
         if on:
+            if self._should_split(attrs, now):
+                record = self._close(now)
+                self._state = STATE_RUNNING
+                self._start_ts = now
+                self._mode = classify_mode(attrs)
+                self._accumulate(attrs)
+                return record
             self._accumulate(attrs)
             return None
 
