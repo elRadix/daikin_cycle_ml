@@ -21,8 +21,14 @@ _SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 class CycleDB:
     """Thin async wrapper around aiosqlite with schema bootstrap."""
 
-    def __init__(self, path: str | Path) -> None:
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        journal_mode: str = "delete",
+    ) -> None:
         self._path = str(path)
+        self._journal_mode: str = journal_mode
         self._conn: aiosqlite.Connection | None = None
 
     @property
@@ -44,6 +50,13 @@ class CycleDB:
         self._conn = await aiosqlite.connect(self._path)
         self._conn.row_factory = aiosqlite.Row
         await self._conn.execute("PRAGMA foreign_keys=ON")
+        if self._journal_mode == "wal":
+            # v1.12.2 (#113): WAL for prod durability + concurrent reads.
+            # busy_timeout=5000 matches Python sqlite3 default; external
+            # readers get up to 5s to acquire lock before OperationalError.
+            await self._conn.execute("PRAGMA journal_mode = WAL")
+            await self._conn.execute("PRAGMA synchronous = NORMAL")
+            await self._conn.execute("PRAGMA busy_timeout = 5000")
 
     async def async_initialize(self) -> None:
         if self._conn is None:
@@ -93,6 +106,7 @@ class CycleDB:
                   )"""
         )
         await conn.commit()
+
 
     async def async_close(self) -> None:
         if self._conn is None:
@@ -170,7 +184,7 @@ class CycleDB:
     ) -> int:
         # v1.4.2: prune cop_hourly older than retention_days.
         conn = self._require()
-        cutoff = int(time.time() - float(retention_days) * 86400.0)
+        cutoff = int((time.time() - float(retention_days) * 86400.0) // 3600)
         cur = await conn.execute(
             "DELETE FROM cop_hourly WHERE ts_hour < ?",
             (cutoff,),
@@ -368,6 +382,105 @@ class CycleDB:
         source_ok = await self.async_migrate_cop_samples_source_v14()
         hourly_ok = await self.async_create_cop_hourly_v14()
         return cycles_added, source_ok, hourly_ok
+
+    async def async_migrate_to_v17(self) -> dict[str, int]:
+        """v1.12.2 data migration: reclassify unknown-mode cycles with
+        valid compressor data (#112) and backfill thermal_kw_avg from
+        features.vector_json[11] (#114). Idempotent (marker-guarded).
+
+        Runs from _async_setup_database AFTER v11-v15 migrations, so
+        vector_json is guaranteed current (12-dim). Do NOT call from
+        async_initialize — that runs before v11-v15.
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT 1 FROM model_state "
+            "WHERE key='data_migration_v1_12_2'"
+        )
+        try:
+            already = await cur.fetchone()
+        finally:
+            await cur.close()
+        if already:
+            return {"skipped": 1}
+
+        # #112: reclassify unknown-mode cycles with real compressor data
+        cur = await conn.execute(
+            "UPDATE cycles SET mode='heating' "
+            "WHERE mode='unknown' "
+            "AND rps_max IS NOT NULL AND rps_max > 0 "
+            "AND dT_max IS NOT NULL AND dT_max > 0 "
+            "AND duration_s IS NOT NULL AND duration_s > 300"
+        )
+        try:
+            mode_fixed = int(cur.rowcount or 0)
+        finally:
+            await cur.close()
+
+        # #114: backfill thermal_kw_avg from features.vector_json[11]
+        cur = await conn.execute(
+            "UPDATE cycles SET thermal_kw_avg = ("
+            "  SELECT CAST(json_extract(f.vector_json, '$[11]') AS REAL) "
+            "  FROM features f WHERE f.cycle_id = cycles.id"
+            ") WHERE thermal_kw_avg IS NULL "
+            "AND EXISTS (SELECT 1 FROM features f "
+            "            WHERE f.cycle_id = cycles.id) "
+            "AND json_valid((SELECT f.vector_json FROM features f "
+            "                WHERE f.cycle_id = cycles.id)) "
+            "AND json_array_length((SELECT f.vector_json FROM features f "
+            "                      WHERE f.cycle_id = cycles.id)) > 11"
+        )
+        try:
+            thermal_filled = int(cur.rowcount or 0)
+        finally:
+            await cur.close()
+
+        # #112b: rebuild daily_summary for days with mode='unknown'
+        cur = await conn.execute(
+            "SELECT DISTINCT day FROM daily_summary WHERE mode='unknown'"
+        )
+        try:
+            affected_days = [r[0] for r in await cur.fetchall()]
+        finally:
+            await cur.close()
+        for day in affected_days:
+            try:
+                await conn.execute(
+                    "DELETE FROM daily_summary "
+                    "WHERE day=? AND mode='unknown'",
+                    (day,),
+                )
+            except Exception:
+                _LOGGER.exception(
+                    "v17 DS unknown-delete failed for day=%s", day
+                )
+            try:
+                await self.async_rollup_day(day)
+            except Exception:
+                _LOGGER.exception(
+                    "v17 DS rebuild failed for day=%s", day
+                )
+
+        # Marker prevents re-run
+        await conn.execute(
+            "INSERT OR REPLACE INTO model_state "
+            "(key, value_json, updated_ts) "
+            "VALUES ('data_migration_v1_12_2', ?, ?)",
+            (
+                '{"completed": true, "mode_fixed": '
+                + str(mode_fixed)
+                + ', "thermal_filled": '
+                + str(thermal_filled)
+                + "}",
+                time.time(),
+            ),
+        )
+        await conn.commit()
+        return {
+            "mode_reclassified": mode_fixed,
+            "thermal_backfilled": thermal_filled,
+            "ds_days_rebuilt": len(affected_days),
+        }
 
     async def async_migrate_cop_samples_mode_default_v15(self) -> int:
         # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.

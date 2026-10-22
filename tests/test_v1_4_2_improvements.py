@@ -186,11 +186,12 @@ async def test_prune_cop_hourly_empty(db):
 
 async def test_prune_cop_hourly_deletes_old(db):
     conn = db._require()
-    old_ts = int(time.time()) - 400 * 86400
+    # v1.12.2 (#111): ts_hour stores HOURS-since-epoch, not seconds.
+    old_ts_hours = int((time.time() - 400 * 86400) // 3600)
     await conn.execute(
         "INSERT INTO cop_hourly (ts_hour, mode, n_samples, updated_ts) "
         "VALUES (?, ?, ?, ?)",
-        (old_ts, "heating", 1, time.time()),
+        (old_ts_hours, "heating", 1, time.time()),
     )
     await conn.commit()
     assert await db.async_prune_cop_hourly(retention_days=365) >= 1
@@ -198,16 +199,17 @@ async def test_prune_cop_hourly_deletes_old(db):
 
 async def test_run_maintenance_prunes_cop_hourly(db):
     conn = db._require()
-    old_ts = int(time.time()) - 500 * 86400
+    # v1.12.2 (#111): ts_hour stores HOURS-since-epoch, not seconds.
+    old_ts_hours = int((time.time() - 500 * 86400) // 3600)
     await conn.execute(
         "INSERT INTO cop_hourly (ts_hour, mode, n_samples, updated_ts) "
         "VALUES (?, ?, ?, ?)",
-        (old_ts, "heating", 1, time.time()),
+        (old_ts_hours, "heating", 1, time.time()),
     )
     await conn.commit()
     await db.async_run_maintenance(vacuum=False)
     cur = await conn.execute(
-        "SELECT COUNT(*) FROM cop_hourly WHERE ts_hour = ?", (old_ts,)
+        "SELECT COUNT(*) FROM cop_hourly WHERE ts_hour = ?", (old_ts_hours,)
     )
     row = await cur.fetchone()
     await cur.close()
