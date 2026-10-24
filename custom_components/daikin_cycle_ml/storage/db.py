@@ -16,6 +16,10 @@ from ..const import DAILY_SUMMARY_BACKFILL_KEY
 _LOGGER = logging.getLogger(__name__)
 
 _SCHEMA_PATH = Path(__file__).with_name("schema.sql")
+
+def _time_now() -> float:
+    return time.time()
+
 _MIN_SPLIT_DURATION_S = 60.0  # v18: skip split if first DHW sample too early
 _R446_RUN_GAP_S = 900.0  # v18 R446: samples within 900s = same run
 _R446_MIN_RUN_S = 900.0  # v18 R446: minimum run duration to synthesize
@@ -598,9 +602,12 @@ class CycleDB:
         stats["cycles_synthesized"] = await self._synthesize_orphan_dhw_runs()
         # Phase 6: R446b merge adjacent same-mode splits
         stats["splits_merged"] = await self._merge_adjacent_same_mode_cycles()
-        # Phase 7 stub: Amend 7
-        # Phase 8 stub: R447
-        # Phase 9 stub: R448
+        # Phase 7: Amend 7 aggregate backfill
+        stats["cop_aggregates_backfilled"] = await self._backfill_null_aggregates()
+        # Phase 8: R447 cop_hourly DELETE+rebuild
+        stats["hours_rebuilt"] = await self._rebuild_cop_hourly_for_affected_hours()
+        # Phase 9: R448 daily_summary rebuild
+        stats["days_rebuilt"] = await self._rebuild_daily_summary_for_affected_days()
 
         return stats
 
@@ -1010,6 +1017,136 @@ class CycleDB:
                 merged_count += 1
         await conn.commit()
         return merged_count
+
+    async def _backfill_null_aggregates(self) -> int:
+        """Amend 7: backfill cop_avg/cop_sample_count from samples.
+
+        Targets cycles where cop_sample_count IS NULL or 0 (aggregation
+        never ran or partial). Recomputes from cop_samples excluding
+        artifacts (#133: COUNT/AVG from samples, never cached value).
+
+        Skips cycles with 0 valid samples (leave NULL).
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT id, start_ts, end_ts FROM cycles "
+            "WHERE (cop_sample_count IS NULL OR cop_sample_count = 0) "
+            "AND start_ts IS NOT NULL AND end_ts IS NOT NULL"
+        )
+        try:
+            rows = await cur.fetchall()
+        finally:
+            await cur.close()
+        if not rows:
+            return 0
+        backfilled = 0
+        for cid, s, e in rows:
+            cur = await conn.execute(
+                "SELECT AVG(cop), COUNT(cop) FROM cop_samples "
+                "WHERE ts BETWEEN ? AND ? AND cop IS NOT NULL "
+                "AND is_transition_artifact = 0",
+                (s, e),
+            )
+            try:
+                agg = await cur.fetchone()
+            finally:
+                await cur.close()
+            avg = agg[0] if agg is not None else None
+            cnt = int(agg[1] or 0) if agg is not None else 0
+            if cnt < 1:
+                continue
+            await conn.execute(
+                "UPDATE cycles SET cop_avg = ?, cop_sample_count = ? "
+                "WHERE id = ?",
+                (avg, cnt, cid),
+            )
+            backfilled += 1
+        await conn.commit()
+        return backfilled
+
+    async def _rebuild_cop_hourly_for_affected_hours(self) -> int:
+        """R447: DELETE + rebuild cop_hourly buckets touched by migration.
+
+        Only rebuilds hours spanned by cycles that migration changed
+        (non-artifact + is_reconstructed + is_transient + all cycle
+        modifications made so far). Excludes is_transition_artifact=1.
+        n_samples = COUNT(*) from samples (#133).
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT DISTINCT CAST(cop_samples.ts / 3600 AS INTEGER) AS h "
+            "FROM cop_samples "
+            "WHERE is_transition_artifact = 1 "
+            "   OR mode_original IS NOT NULL"
+        )
+        try:
+            hours = [int(r[0]) for r in await cur.fetchall()]
+        finally:
+            await cur.close()
+        if not hours:
+            return 0
+        rebuilt = 0
+        for h in hours:
+            await conn.execute(
+                "DELETE FROM cop_hourly WHERE ts_hour = ?", (h,)
+            )
+            cur = await conn.execute(
+                "SELECT mode, COUNT(*) AS n, AVG(cop) AS avg "
+                "FROM cop_samples "
+                "WHERE CAST(ts / 3600 AS INTEGER) = ? "
+                "AND is_transition_artifact = 0 "
+                "AND cop IS NOT NULL AND mode IS NOT NULL "
+                "GROUP BY mode",
+                (h,),
+            )
+            try:
+                rows = await cur.fetchall()
+            finally:
+                await cur.close()
+            for mode, n, avg in rows:
+                await conn.execute(
+                    "INSERT INTO cop_hourly "
+                    "(ts_hour, mode, n_samples, cop_mean, updated_ts) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (h, mode, int(n), avg, _time_now()),
+                )
+            rebuilt += 1
+        await conn.commit()
+        return rebuilt
+
+    async def _rebuild_daily_summary_for_affected_days(self) -> int:
+        """R448: DELETE + rebuild daily_summary rows for touched days.
+
+        Rebuilds from corrected cycles (after all prior modifications).
+        Uses existing async_rollup_day logic.
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT DISTINCT date(start_ts, 'unixepoch') AS d "
+            "FROM cycles "
+            "WHERE is_reconstructed = 1 "
+            "   OR mode_original IS NOT NULL "
+            "   OR is_dhw_tail = 1"
+        )
+        try:
+            days = [r[0] for r in await cur.fetchall() if r[0]]
+        finally:
+            await cur.close()
+        if not days:
+            return 0
+        for day in days:
+            await conn.execute(
+                "DELETE FROM daily_summary WHERE day = ?", (day,)
+            )
+        await conn.commit()
+        for day in days:
+            try:
+                await self.async_rollup_day(day)
+            except Exception:  # pragma: no cover - defensive, rollup idempotent
+                _LOGGER.exception(
+                    "v18 R448 rebuild failed for day=%s", day
+                )
+        return len(days)
 
     async def async_migrate_cop_samples_mode_default_v15(self) -> int:
         # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.
