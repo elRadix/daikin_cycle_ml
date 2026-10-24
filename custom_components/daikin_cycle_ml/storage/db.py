@@ -586,8 +586,10 @@ class CycleDB:
         stats["shape_b_split"] = r445abc["shape_b_split"]
         stats["shape_c_tail_marked"] = r445abc["shape_c_tail_marked"]
 
-        # Phase 3 stub: R445d
-        # Phase 4 stub: R445e
+        # Phase 3: R445d in-cycle unknown relabel
+        stats["unknown_in_dhw_fixed"] = await self._relabel_in_cycle_unknowns()
+        # Phase 4: R445e dynamic Carnot artifact flag
+        stats["artifacts_flagged"] = await self._flag_carnot_artifacts()
         # Phase 5 stub: R446
         # Phase 6 stub: R446b
         # Phase 7 stub: Amend 7
@@ -769,6 +771,83 @@ class CycleDB:
             "UPDATE cycles SET is_dhw_tail = 1 WHERE id = ?",
             (cycle_id,),
         )
+
+    async def _relabel_in_cycle_unknowns(self) -> int:
+        """R445d: relabel unknown samples that fall inside a cycle window.
+
+        Uses cycle.mode as ground truth. Skips if no cycle covers the
+        sample, or if the covering cycle's mode is NULL/'unknown'.
+
+        Runs AFTER R445a-c (Phase 2) so cycles are already corrected.
+        Uses single UPDATE-with-EXISTS for O(1) SQL passes (fleet has
+        ~83 unknowns all-time; per-sample loop unnecessary).
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            """
+            UPDATE cop_samples
+            SET mode_original = COALESCE(mode_original, mode),
+                mode = (
+                    SELECT cycles.mode FROM cycles
+                    WHERE cycles.start_ts <= cop_samples.ts
+                      AND cycles.end_ts >= cop_samples.ts
+                      AND cycles.mode IS NOT NULL
+                      AND cycles.mode != 'unknown'
+                    ORDER BY cycles.start_ts DESC
+                    LIMIT 1
+                )
+            WHERE mode = 'unknown'
+              AND EXISTS (
+                  SELECT 1 FROM cycles
+                  WHERE cycles.start_ts <= cop_samples.ts
+                    AND cycles.end_ts >= cop_samples.ts
+                    AND cycles.mode IS NOT NULL
+                    AND cycles.mode != 'unknown'
+              )
+            """
+        )
+        try:
+            updated = int(cur.rowcount or 0)
+        finally:
+            await cur.close()
+        await conn.commit()
+        return updated
+
+    async def _flag_carnot_artifacts(self) -> int:
+        """R445e: flag physically impossible COP values as transition artifacts.
+
+        Carnot = (lwt + 273.15) / (lwt - outdoor).
+        Flag when:
+          - cop < 0.05 * Carnot (below realistic floor)
+          - cop > 0.55 * Carnot (above datasheet-derived ceiling, k=0.447 max)
+          - lwt <= outdoor (negative/zero delta-T, division guard -> always flag)
+          - lwt or outdoor is NULL (cannot evaluate, flag conservatively)
+
+        Live evidence: sample 2712, lwt=30.9, out=8.8 -> Carnot=13.76,
+        cop=16.486, ratio=1.198 >> 0.55 bound. Confirms threshold.
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            """
+            UPDATE cop_samples
+            SET is_transition_artifact = 1
+            WHERE is_transition_artifact = 0
+              AND cop IS NOT NULL
+              AND (
+                lwt IS NULL
+                OR outdoor IS NULL
+                OR lwt <= outdoor
+                OR cop < 0.05 * ((lwt + 273.15) / (lwt - outdoor))
+                OR cop > 0.55 * ((lwt + 273.15) / (lwt - outdoor))
+              )
+            """
+        )
+        try:
+            flagged = int(cur.rowcount or 0)
+        finally:
+            await cur.close()
+        await conn.commit()
+        return flagged
 
     async def async_migrate_cop_samples_mode_default_v15(self) -> int:
         # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.
