@@ -3,7 +3,7 @@ from __future__ import annotations
 
 DOMAIN = "daikin_cycle_ml"
 NAME = "Daikin Cycle ML"
-VERSION = "1.12.3"
+VERSION = "1.12.4"
 
 # --- Coordinator ---
 UPDATE_INTERVAL_SECONDS = 30
@@ -140,6 +140,7 @@ ATTR_3WAY_VALVE = "3way valve(On:DHW_Off:Space)"
 ATTR_DEFROST_OPERATION = "Defrost Operation"
 ATTR_LEAVING_WATER_AFTER_BUH = "Leaving water temp. after BUH (R2T)"
 ATTR_INLET_WATER_R4T = "Inlet water temp.(R4T)"
+ATTR_DHW_TANK_TEMP = "DHW tank temp. (R5T)"
 ATTR_OUTDOOR_AIR_R1T = "Outdoor air temp.(R1T)"
 ATTR_FLOW_SENSOR = "Flow sensor (l/min)"
 ATTR_INDOOR_AMBIENT_R1T = "Indoor ambient temp. (R1T)"

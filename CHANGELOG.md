@@ -1,5 +1,49 @@
 # Changelog
 
+## [1.12.4] - 2026-10-24
+
+### Added
+- Schema v18: 6 new columns (mode_original + is_transition_artifact on
+  cop_samples; mode_original, parent_cycle_id, is_dhw_tail, is_reconstructed
+  on cycles) + 2 indices.
+- Migration async_migrate_to_v18: DHW historical backfill with 8 amendments:
+  - R445a-c: 3-shape classifier (relabel/split/mark tail)
+  - R445d: in-cycle unknown samples relabeled to cycle mode
+  - R445e: dynamic Carnot gate (0.55 x Carnot, not absolute > 11)
+  - R446: synthesis of orphan DHW runs (>=15min, gap <=15min)
+  - R446b: merge adjacent same-mode splits (gap < 120s)
+  - Amend 7: aggregate backfill for cycles with NULL cop_sample_count
+  - R447: cop_hourly DELETE+rebuild for affected hours (fixes partial-hour bug)
+  - R448: daily_summary rebuild for affected days
+- ATTR_DHW_TANK_TEMP constant ("DHW tank temp. (R5T)") - verbatim, no
+  substring match, protects against prod-1-only decoy key.
+
+### Changed
+- cop_sample_count and cop_avg now computed from real COUNT(*)/AVG(cop)
+  on cop_samples (never from cached tick count). Related to #133.
+- cop_hourly n_samples computed from real COUNT(*) (excludes transition
+  artifacts).
+
+### Fixed
+- Historical DHW samples reclassified (fleet: 36+ in-cycle unknowns).
+- COP artifacts flagged by dynamic Carnot threshold (fleet: ~114 samples).
+- Orphan DHW cycles synthesized (fleet: ~9 events).
+- Split cycles merged (fleet: 8+ pairs per prod).
+- cop_hourly partial-hour rows corrected (fixes #130).
+- daily_summary rebuilt from corrected cycles.
+
+### Known limitations
+- Synthesized cycles have thermal_kw_avg = NULL (cop_samples lacks cold-side
+  temperature; fix deferred to v1.13.0 #129).
+- energy_acc / runtime_acc not rebuilt (preserves HWM chain).
+- Post-migration pre-fix transition artifacts still exist until v1.12.5
+  stability gate.
+
+### Rollback
+Preserved via mode_original and parent_cycle_id. Manual SQL in
+docs/UPGRADE.md. Marker deletion (data_migration_v1_12_4) triggers
+re-run on next boot.
+
 ## [1.12.3] - 2026-10-22
 
 **DHW compound-mode detection fix.** Closes #116 forward half.

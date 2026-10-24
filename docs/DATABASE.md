@@ -993,3 +993,17 @@ CREATE TABLE model_state (
 | v13 | 2026-10 | Added `data_quality` to cop_samples |
 | v14 | 2026-10 | Added COP metadata to cycles, `source` to cop_samples, created cop_hourly |
 | v15 | 2026-10 | Set `mode` default for old cop_samples rows |
+
+## Historical synthesis limitation (v1.12.4 R446)
+
+Cycles synthesized by the v1.12.4 v18 migration (is_reconstructed = 1)
+carry thermal_kw_avg = NULL. The cop_samples table stores only
+cop, lwt, outdoor, flow_lmin, mode - the cold-side temperature required
+by the thermal formula was not persisted at sample time (R4T for heating,
+R5T for DHW).
+
+Full thermal recompute requires v1.13.0 issue #129 (features rewrite),
+which will persist R4T and R5T in cop_samples.
+
+All other cycle fields (cop_avg, cop_sample_count, duration_s) are
+computed accurately from the sample window.

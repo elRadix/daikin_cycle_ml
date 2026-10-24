@@ -17,6 +17,15 @@ _LOGGER = logging.getLogger(__name__)
 
 _SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
+def _time_now() -> float:
+    return time.time()
+
+_MIN_SPLIT_DURATION_S = 60.0  # v18: skip split if first DHW sample too early
+_R446_RUN_GAP_S = 900.0  # v18 R446: samples within 900s = same run
+_R446_MIN_RUN_S = 900.0  # v18 R446: minimum run duration to synthesize
+_R446B_MERGE_GAP_S = 120.0  # v18 R446b: gap < 2x MODE_DEBOUNCE_S
+_R446B_MERGE_GAP_S = 120.0  # v18 R446b: gap < 2x MODE_DEBOUNCE_S
+
 
 class CycleDB:
     """Thin async wrapper around aiosqlite with schema bootstrap."""
@@ -89,6 +98,12 @@ class CycleDB:
             await conn.execute(
                 "ALTER TABLE cycles ADD COLUMN thermal_kw_avg REAL"
             )
+
+        # v1.12.4 (v18): DHW backfill columns + indices.
+        # Idempotent via PRAGMA table_info guard; fresh installs
+        # get these from schema.sql, so this returns 0 on new DBs.
+        await self.async_migrate_schema_to_v18()
+
         # Idempotent backfill: only touches is_transient=0 rows
         # matching the classification rule. Zero rows after first run.
         await conn.execute(
@@ -481,6 +496,664 @@ class CycleDB:
             "thermal_backfilled": thermal_filled,
             "ds_days_rebuilt": len(affected_days),
         }
+
+    async def async_migrate_schema_to_v18(self) -> dict[str, int]:
+        """v1.12.4 (v18): add DHW backfill columns + indices.
+
+        Idempotent (PRAGMA-guarded). Called from async_initialize() so
+        pre-v1.12.4 DBs get columns on next startup. Fresh installs get
+        them from schema.sql directly, so this returns 0 counts.
+        """
+        conn = self._require()
+        added: dict[str, int] = {"cycles": 0, "cop_samples": 0}
+
+        async with conn.execute("PRAGMA table_info(cycles)") as cur:
+            existing = {r[1] for r in await cur.fetchall()}
+        for name, decl in (
+            ("mode_original", "TEXT"),
+            ("parent_cycle_id", "INTEGER"),
+            ("is_dhw_tail", "INTEGER DEFAULT 0"),
+            ("is_reconstructed", "INTEGER DEFAULT 0"),
+        ):
+            if name in existing:
+                continue
+            await conn.execute(
+                f"ALTER TABLE cycles ADD COLUMN {name} {decl}"
+            )
+            added["cycles"] += 1
+
+        async with conn.execute("PRAGMA table_info(cop_samples)") as cur:
+            existing = {r[1] for r in await cur.fetchall()}
+        for name, decl in (
+            ("mode_original", "TEXT"),
+            ("is_transition_artifact", "INTEGER DEFAULT 0"),
+        ):
+            if name in existing:
+                continue
+            await conn.execute(
+                f"ALTER TABLE cop_samples ADD COLUMN {name} {decl}"
+            )
+            added["cop_samples"] += 1
+
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cop_samples_artifact "
+            "ON cop_samples(is_transition_artifact)"
+        )
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cycles_reconstructed "
+            "ON cycles(is_reconstructed)"
+        )
+
+        if added["cycles"] or added["cop_samples"]:
+            await conn.commit()
+        return added
+
+    async def async_migrate_to_v18(self) -> dict[str, Any]:
+        """v1.12.4 (v18): DHW historical backfill + aggregate rebuild.
+
+        Marker-guarded idempotent. Called from _async_setup_database
+        AFTER v17. Each step fills in per-phase; skeleton returns all-zero
+        stats until Phase 9 flips completed=True and adds marker write.
+
+        Step plan:
+          1. R445a-c  -- 3-shape classifier (relabel/split/tail)
+          2. R445d    -- in-cycle unknown samples relabel
+          3. R445e    -- dynamic Carnot artifact flag
+          4. R446     -- synthesize orphan DHW runs
+          5. R446b    -- merge adjacent same-mode splits
+          6. Amend 7  -- aggregate backfill (NULL -> COUNT(*))
+          7. R447     -- DELETE+rebuild cop_hourly (exclude artifacts)
+          8. R448     -- daily_summary rebuild from corrected cycles
+
+        R449 energy_acc rebuild DEFERRED (preserve HWM chain).
+        """
+        marker = await self.async_get_model_state(
+            "data_migration_v1_12_4"
+        )
+        if marker and marker.get("completed"):
+            return {"skipped": 1}
+
+        stats: dict[str, Any] = {
+            "shape_a_relabelled": 0,
+            "shape_b_split": 0,
+            "shape_c_tail_marked": 0,
+            "unknown_in_dhw_fixed": 0,
+            "artifacts_flagged": 0,
+            "cycles_synthesized": 0,
+            "splits_merged": 0,
+            "cop_aggregates_backfilled": 0,
+            "hours_rebuilt": 0,
+            "days_rebuilt": 0,
+            "energy_acc_rebuilt": False,
+            "completed": True,
+        }
+
+        # Phase 4 FIRST (R445e): flag artifacts so R445a-c can exclude them
+        stats["artifacts_flagged"] = await self._flag_carnot_artifacts()
+
+        # Phase 2 (R445a-c): 3-shape classifier (artifact-filtered)
+        r445abc = await self._classify_and_fix_cycle_shapes()
+        stats["shape_a_relabelled"] = r445abc["shape_a_relabelled"]
+        stats["shape_b_split"] = r445abc["shape_b_split"]
+        stats["shape_c_tail_marked"] = r445abc["shape_c_tail_marked"]
+
+        # Phase 3 (R445d): in-cycle unknown relabel
+        stats["unknown_in_dhw_fixed"] = await self._relabel_in_cycle_unknowns()
+        # Phase 5: R446 orphan DHW synthesis
+        stats["cycles_synthesized"] = await self._synthesize_orphan_dhw_runs()
+        # Phase 6: R446b merge adjacent same-mode splits
+        stats["splits_merged"] = await self._merge_adjacent_same_mode_cycles()
+        # Phase 7: Amend 7 aggregate backfill
+        stats["cop_aggregates_backfilled"] = await self._backfill_null_aggregates()
+        # Phase 8: R447 cop_hourly DELETE+rebuild
+        stats["hours_rebuilt"] = await self._rebuild_cop_hourly_for_affected_hours()
+        # Phase 9: R448 daily_summary rebuild
+        stats["days_rebuilt"] = await self._rebuild_daily_summary_for_affected_days()
+
+        # v1.12.4 Phase 9b: write marker (idempotent, marker-guarded)
+        await self.async_set_model_state(
+            "data_migration_v1_12_4", stats
+        )
+        return stats
+
+    async def _classify_and_fix_cycle_shapes(self) -> dict[str, int]:
+        """R445a-c: 3-shape classifier for DHW contamination in cycles.
+
+        For each non-dhw, non-transient cycle:
+          ratio = dhw_samples / total_samples
+          - ratio == 1.0    -> Shape A: relabel to dhw
+          - 0.30 <= r < 1.0 -> Shape B: split at first dhw sample
+          - 0 < r < 0.30    -> Shape C: mark is_dhw_tail=1
+          - r == 0          -> skip
+
+        #133 constraint: aggregates use COUNT(*) from cop_samples.
+        """
+        conn = self._require()
+        stats = {
+            "shape_a_relabelled": 0,
+            "shape_b_split": 0,
+            "shape_c_tail_marked": 0,
+        }
+        cur = await conn.execute(
+            "SELECT id, start_ts, end_ts, mode FROM cycles "
+            "WHERE is_transient = 0 "
+            "AND end_ts IS NOT NULL "
+            "AND start_ts IS NOT NULL "
+            "AND parent_cycle_id IS NULL "
+            "AND mode != 'dhw' "
+            "ORDER BY start_ts"
+        )
+        try:
+            rows = await cur.fetchall()
+        finally:
+            await cur.close()
+
+        for cycle_id, start_ts, end_ts, mode in rows:
+            cur = await conn.execute(
+                "SELECT COUNT(*), "
+                "SUM(CASE WHEN mode='dhw' THEN 1 ELSE 0 END) "
+                "FROM cop_samples WHERE ts BETWEEN ? AND ? "
+                "AND is_transition_artifact = 0",
+                (start_ts, end_ts),
+            )
+            try:
+                row = await cur.fetchone()
+                total, dhw_n = row if row else (0, 0)
+            finally:
+                await cur.close()
+            total, dhw_n = int(total or 0), int(dhw_n or 0)
+            if total == 0 or dhw_n == 0:
+                continue
+            ratio = dhw_n / total
+            if ratio >= 1.0:
+                await self._relabel_cycle_to_dhw(cycle_id, mode)
+                stats["shape_a_relabelled"] += 1
+            elif ratio >= 0.30:
+                cur = await conn.execute(
+                    "SELECT MIN(ts) FROM cop_samples "
+                    "WHERE ts BETWEEN ? AND ? AND mode='dhw' "
+                    "AND is_transition_artifact = 0",
+                    (start_ts, end_ts),
+                )
+                try:
+                    srow = await cur.fetchone()
+                    split_ts = srow[0] if srow else None
+                finally:
+                    await cur.close()
+                if split_ts is None:  # pragma: no cover - dhw_n > 0 guarantees value
+                    continue
+                if split_ts <= start_ts + _MIN_SPLIT_DURATION_S:
+                    continue
+                await self._split_cycle_at_dhw_start(
+                    cycle_id, start_ts, end_ts, split_ts, mode
+                )
+                stats["shape_b_split"] += 1
+            else:
+                await self._mark_cycle_dhw_tail(cycle_id)
+                stats["shape_c_tail_marked"] += 1
+        await conn.commit()
+        return stats
+
+    async def _sample_aggregates(
+        self, start_ts: float, end_ts: float
+    ) -> tuple[float | None, int]:
+        """Compute (cop_avg, sample_count) from cop_samples in a window.
+
+        #133: uses COUNT(*) from cop_samples, not cycles.cop_sample_count.
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT AVG(cop), COUNT(cop) FROM cop_samples "
+            "WHERE ts BETWEEN ? AND ? AND cop IS NOT NULL",
+            (start_ts, end_ts),
+        )
+        try:
+            row = await cur.fetchone()
+        finally:
+            await cur.close()
+        if row is None:  # pragma: no cover - AVG/COUNT always returns a row
+            return (None, 0)
+        return (row[0], int(row[1] or 0))
+
+    async def _relabel_cycle_to_dhw(
+        self, cycle_id: int, original_mode: str
+    ) -> None:
+        """Shape A: pure relabel with aggregate recompute."""
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT start_ts, end_ts FROM cycles WHERE id=?", (cycle_id,)
+        )
+        try:
+            row = await cur.fetchone()
+        finally:
+            await cur.close()
+        if row is None:  # pragma: no cover - cycle_id from prior SELECT loop
+            return
+        cop_avg, cop_count = await self._sample_aggregates(row[0], row[1])
+        await conn.execute(
+            "UPDATE cycles SET "
+            "mode_original = COALESCE(mode_original, ?), "
+            "mode = 'dhw', "
+            "cop_avg = ?, "
+            "cop_sample_count = ? "
+            "WHERE id = ?",
+            (original_mode, cop_avg, cop_count, cycle_id),
+        )
+
+    async def _split_cycle_at_dhw_start(
+        self,
+        parent_id: int,
+        start_ts: float,
+        end_ts: float,
+        split_ts: float,
+        original_mode: str,
+    ) -> None:
+        """Shape B: split at first DHW sample into parent + child."""
+        conn = self._require()
+        parent_avg, parent_count = await self._sample_aggregates(
+            start_ts, split_ts
+        )
+        parent_duration = int(split_ts - start_ts)
+        await conn.execute(
+            "UPDATE cycles SET "
+            "mode_original = COALESCE(mode_original, ?), "
+            "end_ts = ?, "
+            "duration_s = ?, "
+            "cop_avg = ?, "
+            "cop_sample_count = ?, "
+            "is_reconstructed = 1 "
+            "WHERE id = ?",
+            (
+                original_mode, split_ts, parent_duration,
+                parent_avg, parent_count, parent_id,
+            ),
+        )
+        child_avg, child_count = await self._sample_aggregates(
+            split_ts, end_ts
+        )
+        child_duration = int(end_ts - split_ts)
+        await conn.execute(
+            "INSERT INTO cycles "
+            "(start_ts, end_ts, duration_s, mode, mode_original, "
+            "parent_cycle_id, cop_avg, cop_sample_count, "
+            "is_reconstructed) "
+            "VALUES (?, ?, ?, 'dhw', 'dhw', ?, ?, ?, 1)",
+            (
+                split_ts, end_ts, child_duration,
+                parent_id, child_avg, child_count,
+            ),
+        )
+
+    async def _mark_cycle_dhw_tail(self, cycle_id: int) -> None:
+        """Shape C: mark tail, no split."""
+        conn = self._require()
+        await conn.execute(
+            "UPDATE cycles SET is_dhw_tail = 1 WHERE id = ?",
+            (cycle_id,),
+        )
+
+    async def _relabel_in_cycle_unknowns(self) -> int:
+        """R445d: relabel unknown samples that fall inside a cycle window.
+
+        Uses cycle.mode as ground truth. Skips if no cycle covers the
+        sample, or if the covering cycle's mode is NULL/'unknown'.
+
+        Runs AFTER R445a-c (Phase 2) so cycles are already corrected.
+        Uses single UPDATE-with-EXISTS for O(1) SQL passes (fleet has
+        ~83 unknowns all-time; per-sample loop unnecessary).
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            """
+            UPDATE cop_samples
+            SET mode_original = COALESCE(mode_original, mode),
+                mode = (
+                    SELECT cycles.mode FROM cycles
+                    WHERE cycles.start_ts <= cop_samples.ts
+                      AND cycles.end_ts >= cop_samples.ts
+                      AND cycles.mode IS NOT NULL
+                      AND cycles.mode != 'unknown'
+                    ORDER BY cycles.start_ts DESC
+                    LIMIT 1
+                )
+            WHERE mode = 'unknown'
+              AND EXISTS (
+                  SELECT 1 FROM cycles
+                  WHERE cycles.start_ts <= cop_samples.ts
+                    AND cycles.end_ts >= cop_samples.ts
+                    AND cycles.mode IS NOT NULL
+                    AND cycles.mode != 'unknown'
+              )
+            """
+        )
+        try:
+            updated = int(cur.rowcount or 0)
+        finally:
+            await cur.close()
+        await conn.commit()
+        return updated
+
+    async def _flag_carnot_artifacts(self) -> int:
+        """R445e: flag physically impossible COP values as transition artifacts.
+
+        Carnot = (lwt + 273.15) / (lwt - outdoor).
+        Flag when:
+          - cop < 0.05 * Carnot (below realistic floor)
+          - cop > 0.55 * Carnot (above datasheet-derived ceiling, k=0.447 max)
+          - lwt <= outdoor (negative/zero delta-T, division guard -> always flag)
+          - lwt or outdoor is NULL (cannot evaluate, flag conservatively)
+
+        Live evidence: sample 2712, lwt=30.9, out=8.8 -> Carnot=13.76,
+        cop=16.486, ratio=1.198 >> 0.55 bound. Confirms threshold.
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            """
+            UPDATE cop_samples
+            SET is_transition_artifact = 1
+            WHERE is_transition_artifact = 0
+              AND cop IS NOT NULL
+              AND (
+                lwt IS NULL
+                OR outdoor IS NULL
+                OR lwt <= outdoor
+                OR cop < 0.05 * ((lwt + 273.15) / (lwt - outdoor))
+                OR cop > 0.55 * ((lwt + 273.15) / (lwt - outdoor))
+              )
+            """
+        )
+        try:
+            flagged = int(cur.rowcount or 0)
+        finally:
+            await cur.close()
+        await conn.commit()
+        return flagged
+
+    async def _synthesize_orphan_dhw_runs(self) -> int:
+        """R446: synthesize missing DHW cycles from orphan sample runs.
+
+        Finds dhw samples not covered by any existing cycle window, groups
+        them into runs (gap <= _R446_RUN_GAP_S), filters runs >= _R446_MIN_RUN_S,
+        and INSERTs synthetic cycles with is_reconstructed=1.
+
+        thermal_kw_avg is set to NULL: cop_samples has no R4T/R5T column,
+        so cold-side temperature (needed for thermal formula) is unavailable.
+        Deferred to v1.13.0 #129 (features rewrite).
+
+        Runs AFTER R445d/R445e (samples clean + artifact-filtered).
+        Uses INSERT OR IGNORE (UNIQUE(start_ts) -> idempotent).
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT ts FROM cop_samples s "
+            "WHERE s.mode = 'dhw' "
+            "AND NOT EXISTS ("
+            "  SELECT 1 FROM cycles c "
+            "  WHERE c.start_ts <= s.ts AND c.end_ts >= s.ts"
+            ") "
+            "ORDER BY s.ts"
+        )
+        try:
+            timestamps = [float(r[0]) for r in await cur.fetchall()]
+        finally:
+            await cur.close()
+        if not timestamps:
+            return 0
+
+        runs: list[tuple[float, float]] = []
+        run_start = timestamps[0]
+        run_last = timestamps[0]
+        for ts in timestamps[1:]:
+            if ts - run_last <= _R446_RUN_GAP_S:
+                run_last = ts
+            else:
+                runs.append((run_start, run_last))
+                run_start = ts
+                run_last = ts
+        runs.append((run_start, run_last))
+
+        synthesized = 0
+        for r_start, r_end in runs:
+            if r_end - r_start < _R446_MIN_RUN_S:
+                continue
+            cur = await conn.execute(
+                "SELECT AVG(cop), COUNT(cop) FROM cop_samples "
+                "WHERE ts BETWEEN ? AND ? AND cop IS NOT NULL "
+                "AND is_transition_artifact = 0",
+                (r_start, r_end),
+            )
+            try:
+                agg = await cur.fetchone()
+            finally:
+                await cur.close()
+            cop_avg = agg[0] if agg is not None else None
+            cop_count = int(agg[1] or 0) if agg is not None else 0
+            duration = int(r_end - r_start)
+            cur = await conn.execute(
+                "INSERT OR IGNORE INTO cycles "
+                "(start_ts, end_ts, duration_s, mode, mode_original, "
+                "cop_avg, cop_sample_count, is_reconstructed) "
+                "VALUES (?, ?, ?, 'dhw', 'dhw', ?, ?, 1)",
+                (r_start, r_end, duration, cop_avg, cop_count),
+            )
+            try:
+                inserted = cur.rowcount
+            finally:
+                await cur.close()
+            synthesized += int(inserted or 0)
+        await conn.commit()
+        return synthesized
+
+    async def _merge_adjacent_same_mode_cycles(self) -> int:
+        """R446b: merge adjacent same-mode cycles split by transients.
+
+        Criteria (pair must satisfy ALL):
+          - (next.start_ts - prev.end_ts) < _R446B_MERGE_GAP_S (120s)
+          - same mode
+          - both is_transient = 0
+          - is_reconstructed: any (0/1/mixed OK)
+
+        Merge: keep prev.id, extend end_ts to last.end_ts,
+        recompute aggregates from samples (R133), set is_reconstructed=1,
+        DELETE next cycle + its features row (explicit, no CASCADE).
+
+        Iterative within one pass (chains collapse). Idempotent.
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT id, start_ts, end_ts, mode, is_transient "
+            "FROM cycles WHERE end_ts IS NOT NULL ORDER BY start_ts"
+        )
+        try:
+            rows = await cur.fetchall()
+        finally:
+            await cur.close()
+
+        merge_ops: list[tuple[int, float, float, list[int]]] = []
+        keep_id: int | None = None
+        keep_start: float = 0.0
+        keep_end: float = 0.0
+        keep_mode: str | None = None
+        pending_deletes: list[int] = []
+
+        def _flush() -> None:
+            if pending_deletes and keep_id is not None:
+                merge_ops.append(
+                    (keep_id, keep_start, keep_end, list(pending_deletes))
+                )
+
+        for cid, s, e, m, trans in rows:
+            if trans:
+                _flush()
+                keep_id = None
+                pending_deletes = []
+                continue
+            if keep_id is None:
+                keep_id, keep_start, keep_end, keep_mode = cid, s, e, m
+                pending_deletes = []
+            elif m == keep_mode and (s - keep_end) < _R446B_MERGE_GAP_S:
+                pending_deletes.append(cid)
+                keep_end = e
+            else:
+                _flush()
+                keep_id, keep_start, keep_end, keep_mode = cid, s, e, m
+                pending_deletes = []
+        _flush()
+
+        if not merge_ops:
+            return 0
+
+        merged_count = 0
+        for kid, kstart, kend, deletes in merge_ops:
+            cop_avg, cop_count = await self._sample_aggregates(
+                kstart, kend
+            )
+            await conn.execute(
+                "UPDATE cycles SET end_ts = ?, duration_s = ?, "
+                "cop_avg = ?, cop_sample_count = ?, "
+                "is_reconstructed = 1 WHERE id = ?",
+                (kend, int(kend - kstart), cop_avg, cop_count, kid),
+            )
+            for did in deletes:
+                await conn.execute(
+                    "DELETE FROM features WHERE cycle_id = ?", (did,)
+                )
+                await conn.execute(
+                    "DELETE FROM cycles WHERE id = ?", (did,)
+                )
+                merged_count += 1
+        await conn.commit()
+        return merged_count
+
+    async def _backfill_null_aggregates(self) -> int:
+        """Amend 7: backfill cop_avg/cop_sample_count from samples.
+
+        Targets cycles where cop_sample_count IS NULL or 0 (aggregation
+        never ran or partial). Recomputes from cop_samples excluding
+        artifacts (#133: COUNT/AVG from samples, never cached value).
+
+        Skips cycles with 0 valid samples (leave NULL).
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT id, start_ts, end_ts FROM cycles "
+            "WHERE (cop_sample_count IS NULL OR cop_sample_count = 0) "
+            "AND start_ts IS NOT NULL AND end_ts IS NOT NULL"
+        )
+        try:
+            rows = await cur.fetchall()
+        finally:
+            await cur.close()
+        if not rows:
+            return 0
+        backfilled = 0
+        for cid, s, e in rows:
+            cur = await conn.execute(
+                "SELECT AVG(cop), COUNT(cop) FROM cop_samples "
+                "WHERE ts BETWEEN ? AND ? AND cop IS NOT NULL "
+                "AND is_transition_artifact = 0",
+                (s, e),
+            )
+            try:
+                agg = await cur.fetchone()
+            finally:
+                await cur.close()
+            avg = agg[0] if agg is not None else None
+            cnt = int(agg[1] or 0) if agg is not None else 0
+            if cnt < 1:
+                continue
+            await conn.execute(
+                "UPDATE cycles SET cop_avg = ?, cop_sample_count = ? "
+                "WHERE id = ?",
+                (avg, cnt, cid),
+            )
+            backfilled += 1
+        await conn.commit()
+        return backfilled
+
+    async def _rebuild_cop_hourly_for_affected_hours(self) -> int:
+        """R447: DELETE + rebuild cop_hourly buckets touched by migration.
+
+        Only rebuilds hours spanned by cycles that migration changed
+        (non-artifact + is_reconstructed + is_transient + all cycle
+        modifications made so far). Excludes is_transition_artifact=1.
+        n_samples = COUNT(*) from samples (#133).
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT DISTINCT CAST(cop_samples.ts / 3600 AS INTEGER) AS h "
+            "FROM cop_samples "
+            "WHERE is_transition_artifact = 1 "
+            "   OR mode_original IS NOT NULL"
+        )
+        try:
+            hours = [int(r[0]) for r in await cur.fetchall()]
+        finally:
+            await cur.close()
+        if not hours:
+            return 0
+        rebuilt = 0
+        for h in hours:
+            await conn.execute(
+                "DELETE FROM cop_hourly WHERE ts_hour = ?", (h,)
+            )
+            cur = await conn.execute(
+                "SELECT mode, COUNT(*) AS n, AVG(cop) AS avg "
+                "FROM cop_samples "
+                "WHERE CAST(ts / 3600 AS INTEGER) = ? "
+                "AND is_transition_artifact = 0 "
+                "AND cop IS NOT NULL AND mode IS NOT NULL "
+                "GROUP BY mode",
+                (h,),
+            )
+            try:
+                rows = await cur.fetchall()
+            finally:
+                await cur.close()
+            for mode, n, avg in rows:
+                await conn.execute(
+                    "INSERT INTO cop_hourly "
+                    "(ts_hour, mode, n_samples, cop_mean, updated_ts) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (h, mode, int(n), avg, _time_now()),
+                )
+            rebuilt += 1
+        await conn.commit()
+        return rebuilt
+
+    async def _rebuild_daily_summary_for_affected_days(self) -> int:
+        """R448: DELETE + rebuild daily_summary rows for touched days.
+
+        Rebuilds from corrected cycles (after all prior modifications).
+        Uses existing async_rollup_day logic.
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT DISTINCT date(start_ts, 'unixepoch') AS d "
+            "FROM cycles "
+            "WHERE is_reconstructed = 1 "
+            "   OR mode_original IS NOT NULL "
+            "   OR is_dhw_tail = 1"
+        )
+        try:
+            days = [r[0] for r in await cur.fetchall() if r[0]]
+        finally:
+            await cur.close()
+        if not days:
+            return 0
+        for day in days:
+            await conn.execute(
+                "DELETE FROM daily_summary WHERE day = ?", (day,)
+            )
+        await conn.commit()
+        for day in days:
+            try:
+                await self.async_rollup_day(day)
+            except Exception:  # pragma: no cover - defensive, rollup idempotent
+                _LOGGER.exception(
+                    "v18 R448 rebuild failed for day=%s", day
+                )
+        return len(days)
 
     async def async_migrate_cop_samples_mode_default_v15(self) -> int:
         # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.
