@@ -12,18 +12,14 @@ NOTE: DEEPSEEK.md is local-only, gitignored. Read from dev container if present.
 
 ## Version marker
 
-    HANDOFF v96.0 — Daikin Cycle ML
-    Generated: 2026-10-24T08:40Z (updated 2026-10-24T~10:30Z post-gate)
-    Supersedes: v95.0 (2026-10-23T21:30Z)
-    Status: main @ a3e87fa (v1.12.3). Working tree CLEAN.
-            All 3 prods on v1.12.3, no regressions.
-            24h gate PASSED at 2026-10-24T08:44:49Z (+13s).
-            Cycle 150 baseline captured (dur=5262s, cop=3.24, 16 real samples).
-            NO code changes since v1.12.3. 0 commits since a3e87fa.
-            Amendment queue: 7 files in container /tmp, 192 lines.
-            NEW session findings: #133 (cop_sample_count tick-count bug),
-                                 #134 (dhw_detect_v2 never existed).
-            Context 🔴 ~90% — fresh session mandatory at handoff author time.
+    HANDOFF v97.0 — Daikin Cycle ML
+    Generated: 2026-10-24T17:47Z (v1.12.4 shipped + fleet deployed)
+    Supersedes: v96.0 (2026-10-24T08:40Z)
+    Status: main @ 8117b0c (v1.12.4). Working tree CLEAN.
+            All 3 prods on v1.12.4, migration completed, ML retrained.
+            v1.12.4 released 2026-10-24T16:53:06Z (PR #135).
+            Fleet deploy + retrain complete by 2026-10-24T17:44Z.
+            Context 🔴 ~90% — fresh session mandatory for v1.12.5.
 
 ---
 
@@ -687,7 +683,14 @@ UNCHANGED since v95.0.
         Prod 2: ~04:57:30Z (04:57/10:57/16:57/22:57)
         Prod 3: ~18:45:00Z (00:45/06:45/12:45/18:45)
 
-    kmeans drift: prod 1 last_ok_ts = 2026-10-19T07:42:01Z (Monday, not Sunday 04:00)
+    kmeans drift CONFIRMED FLEET-WIDE (2026-10-24, see #125 P0):
+    Prod 1: 5.4 days stale (last 2026-10-19)
+    Prod 2: 6.6 days stale (worst case)
+    Prod 3: also stale
+    Scheduled async_track_time_change for Sunday 04:00 local NOT FIRING.
+    #125 bumped to priority:p0 for v1.12.5.
+    Manual remediation: daikin_cycle_ml.recompute_kmeans (tested fleet-wide
+    2026-10-24, n=47/61/67 successfully)
     #125 status: code verified correct, instrumentation needed (v1.12.5)
 
 ---
@@ -855,8 +858,13 @@ Remaining optional (P3, deferred):
 ### §15.5 Epic/milestone structure
 
     Epic #119 wraps all open work. 50-item checklist.
-    Milestone v1.12.4: #116, #130 (2 open)
-    Milestone v1.12.5: #120, #121, #122, #125, #126, #127, #128, #131, #132, #133 (10 open)
+    Milestone v1.12.4: CLOSED 2026-10-24T17:46Z (3 tickets: #116, #130 + 1 root)
+    Milestone v1.12.5: 14 open (11 original + #136 #137 #138 added 2026-10-24)
+    P0: #125 (kmeans drift fleet-wide)
+    P1: #120 #121 #122 #128 #131 #132 #133
+    P2: #126 #134 #136 #137 #138
+    Blocked: #127 (RFI external)
+    Next session should start with #125
     Milestone v1.13.0: #123, #124, #129 (3 open)
 
 ---
@@ -1074,10 +1082,10 @@ NOOIT git push https://TOKEN@... (R50).
 
     Field                     Value
     Branch                    main clean
-    main HEAD                 a3e87fa
-    origin/main               a3e87fa (MATCH)
-    Tag v1.12.3               a3e87fa (Latest)
-    Release latest            v1.12.3 (2026-10-22T18:24:17Z)
+    main HEAD                 8117b0c (v1.12.4 squash of PR #135)
+    origin/main               8117b0c (MATCH)
+    Tag v1.12.4               8117b0c (Latest, 2026-10-24T16:53:06Z)
+    Release latest            v1.12.4 (2026-10-24T16:53:06Z)
     Issue #116                OPEN, 6 comments
     Epic #119                 OPEN, 50-item checklist
     Milestones                v1.12.4: 2 open · v1.12.5: 10 open · v1.13.0: 3 open
@@ -1089,9 +1097,9 @@ NOOIT git push https://TOKEN@... (R50).
     Services/Repairs          13 / 9
     Branches ready            main, feat/v1.12.4-dhw-backfill, feat/v1.12.5-settle-time-gate, feat/v1.13.0-carnot-gate
     Protected                 feat/v1.6.0-hvac-parity @ a47414e (stash c3a-tmp)
-    Prod 1                    1.12.3, wal, v17 {2,116}, epra12eav3, DHW cycle 150 closed
-    Prod 2                    1.12.3, wal, v17 {3,179}, epra08eav3
-    Prod 3                    1.12.3, wal, v17 {2,155}
+    Prod 1                    1.12.4, migrated, kmeans n=47, baseline FRESH
+    Prod 2                    1.12.4, migrated, kmeans n=61, baseline FRESH
+    Prod 3                    1.12.4, migrated, kmeans n=67, baseline FRESH
     24h gate                  PASSED 2026-10-24T08:44:49Z
     Active trackers           #116, #119, #120-#134 (17 open)
     R-rules v96.0             NONE formalized
@@ -1255,6 +1263,34 @@ Cycle 150 closed baseline (post-gate reference):
     Cycle 150 closed: 5262s, cop=3.24, 172 stored / 16 real     DB query
     dhw_detect_v2.py NEVER existed on prod 1          ssh test, host /tmp
     HANDOFF.md last touched commit 89644c2 (v1.9.0-era)  git log 2026-10-24T~10:20Z
+
+### §20.2b FLEET DEPLOY RESULTS (2026-10-24 post-deploy)
+
+| Metric                        | Prod 1 | Prod 2 | Prod 3 | Fleet |
+|-------------------------------|--------|--------|--------|-------|
+| Migration completed           | yes    | yes    | yes    | 3/3   |
+| Cycles pre -> post            | 152->123 | 208->183 | 193->162 | 553->468 |
+| Splits merged                 | 37     | 31     | 32     | 100   |
+| Unknown samples relabeled     | 49     | 14     | 5      | 68    |
+| Artifact samples flagged      | 71     | 107    | 69     | 247   |
+| Orphan cycles synthesized     | 8      | 4      | 1      | 13    |
+| NULL-agg cycles backfilled    | 2      | 6      | 1      | 9     |
+| NULL-agg remaining (pre-v1.12.0) | 28  | 14     | 67     | 109   |
+| cop_hourly hours rebuilt      | 96     | 79     | 72     | 247   |
+| daily_summary days rebuilt    | 22     | 18     | 18     | 58    |
+| kmeans retrained (n)          | 47     | 61     | 67     | 175   |
+| baseline retrained            | yes    | yes    | yes    | 3/3   |
+
+All backups preserved:
+    Prod 1: /config/.storage/daikin_cycle_ml_01M57X8B5FM4PVFEN8JV9ZKH5V_BACKUP_PRE_V1124_20261024T165656Z.db
+    Prod 2: /config/.storage/daikin_cycle_ml_01M3HW3TT236JS26329V16D76Y_BACKUP_PRE_V1124_20261024T165655Z.db
+    Prod 3: /config/.storage/daikin_cycle_ml_01M3HTYPK4K06Z519DJ47PF3J6_BACKUP_PRE_V1124_20261024T165600Z.db
+Retain until v1.12.5 shipped + verified (7-day safety margin).
+
+New bugs filed post-deploy:
+    #136  Amend 7 correctly leaves 109 NULL-agg cycles (pre-v1.12.0, 0 samples)
+    #137  Diagnostic scripts crash on NULL cop_avg (cosmetic, no user impact)
+    #138  v1.12.4 migration does NOT retrain ML (handoff v96 §14 was inaccurate)
 
 ### §20.3 New bugs filed this session
 
