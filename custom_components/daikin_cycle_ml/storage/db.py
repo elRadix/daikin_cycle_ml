@@ -539,6 +539,57 @@ class CycleDB:
             await conn.commit()
         return added
 
+    async def async_migrate_to_v18(self) -> dict[str, Any]:
+        """v1.12.4 (v18): DHW historical backfill + aggregate rebuild.
+
+        Marker-guarded idempotent. Called from _async_setup_database
+        AFTER v17. Each step fills in per-phase; skeleton returns all-zero
+        stats until Phase 9 flips completed=True and adds marker write.
+
+        Step plan:
+          1. R445a-c  -- 3-shape classifier (relabel/split/tail)
+          2. R445d    -- in-cycle unknown samples relabel
+          3. R445e    -- dynamic Carnot artifact flag
+          4. R446     -- synthesize orphan DHW runs
+          5. R446b    -- merge adjacent same-mode splits
+          6. Amend 7  -- aggregate backfill (NULL -> COUNT(*))
+          7. R447     -- DELETE+rebuild cop_hourly (exclude artifacts)
+          8. R448     -- daily_summary rebuild from corrected cycles
+
+        R449 energy_acc rebuild DEFERRED (preserve HWM chain).
+        """
+        marker = await self.async_get_model_state(
+            "data_migration_v1_12_4"
+        )
+        if marker and marker.get("completed"):
+            return {"skipped": 1}
+
+        stats: dict[str, Any] = {
+            "shape_a_relabelled": 0,
+            "shape_b_split": 0,
+            "shape_c_tail_marked": 0,
+            "unknown_in_dhw_fixed": 0,
+            "artifacts_flagged": 0,
+            "cycles_synthesized": 0,
+            "splits_merged": 0,
+            "cop_aggregates_backfilled": 0,
+            "hours_rebuilt": 0,
+            "days_rebuilt": 0,
+            "energy_acc_rebuilt": False,
+            "completed": False,  # Phase 9 flips True + writes marker
+        }
+
+        # Phase 2 stub: R445a-c classifier
+        # Phase 3 stub: R445d
+        # Phase 4 stub: R445e
+        # Phase 5 stub: R446
+        # Phase 6 stub: R446b
+        # Phase 7 stub: Amend 7
+        # Phase 8 stub: R447
+        # Phase 9 stub: R448
+
+        return stats
+
     async def async_migrate_cop_samples_mode_default_v15(self) -> int:
         # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.
         await self.async_ensure_cop_samples_table()
