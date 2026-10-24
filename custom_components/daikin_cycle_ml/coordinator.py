@@ -126,6 +126,9 @@ from .const import OPTION_DAILY_SUMMARY_LIVE_ENABLED
 
 _LOGGER = logging.getLogger(__name__)
 
+_KMEANS_STALE_THRESHOLD_S = 25 * 3600
+_KMEANS_BACKFILL_DELAY_S = 300
+
 
 @dataclass
 class DataSnapshot:
@@ -475,6 +478,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._maintenance_unsub: Any = None
         self._baseline_save_unsub: Any = None
         self._kmeans_unsub: Any = None
+        self._kmeans_backfill_unsub: Any = None
         self._status_update_unsub: Any = None
         self._stooklijn_unsub: Any = None
         self.baseline = MultiBaseline(VECTOR_LEN)
@@ -894,9 +898,23 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     async def _async_kmeans_callback(self, _now: Any) -> None:
         # R46: async_track_time_change has no day_of_week; filter to Sunday here.
         try:
+            fire_ts = time.time()
+            await self._merge_kmeans_state(
+                {"last_scheduled_fire_ts": fire_ts}
+            )
             if _now.weekday() != 6:
                 return
-            await self.async_run_kmeans()
+            result = await self.async_run_kmeans()
+            ok = bool(result.get("ok"))
+            await self._merge_kmeans_state(
+                {
+                    "last_scheduled_attempt_ts": fire_ts,
+                    "last_scheduled_outcome": (
+                        "success" if ok else str(result.get("reason", "unknown"))
+                    ),
+                    "last_scheduled_cycles_n": result.get("n"),
+                }
+            )
         except Exception:
             _LOGGER.exception("Scheduled kmeans failed")
 
@@ -975,6 +993,116 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             ok=True, n=len(vectors), k=result.k, extra=payload,
         )
         return {"ok": True, "n": len(vectors), "k": result.k}
+
+    async def _merge_kmeans_state(self, fields: dict[str, Any]) -> None:
+        """Read-modify-write kmeans_state. Never raises. Fix D (#125)."""
+        _db = getattr(self, "db", None)
+        if _db is None:
+            return
+        try:
+            existing = await _db.async_get_model_state("kmeans_state", default={})
+            state = dict(existing) if isinstance(existing, dict) else {}
+            state.update(fields)
+            await _db.async_set_model_state("kmeans_state", state)
+        except Exception:
+            _LOGGER.debug("kmeans scheduled persist failed", exc_info=True)
+
+    async def _post_migration_retrain_check(self, _db: Any) -> bool:
+        """Trigger 1 (#125): post-v1.12.4 one-shot kmeans + baseline.
+
+        True  = handled this session (caller must NOT run Trigger 2).
+        False = no migration marker OR both markers present; caller
+                may proceed to Trigger 2.
+        """
+        ms = await _db.async_get_model_state(
+            "data_migration_v1_12_4", default=None
+        )
+        if ms is None:
+            return False
+        if not (isinstance(ms, dict) and ms.get("completed") is True):
+            _LOGGER.debug(
+                "post-migration retrain: migration incomplete, deferring"
+            )
+            return True
+        km = await _db.async_get_model_state(
+            "post_v1124_retrain_v1125", default=None
+        )
+        bl = await _db.async_get_model_state(
+            "post_v1124_baseline_v1125", default=None
+        )
+        if km is not None and bl is not None:
+            return False
+        if km is None:
+            _LOGGER.info("post-migration retrain: kmeans")
+            r = await self.async_run_kmeans()
+            if r.get("ok"):
+                await _db.async_set_model_state(
+                    "post_v1124_retrain_v1125", {"ts": time.time()}
+                )
+        if bl is None:
+            _LOGGER.info("post-migration retrain: baseline")
+            from .services import _do_recompute_baseline
+            br = await _do_recompute_baseline(self, 30)
+            if br.get("computed"):
+                await _db.async_set_model_state(
+                    "post_v1124_baseline_v1125", {"ts": time.time()}
+                )
+        return True
+
+    async def async_setup_kmeans_backfill(self, entry: Any) -> None:
+        """Schedule delayed one-shot stale check (Fix B, #125)."""
+        if self._kmeans_backfill_unsub is not None:
+            return
+        from homeassistant.helpers.event import async_call_later
+        self._kmeans_backfill_unsub = async_call_later(
+            self.hass,
+            _KMEANS_BACKFILL_DELAY_S,
+            self._run_kmeans_backfill_check,
+        )
+        entry.async_on_unload(self._kmeans_backfill_unsub)
+
+    async def _run_kmeans_backfill_check(self, _now: Any) -> None:
+        """One-shot: retrain if kmeans_state is stale (>25h)."""
+        self._kmeans_backfill_unsub = None
+        _db = getattr(self, "db", None)
+        if _db is None:
+            return
+        # Trigger 1 — post-migration one-shot
+        try:
+            handled = await self._post_migration_retrain_check(_db)
+        except Exception:
+            _LOGGER.exception("post-migration retrain check failed")
+            handled = False
+        if handled:
+            return
+        # Trigger 2 — staleness safety net (Fix B)
+        try:
+            state = await _db.async_get_model_state("kmeans_state", default={})
+        except Exception:
+            _LOGGER.exception("kmeans backfill: read failed")
+            return
+        if not isinstance(state, dict):
+            return
+        last_ok = state.get("last_ok_ts")
+        try:
+            last_ok_f = float(last_ok) if last_ok is not None else None
+        except (TypeError, ValueError):
+            last_ok_f = None
+        if last_ok_f is not None:
+            age_s = time.time() - last_ok_f
+            if age_s <= _KMEANS_STALE_THRESHOLD_S:
+                return
+            _LOGGER.info(
+                "kmeans backfill: stale (age=%.1fh), retraining",
+                age_s / 3600.0,
+            )
+        else:
+            _LOGGER.info("kmeans backfill: no last_ok_ts, retraining")
+        try:
+            await self.async_run_kmeans()
+        except Exception:
+            _LOGGER.exception("kmeans backfill: run failed")
+
     def _read_power(self) -> float | None:
         if not self.power_sensor:
             return None
@@ -2444,6 +2572,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         Does NOT close the DB — HA tears down the entry via unload.
         """
         _LOGGER.info("Daikin Cycle ML shutdown flush")
+        _kbu = getattr(self, "_kmeans_backfill_unsub", None)
+        if _kbu is not None:
+            try:
+                _kbu()
+            except Exception:
+                _LOGGER.debug(
+                    "kmeans backfill cancel failed", exc_info=True
+                )
+            self._kmeans_backfill_unsub = None
         await self._async_flush_accumulators()
 
     async def _persist_detector_state(self) -> None:
