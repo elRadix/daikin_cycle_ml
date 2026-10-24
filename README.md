@@ -423,6 +423,13 @@ To enable phone notifications:
 
 Automation that notifies you when the pump advises a heat-curve change:
 
+> **Note:** entity_ids below assume the config entry is titled
+> `Daikin Cycle ML`. HA derives the entity_id prefix from the entry
+> title at setup, so a custom title like "Warmtepomp" yields
+> `sensor.warmtepomp_heating_curve_advice`. If the example names
+> do not match your install, search the entity registry by the
+> suffix (e.g. `heating_curve_advice`).
+
 ```yaml
 alias: "Daikin: LWT advice → phone"
 mode: single

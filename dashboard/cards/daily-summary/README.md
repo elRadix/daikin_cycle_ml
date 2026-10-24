@@ -7,6 +7,12 @@ sparklines, a dynamically colored quality line chart, stacked
 cycles / duration bars, and a BUH / defrost event strip. Auto-scaling,
 HP-spec-aware hero, fully bilingual (NL / EN).
 
+> **Note:** the entity_id above assumes the config entry is titled
+> `Daikin Cycle ML`. A custom title at setup changes the prefix
+> (`sensor.<your_title>_daily_summary_recent`). If the example
+> does not match, search the entity registry by the suffix
+> `daily_summary_recent`.
+
 **Requires:** Daikin Cycle ML `>= v1.7.1`
 **Frontend deps:** `stack-in-card`, `mushroom-template-card`, `button-card`, `card_mod`
 **HA Core:** 2026.9+
