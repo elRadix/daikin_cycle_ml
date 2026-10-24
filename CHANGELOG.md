@@ -7,9 +7,9 @@
   cop_samples; mode_original, parent_cycle_id, is_dhw_tail, is_reconstructed
   on cycles) + 2 indices.
 - Migration async_migrate_to_v18: DHW historical backfill with 8 amendments:
+  - R445e: dynamic Carnot gate (0.55 x Carnot, not absolute > 11)
   - R445a-c: 3-shape classifier (relabel/split/mark tail)
   - R445d: in-cycle unknown samples relabeled to cycle mode
-  - R445e: dynamic Carnot gate (0.55 x Carnot, not absolute > 11)
   - R446: synthesis of orphan DHW runs (>=15min, gap <=15min)
   - R446b: merge adjacent same-mode splits (gap < 120s)
   - Amend 7: aggregate backfill for cycles with NULL cop_sample_count
@@ -25,10 +25,10 @@
   artifacts).
 
 ### Fixed
-- Historical DHW samples reclassified (fleet: 36+ in-cycle unknowns).
-- COP artifacts flagged by dynamic Carnot threshold (fleet: ~114 samples).
-- Orphan DHW cycles synthesized (fleet: ~9 events).
-- Split cycles merged (fleet: 8+ pairs per prod).
+- Historical DHW samples reclassified (fleet: 68 in-cycle unknowns).
+- COP artifacts flagged by dynamic Carnot threshold (fleet: 247 samples).
+- Orphan DHW cycles synthesized (fleet: 13 events).
+- Split cycles merged (fleet: 100 total; 37+31+32 per prod).
 - cop_hourly partial-hour rows corrected (fixes #130).
 - daily_summary rebuilt from corrected cycles.
 
@@ -38,6 +38,9 @@
 - energy_acc / runtime_acc not rebuilt (preserves HWM chain).
 - Post-migration pre-fix transition artifacts still exist until v1.12.5
   stability gate.
+- Migration does NOT retrain ML models (kmeans, baseline). Run
+  `daikin_cycle_ml.recompute_kmeans` and `recompute_baseline` manually
+  post-deploy, or upgrade to v1.12.5 which auto-retrains once.
 
 ### Rollback
 Preserved via mode_original and parent_cycle_id. Manual SQL in

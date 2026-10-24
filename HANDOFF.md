@@ -104,9 +104,9 @@ Scope highlights (see full spec §5.4):
     - R449: energy_acc rebuild DEFERRED (preserve HWM chain)
 
 Execution order (CRITICAL, do not reorder):
-    1. R445a-c   cycle-level mode fix
-    2. R445d     sample-level unknown relabel (36 samples)
-    3. R445e     sample-level artifact flag (dynamic Carnot)
+    1. R445e     sample-level artifact flag (dynamic Carnot)
+    2. R445a-c   cycle-level mode fix
+    3. R445d     sample-level unknown relabel (36 samples)
     4. R446      synthesize orphan DHW runs
     5. R446b     merge adjacent same-mode splits
     6. Amend 7   aggregate backfill (4 cycles)
