@@ -89,6 +89,12 @@ class CycleDB:
             await conn.execute(
                 "ALTER TABLE cycles ADD COLUMN thermal_kw_avg REAL"
             )
+
+        # v1.12.4 (v18): DHW backfill columns + indices.
+        # Idempotent via PRAGMA table_info guard; fresh installs
+        # get these from schema.sql, so this returns 0 on new DBs.
+        await self.async_migrate_schema_to_v18()
+
         # Idempotent backfill: only touches is_transient=0 rows
         # matching the classification rule. Zero rows after first run.
         await conn.execute(
@@ -481,6 +487,57 @@ class CycleDB:
             "thermal_backfilled": thermal_filled,
             "ds_days_rebuilt": len(affected_days),
         }
+
+    async def async_migrate_schema_to_v18(self) -> dict[str, int]:
+        """v1.12.4 (v18): add DHW backfill columns + indices.
+
+        Idempotent (PRAGMA-guarded). Called from async_initialize() so
+        pre-v1.12.4 DBs get columns on next startup. Fresh installs get
+        them from schema.sql directly, so this returns 0 counts.
+        """
+        conn = self._require()
+        added: dict[str, int] = {"cycles": 0, "cop_samples": 0}
+
+        async with conn.execute("PRAGMA table_info(cycles)") as cur:
+            existing = {r[1] for r in await cur.fetchall()}
+        for name, decl in (
+            ("mode_original", "TEXT"),
+            ("parent_cycle_id", "INTEGER"),
+            ("is_dhw_tail", "INTEGER DEFAULT 0"),
+            ("is_reconstructed", "INTEGER DEFAULT 0"),
+        ):
+            if name in existing:
+                continue
+            await conn.execute(
+                f"ALTER TABLE cycles ADD COLUMN {name} {decl}"
+            )
+            added["cycles"] += 1
+
+        async with conn.execute("PRAGMA table_info(cop_samples)") as cur:
+            existing = {r[1] for r in await cur.fetchall()}
+        for name, decl in (
+            ("mode_original", "TEXT"),
+            ("is_transition_artifact", "INTEGER DEFAULT 0"),
+        ):
+            if name in existing:
+                continue
+            await conn.execute(
+                f"ALTER TABLE cop_samples ADD COLUMN {name} {decl}"
+            )
+            added["cop_samples"] += 1
+
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cop_samples_artifact "
+            "ON cop_samples(is_transition_artifact)"
+        )
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cycles_reconstructed "
+            "ON cycles(is_reconstructed)"
+        )
+
+        if added["cycles"] or added["cop_samples"]:
+            await conn.commit()
+        return added
 
     async def async_migrate_cop_samples_mode_default_v15(self) -> int:
         # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.

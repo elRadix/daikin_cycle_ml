@@ -21,6 +21,10 @@ CREATE TABLE IF NOT EXISTS cycles (
     cop_confidence TEXT,
     thermal_kw_avg REAL,
     is_transient INTEGER DEFAULT 0,
+    mode_original TEXT,
+    parent_cycle_id INTEGER,
+    is_dhw_tail INTEGER DEFAULT 0,
+    is_reconstructed INTEGER DEFAULT 0,
     UNIQUE(start_ts)
 );
 
@@ -76,7 +80,9 @@ CREATE TABLE IF NOT EXISTS cop_samples (
     flow_lmin REAL,
     power_stable INTEGER DEFAULT 0,
     mode TEXT DEFAULT 'unknown',
-    source TEXT DEFAULT 'interval'
+    source TEXT DEFAULT 'interval',
+    mode_original TEXT,
+    is_transition_artifact INTEGER DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_cop_samples_ts ON cop_samples(ts);
