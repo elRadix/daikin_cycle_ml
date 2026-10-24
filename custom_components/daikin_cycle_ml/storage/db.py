@@ -17,6 +17,10 @@ _LOGGER = logging.getLogger(__name__)
 
 _SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 _MIN_SPLIT_DURATION_S = 60.0  # v18: skip split if first DHW sample too early
+_R446_RUN_GAP_S = 900.0  # v18 R446: samples within 900s = same run
+_R446_MIN_RUN_S = 900.0  # v18 R446: minimum run duration to synthesize
+_R446B_MERGE_GAP_S = 120.0  # v18 R446b: gap < 2x MODE_DEBOUNCE_S
+_R446B_MERGE_GAP_S = 120.0  # v18 R446b: gap < 2x MODE_DEBOUNCE_S
 
 
 class CycleDB:
@@ -590,8 +594,10 @@ class CycleDB:
         stats["unknown_in_dhw_fixed"] = await self._relabel_in_cycle_unknowns()
         # Phase 4: R445e dynamic Carnot artifact flag
         stats["artifacts_flagged"] = await self._flag_carnot_artifacts()
-        # Phase 5 stub: R446
-        # Phase 6 stub: R446b
+        # Phase 5: R446 orphan DHW synthesis
+        stats["cycles_synthesized"] = await self._synthesize_orphan_dhw_runs()
+        # Phase 6: R446b merge adjacent same-mode splits
+        stats["splits_merged"] = await self._merge_adjacent_same_mode_cycles()
         # Phase 7 stub: Amend 7
         # Phase 8 stub: R447
         # Phase 9 stub: R448
@@ -848,6 +854,162 @@ class CycleDB:
             await cur.close()
         await conn.commit()
         return flagged
+
+    async def _synthesize_orphan_dhw_runs(self) -> int:
+        """R446: synthesize missing DHW cycles from orphan sample runs.
+
+        Finds dhw samples not covered by any existing cycle window, groups
+        them into runs (gap <= _R446_RUN_GAP_S), filters runs >= _R446_MIN_RUN_S,
+        and INSERTs synthetic cycles with is_reconstructed=1.
+
+        thermal_kw_avg is set to NULL: cop_samples has no R4T/R5T column,
+        so cold-side temperature (needed for thermal formula) is unavailable.
+        Deferred to v1.13.0 #129 (features rewrite).
+
+        Runs AFTER R445d/R445e (samples clean + artifact-filtered).
+        Uses INSERT OR IGNORE (UNIQUE(start_ts) -> idempotent).
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT ts FROM cop_samples s "
+            "WHERE s.mode = 'dhw' "
+            "AND NOT EXISTS ("
+            "  SELECT 1 FROM cycles c "
+            "  WHERE c.start_ts <= s.ts AND c.end_ts >= s.ts"
+            ") "
+            "ORDER BY s.ts"
+        )
+        try:
+            timestamps = [float(r[0]) for r in await cur.fetchall()]
+        finally:
+            await cur.close()
+        if not timestamps:
+            return 0
+
+        runs: list[tuple[float, float]] = []
+        run_start = timestamps[0]
+        run_last = timestamps[0]
+        for ts in timestamps[1:]:
+            if ts - run_last <= _R446_RUN_GAP_S:
+                run_last = ts
+            else:
+                runs.append((run_start, run_last))
+                run_start = ts
+                run_last = ts
+        runs.append((run_start, run_last))
+
+        synthesized = 0
+        for r_start, r_end in runs:
+            if r_end - r_start < _R446_MIN_RUN_S:
+                continue
+            cur = await conn.execute(
+                "SELECT AVG(cop), COUNT(cop) FROM cop_samples "
+                "WHERE ts BETWEEN ? AND ? AND cop IS NOT NULL "
+                "AND is_transition_artifact = 0",
+                (r_start, r_end),
+            )
+            try:
+                agg = await cur.fetchone()
+            finally:
+                await cur.close()
+            cop_avg = agg[0] if agg is not None else None
+            cop_count = int(agg[1] or 0) if agg is not None else 0
+            duration = int(r_end - r_start)
+            cur = await conn.execute(
+                "INSERT OR IGNORE INTO cycles "
+                "(start_ts, end_ts, duration_s, mode, mode_original, "
+                "cop_avg, cop_sample_count, is_reconstructed) "
+                "VALUES (?, ?, ?, 'dhw', 'dhw', ?, ?, 1)",
+                (r_start, r_end, duration, cop_avg, cop_count),
+            )
+            try:
+                inserted = cur.rowcount
+            finally:
+                await cur.close()
+            synthesized += int(inserted or 0)
+        await conn.commit()
+        return synthesized
+
+    async def _merge_adjacent_same_mode_cycles(self) -> int:
+        """R446b: merge adjacent same-mode cycles split by transients.
+
+        Criteria (pair must satisfy ALL):
+          - (next.start_ts - prev.end_ts) < _R446B_MERGE_GAP_S (120s)
+          - same mode
+          - both is_transient = 0
+          - is_reconstructed: any (0/1/mixed OK)
+
+        Merge: keep prev.id, extend end_ts to last.end_ts,
+        recompute aggregates from samples (R133), set is_reconstructed=1,
+        DELETE next cycle + its features row (explicit, no CASCADE).
+
+        Iterative within one pass (chains collapse). Idempotent.
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT id, start_ts, end_ts, mode, is_transient "
+            "FROM cycles WHERE end_ts IS NOT NULL ORDER BY start_ts"
+        )
+        try:
+            rows = await cur.fetchall()
+        finally:
+            await cur.close()
+
+        merge_ops: list[tuple[int, float, float, list[int]]] = []
+        keep_id: int | None = None
+        keep_start: float = 0.0
+        keep_end: float = 0.0
+        keep_mode: str | None = None
+        pending_deletes: list[int] = []
+
+        def _flush() -> None:
+            if pending_deletes and keep_id is not None:
+                merge_ops.append(
+                    (keep_id, keep_start, keep_end, list(pending_deletes))
+                )
+
+        for cid, s, e, m, trans in rows:
+            if trans:
+                _flush()
+                keep_id = None
+                pending_deletes = []
+                continue
+            if keep_id is None:
+                keep_id, keep_start, keep_end, keep_mode = cid, s, e, m
+                pending_deletes = []
+            elif m == keep_mode and (s - keep_end) < _R446B_MERGE_GAP_S:
+                pending_deletes.append(cid)
+                keep_end = e
+            else:
+                _flush()
+                keep_id, keep_start, keep_end, keep_mode = cid, s, e, m
+                pending_deletes = []
+        _flush()
+
+        if not merge_ops:
+            return 0
+
+        merged_count = 0
+        for kid, kstart, kend, deletes in merge_ops:
+            cop_avg, cop_count = await self._sample_aggregates(
+                kstart, kend
+            )
+            await conn.execute(
+                "UPDATE cycles SET end_ts = ?, duration_s = ?, "
+                "cop_avg = ?, cop_sample_count = ?, "
+                "is_reconstructed = 1 WHERE id = ?",
+                (kend, int(kend - kstart), cop_avg, cop_count, kid),
+            )
+            for did in deletes:
+                await conn.execute(
+                    "DELETE FROM features WHERE cycle_id = ?", (did,)
+                )
+                await conn.execute(
+                    "DELETE FROM cycles WHERE id = ?", (did,)
+                )
+                merged_count += 1
+        await conn.commit()
+        return merged_count
 
     async def async_migrate_cop_samples_mode_default_v15(self) -> int:
         # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.
