@@ -224,6 +224,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         _LOGGER.exception('Failed to setup kmeans scheduler')
     try:
+        await coordinator.async_setup_kmeans_backfill(entry)
+    except Exception:
+        _LOGGER.exception('Failed to setup kmeans backfill')
+    try:
         await coordinator.async_setup_status_updates()
     except Exception:
         _LOGGER.exception('Failed to setup status updates')
