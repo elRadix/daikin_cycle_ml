@@ -36,22 +36,22 @@ async def test_skeleton_returns_all_zero_stats(db):
     assert stats["hours_rebuilt"] == 0
     assert stats["days_rebuilt"] == 0
     assert stats["energy_acc_rebuilt"] is False
-    assert stats["completed"] is False
+    assert stats["completed"] is True
 
 
-async def test_skeleton_does_not_write_marker(db):
+async def test_skeleton_writes_marker(db):
     await db.async_migrate_to_v18()
     marker = await db.async_get_model_state("data_migration_v1_12_4")
-    assert marker is None
+    assert marker is not None
+    assert marker.get("completed") is True
 
 
-async def test_skeleton_reentrant_no_skip(db):
-    """Without marker, second call re-runs (still returns zeros)."""
+async def test_skeleton_reentrant_skips_on_second_call(db):
+    """First call runs, marker written. Second call skips."""
     stats1 = await db.async_migrate_to_v18()
     stats2 = await db.async_migrate_to_v18()
     assert stats1.get("skipped") is None
-    assert stats2.get("skipped") is None
-    assert stats2["completed"] is False
+    assert stats2.get("skipped") == 1
 
 
 async def test_skeleton_skips_when_marker_completed(db):
@@ -70,4 +70,4 @@ async def test_skeleton_runs_when_marker_incomplete(db):
     )
     stats = await db.async_migrate_to_v18()
     assert stats.get("skipped") is None
-    assert stats["completed"] is False
+    assert stats["completed"] is True

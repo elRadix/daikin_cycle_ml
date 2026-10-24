@@ -274,4 +274,4 @@ async def test_skeleton_runs_classifier_and_populates_stats(db):
     stats = await db.async_migrate_to_v18()
     assert stats["shape_a_relabelled"] == 1
     assert stats["shape_c_tail_marked"] == 1
-    assert stats["completed"] is False  # still Phase 2 stub
+    assert stats["completed"] is True

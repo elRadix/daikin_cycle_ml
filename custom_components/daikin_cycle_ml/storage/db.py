@@ -585,19 +585,20 @@ class CycleDB:
             "hours_rebuilt": 0,
             "days_rebuilt": 0,
             "energy_acc_rebuilt": False,
-            "completed": False,  # Phase 9 flips True + writes marker
+            "completed": True,
         }
 
-        # Phase 2: R445a-c 3-shape classifier
+        # Phase 4 FIRST (R445e): flag artifacts so R445a-c can exclude them
+        stats["artifacts_flagged"] = await self._flag_carnot_artifacts()
+
+        # Phase 2 (R445a-c): 3-shape classifier (artifact-filtered)
         r445abc = await self._classify_and_fix_cycle_shapes()
         stats["shape_a_relabelled"] = r445abc["shape_a_relabelled"]
         stats["shape_b_split"] = r445abc["shape_b_split"]
         stats["shape_c_tail_marked"] = r445abc["shape_c_tail_marked"]
 
-        # Phase 3: R445d in-cycle unknown relabel
+        # Phase 3 (R445d): in-cycle unknown relabel
         stats["unknown_in_dhw_fixed"] = await self._relabel_in_cycle_unknowns()
-        # Phase 4: R445e dynamic Carnot artifact flag
-        stats["artifacts_flagged"] = await self._flag_carnot_artifacts()
         # Phase 5: R446 orphan DHW synthesis
         stats["cycles_synthesized"] = await self._synthesize_orphan_dhw_runs()
         # Phase 6: R446b merge adjacent same-mode splits
@@ -609,6 +610,10 @@ class CycleDB:
         # Phase 9: R448 daily_summary rebuild
         stats["days_rebuilt"] = await self._rebuild_daily_summary_for_affected_days()
 
+        # v1.12.4 Phase 9b: write marker (idempotent, marker-guarded)
+        await self.async_set_model_state(
+            "data_migration_v1_12_4", stats
+        )
         return stats
 
     async def _classify_and_fix_cycle_shapes(self) -> dict[str, int]:
@@ -647,7 +652,8 @@ class CycleDB:
             cur = await conn.execute(
                 "SELECT COUNT(*), "
                 "SUM(CASE WHEN mode='dhw' THEN 1 ELSE 0 END) "
-                "FROM cop_samples WHERE ts BETWEEN ? AND ?",
+                "FROM cop_samples WHERE ts BETWEEN ? AND ? "
+                "AND is_transition_artifact = 0",
                 (start_ts, end_ts),
             )
             try:
@@ -665,7 +671,8 @@ class CycleDB:
             elif ratio >= 0.30:
                 cur = await conn.execute(
                     "SELECT MIN(ts) FROM cop_samples "
-                    "WHERE ts BETWEEN ? AND ? AND mode='dhw'",
+                    "WHERE ts BETWEEN ? AND ? AND mode='dhw' "
+                    "AND is_transition_artifact = 0",
                     (start_ts, end_ts),
                 )
                 try:

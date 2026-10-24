@@ -194,4 +194,4 @@ async def test_skeleton_wires_phase789_stats(db):
     assert stats["cop_aggregates_backfilled"] == 1
     assert "hours_rebuilt" in stats
     assert "days_rebuilt" in stats
-    assert stats["completed"] is False
+    assert stats["completed"] is True

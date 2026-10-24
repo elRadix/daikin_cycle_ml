@@ -128,6 +128,13 @@ async def _async_setup_database(
             _LOGGER.info("v17 data migration: %s", v17)
         except Exception:
             _LOGGER.exception('v17 data migration failed')
+        # v1.12.4 (#116, #130): DHW backfill v18 migration.
+        # Non-critical: failure degrades gracefully (no _migration_error).
+        try:
+            v18 = await db.async_migrate_to_v18()
+            _LOGGER.info("v18 data migration: %s", v18)
+        except Exception:
+            _LOGGER.exception('v18 data migration failed')
         try:
             coordinator._db_integrity_ok = await db.async_integrity_check()
         except Exception:
