@@ -16,6 +16,7 @@ from ..const import DAILY_SUMMARY_BACKFILL_KEY
 _LOGGER = logging.getLogger(__name__)
 
 _SCHEMA_PATH = Path(__file__).with_name("schema.sql")
+_MIN_SPLIT_DURATION_S = 60.0  # v18: skip split if first DHW sample too early
 
 
 class CycleDB:
@@ -579,7 +580,12 @@ class CycleDB:
             "completed": False,  # Phase 9 flips True + writes marker
         }
 
-        # Phase 2 stub: R445a-c classifier
+        # Phase 2: R445a-c 3-shape classifier
+        r445abc = await self._classify_and_fix_cycle_shapes()
+        stats["shape_a_relabelled"] = r445abc["shape_a_relabelled"]
+        stats["shape_b_split"] = r445abc["shape_b_split"]
+        stats["shape_c_tail_marked"] = r445abc["shape_c_tail_marked"]
+
         # Phase 3 stub: R445d
         # Phase 4 stub: R445e
         # Phase 5 stub: R446
@@ -589,6 +595,180 @@ class CycleDB:
         # Phase 9 stub: R448
 
         return stats
+
+    async def _classify_and_fix_cycle_shapes(self) -> dict[str, int]:
+        """R445a-c: 3-shape classifier for DHW contamination in cycles.
+
+        For each non-dhw, non-transient cycle:
+          ratio = dhw_samples / total_samples
+          - ratio == 1.0    -> Shape A: relabel to dhw
+          - 0.30 <= r < 1.0 -> Shape B: split at first dhw sample
+          - 0 < r < 0.30    -> Shape C: mark is_dhw_tail=1
+          - r == 0          -> skip
+
+        #133 constraint: aggregates use COUNT(*) from cop_samples.
+        """
+        conn = self._require()
+        stats = {
+            "shape_a_relabelled": 0,
+            "shape_b_split": 0,
+            "shape_c_tail_marked": 0,
+        }
+        cur = await conn.execute(
+            "SELECT id, start_ts, end_ts, mode FROM cycles "
+            "WHERE is_transient = 0 "
+            "AND end_ts IS NOT NULL "
+            "AND start_ts IS NOT NULL "
+            "AND parent_cycle_id IS NULL "
+            "AND mode != 'dhw' "
+            "ORDER BY start_ts"
+        )
+        try:
+            rows = await cur.fetchall()
+        finally:
+            await cur.close()
+
+        for cycle_id, start_ts, end_ts, mode in rows:
+            cur = await conn.execute(
+                "SELECT COUNT(*), "
+                "SUM(CASE WHEN mode='dhw' THEN 1 ELSE 0 END) "
+                "FROM cop_samples WHERE ts BETWEEN ? AND ?",
+                (start_ts, end_ts),
+            )
+            try:
+                row = await cur.fetchone()
+                total, dhw_n = row if row else (0, 0)
+            finally:
+                await cur.close()
+            total, dhw_n = int(total or 0), int(dhw_n or 0)
+            if total == 0 or dhw_n == 0:
+                continue
+            ratio = dhw_n / total
+            if ratio >= 1.0:
+                await self._relabel_cycle_to_dhw(cycle_id, mode)
+                stats["shape_a_relabelled"] += 1
+            elif ratio >= 0.30:
+                cur = await conn.execute(
+                    "SELECT MIN(ts) FROM cop_samples "
+                    "WHERE ts BETWEEN ? AND ? AND mode='dhw'",
+                    (start_ts, end_ts),
+                )
+                try:
+                    srow = await cur.fetchone()
+                    split_ts = srow[0] if srow else None
+                finally:
+                    await cur.close()
+                if split_ts is None:  # pragma: no cover - dhw_n > 0 guarantees value
+                    continue
+                if split_ts <= start_ts + _MIN_SPLIT_DURATION_S:
+                    continue
+                await self._split_cycle_at_dhw_start(
+                    cycle_id, start_ts, end_ts, split_ts, mode
+                )
+                stats["shape_b_split"] += 1
+            else:
+                await self._mark_cycle_dhw_tail(cycle_id)
+                stats["shape_c_tail_marked"] += 1
+        await conn.commit()
+        return stats
+
+    async def _sample_aggregates(
+        self, start_ts: float, end_ts: float
+    ) -> tuple[float | None, int]:
+        """Compute (cop_avg, sample_count) from cop_samples in a window.
+
+        #133: uses COUNT(*) from cop_samples, not cycles.cop_sample_count.
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT AVG(cop), COUNT(cop) FROM cop_samples "
+            "WHERE ts BETWEEN ? AND ? AND cop IS NOT NULL",
+            (start_ts, end_ts),
+        )
+        try:
+            row = await cur.fetchone()
+        finally:
+            await cur.close()
+        if row is None:  # pragma: no cover - AVG/COUNT always returns a row
+            return (None, 0)
+        return (row[0], int(row[1] or 0))
+
+    async def _relabel_cycle_to_dhw(
+        self, cycle_id: int, original_mode: str
+    ) -> None:
+        """Shape A: pure relabel with aggregate recompute."""
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT start_ts, end_ts FROM cycles WHERE id=?", (cycle_id,)
+        )
+        try:
+            row = await cur.fetchone()
+        finally:
+            await cur.close()
+        if row is None:  # pragma: no cover - cycle_id from prior SELECT loop
+            return
+        cop_avg, cop_count = await self._sample_aggregates(row[0], row[1])
+        await conn.execute(
+            "UPDATE cycles SET "
+            "mode_original = COALESCE(mode_original, ?), "
+            "mode = 'dhw', "
+            "cop_avg = ?, "
+            "cop_sample_count = ? "
+            "WHERE id = ?",
+            (original_mode, cop_avg, cop_count, cycle_id),
+        )
+
+    async def _split_cycle_at_dhw_start(
+        self,
+        parent_id: int,
+        start_ts: float,
+        end_ts: float,
+        split_ts: float,
+        original_mode: str,
+    ) -> None:
+        """Shape B: split at first DHW sample into parent + child."""
+        conn = self._require()
+        parent_avg, parent_count = await self._sample_aggregates(
+            start_ts, split_ts
+        )
+        parent_duration = int(split_ts - start_ts)
+        await conn.execute(
+            "UPDATE cycles SET "
+            "mode_original = COALESCE(mode_original, ?), "
+            "end_ts = ?, "
+            "duration_s = ?, "
+            "cop_avg = ?, "
+            "cop_sample_count = ?, "
+            "is_reconstructed = 1 "
+            "WHERE id = ?",
+            (
+                original_mode, split_ts, parent_duration,
+                parent_avg, parent_count, parent_id,
+            ),
+        )
+        child_avg, child_count = await self._sample_aggregates(
+            split_ts, end_ts
+        )
+        child_duration = int(end_ts - split_ts)
+        await conn.execute(
+            "INSERT INTO cycles "
+            "(start_ts, end_ts, duration_s, mode, mode_original, "
+            "parent_cycle_id, cop_avg, cop_sample_count, "
+            "is_reconstructed) "
+            "VALUES (?, ?, ?, 'dhw', 'dhw', ?, ?, ?, 1)",
+            (
+                split_ts, end_ts, child_duration,
+                parent_id, child_avg, child_count,
+            ),
+        )
+
+    async def _mark_cycle_dhw_tail(self, cycle_id: int) -> None:
+        """Shape C: mark tail, no split."""
+        conn = self._require()
+        await conn.execute(
+            "UPDATE cycles SET is_dhw_tail = 1 WHERE id = ?",
+            (cycle_id,),
+        )
 
     async def async_migrate_cop_samples_mode_default_v15(self) -> int:
         # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.
