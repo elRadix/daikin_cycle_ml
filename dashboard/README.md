@@ -2,7 +2,13 @@
 
 Ready-to-use Lovelace dashboard cards for the **Daikin Cycle ML** integration.
 
-## Available Cards
+## ⭐ Featured Card
+
+| Card | Description | Preview | Requires |
+|---|---|---|---|
+| [**Daily Summary Tabbed**](cards/daily-summary-tabbed/README.md) | **5-tab variant** — Overview, Quality, Cycles, Duration, Events. Adaptive charts, popup details, EN/NL entity auto-detect, persistent tab state | <img src="cards/daily-summary-tabbed/screenshot-overview.png" width="480" alt="Daily Summary Tabbed preview"> | v1.12.0+ |
+
+## Other cards
 
 | Card | Description | Preview | Requires |
 |---|---|---|---|
