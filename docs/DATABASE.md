@@ -1007,3 +1007,30 @@ which will persist R4T and R5T in cop_samples.
 
 All other cycle fields (cop_avg, cop_sample_count, duration_s) are
 computed accurately from the sample window.
+
+## Amend 7 NULL-aggregate cycles (Option B, v1.12.9)
+
+Amend 7 of the v1.12.4 v18 migration backfills cop_avg and
+cop_sample_count for NULL/0 cycles where samples exist. Cycles with
+zero samples in the window are skipped by design.
+
+In all three production installs, 109 cycles remain NULL after v18
+(prod 1: 28, prod 2: 14, prod 3: 67). These are all pre-v1.12.0 cycles
+whose sample window fell entirely outside cop_samples retention (or
+predates the 300s collection cadence). There is no data to backfill.
+
+Decision (Option B, v1.12.9, PR B): document the state, do not
+fabricate. The NULLs are correct. Amend 7 behaviour stays as-is.
+
+Consequences:
+
+- get_cycle_avg_cop() returns None for these cycles, not 0.0
+- Dashboards show "-" for their COP, not a misleading average
+- ML features skip NULL-cop cycles in training (features.vector_json
+  is computed without cop_avg for those cycle_ids)
+
+If you observe NEW NULL cycles post-v1.12.4 (i.e. after Amend 7 shipped),
+that is a different signal: verify _collect_cycle_averages() ran with
+the real sample count via the 4-tier confidence path (see #133a).
+The #136 close condition is that pre-v1.12.0 NULLs are accepted, not
+that future NULLs go unnoticed.
