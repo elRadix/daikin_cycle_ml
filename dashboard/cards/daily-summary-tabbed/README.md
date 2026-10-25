@@ -2,6 +2,8 @@
 
 Multi-tab Lovelace dashboard card for **Daikin Cycle ML** with 5 views — Overview, Quality, Cycles, Duration, Events — interactive popups, and EN/NL auto-detection.
 
+**📥 [Copy the YAML](daily-summary-tabbed.yaml)** · **[Installation](#installation)** · **[Variables](#variables)** · **[Troubleshooting](#troubleshooting)**
+
 ![Overview tab](screenshot-overview.png)
 ![Quality tab](screenshot-quality.png)
 ![Cycles tab](screenshot-cycles.png)
@@ -48,7 +50,7 @@ Install each via **HACS → Frontend → Explore & Download Repositories**. Rest
 2. Restart Home Assistant.
 3. Hard-refresh browser (Ctrl+Shift+R).
 4. Open **Lovelace → Edit dashboard → + Add Card → Manual**.
-5. Open `daily-summary-tabbed.yaml` and copy the entire YAML.
+5. Open [`daily-summary-tabbed.yaml`](daily-summary-tabbed.yaml) (click **Raw** → copy, or right-click → **Save link as**) and copy the entire YAML.
 6. Paste it into the manual card editor.
 7. (Optional) Add a `variables:` block at the top — see Variables section.
 8. **Save.**
