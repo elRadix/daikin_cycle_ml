@@ -1345,6 +1345,13 @@ def _migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
             registry.async_update_entity(old_eid, new_entity_id=new_eid)
 
     # v1.4.0 key renames: entity_id + unique_id + translation_key.
+    #
+    # Idempotency (issue #141): a prior run may have already updated the
+    # unique_id but not the entity_id (partial migration, or user reverted
+    # the entity_id by hand). In that case async_update_entity with
+    # new_unique_id raises "Unique id ... is already in use" because the
+    # target unique_id is owned by the very entity we are renaming.
+    # Detect that case and update only entity_id + translation_key.
     key_fixes = {
         "today": "cycles_today",
         "cop_vandaag": "cop_today",
@@ -1353,11 +1360,25 @@ def _migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
     for old_key, new_key in key_fixes.items():
         old_eid = "sensor.daikin_cycle_ml_" + old_key
         new_eid = "sensor.daikin_cycle_ml_" + new_key
-        if old_eid in owned and registry.async_get(new_eid) is None:
+        new_uid = "%s_%s_%s" % (entry_domain, entry_id, new_key)
+        old_entry = registry.async_get(old_eid)
+        if old_entry is None or old_entry.entity_id not in owned:
+            continue
+        if registry.async_get(new_eid) is not None:
+            # entity_id target occupied by a different entity -> skip
+            continue
+        if old_entry.unique_id == new_uid:
+            # unique_id already migrated, only entity_id + translation_key
             registry.async_update_entity(
                 old_eid,
                 new_entity_id=new_eid,
-                new_unique_id="%s_%s_%s" % (entry_domain, entry_id, new_key),
+                translation_key=new_key,
+            )
+        else:
+            registry.async_update_entity(
+                old_eid,
+                new_entity_id=new_eid,
+                new_unique_id=new_uid,
                 translation_key=new_key,
             )
 
