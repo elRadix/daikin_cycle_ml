@@ -493,6 +493,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "cop_sensor_entity", COP_SENSOR_ENTITY
         )
         self._last_cop_sample_ts: float = 0.0
+        self._cop_sample_seed_done: bool = False
         self._stooklijn_cache: dict[str, Any] = {}
         self._stooklijn_cache_ts: float = 0.0
         self._cop_today_cache: dict[str, Any] = {}
@@ -2436,7 +2437,17 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
         Bug I (batch 52b7): snap.mode is 'unknown' during active DHW cycles.
         Fall back to classify_mode(snap.attrs), which reads I/U operation mode.
+
+        Issue #128: prefer detector.state when it is cycle-committed. The
+        detector's state machine is cycle-aware and correctly tracks
+        compound-mode DHW, while snap.mode remains 'unknown' through
+        transition windows.
         """
+        det = getattr(self, "detector", None)
+        if det is not None:
+            det_state = getattr(det, "state", None)
+            if isinstance(det_state, str) and det_state in ("heating", "dhw"):
+                return det_state
         data = getattr(self, 'data', None)
         if data is not None:
             raw = getattr(data, 'mode', None)
@@ -2467,6 +2478,20 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     async def _maybe_collect_cop_sample(self, now: float) -> None:
         if self.db is None:
             return
+        if not getattr(self, "_cop_sample_seed_done", False):
+            self._cop_sample_seed_done = True
+            try:
+                last_ts = await self.db.async_get_max_cop_sample_ts()
+                if last_ts is not None:
+                    self._last_cop_sample_ts = float(last_ts)
+                    _LOGGER.debug(
+                        "cop_sample timer seeded from DB: last_ts=%.0f",
+                        self._last_cop_sample_ts,
+                    )
+            except Exception as err:
+                _LOGGER.debug(
+                    "cop_sample seed failed (non-fatal): %s", err
+                )
         interval = 300.0
         if (now - self._last_cop_sample_ts) < interval:
             return
