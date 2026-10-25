@@ -60,40 +60,12 @@ jobs:
             --branch "${{ steps.pinned.outputs.branch }}" \
             --out /tmp/regen.json
 
-      - name: Assert tracked labels == regen labels
+      - name: Assert compatibility contract
         run: |
-          python - <<'PY'
-          import json, sys
-          tracked = json.load(open("docs/MODEL_ATTRIBUTES.json"))
-          regen = json.load(open("/tmp/regen.json"))
-          t = set(tracked["labels"])
-          r = set(regen["labels"])
-          if t != r:
-              print("::error::Label set drift")
-              print(f"  only tracked: {sorted(t - r)[:10]}")
-              print(f"  only regen:   {sorted(r - t)[:10]}")
-              sys.exit(1)
-          print(f"OK: {len(t)} labels identical")
-          PY
-
-      - name: Assert canonical labels resolvable
-        run: |
-          python - <<'PY'
-          import json, sys
-          sys.path.insert(0, ".")
-          from custom_components.daikin_cycle_ml.engine.attribute_compat import ALIAS_GROUPS
-          data = json.load(open("docs/MODEL_ATTRIBUTES.json"))
-          labels = data["labels"]
-          missing = []
-          for canonical in ALIAS_GROUPS:
-              variants = [canonical, *ALIAS_GROUPS[canonical]]
-              if not any(v in labels for v in variants):
-                  missing.append(canonical)
-          if missing:
-              print(f"::error::canonical labels with no spelling in index: {missing}")
-              sys.exit(1)
-          print(f"OK: {len(ALIAS_GROUPS)} canonical labels resolvable")
-          PY
+          python tools/check_compat_contract.py \
+            --tracked docs/MODEL_ATTRIBUTES.json \
+            --regen /tmp/regen.json \
+            --compat custom_components/daikin_cycle_ml/engine/attribute_compat.py
 
   weekly-drift:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
