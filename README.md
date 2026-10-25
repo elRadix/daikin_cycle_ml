@@ -11,8 +11,8 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 [![Pylint](https://img.shields.io/badge/pylint-10.00%2F10-brightgreen.svg)](https://pylint.readthedocs.io/)
 [![mypy](https://img.shields.io/badge/mypy-strict%200%20errors-brightgreen.svg)](https://mypy-lang.org/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.9%2B-blue.svg)](https://www.home-assistant.io/)
-[![IQS](https://img.shields.io/badge/IQS-Bronze%20%2B%20Silver%20%2B%20Gold-orange.svg)](docs/DEVELOPMENT.md#8-integration-quality-scale)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![IQS](https://img.shields.io/badge/IQS-Bronze%20%2B%20Silver%20%2B%20Gold-orange.svg)](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/DEVELOPMENT.md#8-integration-quality-scale)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/elRadix/daikin_cycle_ml/blob/main/LICENSE)
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=elRadix&repository=daikin_cycle_ml&category=integration)
@@ -25,7 +25,7 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 ### ⭐ Featured: Daily Summary Tabbed
 
-[![Daily Summary Tabbed — 5-tab dashboard card](dashboard/cards/daily-summary-tabbed/screenshot-overview.png)](dashboard/cards/daily-summary-tabbed/)
+[![Daily Summary Tabbed — 5-tab dashboard card](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary-tabbed/screenshot-overview.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daily-summary-tabbed)
 
 **The most complete view of your heat pump performance.** Five interactive tabs — `Overview` · `Quality` · `Cycles` · `Duration` · `Events` — with adaptive charts, detail popups on every element, and Dutch/English entity auto-detection.
 
@@ -35,7 +35,7 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 - **EN/NL entities** — works with Dutch entity IDs out of the box
 - **5 configurable variables** — language, default tab, window, chart height, hints
 
-**[📥 Download YAML](dashboard/cards/daily-summary-tabbed/daily-summary-tabbed.yaml)** · **[📖 Full documentation](dashboard/cards/daily-summary-tabbed/)**
+**[📥 Download YAML](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary-tabbed/daily-summary-tabbed.yaml)** · **[📖 Full documentation](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daily-summary-tabbed)**
 
 ---
 
@@ -43,10 +43,10 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 | Simple Card | Heating Curve | Daily Summary |
 |:---:|:---:|:---:|
-| [![Daikin Cycle ML - Simple Card](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/simple-card/showcase.png)](dashboard/cards/simple-card/) | [![Daikin Cycle ML - Heating Curve](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/heating-curve/preview.png)](dashboard/cards/heating-curve/) | [![Daikin Cycle ML - Daily Summary](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary/showcase.png)](dashboard/cards/daily-summary/) |
+| [![Daikin Cycle ML - Simple Card](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/simple-card/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/simple-card) | [![Daikin Cycle ML - Heating Curve](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/heating-curve/preview.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/heating-curve) | [![Daikin Cycle ML - Daily Summary](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daily-summary) |
 | *One-glance overview* | *LWT vs outdoor* | *8-day cycle history* |
 
-*All Lovelace dashboard cards — see [dashboard/](dashboard/) for installation.*
+*All Lovelace dashboard cards — see [dashboard/](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard) for installation.*
 
 ---
 
@@ -112,14 +112,14 @@ Complete, per-topic guides are in `docs/`:
 
 | Doc | What it covers |
 |---|---|
-| **[Configuration](docs/CONFIGURATION.md)** | Source sensor requirements, setup wizard, options menu, reconfigure flows, cookbook |
-| **[Entities](docs/ENTITIES.md)** | All 50 sensors, 15 binary sensors, 10 services, 8 repair issues, automations reference |
-| **[Alerts & Notifications](docs/ALERTS.md)** | All 19 alert types, delivery channels, dedup, quiet hours, per-alert toggles, templates |
-| **[Machine Learning](docs/ML.md)** | Feature vector, EWMA baseline, adaptive thresholds, k-means clustering, anomaly detection |
-| **[Database](docs/DATABASE.md)** | Schema reference, `model_state` keys, retention, migrations, backup/recovery |
-| **[Development](docs/DEVELOPMENT.md)** | Dev environment, test suite, CI gates, IQS status, scope boundaries, release procedure |
-| **[Troubleshooting](docs/TROUBLESHOOTING.md)** | Setup issues, cycle detection failures, alert issues, DB problems, log reference |
-| **[Upgrade](docs/UPGRADE.md)** | Version-by-version breaking changes, migration steps, downgrade recovery |
+| **[Configuration](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/CONFIGURATION.md)** | Source sensor requirements, setup wizard, options menu, reconfigure flows, cookbook |
+| **[Entities](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ENTITIES.md)** | All 50 sensors, 15 binary sensors, 10 services, 8 repair issues, automations reference |
+| **[Alerts & Notifications](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ALERTS.md)** | All 19 alert types, delivery channels, dedup, quiet hours, per-alert toggles, templates |
+| **[Machine Learning](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ML.md)** | Feature vector, EWMA baseline, adaptive thresholds, k-means clustering, anomaly detection |
+| **[Database](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/DATABASE.md)** | Schema reference, `model_state` keys, retention, migrations, backup/recovery |
+| **[Development](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/DEVELOPMENT.md)** | Dev environment, test suite, CI gates, IQS status, scope boundaries, release procedure |
+| **[Troubleshooting](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/TROUBLESHOOTING.md)** | Setup issues, cycle detection failures, alert issues, DB problems, log reference |
+| **[Upgrade](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/UPGRADE.md)** | Version-by-version breaking changes, migration steps, downgrade recovery |
 
 ---
 
@@ -161,7 +161,7 @@ The integration may not yet be listed in the HACS default catalog (submission pe
 
 ### Upgrading from an older version
 
-See [docs/UPGRADE.md](docs/UPGRADE.md) for version-by-version notes. Only two breaking changes in the entire history:
+See [docs/UPGRADE.md](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/UPGRADE.md) for version-by-version notes. Only two breaking changes in the entire history:
 - **v1.4.0** — entity slug renames
 - **v1.6.0** — `cop_today` changed to heating-only
 
@@ -296,7 +296,7 @@ The wizard adapts to your setup:
 4. **RPS threshold** — default 3. Lower = catches brief modulation dips, higher = misses short cycles.
 5. **Thresholds** — defaults are sensible; tune later once you have data
 
-Full wizard walkthrough in [docs/CONFIGURATION.md §3](docs/CONFIGURATION.md#3-setup-wizard).
+Full wizard walkthrough in [docs/CONFIGURATION.md §3](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/CONFIGURATION.md#3-setup-wizard).
 
 ### Immediate post-install verification
 
@@ -331,7 +331,7 @@ Check in this order:
 4. **Are required attributes present?** `binary_sensor.daikin_cycle_ml_missing_attributes` off
 5. **Wait longer** — the first cycle takes ~1 h because it needs a full start→run→stop
 
-Still stuck? See [docs/TROUBLESHOOTING.md §3](docs/TROUBLESHOOTING.md#3-cycle-detection).
+Still stuck? See [docs/TROUBLESHOOTING.md §3](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/TROUBLESHOOTING.md#3-cycle-detection).
 
 ---
 
@@ -529,7 +529,7 @@ The 6 energy sensors are directly compatible:
 3. Select `sensor.daikin_cycle_ml_electrical_energy_heating_today`
 4. All 6 energy sensors have `state_class: total_increasing` — the dashboard handles them automatically
 
-More recipes in [docs/ENTITIES.md §9](docs/ENTITIES.md#9-automations-quick-reference) and [docs/CONFIGURATION.md §6](docs/CONFIGURATION.md#6-cookbook).
+More recipes in [docs/ENTITIES.md §9](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ENTITIES.md#9-automations-quick-reference) and [docs/CONFIGURATION.md §6](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/CONFIGURATION.md#6-cookbook).
 
 ---
 
@@ -549,11 +549,11 @@ Yes. They don't conflict — different entities, different data sources.
 
 ### How much space does it use?
 
-Typically 10-40 MB after a full year, depending on retention settings. See [docs/DATABASE.md §10.3](docs/DATABASE.md#103-disk-usage).
+Typically 10-40 MB after a full year, depending on retention settings. See [docs/DATABASE.md §10.3](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/DATABASE.md#103-disk-usage).
 
 ### Can I export the data?
 
-Yes. Use `daikin_cycle_ml.export_cycles` and `daikin_cycle_ml.export_cop_hourly` services to export to JSON or CSV. See [docs/ENTITIES.md §5](docs/ENTITIES.md#5-services-10).
+Yes. Use `daikin_cycle_ml.export_cycles` and `daikin_cycle_ml.export_cop_hourly` services to export to JSON or CSV. See [docs/ENTITIES.md §5](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ENTITIES.md#5-services-10).
 
 ### Is my data sent anywhere?
 
@@ -577,11 +577,11 @@ Options → Pendulum → `pendulum_cycles_per_hour` (default 4) and `pendulum_cy
 
 ### Why doesn't Test-all show all 19 alerts?
 
-Known HA quirk — `kmeans_retrain_stale` may not appear in the panel under bulk notification. The alert is functional, just cosmetically missing in this one case. See [docs/ALERTS.md §10.3](docs/ALERTS.md#103-known-limitation-v19-kmeans_retrain_stale-in-bulk-test).
+Known HA quirk — `kmeans_retrain_stale` may not appear in the panel under bulk notification. The alert is functional, just cosmetically missing in this one case. See [docs/ALERTS.md §10.3](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ALERTS.md#103-known-limitation-v19-kmeans_retrain_stale-in-bulk-test).
 
 ### Can I downgrade if I don't like a new version?
 
-Downgrading is not officially supported but is technically possible. See [docs/UPGRADE.md §8](docs/UPGRADE.md#8-downgrade-procedure). All historical data will be lost unless you export it first.
+Downgrading is not officially supported but is technically possible. See [docs/UPGRADE.md §8](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/UPGRADE.md#8-downgrade-procedure). All historical data will be lost unless you export it first.
 
 ---
 
@@ -605,7 +605,7 @@ Run the full local quality gate before every push:
 scripts/ci-local.sh
 ```
 
-Full development guide in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+Full development guide in [docs/DEVELOPMENT.md](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/DEVELOPMENT.md).
 
 ---
 
@@ -619,7 +619,7 @@ Daikin Cycle ML persists to:
 
 All data stays on your HA instance. No telemetry, no cloud, no accounts.
 
-Backup procedure in [docs/DATABASE.md §8](docs/DATABASE.md#8-backup-and-recovery).
+Backup procedure in [docs/DATABASE.md §8](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/DATABASE.md#8-backup-and-recovery).
 
 ---
 
@@ -643,18 +643,18 @@ Backup procedure in [docs/DATABASE.md §8](docs/DATABASE.md#8-backup-and-recover
 - InfluxDB export (use HA recorder)
 - Web UI cycle explorer
 
-Full list in [docs/DEVELOPMENT.md §1](docs/DEVELOPMENT.md#1-scope-boundaries).
+Full list in [docs/DEVELOPMENT.md §1](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/DEVELOPMENT.md#1-scope-boundaries).
 
 ---
 
 ## Known limitations
 
-- **`kmeans_retrain_stale` may not appear in Test-all** — HA quirk under bulk notification burst, not a bug. See [docs/ALERTS.md §10.3](docs/ALERTS.md#103-known-limitation-v19-kmeans_retrain_stale-in-bulk-test).
-- **Energy baseline is not weather-normalized** — cold snaps may trigger false `energy_daily_anomaly` alerts. See [docs/ML.md §7.5](docs/ML.md#75-weather-normalization).
-- **`defrost_used` / `buh_used` variance** may cause false `ml_anomaly` at shoulder seasons. See [docs/ML.md §11.7](docs/ML.md#117-no-defrost_used-variance-modelling).
+- **`kmeans_retrain_stale` may not appear in Test-all** — HA quirk under bulk notification burst, not a bug. See [docs/ALERTS.md §10.3](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ALERTS.md#103-known-limitation-v19-kmeans_retrain_stale-in-bulk-test).
+- **Energy baseline is not weather-normalized** — cold snaps may trigger false `energy_daily_anomaly` alerts. See [docs/ML.md §7.5](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ML.md#75-weather-normalization).
+- **`defrost_used` / `buh_used` variance** may cause false `ml_anomaly` at shoulder seasons. See [docs/ML.md §11.7](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ML.md#117-no-defrost_used-variance-modelling).
 - **No supervised ML** — `label_cycle` collects labels but they are not used for training yet.
 
-See [docs/ML.md §11](docs/ML.md#11-limitations) for the full ML limitation list.
+See [docs/ML.md §11](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ML.md#11-limitations) for the full ML limitation list.
 
 ---
 
@@ -668,20 +668,20 @@ If this integration has helped you reduce short cycling, understand your
 cycles, or improve your COP, a coffee is always appreciated and helps
 keep the project going.
 
-[![Buy me a coffee](assets/buy-me-a-coffee.png)](https://buymeacoffee.com/elradix)
+[![Buy me a coffee](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/assets/buy-me-a-coffee.png)](https://buymeacoffee.com/elradix)
 
 ### Get help
 
 - **Issues:** https://github.com/elRadix/daikin_cycle_ml/issues
 - **Discussions:** https://github.com/elRadix/daikin_cycle_ml/discussions
 - **Tweakers ESPAltherma topic** — largest user base, mixed NL/EN
-- **Before opening an issue:** see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) and download diagnostics (Settings → Devices & Services → Daikin Cycle ML → menu → Download diagnostics)
+- **Before opening an issue:** see [docs/TROUBLESHOOTING.md](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/TROUBLESHOOTING.md) and download diagnostics (Settings → Devices & Services → Daikin Cycle ML → menu → Download diagnostics)
 
 ---
 
 ## Contributing
 
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for:
+See [docs/DEVELOPMENT.md](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/DEVELOPMENT.md) for:
 - Dev environment setup (`scripts/bootstrap.sh`)
 - Test suite (`pytest -q` — 100% coverage required)
 - Code quality gates (ruff, mypy strict, markdown guard)
@@ -698,7 +698,7 @@ Every PR must:
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](https://github.com/elRadix/daikin_cycle_ml/blob/main/LICENSE).
 
 ---
 
