@@ -121,6 +121,11 @@
         "menu_options": {
           "reconfigure_basic": "Source sensor and model only (quick)",
           "reconfigure_full": "Full wizard (all settings)"
+        },
+        "error": {
+          "source_offline": "ESPAltherma sensor is {state}. Wacht 30-60s tot deze weer online is en probeer opnieuw.",
+          "source_empty": "ESPAltherma sensor heeft nog geen data. Wacht op de volgende update en probeer opnieuw.",
+          "missing_attributes": "Vereiste attributen ontbreken. Controleer dat ESPAltherma alle vereiste attributen publiceert."
         }
       },
       "reconfigure_basic": {

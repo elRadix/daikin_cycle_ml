@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.12.8] — 2026-10-25
+
+### Fixed
+
+- **Reconfigure failure during source offline window** - when the user triggered reconfigure while `sensor.althermasensors` was momentarily `unavailable` or had empty attributes (e.g., during an ESPAltherma reboot, WiFi/MQTT reconnect, or right after an HA restart), the code called `missing_required({})` which returned all 12 required attributes as missing. The resulting UX message was misleading - "required attributes missing" - when the real problem was "sensor is offline, try again in 30-60s".
+  - New guards: `source_offline` (state is unavailable/unknown) and `source_empty` (state is Online but attributes is empty).
+  - Existing `missing_attributes` path now includes `len(attrs)` and `last_updated` in the log for future diagnosis.
+  - `entity_not_found` path unchanged.
+  - **Not a v1/v2 ESPAltherma compat issue** - v1 and v2 both publish all 12 required attributes when the sensor is online (verified against prod 2 v1 dump 2026-10-25).
+
+Refs: reported via prod 2 (v1 ESPAltherma) log 2026-10-25T22:00:47 local. Setup wizard hardening deferred to #141 (v1.12.9).
+
 ## [1.12.7] — 2026-10-25
 
 ### Fixed
