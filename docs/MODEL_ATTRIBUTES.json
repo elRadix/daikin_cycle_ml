@@ -2,11 +2,11 @@
   "_meta": {
     "source": "https://github.com/raomin/ESPAltherma",
     "branch": "beta",
-    "commit": "1650fc4d629b5263015a743c902059827b8aa779",
-    "generated_at": "2026-10-25T19:01:20.190172+00:00",
+    "commit": "865fdc690ef246cf007cb625621291ad383acf00",
+    "generated_at": "2026-10-25T23:14:56.545451+00:00",
+    "note": "ESPAltherma definitions are TEMPLATES. Users uncomment the labels they need. This index includes both active and commented labels — the union is the compatibility set the resolver must accept.",
     "root_model_count": 39,
-    "unique_labels": 401,
-    "note": "ESPAltherma definitions are TEMPLATES. Users uncomment the labels they need. This index includes both active and commented labels — the union is the compatibility set the resolver must accept."
+    "unique_labels": 401
   },
   "models": [
     "Altherma 4(EPSK-EPSKS EPBX-EPSX-EPVX-EPVZ series 04-14kW).h",
