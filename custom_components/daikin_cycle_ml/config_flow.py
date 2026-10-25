@@ -732,11 +732,24 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             state = self.hass.states.get(entity_id)
             if state is None:
                 errors["source_sensor"] = "entity_not_found"
+            elif state.state in ("unavailable", "unknown"):
+                _LOGGER.warning(
+                    "Reconfigure: source %s is %s (last_changed=%s) - retry when back online",
+                    entity_id, state.state, state.last_changed,
+                )
+                errors["source_sensor"] = "source_offline"
+            elif not state.attributes:
+                _LOGGER.warning(
+                    "Reconfigure: source %s has empty attributes (state=%s, last_updated=%s)",
+                    entity_id, state.state, state.last_updated,
+                )
+                errors["source_sensor"] = "source_empty"
             else:
                 missing = missing_required(state.attributes)
                 if missing:
                     _LOGGER.warning(
-                        "Reconfigure missing attrs: %s", missing
+                        "Reconfigure missing attrs: %s (state has %d attrs, last_updated=%s)",
+                        missing, len(state.attributes), state.last_updated,
                     )
                     errors["source_sensor"] = "missing_attributes"
                 else:

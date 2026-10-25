@@ -203,7 +203,9 @@
       "missing_attributes": "Sensor is missing one or more required ESPAltherma attributes. See the description for the exact list, or switch Attribute mode to Manual.",
       "invalid_json": "Invalid JSON",
       "attribute_not_found": "One or more mapped attribute names were not found on the source sensor.",
-      "required_attrs_unmapped": "One or more required attributes have no mapping and no canonical match on the sensor."
+      "required_attrs_unmapped": "One or more required attributes have no mapping and no canonical match on the sensor.",
+      "source_offline": "ESPAltherma sensor is currently unavailable. Wait 30-60s for it to come back online and try again.",
+      "source_empty": "ESPAltherma sensor has no data yet. Wait for the next update and try again."
     },
     "abort": {
       "already_configured": "Already configured",
