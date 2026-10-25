@@ -27,6 +27,7 @@ from ..const import (
     STATE_IDLE,
     STATE_RUNNING,
 )
+from .attribute_compat import build_compat_view
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -373,6 +374,7 @@ class CycleDetector:
         now: float,
         power_w: float | None = None,
     ) -> dict[str, Any] | None:
+        attrs = build_compat_view(attrs)
         """Process one sample. Returns cycle record on close, else None.
 
         R307: pump=OFF in RUNNING state is a soft signal, not a hard stop,

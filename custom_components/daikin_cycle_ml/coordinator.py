@@ -80,6 +80,7 @@ from .engine.cop_degradation import (
     build_dirty_hours,
 )
 from .engine.action_engine import generate_advice
+from .engine.attribute_compat import build_compat_view
 from .engine.anomaly_engine import evaluate as evaluate_anomaly
 from .engine.attribute_reader import missing_required, read
 from .engine.thermal import compute_thermal_power_live as _compute_thermal_power_live
@@ -3419,6 +3420,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 if isinstance(_a, dict) and _a:
                     attrs = _a
                     break
+        attrs = build_compat_view(attrs)
         for k in keys:
             v = attrs.get(k)
             if v is not None:
