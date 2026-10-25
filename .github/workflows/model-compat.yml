@@ -1,0 +1,179 @@
+name: Model compat
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/MODEL_ATTRIBUTES.json'
+      - 'tools/parse_espaltherma_defs.py'
+      - 'custom_components/daikin_cycle_ml/engine/attribute_compat.py'
+      - 'custom_components/daikin_cycle_ml/const.py'
+      - '.github/workflows/model-compat.yml'
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  pr-gate:
+    if: github.event_name == 'pull_request'
+    name: Regen + assert
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Read pinned branch and SHA
+        id: pinned
+        run: |
+          python - <<'PY'
+          import json, os
+          meta = json.load(open("docs/MODEL_ATTRIBUTES.json"))["_meta"]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"branch={meta['branch']}\n")
+              f.write(f"sha={meta['commit']}\n")
+          PY
+
+      - name: Clone ESPAltherma at pinned branch
+        run: |
+          git clone --depth 1 --branch "${{ steps.pinned.outputs.branch }}" \
+            https://github.com/raomin/ESPAltherma /tmp/espaltherma
+
+      - name: Assert cloned SHA equals pinned SHA
+        run: |
+          ACTUAL=$(git -C /tmp/espaltherma rev-parse HEAD)
+          EXPECTED="${{ steps.pinned.outputs.sha }}"
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Upstream moved: pinned=$EXPECTED actual=$ACTUAL. Regen MODEL_ATTRIBUTES.json in this PR."
+            exit 1
+          fi
+
+      - name: Re-parse into /tmp/regen.json
+        run: |
+          python tools/parse_espaltherma_defs.py \
+            --source /tmp/espaltherma \
+            --branch "${{ steps.pinned.outputs.branch }}" \
+            --out /tmp/regen.json
+
+      - name: Assert tracked labels == regen labels
+        run: |
+          python - <<'PY'
+          import json, sys
+          tracked = json.load(open("docs/MODEL_ATTRIBUTES.json"))
+          regen = json.load(open("/tmp/regen.json"))
+          t = set(tracked["labels"])
+          r = set(regen["labels"])
+          if t != r:
+              print("::error::Label set drift")
+              print(f"  only tracked: {sorted(t - r)[:10]}")
+              print(f"  only regen:   {sorted(r - t)[:10]}")
+              sys.exit(1)
+          print(f"OK: {len(t)} labels identical")
+          PY
+
+      - name: Assert canonical labels resolvable
+        run: |
+          python - <<'PY'
+          import json, sys
+          sys.path.insert(0, ".")
+          from custom_components.daikin_cycle_ml.engine.attribute_compat import ALIAS_GROUPS
+          data = json.load(open("docs/MODEL_ATTRIBUTES.json"))
+          labels = data["labels"]
+          missing = []
+          for canonical in ALIAS_GROUPS:
+              variants = [canonical, *ALIAS_GROUPS[canonical]]
+              if not any(v in labels for v in variants):
+                  missing.append(canonical)
+          if missing:
+              print(f"::error::canonical labels with no spelling in index: {missing}")
+              sys.exit(1)
+          print(f"OK: {len(ALIAS_GROUPS)} canonical labels resolvable")
+          PY
+
+  weekly-drift:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    name: Weekly upstream drift
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Read pinned branch and SHA
+        id: pinned
+        run: |
+          python - <<'PY'
+          import json, os
+          meta = json.load(open("docs/MODEL_ATTRIBUTES.json"))["_meta"]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"branch={meta['branch']}\n")
+              f.write(f"sha={meta['commit']}\n")
+          PY
+
+      - name: Get upstream SHA
+        id: upstream
+        run: |
+          SHA=$(git ls-remote "https://github.com/raomin/ESPAltherma" \
+            "refs/heads/${{ steps.pinned.outputs.branch }}" | cut -f1)
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Compare SHAs
+        id: cmp
+        run: |
+          if [ "${{ steps.pinned.outputs.sha }}" = "${{ steps.upstream.outputs.sha }}" ]; then
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+            echo "OK: pinned == upstream"
+          else
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+            echo "DRIFT: pinned=${{ steps.pinned.outputs.sha }} upstream=${{ steps.upstream.outputs.sha }}"
+          fi
+
+      - name: Open or update tracking issue
+        if: steps.cmp.outputs.drift == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BODY="ESPAltherma \`refs/heads/${{ steps.pinned.outputs.branch }}\` moved.
+
+          - Pinned: \`${{ steps.pinned.outputs.sha }}\`
+          - Upstream: \`${{ steps.upstream.outputs.sha }}\`
+          - Compare: https://github.com/raomin/ESPAltherma/compare/${{ steps.pinned.outputs.sha }}...${{ steps.upstream.outputs.sha }}
+
+          ## Regenerate
+
+          \`\`\`
+          git clone --depth 1 --branch ${{ steps.pinned.outputs.branch }} \\
+            https://github.com/raomin/ESPAltherma /tmp/espaltherma
+          python3 tools/parse_espaltherma_defs.py \\
+            --source /tmp/espaltherma \\
+            --branch ${{ steps.pinned.outputs.branch }} \\
+            --out docs/MODEL_ATTRIBUTES.json
+          pytest tests/test_model_compat.py -q --no-cov
+          \`\`\`
+
+          See docs/MODEL_COMPATIBILITY.md section 9 for full workflow.
+
+          This issue is managed by .github/workflows/model-compat.yml (weekly-drift). It is edited, not duplicated."
+
+          EXISTING=$(gh issue list --label "model-compat" --state open --json number --jq '.[0].number // empty')
+
+          if [ -n "$EXISTING" ]; then
+            echo "Updating existing issue #$EXISTING"
+            gh issue edit "$EXISTING" --body "$BODY"
+          else
+            echo "Creating new tracking issue"
+            gh issue create \
+              --title "ESPAltherma upstream moved (beta)" \
+              --label "model-compat" \
+              --body "$BODY"
+          fi
