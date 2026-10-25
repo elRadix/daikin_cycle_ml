@@ -338,7 +338,20 @@ class CycleDetector:
         never splits -- Daikin 3-way valve rests ON on power-loss
         fail-safe (tests/test_52a_dhw_dtk.py, test_31cd_coverage.py).
         """
+        # R466 (v1.12.5 #144): reverse split -- DHW cycle but source
+        # reports heating/cooling. Handles stuck-mode-on-restore (#144)
+        # and legit DHW->heat transitions. Bounded by MAX_CYCLE_DURATION_S
+        # hard-cap which fires earlier in update().
+        current = classify_mode(attrs)
+        if self._mode == "dhw" and current in ("heating", "cooling"):
+            if self._pending_mode != current:
+                self._pending_mode = current
+                self._pending_mode_since = now
+                return False
+            return (now - self._pending_mode_since) >= MODE_DEBOUNCE_S
         if self._mode == "dhw":
+            self._pending_mode = None
+            self._pending_mode_since = 0.0
             return False
         if classify_mode(attrs) != "dhw":
             self._pending_mode = None
