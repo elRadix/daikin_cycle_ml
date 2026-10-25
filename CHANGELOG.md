@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.12.5] - Unreleased
+## [1.12.5] - 2026-10-25
 
 ### Added
 - `_sample_aggregates(start, end, mode=None, exclude_artifacts=False)`:
@@ -26,6 +26,15 @@
   with statistical confidence (#133).
 - `cop_confidence` "medium" tier now reachable (was documented but
   unreachable in code — only `none`/`low`/`high` could be produced).
+
+- Cycle detector stuck in wrong mode when restored from a stale
+  snapshot. `_should_split` unconditionally returned `False` when
+  `mode == "dhw"`, so DHW cycles could only close via compressor-off,
+  pump-off, or the 4h `MAX_CYCLE_DURATION_S` hard-cap. Added a
+  reverse-split for `dhw` -> `heating`/`cooling` after `MODE_DEBOUNCE_S`
+  (60s) when source reports steady-state heating/cooling. Reuses
+  existing `_pending_mode` / `_pending_mode_since` fields; no schema
+  change. (#144)
 
 ### Corrections to prior release
 - v1.12.4 release notes stated "cop_sample_count and cop_avg now
