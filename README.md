@@ -254,6 +254,81 @@ Everything else is backward compatible.
 
 ---
 
+## Supported models & ESPAltherma attributes
+
+Daikin Cycle ML works with both **ESPAltherma stable (v1 suffix labels)** and
+**ESPAltherma beta (v2 prefix labels)** — for example `Outdoor air temp.(R1T)`
+and `R1T-Outdoor air temp.` are both accepted.
+
+> **⚠️ ESPAltherma definitions are templates — most attributes are commented
+> out by default.** You **MUST enable** the 12 required attributes below in
+> the ESPAltherma web interface, otherwise the integration raises
+> `missing_attributes` during setup.
+
+### How to enable required attributes
+
+1. Open the ESPAltherma web UI (`http://espaltherma.local` by default)
+2. Go to **Active attributes** (or **Enable attributes**)
+3. Uncomment / enable **each of the 12 attributes** listed below
+4. Save configuration and **reboot the ESP board**
+5. In Home Assistant: **Developer Tools → States → `sensor.althermasensors`** —
+   confirm all 12 appear as attributes before running the setup wizard
+
+### Required attributes (12)
+
+| # | Attribute | Purpose |
+|---|---|---|
+| 1 | `Operation Mode` | Detect Heating / Cooling / DHW |
+| 2 | `I/U operation mode` | Mode classification |
+| 3 | `3way valve(On:DHW_Off:Space)` | DHW corroboration |
+| 4 | `Defrost Operation` | Defrost detection |
+| 5 | `Leaving water temp. after BUH (R2T)` | Leaving water temperature |
+| 6 | `Inlet water temp.(R4T)` | Thermal power fallback |
+| 7 | `Outdoor air temp.(R1T)` | COP, heating curve, degradation |
+| 8 | `Flow sensor (l/min)` | Thermal power |
+| 9 | `Water pump operation` | Pump state (split corroboration) |
+| 10 | `BUH Step1` | Backup heater stage 1 |
+| 11 | `BUH Step2` | Backup heater stage 2 |
+| 12 | `LW setpoint (main)` | Setpoint tracking |
+
+`INV frequency (rps)` is optional — used for short-cycle alerts but not
+required for setup.
+### Supported model families
+
+The following **39 model definition files** from
+[ESPAltherma `beta/definitions`](https://github.com/raomin/ESPAltherma/tree/beta/definitions)
+contain all 12 required attributes and are verified compatible:
+
+- **EPRA D/E** — ETSH-X P30-50, ETV16-ETB16-ETVZ16 (8-18kW, with/without ECH2O)
+- **ERGA D/E** — EHSH-X P30-50, EHV-EHB-EHVZ (4-8kW, with/without ECH2O)
+- **ERLA D** — EBSH-X 16P30-50, EBV-EBB-EBVZ (11-16kW, with/without ECH2O)
+- **ERLA03 D** — EHFH-EHFZ DJ 3kW
+- **EBLA/EDLA D** — Monobloc 4-16kW
+- **LT** — CA/CB 4-16kW (incl. Bizone), EBLQ Monobloc 5-16kW, Multi (DHWHP, Hybrid)
+- **Altherma 4** — EPSK-EPSKS EPBX-EPSX-EPVX-EPVZ 04-14kW
+- **Altherma Hybrid**
+- **GEO2/GEO3** — EGSQH-A 10kW, EGSAH-X-EWSAH-X-D 6-10kW
+- **EPGA D** — EAB-EAV-EAVZ D(J) 11-16kW
+- **Mini chiller** — EWAA-EWYA D 4-16kW, EWAQ-EWYQ B 4-8kW
+- **Multi DHW tanks** — CKHWS-BJV3, EKHWET-BAV3
+
+### Known model limitations
+
+- **Altherma 4** — No `Inlet water temp.(R4T)`; thermal power uses COP-based primary path
+- **ERGA D ECH2O** — Uses HPSU labels `[HPSU] Tr return Temp (R4T)` and `[HPSU] Tv inflow Temp (R1T)`; auto-detected
+- **EPRA D ECH2O** — Uses HPSU label `[HPSU] Tv inflow Temp (R1T)` for `lwt_before_buh`; auto-detected
+- **Hybrid** — No outdoor temperature, no `R2T`; COP-based alerts unavailable
+- **LT_EBLQ 5-7kW Monobloc, Mini chiller EWAQ** — No `R2T`; thermal power falls back to COP-based
+
+### Not supported
+
+- **HT EKHBRD-ERRQ (protocol S)** — Protocol S omits the 0x54 outdoor air register
+- **PROTOCOL_S / PROTOCOL_S_ROTEX** — Different register layout; missing most required attributes
+
+For unsupported models the setup wizard raises `missing_attributes` with a
+clear list of what's absent. A full per-model × per-attribute matrix is
+published alongside each release as `docs/MODEL_COMPATIBILITY.md`.
+
 ## First hour
 
 ### Before you start the wizard
