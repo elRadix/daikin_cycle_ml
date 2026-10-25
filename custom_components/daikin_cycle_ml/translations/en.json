@@ -121,11 +121,6 @@
         "menu_options": {
           "reconfigure_basic": "Source sensor and model only (quick)",
           "reconfigure_full": "Full wizard (all settings)"
-        },
-        "error": {
-          "source_offline": "ESPAltherma sensor is currently {state}. Wait 30-60s for it to come back online and try again.",
-          "source_empty": "ESPAltherma sensor has no data yet. Wait for the next update and try again.",
-          "missing_attributes": "Required attributes missing. Check that ESPAltherma is publishing all required attributes."
         }
       },
       "reconfigure_basic": {
@@ -138,6 +133,11 @@
         "data_description": {
           "source_sensor": "ESPAltherma sensor that exposes the 13 required heat-pump attributes. Typical: sensor.althermasensors.",
           "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map."
+        },
+        "error": {
+          "source_offline": "ESPAltherma sensor is currently unavailable. Wait 30-60s for it to come back online and try again.",
+          "source_empty": "ESPAltherma sensor has no data yet. Wait for the next update and try again.",
+          "missing_attributes": "Required attributes missing. Check that ESPAltherma is publishing all required attributes."
         }
       },
       "reconfigure_full": {
