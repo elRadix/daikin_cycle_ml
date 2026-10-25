@@ -94,7 +94,7 @@ The most commonly used entities in user automations:
 | `label` | str | User label (if labeled via service) |
 | `cop_avg` | float | Average COP during cycle (if COP sensor configured) |
 | `cop_sample_count` | int | Number of COP samples |
-| `cop_confidence` | str | `low` / `medium` / `high` |
+| `cop_confidence` | str | `none` / `low` / `medium` / `high` (v1.12.5 #133) |
 
 ### 2.2 Live thermal power (1)
 

@@ -132,12 +132,14 @@ async def test_collect_averages_resets_after(fake_hass, fake_entry):
 async def test_collect_averages_cop_from_db(fake_hass, fake_entry):
     c = DaikinCycleMLCoordinator(fake_hass, fake_entry)
     c.db = MagicMock()
-    c.db.async_avg_cop_between = AsyncMock(return_value=3.4)
+    c.db._sample_aggregates = AsyncMock(return_value=(3.4, 1))
     cop, _, _ = await c._collect_cycle_averages(
-        {"start_ts": 100.0, "end_ts": 200.0}
+        {"start_ts": 100.0, "end_ts": 200.0, "mode": "heating"}
     )
     assert cop == 3.4
-    c.db.async_avg_cop_between.assert_awaited_once_with(100.0, 200.0)
+    c.db._sample_aggregates.assert_awaited_once_with(
+        100.0, 200.0, mode="heating"
+    )
 
 
 @pytest.mark.asyncio

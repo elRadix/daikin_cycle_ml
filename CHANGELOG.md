@@ -1,5 +1,46 @@
 # Changelog
 
+## [1.12.5] - Unreleased
+
+### Added
+- `_sample_aggregates(start, end, mode=None, exclude_artifacts=False)`:
+  optional mode filter and artifact exclusion. Backward-compatible —
+  existing migration callsites (which pass only start/end) unchanged.
+- `_cop_confidence` reformulated as pure count-based 4-tier scale:
+  `none` (0-2) / `low` (3-5) / `medium` (6-11) / `high` (12+).
+  12 samples at 300s cadence = 1h steady-state, statistically robust.
+
+### Changed
+- Forward cycle-close now writes real `COUNT(*)` from `cop_samples`
+  (mode-filtered) into `cycles.cop_sample_count`, replacing the
+  tick counter (`duration_s / 30`) that inflated counts ~10x (#133).
+- `cycles.cop_avg` on the forward path remains **power-weighted**
+  from live ticks (correct thermodynamic integration: sum Q / sum P
+  over the cycle). DB `AVG(cop)` is used only when no live ticks
+  were accumulated (fallback for restart/reload cases).
+
+### Fixed
+- `cop_sample_count` no longer mislabels short dense cycles as
+  "high" confidence and long sparse cycles as "low" — the previous
+  formula divided `duration_s` by 30 which conflated tick count
+  with statistical confidence (#133).
+- `cop_confidence` "medium" tier now reachable (was documented but
+  unreachable in code — only `none`/`low`/`high` could be produced).
+
+### Corrections to prior release
+- v1.12.4 release notes stated "cop_sample_count and cop_avg now
+  computed from real COUNT(*)/AVG(cop)". That was true only for the
+  **backfill** path (Amend 7, R445a-c, R446b). The forward live path
+  in `_collect_cycle_averages` was not updated and continued using
+  tick-based `cop_sample_count`. v1.12.5 closes this gap.
+
+### Known limitations
+- Historical cycles with tick-inflated `cop_sample_count` require
+  the #133b one-shot migration to correct; tracked separately.
+- `DEFAULT_COP_SAMPLE_INTERVAL_SECONDS` = 600 but effective observed
+  cadence is ~340s due to `power_stable` + `data_quality` filters.
+  Cadence tuning deferred to v1.13.0.
+
 ## [1.12.4] - 2026-10-24
 
 ### Added
