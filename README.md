@@ -23,12 +23,30 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 ## Showcase
 
+### ⭐ Featured: Daily Summary Tabbed
+
+[![Daily Summary Tabbed — 5-tab dashboard card](dashboard/cards/daily-summary-tabbed/screenshot-overview.png)](dashboard/cards/daily-summary-tabbed/)
+
+**The most complete view of your heat pump performance.** Five interactive tabs — `Overview` · `Quality` · `Cycles` · `Duration` · `Events` — with adaptive charts, detail popups on every element, and Dutch/English entity auto-detection.
+
+- **Adaptive Y-axis** — charts auto-scale to remove empty space
+- **Popup details** — tap any bar, dot, tile, or stat for a full breakdown
+- **Persistent tab state** — remembers your view across live updates
+- **EN/NL entities** — works with Dutch entity IDs out of the box
+- **5 configurable variables** — language, default tab, window, chart height, hints
+
+**[📥 Download YAML](dashboard/cards/daily-summary-tabbed/daily-summary-tabbed.yaml)** · **[📖 Full documentation](dashboard/cards/daily-summary-tabbed/)**
+
+---
+
+### More cards
+
 | Simple Card | Heating Curve | Daily Summary |
 |:---:|:---:|:---:|
 | [![Daikin Cycle ML - Simple Card](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/simple-card/showcase.png)](dashboard/cards/simple-card/) | [![Daikin Cycle ML - Heating Curve](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/heating-curve/preview.png)](dashboard/cards/heating-curve/) | [![Daikin Cycle ML - Daily Summary](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary/showcase.png)](dashboard/cards/daily-summary/) |
 | *One-glance overview* | *LWT vs outdoor* | *8-day cycle history* |
 
-*Lovelace dashboard cards — see [dashboard/](dashboard/) for installation.*
+*All Lovelace dashboard cards — see [dashboard/](dashboard/) for installation.*
 
 ---
 
