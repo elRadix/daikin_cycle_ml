@@ -133,11 +133,6 @@
         "data_description": {
           "source_sensor": "ESPAltherma sensor that exposes the 13 required heat-pump attributes. Typical: sensor.althermasensors.",
           "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map."
-        },
-        "error": {
-          "source_offline": "ESPAltherma sensor is momenteel niet beschikbaar. Wacht 30-60s tot deze weer online is en probeer opnieuw.",
-          "source_empty": "ESPAltherma sensor heeft nog geen data. Wacht op de volgende update en probeer opnieuw.",
-          "missing_attributes": "Vereiste attributen ontbreken. Controleer dat ESPAltherma alle vereiste attributen publiceert."
         }
       },
       "reconfigure_full": {
@@ -208,7 +203,9 @@
       "missing_attributes": "Sensor is missing one or more required ESPAltherma attributes. See the description for the exact list, or switch Attribute mode to Manual.",
       "invalid_json": "Ongeldige JSON",
       "attribute_not_found": "One or more mapped attribute names were not found on the source sensor.",
-      "required_attrs_unmapped": "One or more required attributes have no mapping and no canonical match on the sensor."
+      "required_attrs_unmapped": "One or more required attributes have no mapping and no canonical match on the sensor.",
+      "source_offline": "ESPAltherma sensor is momenteel niet beschikbaar. Wacht 30-60s tot deze weer online is en probeer opnieuw.",
+      "source_empty": "ESPAltherma sensor heeft nog geen data. Wacht op de volgende update en probeer opnieuw."
     },
     "abort": {
       "already_configured": "Al geconfigureerd",
