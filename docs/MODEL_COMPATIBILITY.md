@@ -1,0 +1,315 @@
+# Model Compatibility
+
+Which Daikin Altherma models work with Daikin Cycle ML, which ESPAltherma
+definition labels are required, and how the compatibility matrix is
+regenerated.
+
+- **Covers:** canonical sensors, variant unions, 39-model coverage matrix, decoy register, whitespace contract, regeneration workflow, CI gate
+- **For:** contributors adding model support, users diagnosing missing_attributes repairs, maintainers regenerating after upstream moves
+- **Version:** v1.12.9 (PR B)
+
+Cross-references: [DATABASE.md](DATABASE.md) (cop_samples semantics), [CONFIGURATION.md](CONFIGURATION.md) (attribute mapping), [DEVELOPMENT.md](DEVELOPMENT.md) (CI workflows).
+
+---
+
+## 1. Why this document exists
+
+Daikin's ESPAltherma project publishes definition files (definitions/*.h)
+per heat-pump family. Each definition contains a LabelDef struct init per
+ESPAltherma attribute. Users uncomment the labels they need. The union of
+commented + uncommented labels is the compatibility set Daikin Cycle ML
+must accept.
+
+The integration resolves those labels through engine/attribute_compat.py
+(ALIAS_GROUPS). The engine works with CANONICAL labels. ESPAltherma
+upstream sometimes renames a label (v1 beta renamed
+"Outdoor air temp.(R1T)" to "R1T-Outdoor air temp." for 33 of 39 models
+in the #150 window). ALIAS_GROUPS bridges both spellings so users on
+either upstream beta stay functional.
+
+This document is the source of truth for:
+
+- Which canonical labels the integration needs
+- Which models publish them (per label)
+- Which models have known gaps (partial support)
+- How the compatibility matrix stays current
+
+---
+
+## 2. Canonical sensors
+
+11 labels are canonical. The engine uses them by name; ALIAS_GROUPS
+maps known alternates. Every label here is covered by
+tests/test_model_compat.py.
+
+| Canonical label | Purpose |
+|---|---|
+| Operation Mode | Cycle classification (heating/cooling/DHW/defrost) |
+| Thermostat ON/OFF | Demand detection |
+| Defrost Operation | Cycle exclusion gate |
+| Leaving water temp. before BUH (R1T) | Heat-side primary signal (dT, COP) |
+| Leaving water temp. after BUH (R2T) | BUH state and post-BUH temperature |
+| Inlet water temp.(R4T) | Return water (heating dT cold side) |
+| Outdoor air temp.(R1T) | Weather normalization (Carnot, SPF) |
+| Refrig. Temp. liquid side (R3T) | Physics sanity check |
+| DHW tank temp. (R5T) | DHW-side dT cold side |
+| Flow sensor (l/min) | Thermal power calculation |
+| INV frequency (rps) | Compressor workload |
+
+---
+
+## 3. Variant union
+
+ESPAltherma v1 (translated labels, punctuation drift) and v2 (English-
+only) produce different attribute spellings for the same physical
+sensor. The compat layer materializes every alias spelling as soon as
+one member of the alias group is present, and it tolerates whitespace
+and punctuation drift.
+
+Concrete examples from ALIAS_GROUPS:
+
+| Canonical | Known alternates (v1, translations, renames) |
+|---|---|
+| Leaving water temp. before BUH (R1T) | Leaving water temp.(R1T), Leaving water temp. (R1T), Vorlauf vor BUH (R1T), [HPSU] Tv inflow Temp (R1T) |
+| Inlet water temp.(R4T) | Inlet water temp. (R4T), Inlet water temp.(C), [HPSU] Tr return Temp (R4T), Inlet temperature(R4T) |
+| Outdoor air temp.(R1T) | R1T-Outdoor air temp., Outdoor air temp. (R1T), Outdoor air temp.(C) |
+| DHW tank temp. (R5T) | DHW tank temp.(R5T), DHW temperature(R5T) |
+| Operation Mode | Betriebsart, Mode de fonctionnement |
+| Thermostat ON/OFF | Thermostat EIN/AUS |
+| Defrost Operation | Abtauung |
+
+The alias list is authoritative in engine/attribute_compat.py
+(ALIAS_GROUPS). Adding a new alias is a code change, not a doc change.
+
+---
+
+## 4. Mandatory attributes and coverage
+
+The engine requires 12 attributes for full heating support, imported
+from const.REQUIRED_ATTRIBUTES (see const.py). The full list is:
+
+- Operation Mode
+- I/U operation mode
+- 3way valve(On:DHW_Off:Space)
+- Defrost Operation
+- Leaving water temp. after BUH (R2T)
+- Inlet water temp.(R4T)
+- Outdoor air temp.(R1T)
+- Flow sensor (l/min)
+- Water pump operation
+- BUH Step1
+- BUH Step2
+- LW setpoint (main)
+
+24 of 31 heating models cover all 12. The remaining 7 have documented
+gaps (see section 6). The partition is enforced by tests:
+
+- tests/test_model_compat.py::test_required_attrs_fully_covered (24 tests)
+- tests/test_model_compat.py::test_partial_models_match_expected (7 tests)
+- tests/test_model_compat.py::test_heating_partition_complete (1 test)
+
+If upstream removes a required label for a full model, CI fails before
+merge. This is the fail-safe against the #150 class.
+
+---
+
+## 5. Per-model matrix
+
+6 key R-label attributes, alias-aware. Y means the model publishes at
+least one known spelling of that label. Regenerated from
+docs/MODEL_ATTRIBUTES.json.
+
+| Model | Before BUH R1T | After BUH R2T | Inlet R4T | DHW R5T | Outdoor R1T | Flow |
+|---|---|---|---|---|---|---|
+| 4(EPSK-EPSKS EPBX-EPSX-EPVX-EPVZ series 04...) | Y | Y | - | Y | Y | Y |
+| EBLA-EDLA D series 4-8kW Monobloc | Y | Y | Y | Y | Y | Y |
+| EBLA-EDLA D series 9-16kW Monobloc | Y | Y | Y | Y | Y | Y |
+| EGSAH-X-EWSAH-X-D series 6-10kW GEO3 | Y | Y | Y | Y | Y | Y |
+| EGSQH-A series 10kW GEO2 | Y | Y | Y | Y | Y | Y |
+| EPGA D EAB-EAV-EAVZ D(J) series 11-16kW | Y | Y | Y | Y | Y | Y |
+| EPRA D ETSH-X 16P30-50 D series 14-16kW-ECH2O | - | - | Y | Y | Y | Y |
+| EPRA D ETV16-ETB16-ETVZ16 D series 14-16kW | Y | Y | Y | Y | Y | Y |
+| EPRA D_D7 ETSH-X 16P30-50 E_E7 series 14-1... | Y | Y | Y | Y | Y | Y |
+| EPRA D_D7 ETV16-ETB16-ETVZ16 E_E7 series 1... | Y | Y | Y | Y | Y | Y |
+| EPRA E ETSH-X 16P30-50 E series 8-12kW-ECH2O | Y | Y | Y | Y | Y | Y |
+| EPRA E ETV16-ETB16-ETVZ16 E_EJ series 8-12kW | Y | Y | Y | Y | Y | Y |
+| ERGA D EHSH-X P30-50 D series 04-08kW-ECH2O | - | - | Y | Y | Y | Y |
+| ERGA D EHV-EHB-EHVZ DA series 04-08kW | Y | Y | Y | Y | Y | Y |
+| ERGA D EHV-EHB-EHVZ DJ series 04-08 kW | Y | Y | Y | Y | Y | Y |
+| ERGA E EHSH-X P30-50 E_EF series 04-08kW-E... | Y | Y | Y | Y | Y | Y |
+| ERGA E EHV-EHB-EHVZ E_EJ series 04-08kW | Y | Y | Y | Y | Y | Y |
+| ERLA D EBSH-X 16P30-50 D SERIES 11-16kW-ECH2O | Y | Y | Y | Y | Y | Y |
+| ERLA D EBV-EBB-EBVZ D SERIES 11-16kW | Y | Y | Y | Y | Y | Y |
+| ERLA03 D EHFH-EHFZ DJ series 3kW | Y | Y | Y | Y | Y | Y |
+| HT EKHBRD-ERRQ series 11-16kW protocol S | - | - | - | - | - | - |
+| HT EKHBRD-ERRQ series 11-16kW | - | - | - | - | - | - |
+| Hybrid | - | - | Y | Y | - | Y |
+| LT_CA_CB_04-08kW | Y | Y | Y | Y | Y | Y |
+| LT_CA_CB_11-16kW | Y | Y | Y | Y | Y | Y |
+| LT_CB_04-08kW Bizone | Y | Y | Y | Y | Y | Y |
+| LT_CB_11-16kW Bizone | Y | Y | Y | Y | Y | Y |
+| LT_EBLQ-EBLQ-CA series 5-7kW Monobloc | - | - | Y | Y | Y | Y |
+| LT_EBLQ-EDLQ-CA series 11-16kW Monobloc | Y | Y | Y | Y | Y | Y |
+| LT_Multi_DHWHP | Y | Y | Y | Y | Y | Y |
+| LT_Multi_Hybrid | Y | Y | Y | Y | Y | Y |
+| CKHWS-BJV3(Multi DHW tank 2) | Y | Y | Y | Y | Y | Y |
+| DEFAULT | - | - | Y | Y | - | - |
+| Daikin Mini chiller(EWAA-EWYA D series 4-8kW) | Y | Y | Y | Y | Y | Y |
+| Daikin Mini chiller(EWAA-EWYA D series 9-16kW) | Y | Y | Y | Y | Y | Y |
+| Daikin Mini chiller(EWAQ-EWYQ B series 4-8kW) | - | - | Y | Y | Y | Y |
+| EKHWET-BAV3(Multi DHW tank) | Y | Y | Y | Y | Y | Y |
+| PROTOCOL_S | - | - | - | - | - | - |
+| PROTOCOL_S_ROTEX | - | Y | - | - | - | - |
+
+
+## 6. Special-case models
+
+### 6.1 Cooling-only (3 models)
+
+Daikin Mini Chiller (EWAA-EWYA D 4-8kW, EWAA-EWYA D 9-16kW,
+EWAQ-EWYQ B 4-8kW). Publish R4T, R5T, flow, and refrigerant labels
+but no heating/BUH attributes. Supported for cooling; skipped from the
+heating coverage check.
+
+### 6.2 DHW-tank only (2 models)
+
+CKHWS-BJV3 (Multi DHW tank 2) and EKHWET-BAV3 (Multi DHW tank).
+Multi-DHW tanks, no compressor cycle. Publish only tank temperatures.
+
+### 6.3 Alternative protocols (2 models)
+
+PROTOCOL_S.h and PROTOCOL_S_ROTEX.h publish a distinct label set
+(entirely different attribute names). Used for protocol-S installations.
+The integration detects schema via detect_schema() and reports missing
+required attributes as a repair issue, not a crash.
+
+### 6.4 Empty template (1 model)
+
+DEFAULT.h is a skeleton with no labels. Parsed but contributes zero
+attributes. Skipped from all coverage checks.
+
+### 6.5 Partial heating models (7 models)
+
+Documented gaps per model. Maintained in tests/test_model_compat.py
+(PARTIAL_MODELS dict). Any change must be justified by re-analysis of
+the upstream .h file:
+
+- Altherma 4 (EPSK-EPSKS EPBX-EPSX-EPVX-EPVZ 04-14kW): missing R4T.
+  Header: "the indoor unit's inlet (R4T) is not on the wire".
+- Altherma (EPRA D ETSH-X 16P30-50 D 14-16kW ECH2O): missing R2T.
+  Water heat exchanger in outdoor unit, no BUH-only sensor.
+- Altherma (ERGA D EHSH-X P30-50 D 04-08kW ECH2O): missing R2T. Same reason.
+- Altherma (HT EKHBRD-ERRQ 11-16kW protocol S): missing 11 of 12 required.
+  HT-protocol exposes a minimal set; setup reports missing_attributes.
+- Altherma (HT EKHBRD-ERRQ 11-16kW): missing all 12. HT-protocol variant.
+- Altherma (Hybrid): missing R2T and outdoor R1T. Hybrid uses a different
+  cold-side sensor; R1T outdoor not published on the wire.
+- Altherma (LT_EBLQ-EBLQ-CA 5-7kW Monobloc): missing R2T. CA-series
+  Monobloc without BUH after sensor.
+
+---
+
+## 7. Decoy register
+
+These labels resemble canonical sensors but are NOT. Never promote them
+to canonical, never substring-match on R4T/R5T/R1T to find them.
+
+| Decoy | Why it looks right | Why it is wrong |
+|---|---|---|
+| Heat exchanger mid-temp.(R5T) | Contains R5T | Refrigerant mid-temp, not DHW tank |
+| O/U Heat Exch. Temp.(R4T) | Contains R4T | Refrigerant heat exchanger, not inlet water |
+| Indoor ambient temp. (R1T) | Contains R1T | Indoor ambient, not outdoor air |
+| Leaving water temp. before BUH (R1T) | Contains R1T | Leaving water, not outdoor air |
+
+The 4th is canonical for a DIFFERENT sensor (the leaving-water side).
+It appears in CANONICAL_LABELS and is not a decoy in that context. When
+searching for "the R1T attribute", always use exact match against the
+canonical name; never grep for 'R1T'.
+
+tests/test_model_compat.py::test_decoy_not_canonical guards the first 3.
+
+---
+
+## 8. Whitespace and punctuation contract
+
+normalize_key() (engine/attribute_compat.py) collapses whitespace and
+tolerates punctuation drift. Concretely:
+
+- Multiple spaces = one space
+- " (R4T)" and "(R4T)" are equivalent
+- "[HPSU] Tr return Temp (R4T)" resolves via ALIAS_GROUPS, not via regex
+
+The parser (tools/parse_espaltherma_defs.py) preserves raw label text
+from .h files. Whitespace normalization happens at resolution time, not
+at parse time. This means MODEL_ATTRIBUTES.json is a faithful index of
+upstream spelling; the compat layer handles drift.
+
+---
+
+## 9. Regeneration workflow
+
+When ESPAltherma upstream publishes new definitions:
+
+    git clone --depth 1 --branch beta \
+      https://github.com/raomin/ESPAltherma /tmp/espaltherma-beta
+
+    python3 tools/parse_espaltherma_defs.py \
+      --source /tmp/espaltherma-beta \
+      --branch beta \
+      --out docs/MODEL_ATTRIBUTES.json
+
+    pytest tests/test_model_compat.py -q --no-cov
+
+If all 130 tests pass, commit the regen. If any fail, the change is
+either a new label (extend ALIAS_GROUPS) or a renamed/removed label
+(investigate). Never edit MODEL_ATTRIBUTES.json by hand.
+
+For minor upstream moves (SHA change, no label diff), the weekly drift
+workflow opens an issue automatically (see section 10).
+
+---
+
+## 10. CI gate
+
+Two workflows in .github/workflows/model-compat.yml:
+
+### pr-gate
+
+Triggered when a PR touches:
+- docs/MODEL_ATTRIBUTES.json
+- tools/parse_espaltherma_defs.py
+- engine/attribute_compat.py
+- const.py (REQUIRED_ATTRIBUTES)
+
+Steps:
+1. Clone ESPAltherma at _meta.branch
+2. Re-parse into /tmp/regen.json
+3. Assert set(tracked.labels) == set(regen.labels)
+4. Assert 11 canonical labels resolvable
+5. Assert 3 decoys not canonical
+6. Assert 39 models present
+7. Assert SHA in _meta.commit matches the cloned SHA
+
+Fails the PR if any assertion fails. Human must fix ALIAS_GROUPS or
+regen in the PR branch.
+
+### weekly-drift
+
+Cron: Monday 06:00 UTC.
+
+1. git ls-remote refs/heads/beta -> upstream_sha
+2. Read _meta.commit from MODEL_ATTRIBUTES.json -> pinned_sha
+3. If equal: exit 0 (silent)
+4. If different: open (or update) issue labeled model-compat
+
+The issue is idempotent: an existing open issue with the same label is
+edited, not duplicated. The workflow never auto-merges or auto-regenerates.
+
+---
+
+## 11. Changelog
+
+| Version | Change |
+|---|---|
+| v1.12.9 (PR B) | First tracked MODEL_ATTRIBUTES.json + parser + 130 tests + CI gate + weekly drift |
+| (pre-v1.12.9) | Untracked manual extraction, no CI coverage |
