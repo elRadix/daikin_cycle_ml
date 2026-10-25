@@ -695,23 +695,42 @@ class CycleDB:
         return stats
 
     async def _sample_aggregates(
-        self, start_ts: float, end_ts: float
+        self,
+        start_ts: float,
+        end_ts: float,
+        mode: str | None = None,
+        exclude_artifacts: bool = False,
     ) -> tuple[float | None, int]:
         """Compute (cop_avg, sample_count) from cop_samples in a window.
 
         #133: uses COUNT(*) from cop_samples, not cycles.cop_sample_count.
+
+        Optional mode filter ensures count matches the samples that fed
+        the cycle's aggregate COP. Optional artifact exclusion drops
+        samples flagged is_transition_artifact=1 by v18 migration; the
+        historical correction (#133b) always passes exclude_artifacts=True,
+        the forward path leaves it False (fresh samples have flag=0).
         """
         conn = self._require()
-        cur = await conn.execute(
+        sql = (
             "SELECT AVG(cop), COUNT(cop) FROM cop_samples "
-            "WHERE ts BETWEEN ? AND ? AND cop IS NOT NULL",
-            (start_ts, end_ts),
+            "WHERE ts BETWEEN ? AND ? AND cop IS NOT NULL"
         )
+        params: list[float | str] = [start_ts, end_ts]
+        if mode is not None:
+            sql += " AND mode = ?"
+            params.append(mode)
+        if exclude_artifacts:
+            sql += (
+                " AND (is_transition_artifact IS NULL "
+                "OR is_transition_artifact = 0)"
+            )
+        cur = await conn.execute(sql, params)
         try:
             row = await cur.fetchone()
         finally:
             await cur.close()
-        if row is None:  # pragma: no cover - AVG/COUNT always returns a row
+        if row is None:  # pragma: no cover
             return (None, 0)
         return (row[0], int(row[1] or 0))
 

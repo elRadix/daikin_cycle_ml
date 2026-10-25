@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.daikin_cycle_ml.coordinator import (
-    COP_MIN_TICKS,
     DaikinCycleMLCoordinator,
     _cop_confidence,
     _weighted_mean_stdev,
@@ -45,24 +44,27 @@ def _state(value: str, unit: str = "") -> MagicMock:
 
 
 def test_cop_confidence_none_below_min():
-    assert _cop_confidence(0, 600.0) == "none"
-    assert _cop_confidence(3, 600.0) == "none"
+    assert _cop_confidence(0) == "none"
+    assert _cop_confidence(1) == "none"
+    assert _cop_confidence(2) == "none"
 
 
-def test_cop_confidence_low_duration_none():
-    assert _cop_confidence(4, None) == "low"
+def test_cop_confidence_low_three():
+    assert _cop_confidence(3) == "low"
 
 
-def test_cop_confidence_low_duration_zero():
-    assert _cop_confidence(4, 0.0) == "low"
+def test_cop_confidence_low_five():
+    assert _cop_confidence(5) == "low"
 
 
 def test_cop_confidence_high():
-    assert _cop_confidence(20, 600.0) == "high"
+    assert _cop_confidence(12) == "high"
+    assert _cop_confidence(20) == "high"
 
 
-def test_cop_confidence_low_sparse():
-    assert _cop_confidence(5, 600.0) == "low"
+def test_cop_confidence_medium():
+    assert _cop_confidence(6) == "medium"
+    assert _cop_confidence(11) == "medium"
 
 
 def test_weighted_mean_stdev_zero_weight():
@@ -151,23 +153,23 @@ async def test_collect_cycle_averages_memory_used():
     assert record["cop_avg"] == 3.0
     assert record["cop_sample_count"] == 10
     assert record["cop_sample_stdev"] == 0.0
-    assert record["cop_confidence"] == "high"
+    assert record["cop_confidence"] == "medium"
     assert c._cycle_cop_count == 0  # reset
 
 
-async def test_collect_cycle_averages_fallback_used():
+async def test_collect_cycle_averages_pw_avg_preferred():
     c = _bare_coord()
-    c._cycle_cop_count = 1
-    c._cycle_cop_w_sum = 3.0
-    c._cycle_cop_weight_sum = 1.0
-    c._cycle_cop_sq_w_sum = 9.0
+    c._cycle_cop_count = 3
+    c._cycle_cop_w_sum = 9.0
+    c._cycle_cop_weight_sum = 3.0
+    c._cycle_cop_sq_w_sum = 27.0
     c.db = MagicMock()
-    c.db.async_avg_cop_between = AsyncMock(return_value=4.5)
-    record = {"start_ts": 1.0, "end_ts": 2.0, "duration_s": 600.0}
+    c.db._sample_aggregates = AsyncMock(return_value=(4.5, 5))
+    record = {"start_ts": 1.0, "end_ts": 2.0, "duration_s": 600.0, "mode": "heating"}
     cop_avg, _, _ = await c._collect_cycle_averages(record)
-    assert cop_avg == 4.5
-    c.db.async_avg_cop_between.assert_awaited_once()
-    assert record["cop_confidence"] == "none"
+    assert cop_avg == 3.0
+    assert record["cop_sample_count"] == 5
+    assert record["cop_confidence"] == "low"
 
 
 async def test_collect_cycle_averages_fallback_none_keeps_memory():

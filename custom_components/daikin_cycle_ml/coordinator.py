@@ -195,14 +195,25 @@ def _normalize_power_w(value: float | None, unit: str | None) -> float | None:
 COP_MIN_TICKS: int = 4
 
 
-def _cop_confidence(count: int, duration_s: float | None) -> str:
-    """Classify confidence from in-cycle tick density (Q6)."""
-    if count < COP_MIN_TICKS:
+def _cop_confidence(count: int) -> str:
+    """Statistical confidence from real sample count (v1.12.5 #133).
+
+    Thresholds based on 95% CI of the mean at 300s sample cadence:
+      n < 3:   variance undefined, unusable           -> "none"
+      n 3-5:   very noisy, CI ~ +/-90-115%            -> "low"
+      n 6-11:  usable for trend, CI ~ +/-60-80%       -> "medium"
+      n >= 12: robust, CI < +/-57%                    -> "high"
+
+    Rationale: 12 samples at 300s cadence = 1h steady-state. Independent
+    samples are the unit of confidence; duration does not change the math.
+    """
+    if count < 3:
         return "none"
-    if duration_s is None or duration_s <= 0:
+    if count < 6:
         return "low"
-    expected = float(duration_s) / float(UPDATE_INTERVAL_SECONDS)
-    return "high" if count >= expected * 0.5 else "low"
+    if count < 12:
+        return "medium"
+    return "high"
 
 
 def _weighted_mean_stdev(
@@ -1784,7 +1795,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     async def _collect_cycle_averages(
         self, record: dict[str, Any]
     ) -> tuple[float | None, float | None, float | None]:
-        """Return (cop_avg, lwt_avg, indoor_temp_avg) for a closed cycle."""
+        """Return (cop_avg, lwt_avg, indoor_temp_avg) for a closed cycle.
+
+        v1.12.5 #133: cop_sample_count = real COUNT(*) from cop_samples,
+        mode-filtered. cop_avg remains power-weighted from live ticks
+        (thermodynamically correct: sum Q / sum P over cycle). Falls
+        back to DB AVG only when no live ticks are available.
+        """
         lwt_avg: float | None = None
         if self._cycle_lwt_count > 0:
             lwt_avg = self._cycle_lwt_sum / float(self._cycle_lwt_count)
@@ -1795,39 +1812,60 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cycle_lwt_count = 0
         self._cycle_indoor_sum = 0.0
         self._cycle_indoor_count = 0
-        cop_avg, cop_stdev = _weighted_mean_stdev(
+
+        pw_avg, pw_stdev = _weighted_mean_stdev(
             self._cycle_cop_w_sum,
             self._cycle_cop_weight_sum,
             self._cycle_cop_sq_w_sum,
         )
-        cop_count = self._cycle_cop_count
+        tick_count = self._cycle_cop_count
         self._cycle_cop_w_sum = 0.0
         self._cycle_cop_weight_sum = 0.0
         self._cycle_cop_sq_w_sum = 0.0
         self._cycle_cop_count = 0
-        if cop_count < COP_MIN_TICKS and self.db is not None:
-            start_ts = record.get("start_ts")
-            end_ts = record.get("end_ts")
-            if isinstance(start_ts, (int, float)) and isinstance(
-                end_ts, (int, float)
-            ):
-                try:
-                    if hasattr(self.db, "async_avg_cop_between"):
-                        fallback = await self.db.async_avg_cop_between(
-                            float(start_ts), float(end_ts)
-                        )
-                        if fallback is not None:
-                            cop_avg = fallback
-                except Exception:
-                    _LOGGER.debug(
-                        "cop_avg lookup failed", exc_info=True
-                    )
+
+        # v1.12.5 #133: real DB count (mode-filtered) replaces tick counter
+        db_avg: float | None = None
+        db_count: int | None = None
+        start_ts = record.get("start_ts")
+        end_ts = record.get("end_ts")
+        mode = record.get("mode")
+        if (
+            self.db is not None
+            and isinstance(start_ts, (int, float))
+            and isinstance(end_ts, (int, float))
+            and isinstance(mode, str)
+        ):
+            try:
+                db_avg, db_count = await self.db._sample_aggregates(
+                    float(start_ts), float(end_ts), mode=mode
+                )
+            except Exception:
+                _LOGGER.debug(
+                    "sample_aggregates failed for cycle close", exc_info=True
+                )
+
+        if pw_avg is not None:
+            cop_avg: float | None = pw_avg
+            cop_stdev: float | None = pw_stdev
+        elif db_avg is not None:
+            cop_avg = db_avg
+            cop_stdev = None
+        else:
+            cop_avg = None
+            cop_stdev = None
+
+        if db_count is not None:
+            cop_sample_count: int | None = db_count if db_count > 0 else None
+        elif tick_count > 0:
+            cop_sample_count = tick_count
+        else:
+            cop_sample_count = None
+
         record["cop_avg"] = cop_avg
-        record["cop_sample_count"] = cop_count if cop_count > 0 else None
+        record["cop_sample_count"] = cop_sample_count
         record["cop_sample_stdev"] = cop_stdev
-        record["cop_confidence"] = _cop_confidence(
-            cop_count, record.get("duration_s")
-        )
+        record["cop_confidence"] = _cop_confidence(cop_sample_count or 0)
         return cop_avg, lwt_avg, indoor_avg
 
     # ---------- Batch 7c ML pipeline ----------

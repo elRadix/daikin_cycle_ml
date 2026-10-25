@@ -192,7 +192,7 @@ CREATE TABLE cycles (
 | `cop_avg` | float | Average COP during cycle (if COP sensor configured) |
 | `cop_sample_count` | int | Number of COP samples averaged |
 | `cop_sample_stdev` | float | Standard deviation of COP samples |
-| `cop_confidence` | str | `low` / `medium` / `high` based on sample count and stdev |
+| `cop_confidence` | str | `none` (0-2) / `low` (3-5) / `medium` (6-11) / `high` (12+) real sample count (v1.12.5 #133) |
 
 **Indexes:**
 - `idx_cycles_start_ts` on `start_ts` — used by retention and history queries
