@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.12.7] — 2026-10-25
+
+### Fixed
+
+- **ESPAltherma beta compatibility (#150)** — `R1T-Outdoor air temp.` prefix format was bypassed by `cycle_detector.update()` and `coordinator._snap_attr()` when called with raw attrs (bypassing `read()`). Result: `outdoor_mean: None` in all `cop_curve_recent` points, `stooklijn_advies.buckets` stuck on `unknown`, `cop_degradatie_week.bins_used` empty. Fix: apply `build_compat_view()` at both entry points (idempotent, safe when `read()` already applied).
+- **ERGA D ECH2O config flow (#150)** — HPSU inlet label `[HPSU] Tr return Temp (R4T)` not aliased. Setup wizard raised `missing_attributes`. Alias added.
+- **EPRA D / ERGA D ECH2O lwt_before_buh (#150)** — HPSU label `[HPSU] Tv inflow Temp (R1T)` (double-space, handled by `normalize_key`) not aliased. Alias added.
+- **DEFAULT.h fallbacks (#150)** — `Inlet temperature(R4T)` and `DHW temperature(R5T)` shorter forms not aliased. Aliases added.
+
+### Docs
+
+- **README — Supported models & ESPAltherma attributes** — new section documenting the 12 required attributes, how to enable them in the ESPAltherma web UI, 39 supported model families, known limitations (Altherma 4, ERGA/EPRA D ECH2O HPSU, Hybrid, LT_EBLQ 5-7kW Monobloc, Mini chiller EWAQ), and not-supported (HT protocol S, PROTOCOL_S, PROTOCOL_S_ROTEX).
+- **README cleanup** — removed outdated `## What's new` and `## Version history` sections. Full version history now lives in `CHANGELOG.md` only.
+
+### Tests
+
+- 19 new tests in `tests/test_outdoor_temp_fallback.py` — prefix, suffix, HPSU inlet, HPSU lwt_before_buh, DEFAULT fallbacks, decoy rejection (R1T/R4T/R5T non-canonical labels), placeholder handling, detector runtime with prefix attrs.
+
+### Coverage source
+
+- 39 root ESPAltherma beta model definitions indexed; 401 unique labels (active + commented templates)
+- 33/39 use `R1T-Outdoor air temp.` (prefix format)
+- 32/39 use `Inlet water temp.(R4T)` (suffix)
+- 34/39 use `DHW tank temp. (R5T)` (suffix)
+- ERGA D ECH2O is the only model using HPSU labels for both R4T and R1T
+
+Fixes #150 · Refs #117
+
 ## [1.12.6] — 2026-10-25
 
 ### Dashboard Cards

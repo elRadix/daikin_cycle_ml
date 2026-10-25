@@ -4,8 +4,8 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 **Local-only. No cloud. No accounts.** Everything runs inside your Home Assistant box.
 
-[![Version](https://img.shields.io/badge/version-1.12.6-orange.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/latest)
-[![Tests](https://img.shields.io/badge/tests-3396-brightgreen.svg)](#quality)
+[![Version](https://img.shields.io/badge/version-1.12.7-orange.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/latest)
+[![Tests](https://img.shields.io/badge/tests-3415-brightgreen.svg)](#quality)
 [![Coverage](https://img.shields.io/badge/coverage-100.00%25-brightgreen.svg)](#quality)
 [![Ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)
 [![Pylint](https://img.shields.io/badge/pylint-10.00%2F10-brightgreen.svg)](https://pylint.readthedocs.io/)
@@ -80,91 +80,6 @@ The integration watches every compressor start→run→stop transition and score
 **6724 tests, 100.00% coverage, mypy strict, Pylint 10/10, IQS Bronze + Silver + Gold.** 8 GitHub Actions workflows enforced on every PR. No cloud. No telemetry. No accounts. Your heat pump data stays on your HA instance.
 
 ---
-
-## What's new
-
-### v1.9.0 — Alerts v2
-
-**3 new alerts** targeting database health, ML retraining, and energy anomalies:
-
-- `db_retention_warning` — DB not being pruned, catches stuck maintenance
-- `kmeans_retrain_stale` — clustering hasn't succeeded in 14 days, catches ML degradation
-- `energy_daily_anomaly` — daily electrical consumption more than 2σ above baseline
-
-**Per-alert toggles** — 11 new individual switches on top of the existing 5 group toggles. Silence specific alerts without touching their whole family.
-
-**Dedup windows** — 19 new numeric fields, one per alert type. Fine-grained control over how often each alert can repeat.
-
-**Q4 fix** — `setpoint_osc` no longer fires on monotonic drift (only real reversals).
-
-**I7/I8 fixes** — retention fallbacks, defrost duration, energy accumulators decoupled from runtime lifecycle (daily energy totals now survive HA restarts even if runtime restore fails).
-
-### v1.8.0 — Smart auto-import
-
-Onboarding that works even when your ESPAltherma firmware uses non-standard attribute names.
-
-- **Entity discovery** — scans `sensor.*` entities for overlap with the 13 canonical attributes
-- **Alias table + fuzzy matching** — 14+ community variants (benthouse, akaQ, Videopac, ...) resolve automatically
-- **Anti-alias guard** — `Leaving water temp. after BUH (R2T)` never wrongly resolves to `R1T`
-- **Diagnose screen** — new wizard step showing per-canonical match kind (`EXACT`/`ALIAS`/`FUZZY`/`MISSING`) and sanity warnings
-
-### v1.6.0 — HVAC Parity
-
-Turns the integration from a cycle-detector into a full HVAC performance platform.
-
-- **9 per-mode COP sensors** — heating / DHW / cooling × day / week / month
-- **SPF / SCOP** — seasonal, year-to-date, rolling 365-day
-- **15 bundled Daikin datasheets** (8 EPRA + 7 ERLA) — normalized COP at A7/W35 + comparison vs spec
-- **Weather-normalized degradation** — outdoor-binned 7d-vs-7d, BUH/defrost excluded
-- **30-day regression trend** — isolates hardware wear from weather
-- **Runtime + energy accounting** — 12 new sensors, HA Energy Dashboard compatible
-- **OptionsFlow overhaul** — grouped sections + notifications sub-menu
-- **Slope / offset advice** in Daikin installer language
-
-### v1.5.0 — Dynamic LWT step
-
-- **Dynamic LWT step 1-3 °C** — scaled to measured vs optimal delta, not hardcoded
-- **Comfort dual-loop** — floor + ceiling on projected indoor temp
-- **Setpoint comparison** — uses real `LW setpoint (main)` instead of last bucket sample
-- **Tracking-error dampening** — smaller steps when unit lags setpoint
-- **8 new attributes** on `heating_curve_advice`
-
-### v1.4.x — Hardening
-
-- **v1.4.0** — entity slug renames to `sensor.daikin_cycle_ml_<key>`
-- **v1.4.1-1.4.5** — cycle/quality/notify fixes, hydrate path, rollup extension to 720 h
-
-### v1.3.0 — COP analytics foundation
-
-- COP hourly rollup + KPI sensors (`cop_mean_day`/`_week`/`_month`)
-- REST endpoint `GET /api/daikin_cycle_ml/cop_hourly`
-- `sensor.cop_curve_recent` (48 h recorder-safe window)
-- `export_cop_hourly` service
-
-See [CHANGELOG.md](CHANGELOG.md) for the complete history.
-
----
-
-## Version history
-
-| Version | Date | Headline |
-|---|---|---|
-| v1.9.0 | 2026-10-20 | Alerts v2: 3 new alerts, per-alert toggles, dedup windows, `recompute_kmeans` service |
-| v1.8.1 | 2026-10-08 | R331 fix — alert advice bleed |
-| v1.8.0 | 2026-10-08 | Smart auto-import wizard |
-| v1.7.2 | 2026-09 | Hotfix for issue #49 |
-| v1.7.1 | 2026-09 | Security updates |
-| v1.7.0 | 2026-09 | Defrost history helper sensors |
-| v1.6.2 | 2026-10-06 | Onboarding fix — Automatic/Manual attribute mode (issue #25) |
-| v1.6.1 | 2026-10-06 | Energy tick fix — standby power not booked as heating |
-| v1.6.0 | 2026-10-06 | HVAC Parity — 3× features, breaking `cop_today` |
-| v1.5.0 | 2026-10-03 | Dynamic LWT step + comfort dual-loop |
-| v1.4.0 | 2026-09-29 | Entity slug renames (breaking) |
-| v1.3.0 | 2026-09-26 | COP hourly rollup + REST endpoint |
-| v1.2.x | 2026-09-20 | IQS Silver + Gold |
-| v1.1.0 | 2026-09-15 | HACS-compliant layout |
-| v1.0.x | 2026-09-10 | Initial release |
-
 
 ## Why this exists
 
