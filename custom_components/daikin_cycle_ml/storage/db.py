@@ -1188,6 +1188,16 @@ class CycleDB:
         )
         await conn.commit()
 
+    async def async_get_max_cop_sample_ts(self) -> float | None:
+        """Return MAX(ts) from cop_samples, or None if empty (issue #121)."""
+        if self._conn is None:
+            return None
+        cursor = await self._conn.execute("SELECT MAX(ts) FROM cop_samples")
+        row = await cursor.fetchone()
+        if row is None or row[0] is None:
+            return None
+        return float(row[0])
+
     async def async_get_model_state(self, key: str, default: Any = None) -> Any:
         conn = self._require()
         async with conn.execute(
