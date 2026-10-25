@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.12.6] — 2026-10-25
+
+### Dashboard Cards
+
+- **New: Daily Summary Tabbed** — 5-tab Lovelace card (opt-in, no code changes)
+  - `Overview` — HP model hero, quality ring, mode split, best/worst day, sparkline trends
+  - `Quality` — adaptive Y-axis (auto-scales to 60-100 when all data high, removes dead space)
+  - `Cycles` — stacked per-mode daily bars, day totals, stats strip
+  - `Duration` — runtime bars with p95 capping and clipping markers
+  - `Events` — BUH/Defrost/Total counts (3 rows) + ratio chart with 15%/35% reference lines
+  - Popup details on every interactive element (bars, dots, tiles, stats, hero, best/worst)
+  - Persistent tab + window state across 30s tick updates
+  - 5 configurable variables: `lang_override`, `default_tab`, `default_window`, `chart_height`, `show_hints`
+  - Works with Dutch entity IDs (`recent_dagoverzicht`, `wp_specs`, `cyclus_status`, `ontdooiingen_vandaag`, ...)
+  - Works with custom entry names (`sensor.warmtepomp_recent_dagoverzicht`)
+  - Automatic `hass.language` detection with optional manual override
+
+- **Root README showcase redesign** — tabbed card now features as primary showcase with hero layout, 5 feature bullets, and CTA buttons (Download YAML + Full docs)
+- **dashboard/README.md** — split into Featured Card (tabbed, 480px) + Other cards (existing 3, 320px) sections
+- **Card README** — quick nav anchors, linked YAML download with Raw/save hint
+
+### Notes
+
+- **Dashboard-only release** — no integration code changes
+- **Backwards compatible** — dashboard cards are opt-in; no forced changes for existing users
+- **No fleet action required** — users can stay on v1.12.5 if they don't want the new card
+- **HACS notification** — version bump triggers update notification in HACS for v1.12.5 users
+
+### Still validating
+
+- **#125 kmeans scheduling** — fase A (scheduler wiring smoke-test) on Monday 2026-10-26 04:05 local; fase B (weekly retrain validation) on Sunday 2026-11-01 04:05 local. Neither is affected by this dashboard release.
+
 ## [1.12.5] - 2026-10-25
 
 ### Added
