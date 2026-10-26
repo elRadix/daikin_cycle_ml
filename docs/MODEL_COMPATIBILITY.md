@@ -357,8 +357,8 @@ Public Daikin datasheet values for the 53 user-facing model codes. COP values ar
 | EPSK06AW1 | 5.19 | — | 70 °C |
 | EPSK08AW1 | 5.01 | — | 70 °C |
 | EPSK10AW1 | 4.94 | — | 70 °C |
-| EPSK12AW1 | — | 5.14 | 70 °C |
-| EPSK14AW1 | — | 4.04 | 70 °C |
+| EPSK12AW1 | 5.50 | 5.14 | 70 °C |
+| EPSK14AW1 | 5.50 | 4.96 | 70 °C |
 
 ### LT monobloc — EDLA D3V3 (R-32)
 
@@ -411,3 +411,17 @@ GEO2 and GEO3 are ground-source (brine) and remain outside `MODEL_CHOICES` per p
 | EGSAH10D9W | 4.70 | — |
 
 Chillers (EWAA/EWYA/EWAQ/EWYQ), Hybrid, Multi, DHW tanks and PROTOCOL_S templates are not single-model heat pumps and are not listed here.
+
+## Runtime COP curve coverage
+
+The `data/datasheets.json` file drives the `cop_vs_datasheet_low` alert and the `cop_vs_datasheet_pct` sensor. Coverage per model:
+
+| Curve status | Models | Behavior |
+|---|---|---|
+| **full** (6-9 points, incl. `hc`) | `erla11dav3`, `erla14dav3`, `erla16dav3`, `epra08eav3`, `epra10eav3`, `epra12eav3` | T_out-aware: interpolates COP at actual outdoor temp |
+| **partial** (2 points, A7/W35 + A7/W55) | `erga04eav3`, `erga06eav3`, `erga08eav3`, `ebla04ev3`, `ebla06ev3`, `ebla08ev3`, `epga11dav3`, `epga14dav3`, `epga16dav3` | Linear interpolation between two known points |
+| **nom_cop only** (1 point or empty) | Rest of bundled models | Falls back to A7/W35 comparison — alert may false-positive at outdoor temperatures below 0 °C |
+
+### Supplying your own datasheet
+
+For `nom_cop only` models the alert uses A7/W35 as reference regardless of outdoor temperature. To make it T_out-aware, supply your model's COP table via the `daikin_cycle_ml.upload_datasheet` service (see `services.yaml`). User-supplied data overrides bundled data.
