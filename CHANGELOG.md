@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Bundled models expanded to 40** — Added 25 new models (ERGA, EPGA, EDLA, EBLA, EDLQ, EPSK, EPRA18) to support more Daikin Altherma devices in the config flow. Includes ERGA08EAV3H (Split) requested by community.
+
 ### Fixed
 
 - **#129 + #124 (v1.13.0)** — Sanity gate for `cop_avg` and `thermal_kw_avg`
