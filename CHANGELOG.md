@@ -13,6 +13,11 @@
   - All 11 use `_BASE` behavioural profile (defaults) — HT units likely need per-family tuning (higher `good_dt_threshold_k`, `max_cycle_duration_min`) once live data is available; tracked as v1.13.0 follow-up.
   - Zero test changes — `test_all_model_choices_present`, `test_no_model_expects_brine`, `test_all_profiles_have_same_keys` auto-cover via `MODEL_CHOICES` iteration.
 
+### Docs
+
+- **Datasheet reference table** — `docs/MODEL_COMPATIBILITY.md` now lists public Daikin datasheet COP, capacity and LWT values for every bundled model family: EBLQ CV3, EKHBRD+ERRQ, ERRQ-ERSQ, EPSK AW1, EDLA D3V3, EBLA EV3, ERGA EAV3, EPGA DAV3, EPRA18. Excluded GEO2/GEO3 listed for reference only.
+
+
 ### Fixed
 
 - **#129 + #124 (v1.13.0)** — Sanity gate for `cop_avg` and `thermal_kw_avg`

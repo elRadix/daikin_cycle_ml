@@ -210,7 +210,7 @@ and `R1T-Outdoor air temp.` are both accepted.
 required for setup.
 ### Supported model families
 
-The following **40 model definition files** from
+The following **40 ESPAltherma definition files** cover **53 user-facing model codes** (EPRA, ERLA, ERGA, EPGA, EDLA, EBLA, EDLQ, EBLQ, EPSK, EKHBRD/ERRQ, ERRQ-ERSQ) from
 [ESPAltherma `beta/definitions`](https://github.com/raomin/ESPAltherma/tree/beta/definitions)
 contain all 12 required attributes and are verified compatible:
 

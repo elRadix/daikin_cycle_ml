@@ -317,3 +317,97 @@ edited, not duplicated. The workflow never auto-merges or auto-regenerates.
 |---|---|
 | v1.12.9 (PR B) | First tracked MODEL_ATTRIBUTES.json + parser + 130 tests + CI gate + weekly drift |
 | (pre-v1.12.9) | Untracked manual extraction, no CI coverage |
+
+---
+
+## Bundled model datasheet reference
+
+Public Daikin datasheet values for the 53 user-facing model codes. COP values are nominal (EN 14511). Where a value is not cleanly published across regional datasheets it is marked `—`.
+
+### LT monobloc — EBLQ CV3 (R-410A)
+
+| Model | COP A7/W35 | COP A7/W55 | Nom. heating (kW) | Max LWT |
+|---|---|---|---|---|
+| EBLQ05CV3 | 5.00 | 3.58 | 4.40 | 55 °C |
+| EBLQ07CV3 | 4.52 | 3.42 | 7.00 | 55 °C |
+| EBLQ11CV3 | 4.61 | 3.55 | 11.2 | 55 °C |
+| EBLQ14CV3 | 4.30 | 3.32 | 14.5 | 55 °C |
+| EBLQ16CV3 | 4.26 | 3.26 | 16.0 | 55 °C |
+
+### HT split — EKHBRD + ERRQ (R-410A)
+
+| Model | COP A7/W55 | COP A7/W80 | COP A7/W35 | Nom. heating (kW) |
+|---|---|---|---|---|
+| EKHBRD011 + ERRQ011 | 2.97 | 2.50 | 4.20 | 11.3 |
+| EKHBRD014 + ERRQ014 | 2.89 | 2.48 | 3.72 | 14.5 |
+| EKHBRD016 + ERRQ016 | 2.73 | 2.41 | 3.72 | 16.0 |
+
+### HT outdoor — ERRQ-ERSQ (R-410A)
+
+| Model | COP A7/W55 | COP A7/W80 | Nom. heating (kW) | Power input (kW) |
+|---|---|---|---|---|
+| ERRQ011-ERSQ011 | 3.08 | 2.50 | 11.0 | 3.57 |
+| ERRQ014-ERSQ014 | 3.00 | 2.48 | 14.0 | 4.66 |
+| ERRQ016-ERSQ016 | 2.88 | 2.41 | 16.0 | 5.57 |
+
+### Altherma 4 H — EPSK AW1 (R-290)
+
+| Model | COP A7/W35 | SCOP | Max LWT |
+|---|---|---|---|
+| EPSK06AW1 | 5.19 | — | 70 °C |
+| EPSK08AW1 | 5.01 | — | 70 °C |
+| EPSK10AW1 | 4.94 | — | 70 °C |
+| EPSK12AW1 | — | 5.14 | 70 °C |
+| EPSK14AW1 | — | 4.04 | 70 °C |
+
+### LT monobloc — EDLA D3V3 (R-32)
+
+| Model | COP A7/W35 | COP A7/W55 | Nom. heating (kW) | Max LWT |
+|---|---|---|---|---|
+| EDLA09D3V3 | 4.91 | 3.71 | 9.4 | 65 °C |
+| EDLA11D3V3 | 4.83 | 3.66 | 11.0 | 65 °C |
+| EDLA14D3V3 | 4.87 | 3.64 | 14.0 | 65 °C |
+| EDLA16D3V3 | 4.53 | 3.51 | 16.0 | 65 °C |
+
+### LT monobloc — EBLA EV3 (R-32)
+
+| Model | COP A7/W35 | COP A7/W55 | Nom. heating (kW) | Max LWT |
+|---|---|---|---|---|
+| EBLA04EV3 | 5.10 | 3.65 | 4.3 | 65 °C |
+| EBLA06EV3 | 4.85 | 3.50 | 6.0 | 65 °C |
+| EBLA08EV3 | 4.60 | 3.50 | 7.3 | 65 °C |
+
+### LT split — ERGA EAV3 (R-32)
+
+| Model | COP A7/W35 | COP A7/W55 | Max LWT |
+|---|---|---|---|
+| ERGA04EAV3 | 5.10 | 3.65 | 65 °C |
+| ERGA06EAV3 | 4.85 | 3.50 | 65 °C |
+| ERGA08EAV3 | 4.60 | 3.50 | 65 °C |
+
+### LT split high capacity — EPGA DAV3 (R-32)
+
+| Model | COP A7/W35 | COP A7/W55 | Max LWT |
+|---|---|---|---|
+| EPGA10DAV3 | 5.15 | 3.88 | 60 °C |
+| EPGA11DAV3 | 5.15 | 3.88 | 60 °C |
+| EPGA14DAV3 | 4.99 | 3.65 | 60 °C |
+| EPGA16DAV3 | 4.78 | 3.71 | 60 °C |
+
+### HT split — EPRA18 (R-32)
+
+| Model | COP A7/W35 | COP A7/W55 |
+|---|---|---|
+| EPRA18EAV3 | 5.00 | — |
+
+### Excluded families — reference only
+
+GEO2 and GEO3 are ground-source (brine) and remain outside `MODEL_CHOICES` per project scope (`test_no_model_expects_brine`).
+
+| Model | COP B0/W35 | COP B0/W55 |
+|---|---|---|
+| EGSQH10A9W | 4.35 | 3.29 |
+| EGSAH06D9W | 4.51 | — |
+| EGSAH10D9W | 4.70 | — |
+
+Chillers (EWAA/EWYA/EWAQ/EWYQ), Hybrid, Multi, DHW tanks and PROTOCOL_S templates are not single-model heat pumps and are not listed here.
