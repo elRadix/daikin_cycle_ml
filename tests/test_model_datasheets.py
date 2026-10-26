@@ -67,7 +67,7 @@ def test_validate_boundary_valid(field, val):
 
 @pytest.mark.parametrize("field,val", [
     ("t_out", -30.01), ("t_out", 40.01),
-    ("t_lwc", 9.99), ("t_lwc", 70.01),
+    ("t_lwc", 9.99), ("t_lwc", 80.01),
     ("cop", 0.49), ("cop", 10.01),
 ])
 def test_validate_just_outside(field, val):
@@ -125,9 +125,9 @@ def test_parse_empty_models_ok():
 
 
 # ============ load_bundled ============
-def test_load_bundled_real_40():
+def test_load_bundled_all_models():
     b = md.load_bundled()
-    assert len(b) == 40
+    assert len(b) >= 51
 
 
 def test_load_bundled_has_expected_keys():

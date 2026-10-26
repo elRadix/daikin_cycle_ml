@@ -28,7 +28,7 @@ _BUNDLED_PATH = (
 )
 
 _T_OUT_MIN, _T_OUT_MAX = -30.0, 40.0
-_T_LWC_MIN, _T_LWC_MAX = 10.0, 70.0
+_T_LWC_MIN, _T_LWC_MAX = 10.0, 80.0
 _COP_MIN, _COP_MAX = 0.5, 10.0
 
 _REQUIRED_MODEL_KEYS = {"family", "kw", "lwt_min", "lwt_max", "nom_cop"}
@@ -321,6 +321,6 @@ def get_datasheet(
     entry = merged.get(model)
     if not isinstance(entry, dict):
         return None
-    if not entry.get("points"):
+    if not entry.get("nom_cop") and not entry.get("points"):
         return None
     return entry
