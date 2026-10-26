@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated": "2026-10-04",
+  "generated": "2026-10-26",
   "source": "Daikin EN 14511 datasheets (ported from Lovelace card HP_SPECS/DAIKIN_REF_COP)",
   "defaults": {
     "defrost_below_c": 5,
@@ -507,6 +507,281 @@
           "hc": 8.87
         }
       ]
+    },
+    "erga04eav3": {
+      "family": "Split",
+      "kw": 4,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 4.6,
+      "charge_kg": 2.6,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "erga06eav3": {
+      "family": "Split",
+      "kw": 6,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 4.6,
+      "charge_kg": 3.0,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "erga08eav3": {
+      "family": "Split",
+      "kw": 8,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 4.6,
+      "charge_kg": 3.4,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "epga10dav3": {
+      "family": "Split",
+      "kw": 10,
+      "lwt_min": 25,
+      "lwt_max": 60,
+      "nom_cop": 4.6,
+      "charge_kg": 3.5,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "epga11dav3": {
+      "family": "Split",
+      "kw": 11,
+      "lwt_min": 25,
+      "lwt_max": 60,
+      "nom_cop": 4.6,
+      "charge_kg": 3.8,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "epga14dav3": {
+      "family": "Split",
+      "kw": 14,
+      "lwt_min": 25,
+      "lwt_max": 60,
+      "nom_cop": 4.6,
+      "charge_kg": 4.2,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "epga16dav3": {
+      "family": "Split",
+      "kw": 16,
+      "lwt_min": 25,
+      "lwt_max": 60,
+      "nom_cop": 4.6,
+      "charge_kg": 4.5,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "edla09d3v3": {
+      "family": "Monoblock",
+      "kw": 9,
+      "lwt_min": 25,
+      "lwt_max": 60,
+      "nom_cop": 4.91,
+      "charge_kg": 3.5,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "edla11d3v3": {
+      "family": "Monoblock",
+      "kw": 11,
+      "lwt_min": 25,
+      "lwt_max": 60,
+      "nom_cop": 4.91,
+      "charge_kg": 4.0,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "edla14d3v3": {
+      "family": "Monoblock",
+      "kw": 14,
+      "lwt_min": 25,
+      "lwt_max": 60,
+      "nom_cop": 4.91,
+      "charge_kg": 4.5,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "edla16d3v3": {
+      "family": "Monoblock",
+      "kw": 16,
+      "lwt_min": 25,
+      "lwt_max": 60,
+      "nom_cop": 4.91,
+      "charge_kg": 5.0,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "ebla04ev3": {
+      "family": "Monoblock",
+      "kw": 4,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 4.6,
+      "charge_kg": 2.6,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "ebla06ev3": {
+      "family": "Monoblock",
+      "kw": 6,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 4.6,
+      "charge_kg": 3.0,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "ebla08ev3": {
+      "family": "Monoblock",
+      "kw": 8,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 4.6,
+      "charge_kg": 3.4,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
+    },
+    "edlq05cv3": {
+      "family": "Monoblock",
+      "kw": 5,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 5.0,
+      "charge_kg": 2.8,
+      "refrigerant": "R410A",
+      "gwp": 2088,
+      "points": []
+    },
+    "edlq07cv3": {
+      "family": "Monoblock",
+      "kw": 7,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 4.52,
+      "charge_kg": 3.2,
+      "refrigerant": "R410A",
+      "gwp": 2088,
+      "points": []
+    },
+    "edlq11cv3": {
+      "family": "Monoblock",
+      "kw": 11,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 4.52,
+      "charge_kg": 4.0,
+      "refrigerant": "R410A",
+      "gwp": 2088,
+      "points": []
+    },
+    "edlq14cv3": {
+      "family": "Monoblock",
+      "kw": 14,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 4.52,
+      "charge_kg": 4.5,
+      "refrigerant": "R410A",
+      "gwp": 2088,
+      "points": []
+    },
+    "edlq16cv3": {
+      "family": "Monoblock",
+      "kw": 16,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 4.52,
+      "charge_kg": 5.0,
+      "refrigerant": "R410A",
+      "gwp": 2088,
+      "points": []
+    },
+    "epsk06aw1": {
+      "family": "Monoblock",
+      "kw": 6,
+      "lwt_min": 25,
+      "lwt_max": 65,
+      "nom_cop": 4.91,
+      "charge_kg": 1.0,
+      "refrigerant": "R290",
+      "gwp": 3,
+      "points": []
+    },
+    "epsk08aw1": {
+      "family": "Monoblock",
+      "kw": 8,
+      "lwt_min": 25,
+      "lwt_max": 65,
+      "nom_cop": 5.01,
+      "charge_kg": 1.0,
+      "refrigerant": "R290",
+      "gwp": 3,
+      "points": []
+    },
+    "epsk10aw1": {
+      "family": "Monoblock",
+      "kw": 10,
+      "lwt_min": 25,
+      "lwt_max": 65,
+      "nom_cop": 5.01,
+      "charge_kg": 1.2,
+      "refrigerant": "R290",
+      "gwp": 3,
+      "points": []
+    },
+    "epsk12aw1": {
+      "family": "Monoblock",
+      "kw": 12,
+      "lwt_min": 25,
+      "lwt_max": 65,
+      "nom_cop": 4.91,
+      "charge_kg": 1.3,
+      "refrigerant": "R290",
+      "gwp": 3,
+      "points": []
+    },
+    "epsk14aw1": {
+      "family": "Monoblock",
+      "kw": 14,
+      "lwt_min": 25,
+      "lwt_max": 65,
+      "nom_cop": 4.91,
+      "charge_kg": 1.4,
+      "refrigerant": "R290",
+      "gwp": 3,
+      "points": []
+    },
+    "epra18eav3": {
+      "family": "Monoblock",
+      "kw": 18,
+      "lwt_min": 25,
+      "lwt_max": 60,
+      "nom_cop": 4.4,
+      "charge_kg": 5.5,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": []
     }
   }
 }

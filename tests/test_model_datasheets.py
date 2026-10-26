@@ -125,9 +125,9 @@ def test_parse_empty_models_ok():
 
 
 # ============ load_bundled ============
-def test_load_bundled_real_15():
+def test_load_bundled_real_40():
     b = md.load_bundled()
-    assert len(b) == 15
+    assert len(b) == 40
 
 
 def test_load_bundled_has_expected_keys():
