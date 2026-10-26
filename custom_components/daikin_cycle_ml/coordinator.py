@@ -1895,6 +1895,28 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 _LOGGER.exception("DB persist cycle failed")
                 cid = None
 
+        # v1.12.9 (#131 PR-2): forward bridge-merge. If the just-inserted
+        # cycle can be absorbed into a preceding same-mode non-transient
+        # cycle (directly adjacent OR bridged over a transient, gap<120s),
+        # fold it into the keeper and roll back the in-memory store entries.
+        # Mirrors v18 R446b semantics on the live 30s hot path so the #131
+        # pattern (189/190/191) cannot recur post-migration.
+        if cid is not None and not record.get("is_transient"):
+            try:
+                absorbed = await self.db.async_merge_cycle_forward(cid)
+                if absorbed > 0:
+                    rolled = self.store.rollback_last_cycles(absorbed)
+                    _LOGGER.debug(
+                        "cycle %s forward-merged (%d deleted, %d rolled back)",
+                        cid, absorbed, rolled,
+                    )
+                    return
+            except Exception:
+                _LOGGER.warning(
+                    "forward merge failed for cycle %s",
+                    cid, exc_info=True,
+                )
+
         # v1.12.0 (#103): features block. Always includes thermal_kw_avg
         # so the stored feature vector matches the ML pipeline's view.
         # Pre-v1.12.0 this call was missing thermal_kw_avg, producing a

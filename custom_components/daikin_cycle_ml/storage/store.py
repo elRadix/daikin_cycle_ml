@@ -34,6 +34,30 @@ class CycleStore:
             self._counters[key] = self._counters.get(key, 0) + 1
         return stored
 
+    def rollback_last_cycles(self, n: int) -> int:
+        """Undo last n add_cycle calls (v1.12.9 #131 PR-2). Bridge merges
+        absorb 2, simple merges 1. good/bad_cycles_today are NOT touched
+        (score_and_count ran pre-merge). Returns #actually rolled back.
+        """
+        if n <= 0 or not self._cycles:
+            return 0
+        rolled = 0
+        for _ in range(n):
+            if not self._cycles:
+                break
+            popped = self._cycles.pop()
+            _mode = popped.get("mode")
+            self._counters["cycles_total"] = max(
+                0, self._counters.get("cycles_total", 0) - 1)
+            self._counters["cycles_today"] = max(
+                0, self._counters.get("cycles_today", 0) - 1)
+            if isinstance(_mode, str):
+                _key = f"cycles_{_mode}"
+                self._counters[_key] = max(
+                    0, self._counters.get(_key, 0) - 1)
+            rolled += 1
+        return rolled
+
     def cycles(self) -> list[dict[str, Any]]:
         return list(self._cycles)
 

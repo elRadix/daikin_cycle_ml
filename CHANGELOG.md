@@ -18,7 +18,13 @@
   - Fixed: v18 R446b could not merge #131's exact case (`is_transient=0` required on both sides; 60s ghost classifies transient)
   - Removed duplicate `_R446B_MERGE_GAP_S` constant definition
   - 13 tests in `tests/test_v1129_131_forward_merge.py`; 10 v18 R446b regression tests still pass
-  - Coordinator wiring deferred to PR-2 (no runtime behavior change yet)
+  - Coordinator wiring deferred to PR-2 (ships below)
+- **#131 (PR-2)** — Coordinator wiring for forward bridge-merge
+  - Hook in `_process_new_cycle` after `async_insert_cycle` now calls `async_merge_cycle_forward(cid)` on the live 30s tick
+  - `CycleStore.rollback_last_cycles(n)` pops `n` entries (n = `absorbed` ∈ {0,1,2}) and decrements `cycles_total`, `cycles_today`, `cycles_{mode}`
+  - `good_cycles_today` / `bad_cycles_today` intentionally untouched (`score_and_count` ran pre-merge)
+  - Keeper feature-vector not regenerated over extended span (optie A; candidate v1.13.0 improvement)
+  - 11 tests: 4 `rollback_last_cycles` unit + 7 coordinator integration (simple merge, bridge merge, no-merge, transient skip, exception path, cid-None guard, counter coherence across absorbed ∈ {0,1,2})
 - **#156** — Idempotent `_migrate_entity_ids` for partial migrations
   - Safe re-run when only `entity_id` differs; unique_id + translation_key preserved
   - 3 tests in `tests/test_v1129_entity_mig_idempotent.py`
