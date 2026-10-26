@@ -98,6 +98,19 @@ PARTIAL_MODELS: dict[str, list[str]] = {
         "BUH Step2",
         "LW setpoint (main)",
     ],
+    # HT ERRQ-ERSQ (v1.12.9, upstream beta 99ed8d19): outdoor unit only,
+    # no water-side sensors on the wire (inlet/flow/BUH/3-way/water pump).
+    # Hydrobox-side labels live in the EKHBRD-ERRQ variants above.
+    "Altherma(HT ERRQ-ERSQ outdoor unit 11-16kW).h": [
+        "3way valve(On:DHW_Off:Space)",
+        "Leaving water temp. after BUH (R2T)",
+        "Inlet water temp.(R4T)",
+        "Flow sensor (l/min)",
+        "Water pump operation",
+        "BUH Step1",
+        "BUH Step2",
+        "LW setpoint (main)",
+    ],
     # Hybrid: no separate after-BUH R2T or outdoor R1T on the wire.
     "Altherma(Hybrid).h": [
         "Leaving water temp. after BUH (R2T)",
@@ -120,7 +133,7 @@ _FULL_COVERAGE_MODELS: list[str] = [
 
 # ── Structure invariants ────────────────────────────────────────────────────
 
-EXPECTED_MODEL_COUNT = 39
+EXPECTED_MODEL_COUNT = 40
 EXPECTED_CANONICAL_COUNT = 11
 
 

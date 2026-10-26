@@ -4,7 +4,7 @@ Which Daikin Altherma models work with Daikin Cycle ML, which ESPAltherma
 definition labels are required, and how the compatibility matrix is
 regenerated.
 
-- **Covers:** canonical sensors, variant unions, 39-model coverage matrix, decoy register, whitespace contract, regeneration workflow, CI gate
+- **Covers:** canonical sensors, variant unions, 40-model coverage matrix, decoy register, whitespace contract, regeneration workflow, CI gate
 - **For:** contributors adding model support, users diagnosing missing_attributes repairs, maintainers regenerating after upstream moves
 - **Version:** v1.12.9 (PR B)
 
@@ -23,7 +23,7 @@ must accept.
 The integration resolves those labels through engine/attribute_compat.py
 (ALIAS_GROUPS). The engine works with CANONICAL labels. ESPAltherma
 upstream sometimes renames a label (v1 beta renamed
-"Outdoor air temp.(R1T)" to "R1T-Outdoor air temp." for 33 of 39 models
+"Outdoor air temp.(R1T)" to "R1T-Outdoor air temp." for 34 of 40 models
 in the #150 window). ALIAS_GROUPS bridges both spellings so users on
 either upstream beta stay functional.
 
@@ -143,6 +143,7 @@ docs/MODEL_ATTRIBUTES.json.
 | ERLA03 D EHFH-EHFZ DJ series 3kW | Y | Y | Y | Y | Y | Y |
 | HT EKHBRD-ERRQ series 11-16kW protocol S | - | - | - | - | - | - |
 | HT EKHBRD-ERRQ series 11-16kW | - | - | - | - | - | - |
+| HT ERRQ-ERSQ outdoor unit 11-16kW | - | - | - | - | - | - |
 | Hybrid | - | - | Y | Y | - | Y |
 | LT_CA_CB_04-08kW | Y | Y | Y | Y | Y | Y |
 | LT_CA_CB_11-16kW | Y | Y | Y | Y | Y | Y |
@@ -188,7 +189,7 @@ required attributes as a repair issue, not a crash.
 DEFAULT.h is a skeleton with no labels. Parsed but contributes zero
 attributes. Skipped from all coverage checks.
 
-### 6.5 Partial heating models (7 models)
+### 6.5 Partial heating models (8 models)
 
 Documented gaps per model. Maintained in tests/test_model_compat.py
 (PARTIAL_MODELS dict). Any change must be justified by re-analysis of
@@ -202,6 +203,9 @@ the upstream .h file:
 - Altherma (HT EKHBRD-ERRQ 11-16kW protocol S): missing 11 of 12 required.
   HT-protocol exposes a minimal set; setup reports missing_attributes.
 - Altherma (HT EKHBRD-ERRQ 11-16kW): missing all 12. HT-protocol variant.
+- Altherma (HT ERRQ-ERSQ outdoor unit 11-16kW): missing 8 of 12. Outdoor-only
+  definition — no water-side sensors (inlet, flow, BUH, 3-way, pump).
+  Hydrobox labels live in the EKHBRD-ERRQ variants above.
 - Altherma (Hybrid): missing R2T and outdoor R1T. Hybrid uses a different
   cold-side sensor; R1T outdoor not published on the wire.
 - Altherma (LT_EBLQ-EBLQ-CA 5-7kW Monobloc): missing R2T. CA-series
@@ -287,7 +291,7 @@ Steps:
 3. Assert set(tracked.labels) == set(regen.labels)
 4. Assert 11 canonical labels resolvable
 5. Assert 3 decoys not canonical
-6. Assert 39 models present
+6. Assert 40 models present
 7. Assert SHA in _meta.commit matches the cloned SHA
 
 Fails the PR if any assertion fails. Human must fix ALIAS_GROUPS or

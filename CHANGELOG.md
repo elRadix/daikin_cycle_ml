@@ -2,13 +2,16 @@
 
 ## [Unreleased]
 
+## [1.12.9] — 2026-10-26
+
 ### Added
 
 - **#155** — Model compatibility contract + drift gate
   - `tools/parse_espaltherma_defs.py` + `tools/check_compat_contract.py`
-  - `MODEL_COMPATIBILITY.md` (39-model matrix + 3 decoy warnings)
+  - `MODEL_COMPATIBILITY.md` (40-model matrix + 3 decoy warnings)
   - `.github/workflows/model-compat.yml` (PR path-gate) + `weekly-drift.yml` (signal-only)
   - 130 tests in `tests/test_model_compat.py`
+- **#155 follow-up** — Adopt upstream beta drift @ `99ed8d19` (39→40 models, 401→421 labels; new HT ERRQ-ERSQ outdoor unit definition, refrigerant-circuit labels only, no runtime impact)
 
 ### Fixed
 

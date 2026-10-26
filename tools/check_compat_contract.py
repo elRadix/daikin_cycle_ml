@@ -21,7 +21,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-EXPECTED_MODEL_COUNT = 39
+EXPECTED_MODEL_COUNT = 40
 
 # Attributes that LOOK canonical but are not. Mirrors DECOYS in
 # tests/test_model_compat.py.

@@ -39,17 +39,20 @@ jobs:
               f.write(f"sha={meta['commit']}\n")
           PY
 
-      - name: Clone ESPAltherma at pinned branch
+      - name: Clone ESPAltherma at pinned SHA
         run: |
-          git clone --depth 1 --branch "${{ steps.pinned.outputs.branch }}" \
-            https://github.com/raomin/ESPAltherma /tmp/espaltherma
+          git init /tmp/espaltherma
+          cd /tmp/espaltherma
+          git remote add origin https://github.com/raomin/ESPAltherma
+          git fetch --depth 1 origin "${{ steps.pinned.outputs.sha }}"
+          git checkout FETCH_HEAD
 
-      - name: Assert cloned SHA equals pinned SHA
+      - name: Assert pinned SHA is checked out
         run: |
           ACTUAL=$(git -C /tmp/espaltherma rev-parse HEAD)
           EXPECTED="${{ steps.pinned.outputs.sha }}"
           if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "::error::Upstream moved: pinned=$EXPECTED actual=$ACTUAL. Regen MODEL_ATTRIBUTES.json in this PR."
+            echo "::error::Pinned SHA not reachable: expected=$EXPECTED got=$ACTUAL"
             exit 1
           fi
 
