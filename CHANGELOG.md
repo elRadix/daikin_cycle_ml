@@ -25,6 +25,14 @@
   - `good_cycles_today` / `bad_cycles_today` intentionally untouched (`score_and_count` ran pre-merge)
   - Keeper feature-vector not regenerated over extended span (optie A; candidate v1.13.0 improvement)
   - 11 tests: 4 `rollback_last_cycles` unit + 7 coordinator integration (simple merge, bridge merge, no-merge, transient skip, exception path, cid-None guard, counter coherence across absorbed ∈ {0,1,2})
+- **#132** — DHW thermal cascade prefers `flow_dt` over `power_cop` (R486)
+  - `compute_thermal_power_live()` gains additive `mode` kwarg (default `"heating"`) — backward-compatible across all callers
+  - `mode == "dhw"` checks `flow_dt` first: R4T is the physical cold side for both heating and DHW; user-configured COP is heating-biased and overestimates DHW thermal (R486)
+  - heating / cooling / unknown keep original cascade order (`power_cop` first)
+  - Bug 1 (issue claims R5T is cold side) **refuted** by live prod 1 capture 2026-10-26 — R4T is correct
+  - Bug 2 **confirmed**: DHW cycle 84 evidence `thermal_kw=0.0` with `cop=1.985` (impossible) via `power_cop` path
+  - New `engine/physics.py`: `get_physical_cop_ceiling(mode, lwt, outdoor)` standalone Carnot primitive (R452); cascade wiring deferred to #123 (blocked by #127)
+  - 8 tests in `tests/test_v1129_132_thermal_mode.py`; 2 fixtures updated (`test_feat2_thermal_power_live.py` ×2, `test_r216_datasnapshot.py` ×1)
 - **#156** — Idempotent `_migrate_entity_ids` for partial migrations
   - Safe re-run when only `entity_id` differs; unique_id + translation_key preserved
   - 3 tests in `tests/test_v1129_entity_mig_idempotent.py`

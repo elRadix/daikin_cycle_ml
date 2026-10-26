@@ -43,6 +43,15 @@ def flow_from_attrs(attrs: dict[str, Any]) -> float | None:
     return safe_float(attrs.get(ATTR_FLOW_SENSOR))
 
 
+def _flow_dt_kw(flow_lmin: float, dt_k: float) -> float:
+    """Q [kW] = flow[L/min] * rho[kg/L] * cp[kJ/kg/K] * dT[K] / 60."""
+    return round(
+        flow_lmin * WATER_DENSITY_KG_L
+        * WATER_SPECIFIC_HEAT_KJ_KG_K * dt_k / 60.0,
+        3,
+    )
+
+
 def compute_thermal_power_live(
     *,
     power_w: float | None,
@@ -50,18 +59,23 @@ def compute_thermal_power_live(
     flow_lmin: float | None,
     dt_k: float | None,
     rps: float | None,
+    mode: str = "heating",
 ) -> tuple[float | None, str]:
     """FEAT-2 cascade: power*COP -> flow*dT -> rps_heuristic -> idle.
 
+    R486: DHW prefers flow_dt (R4T is physical cold side; user-configured
+    COP is heating-biased and overestimates DHW thermal). All other modes
+    keep the original order (power_cop first).
+
     Returns (thermal_kw, calculation_source).
     """
+    if (mode == "dhw" and flow_lmin is not None and dt_k is not None
+            and flow_lmin > 0 and dt_k > 0):
+        return _flow_dt_kw(flow_lmin, dt_k), "flow_dt"
     if power_w is not None and cop is not None and power_w > 0 and cop > 0:
         return round(power_w * cop / 1000.0, 3), "power_cop"
     if flow_lmin is not None and dt_k is not None and flow_lmin > 0 and dt_k > 0:
-        # Q [kW] = flow[L/min] * rho[kg/L] * cp[kJ/kg/K] * dT[K] / 60
-        kw = (flow_lmin * WATER_DENSITY_KG_L
-              * WATER_SPECIFIC_HEAT_KJ_KG_K * dt_k / 60.0)
-        return round(kw, 3), "flow_dt"
+        return _flow_dt_kw(flow_lmin, dt_k), "flow_dt"
     if rps is not None and rps > 0:
         return round(rps * RPS_KW_FACTOR, 3), "rps_heuristic"
     return None, "idle"

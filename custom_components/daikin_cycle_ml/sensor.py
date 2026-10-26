@@ -215,6 +215,7 @@ def _value_thermal_power_live(
         flow_lmin=_flow_from_attrs(s.attrs),
         dt_k=_dt_from_attrs(s.attrs),
         rps=_rps_from_attrs(s.attrs),
+        mode=s.mode,
     )
     return kw
 
@@ -230,6 +231,7 @@ def _attrs_thermal_power_live(
     _, source = _compute_thermal_power_live(
         power_w=power_w, cop=cop, flow_lmin=flow_lmin,
         dt_k=dt_k, rps=rps,
+        mode=s.mode,
     )
     return {
         "input_power_w": power_w,
