@@ -1090,6 +1090,60 @@ class CycleDB:
         await conn.commit()
         return backfilled
 
+    async def async_migrate_to_v1_12_5_sample_count_fix(self) -> dict[str, Any]:
+        """#133b: recompute inflated cop_sample_count from real samples.
+
+        Stored > real*1.5 -> UPDATE. Skip 0-sample (#136 Option B).
+        Marker-guard on data_migration_v1_12_5_sample_count_fix.
+        """
+        marker = await self.async_get_model_state(
+            "data_migration_v1_12_5_sample_count_fix"
+        )
+        if marker and isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT id, start_ts, end_ts, mode, cop_sample_count "
+            "FROM cycles WHERE cop_sample_count IS NOT NULL "
+            "AND cop_sample_count > 0 "
+            "AND start_ts IS NOT NULL AND end_ts IS NOT NULL"
+        )
+        try:
+            rows = await cur.fetchall()
+        finally:
+            await cur.close()
+
+        stats: dict[str, Any] = {
+            "examined": 0,
+            "updated": 0,
+            "skipped_no_change": 0,
+            "skipped_no_samples": 0,
+            "completed": True,
+            "completed_ts": _time_now(),
+        }
+        for cid, s, e, mode, stored in rows:
+            stats["examined"] += 1
+            _, real = await self._sample_aggregates(
+                s, e, mode=mode, exclude_artifacts=True
+            )
+            if real < 1:
+                stats["skipped_no_samples"] += 1
+                continue
+            if stored <= real * 1.5:
+                stats["skipped_no_change"] += 1
+                continue
+            await conn.execute(
+                "UPDATE cycles SET cop_sample_count = ? WHERE id = ?",
+                (real, cid),
+            )
+            stats["updated"] += 1
+        await conn.commit()
+        await self.async_set_model_state(
+            "data_migration_v1_12_5_sample_count_fix", stats
+        )
+        return stats
+
     async def _rebuild_cop_hourly_for_affected_hours(self) -> int:
         """R447: DELETE + rebuild cop_hourly buckets touched by migration.
 

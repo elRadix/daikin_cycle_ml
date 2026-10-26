@@ -136,6 +136,11 @@ async def _async_setup_database(
         except Exception:
             _LOGGER.exception('v18 data migration failed')
         try:
+            v133b = await db.async_migrate_to_v1_12_5_sample_count_fix()
+            _LOGGER.info("v1.12.5 sample_count fix: %s", v133b)
+        except Exception:
+            _LOGGER.exception('v1.12.5 sample_count fix migration failed')
+        try:
             coordinator._db_integrity_ok = await db.async_integrity_check()
         except Exception:
             coordinator._db_integrity_ok = False
