@@ -210,7 +210,7 @@ and `R1T-Outdoor air temp.` are both accepted.
 required for setup.
 ### Supported model families
 
-The following **39 model definition files** from
+The following **40 model definition files** from
 [ESPAltherma `beta/definitions`](https://github.com/raomin/ESPAltherma/tree/beta/definitions)
 contain all 12 required attributes and are verified compatible:
 
