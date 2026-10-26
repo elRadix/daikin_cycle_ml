@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.12.9] — 2026-10-26
+
 ### Added
 
 - **#155** — Model compatibility contract + drift gate
