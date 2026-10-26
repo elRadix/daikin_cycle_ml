@@ -1727,6 +1727,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 flow_lmin=_flow_from_attrs(attrs),
                 dt_k=_dt_from_attrs(attrs),
                 rps=_rps_from_attrs(attrs),
+                mode=m,
             )
             if kw_th is None:
                 # R286b: BUH-only fallback — BUH is resistive, treat as

@@ -27,7 +27,7 @@ def test_datasnapshot_accepts_explicit_values() -> None:
 
 def test_sensor_reads_snapshot_not_coordinator() -> None:
     snap = SimpleNamespace(
-        attrs={}, power_w=800.0, cop=4.0,
+        attrs={}, power_w=800.0, cop=4.0, mode="heating",
     )
     coord = SimpleNamespace()  # geen _read_power_w nodig
     assert _value_thermal_power_live(snap, coord) == 3.2
