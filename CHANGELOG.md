@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **#129 + #124 (v1.13.0)** — Sanity gate for `cop_avg` and `thermal_kw_avg`
+  - `_apply_cop_sanity_gate` (coordinator): NULL when `n < MIN_SAMPLES_FOR_AVG (3)` or `cop_avg > MAX_COP (11.0)`
+  - `_apply_thermal_sanity_gate` (cycle_detector): NULL when `thermal_kw_avg > MAX_THERMAL_KW (14.0)`
+  - Constants in `const.py` (single source of truth)
+  - `cop_sample_count` preserved after gate (real count kept for diagnostics)
+  - Gated value propagated to return-tuple (R488) — features-writer safe
+  - **v19-migration caveat:** `features.vector_json[11]=0.0` now means "gated/missing", NOT "zero heat". Do not treat as measurement during v19 recompute — recompute from `cop_samples` per #129.
+  - 11 tests in `tests/test_v1130_sanity_gate.py`
+
 ## [1.12.9] — 2026-10-26
 
 ### Added

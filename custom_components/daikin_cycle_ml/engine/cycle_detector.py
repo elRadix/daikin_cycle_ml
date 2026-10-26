@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from ..const import (
+    MAX_THERMAL_KW,
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
     ATTR_DEFROST_OPERATION,
@@ -178,6 +179,21 @@ def _is_on(attrs: Mapping[str, Any], key: str) -> bool:
     return attrs.get(key) is True
 
 
+
+
+def _apply_thermal_sanity_gate(thermal_kw_avg: float | None) -> float | None:
+    """v1.13.0 #129: NULL thermal_kw_avg on physical impossibilities.
+
+    Magnitude gate only -- a single steady-state sample is a valid
+    measurement; 0-sample artifacts land in the extreme (>MAX) bucket.
+    """
+    if thermal_kw_avg is not None and thermal_kw_avg > MAX_THERMAL_KW:
+        _LOGGER.info(
+            "thermal_kw_avg %.2f > MAX_THERMAL_KW %.2f, nulling",
+            thermal_kw_avg, MAX_THERMAL_KW,
+        )
+        return None
+    return thermal_kw_avg
 class CycleDetector:
     """Stateful detector: idle <-> running, emits cycle record on close."""
 
@@ -316,7 +332,7 @@ class CycleDetector:
             "end_ts": now,
             "duration_s": duration,
             "mode": self._mode,
-            "thermal_kw_avg": (
+            "thermal_kw_avg": _apply_thermal_sanity_gate(
                 sum(self._thermal_kw_samples) / len(self._thermal_kw_samples)
                 if self._thermal_kw_samples else None
             ),
