@@ -2,8 +2,8 @@
   "_meta": {
     "source": "https://github.com/raomin/ESPAltherma",
     "branch": "beta",
-    "commit": "99ed8d1972dd2ae5a413d0b26c4a97c34a0a94f2",
-    "generated_at": "2026-10-26T16:01:52.136560+00:00",
+    "commit": "7a0405b6681fa81751c339c62a28a46babe3c189",
+    "generated_at": "2026-10-26T16:55:54.273232+00:00",
     "note": "ESPAltherma definitions are TEMPLATES. Users uncomment the labels they need. This index includes both active and commented labels — the union is the compatibility set the resolver must accept.",
     "root_model_count": 40,
     "unique_labels": 421
