@@ -24,7 +24,6 @@ _MIN_SPLIT_DURATION_S = 60.0  # v18: skip split if first DHW sample too early
 _R446_RUN_GAP_S = 900.0  # v18 R446: samples within 900s = same run
 _R446_MIN_RUN_S = 900.0  # v18 R446: minimum run duration to synthesize
 _R446B_MERGE_GAP_S = 120.0  # v18 R446b: gap < 2x MODE_DEBOUNCE_S
-_R446B_MERGE_GAP_S = 120.0  # v18 R446b: gap < 2x MODE_DEBOUNCE_S
 
 
 class CycleDB:
@@ -1024,25 +1023,109 @@ class CycleDB:
 
         merged_count = 0
         for kid, kstart, kend, deletes in merge_ops:
-            cop_avg, cop_count = await self._sample_aggregates(
-                kstart, kend
+            merged_count += await self._apply_merge(
+                kid, kstart, kend, deletes, conn=conn
             )
-            await conn.execute(
-                "UPDATE cycles SET end_ts = ?, duration_s = ?, "
-                "cop_avg = ?, cop_sample_count = ?, "
-                "is_reconstructed = 1 WHERE id = ?",
-                (kend, int(kend - kstart), cop_avg, cop_count, kid),
-            )
-            for did in deletes:
-                await conn.execute(
-                    "DELETE FROM features WHERE cycle_id = ?", (did,)
-                )
-                await conn.execute(
-                    "DELETE FROM cycles WHERE id = ?", (did,)
-                )
-                merged_count += 1
         await conn.commit()
         return merged_count
+
+    async def _apply_merge(
+        self,
+        keeper_id: int,
+        keeper_start: float,
+        keeper_end: float,
+        delete_ids: list[int],
+        conn: Any,
+    ) -> int:
+        """v1.12.9 (#131): merge primitive.
+
+        Shared by v18 migration (_merge_adjacent_same_mode_cycles) and
+        forward path (async_merge_cycle_forward). Caller owns commit
+        when conn is passed in.
+        """
+        cop_avg, cop_count = await self._sample_aggregates(
+            keeper_start, keeper_end
+        )
+        await conn.execute(
+            "UPDATE cycles SET end_ts = ?, duration_s = ?, "
+            "cop_avg = ?, cop_sample_count = ?, "
+            "is_reconstructed = 1 WHERE id = ?",
+            (keeper_end, int(keeper_end - keeper_start),
+             cop_avg, cop_count, keeper_id),
+        )
+        deleted = 0
+        for did in delete_ids:
+            await conn.execute(
+                "DELETE FROM features WHERE cycle_id = ?", (did,)
+            )
+            await conn.execute(
+                "DELETE FROM cycles WHERE id = ?", (did,)
+            )
+            deleted += 1
+        return deleted
+
+    async def async_merge_cycle_forward(self, new_id: int) -> int:
+        """v1.12.9 (#131): bridge-aware forward merge after cycle insert.
+
+        Called by coordinator right after async_insert_cycle. Detects the
+        #131 pattern (transient cycle sandwiched between two same-mode
+        non-transient cycles within _R446B_MERGE_GAP_S) and collapses to
+        one keeper row.
+
+        Returns the number of cycles absorbed (0 / 1 / 2). Safe re-run:
+        returns 0 if new_id is not the latest cycle row (idempotency).
+        """
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT id, start_ts, end_ts, mode, is_transient "
+            "FROM cycles WHERE end_ts IS NOT NULL "
+            "ORDER BY start_ts DESC LIMIT 3"
+        )
+        try:
+            rows = await cur.fetchall()
+        finally:
+            await cur.close()
+
+        if not rows:
+            return 0
+        new_row = rows[0]
+        if new_row[0] != new_id:
+            return 0
+        if new_row[4]:
+            return 0
+        if len(rows) < 2:
+            return 0
+
+        new_s, new_e, new_m = new_row[1], new_row[2], new_row[3]
+        prev_id, prev_s, prev_e, prev_m, prev_t = rows[1]
+        gap = new_s - prev_e
+        if gap < 0 or gap >= _R446B_MERGE_GAP_S:
+            return 0
+        if prev_m != new_m:
+            return 0
+
+        # Case A: prev is non-transient -> simple 2-cycle merge.
+        if not prev_t:
+            deleted = await self._apply_merge(
+                prev_id, prev_s, new_e, [new_id], conn=conn
+            )
+            await conn.commit()
+            return deleted
+
+        # Case B: prev is transient -> bridge only if pp is same-mode
+        # non-transient and gap(prev, pp) < threshold.
+        if len(rows) < 3:
+            return 0
+        pp_id, pp_s, pp_e, pp_m, pp_t = rows[2]
+        if pp_t or pp_m != new_m:
+            return 0
+        if (prev_s - pp_e) >= _R446B_MERGE_GAP_S:
+            return 0
+        deleted = await self._apply_merge(
+            pp_id, pp_s, new_e, [prev_id, new_id], conn=conn
+        )
+        await conn.commit()
+        return deleted
 
     async def _backfill_null_aggregates(self) -> int:
         """Amend 7: backfill cop_avg/cop_sample_count from samples.
