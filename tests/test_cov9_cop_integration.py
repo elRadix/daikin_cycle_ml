@@ -174,10 +174,10 @@ async def test_collect_cycle_averages_pw_avg_preferred():
 
 async def test_collect_cycle_averages_fallback_none_keeps_memory():
     c = _bare_coord()
-    c._cycle_cop_count = 1
-    c._cycle_cop_w_sum = 3.0
-    c._cycle_cop_weight_sum = 1.0
-    c._cycle_cop_sq_w_sum = 9.0
+    c._cycle_cop_count = 3
+    c._cycle_cop_w_sum = 9.0
+    c._cycle_cop_weight_sum = 3.0
+    c._cycle_cop_sq_w_sum = 27.0
     c.db = MagicMock()
     c.db.async_avg_cop_between = AsyncMock(return_value=None)
     record = {"start_ts": 1.0, "end_ts": 2.0, "duration_s": 600.0}

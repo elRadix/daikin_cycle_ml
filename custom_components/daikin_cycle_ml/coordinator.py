@@ -21,6 +21,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 # v1.4.1 BUG-2 / BUG-3: score wiring + threshold.
 from .const import (
+    MAX_COP,
+    MIN_SAMPLES_FOR_AVG,
     COP_CURVE_RECENT_HOURS,
     COP_CURVE_RECENT_MAX_POINTS,
     COP_ROLLUP_WINDOW_HOURS,
@@ -216,6 +218,26 @@ def _cop_confidence(count: int) -> str:
         return "medium"
     return "high"
 
+
+
+def _apply_cop_sanity_gate(
+    cop_avg: float | None, count: int | None, *, cycle_id: int | None = None
+) -> tuple[float | None, str]:
+    """v1.13.0 #129/#124: reject COP statistical/physical artifacts.
+
+    v19 caveat: features.vector_json[11]=0.0 from downstream NULL->0.0
+    is NOT a measurement; v19 must recompute from cop_samples.
+    """
+    n = count or 0
+    if n < MIN_SAMPLES_FOR_AVG:
+        return None, "none"
+    if cop_avg is not None and cop_avg > MAX_COP:
+        _LOGGER.info(
+            "cop_avg %.2f > MAX_COP %.2f, nulling (cycle %s, n=%d)",
+            cop_avg, MAX_COP, cycle_id, n,
+        )
+        return None, "none"
+    return cop_avg, _cop_confidence(n)
 
 def _weighted_mean_stdev(
     w_sum: float, weight_sum: float, sq_w_sum: float
@@ -1864,10 +1886,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         else:
             cop_sample_count = None
 
+        cop_avg, _cop_conf = _apply_cop_sanity_gate(
+            cop_avg, cop_sample_count, cycle_id=record.get("id")
+        )
         record["cop_avg"] = cop_avg
         record["cop_sample_count"] = cop_sample_count
         record["cop_sample_stdev"] = cop_stdev
-        record["cop_confidence"] = _cop_confidence(cop_sample_count or 0)
+        record["cop_confidence"] = _cop_conf
         return cop_avg, lwt_avg, indoor_avg
 
     # ---------- Batch 7c ML pipeline ----------

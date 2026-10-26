@@ -11,6 +11,12 @@ UPDATE_INTERVAL_SECONDS = 30
 # R288: dt_s cap and warning threshold for energy accumulator.
 ENERGY_DT_CAP_S = 300.0
 MAX_CYCLE_DURATION_S = 4 * 3600.0
+
+# --- Sanity gates for cycle aggregates (#129, #124) ---
+# COP: MIN+MAX in _collect_cycle_averages; Thermal: MAX only.
+MIN_SAMPLES_FOR_AVG = 3
+MAX_COP = 11.0
+MAX_THERMAL_KW = 14.0
 """Absolute maximum cycle duration before forced close (R315)."""
 ENERGY_DT_WARN_S = 60.0
 ENERGY_PERSIST_INTERVAL_S = 30.0
