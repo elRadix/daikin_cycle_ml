@@ -357,8 +357,8 @@ Public Daikin datasheet values for the 53 user-facing model codes. COP values ar
 | EPSK06AW1 | 5.19 | — | 70 °C |
 | EPSK08AW1 | 5.01 | — | 70 °C |
 | EPSK10AW1 | 4.94 | — | 70 °C |
-| EPSK12AW1 | — | 5.14 | 70 °C |
-| EPSK14AW1 | — | 4.04 | 70 °C |
+| EPSK12AW1 | 5.50 | 5.14 | 70 °C |
+| EPSK14AW1 | 5.50 | 4.04 | 70 °C |
 
 ### LT monobloc — EDLA D3V3 (R-32)
 

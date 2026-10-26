@@ -14,6 +14,7 @@
   - Zero test changes — `test_all_model_choices_present`, `test_no_model_expects_brine`, `test_all_profiles_have_same_keys` auto-cover via `MODEL_CHOICES` iteration.
 
 ### Docs
+- EPSK12AW1/EPSK14AW1 COP A7/W35 filled from heatpumpkeymark + Daikin CH (5.50).
 
 - **Datasheet reference table** — `docs/MODEL_COMPATIBILITY.md` now lists public Daikin datasheet COP, capacity and LWT values for every bundled model family: EBLQ CV3, EKHBRD+ERRQ, ERRQ-ERSQ, EPSK AW1, EDLA D3V3, EBLA EV3, ERGA EAV3, EPGA DAV3, EPRA18. Excluded GEO2/GEO3 listed for reference only.
 
