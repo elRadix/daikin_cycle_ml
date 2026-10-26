@@ -1,5 +1,31 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+
+- **#155** — Model compatibility contract + drift gate
+  - `tools/parse_espaltherma_defs.py` + `tools/check_compat_contract.py`
+  - `MODEL_COMPATIBILITY.md` (39-model matrix + 3 decoy warnings)
+  - `.github/workflows/model-compat.yml` (PR path-gate) + `weekly-drift.yml` (signal-only)
+  - 130 tests in `tests/test_model_compat.py`
+
+### Fixed
+
+- **#156** — Idempotent `_migrate_entity_ids` for partial migrations
+  - Safe re-run when only `entity_id` differs; unique_id + translation_key preserved
+  - 3 tests in `tests/test_v1129_entity_mig_idempotent.py`
+- **#157** — Historical `cop_sample_count` correction (#133b)
+  - Migration `async_migrate_to_v1_12_5_sample_count_fix` (after v18 data migrations)
+  - Heuristic: `stored > real_matched × 1.5` → UPDATE (relative, not duration-based)
+  - Marker `data_migration_v1_12_5_sample_count_fix` with `completed_ts`
+  - 5 tests in `tests/test_v1129_sample_count_fix.py`
+
+### Closed
+
+- **#133** (umbrella) — #133a (v1.12.5 forward COUNT) + #133b (v1.12.9 historical) both shipped
+- **#136** — tracked via PR #155
+
 ## [1.12.8] — 2026-10-25
 
 ### Fixed
