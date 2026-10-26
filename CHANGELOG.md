@@ -12,6 +12,13 @@
 
 ### Fixed
 
+- **#131 (PR-1)** — Forward bridge-aware cycle merge (db primitive)
+  - Extracted `_apply_merge()` primitive shared with v18 R446b migration
+  - `async_merge_cycle_forward(new_id)` — detects transient-cycle-sandwiched-between-same-mode pattern, collapses to one keeper row
+  - Fixed: v18 R446b could not merge #131's exact case (`is_transient=0` required on both sides; 60s ghost classifies transient)
+  - Removed duplicate `_R446B_MERGE_GAP_S` constant definition
+  - 13 tests in `tests/test_v1129_131_forward_merge.py`; 10 v18 R446b regression tests still pass
+  - Coordinator wiring deferred to PR-2 (no runtime behavior change yet)
 - **#156** — Idempotent `_migrate_entity_ids` for partial migrations
   - Safe re-run when only `entity_id` differs; unique_id + translation_key preserved
   - 3 tests in `tests/test_v1129_entity_mig_idempotent.py`
