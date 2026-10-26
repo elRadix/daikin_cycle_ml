@@ -6,6 +6,13 @@
 
 - **Bundled models expanded to 40** — Added 25 new models (ERGA, EPGA, EDLA, EBLA, EDLQ, EPSK, EPRA18) to support more Daikin Altherma devices in the config flow. Includes ERGA08EAV3H (Split) requested by community.
 
+- **Expand `MODEL_CHOICES` to cover EBLQ + HT families** — 11 new wizard entries (53 total). `docs/MODEL_ATTRIBUTES.json` remains at 40 def files (upstream contract unchanged).
+  - **LT monobloc** — `eblq05cv3` (4.40 kW, COP 5.00 A7/W35), `eblq07cv3` (7.00 kW, 4.52), `eblq11cv3` (11.2 kW, 4.61), `eblq14cv3` (14.5 kW, 4.30), `eblq16cv3` (16.0 kW, 4.26)
+  - **HT split** — `ekhbrd011+errq011` (11.3 kW, COP 2.97 A7/W55, up to 80 °C LWT), `ekhbrd014+errq014` (14.5 kW, 2.89), `ekhbrd016+errq016` (16.0 kW, 2.73)
+  - **HT outdoor** — `errq011-ersq011` (11.0 kW, 3.08), `errq014-ersq014` (14.0 kW, 3.00), `errq016-ersq016` (16.0 kW, 2.88)
+  - All 11 use `_BASE` behavioural profile (defaults) — HT units likely need per-family tuning (higher `good_dt_threshold_k`, `max_cycle_duration_min`) once live data is available; tracked as v1.13.0 follow-up.
+  - Zero test changes — `test_all_model_choices_present`, `test_no_model_expects_brine`, `test_all_profiles_have_same_keys` auto-cover via `MODEL_CHOICES` iteration.
+
 ### Fixed
 
 - **#129 + #124 (v1.13.0)** — Sanity gate for `cop_avg` and `thermal_kw_avg`
