@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.13.0] — 2026-10-27
+
 ### Added
 - **CI guard: MODEL_CHOICES ↔ MODEL_LABELS surface contract** — `model-compat.yml` now fails the PR gate on wizard/label drift (the PR #166 class) or a choice without a behavioural profile. Path filter also triggers on `engine/model_profiles.py` and `data/datasheets.json` changes, which were previously silent. New test: `test_model_choices_match_labels`. No runtime behaviour change to the integration.
 - **#175 (partial) — HT profile + datasheet points**
