@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- **CI guard: MODEL_CHOICES ↔ MODEL_LABELS surface contract** — `model-compat.yml` now fails the PR gate on wizard/label drift (the PR #166 class) or a choice without a behavioural profile. Path filter also triggers on `engine/model_profiles.py` and `data/datasheets.json` changes, which were previously silent. New test: `test_model_choices_match_labels`. No runtime behaviour change to the integration.
 - **#175 (partial) — HT profile + datasheet points**
   - `_HT_PROFILE` in `model_profiles.py`: `good_dt_threshold_k=10.0` (vs 5.0 LT), `max_cycle_duration_min=300`, `defrost_interval_min=45`, `short_run_threshold_min=30`, `target_cycles_per_day=5`. Assigned to 6 HT models (EKHBRD011/014/016, ERRQ011/014/016). EBLQ remains LT (const.py:126).
   - `datasheets.json`: 3-point COP curves (A7/W35, A7/W65, A7/W80) for the same 6 models, from official Daikin service-manual specs. No interpolation. `nom_cop` unchanged (W35, schema semantics preserved).

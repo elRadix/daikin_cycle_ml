@@ -6,6 +6,7 @@ from custom_components.daikin_cycle_ml.const import (
     MODEL_BASISPROFIEL,
     MODEL_CHOICES,
     MODEL_EPRA12EAV3,
+    MODEL_LABELS,
 )
 from custom_components.daikin_cycle_ml.engine.model_profiles import (
     MODEL_PROFILES,
@@ -13,6 +14,15 @@ from custom_components.daikin_cycle_ml.engine.model_profiles import (
     expected_attributes,
     get_profile,
 )
+
+
+def test_model_choices_match_labels():
+    """Surface contract: every choice has a label, no orphan labels.
+
+    Guards the wizard/label drift class that slipped through pre-v1.13
+    (no CI check fired on label-only changes). See PR-B.
+    """
+    assert set(MODEL_CHOICES) == set(MODEL_LABELS)
 
 
 def test_all_model_choices_present():

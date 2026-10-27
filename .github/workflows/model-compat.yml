@@ -11,6 +11,8 @@ on:
       - 'tools/parse_espaltherma_defs.py'
       - 'custom_components/daikin_cycle_ml/engine/attribute_compat.py'
       - 'custom_components/daikin_cycle_ml/const.py'
+      - 'custom_components/daikin_cycle_ml/engine/model_profiles.py'
+      - 'custom_components/daikin_cycle_ml/data/datasheets.json'
       - '.github/workflows/model-compat.yml'
   schedule:
     - cron: "0 6 * * 1"
@@ -69,6 +71,26 @@ jobs:
             --tracked docs/MODEL_ATTRIBUTES.json \
             --regen /tmp/regen.json \
             --compat custom_components/daikin_cycle_ml/engine/attribute_compat.py
+
+      - name: Assert model surface contract
+        run: |
+          python - <<'PY'
+          import importlib.util
+          spec = importlib.util.spec_from_file_location(
+              "_const",
+              "custom_components/daikin_cycle_ml/const.py",
+          )
+          if spec is None or spec.loader is None:
+              raise SystemExit("error: cannot load const.py")
+          m = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(m)
+          mc, ml = set(m.MODEL_CHOICES), set(m.MODEL_LABELS)
+          drift = mc ^ ml
+          if drift:
+              print(f"::error::drift: {sorted(drift)}")
+              raise SystemExit(1)
+          print(f"OK: {len(mc)} choices == {len(ml)} labels")
+          PY
 
   weekly-drift:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
