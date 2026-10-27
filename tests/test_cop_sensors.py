@@ -101,10 +101,12 @@ async def test_refresh_cop_today_no_samples():
     assert c._cop_today_cache == {}
 
 
-@pytest.mark.xfail(strict=False, reason="Known flaky (order-dependent); see #97")
 async def test_refresh_cop_today_valid():
-    import time as _t
-    now = _t.time()
+    import datetime as _dt
+    # Anchor at local midday so now-300 sits safely inside today (see #97).
+    now = _dt.datetime.now().replace(
+        hour=12, minute=0, second=0, microsecond=0
+    ).timestamp()
     rows = [
         {'ts': now - 100, 'cop': 3.0},
         {'ts': now - 200, 'cop': 3.5},
