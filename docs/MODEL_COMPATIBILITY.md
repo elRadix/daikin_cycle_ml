@@ -425,3 +425,37 @@ The `data/datasheets.json` file drives the `cop_vs_datasheet_low` alert and the 
 ### Supplying your own datasheet
 
 For `nom_cop only` models the alert uses A7/W35 as reference regardless of outdoor temperature. To make it T_out-aware, supply your model's COP table via the `daikin_cycle_ml.upload_datasheet` service (see `services.yaml`). User-supplied data overrides bundled data.
+
+
+## Changing your model
+
+Your model code is **config entry data** (setup-time configuration), not
+a runtime option. Changing it is a reconfiguration, not an options
+change — this follows Home Assistant's
+[config entry data vs. options](https://developers.home-assistant.io/docs/config_entries_config_flow_handler/)
+guideline.
+
+### How to change your model
+
+1. Go to **Settings → Devices & Services → Daikin Cycle ML**
+2. Click **Reconfigure** on your entry
+3. Choose **Source sensor and model only (quick)** — the fast path
+   (or **Full wizard (all settings)** if you also want to review
+   sensors, thresholds, or notifications)
+4. Pick the new model from the dropdown
+5. Save — the integration reloads automatically
+
+The model controls:
+
+- Behavioural profile (`MODEL_PROFILES` — thresholds, cycle targets)
+- Datasheet curve lookup (`cop_vs_datasheet_pct`,
+  `cop_vs_datasheet_low` alert)
+- Wizard defaults for new setups
+
+### Why not the OptionsFlow?
+
+OptionsFlow manages `entry.options` (runtime behaviour: notifications,
+thresholds). The model is `entry.data` (setup configuration) — the two
+are intentionally separate per Home Assistant guidelines. A model change
+invalidates cached profiling and datasheet lookups, so it requires a
+full reload — which reconfigure handles natively.
