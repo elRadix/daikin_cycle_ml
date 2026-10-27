@@ -141,6 +141,11 @@ async def _async_setup_database(
         except Exception:
             _LOGGER.exception('v1.12.5 sample_count fix migration failed')
         try:
+            v19 = await db.async_migrate_to_v19()
+            _LOGGER.info("v19 thermal rebuild: %s", v19)
+        except Exception:
+            _LOGGER.exception('v19 thermal rebuild migration failed')
+        try:
             coordinator._db_integrity_ok = await db.async_integrity_check()
         except Exception:
             coordinator._db_integrity_ok = False

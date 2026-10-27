@@ -11,7 +11,7 @@ from typing import Any
 import aiosqlite
 
 from ..ml.features import VECTOR_LEN
-from ..const import DAILY_SUMMARY_BACKFILL_KEY
+from ..const import DAILY_SUMMARY_BACKFILL_KEY, MAX_THERMAL_KW
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1226,6 +1226,265 @@ class CycleDB:
             "data_migration_v1_12_5_sample_count_fix", stats
         )
         return stats
+
+    async def _thermal_from_sample(
+        self, sample_row: Any, mode: str
+    ) -> float | None:
+        """v19: thermal_kw from one cop_sample via flow_dt.
+
+        power_w and rps are NOT stored in cop_samples, so the live
+        cascade (power_cop -> flow_dt -> rps_heuristic) reduces here
+        to the flow_dt branch. For DHW this matches R486 exactly. For
+        heating this is a systematic small deviation vs live
+        (power_cop preferred when available).
+        """
+        flow = sample_row["flow_lmin"]
+        lwt = sample_row["lwt"]
+        outdoor = sample_row["outdoor"]
+        if flow is None or lwt is None or outdoor is None:
+            return None
+        flow_f = float(flow)
+        dt_k = float(lwt) - float(outdoor)
+        if flow_f <= 0 or dt_k <= 0:
+            return None
+        return round(flow_f * 0.997 * 4.186 * dt_k / 60.0, 3)
+
+    async def async_migrate_to_v19(self) -> dict[str, Any]:
+        """v19: rebuild thermal_kw_avg from cop_samples (#169).
+
+        - eligible samples: is_transition_artifact=0, flow/lwt/outdoor set
+        - >=3 samples: recompute, sanity-gate (0, MAX_THERMAL_KW]
+        - <3 samples: set NULL (insufficient evidence)
+        - features.vector_json[11] overwritten from new thermal_kw_avg
+        - daily_summary + cop_hourly rebuilt for touched days/hours
+        - marker data_migration_v19_completed (idempotent + completed_ts)
+        """
+        marker = await self.async_get_model_state(
+            "data_migration_v19_completed"
+        )
+        if marker and isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+
+        t0 = _time_now()
+        conn = self._require()
+
+        cur = await conn.execute(
+            "SELECT id, start_ts, end_ts, mode, thermal_kw_avg "
+            "FROM cycles "
+            "WHERE (thermal_kw_avg IS NULL OR thermal_kw_avg = 0.0) "
+            "AND start_ts IS NOT NULL AND end_ts IS NOT NULL"
+        )
+        try:
+            candidates = await cur.fetchall()
+        finally:
+            await cur.close()
+
+        stats: dict[str, Any] = {
+            "examined": 0,
+            "recovered": 0,
+            "nulled": 0,
+            "features_updated": 0,
+            "days_rebuilt": 0,
+            "hours_rebuilt": 0,
+            "completed": True,
+            "completed_ts": _time_now(),
+        }
+
+        touched_days: set[str] = set()
+        touched_hours: set[int] = set()
+
+        for cid, start_ts, end_ts, mode, _old in candidates:
+            stats["examined"] += 1
+            cur = await conn.execute(
+                "SELECT ts, flow_lmin, lwt, outdoor "
+                "FROM cop_samples "
+                "WHERE ts >= ? AND ts <= ? "
+                "AND cop IS NOT NULL "
+                "AND is_transition_artifact = 0",
+                (start_ts, end_ts),
+            )
+            try:
+                samples = await cur.fetchall()
+            finally:
+                await cur.close()
+
+            vals: list[float] = []
+            for s in samples:
+                v = await self._thermal_from_sample(
+                    s, mode or "heating"
+                )
+                if v is not None and 0.0 < v <= MAX_THERMAL_KW:
+                    vals.append(v)
+
+            if len(vals) >= 3:
+                new_thermal: float | None = round(
+                    sum(vals) / len(vals), 3
+                )
+                stats["recovered"] += 1
+            else:
+                new_thermal = None
+                stats["nulled"] += 1
+
+            await conn.execute(
+                "UPDATE cycles SET thermal_kw_avg = ? WHERE id = ?",
+                (new_thermal, cid),
+            )
+
+            cur = await conn.execute(
+                "SELECT vector_json FROM features WHERE cycle_id = ?",
+                (cid,),
+            )
+            try:
+                frow = await cur.fetchone()
+            finally:
+                await cur.close()
+            if frow is not None:
+                try:
+                    vec = json.loads(frow["vector_json"])
+                except (TypeError, ValueError):
+                    vec = None
+                if isinstance(vec, list) and len(vec) >= 12:
+                    vec[11] = (
+                        float(new_thermal)
+                        if new_thermal is not None else 0.0
+                    )
+                    await conn.execute(
+                        "UPDATE features SET vector_json = ? "
+                        "WHERE cycle_id = ?",
+                        (json.dumps(vec), cid),
+                    )
+                    stats["features_updated"] += 1
+
+            try:
+                day = time.strftime(
+                    "%Y-%m-%d", time.localtime(float(start_ts))
+                )
+                touched_days.add(day)
+            except (ValueError, OSError, OverflowError):
+                pass
+            for s in samples:
+                touched_hours.add(int(float(s["ts"]) // 3600))
+
+        await conn.commit()
+
+        if touched_days:
+            for day in touched_days:
+                await conn.execute(
+                    "DELETE FROM daily_summary WHERE day = ?", (day,)
+                )
+            await conn.commit()
+            for day in touched_days:
+                try:
+                    await self.async_rollup_day(day)
+                except Exception:  # pragma: no cover - defensive
+                    _LOGGER.exception(
+                        "v19 daily rollup failed for day=%s", day
+                    )
+            stats["days_rebuilt"] = len(touched_days)
+
+        if touched_hours:
+            stats["hours_rebuilt"] = (
+                await self._rebuild_cop_hourly_for_hours(
+                    sorted(touched_hours)
+                )
+            )
+
+        stats["duration_s"] = round(_time_now() - t0, 3)
+        await self.async_set_model_state(
+            "data_migration_v19_completed", stats
+        )
+        return stats
+
+    async def _rebuild_cop_hourly_for_hours(
+        self, hours: list[int]
+    ) -> int:
+        """v19: rebuild cop_hourly for explicit hour buckets.
+
+        Mirrors async_rollup_cop_hourly UPSERT body but scoped to the
+        given hours (not a now-relative window).
+        """
+        if not hours:
+            return 0
+        await self.async_ensure_cop_samples_table()
+        await self.async_create_cop_hourly_v14()
+        conn = self._require()
+        placeholders = ",".join("?" * len(hours))
+        async with conn.execute(
+            "SELECT ts, cop, lwt, outdoor, flow_lmin, mode "
+            "FROM cop_samples "
+            f"WHERE CAST(ts / 3600 AS INTEGER) IN ({placeholders}) "
+            "AND is_transition_artifact = 0",
+            hours,
+        ) as cur:
+            rows = await cur.fetchall()
+        if not rows:
+            return 0
+
+        buckets: dict[tuple[int, str], list[Any]] = {}
+        for r in rows:
+            ts_hour = int(float(r["ts"]) // 3600)
+            mode = r["mode"] or "unknown"
+            buckets.setdefault((ts_hour, mode), []).append(r)
+
+        upserted = 0
+        for (ts_hour, mode), samples in buckets.items():
+            cops = sorted(float(s["cop"]) for s in samples)
+            n = len(cops)
+            if n == 0:  # pragma: no cover - buckets always have >=1 sample
+                continue
+            mean = sum(cops) / n
+            lwts = [
+                float(s["lwt"]) for s in samples
+                if s["lwt"] is not None
+            ]
+            outdoors = [
+                float(s["outdoor"]) for s in samples
+                if s["outdoor"] is not None
+            ]
+            flows = [
+                float(s["flow_lmin"]) for s in samples
+                if s["flow_lmin"] is not None
+            ]
+            std = (
+                (sum((c - mean) ** 2 for c in cops) / n) ** 0.5
+                if n > 1 else 0.0
+            )
+            await conn.execute(
+                "INSERT INTO cop_hourly ("
+                "ts_hour, mode, n_samples, cop_mean, cop_p10, cop_p50, "
+                "cop_p90, cop_std, lwt_mean, outdoor_mean, outdoor_min, "
+                "outdoor_max, flow_mean, updated_ts) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+                "ON CONFLICT(ts_hour, mode) DO UPDATE SET "
+                "n_samples=excluded.n_samples, "
+                "cop_mean=excluded.cop_mean, "
+                "cop_p10=excluded.cop_p10, "
+                "cop_p50=excluded.cop_p50, "
+                "cop_p90=excluded.cop_p90, "
+                "cop_std=excluded.cop_std, "
+                "lwt_mean=excluded.lwt_mean, "
+                "outdoor_mean=excluded.outdoor_mean, "
+                "outdoor_min=excluded.outdoor_min, "
+                "outdoor_max=excluded.outdoor_max, "
+                "flow_mean=excluded.flow_mean, "
+                "updated_ts=excluded.updated_ts",
+                (
+                    ts_hour, mode, n, mean,
+                    self._percentile(cops, 0.10),
+                    self._percentile(cops, 0.50),
+                    self._percentile(cops, 0.90),
+                    std,
+                    (sum(lwts) / len(lwts)) if lwts else None,
+                    (sum(outdoors) / len(outdoors)) if outdoors else None,
+                    min(outdoors) if outdoors else None,
+                    max(outdoors) if outdoors else None,
+                    (sum(flows) / len(flows)) if flows else None,
+                    _time_now(),
+                ),
+            )
+            upserted += 1
+        await conn.commit()
+        return upserted
 
     async def _rebuild_cop_hourly_for_affected_hours(self) -> int:
         """R447: DELETE + rebuild cop_hourly buckets touched by migration.
