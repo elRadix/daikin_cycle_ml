@@ -15,6 +15,7 @@
   - Zero test changes — `test_all_model_choices_present`, `test_no_model_expects_brine`, `test_all_profiles_have_same_keys` auto-cover via `MODEL_CHOICES` iteration.
 
 ### Docs
+- **Guide**: how to change your model via Reconfigure (`docs/MODEL_COMPATIBILITY.md` §"Changing your model"). Model is config entry data, not an option — per HA 2026+ guidelines.
 - **Datasheet runtime coverage** — bundled datasheet store extended to all 51 real models (was 40). 11 new entries (EBLQ05-16, EKHBRD011-016, ERRQ011-016). 12 partial curves (2 points) + 3 nom_cop-only from verified Daikin EN specs — no interpolated data.
 - **Validator** — `_T_LWC_MAX` 70 → 80 °C for HT models.
 - **Docs** — runtime coverage table + user_datasheets instructions.
