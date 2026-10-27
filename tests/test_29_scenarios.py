@@ -275,11 +275,14 @@ async def test_scenario_long_run_no_alert():
 # ================================================================
 # Scenario 7: Multi-day rollup (daily_summary via retention)
 # ================================================================
-@pytest.mark.xfail(strict=False, reason="Known flaky (order-dependent); see #97")
 def test_scenario_cycles_rollup_math():
     """Verify the daily counters the rollup uses."""
+    import datetime as _dt
     st = CycleStore()
-    now = time.time()
+    # Anchor at local midday to avoid midnight-boundary flake (see #97).
+    now = _dt.datetime.now().replace(
+        hour=12, minute=0, second=0, microsecond=0
+    ).timestamp()
     for i in range(5):
         st.add_cycle({
             "start_ts": now - 1800 + i * 60,
