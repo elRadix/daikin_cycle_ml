@@ -100,6 +100,20 @@ _BASE: dict[str, Any] = {
     "good_cycle_min_ratio": DEFAULT_GOOD_CYCLE_RATIO,
 }
 
+# #175: High-temperature profile for HT split (EKHBRD+ERRQ) and HT outdoor
+# (ERRQ-ERSQ). HT units run with delta-T ~10 K (vs 5 K for LT) and reach
+# up to 80 C LWT. Values are specification-driven (Daikin service manuals:
+# cycle time 5-95 min, anti-recycling 20-95 min default 50). Tuning pending
+# live HT field data (#127 RFI).
+_HT_PROFILE: dict[str, Any] = {
+    **_BASE,
+    "max_cycle_duration_min": 300,
+    "defrost_interval_min": 45,
+    "good_dt_threshold_k": 10.0,
+    "short_run_threshold_min": 30,
+    "target_cycles_per_day": 5,
+}
+
 MODEL_PROFILES: dict[str, dict[str, Any]] = {
     MODEL_BASISPROFIEL: {**_BASE},
     MODEL_EPRA04EAV3: {**_BASE},
@@ -147,12 +161,12 @@ MODEL_PROFILES: dict[str, dict[str, Any]] = {
     MODEL_EBLQ11CV3: {**_BASE},
     MODEL_EBLQ14CV3: {**_BASE},
     MODEL_EBLQ16CV3: {**_BASE},
-    MODEL_EKHBRD011: {**_BASE},
-    MODEL_EKHBRD014: {**_BASE},
-    MODEL_EKHBRD016: {**_BASE},
-    MODEL_ERRQ011: {**_BASE},
-    MODEL_ERRQ014: {**_BASE},
-    MODEL_ERRQ016: {**_BASE},
+    MODEL_EKHBRD011: {**_HT_PROFILE},
+    MODEL_EKHBRD014: {**_HT_PROFILE},
+    MODEL_EKHBRD016: {**_HT_PROFILE},
+    MODEL_ERRQ011: {**_HT_PROFILE},
+    MODEL_ERRQ014: {**_HT_PROFILE},
+    MODEL_ERRQ016: {**_HT_PROFILE},
     MODEL_CUSTOM: {**_BASE},
 }
 
