@@ -979,7 +979,26 @@
       "nom_cop": 4.2,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.2
+        },
+        {
+          "label": "A7/W65",
+          "t_out": 7,
+          "t_lwc": 65,
+          "cop": 2.97
+        },
+        {
+          "label": "A7/W80",
+          "t_out": 7,
+          "t_lwc": 80,
+          "cop": 2.5
+        }
+      ]
     },
     "ekhbrd014": {
       "family": "Split",
@@ -989,7 +1008,26 @@
       "nom_cop": 3.72,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 3.72
+        },
+        {
+          "label": "A7/W65",
+          "t_out": 7,
+          "t_lwc": 65,
+          "cop": 2.89
+        },
+        {
+          "label": "A7/W80",
+          "t_out": 7,
+          "t_lwc": 80,
+          "cop": 2.48
+        }
+      ]
     },
     "ekhbrd016": {
       "family": "Split",
@@ -999,7 +1037,26 @@
       "nom_cop": 3.72,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 3.72
+        },
+        {
+          "label": "A7/W65",
+          "t_out": 7,
+          "t_lwc": 65,
+          "cop": 2.73
+        },
+        {
+          "label": "A7/W80",
+          "t_out": 7,
+          "t_lwc": 80,
+          "cop": 2.41
+        }
+      ]
     },
     "errq011": {
       "family": "Split",
@@ -1009,7 +1066,26 @@
       "nom_cop": 4.22,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.22
+        },
+        {
+          "label": "A7/W65",
+          "t_out": 7,
+          "t_lwc": 65,
+          "cop": 3.08
+        },
+        {
+          "label": "A7/W80",
+          "t_out": 7,
+          "t_lwc": 80,
+          "cop": 2.5
+        }
+      ]
     },
     "errq014": {
       "family": "Split",
@@ -1019,7 +1095,26 @@
       "nom_cop": 3.94,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 3.94
+        },
+        {
+          "label": "A7/W65",
+          "t_out": 7,
+          "t_lwc": 65,
+          "cop": 3.0
+        },
+        {
+          "label": "A7/W80",
+          "t_out": 7,
+          "t_lwc": 80,
+          "cop": 2.48
+        }
+      ]
     },
     "errq016": {
       "family": "Split",
@@ -1029,7 +1124,26 @@
       "nom_cop": 3.72,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 3.72
+        },
+        {
+          "label": "A7/W65",
+          "t_out": 7,
+          "t_lwc": 65,
+          "cop": 2.88
+        },
+        {
+          "label": "A7/W80",
+          "t_out": 7,
+          "t_lwc": 80,
+          "cop": 2.41
+        }
+      ]
     }
   }
 }
