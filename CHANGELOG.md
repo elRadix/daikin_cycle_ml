@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- **v19 thermal_kw_avg rebuild migration (#169)**: historical cycles with `thermal_kw_avg = 0.0` or NULL are recomputed from `cop_samples` via the flow_dt formula (R486: DHW prefers flow_dt, now uniform for heating due to missing power_w/rps in samples). Cycles with ≥3 eligible samples get a recomputed value; sparse <3 are NULLed. `features.vector_json[11]` overwritten from new values, `daily_summary` + `cop_hourly` rebuilt for touched days/hours. Idempotent via marker `data_migration_v19_completed` with `completed_ts`. Wiring is best-effort: failure does not block setup and does not write the marker (retried next boot).
 
 - **Bundled models expanded to 40** — Added 25 new models (ERGA, EPGA, EDLA, EBLA, EDLQ, EPSK, EPRA18) to support more Daikin Altherma devices in the config flow. Includes ERGA08EAV3H (Split) requested by community.
 
