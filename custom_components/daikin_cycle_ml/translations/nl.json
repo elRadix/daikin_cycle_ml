@@ -1,20 +1,6 @@
 {
   "config": {
     "step": {
-      "user": {
-        "title": "Daikin Cycle ML installatie",
-        "description": "Choose the ESPAltherma source sensor, your heat-pump model, and how required attributes are mapped.\n\n- **Source sensor**: must expose the 12 required ESPAltherma attributes. Typical: `sensor.althermasensors`.\n- **Model**: determines default thresholds.\n- **Attribute mode**: Automatic uses canonical names. Manual lets you map each attribute yourself.",
-        "data": {
-          "source_sensor": "Source sensor",
-          "model": "Heat-pump model",
-          "attribute_mode": "Attribute mode"
-        },
-        "data_description": {
-          "source_sensor": "ESPAltherma sensor that exposes the 12 required heat-pump attributes. Typical: sensor.althermasensors.",
-          "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map.",
-          "attribute_mode": "Automatic uses the canonical ESPAltherma attribute names. Manual lets you map each required attribute to your own sensor's name."
-        }
-      },
       "model_custom": {
         "title": "Aangepaste attribuutkoppeling",
         "description": "Optionele JSON-koppeling van standaardsleutels naar jouw attribuutnamen. Geef een JSON-object op; zie de README voor een voorbeeld. Laat leeg om de defaults te gebruiken.",
@@ -195,6 +181,30 @@
         },
         "data_description": {
           "custom_attribute_map": "JSON-object dat standaardsleutels aan attribuutnamen koppelt. Zie de documentatie voor het exacte formaat."
+        }
+      },
+      "model": {
+        "title": "Daikin Cycle ML installatie",
+        "description": "Choose the ESPAltherma source sensor, your heat-pump model, and how required attributes are mapped.\n\n- **Source sensor**: must expose the 12 required ESPAltherma attributes. Typical: `sensor.althermasensors`.\n- **Model**: determines default thresholds.\n- **Attribute mode**: Automatic uses canonical names. Manual lets you map each attribute yourself.",
+        "data": {
+          "source_sensor": "Source sensor",
+          "model": "Heat-pump model",
+          "attribute_mode": "Attribute mode"
+        },
+        "data_description": {
+          "source_sensor": "ESPAltherma sensor that exposes the 12 required heat-pump attributes. Typical: sensor.althermasensors.",
+          "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map.",
+          "attribute_mode": "Automatic uses the canonical ESPAltherma attribute names. Manual lets you map each required attribute to your own sensor's name."
+        }
+      },
+      "user": {
+        "title": "Daikin Cycle ML - kies modelfamilie",
+        "description": "Kies de modelfamilie van je Daikin Altherma unit. De familie is de prefix van de modelcode van de buitenunit (bijv. ERGA, EPRA, EKHBRD). Op het volgende scherm kies je het exacte model.\n\n- **Basic profile**: veilige standaardwaarden als je je exacte model niet weet.\n- **Custom**: lever je eigen attribuut-mapping aan.",
+        "data": {
+          "family": "Modelfamilie"
+        },
+        "data_description": {
+          "family": "Prefix van de modelcode van de buitenunit. Voorbeeld: ERGA, EPRA, EKHBRD."
         }
       }
     },

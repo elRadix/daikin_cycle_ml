@@ -58,7 +58,7 @@ async def test_auto_mode_missing_lists_keys(hass: HomeAssistant):
         },
     )
     assert r2["type"] == FlowResultType.FORM
-    assert r2["step_id"] == "user"
+    assert r2["step_id"] == "model"
     assert r2["errors"]["source_sensor"] == "missing_attributes"
 
 
@@ -199,8 +199,13 @@ async def test_map_step_shows_all_attributes(hass: HomeAssistant):
 
 
 async def test_user_step_shows_attribute_mode_field(hass: HomeAssistant):
+    # v1.13.2: attribute_mode lives in async_step_model, not async_step_user
     r = await _start(hass)
-    schema = r["data_schema"].schema
+    r2 = await hass.config_entries.flow.async_configure(
+        r["flow_id"], {"family": "epra"}
+    )
+    assert r2["step_id"] == "model"
+    schema = r2["data_schema"].schema
     keys = {str(k) for k in schema}
     assert "attribute_mode" in keys
 

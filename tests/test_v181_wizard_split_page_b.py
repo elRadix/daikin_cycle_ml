@@ -123,7 +123,7 @@ def _root() -> Path:
 def test_i18n_parity_16_steps():
     for rel in ("strings.json", "translations/en.json", "translations/nl.json"):
         d = json.loads((_root() / rel).read_text(encoding="utf-8"))
-        assert len(d["config"]["step"]) == 16, rel
+        assert len(d["config"]["step"]) == 17, rel
 
 
 def test_i18n_attribute_mapping_key_present():

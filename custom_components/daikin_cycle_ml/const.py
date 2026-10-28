@@ -100,6 +100,7 @@ MODEL_ERLA16DAV3 = "erla16dav3"
 MODEL_ERGA04EAV3 = "erga04eav3"
 MODEL_ERGA06EAV3 = "erga06eav3"
 MODEL_ERGA08EAV3 = "erga08eav3"
+MODEL_ERGA08EVH7 = "erga08evh7"
 MODEL_EPGA10DAV3 = "epga10dav3"
 MODEL_EPGA11DAV3 = "epga11dav3"
 MODEL_EPGA14DAV3 = "epga14dav3"
@@ -161,6 +162,7 @@ MODEL_CHOICES = [
     MODEL_ERGA04EAV3,
     MODEL_ERGA06EAV3,
     MODEL_ERGA08EAV3,
+    MODEL_ERGA08EVH7,
     MODEL_EPGA10DAV3,
     MODEL_EPGA11DAV3,
     MODEL_EPGA14DAV3,
@@ -217,6 +219,7 @@ MODEL_LABELS = {
     MODEL_ERGA04EAV3: "Daikin Altherma 3 R - ERGA04EAV3 (Split)",
     MODEL_ERGA06EAV3: "Daikin Altherma 3 R - ERGA06EAV3 (Split)",
     MODEL_ERGA08EAV3: "Daikin Altherma 3 R - ERGA08EAV3 (Split)",
+    MODEL_ERGA08EVH7: "Daikin Altherma 3 R - ERGA08EVH7 (Split)",
     MODEL_EPGA10DAV3: "Daikin Altherma 3 R - EPGA10DAV3 (Split high capacity)",
     MODEL_EPGA11DAV3: "Daikin Altherma 3 R - EPGA11DAV3 (Split high capacity)",
     MODEL_EPGA14DAV3: "Daikin Altherma 3 R - EPGA14DAV3 (Split high capacity)",
@@ -640,3 +643,47 @@ ALERT_DEDUP_DEFAULTS: dict[str, int] = {
 DB_FILENAME = "daikin_cycle_ml.db"
 DB_FILENAME_TEMPLATE = "daikin_cycle_ml_{entry_id}.db"
 DB_LEGACY_MARKER_FILENAME = ".daikin_cycle_ml_v1100_migrated"
+
+# === v1.13.2 model families + aliases ===
+
+MODEL_FAMILIES: dict[str, str] = {
+    "epra": "Altherma 3 H MT",
+    "erla": "Altherma 3 R",
+    "erga": "Altherma 3 R Split",
+    "epga": "Altherma 3 H",
+    "edla": "Altherma 3 R (Monobloc)",
+    "ebla": "Altherma 3 M",
+    "eblq": "Altherma 3 M (Monobloc)",
+    "edlq": "Altherma 3 (Monobloc)",
+    "epsk": "Altherma 3 (Split)",
+    "ekhbrd": "Altherma HT (Hydrobox)",
+    "errq": "Altherma HT (Split)",
+}
+
+MODEL_ALIASES: dict[str, str] = {
+    MODEL_ERGA08EVH7: MODEL_ERGA08EAV3,
+}
+
+
+def resolve_model_key(model_code: str) -> str:
+    """Resolve a commercial-name alias to its base technical model code."""
+    return MODEL_ALIASES.get(model_code, model_code)
+
+
+def family_for_model(model_code: str) -> str:
+    """Return the family prefix (e.g. 'erga') for a model code or alias."""
+    key = resolve_model_key(model_code) if model_code else ''
+    if not key or key in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
+        return MODEL_BASISPROFIEL if not key else key
+    i = 0
+    while i < len(key) and key[i].isalpha():
+        i += 1
+    prefix = key[:i].lower()
+    return prefix if prefix in MODEL_FAMILIES else MODEL_BASISPROFIEL
+
+
+def models_in_family(family: str) -> list[str]:
+    """Return ordered list of MODEL_CHOICES entries whose family matches."""
+    if family in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
+        return [family]
+    return [m for m in MODEL_CHOICES if family_for_model(m) == family]

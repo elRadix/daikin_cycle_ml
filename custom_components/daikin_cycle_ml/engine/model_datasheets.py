@@ -318,7 +318,8 @@ def get_datasheet(
     merged: dict[str, Any], model: str
 ) -> dict[str, Any] | None:
     """Return datasheet for model, or None when missing or points empty."""
-    entry = merged.get(model)
+    from ..const import MODEL_ALIASES  # v1.13.2 alias resolution
+    entry = merged.get(MODEL_ALIASES.get(model, model))
     if not isinstance(entry, dict):
         return None
     if not entry.get("nom_cop") and not entry.get("points"):

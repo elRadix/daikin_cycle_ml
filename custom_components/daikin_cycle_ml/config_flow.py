@@ -79,7 +79,10 @@ from .const import (
     MODEL_CHOICES,
     MODEL_CUSTOM,
     MODEL_EPRA12EAV3,
+    MODEL_FAMILIES,
     MODEL_LABELS,
+    family_for_model,
+    models_in_family,
     NAME,
     OPTIONAL_ATTRIBUTES,
     REQUIRED_ATTRIBUTES,
@@ -102,6 +105,45 @@ _MODEL_SELECTOR = selector.SelectSelector(
         mode=selector.SelectSelectorMode.DROPDOWN,
     )
 )
+
+
+def _build_family_selector() -> selector.SelectSelector:
+    options = [
+        selector.SelectOptionDict(
+            value=MODEL_BASISPROFIEL,
+            label=MODEL_LABELS[MODEL_BASISPROFIEL],
+        ),
+        selector.SelectOptionDict(
+            value=MODEL_CUSTOM,
+            label=MODEL_LABELS[MODEL_CUSTOM],
+        ),
+    ]
+    for fam_key in sorted(MODEL_FAMILIES):
+        options.append(selector.SelectOptionDict(
+            value=fam_key,
+            label=f"{fam_key.upper()} — {MODEL_FAMILIES[fam_key]}",
+        ))
+    return selector.SelectSelector(selector.SelectSelectorConfig(
+        options=options,
+        mode=selector.SelectSelectorMode.DROPDOWN,
+    ))
+
+
+_FAMILY_SELECTOR = _build_family_selector()
+
+
+def _build_model_selector(family: str) -> selector.SelectSelector:
+    if family in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
+        codes = [family]
+    else:
+        codes = models_in_family(family) or [MODEL_BASISPROFIEL]
+    return selector.SelectSelector(selector.SelectSelectorConfig(
+        options=[
+            selector.SelectOptionDict(value=m, label=MODEL_LABELS[m])
+            for m in codes
+        ],
+        mode=selector.SelectSelectorMode.DROPDOWN,
+    ))
 
 _ENTITY_SELECTOR = selector.EntitySelector(
     selector.EntitySelectorConfig(domain="sensor")
@@ -225,10 +267,42 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         self._data: dict[str, Any] = {}
         self._options: dict[str, Any] = {}
         self._reconfigure_entry: ConfigEntry | None = None
+        self._selected_family: str = ""
+        self._selected_model: str = ""
 
     # ---------- initial setup ----------
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Select model family, then dispatch to model selection."""
+        # _legacy_compat_shim: derive family from old payload
+        if user_input is not None and "source_sensor" in user_input:
+            legacy_model = user_input.get("model", MODEL_BASISPROFIEL)
+            self._selected_family = family_for_model(legacy_model)
+            self._selected_model = legacy_model
+            return await self.async_step_model(user_input)
+        if user_input is not None:
+            fam = user_input["family"]
+            self._selected_family = fam
+            if fam in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
+                self._selected_model = fam
+            else:
+                cur = self._data.get("model", "")
+                if cur and family_for_model(cur) == fam:
+                    self._selected_model = cur
+                else:
+                    fam_models = models_in_family(fam)
+                    self._selected_model = fam_models[0] if fam_models else MODEL_BASISPROFIEL
+            return await self.async_step_model()
+        current_model = self._data.get("model", "")
+        current_family = family_for_model(current_model) if current_model else MODEL_BASISPROFIEL
+        schema = vol.Schema({
+            vol.Optional("family", default=current_family): _FAMILY_SELECTOR,
+        }, extra=vol.ALLOW_EXTRA)
+        return self.async_show_form(step_id="user", data_schema=schema)
+
+    async def async_step_model(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        if user_input is not None and "model" not in user_input:
+            user_input["model"] = self._selected_model or MODEL_BASISPROFIEL
         errors: dict[str, str] = {}
         missing_list: list[str] = []
         if user_input is not None:
@@ -267,22 +341,25 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.warning("Missing required attrs: %s", missing_exact)
                 errors["source_sensor"] = "missing_attributes"
                 missing_list = missing_exact
-        schema = vol.Schema({
+        schema_dict: dict[Any, Any] = {
             vol.Required(
                 "source_sensor",
                 default=self._data.get("source_sensor", SOURCE_SENSOR_ENTITY),
             ): _ENTITY_SELECTOR,
-            vol.Required(
-                "model",
-                default=self._data.get("model", MODEL_EPRA12EAV3),
-            ): _MODEL_SELECTOR,
-            vol.Required(
-                "attribute_mode",
-                default=self._data.get("attribute_mode", ATTRIBUTE_MODE_AUTO),
-            ): _ATTRIBUTE_MODE_SELECTOR,
-        })
+        }
+        if self._selected_family not in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
+            fam_models = models_in_family(self._selected_family)
+            default_model = self._selected_model
+            if not default_model or default_model not in fam_models:
+                default_model = fam_models[0] if fam_models else MODEL_BASISPROFIEL
+            schema_dict[vol.Required("model", default=default_model)] = _build_model_selector(self._selected_family)
+        schema_dict[vol.Required(
+            "attribute_mode",
+            default=self._data.get("attribute_mode", ATTRIBUTE_MODE_AUTO),
+        )] = _ATTRIBUTE_MODE_SELECTOR
+        schema = vol.Schema(schema_dict, extra=vol.ALLOW_EXTRA)
         return self.async_show_form(
-            step_id="user",
+            step_id="model",
             data_schema=schema,
             errors=errors,
             description_placeholders={
@@ -782,6 +859,8 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         self._reconfigure_entry = entry
         self._data = dict(entry.data)
         self._options = dict(entry.options or {})
+        self._selected_family = family_for_model(self._data.get("model", ""))
+        self._selected_model = self._data.get("model", "")
         return await self.async_step_user()
 
     @staticmethod
