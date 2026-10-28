@@ -2617,9 +2617,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         source_attrs = getattr(data_obj, 'attrs', None) if data_obj is not None else None
         if not isinstance(source_attrs, dict):
             source_attrs = {}
+        _r1t_before: float | None = None
         if source_attrs:
             compat = build_compat_view(source_attrs)
             mapped: dict[str, Any] = {'state': raw}
+            _r1t_before = compat.get(
+                'Leaving water temp. before BUH (R1T)'
+            )
             _lwt = (
                 compat.get('Leaving water temp. after BUH (R2T)')
                 or compat.get('Leaving water temp. before BUH (R1T)')
@@ -2670,6 +2674,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             'cop': sample.cop,
             'lwt': sample.lwt,
             'outdoor': sample.outdoor,
+            'r1t': _r1t_before,
+            'r4t': getattr(sample, 'inlet', None),
             'flow_lmin': sample.flow_lmin,
             'power_stable': True,
             'mode': str(_mode),

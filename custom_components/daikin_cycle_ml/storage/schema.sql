@@ -77,6 +77,8 @@ CREATE TABLE IF NOT EXISTS cop_samples (
     cop REAL NOT NULL,
     lwt REAL,
     outdoor REAL,
+    r1t REAL,
+    r4t REAL,
     flow_lmin REAL,
     power_stable INTEGER DEFAULT 0,
     mode TEXT DEFAULT 'unknown',
