@@ -7,6 +7,10 @@
 - **#201 (v1.13.2)** - clearable optional sensor fields: OptionsFlow._save normalizes omitted keys to None before merge so clearing persists (HA core #154795 pattern). 5 tests.
 - **#188 + #184 (v1.13.2)** - thermal power physical delta T: mode-aware (heating/dhw: R1T-before-BUH minus R4T, cooling: R4T minus R1T), matching raomin ESPAltherma commit 5382853; clamp negative to 0kW, drop >14kW. v20 migration adds cop_samples.r1t + r4t columns; sampler writes both. Historical pre-v1.13.2 samples fall back to legacy formula (no history rewrite).
 
+### Docs
+
+- **#191 + #195 (v1.13.2)** - ESPAltherma data-source credit in README + reciprocal link; datasheets.json `_meta` (CC BY 4.0, attribution_required, permission_grant for raomin); MODEL_COMPATIBILITY.md sources section; permission granted both directions.
+
 ## [1.13.1] - 2026-10-28
 
 ### Added
