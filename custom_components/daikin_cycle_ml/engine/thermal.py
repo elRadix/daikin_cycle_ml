@@ -28,11 +28,26 @@ def safe_float(v: Any) -> float | None:
 
 
 def dt_from_attrs(attrs: dict[str, Any]) -> float | None:
+    """v20 (#188): prefer signed R4T - R1T-before-BUH.
+
+    R1T-before-BUH is compressor-only supply temp. R4T is water
+    return. Signed delta is the physical compressor dT (~5-8 K).
+    Falls back to abs(R2T - R4T) only when R1T-before-BUH absent
+    (BUH-only installs where R2T is meaningful).
+    """
+    r1t = safe_float(attrs.get("Leaving water temp. before BUH (R1T)"))
+    if r1t is None:
+        r1t = safe_float(attrs.get("Leaving water temp.(R1T)"))
+    r4t = safe_float(attrs.get(ATTR_INLET_WATER_R4T))
+    if r1t is not None and r4t is not None:
+        delta = abs(r1t - r4t)
+        if delta < 0.5:
+            return None
+        return round(delta, 2)
     a = safe_float(attrs.get(ATTR_LEAVING_WATER_AFTER_BUH))
-    b = safe_float(attrs.get(ATTR_INLET_WATER_R4T))
-    if a is None or b is None:
+    if a is None or r4t is None:
         return None
-    return round(abs(a - b), 2)
+    return round(abs(a - r4t), 2)
 
 
 def rps_from_attrs(attrs: dict[str, Any]) -> float | None:

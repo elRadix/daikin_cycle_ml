@@ -1239,11 +1239,31 @@ class CycleDB:
         (power_cop preferred when available).
         """
         flow = sample_row["flow_lmin"]
-        lwt = sample_row["lwt"]
-        outdoor = sample_row["outdoor"]
-        if flow is None or lwt is None or outdoor is None:
+        if flow is None:
             return None
         flow_f = float(flow)
+        try:
+            r1t = sample_row["r1t"]
+            r4t = sample_row["r4t"]
+        except (KeyError, IndexError):
+            r1t = r4t = None
+        if r1t is not None and r4t is not None:
+            if mode == "cooling":
+                delta = float(r4t) - float(r1t)
+            else:
+                delta = float(r1t) - float(r4t)
+            if flow_f <= 0:
+                return 0.0
+            kw = flow_f * 0.997 * 4.186 * delta / 60.0
+            if kw < 0:
+                return 0.0
+            if kw > 14.0:
+                return None
+            return round(kw, 3)
+        lwt = sample_row["lwt"]
+        outdoor = sample_row["outdoor"]
+        if lwt is None or outdoor is None:
+            return None
         dt_k = float(lwt) - float(outdoor)
         if flow_f <= 0 or dt_k <= 0:
             return None
@@ -1392,6 +1412,41 @@ class CycleDB:
         stats["duration_s"] = round(_time_now() - t0, 3)
         await self.async_set_model_state(
             "data_migration_v19_completed", stats
+        )
+        return stats
+
+    async def async_migrate_to_v20(self) -> dict[str, Any]:
+        """v20: add r1t + r4t columns to cop_samples (#188 #184)."""
+        marker = await self.async_get_model_state(
+            "data_migration_v20_completed"
+        )
+        if marker and isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+
+        t0 = _time_now()
+        conn = self._require()
+        stats: dict[str, Any] = {"columns_added": []}
+
+        cur = await conn.execute("PRAGMA table_info(cop_samples)")
+        rows = await cur.fetchall()
+        existing = {row[1] for row in rows}
+
+        if "r1t" not in existing:
+            await conn.execute(
+                "ALTER TABLE cop_samples ADD COLUMN r1t REAL"
+            )
+            stats["columns_added"].append("r1t")
+        if "r4t" not in existing:
+            await conn.execute(
+                "ALTER TABLE cop_samples ADD COLUMN r4t REAL"
+            )
+            stats["columns_added"].append("r4t")
+
+        await conn.commit()
+        stats["completed"] = True
+        stats["duration_s"] = round(_time_now() - t0, 3)
+        await self.async_set_model_state(
+            "data_migration_v20_completed", stats
         )
         return stats
 
@@ -2217,13 +2272,16 @@ class CycleDB:
             conn = self._require()
             await conn.execute(
                 "INSERT INTO cop_samples "
-                "(ts, cop, lwt, outdoor, flow_lmin, power_stable, mode, source) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "(ts, cop, lwt, outdoor, r1t, r4t, flow_lmin, "
+                "power_stable, mode, source) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     float(sample["ts"]),
                     float(sample["cop"]),
                     sample.get("lwt"),
                     sample.get("outdoor"),
+                    sample.get("r1t"),
+                    sample.get("r4t"),
                     sample.get("flow_lmin"),
                     1 if sample.get("power_stable") else 0,
                     sample.get("mode") or "unknown",
