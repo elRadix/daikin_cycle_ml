@@ -1,4 +1,10 @@
 {
+  "_meta": {
+    "license": "CC BY 4.0",
+    "attribution_required": true,
+    "attribution_text": "Datasheet COP curves compiled from official Daikin service manuals by Daikin Cycle ML. Reuse permitted with attribution.",
+    "permission_grant": "ESPAltherma (raomin) granted use with attribution per issue #195."
+  },
   "schema_version": 1,
   "generated": "2026-10-27T00:00:00Z",
   "source": "Daikin EN 14511 datasheets (ported from Lovelace card HP_SPECS/DAIKIN_REF_COP)",

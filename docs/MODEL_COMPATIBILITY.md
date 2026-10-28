@@ -459,3 +459,8 @@ thresholds). The model is `entry.data` (setup configuration) — the two
 are intentionally separate per Home Assistant guidelines. A model change
 invalidates cached profiling and datasheet lookups, so it requires a
 full reload — which reconfigure handles natively.
+
+
+## Sources & attribution
+
+Attribute name mapping and model definitions are derived from upstream [ESPAltherma beta/definitions](https://github.com/raomin/ESPAltherma/tree/beta/definitions) by [@raomin](https://github.com/raomin) (MIT-licensed). Our datasheet COP curves are compiled from official Daikin service manuals and available for reuse with attribution (see `data/datasheets.json` `_meta`).
