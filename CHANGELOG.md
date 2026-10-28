@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.13.1] - 2026-10-28
+
 ### Added
 
 - **Model family wizard** (#197): two-step config flow. Step 1 picks the model family (EPRA, ERLA, ERGA, EPGA, EDLA, EBLA, EDLQ, EBLQ, EPSK, EKHBRD, ERRQ) or Basic/Custom. Step 2 lists only that family's models; Basic/Custom skip the model picker.
@@ -14,6 +16,9 @@
 - i18n step count 16 -> 17 (strings.json, translations/en.json, translations/nl.json).
 - Legacy compat: `async_step_user` detects legacy payloads (`source_sensor` without `family`) and forwards to `async_step_model` so existing tests and programmatic callers keep working.
 
+### Fixed
+
+- **#196 cop_samples=0 on fresh installs** (v1.13.0 regression): `_maybe_collect_cop_sample` now reads source ESPAltherma attributes via `build_compat_view` and overlays the COP value from `cop_sensor`. Previously read the cop_sensor's own attributes only (numeric template sensor with no synthetic keys like `leaving_temp`/`outdoor_temperature`), causing `data_quality='unknown'` -> hard reject -> 0 samples on fresh installs despite valid cycles. Legacy fallback preserved for callers without source attributes. Source path also correctly extracts `lwt`/`outdoor`/`flow_lmin` so samples are analytically complete. Confirmed root cause on 2 users (ERGA08EVH7 split + EPRA12EAV3 monoblock). 10 new tests cover the source path, legacy fallback, edge cases, and `data.cop` fallback.
 
 ## [1.13.0] — 2026-10-27
 

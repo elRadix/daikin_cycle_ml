@@ -2582,16 +2582,80 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         interval = 300.0
         if (now - self._last_cop_sample_ts) < interval:
             return
-        state = self.hass.states.get(self.cop_sensor_entity)
-        if state is None:
+        # v1.13.2 #196: source-driven COP sampling.
+        # Old path read attrs from cop_sensor (a numeric template sensor
+        # with no synthetic keys). Result: data_quality always 'unknown',
+        # power_stable always False, so ALL samples rejected -- 0 rows on
+        # fresh installs despite valid cycles. See issue #196.
+        #
+        # New path: read source ESPAltherma attrs via build_compat_view,
+        # overlay COP value from cop_sensor (its only job), fall back to
+        # self.data.cop. Legacy fallback preserved for callers without
+        # source attrs (tests, edge cases).
+        raw = None
+        cop_attrs: dict[str, Any] = {}
+        data_obj = getattr(self, 'data', None)
+        if self.cop_sensor_entity:
+            st = self.hass.states.get(self.cop_sensor_entity)
+            if st is not None:
+                sv = st.state
+                if sv not in (None, 'unknown', 'unavailable', '', '0.0', '0'):
+                    raw = sv
+                    cop_attrs = dict(st.attributes or {})
+        if raw is None:
+            dc = getattr(data_obj, 'cop', None) if data_obj is not None else None
+            if dc is not None:
+                try:
+                    _fv = float(dc)
+                    if _fv > 0.0:
+                        raw = str(_fv)
+                except (TypeError, ValueError):
+                    pass
+        if raw is None:
             return
-        raw = state.state
-        if raw in (None, 'unknown', 'unavailable', '', '0.0', '0'):
-            return
-        attrs = dict(state.attributes or {})
-        attrs['state'] = raw
+
+        source_attrs = getattr(data_obj, 'attrs', None) if data_obj is not None else None
+        if not isinstance(source_attrs, dict):
+            source_attrs = {}
+        if source_attrs:
+            compat = build_compat_view(source_attrs)
+            mapped: dict[str, Any] = {'state': raw}
+            _lwt = (
+                compat.get('Leaving water temp. after BUH (R2T)')
+                or compat.get('Leaving water temp. before BUH (R1T)')
+            )
+            if _lwt is not None:
+                mapped['leaving_temp'] = _lwt
+            _inlet = compat.get('Inlet water temp.(R4T)')
+            if _inlet is not None:
+                mapped['inlet_temp'] = _inlet
+            _outdoor = compat.get('Outdoor air temp.(R1T)')
+            if _outdoor is not None:
+                mapped['outdoor_temperature'] = _outdoor
+            _flow = compat.get('Flow sensor (l/min)')
+            if _flow is not None:
+                mapped['flow_rate'] = _flow
+            _defrost = compat.get('Defrost Operation')
+            if _defrost is not None:
+                mapped['defrost_operation'] = _defrost
+            if (
+                mapped.get('leaving_temp') is not None
+                and mapped.get('outdoor_temperature') is not None
+            ):
+                mapped['data_quality'] = 'Good'
+            else:
+                mapped['data_quality'] = 'Partial'
+            # v1.13.2 hotfix: power_stable always True in source path.
+            # Refine with self.data.power_w signal in v1.13.3 (#188 scope).
+            mapped['power_stable'] = True
+        else:
+            # Legacy fallback: pre-v1.13.2 behavior for callers without
+            # source attrs. Preserves test contracts.
+            mapped = dict(cop_attrs)
+            mapped['state'] = raw
+
         from .engine.cop_analyzer import parse_global_cop_attrs
-        sample = parse_global_cop_attrs(attrs)
+        sample = parse_global_cop_attrs(mapped)
         if sample is None or sample.cop <= 0.0:
             return
         if sample.defrost:
