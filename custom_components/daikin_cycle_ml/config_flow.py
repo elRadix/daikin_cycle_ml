@@ -894,6 +894,8 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 flat.update(v)
             else:
                 flat[k] = v
+        for _k in ('power_sensor_entity','cop_sensor_entity','indoor_temp_sensor'):
+            flat.setdefault(_k,None)
         merged = {**dict(self.config_entry.options or {}), **flat}
         return self.async_create_entry(data=merged)
 
