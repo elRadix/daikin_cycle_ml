@@ -173,6 +173,8 @@ MODEL_PROFILES: dict[str, dict[str, Any]] = {
 
 def get_profile(model: str) -> dict[str, Any]:
     """Return a copy of the profile for model (fallback: basisprofiel)."""
+    from ..const import MODEL_ALIASES  # v1.13.2 alias resolution
+    model = MODEL_ALIASES.get(model, model) if model else model
     profile = MODEL_PROFILES.get(model)
     if profile is None:
         _LOGGER.debug("Unknown model %r - using basisprofiel", model)

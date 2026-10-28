@@ -322,7 +322,7 @@ edited, not duplicated. The workflow never auto-merges or auto-regenerates.
 
 ## Bundled model datasheet reference
 
-Public Daikin datasheet values for the 53 user-facing model codes. COP values are nominal (EN 14511). Where a value is not cleanly published across regional datasheets it is marked `—`.
+Public Daikin datasheet values for the 53 technical model codes plus 1 commercial alias (ERGA08EVH7 -> ERGA08EAV3). COP values are nominal (EN 14511). Where a value is not cleanly published across regional datasheets it is marked `—`.
 
 ### LT monobloc — EBLQ CV3 (R-410A)
 

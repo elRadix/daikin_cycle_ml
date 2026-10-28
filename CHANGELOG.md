@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Model family wizard** (#197): two-step config flow. Step 1 picks the model family (EPRA, ERLA, ERGA, EPGA, EDLA, EBLA, EDLQ, EBLQ, EPSK, EKHBRD, ERRQ) or Basic/Custom. Step 2 lists only that family's models; Basic/Custom skip the model picker.
+- **Alias layer (phase 1)** (#198): `MODEL_ALIASES` maps commercial model names to base technical codes. Resolvers `resolve_model_key`, `family_for_model`, `models_in_family` in `const.py`. Aliasing applied transparently inside `engine.model_profiles.get_profile()` and `engine.model_datasheets.get_datasheet()`.
+- **ERGA08EVH7** commercial alias for ERGA08EAV3 - closes #197.
+
+### Changed
+
+- `config_flow._MODEL_SELECTOR` split into module-level `_FAMILY_SELECTOR` + `_build_model_selector(family)` factory. Reconfigure-basic keeps the flat picker.
+- i18n step count 16 -> 17 (strings.json, translations/en.json, translations/nl.json).
+- Legacy compat: `async_step_user` detects legacy payloads (`source_sensor` without `family`) and forwards to `async_step_model` so existing tests and programmatic callers keep working.
+
+
 ## [1.13.0] — 2026-10-27
 
 ### Added

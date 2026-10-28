@@ -16,7 +16,8 @@ FILES = [
 ]
 
 EXPECTED = {
-    "user": ["source_sensor", "model"],
+    "user": ["family"],
+    "model": ["source_sensor", "model", "attribute_mode"],
     "model_custom": ["custom_attribute_map"],
     "attribute_mapping_advanced": ["custom_attribute_map"],
     "cycle": [

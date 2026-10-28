@@ -124,7 +124,7 @@ async def test_smart_fallback_insufficient_routes_to_error(
         },
     )
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "user"
+    assert result["step_id"] == "model"
     assert result["errors"] == {"source_sensor": "missing_attributes"}
 
 
@@ -272,7 +272,7 @@ async def test_anti_alias_r2t_not_resolved_to_r1t(
         },
     )
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "user"
+    assert result["step_id"] == "model"
     assert result["errors"] == {"source_sensor": "missing_attributes"}
 
 

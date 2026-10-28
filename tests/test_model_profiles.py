@@ -7,6 +7,7 @@ from custom_components.daikin_cycle_ml.const import (
     MODEL_CHOICES,
     MODEL_EPRA12EAV3,
     MODEL_LABELS,
+    resolve_model_key,
 )
 from custom_components.daikin_cycle_ml.engine.model_profiles import (
     MODEL_PROFILES,
@@ -27,7 +28,7 @@ def test_model_choices_match_labels():
 
 def test_all_model_choices_present():
     for m in MODEL_CHOICES:
-        assert m in MODEL_PROFILES
+        assert resolve_model_key(m) in MODEL_PROFILES
 
 
 def test_epra12_has_model_specific_cpd():
