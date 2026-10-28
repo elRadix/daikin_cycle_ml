@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **#201 (v1.13.2)** - clearable optional sensor fields: OptionsFlow._save normalizes omitted keys to None before merge so clearing persists (HA core #154795 pattern). 5 tests.
+
 ## [1.13.1] - 2026-10-28
 
 ### Added
