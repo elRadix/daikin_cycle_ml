@@ -19,7 +19,7 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=elRadix&repository=daikin_cycle_ml&category=integration)
 
-**IoT class:** `calculated` · **Integration type:** `hub` · **50 sensors · 15 binary sensors · 10 services · 19 alerts**
+**IoT class:** `calculated` · **Integration type:** `hub` · **47 sensors · 15 binary sensors · 13 services · 19 alerts**
 
 ---
 
@@ -73,7 +73,7 @@ The integration watches every compressor start→run→stop transition and score
 The new `sensor.daikin_cycle_ml_electrical_power_estimated` shows the live estimate with a `source` attribute (`power_meter` / `espaltherma_v2_stats` / `inverter_estimated_v1` / `none`) so you can see exactly which path was taken. No double-counting: when v2 Stats are present, the 100 W offset is skipped.
 
 ### Datasheet-backed COP normalization
-**15 bundled Daikin Altherma models** (8 EPRA + 7 ERLA) with full EN 14511 reference data. Your live COP is normalized to A7/W35 and compared to spec. `cop_vs_datasheet_pct` tells you if your pump is underperforming its design point — critical for detecting refrigerant loss, dirty filters, or sizing issues. Import your own datasheet for any non-bundled model.
+**51 bundled Daikin Altherma datasheets** (53 model profiles) with full EN 14511 reference data. Your live COP is normalized to A7/W35 and compared to spec. `cop_vs_datasheet_pct` tells you if your pump is underperforming its design point — critical for detecting refrigerant loss, dirty filters, or sizing issues. Import your own datasheet for any non-bundled model.
 
 ### Installer-grade LWT advice
 **Dynamic heat-curve advice** in Daikin installer language: slope delta and offset delta, not just "raise/lower LWT". The suggested step is **1–3 °C scaled to the delta** between measured and optimal LWT, with **comfort guardrails** (floor + ceiling on projected indoor temp) and **tracking-error dampening** so you never over-correct. Works with your `LW setpoint (main)` attribute for real accuracy.
@@ -91,7 +91,7 @@ The new `sensor.daikin_cycle_ml_electrical_power_estimated` shows the live estim
 **8-step setup wizard** with smart auto-import (v1.8) that detects non-canonical attribute names via alias table + fuzzy matching. **Options menu** with grouped sections and a dedicated notifications sub-menu. **Reconfigure** flows to change source sensor or model without re-adding. **Diagnostics download** for one-click troubleshooting support.
 
 ### Production-grade quality
-**6724 tests, 100.00% coverage, mypy strict, Pylint 10/10, IQS Bronze + Silver + Gold.** 8 GitHub Actions workflows enforced on every PR. No cloud. No telemetry. No accounts. Your heat pump data stays on your HA instance.
+**3729 tests, 100.00% coverage, mypy strict, Pylint 10/10, IQS Bronze + Silver + Gold.** 8 GitHub Actions workflows enforced on every PR. No cloud. No telemetry. No accounts. Your heat pump data stays on your HA instance.
 
 ---
 
@@ -127,7 +127,7 @@ Complete, per-topic guides are in `docs/`:
 | Doc | What it covers |
 |---|---|
 | **[Configuration](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/CONFIGURATION.md)** | Source sensor requirements, setup wizard, options menu, reconfigure flows, cookbook |
-| **[Entities](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ENTITIES.md)** | All 50 sensors, 15 binary sensors, 10 services, 8 repair issues, automations reference |
+| **[Entities](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ENTITIES.md)** | All 47 sensors, 15 binary sensors, 13 services, 9 repair issues, automations reference |
 | **[Alerts & Notifications](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ALERTS.md)** | All 19 alert types, delivery channels, dedup, quiet hours, per-alert toggles, templates |
 | **[Machine Learning](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ML.md)** | Feature vector, EWMA baseline, adaptive thresholds, k-means clustering, anomaly detection |
 | **[Database](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/DATABASE.md)** | Schema reference, `model_state` keys, retention, migrations, backup/recovery |
@@ -307,7 +307,7 @@ The wizard adapts to your setup:
 **Key decisions:**
 
 1. **Source sensor** — usually `sensor.althermasensors`
-2. **Model** — 17 bundled Daikin models (8 EPRA + 7 ERLA) + Custom. Pick your exact model if listed. Bundled = datasheet-backed COP comparison.
+2. **Model** — 51 bundled Daikin datasheets (53 model profiles) + Custom. Pick your exact model if listed. Bundled = datasheet-backed COP comparison.
 3. **Attribute mode** — `auto` for canonical names, `manual` if your firmware differs
 4. **RPS threshold** — default 3. Lower = catches brief modulation dips, higher = misses short cycles.
 5. **Thresholds** — defaults are sensible; tune later once you have data
@@ -605,15 +605,15 @@ Downgrading is not officially supported but is technically possible. See [docs/U
 
 | Metric | Value |
 |---|---|
-| Tests | 6724 passed / 4 skipped |
-| Coverage | 100.00% (6724 stmts / 1922 branches) |
-| mypy strict | 35 files, 0 errors |
+| Tests | 3729 passed / 4 skipped |
+| Coverage | 100.00% (8337 stmts / 2430 branches) |
+| mypy strict | 38 files, 0 errors |
 | Pylint | 10.00/10 |
 | CI workflows | 8, all green |
 | IQS | Bronze + Silver + Gold |
-| Entities | 61 registered |
-| Services | 10 |
-| Repairs | 8 |
+| Entities | 63 registered |
+| Services | 13 |
+| Repairs | 9 |
 
 Run the full local quality gate before every push:
 

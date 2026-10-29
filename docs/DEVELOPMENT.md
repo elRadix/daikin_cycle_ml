@@ -4,7 +4,7 @@ Contribution guide, testing, CI gates, IQS status, and scope boundaries for Daik
 
 - **Covers:** local dev setup, test suite, CI workflows, code quality gates, IQS compliance, scope boundaries, release procedure
 - **For:** contributors, forks, maintainers
-- **Version:** v1.9.0
+- **Version:** v1.14.0
 
 Cross-references: [CONFIGURATION.md](CONFIGURATION.md) (options), [ENTITIES.md](ENTITIES.md) (entity surface), [DATABASE.md](DATABASE.md) (schema), [ML.md](ML.md) (ML internals), [ALERTS.md](ALERTS.md) (alert pipeline).
 

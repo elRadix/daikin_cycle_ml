@@ -4,7 +4,7 @@ Complete reference for every entity, service, and repair issue in Daikin Cycle M
 
 - **Covers:** 50 sensors, 15 binary sensors, 10 services, 8 repairs, plus derived update entities
 - **For:** end users building automations, dashboard builders, developers reading the entity surface
-- **Version:** v1.9.0
+- **Version:** v1.14.0
 
 Cross-references: [CONFIGURATION.md](CONFIGURATION.md) (options that affect entity behavior), [ALERTS.md](ALERTS.md) (alerts fired by binary sensors), [ML.md](ML.md) (ML-powered sensors), [DATABASE.md](DATABASE.md) (persistence).
 

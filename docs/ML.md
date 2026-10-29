@@ -4,7 +4,7 @@ How Daikin Cycle ML learns what "normal" looks like for your heat pump, and how 
 
 - **Covers:** feature extraction, baseline learning (EWMA), adaptive thresholds, k-means clustering, IsolationForest anomaly detection, energy anomaly, retrain schedules
 - **For:** end users who want to understand what the ML does, developers reading the pipeline, admins tuning sensitivity
-- **Version:** v1.9.0
+- **Version:** v1.14.0
 
 Cross-references: [CONFIGURATION.md](CONFIGURATION.md) (ML options), [ENTITIES.md](ENTITIES.md) (ML-powered sensors), [DATABASE.md](DATABASE.md) (`model_state` persistence), [ALERTS.md](ALERTS.md) (ML alerts).
 

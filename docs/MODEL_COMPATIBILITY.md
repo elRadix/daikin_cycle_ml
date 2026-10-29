@@ -6,7 +6,7 @@ regenerated.
 
 - **Covers:** canonical sensors, variant unions, 40-model coverage matrix, decoy register, whitespace contract, regeneration workflow, CI gate
 - **For:** contributors adding model support, users diagnosing missing_attributes repairs, maintainers regenerating after upstream moves
-- **Version:** v1.12.9 (PR B)
+- **Version:** v1.14.0
 
 Cross-references: [DATABASE.md](DATABASE.md) (cop_samples semantics), [CONFIGURATION.md](CONFIGURATION.md) (attribute mapping), [DEVELOPMENT.md](DEVELOPMENT.md) (CI workflows).
 
