@@ -88,7 +88,7 @@ The new `sensor.daikin_cycle_ml_electrical_power_estimated` shows the live estim
 **12-dimensional feature vector** per cycle. **Per-mode EWMA baseline** with outlier skip. **Adaptive thresholds** (opt-in) that learn what "normal" looks like for your house. **Weekly k-means clustering** into 3 archetypes (pendulum / normal / dhw_like). **Z-score anomaly detection** flags unusual cycles before they become alerts. **Energy anomaly detection** with Welford baseline catches stuck valves and runaway demand.
 
 ### Zero config complexity
-**8-step setup wizard** with smart auto-import (v1.8) that detects non-canonical attribute names via alias table + fuzzy matching. **Options menu** with grouped sections and a dedicated notifications sub-menu. **Reconfigure** flows to change source sensor or model without re-adding. **Diagnostics download** for one-click troubleshooting support.
+**Setup wizard** with smart auto-import (v1.8) that detects non-canonical attribute names via alias table + fuzzy matching. **Options menu** with grouped sections and a dedicated notifications sub-menu. **Reconfigure** flows to change source sensor or model without re-adding. **Diagnostics download** for one-click troubleshooting support.
 
 ### Production-grade quality
 **3729 tests, 100.00% coverage, mypy strict, Pylint 10/10, IQS Bronze + Silver + Gold.** 8 GitHub Actions workflows enforced on every PR. No cloud. No telemetry. No accounts. Your heat pump data stays on your HA instance.
@@ -226,7 +226,7 @@ required for setup.
 
 The following **40 ESPAltherma definition files** cover **53 technical + 1 commercial alias = 54 user-facing model codes** (EPRA, ERLA, ERGA, EPGA, EDLA, EBLA, EDLQ, EBLQ, EPSK, EKHBRD/ERRQ, ERRQ-ERSQ) from
 [ESPAltherma `beta/definitions`](https://github.com/raomin/ESPAltherma/tree/beta/definitions)
-contain all 12 required attributes and are verified compatible:
+contain the required attributes for their class (see Known model limitations below) and are verified compatible:
 
 - **EPRA D/E** — ETSH-X P30-50, ETV16-ETB16-ETVZ16 (8-18kW, with/without ECH2O)
 - **ERGA D/E** — EHSH-X P30-50, EHV-EHB-EHVZ (4-8kW, with/without ECH2O)
@@ -255,8 +255,7 @@ contain all 12 required attributes and are verified compatible:
 - **PROTOCOL_S / PROTOCOL_S_ROTEX** — Different register layout; missing most required attributes
 
 For unsupported models the setup wizard raises `missing_attributes` with a
-clear list of what's absent. A full per-model × per-attribute matrix is
-published alongside each release as `docs/MODEL_COMPATIBILITY.md`.
+clear list of what's absent. A full per-model × per-attribute matrix is maintained as `docs/MODEL_COMPATIBILITY.md`.
 
 
 > **Datasheets:** model COP curves and nominal ratings are compiled from official Daikin service manuals, provided as-is. Free to reuse with attribution (see `datasheets.json` `_meta`).
@@ -293,7 +292,7 @@ LW setpoint (main)
 - `DHW tank temp (R5T)` — enriches DHW cycle records
 - `indoor_temp_sensor` (a separate room sensor) — enables comfort guardrails
 
-### Setup wizard (8 steps)
+### Setup wizard
 
 The wizard adapts to your setup:
 
