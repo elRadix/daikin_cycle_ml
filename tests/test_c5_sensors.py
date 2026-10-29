@@ -51,7 +51,7 @@ def _mk_snap(**overrides: Any) -> DataSnapshot:
 
 def test_sensor_defs_contains_all_c5_keys():
     keys = {d["key"] for d in s_mod.SENSOR_DEFS}
-    assert C5_KEYS <= keys
+    assert keys >= C5_KEYS
 
 
 def test_c5_sensors_have_value_and_attr_fn():
@@ -306,3 +306,38 @@ def test_attrs_duty_cycle_saturated_band(monkeypatch):
     s = _mk_snap()
     a = s_mod._attrs_duty_cycle_today_pct(s, c)
     assert a["band"] == "saturated"
+
+def test_idle_state_thermal_power_zero() -> None:
+    """Thermal power should be 0.0 when state is idle, even with RPS=13."""
+    from custom_components.daikin_cycle_ml.sensor import _value_thermal_power_live
+    s = _mk_snap(state="idle")
+    s.attrs["INV frequency (rps)"] = 13.0
+    assert _value_thermal_power_live(s, None) == 0.0
+
+def test_idle_state_cop_none() -> None:
+    """COP sensors should be None when state is idle."""
+    from custom_components.daikin_cycle_ml.sensor import (
+        _value_cop_normalized_a7w35,
+        _value_cop_vs_datasheet_pct,
+    )
+    s = _mk_snap(state="idle")
+    s.cop_normalized_a7w35 = 4.5
+    s.cop_vs_datasheet_pct = 100.0
+    assert _value_cop_normalized_a7w35(s, None) is None
+    assert _value_cop_vs_datasheet_pct(s, None) is None
+
+def test_idle_state_cop_today_none() -> None:
+    """cop_today should be None when state is idle."""
+    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
+    s = _mk_snap(state="idle")
+    s.cop_today = {"cop": 6.55}
+    fn = next(d["value_fn"] for d in SENSOR_DEFS if d["key"] == "cop_today")
+    assert fn(s, None) is None
+
+def test_current_cycle_rps_zero_when_idle() -> None:
+    """The current_cycle attrs must show rps=0 when idle."""
+    from custom_components.daikin_cycle_ml.sensor import _attrs_current_cycle
+    s = _mk_snap(state="idle")
+    s.attrs["INV frequency (rps)"] = 13.0
+    attrs = _attrs_current_cycle(s, None)
+    assert attrs["rps"] == 0

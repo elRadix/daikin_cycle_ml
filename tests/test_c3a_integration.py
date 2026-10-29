@@ -13,13 +13,13 @@ from custom_components.daikin_cycle_ml.coordinator import (
 
 
 def _snap(**over):
-    base = dict(
-        datasheet=None,
-        datasheet_model=None,
-        cop=None,
-        cop_normalized_a7w35=None,
-        cop_vs_datasheet_pct=None,
-    )
+    base = {
+        "datasheet": None,
+        "datasheet_model": None,
+        "cop": None,
+        "cop_normalized_a7w35": None,
+        "cop_vs_datasheet_pct": None,
+    }
     base.update(over)
     return DataSnapshot(**base)
 
@@ -38,7 +38,7 @@ def test_value_cop_normalized_none():
 
 
 def test_value_cop_normalized_value():
-    s = _snap(cop_normalized_a7w35=4.321)
+    s = _snap(state="running", cop_normalized_a7w35=4.321)
     assert sensor._value_cop_normalized_a7w35(s, None) == 4.321
 
 
@@ -47,7 +47,7 @@ def test_value_cop_vs_datasheet_none():
 
 
 def test_value_cop_vs_datasheet_value():
-    s = _snap(cop_vs_datasheet_pct=-12.5)
+    s = _snap(state="running", cop_vs_datasheet_pct=-12.5)
     assert sensor._value_cop_vs_datasheet_pct(s, None) == -12.5
 
 

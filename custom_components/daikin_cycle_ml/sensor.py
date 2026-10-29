@@ -9,6 +9,7 @@ Example:
 """
 from __future__ import annotations
 
+import contextlib
 import logging
 import time
 from collections.abc import Callable
@@ -25,12 +26,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .engine.timer_health import is_stale
 from .const import (
+    DOMAIN,
     UPDATE_INTERVAL_SECONDS,
 )
 from .const import buh_step_kw_for_model as _buh_step_kw_for_model
-from .const import DOMAIN
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
 from .engine.thermal import (
     compute_thermal_power_live as _compute_thermal_power_live,
@@ -47,6 +47,7 @@ from .engine.thermal import (
 from .engine.thermal import (
     safe_float as _safe_float,
 )
+from .engine.timer_health import is_stale
 from .entity import DaikinCycleMLEntity
 
 PARALLEL_UPDATES = 0  # read-only platform, HA serializes updates
@@ -97,6 +98,8 @@ def _value_cop_normalized_a7w35(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> float | None:
     """C3a: Carnot-normalized COP at reference A7/W35."""
+    if getattr(s, "state", "running") != "running":
+        return None
     return s.cop_normalized_a7w35
 
 
@@ -174,6 +177,8 @@ def _value_cop_vs_datasheet_pct(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> float | None:
     """C3a: live COP deviation (%) vs datasheet A7/W35."""
+    if getattr(s, "state", "running") != "running":
+        return None
     return s.cop_vs_datasheet_pct
 
 
@@ -209,6 +214,8 @@ def _attrs_cop_vs_datasheet_pct(
 def _value_thermal_power_live(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> float | None:
+    if getattr(s, "state", "running") != "running":
+        return 0.0
     kw, _ = _compute_thermal_power_live(
         power_w=s.power_w,
         cop=s.cop,
@@ -306,7 +313,7 @@ def _attrs_current_cycle(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[s
     return {
         "duration_min": dur_min,
         "dt_k": _dt_from_attrs(s.attrs) if running else None,
-        "rps": _rps_from_attrs(s.attrs),
+        "rps": _rps_from_attrs(s.attrs) if getattr(s, "state", "running") == "running" else 0,
         "started_at": s.cycle_start_ts or None,
     }
 
@@ -524,10 +531,8 @@ def _state_label(state: str, step_c: int, lang: str) -> str:
 def _attrs_stooklijn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     data = s.stooklijn_advies or {}
     _lang = 'en'
-    try:
+    with contextlib.suppress(Exception):
         _lang = (c.options or {}).get('notification_language', 'en') or 'en'
-    except Exception:
-        pass
     _state = str(data.get('state', 'unknown'))
     _step = int(data.get('step_c') or 0)
     return {
@@ -945,9 +950,13 @@ def _attrs_electrical_power_estimated(
 ) -> dict[str, Any]:
     """v1.14.0: source + config context for electrical estimate."""
     from .const import (
-        SUPPLY_PHASES_DEFAULT, BUH_STEP1_KW_DEFAULT,
-        BUH_STEP2_KW_DEFAULT, BUH_STEP1_KEY, BUH_STEP2_KEY,
-        INV_PRIMARY_CURRENT_KEY, V2_STATS_KEY,
+        BUH_STEP1_KEY,
+        BUH_STEP1_KW_DEFAULT,
+        BUH_STEP2_KEY,
+        BUH_STEP2_KW_DEFAULT,
+        INV_PRIMARY_CURRENT_KEY,
+        SUPPLY_PHASES_DEFAULT,
+        V2_STATS_KEY,
     )
     attrs = s.attrs or {}
     opts = getattr(c, "options", {}) or {}
@@ -1212,7 +1221,7 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "COP",
         "icon": "mdi:heat-pump",
-        "value_fn": lambda s, c: (s.cop_today or {}).get("cop"),
+        "value_fn": lambda s, c: None if getattr(s, "state", "running") != "running" else (s.cop_today or {}).get("cop"),
         "attr_fn": _attrs_cop_today,
     },
     {
@@ -1407,7 +1416,7 @@ def _migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
     for old_key, new_key in key_fixes.items():
         old_eid = "sensor.daikin_cycle_ml_" + old_key
         new_eid = "sensor.daikin_cycle_ml_" + new_key
-        new_uid = "%s_%s_%s" % (entry_domain, entry_id, new_key)
+        new_uid = f"{entry_domain}_{entry_id}_{new_key}"
         old_entry = registry.async_get(old_eid)
         if old_entry is None or old_entry.entity_id not in owned:
             continue

@@ -216,7 +216,7 @@ def test_attrs_current_cycle_idle():
     out = s_mod._attrs_current_cycle(s, MagicMock())
     assert out["duration_min"] is None
     assert out["dt_k"] is None
-    assert out["rps"] is None
+    assert out["rps"] == 0
 
 
 def test_attrs_source_health_no_success():

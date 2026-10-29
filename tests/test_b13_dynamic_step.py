@@ -312,6 +312,7 @@ def test_status_report_step_bad_int():
 def _mk_coord_b13(attrs=None, indoor_entity=None, indoor_state=None,
                   cop_rows=None):
     from unittest.mock import AsyncMock, MagicMock
+
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
