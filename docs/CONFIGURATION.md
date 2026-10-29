@@ -59,13 +59,12 @@ All entries persist to `/config/.storage/core.config_entries` under the integrat
 
 Daikin Cycle ML reads from **one** Home Assistant sensor entity — typically `sensor.althermasensors` published by ESPAltherma. Everything is computed from that sensor's **attributes**, not its state.
 
-### 2.1 Required attributes (13)
+### 2.1 Required attributes (12)
 
 Without these, cycle detection degrades or stops, and the `missing_attributes` repair is raised.
 
 | Attribute | Feeds | Why it matters |
 |---|---|---|
-| `INV frequency (rps)` | Compressor RPS | Primary "compressor on" signal |
 | `Operation Mode` | Mode fallback | Used only if `I/U operation mode` missing |
 | `I/U operation mode` | Mode source | Heating / Cooling / DHW |
 | `3way valve` | DHW discriminator | DHW vs space heating |
@@ -75,13 +74,22 @@ Without these, cycle detection degrades or stops, and the `missing_attributes` r
 | `Flow sensor (l/min)` | Water flow | Thermal kW calculation |
 | `Water pump operation` | Pump on/off | Cycle validity gate |
 | `Outdoor air temp (R1T)` | Outdoor temp | Heat-curve bucketing |
-| `DHW tank temp (R5T)` | DHW tank | DHW cycle recognition |
 | `BUH Step1` | Backup heater 1 | BUH flag on cycle record |
 | `BUH Step2` | Backup heater 2 | BUH flag on cycle record |
+| `LW setpoint (main)` | Setpoint tracking | Setpoint-oscillation alert + modern LWT advice |
 
 Even if you deselect these in the wizard, they are **always kept**. Cycle detection depends on them.
 
-### 2.2 Recommended attributes (6)
+> ⚠️ **R1T ambiguity on some models** — up to 3 attributes can share the `(R1T)` suffix (outdoor air, LWT before BUH, indoor ambient). The alias resolver disambiguates per model. See [MODEL_COMPATIBILITY §5](MODEL_COMPATIBILITY.md#5-per-model-matrix). This was the root cause of #196.
+
+#### 2.1.1 External sensor failure modes
+
+Two failure modes silently break COP/thermal calculation without raising an error:
+
+- **`cop_sensor` returning 0.0** during compressor transitions — COP samples are skipped. Verify the sensor reports stable values during steady-state operation.
+- **`power_sensor` configured in kWh instead of W** — thermal samples are skipped. Check `unit_of_measurement` is `W`, not `kWh`.
+
+### 2.2 Recommended attributes (7)
 
 Pre-selected in the wizard. Safe to enable. Improve quality and unlock extra features.
 
@@ -91,16 +99,9 @@ Pre-selected in the wizard. Safe to enable. Improve quality and unlock extra fea
 | `Suction pipe temp.` | Refrigerant context | ML feature vector |
 | `INV primary current (A)` | Power proxy | Fallback when no power sensor configured |
 | `Target Cond. Temp.` | Heat-curve target | Better stooklijn comparison |
-| `LW setpoint (main)` | LWT setpoint | **Required** for setpoint-oscillation alert and modern LWT advice |
 | `DHW setpoint` | DHW context | DHW cycle annotation |
-
-**Without `LW setpoint (main)`:**
-
-- `binary_sensor.daikin_cycle_ml_setpoint_oscillating` never fires
-- `heating_curve_advice` falls back to legacy bucket-only advice
-- `huidige_setpoint` and `doel_setpoint` attributes stay `unknown`
-
-Everything else still works. Enable it in ESPAltherma if you can — it is worth the 5-minute configuration.
+| `INV frequency (rps)` | Compressor RPS | Refines short-cycle alerts (not required for cycle detection) |
+| `DHW tank temp (R5T)` | DHW annotation | DHW cycle record enrichment (3-way valve alone identifies DHW) |
 
 ### 2.3 Optional attributes
 
@@ -109,6 +110,8 @@ Default off. Enable only if your installation publishes them:
 `Heat exchanger mid-temp.`, `Liquid pipe temp. (R6T)`, `Expansion valve (pls)`, `Crank case heater 1`, `Pressure equalizing operation`, `4 Way Valve 1`, `Solenoid Valve 1`, `Target Evap. Temp.`, `RT setpoint`, `High Pressure`, `Water pressure`, `Brine inlet temp.`, `Brine outlet temp.`
 
 None of these are used for cycle detection or COP. They are stored on the cycle record for ML feature extraction and forward-compatibility.
+
+For per-model availability of these attributes across all supported Daikin families, see [MODEL_COMPATIBILITY §5](MODEL_COMPATIBILITY.md#5-per-model-matrix).
 
 ### 2.4 Verify your sensor
 
@@ -119,7 +122,7 @@ Before starting the wizard, confirm your sensor exposes the required attributes.
 1. Developer Tools, States
 2. Search `sensor.althermasensors`
 3. Expand Attributes
-4. Check each of the 13 required names is present as a key
+4. Check each of the 12 required names is present as a key
 
 **Or via Template (Developer Tools, Template):**
 
@@ -266,7 +269,7 @@ Unresolved attributes must be mapped later.
 
 ### 3.8 Attributes screen (warning-only)
 
-Shows how many of the 13 required attributes are present on the selected source sensor. Missing ones are listed but do not block the wizard.
+Shows how many of the 12 required attributes are present on the selected source sensor. Missing ones are listed but do not block the wizard.
 
 ### 3.9 Map attributes screen
 
@@ -345,7 +348,7 @@ Review-only. Submit starts the coordinator — 30 s polling, no data until first
 
 ### "Sensor mist vereiste ESPAltherma-attributen"
 
-The wizard aborts when the source sensor is missing one or more of the 13 required attributes.
+The wizard aborts when the source sensor is missing one or more of the 12 required attributes.
 
 **Fix 1 — Manual mode:**
 

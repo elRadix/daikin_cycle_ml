@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Docs
+- **#211 #207** Reconcile CONFIGURATION §2.1 vs README attribute lists (12 required, matching `const.REQUIRED_ATTRIBUTES`); move INV freq + R5T to §2.2 recommended, LW setpoint to §2.1 required.
+- **#211** Add R1T ambiguity warning (§2.1, `## Known limitations`) and external-sensor failure-mode section (§2.1.1, `## Known limitations`).
+- **#207** Cross-link §2.3 to MODEL_COMPATIBILITY §5 per-model matrix.
+- Remove stale `docs/v1.7.0-plan.md`.
+
+
 ## [1.14.0] - 2026-10-29
 
 ### Added
