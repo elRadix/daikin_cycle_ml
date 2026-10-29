@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+- **#217** IDLE state now forces RPS=0, thermal_power_live=0.0, and COP=None instead of showing stale values.
+- **#217** Add ERG04/06/08 model aliases mapping to ERGA profiles.
+- **#217** Heating Curve advice now requires 18+ samples; sets `reason=insufficient_samples` otherwise.
+
 ### Docs
 - **#211 #207** Reconcile CONFIGURATION §2.1 vs README attribute lists (12 required, matching `const.REQUIRED_ATTRIBUTES`); move INV freq + R5T to §2.2 recommended, LW setpoint to §2.1 required.
 - **#211** Add R1T ambiguity warning (§2.1, `## Known limitations`) and external-sensor failure-mode section (§2.1.1, `## Known limitations`).
@@ -31,7 +36,6 @@
 - `test_205_electrical_power_cascade.py` (14), `test_206_cop_fallback.py` (6), `test_g1_defensive_guards.py` (6) - new.
 - `test_c5_sensors.py::test_duty_cycle_computes_pct` monkeypatches `_now` (wall-clock independence).
 - `test_c3a_integration.py`, `test_v160_spf.py`, `test_v160_per_mode_cop.py`, `test_v160_deep.py` - SENSOR_DEFS 46 -> 47.
-- **#217** Fix IDLE state enforcement (RPS=0, thermal=0.0, COP=None); add ERG model aliases (erg04, erg06, erg08); enforce minimum 18 samples for Heating Curve advice.
 
 Suite: 3703 -> 3729 (+26).
 
