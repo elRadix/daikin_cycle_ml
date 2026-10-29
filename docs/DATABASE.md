@@ -4,7 +4,7 @@ Storage architecture, schema reference, and maintenance for Daikin Cycle ML.
 
 - **Covers:** SQLite database layout, all tables, model_state keys, retention policy, migrations, HA Store alerts
 - **For:** end users managing storage, admins running maintenance, developers reading the persistence layer
-- **Version:** v1.9.0
+- **Version:** v1.14.0
 
 Cross-references: [CONFIGURATION.md](CONFIGURATION.md) (retention options), [ENTITIES.md](ENTITIES.md) (services that touch the DB), [ML.md](ML.md) (baseline persistence), [ALERTS.md](ALERTS.md) (alert store).
 

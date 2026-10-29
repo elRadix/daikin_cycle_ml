@@ -4,7 +4,7 @@ Version-by-version upgrade notes for Daikin Cycle ML, with migration steps and b
 
 - **Covers:** breaking changes, migration paths, deprecated options, DB migrations, entity renames
 - **For:** existing users upgrading from v1.4 to v1.9, users troubleshooting upgrade issues
-- **Version:** v1.9.0
+- **Version:** v1.14.0
 
 Cross-references: [DATABASE.md](DATABASE.md) (schema migrations), [CONFIGURATION.md](CONFIGURATION.md) (options), [ENTITIES.md](ENTITIES.md) (entity surface), [TROUBLESHOOTING.md](TROUBLESHOOTING.md) (when upgrade fails).
 

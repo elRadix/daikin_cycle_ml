@@ -4,7 +4,7 @@ Complete user guide to every configurable option in Daikin Cycle ML.
 
 - **Covers:** source sensor requirements, setup wizard, options menu, reconfigure flows
 - **For:** end users, admins tuning alerts, developers reading the config schema
-- **Version:** v1.9.0
+- **Version:** v1.14.0
 
 Cross-references: [ENTITIES.md](ENTITIES.md) (sensors/services), [ALERTS.md](ALERTS.md) (alert tuning), [ML.md](ML.md) (adaptive thresholds), [DATABASE.md](DATABASE.md) (retention).
 

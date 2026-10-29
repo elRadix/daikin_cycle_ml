@@ -4,7 +4,7 @@ Diagnostic guide for common issues with Daikin Cycle ML.
 
 - **Covers:** setup problems, cycle detection failures, alert issues, entity problems, database errors, HA integration problems
 - **For:** end users debugging their install
-- **Version:** v1.9.0
+- **Version:** v1.14.0
 
 Cross-references: [CONFIGURATION.md](CONFIGURATION.md) (fix via options), [ENTITIES.md](ENTITIES.md) (entity reference), [DATABASE.md](DATABASE.md) (DB recovery), [ALERTS.md](ALERTS.md) (alert tuning), [ML.md](ML.md) (ML behavior).
 

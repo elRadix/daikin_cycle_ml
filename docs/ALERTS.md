@@ -4,7 +4,7 @@ Design and reference for the alert pipeline in Daikin Cycle ML.
 
 - **Covers:** all 19 alert types, delivery channels, deduplication, quiet hours, groups, per-alert toggles, templates, test behavior
 - **For:** end users tuning alerts, admins integrating with notify services, developers extending the pipeline
-- **Version:** v1.9.0
+- **Version:** v1.14.0
 
 Cross-references: [CONFIGURATION.md](CONFIGURATION.md) (options menu), [ENTITIES.md](ENTITIES.md) (alert-related binary sensors), [ML.md](ML.md) (anomaly detection), [DATABASE.md](DATABASE.md) (alert persistence).
 
