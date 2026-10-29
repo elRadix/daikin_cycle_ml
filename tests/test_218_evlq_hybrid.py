@@ -745,3 +745,79 @@ async def test_cop_sample_with_none_data_obj():
 
     # Should not crash; sample may or may not be inserted depending on parser
     await DaikinCycleMLCoordinator._maybe_collect_cop_sample(c, now=10000.0)
+
+
+# ============================================================
+# Coverage: coordinator lines 2853 + 2874->exit
+# ============================================================
+
+@pytest.mark.asyncio
+async def test_cop_sample_invalid_parse_returns_early(monkeypatch):
+    """Line 2853: parse returns None → return before INSERT."""
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator, DataSnapshot,
+    )
+    from custom_components.daikin_cycle_ml.engine import cop_analyzer as _ca
+    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+
+    monkeypatch.setattr(_ca, "parse_global_cop_attrs", lambda _m: None)
+
+    c = _M()
+    c.db = _M()
+    c.db.async_get_max_cop_sample_ts = _AM(return_value=None)
+    c.db.async_insert_cop_sample = _AM(return_value=True)
+    c._cop_sample_seed_done = True
+    c._last_cop_sample_ts = 0.0
+    c.cop_sensor_entity = "sensor.x"
+    c._resolve_cop_sample_mode = _M(return_value="heating")
+
+    st = _M()
+    st.state = "4.5"
+    st.attributes = {}
+    c.hass = _M()
+    c.hass.states = _M()
+    c.hass.states.get = _M(return_value=st)
+
+    snap = DataSnapshot()
+    snap.cop = 4.5
+    snap.state = "running"
+    snap.boiler_active = False
+    snap.attrs = {}
+    c.data = snap
+
+    await DaikinCycleMLCoordinator._maybe_collect_cop_sample(c, now=10000.0)
+    c.db.async_insert_cop_sample.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_cop_sample_insert_returns_false_branch():
+    """Line 2874->exit: insert returns False → _last_cop_sample_ts unchanged."""
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator, DataSnapshot,
+    )
+    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+
+    c = _M()
+    c.db = _M()
+    c.db.async_get_max_cop_sample_ts = _AM(return_value=None)
+    c.db.async_insert_cop_sample = _AM(return_value=False)
+    c._cop_sample_seed_done = True
+    c._last_cop_sample_ts = 0.0
+    c.cop_sensor_entity = None
+    c._resolve_cop_sample_mode = _M(return_value="heating")
+
+    snap = DataSnapshot()
+    snap.cop = 4.5
+    snap.state = "running"
+    snap.boiler_active = False
+    snap.attrs = {
+        "Operation Mode": "Heating",
+        "Outdoor air temp.(R1T)": 10.0,
+        "Flow sensor (l/min)": 15.0,
+        "Inlet water temp.(R4T)": 25.0,
+        "Leaving water temp. before BUH (R1T)": 30.0,
+    }
+    c.data = snap
+
+    await DaikinCycleMLCoordinator._maybe_collect_cop_sample(c, now=10000.0)
+    assert c._last_cop_sample_ts == 0.0
