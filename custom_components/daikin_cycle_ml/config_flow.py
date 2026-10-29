@@ -881,6 +881,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 "quality_ml",
                 "notifications",
                 "advanced",
+                "cop_calc",
                 "test_notification",
                 "test_all_notifications",
             ],
@@ -955,6 +956,37 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 "source_sensor": str(d.get("source_sensor", "?")),
                 "model": str(d.get("model", "?")),
             },
+        )
+
+    async def async_step_cop_calc(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """COP/electrical cascade tuning (raomin-aligned)."""
+        if user_input is not None:
+            return self._save(user_input)
+        c: dict[str, Any] = dict(self.config_entry.options or {})
+        schema = vol.Schema({
+            vol.Required("electrical"): section(vol.Schema({
+                vol.Required(
+                    "supply_phases",
+                    default=str(c.get("supply_phases", 1)),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=["1", "3"],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    ),
+                ),
+                vol.Required(
+                    "buh_step1_kw",
+                    default=float(c.get("buh_step1_kw", 3.0)),
+                ): _num(0.0, 20.0, 0.5, "kW"),
+                vol.Required(
+                    "buh_step2_kw",
+                    default=float(c.get("buh_step2_kw", 3.0)),
+                ): _num(0.0, 20.0, 0.5, "kW"),
+            })),
+        })
+        return self.async_show_form(
+            step_id="cop_calc",
+            data_schema=schema,
         )
 
     async def async_step_pendulum(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

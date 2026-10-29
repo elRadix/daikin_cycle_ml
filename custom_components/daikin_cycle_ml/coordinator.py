@@ -160,6 +160,9 @@ class DataSnapshot:
     spf_state: dict[str, Any] = field(default_factory=dict)
     power_w: float | None = None
     cop: float | None = None
+    cop_source: str = "none"
+    electrical_power_w: float | None = None
+    electrical_power_source: str = "none"
     setpoint_oscillating: bool = False
     datasheet: dict[str, Any] | None = None
     datasheet_model: str | None = None
@@ -461,6 +464,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _notify_fail_target: str = ""
     _db_integrity_ok: bool = True
     _migration_error: str | None = None
+
+    # v1.14.0: class-level default so partial test fixtures
+    # (object.__new__ without __init__) do not AttributeError
+    # in the _async_update_data except handler.
+    _errors_total: int = 0
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.entry = entry
@@ -1139,9 +1147,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.exception("kmeans backfill: run failed")
 
     def _read_power(self) -> float | None:
-        if not self.power_sensor:
+        ps = getattr(self, "power_sensor", None)
+        if not ps:
             return None
-        state = self.hass.states.get(self.power_sensor)
+        state = self.hass.states.get(ps)
         if state is None:
             return None
         try:
@@ -1151,9 +1160,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
     def _read_power_w(self) -> float | None:
         """FEAT-2: read power sensor and normalize to Watt."""
-        if not self.power_sensor:
+        ps = getattr(self, "power_sensor", None)
+        if not ps:
             return None
-        state = self.hass.states.get(self.power_sensor)
+        state = self.hass.states.get(ps)
         if state is None:
             return None
         try:
@@ -1174,6 +1184,151 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return float(state.state)
         except (TypeError, ValueError):
             return None
+
+    def _detect_v2_stats(self, attrs: dict[str, Any] | None) -> bool:
+        """v1.14.0: ESPAltherma 2.0 'Stats:' section detection."""
+        if not attrs:
+            return False
+        from .const import V2_STATS_KEY
+        return V2_STATS_KEY in attrs
+
+    def _v2_stats_active(
+        self, now: float, attrs: dict[str, Any] | None
+    ) -> bool:
+        """v1.14.0: v2 detection with 300s hysteresis (R507)."""
+        from .const import V2_STATS_HYSTERESIS_S
+        if self._detect_v2_stats(attrs):
+            self._last_v2_stats_ts = now
+            return True
+        last = getattr(self, "_last_v2_stats_ts", 0.0)
+        return (now - last) < V2_STATS_HYSTERESIS_S
+
+    def _compute_electrical_power(
+        self, now: float, attrs: dict[str, Any] | None
+    ) -> tuple[float | None, str]:
+        """v1.14.0: raomin-aligned cascade (Discussion #599)."""
+        pw = self._power_from_meter()
+        if pw is not None:
+            return pw, "power_meter"
+        pw = self._power_from_v2_stats(now, attrs)
+        if pw is not None:
+            return pw, "espaltherma_v2_stats"
+        pw = self._power_from_inverter(attrs)
+        if pw is not None:
+            return pw, "inverter_estimated_v1"
+        return None, "none"
+
+    def _power_from_meter(self) -> float | None:
+        ps = getattr(self, "power_sensor", None)
+        if not ps:
+            return None
+        st = self.hass.states.get(ps)
+        if st is None or st.state in (None, "unknown", "unavailable", ""):
+            return None
+        try:
+            pw = float(st.state)
+        except (TypeError, ValueError):
+            return None
+        return pw if pw > 0 else None
+
+    def _power_from_v2_stats(
+        self, now: float, attrs: dict[str, Any] | None
+    ) -> float | None:
+        from .const import V2_STATS_KEY
+        if not attrs or not self._v2_stats_active(now, attrs):
+            return None
+        try:
+            v = attrs.get(V2_STATS_KEY)
+            if v is None:
+                return None
+            pw = float(v) * 1000.0
+        except (TypeError, ValueError):
+            return None
+        return pw if pw > 0 else None
+
+    def _power_from_inverter(
+        self, attrs: dict[str, Any] | None
+    ) -> float | None:
+        """v1.14.0: v1 fallback — INV current + BUH + offset (R507)."""
+        from .const import (
+            INV_PRIMARY_CURRENT_KEY,
+            VOLTAGE_NOMINAL_V,
+            SUPPLY_PHASES_DEFAULT,
+            BUH_STEP1_KW_DEFAULT,
+            BUH_STEP2_KW_DEFAULT,
+            BUH_STEP1_KEY,
+            BUH_STEP2_KEY,
+            ELECTRICAL_OFFSET_W_V1,
+        )
+        if not attrs:
+            return None
+        try:
+            inv_a = float(attrs.get(INV_PRIMARY_CURRENT_KEY) or 0)
+        except (TypeError, ValueError):
+            inv_a = 0.0
+        if inv_a <= 0:
+            return None
+        opts = getattr(self, "options", None) or {}
+        phases = int(opts.get("supply_phases", SUPPLY_PHASES_DEFAULT))
+        base_w = inv_a * VOLTAGE_NOMINAL_V * phases
+        buh_w = 0.0
+        if self._is_on(attrs.get(BUH_STEP1_KEY)):
+            buh_w += float(opts.get("buh_step1_kw", BUH_STEP1_KW_DEFAULT)) * 1000.0
+        if self._is_on(attrs.get(BUH_STEP2_KEY)):
+            buh_w += float(opts.get("buh_step2_kw", BUH_STEP2_KW_DEFAULT)) * 1000.0
+        return base_w + buh_w + ELECTRICAL_OFFSET_W_V1
+
+    @staticmethod
+    def _is_on(v: Any) -> bool:
+        if v is None:
+            return False
+        return str(v).strip().upper() == "ON"
+
+    def _read_cop_effective(
+        self, now: float, attrs: dict[str, Any] | None
+    ) -> tuple[float | None, str]:
+        """v1.14.0: COP source cascade (sensor > computed)."""
+        sensor_cop = self._read_cop()
+        if sensor_cop is not None and sensor_cop > 0:
+            return sensor_cop, "cop_sensor"
+        if not attrs:
+            return None, "none"
+        power_w, power_src = self._compute_electrical_power(now, attrs)
+        if power_w is None or power_w <= 0:
+            return None, "no_power"
+        from .engine.attribute_compat import build_compat_view
+        from .engine.thermal import dt_from_attrs, compute_thermal_power_live
+        compat = build_compat_view(attrs)
+        dt_k = dt_from_attrs(compat)
+        if dt_k is None or dt_k <= 0:
+            return None, "no_dt"
+        try:
+            flow_lmin = float(compat.get("Flow sensor (l/min)") or 0)
+        except (TypeError, ValueError):
+            flow_lmin = 0.0
+        try:
+            rps = float(compat.get("INV frequency (rps)") or 0)
+        except (TypeError, ValueError):
+            rps = 0.0
+        mode = "heating"
+        data_obj = getattr(self, "data", None)
+        dm = getattr(data_obj, "mode", None) if data_obj else None
+        if dm:
+            mode = str(dm)
+        thermal_kw, _tsrc = compute_thermal_power_live(
+            power_w=None, cop=None,
+            flow_lmin=flow_lmin if flow_lmin > 0 else None,
+            dt_k=dt_k,
+            rps=rps if rps > 0 else None,
+            mode=mode,
+        )
+        if thermal_kw is None or thermal_kw <= 0:
+            return None, "no_thermal"
+        from .const import MAX_COP
+        cop = thermal_kw * 1000.0 / power_w
+        if cop <= 0 or cop > MAX_COP:
+            return None, "cop_out_of_range"
+        return round(cop, 4), f"computed_{power_src}"
 
     async def _async_update_data(self) -> DataSnapshot:
         now = time.time()
@@ -1219,7 +1374,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 return snap
             self._track_setpoint(attrs)
             snap.power_w = self._read_power_w()
-            snap.cop = self._read_cop()
+            snap.cop, _cop_src = self._read_cop_effective(now, attrs)
+            snap.cop_source = _cop_src
+            snap.electrical_power_w, snap.electrical_power_source = self._compute_electrical_power(now, attrs)
             snap.setpoint_oscillating = self._compute_setpoint_oscillating()
             prev_detector_state = self.detector.state
             # R317: use unit-normalised power (kW->W) so the fallback

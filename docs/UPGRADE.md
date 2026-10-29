@@ -10,7 +10,34 @@ Cross-references: [DATABASE.md](DATABASE.md) (schema migrations), [CONFIGURATION
 
 ---
 
-## Latest: v1.10.0
+## Latest: v1.14.0
+
+**Released:** <pending, in development on main>
+**Breaking:** none
+
+### What changes
+
+New electrical-input cascade for COP. Power-meter users, ESPAltherma 2.0 users (Stats section present), and ESPAltherma 1.x users without a power meter now all get consistent per-sample COP.
+
+### What you need to do
+
+**Power-meter users (most common):** nothing. Your `power_sensor_entity` remains ground truth, no offset applied.
+
+**ESPAltherma 2.0 users:** nothing. The integration auto-detects `Stats: Electrical input estimated (kW)` and uses it directly. Configure phases/BUH in ESPAltherma itself. The integration does not add an offset here (prevents double-counting).
+
+**ESPAltherma 1.x users without a power meter:** open Settings, then Devices & Services, then Daikin Cycle ML, then Configure, then COP calculation. Set supply phases (1 for most homes, 3 for three-phase). Adjust BUH step kW if step 2 is 6 kW on your unit. Defaults are correct for a standard single-phase installation with 3 kW + 3 kW BUH.
+
+### New entity
+
+`sensor.daikin_cycle_ml_electrical_power_estimated` (W) with `source` attribute. Useful for verifying which cascade path was chosen.
+
+### Historical samples
+
+Not rewritten (backwards compat). Pre-v1.14.0 samples retain legacy thermal derivation. Post-upgrade samples use the improved formula.
+
+---
+
+## v1.10.0
 
 **Released:** 2026-10-20
 **Breaking:** only for multi-entry users with pre-existing history

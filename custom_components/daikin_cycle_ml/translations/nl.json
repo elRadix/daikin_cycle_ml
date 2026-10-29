@@ -233,6 +233,7 @@
           "quality_ml": "Kwaliteit & ML",
           "notifications": "Meldingen",
           "advanced": "Geavanceerd",
+          "cop_calc": "COP-berekening",
           "test_notification": "Testmelding nu versturen",
           "test_all_notifications": "Verstuur ALLE testmeldingen"
         },
@@ -242,6 +243,7 @@
           "quality_ml": "Kwaliteitsscore-drempels",
           "notifications": "Melding-doel, stille uren, alert-groepen, taal",
           "advanced": "Retentie, dagelijkse rollup, VACUUM",
+          "cop_calc": "Voedingsfasen en backup-verwarming voor COP",
           "test_notification": "Stuur één voorbeeldmelding naar het melding-doel",
           "test_all_notifications": "Eén klik — stuurt elk alert-type in één keer (filters omzeild)"
         }
@@ -583,6 +585,25 @@
           "alert_enabled_kmeans_retrain_stale": "K-means hertraining verouderd melding inschakelen",
           "alert_enabled_energy_daily_anomaly": "Energie-dagelijkse afwijking melding inschakelen"
         }
+      },
+      "cop_calc": {
+        "title": "COP-berekening",
+        "description": "Configureer voedingsfasen en backup-verwarming voor de elektrisch-vermogen schatting.",
+        "sections": {
+          "electrical": {
+            "name": "Elektrisch vermogen",
+            "data": {
+              "supply_phases": "Voedingsfasen",
+              "buh_step1_kw": "Backup-verwarming stap 1 (kW)",
+              "buh_step2_kw": "Backup-verwarming stap 2 (kW)"
+            },
+            "data_description": {
+              "supply_phases": "Voedingsfasen van de warmtepomp. 1 = eenfase, 3 = driefase. Standaard 1.",
+              "buh_step1_kw": "Nominaal vermogen backup-verwarming stap 1. Standaard 3 kW (Daikin-standaard).",
+              "buh_step2_kw": "Nominaal vermogen backup-verwarming stap 2. Standaard 3 kW (sommige units 6 kW)."
+            }
+          }
+        }
       }
     }
   },
@@ -731,6 +752,9 @@
       },
       "daily_summary_recent": {
         "name": "Recent dagoverzicht"
+      },
+      "electrical_power_estimated": {
+        "name": "Elektrisch vermogen geschat"
       }
     },
     "binary_sensor": {

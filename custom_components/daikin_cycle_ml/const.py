@@ -644,6 +644,20 @@ DB_FILENAME = "daikin_cycle_ml.db"
 DB_FILENAME_TEMPLATE = "daikin_cycle_ml_{entry_id}.db"
 DB_LEGACY_MARKER_FILENAME = ".daikin_cycle_ml_v1100_migrated"
 
+# v1.14.0 raomin-aligned electrical input cascade (Discussion #599)
+SUPPLY_PHASES_DEFAULT = 1
+SUPPLY_PHASES_ALLOWED = (1, 3)
+BUH_STEP1_KW_DEFAULT = 3.0
+BUH_STEP2_KW_DEFAULT = 3.0
+ELECTRICAL_OFFSET_W_V1 = 100.0
+VOLTAGE_NOMINAL_V = 230.0
+V2_STATS_KEY = "Stats: Electrical input estimated (kW)"
+INV_PRIMARY_CURRENT_KEY = "INV primary current (A)"
+BUH_STEP1_KEY = "BUH Step1"
+BUH_STEP2_KEY = "BUH Step2"
+V2_STATS_HYSTERESIS_S = 300.0
+
+
 # === v1.13.2 model families + aliases ===
 
 MODEL_FAMILIES: dict[str, str] = {

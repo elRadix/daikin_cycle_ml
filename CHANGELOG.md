@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Added
+- **#206** electrical input cascade: power meter > ESPAltherma 2.0 `Stats: Electrical input estimated (kW)` > v1 inverter fallback (`INV_A x 230V x phases + BUH_step1_kW + BUH_step2_kW + 100W`). v2 detection with 300s hysteresis. Ref raomin/ESPAltherma Discussion #599.
+- **#206** OptionsFlow step `cop_calc` (`supply_phases` 1|3, `buh_step1_kw`, `buh_step2_kw`).
+- **#206** sensor `electrical_power_estimated` (W) with `source` attribute (`power_meter`|`espaltherma_v2_stats`|`inverter_estimated_v1`|`none`).
+- **#206** coordinator `_read_cop_effective` fallback (cop_sensor > computed flow_dt / electrical power). MAX_COP (11.0) gate. DataSnapshot: `cop_source`, `electrical_power_w`, `electrical_power_source`.
+- **#206** const: `SUPPLY_PHASES_DEFAULT/ALLOWED`, `BUH_STEP1_KW_DEFAULT`, `BUH_STEP2_KW_DEFAULT`, `ELECTRICAL_OFFSET_W_V1`, `VOLTAGE_NOMINAL_V`, `V2_STATS_KEY`, `INV_PRIMARY_CURRENT_KEY`, `BUH_STEP1_KEY`, `BUH_STEP2_KEY`, `V2_STATS_HYSTERESIS_S`.
+
+### Fixed
+- **#206** `_errors_total` class-level default (partial fixtures via `object.__new__` no longer `AttributeError` in `_async_update_data` except-handler).
+- **#206** `_read_power` / `_read_power_w` use `getattr(self, "power_sensor", None)` (mirror of `_power_from_meter`).
+- **#206** `cycles_today()` skips `start_ts > now + 60s` (clock-skew tolerance, blocks DB-import corruption).
+- **#206** `_value_duty_cycle_today_pct` clamps [0, 100].
+
+### Tests
+- `test_205_electrical_power_cascade.py` (14), `test_206_cop_fallback.py` (6), `test_g1_defensive_guards.py` (6) - new.
+- `test_c5_sensors.py::test_duty_cycle_computes_pct` monkeypatches `_now` (wall-clock independence).
+- `test_c3a_integration.py`, `test_v160_spf.py`, `test_v160_per_mode_cop.py`, `test_v160_deep.py` - SENSOR_DEFS 46 -> 47.
+
+Suite: 3703 -> 3729 (+26).
+
 ## [1.13.2] - 2026-10-28
 
 ### Fixed

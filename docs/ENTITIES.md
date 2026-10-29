@@ -96,11 +96,12 @@ The most commonly used entities in user automations:
 | `cop_sample_count` | int | Number of COP samples |
 | `cop_confidence` | str | `none` / `low` / `medium` / `high` (v1.12.5 #133) |
 
-### 2.2 Live thermal power (1)
+### 2.2 Live power (2)
 
 | Entity | Unit | Device class | Description |
 |---|---|---|---|
 | `sensor.daikin_cycle_ml_thermal_power_live` | kW | power | Live thermal power: flow × 4.18 × dT / 60 |
+| `sensor.daikin_cycle_ml_electrical_power_estimated` | W | power | Electrical input estimate (v1.14.0). `source` attribute: `power_meter` / `espaltherma_v2_stats` / `inverter_estimated_v1` / `none`. Extra attributes: `supply_phases`, `buh_step1_kw`, `buh_step2_kw`, `buh_step1_on`, `buh_step2_on`, `inv_current_a`, `v2_stats_present`. |
 
 Reports `unknown` when compressor is off or flow/dT invalid. Normal — not an error.
 

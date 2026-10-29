@@ -231,6 +231,7 @@
           "quality_ml": "Quality & ML",
           "notifications": "Notifications",
           "advanced": "Advanced",
+          "cop_calc": "COP calculation",
           "test_notification": "Send test notification now",
           "test_all_notifications": "Send ALL test notifications"
         },
@@ -240,6 +241,7 @@
           "quality_ml": "Quality scoring thresholds",
           "notifications": "Notify target, quiet hours, alert groups, language",
           "advanced": "Retention, daily rollup, VACUUM",
+          "cop_calc": "Supply phases and backup-heater power for COP",
           "test_notification": "Send one sample alert to the notify target",
           "test_all_notifications": "One click — sends one of each alert type (filters bypassed)"
         }
@@ -581,6 +583,25 @@
           "alert_enabled_kmeans_retrain_stale": "Enable k-means retrain stale alert",
           "alert_enabled_energy_daily_anomaly": "Enable energy daily anomaly alert"
         }
+      },
+      "cop_calc": {
+        "title": "COP calculation",
+        "description": "Configure supply phases and backup-heater power for the electrical-input estimate.",
+        "sections": {
+          "electrical": {
+            "name": "Electrical input",
+            "data": {
+              "supply_phases": "Supply phases",
+              "buh_step1_kw": "Backup heater step 1 (kW)",
+              "buh_step2_kw": "Backup heater step 2 (kW)"
+            },
+            "data_description": {
+              "supply_phases": "Power-supply phases of the heat pump. 1 = single-phase, 3 = three-phase. Default 1.",
+              "buh_step1_kw": "Rated power of backup-heater step 1. Default 3 kW (Daikin standard).",
+              "buh_step2_kw": "Rated power of backup-heater step 2. Default 3 kW (some units use 6 kW)."
+            }
+          }
+        }
       }
     }
   },
@@ -729,6 +750,9 @@
       },
       "daily_summary_recent": {
         "name": "Daily summary recent"
+      },
+      "electrical_power_estimated": {
+        "name": "Electrical power estimated"
       }
     },
     "binary_sensor": {
