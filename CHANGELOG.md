@@ -31,6 +31,7 @@
 - `test_205_electrical_power_cascade.py` (14), `test_206_cop_fallback.py` (6), `test_g1_defensive_guards.py` (6) - new.
 - `test_c5_sensors.py::test_duty_cycle_computes_pct` monkeypatches `_now` (wall-clock independence).
 - `test_c3a_integration.py`, `test_v160_spf.py`, `test_v160_per_mode_cop.py`, `test_v160_deep.py` - SENSOR_DEFS 46 -> 47.
+- **#217** Fix IDLE state enforcement (RPS=0, thermal=0.0, COP=None); add ERG model aliases (erg04, erg06, erg08); enforce minimum 18 samples for Heating Curve advice.
 
 Suite: 3703 -> 3729 (+26).
 

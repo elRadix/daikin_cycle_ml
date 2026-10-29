@@ -53,10 +53,10 @@ def _invalid(cop=0.0, outdoor=7.0):
 
 
 def test_analyze_skips_invalid_samples():
-    samples = [_valid() for _ in range(10)]
+    samples = [_valid() for _ in range(18)]
     samples.append(_invalid())
     a = analyze_stooklijn(samples)
-    assert a.samples == 10
+    assert a.samples == 18
 
 
 def test_analyze_all_invalid_returns_unknown():
@@ -66,27 +66,27 @@ def test_analyze_all_invalid_returns_unknown():
 
 
 def test_analyze_recent_lwt_none_returns():
-    samples = [_valid(lwt=32.0) for _ in range(10)]
+    samples = [_valid(lwt=32.0) for _ in range(18)]
     samples.append(_valid(lwt=None))
     a = analyze_stooklijn(samples)
     assert a.optimale_lwt is not None
 
 
 def test_analyze_all_lwt_none_returns():
-    samples = [_valid(lwt=None) for _ in range(10)]
+    samples = [_valid(lwt=None) for _ in range(18)]
     a = analyze_stooklijn(samples)
-    assert a.samples == 10
+    assert a.samples == 18
 
 
 def test_analyze_comfort_impact_set():
-    samples = [_valid(lwt=32.0) for _ in range(10)]
+    samples = [_valid(lwt=32.0) for _ in range(18)]
     samples.append(_valid(lwt=36.0))
     a = analyze_stooklijn(samples, indoor_avg=22.0, comfort_min=20.0)
     assert a.comfort_impact != 0
 
 
 def test_analyze_recent_invalid_scans_backwards():
-    samples = [_valid() for _ in range(10)]
+    samples = [_valid() for _ in range(18)]
     samples.append(_invalid())
     a = analyze_stooklijn(samples)
     assert a.state in ('keep', 'lower_lwt', 'raise_lwt')

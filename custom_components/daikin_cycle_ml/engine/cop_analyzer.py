@@ -6,10 +6,6 @@ import time
 from dataclasses import dataclass
 from typing import Any
 
-_NUM_RE = re.compile(r'-?\d+(?:\.\d+)?')
-STOOKLIJN_RECENT_WINDOW_S = 48 * 3600
-
-
 from ..const import (
     COMFORT_TOLERANCE,
     K_EMIT_DEFAULT,
@@ -17,6 +13,9 @@ from ..const import (
     LWT_STEP_MIN,
     LWT_TRACKING_TOLERANCE,
 )
+
+_NUM_RE = re.compile(r'-?\d+(?:\.\d+)?')
+STOOKLIJN_RECENT_WINDOW_S = 48 * 3600
 
 
 def _parse_float(value: Any) -> float | None:
@@ -216,6 +215,8 @@ def analyze_stooklijn(
     advies.betrouwbaarheid = min(len(bucket_samples) / 10.0, 1.0)
     if len(bucket_samples) < 5:
         return advies
+    if len(bucket_samples) < 18:
+        advies.reason = 'insufficient_samples'
     cops = [s.cop for s in bucket_samples]
     lwts = [s.lwt for s in bucket_samples if s.lwt is not None]
     avg_cop = _avg(cops)

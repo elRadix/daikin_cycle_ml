@@ -1,5 +1,8 @@
 """Tests for model-family and alias resolution (v1.13.2)."""
+
 from __future__ import annotations
+
+import pytest
 
 from custom_components.daikin_cycle_ml.const import (
     MODEL_ALIASES,
@@ -7,6 +10,7 @@ from custom_components.daikin_cycle_ml.const import (
     MODEL_CHOICES,
     MODEL_CUSTOM,
     MODEL_ERGA04EAV3,
+    MODEL_ERGA06EAV3,
     MODEL_ERGA08EAV3,
     MODEL_ERGA08EVH7,
     MODEL_FAMILIES,
@@ -30,9 +34,12 @@ def test_model_families_shape() -> None:
 
 
 def test_model_aliases_shape() -> None:
+    """Validates that all aliases map to valid model profiles."""
     assert isinstance(MODEL_ALIASES, dict)
-    assert len(MODEL_ALIASES) == 1
-    assert MODEL_ALIASES[MODEL_ERGA08EVH7] == MODEL_ERGA08EAV3
+    assert len(MODEL_ALIASES) >= 1
+    for alias, target in MODEL_ALIASES.items():
+        assert target in MODEL_PROFILES, f"Alias {alias} maps to invalid target {target}"
+        assert resolve_model_key(alias) == target
 
 
 def test_resolve_model_key_alias() -> None:
@@ -120,3 +127,13 @@ def test_get_profile_empty_string() -> None:
 
 def test_get_profile_alias_equivalent() -> None:
     assert get_profile(MODEL_ERGA08EVH7) == get_profile(MODEL_ERGA08EAV3)
+
+
+@pytest.mark.parametrize("variant, expected", [
+    ("erg04eav3", MODEL_ERGA04EAV3),
+    ("erg06eav3", MODEL_ERGA06EAV3),
+    ("erg08eav3", MODEL_ERGA08EAV3),
+])
+def test_erg_aliases(variant: str, expected: str) -> None:
+    """Test ESPAltherma ERG (missing A) aliases."""
+    assert resolve_model_key(variant) == expected

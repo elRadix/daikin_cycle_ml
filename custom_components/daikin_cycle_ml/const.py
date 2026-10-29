@@ -676,6 +676,9 @@ MODEL_FAMILIES: dict[str, str] = {
 
 MODEL_ALIASES: dict[str, str] = {
     MODEL_ERGA08EVH7: MODEL_ERGA08EAV3,
+    "erg04eav3": MODEL_ERGA04EAV3,
+    "erg06eav3": MODEL_ERGA06EAV3,
+    "erg08eav3": MODEL_ERGA08EAV3,
 }
 
 
@@ -688,7 +691,7 @@ def family_for_model(model_code: str) -> str:
     """Return the family prefix (e.g. 'erga') for a model code or alias."""
     key = resolve_model_key(model_code) if model_code else ''
     if not key or key in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
-        return MODEL_BASISPROFIEL if not key else key
+        return key if key else MODEL_BASISPROFIEL
     i = 0
     while i < len(key) and key[i].isalpha():
         i += 1

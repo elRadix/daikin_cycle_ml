@@ -76,7 +76,7 @@ def test_old_heating_outside_window_geen_data():
 
 def test_recent_heating_within_window_used():
     fresh_ts = time.time() - 100
-    heating = _mk(4.0, 35.0, 5.0, "heating", ts=fresh_ts)
+    heating = _mk(4.0, 35.0, 5.0, "heating", ts=fresh_ts, n=18)
     a = analyze_stooklijn(heating)
     assert a.state != "no_data"
     assert a.reason == ""
