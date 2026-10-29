@@ -752,7 +752,8 @@ def _value_duty_cycle_today_pct(
     now = _now()
     runtime = _value_runtime_compressor_today_s(s, c)
     elapsed = max(1.0, now - _local_midnight(now))
-    return round(100.0 * runtime / elapsed, 2)
+    raw = 100.0 * runtime / elapsed
+    return round(max(0.0, min(100.0, raw)), 2)
 
 
 def _buh_energy_kwh_est(
@@ -932,6 +933,39 @@ def _attrs_daily_summary_recent(
     }
 
 
+def _value_electrical_power_estimated(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> float | None:
+    """v1.14.0: electrical input estimate (raomin cascade)."""
+    return getattr(s, "electrical_power_w", None)
+
+
+def _attrs_electrical_power_estimated(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    """v1.14.0: source + config context for electrical estimate."""
+    from .const import (
+        SUPPLY_PHASES_DEFAULT, BUH_STEP1_KW_DEFAULT,
+        BUH_STEP2_KW_DEFAULT, BUH_STEP1_KEY, BUH_STEP2_KEY,
+        INV_PRIMARY_CURRENT_KEY, V2_STATS_KEY,
+    )
+    attrs = s.attrs or {}
+    opts = getattr(c, "options", {}) or {}
+    phases = int(opts.get("supply_phases", SUPPLY_PHASES_DEFAULT))
+    buh1_kw = float(opts.get("buh_step1_kw", BUH_STEP1_KW_DEFAULT))
+    buh2_kw = float(opts.get("buh_step2_kw", BUH_STEP2_KW_DEFAULT))
+    return {
+        "source": getattr(s, "electrical_power_source", "none"),
+        "supply_phases": phases,
+        "buh_step1_kw": buh1_kw,
+        "buh_step2_kw": buh2_kw,
+        "v2_stats_present": V2_STATS_KEY in attrs,
+        "inv_current_a": attrs.get(INV_PRIMARY_CURRENT_KEY),
+        "buh_step1_on": str(attrs.get(BUH_STEP1_KEY, "")).strip().upper() == "ON",
+        "buh_step2_on": str(attrs.get(BUH_STEP2_KEY, "")).strip().upper() == "ON",
+    }
+
+
 SENSOR_DEFS: list[dict[str, Any]] = [
     {
         "key": "thermal_power_live", "name": "Thermal power live",
@@ -941,6 +975,17 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "icon": "mdi:fire",
         "value_fn": _value_thermal_power_live,
         "attr_fn": _attrs_thermal_power_live,
+    },
+    {
+        "key": "electrical_power_estimated",
+        "name": "Electrical power estimated",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "device_class": SensorDeviceClass.POWER,
+        "unit": "W",
+        "icon": "mdi:lightning-bolt",
+        "entity_category": "diagnostic",
+        "value_fn": _value_electrical_power_estimated,
+        "attr_fn": _attrs_electrical_power_estimated,
     },
     {
         "key": "hp_specs", "name": "HP specs",

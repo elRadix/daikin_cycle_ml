@@ -690,6 +690,22 @@ Known limitation (v1.9): `kmeans_retrain_stale` may not appear in the HA notific
 
 ---
 
+### 4.10 COP calculation (v1.14.0)
+
+Configures the electrical-input estimate used for COP.
+
+| Option | Default | Meaning |
+|---|---|---|
+| Supply phases | 1 | 1 = single-phase (most EU homes); 3 = three-phase installations. |
+| BUH step 1 (kW) | 3.0 | Rated power of backup-heater step 1 (Daikin standard: 3 kW). |
+| BUH step 2 (kW) | 3.0 | Rated power of step 2. Some units use 6 kW — check your installation manual. |
+
+**When these settings apply:** only when no `power_sensor_entity` is configured AND the source sensor lacks the ESPAltherma 2.0 `Stats:` section. If either is present, the integration uses the better source automatically and these fields are ignored.
+
+**Priority order:** power meter > ESPAltherma 2.0 Stats > v1 inverter fallback (+100 W offset). See **README → COP without a power meter** for full explanation.
+
+**Verify:** `sensor.daikin_cycle_ml_electrical_power_estimated` shows the current estimate. Its `source` attribute reveals which path was taken at any moment.
+
 ## 5. Reconfigure
 
 **Open:** Settings → Devices & Services → Daikin Cycle ML → **Reconfigure**.

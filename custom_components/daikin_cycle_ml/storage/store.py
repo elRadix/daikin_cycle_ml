@@ -182,12 +182,19 @@ class CycleStore:
 
     def cycles_today(self, now: float) -> list[dict[str, Any]]:
         day = time.strftime("%Y-%m-%d", time.localtime(float(now)))
+        now_f = float(now)
+        # v1.14.0: skip cycles whose start_ts is >60s in the future
+        # (clock skew tolerance; blocks DB-import corruption).
+        future_cutoff = now_f + 60.0
         out: list[dict[str, Any]] = []
         for c in self._cycles:
             ts = c.get("start_ts")
-            if isinstance(ts, (int, float)) and time.strftime(
-                "%Y-%m-%d", time.localtime(float(ts))
-            ) == day:
+            if not isinstance(ts, (int, float)):
+                continue
+            ts_f = float(ts)
+            if ts_f > future_cutoff:
+                continue
+            if time.strftime("%Y-%m-%d", time.localtime(ts_f)) == day:
                 out.append(dict(c))
         return out
 

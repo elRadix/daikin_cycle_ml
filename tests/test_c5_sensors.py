@@ -122,12 +122,16 @@ def test_duty_cycle_zero_when_no_runtime():
     assert s_mod._value_duty_cycle_today_pct(s, c) == 0.0
 
 
-def test_duty_cycle_computes_pct():
+def test_duty_cycle_computes_pct(monkeypatch):
     # Anchor at local midday so elapsed_since_midnight >> runtime (see #97).
+    # v1.14.0: mock _now so test is wall-clock independent.
     import datetime as _dt
     now = _dt.datetime.now().replace(
         hour=12, minute=0, second=0, microsecond=0
     ).timestamp()
+    monkeypatch.setattr(
+        "custom_components.daikin_cycle_ml.sensor._now", lambda: now
+    )
     c = _mk_coord(cycles=[{"duration_s": 3600, "mode": "heating",
                             "start_ts": now - 7200}])
     s = _mk_snap()

@@ -60,6 +60,18 @@ The integration watches every compressor start→run→stop transition and score
 ### Real COP intelligence, not just a number
 **9 per-mode COP sensors** (heating / DHW / cooling × day / week / month) plus **SPF seasonal**, **SPF year-to-date**, and **rolling 365-day SCOP**. Weather-normalized 7-day-vs-7-day degradation with outdoor bin matching isolates hardware wear from weather variation. 30-day regression trend catches slow drift before it becomes a problem.
 
+### COP without a power meter
+**ESPAltherma 2.0 users need only their Stats section.** The integration detects `Stats: Electrical input estimated (kW)` automatically and uses it as the electrical input for COP — no extra sensor needed.
+
+**ESPAltherma 1.x users get a built-in fallback.** When no power meter is configured, electrical input is estimated from `INV primary current × 230 V × supply phases` plus backup-heater consumption (both steps) plus a 100 W offset to account for pump, fan, and electronics. Supply phases (1 or 3) and BUH kW per step are configurable in **Settings → Devices & Services → Daikin Cycle ML → Configure → COP calculation**.
+
+**Priority (highest wins):**
+1. Your configured **power sensor** — always ground truth, no offset applied.
+2. **ESPAltherma 2.0 Stats** — direct from device, no offset applied (v2 handles phases/BUH internally).
+3. **v1 inverter fallback** — `INV × V × phases + BUH + 100 W`.
+
+The new `sensor.daikin_cycle_ml_electrical_power_estimated` shows the live estimate with a `source` attribute (`power_meter` / `espaltherma_v2_stats` / `inverter_estimated_v1` / `none`) so you can see exactly which path was taken. No double-counting: when v2 Stats are present, the 100 W offset is skipped.
+
 ### Datasheet-backed COP normalization
 **15 bundled Daikin Altherma models** (8 EPRA + 7 ERLA) with full EN 14511 reference data. Your live COP is normalized to A7/W35 and compared to spec. `cop_vs_datasheet_pct` tells you if your pump is underperforming its design point — critical for detecting refrigerant loss, dirty filters, or sizing issues. Import your own datasheet for any non-bundled model.
 
