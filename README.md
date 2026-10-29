@@ -269,10 +269,9 @@ published alongside each release as `docs/MODEL_COMPATIBILITY.md`.
 1. Developer Tools → States
 2. Search `sensor.althermasensors`
 3. Expand "Attributes"
-4. Look for these 13 keys (exact names):
+4. Look for these 12 keys (exact names):
 
 ```
-INV frequency (rps)
 Operation Mode
 I/U operation mode
 3way valve
@@ -282,15 +281,16 @@ Inlet water temp (R4T)
 Flow sensor (l/min)
 Water pump operation
 Outdoor air temp (R1T)
-DHW tank temp (R5T)
 BUH Step1
 BUH Step2
+LW setpoint (main)
 ```
 
 **If one or more are missing:** enable the register in ESPAltherma's `.h` file, restart the ESP, wait for republish. Or use **Manual mode** in the wizard to map them yourself.
 
 **Optional but recommended:**
-- `LW setpoint (main)` — enables modern LWT advice + `setpoint_oscillating` alert
+- `INV frequency (rps)` — refines short-cycle alerts
+- `DHW tank temp (R5T)` — enriches DHW cycle records
 - `indoor_temp_sensor` (a separate room sensor) — enables comfort guardrails
 
 ### Setup wizard (8 steps)
@@ -669,6 +669,9 @@ Full list in [docs/DEVELOPMENT.md §1](https://github.com/elRadix/daikin_cycle_m
 - **Energy baseline is not weather-normalized** — cold snaps may trigger false `energy_daily_anomaly` alerts. See [docs/ML.md §7.5](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ML.md#75-weather-normalization).
 - **`defrost_used` / `buh_used` variance** may cause false `ml_anomaly` at shoulder seasons. See [docs/ML.md §11.7](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ML.md#117-no-defrost_used-variance-modelling).
 - **No supervised ML** — `label_cycle` collects labels but they are not used for training yet.
+
+- **R1T is ambiguous on some models** — up to 3 attributes can share the `(R1T)` suffix (outdoor air, LWT before BUH, indoor ambient). The alias resolver handles this per model; was the root cause of #196. See [docs/MODEL_COMPATIBILITY.md §5](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/MODEL_COMPATIBILITY.md#5-per-model-matrix).
+- **External sensors can fail silently** — a `cop_sensor` returning 0.0 during transitions, or a `power_sensor` configured in kWh instead of W, will skip samples without raising an error. Verify unit and steady-state stability. See [docs/CONFIGURATION.md §2.1.1](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/CONFIGURATION.md#211-external-sensor-failure-modes).
 
 See [docs/ML.md §11](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ML.md#11-limitations) for the full ML limitation list.
 
