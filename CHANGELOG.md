@@ -9,6 +9,7 @@
 - Remove stale `docs/v1.7.0-plan.md`.
 - #214 [docs] Reconcile README counts with confirmed state (47 sensors, 13 services, 63 entities, 9 repairs, 3729 tests, 8337 stmts / 2430 branches, 38 mypy files, 51 datasheets / 53 profiles); bump doc headers v1.9.0 → v1.14.0 in 8 docs + MODEL_COMPATIBILITY.md.
 - #214 [docs] Fix 3 logic contradictions: wizard step count, "contain all 12" vs Known-model-limitations, "published alongside each release" for static MODEL_COMPATIBILITY.md.
+- **#215** README structural pass: added `## Contents` TOC (19 auto-derived anchors), moved `## Why this exists` above `## What you get` for clearer narrative flow (Showcase position unchanged); blank-line and divider symmetry restored at section boundaries.
 
 
 ## [1.14.0] - 2026-10-29

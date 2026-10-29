@@ -23,6 +23,30 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 ---
 
+## Contents
+
+- [Showcase](#showcase)
+- [Why this exists](#why-this-exists)
+- [What you get](#what-you-get)
+- [Documentation](#documentation)
+- [Installation](#installation)
+- [Supported models & ESPAltherma attributes](#supported-models--esphaltherma-attributes)
+- [First hour](#first-hour)
+- [First day — what to look at](#first-day--what-to-look-at)
+- [First week — what to tune](#first-week--what-to-tune)
+- [Recipes & how-to's](#recipes--how-tos)
+- [Frequently asked questions](#frequently-asked-questions)
+- [Quality](#quality)
+- [Where the data lives](#where-the-data-lives)
+- [Scope](#scope)
+- [Known limitations](#known-limitations)
+- [Support](#support)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgements](#acknowledgements)
+
+---
+
 ## Showcase
 
 ### ⭐ Featured: Daily Summary Tabbed
@@ -49,6 +73,31 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 | *One-glance overview* | *LWT vs outdoor* | *8-day cycle history* |
 
 *All Lovelace dashboard cards — see [dashboard/](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard) for installation.*
+
+---
+
+## Why this exists
+
+**Short cycling is the #1 hidden cause of reduced COP and premature compressor wear** on Daikin Altherma heat pumps. Existing HA integrations miss it because they look at temperature or power — not at the actual compressor runtime pattern.
+
+Daikin Cycle ML is built for the **ESPAltherma** community: users who already have rich local data but no tool to interpret it. It detects every cycle, learns what "normal" looks like for **your** installation per mode, and warns you when patterns drift — long before you'd notice from your energy bill.
+
+No cloud. No external API. No dependency on Daikin's infrastructure. Just your data, analysed locally.
+
+### What it answers
+
+- Is my heat pump short cycling? How often? Is it getting worse?
+- Why is my COP lower this week than last week — weather or hardware?
+- Is my heat curve too high? What should I change it to?
+- Is my backup heater running more than it should?
+- Is my defrost behaviour normal for the current weather?
+- Is the pump degrading over time, or is it weather?
+
+### What it does NOT do
+
+- Doesn't write to your heat pump (read-only)
+- Doesn't call any cloud API (fully local)
+- Doesn't replace your thermostat (diagnostic layer, not control)
 
 ---
 
@@ -94,29 +143,6 @@ The new `sensor.daikin_cycle_ml_electrical_power_estimated` shows the live estim
 **3729 tests, 100.00% coverage, mypy strict, Pylint 10/10, IQS Bronze + Silver + Gold.** 8 GitHub Actions workflows enforced on every PR. No cloud. No telemetry. No accounts. Your heat pump data stays on your HA instance.
 
 ---
-
-## Why this exists
-
-**Short cycling is the #1 hidden cause of reduced COP and premature compressor wear** on Daikin Altherma heat pumps. Existing HA integrations miss it because they look at temperature or power — not at the actual compressor runtime pattern.
-
-Daikin Cycle ML is built for the **ESPAltherma** community: users who already have rich local data but no tool to interpret it. It detects every cycle, learns what "normal" looks like for **your** installation per mode, and warns you when patterns drift — long before you'd notice from your energy bill.
-
-No cloud. No external API. No dependency on Daikin's infrastructure. Just your data, analysed locally.
-
-### What it answers
-
-- Is my heat pump short cycling? How often? Is it getting worse?
-- Why is my COP lower this week than last week — weather or hardware?
-- Is my heat curve too high? What should I change it to?
-- Is my backup heater running more than it should?
-- Is my defrost behaviour normal for the current weather?
-- Is the pump degrading over time, or is it weather?
-
-### What it does NOT do
-
-- Doesn't write to your heat pump (read-only)
-- Doesn't call any cloud API (fully local)
-- Doesn't replace your thermostat (diagnostic layer, not control)
 
 ---
 
