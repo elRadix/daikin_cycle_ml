@@ -211,6 +211,7 @@ class CycleDetector:
         self._pump_off_count: int = 0
         self._pending_mode: str | None = None
         self._pending_mode_since: float = 0.0
+        self._boiler_samples: int = 0
 
     @property
     def state(self) -> str:
@@ -243,6 +244,7 @@ class CycleDetector:
             "thermal_kw_samples": list(self._thermal_kw_samples),
             "pending_mode": self._pending_mode,
             "pending_mode_since": self._pending_mode_since,
+            "boiler_samples": self._boiler_samples,
         }
 
     def restore_from_dict(self, payload: Any, now: float) -> None:
@@ -278,6 +280,10 @@ class CycleDetector:
             if isinstance(_pms, (int, float)) and not isinstance(_pms, bool)
             else 0.0
         )
+        _bs = payload.get("boiler_samples")
+        self._boiler_samples = (
+            int(_bs) if isinstance(_bs, int) and not isinstance(_bs, bool) else 0
+        )
 
     def _reset_running(self) -> None:
         self._state = STATE_IDLE
@@ -292,6 +298,7 @@ class CycleDetector:
         self._pump_off_count = 0
         self._pending_mode = None
         self._pending_mode_since = 0.0
+        self._boiler_samples = 0
 
     def _accumulate(self, attrs: Mapping[str, Any]) -> None:
         rps = _safe_float(attrs.get(ATTR_INV_FREQUENCY_RPS))
@@ -343,6 +350,7 @@ class CycleDetector:
             "outdoor_temp": outdoor,
             "buh_used": self._buh_used,
             "defrost_used": self._defrost_used,
+            "boiler_contribution_samples": self._boiler_samples,
         }
         self._reset_running()
         return record
@@ -389,6 +397,7 @@ class CycleDetector:
         attrs: Mapping[str, Any],
         now: float,
         power_w: float | None = None,
+        boiler_active: bool = False,
     ) -> dict[str, Any] | None:
         attrs = build_compat_view(attrs)
         """Process one sample. Returns cycle record on close, else None.
@@ -422,6 +431,15 @@ class CycleDetector:
 
         on = detect_compressor_on(attrs, self._options, power_w)
 
+        # R561 (issue #218): boiler-only operation is NOT an HP cycle.
+        # When the hybrid gas boiler is producing heat and the HP compressor
+        # is idle, skip cycle opening / close any running HP cycle. Prevents
+        # phantom "short cycle" alerts on hybrid installs.
+        if boiler_active and not on:
+            if self._state == STATE_RUNNING:
+                return self._close(now)
+            return None
+
         # R307: RUNNING + pump=OFF -> tolerate pump-off while compressor runs.
         if _pump_is_off(pump) and self._state == STATE_RUNNING:
             if on:
@@ -441,9 +459,13 @@ class CycleDetector:
                 self._start_ts = now
                 self._mode = classify_mode(attrs)
                 self._accumulate(attrs)
+                if boiler_active:
+                    self._boiler_samples += 1
             return None
 
         if on:
+            if boiler_active:
+                self._boiler_samples += 1
             if self._should_split(attrs, now):
                 record = self._close(now)
                 self._state = STATE_RUNNING

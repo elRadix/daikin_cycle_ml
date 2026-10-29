@@ -1150,6 +1150,88 @@
           "cop": 2.41
         }
       ]
+    },
+    "evlq05cv3": {
+      "family": "Daikin Altherma R Hybrid EVLQ05CV3",
+      "kw": 4.4,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 5.04,
+      "refrigerant": "R410A",
+      "bivalent": true,
+      "points": [
+        {
+          "label": "A-10/W35",
+          "t_out": -10,
+          "t_lwc": 35,
+          "cop": 2.38
+        },
+        {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 2.38
+        },
+        {
+          "label": "A2/W35",
+          "t_out": 2,
+          "t_lwc": 35,
+          "cop": 4.41
+        },
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 5.85
+        },
+        {
+          "label": "A12/W35",
+          "t_out": 12,
+          "t_lwc": 35,
+          "cop": 7.71
+        }
+      ]
+    },
+    "evlq08cv3": {
+      "family": "Daikin Altherma R Hybrid EVLQ08CV3",
+      "kw": 7.4,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 4.45,
+      "refrigerant": "R410A",
+      "bivalent": true,
+      "points": [
+        {
+          "label": "A-10/W35",
+          "t_out": -10,
+          "t_lwc": 35,
+          "cop": 2.38
+        },
+        {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 2.38
+        },
+        {
+          "label": "A2/W35",
+          "t_out": 2,
+          "t_lwc": 35,
+          "cop": 4.24
+        },
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 5.75
+        },
+        {
+          "label": "A12/W35",
+          "t_out": 12,
+          "t_lwc": 35,
+          "cop": 7.27
+        }
+      ]
     }
   }
 }

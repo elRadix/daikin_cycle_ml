@@ -146,7 +146,7 @@ def test_sensor_defs_no_duplicate_keys():
 
 
 def test_sensor_defs_count():
-    assert len(sensor.SENSOR_DEFS) == 47
+    assert len(sensor.SENSOR_DEFS) == 49  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop
 
 
 @pytest.mark.asyncio

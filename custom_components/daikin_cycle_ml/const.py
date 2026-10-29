@@ -140,6 +140,8 @@ MODEL_EKHBRD016 = "ekhbrd016"
 MODEL_ERRQ011 = "errq011"
 MODEL_ERRQ014 = "errq014"
 MODEL_ERRQ016 = "errq016"
+MODEL_EVLQ05CV3 = "evlq05cv3"
+MODEL_EVLQ08CV3 = "evlq08cv3"
 
 
 MODEL_CHOICES = [
@@ -196,6 +198,8 @@ MODEL_CHOICES = [
     MODEL_ERRQ011,
     MODEL_ERRQ014,
     MODEL_ERRQ016,
+    MODEL_EVLQ05CV3,
+    MODEL_EVLQ08CV3,
     MODEL_CUSTOM,
 ]
 
@@ -238,6 +242,8 @@ MODEL_LABELS = {
     MODEL_EDLQ16CV3: "Daikin Altherma Monobloc - EDLQ16CV3",
     MODEL_EPSK06AW1: "Daikin Altherma 4 H - EPSK06AW1 (R290)",
     MODEL_EPSK08AW1: "Daikin Altherma 4 H - EPSK08AW1 (R290)",
+    MODEL_EVLQ05CV3: "Daikin Altherma R Hybrid - EVLQ05CV3 (5kW)",
+    MODEL_EVLQ08CV3: "Daikin Altherma R Hybrid - EVLQ08CV3 (8kW)",
     MODEL_EPSK10AW1: "Daikin Altherma 4 H - EPSK10AW1 (R290)",
     MODEL_EPSK12AW1: "Daikin Altherma 4 H - EPSK12AW1 (R290)",
     MODEL_EPSK14AW1: "Daikin Altherma 4 H - EPSK14AW1 (R290)",
@@ -258,6 +264,7 @@ MODEL_LABELS = {
 
 # --- Core attribute keys (fixed set, not user-selectable) ---
 ATTR_INV_FREQUENCY_RPS = "INV frequency (rps)"
+ATTR_INV_FREQUENCY_2_RPS = "INV frequency 2 (rps)"
 ATTR_OPERATION_MODE = "Operation Mode"
 ATTR_IU_OPERATION_MODE = "I/U operation mode"
 ATTR_3WAY_VALVE = "3way valve(On:DHW_Off:Space)"
@@ -273,6 +280,12 @@ ATTR_BUH_STEP1 = "BUH Step1"
 ATTR_BUH_STEP2 = "BUH Step2"
 ATTR_LW_SETPOINT = "LW setpoint (main)"
 ATTR_TARGET_COND_TEMP = "Target Cond. Temp."
+# Hybrid (EVLQ series) — optional, only present on ALTHERMA(HYBRID).h
+ATTR_BOILER_OPERATION_DEMAND = "Boiler Operation Demand"
+ATTR_BOILER_DHW_DEMAND = "Boiler DHW Demand"
+ATTR_HYBRID_OP_MODE = "Hybrid Op. Mode"
+ATTR_BE_COP = "BE COP"
+R5T_DISCONNECTED_THRESHOLD = -20.0
 
 CORE_ATTRIBUTES = [
     ATTR_INV_FREQUENCY_RPS,
@@ -293,6 +306,9 @@ CORE_ATTRIBUTES = [
 # Legacy alias — kept for backwards-compatible imports.
 OPTIONAL_ATTRIBUTES = [
     ATTR_INV_FREQUENCY_RPS,
+    ATTR_BOILER_OPERATION_DEMAND,
+    ATTR_BOILER_DHW_DEMAND,
+    ATTR_HYBRID_OP_MODE,
 ]
 
 REQUIRED_ATTRIBUTES = [
@@ -672,10 +688,14 @@ MODEL_FAMILIES: dict[str, str] = {
     "epsk": "Altherma 3 (Split)",
     "ekhbrd": "Altherma HT (Hydrobox)",
     "errq": "Altherma HT (Split)",
+    "evlq": "Altherma R Hybrid",
 }
 
 MODEL_ALIASES: dict[str, str] = {
     MODEL_ERGA08EVH7: MODEL_ERGA08EAV3,
+    "ehyhbh05av32": MODEL_EVLQ05CV3,
+    "ehyhbh08av32": MODEL_EVLQ08CV3,
+    "ehyhbx08av3": MODEL_EVLQ08CV3,
     "erg04eav3": MODEL_ERGA04EAV3,
     "erg06eav3": MODEL_ERGA06EAV3,
     "erg08eav3": MODEL_ERGA08EAV3,

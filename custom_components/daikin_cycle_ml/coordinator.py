@@ -75,6 +75,7 @@ from .const import (
     ENERGY_ANOMALY_FLOOR_KWH,
     ENERGY_ANOMALY_MIN_DAYS,
     ENERGY_ANOMALY_SIGMA_THRESHOLD,
+    ATTR_BOILER_DHW_DEMAND,
 )
 from .engine.cop_degradation import (
     analyze_degradation,
@@ -88,7 +89,14 @@ from .engine.attribute_reader import missing_required, read
 from .engine.thermal import compute_thermal_power_live as _compute_thermal_power_live
 from .engine.thermal import dt_from_attrs as _dt_from_attrs
 from .engine.thermal import flow_from_attrs as _flow_from_attrs
-from .engine.thermal import rps_from_attrs as _rps_from_attrs
+from .engine.thermal import (
+    boiler_active_from_attrs as _boiler_active_from_attrs,
+    boiler_efficiency_cop_from_attrs as _boiler_efficiency_cop_from_attrs,
+    hybrid_mode_from_attrs as _hybrid_mode_from_attrs,
+    rps_from_attrs as _rps_from_attrs,
+    safe_bool,
+    secondary_rps_from_attrs as _secondary_rps_from_attrs,
+)
 from .engine.cycle_detector import CycleDetector
 from .engine.model_datasheets import (
     get_datasheet as _get_datasheet,
@@ -173,6 +181,12 @@ class DataSnapshot:
     cop_trend_30d: float | None = None
     cop_degradation_detail: dict[str, Any] = field(default_factory=dict)
     cop_trend_detail: dict[str, Any] = field(default_factory=dict)
+    # Hybrid (EVLQ) support — issue #218
+    boiler_active: bool = False
+    boiler_dhw_active: bool = False
+    hybrid_mode: str = ""
+    boiler_efficiency_cop: float | None = None
+    inv_freq_secondary: float | None = None
 
 
 # --- FEAT-2: live thermal power helpers ---
@@ -1377,12 +1391,20 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.cop, _cop_src = self._read_cop_effective(now, attrs)
             snap.cop_source = _cop_src
             snap.electrical_power_w, snap.electrical_power_source = self._compute_electrical_power(now, attrs)
+            # Hybrid (EVLQ) fields — issue #218
+            _compat_hybrid = build_compat_view(attrs)
+            snap.boiler_active = _boiler_active_from_attrs(_compat_hybrid)
+            snap.boiler_dhw_active = safe_bool(_compat_hybrid.get(ATTR_BOILER_DHW_DEMAND))
+            snap.hybrid_mode = _hybrid_mode_from_attrs(_compat_hybrid)
+            snap.boiler_efficiency_cop = _boiler_efficiency_cop_from_attrs(_compat_hybrid)
+            snap.inv_freq_secondary = _secondary_rps_from_attrs(_compat_hybrid)
             snap.setpoint_oscillating = self._compute_setpoint_oscillating()
             prev_detector_state = self.detector.state
             # R317: use unit-normalised power (kW->W) so the fallback
             # threshold compares in watts regardless of source sensor unit.
             record = self.detector.update(
-                attrs, now=now, power_w=self._read_power_w()
+                attrs, now=now, power_w=self._read_power_w(),
+                boiler_active=snap.boiler_active,
             )
             if self.detector.state != prev_detector_state:
                 await self._persist_detector_state()
@@ -2769,6 +2791,16 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 except (TypeError, ValueError):
                     pass
         if raw is None:
+            return
+
+        # Issue #218 (Block 3C.1): skip samples during boiler-only operation.
+        # When the gas boiler is producing heat and the HP compressor is idle,
+        # any COP reading on the source is stale (last HP cycle) — not a
+        # valid HP-COP sample. Co-fire (HP on + boiler on) is allowed; the
+        # boiler_contribution_samples field tracks co-fire separately.
+        _boiler = bool(getattr(data_obj, 'boiler_active', False))
+        _hp_on = getattr(data_obj, 'state', '') == 'running'
+        if _boiler and not _hp_on:
             return
 
         source_attrs = getattr(data_obj, 'attrs', None) if data_obj is not None else None

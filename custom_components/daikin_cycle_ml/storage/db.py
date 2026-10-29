@@ -218,8 +218,9 @@ class CycleDB:
                 rps_max, rps_avg, outdoor_temp, buh_used, defrost_used,
                 quality_score, label,
                 cop_avg, cop_sample_count, cop_sample_stdev,
-                cop_confidence, thermal_kw_avg, is_transient)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                cop_confidence, thermal_kw_avg, is_transient,
+                boiler_contribution_samples)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 record.get("start_ts"),
                 record.get("end_ts"),
@@ -240,6 +241,7 @@ class CycleDB:
                 record.get("cop_confidence"),
                 record.get("thermal_kw_avg"),
                 int(bool(record.get("is_transient", 0))),
+                int(record.get("boiler_contribution_samples", 0) or 0),
             ),
         )
         try:
@@ -1447,6 +1449,37 @@ class CycleDB:
         stats["duration_s"] = round(_time_now() - t0, 3)
         await self.async_set_model_state(
             "data_migration_v20_completed", stats
+        )
+        return stats
+
+    async def async_migrate_to_v21(self) -> dict[str, Any]:
+        """v21: add boiler_contribution_samples column to cycles (#218 hybrid)."""
+        marker = await self.async_get_model_state(
+            "data_migration_v21_completed"
+        )
+        if marker and isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+
+        t0 = _time_now()
+        conn = self._require()
+        stats: dict[str, Any] = {"columns_added": []}
+
+        cur = await conn.execute("PRAGMA table_info(cycles)")
+        rows = await cur.fetchall()
+        existing = {row[1] for row in rows}
+
+        if "boiler_contribution_samples" not in existing:
+            await conn.execute(
+                "ALTER TABLE cycles ADD COLUMN "
+                "boiler_contribution_samples INTEGER DEFAULT 0"
+            )
+            stats["columns_added"].append("boiler_contribution_samples")
+
+        await conn.commit()
+        stats["completed"] = True
+        stats["duration_s"] = round(_time_now() - t0, 3)
+        await self.async_set_model_state(
+            "data_migration_v21_completed", stats
         )
         return stats
 

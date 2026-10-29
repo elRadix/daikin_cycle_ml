@@ -258,6 +258,20 @@ _MAPPING_MODE_SELECTOR = selector.SelectSelector(
     )
 )
 
+def _is_hybrid_model(model: str) -> bool:
+    """True if the model belongs to the hybrid EVLQ family."""
+    return family_for_model(model) == "evlq"
+
+
+def _hybrid_attrs_present(compat_attrs: dict[str, Any]) -> bool:
+    """True if at least one boiler demand attribute is present."""
+    from .const import ATTR_BOILER_DHW_DEMAND, ATTR_BOILER_OPERATION_DEMAND
+    return (
+        ATTR_BOILER_OPERATION_DEMAND in compat_attrs
+        or ATTR_BOILER_DHW_DEMAND in compat_attrs
+    )
+
+
 class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
     """8-step config wizard. Supports fresh setup + full reconfigure."""
 
@@ -594,6 +608,21 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 else:
                     present.append(key)
 
+        # Hybrid (EVLQ) hint — issue #218 (Block 3B)
+        hybrid_hint = ""
+        if _is_hybrid_model(model):
+            compat_for_hint = (
+                build_compat_view(state.attributes) if state is not None else {}
+            )
+            if not _hybrid_attrs_present(compat_for_hint):
+                hybrid_hint = (
+                    "\u26a0\ufe0f Hybrid model detected, but neither "
+                    "'Boiler Operation Demand' nor 'Boiler DHW Demand' was found "
+                    "on the source sensor. Boiler-cycle detection will be inactive "
+                    "until those attributes are exposed (see ESPAltherma "
+                    "ALTHERMA(HYBRID).h). Setup can continue."
+                )
+
         return self.async_show_form(
             step_id="attributes",
             data_schema=vol.Schema({}, extra=vol.ALLOW_EXTRA),
@@ -608,6 +637,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                     "\n".join(f"\u2022 {m}" for m in present)
                     if present else "none"
                 ),
+                "hybrid_hint": hybrid_hint,
             },
         )
 
@@ -830,10 +860,20 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                     )
                     errors["source_sensor"] = "missing_attributes"
                 else:
+                    # Issue #218 (Block 3B.2): detect HP↔Hybrid transitions.
+                    # Both paths succeed; only the info message differs.
+                    _old_model = (entry.data or {}).get("model", "")
+                    _new_model = user_input.get("model", "")
+                    _was_hybrid = _is_hybrid_model(_old_model)
+                    _is_hybrid = _is_hybrid_model(_new_model)
+                    if _was_hybrid != _is_hybrid:
+                        _reason = "reconfigure_hybrid_change"
+                    else:
+                        _reason = "reconfigure_successful"
                     return self.async_update_reload_and_abort(
                         entry,
                         data_updates=dict(user_input),
-                        reason="reconfigure_successful",
+                        reason=_reason,
                     )
         current: dict[str, Any] = dict(entry.data or {})
         schema = vol.Schema({

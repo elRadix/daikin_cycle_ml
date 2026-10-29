@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- **#218** Add native support for Daikin Altherma R Hybrid (EVLQ05CV3 + EVLQ08CV3): EN 14825 datasheet curves (W35), model profiles, indoor-unit aliases (EHYHBH05/08AV32, EHYHBX08AV3), and `ALTHERMA(HYBRID).h` attribute spellings (`Outlet Water Heat Exch. Temp. (R1T)`, `Outlet Water BUH Temp. (R2T)`, `DHW tank temp (R5T)`).
+
 ### Fixed
 - **#217** IDLE state now forces RPS=0, thermal_power_live=0.0, and COP=None instead of showing stale values.
 - **#217** Add ERG04/06/08 model aliases mapping to ERGA profiles.

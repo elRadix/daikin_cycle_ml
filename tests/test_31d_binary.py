@@ -6,15 +6,17 @@ import inspect
 from custom_components.daikin_cycle_ml import binary_sensor as bs_mod
 
 
-def test_binary_defs_has_15():
+def test_binary_defs_has_17():
     keys = [spec["key"] for spec in bs_mod.BINARY_SENSOR_DEFS]
-    assert len(keys) == 15
+    assert len(keys) == 17  # v1.15.0 #218: +boiler_operation_demand, +boiler_dhw_demand
     assert set(keys) == {
         "compressor_running", "pendulum_hourly", "pendulum_daily",
         "short_run", "short_off", "defrost_active", "buh_active",
         "dhw_active", "heating_active", "cooling_active",
         "source_stale", "missing_attrs", "setpoint_oscillating",
         "dhw_pendulum", "high_cycle_rate",
+        # v1.15.0 #218 (hybrid EVLQ support)
+        "boiler_operation_demand", "boiler_dhw_demand",
     }
 
 

@@ -10,10 +10,17 @@ from typing import (
 )
 
 from ..const import (
+    ATTR_BE_COP,
+    ATTR_BOILER_DHW_DEMAND,
+    ATTR_BOILER_OPERATION_DEMAND,
+    ATTR_DHW_TANK_TEMP,
     ATTR_FLOW_SENSOR,
+    ATTR_HYBRID_OP_MODE,
     ATTR_INLET_WATER_R4T,
     ATTR_INV_FREQUENCY_RPS,
+    ATTR_INV_FREQUENCY_2_RPS,
     ATTR_LEAVING_WATER_AFTER_BUH,
+    R5T_DISCONNECTED_THRESHOLD,
     RPS_KW_FACTOR,
     WATER_DENSITY_KG_L,
     WATER_SPECIFIC_HEAT_KJ_KG_K,
@@ -56,6 +63,59 @@ def rps_from_attrs(attrs: dict[str, Any]) -> float | None:
 
 def flow_from_attrs(attrs: dict[str, Any]) -> float | None:
     return safe_float(attrs.get(ATTR_FLOW_SENSOR))
+
+
+def safe_bool(v: Any) -> bool:
+    """Robust bool: True for True / "ON" / "TRUE" / "1" / "YES" / non-zero."""
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, str):
+        return v.strip().upper() in ("ON", "TRUE", "1", "YES")
+    if isinstance(v, (int, float)):
+        return v != 0
+    return False
+
+
+def boiler_active_from_attrs(attrs: dict[str, Any]) -> bool:
+    """True if the gas boiler is actively producing heat or DHW.
+
+    Hybrid-only. Returns False when the attributes are absent (non-hybrid
+    installations unaffected — no boiler, no impact).
+    """
+    return (
+        safe_bool(attrs.get(ATTR_BOILER_OPERATION_DEMAND))
+        or safe_bool(attrs.get(ATTR_BOILER_DHW_DEMAND))
+    )
+
+
+def dhw_tank_temp_from_attrs(attrs: dict[str, Any]) -> float | None:
+    """Return DHW tank temp, or None when the sensor reports a disconnected
+    sentinel value (< -20 °C). Intergas boilers have their own DHW, so the
+    Daikin R5T probe reports -40.7 °C on hybrid installs.
+    """
+    v = safe_float(attrs.get(ATTR_DHW_TANK_TEMP))
+    if v is not None and v < R5T_DISCONNECTED_THRESHOLD:
+        return None
+    return v
+
+
+def hybrid_mode_from_attrs(attrs: dict[str, Any]) -> str:
+    """Return the hybrid operating mode string (e.g. 'H/P only', 'Hybrid').
+
+    Empty string when absent (non-hybrid installations).
+    """
+    v = attrs.get(ATTR_HYBRID_OP_MODE)
+    return str(v).strip() if v is not None else ""
+
+
+def boiler_efficiency_cop_from_attrs(attrs: dict[str, Any]) -> float | None:
+    """Gas boiler efficiency COP (BE COP). Info-only; never mixed with HP COP."""
+    return safe_float(attrs.get(ATTR_BE_COP))
+
+
+def secondary_rps_from_attrs(attrs: dict[str, Any]) -> float | None:
+    """Hybrid EVLQ fallback: channel-2 rps (some installs report 0 on ch.1)."""
+    return safe_float(attrs.get(ATTR_INV_FREQUENCY_2_RPS))
 
 
 def _flow_dt_kw(flow_lmin: float, dt_k: float) -> float:

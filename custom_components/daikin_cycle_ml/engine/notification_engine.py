@@ -268,6 +268,14 @@ def passes_filters(
     return True
 
 
+# Issue #218 (Block 3C.2): alerts suppressed when boiler-dominant
+# (boiler_active AND HP compressor idle). These patterns are normal
+# during boiler operation and would fire false-positives on hybrid installs.
+_BOILER_SUPPRESSED_ALERTS = frozenset({
+    "pendulum_hourly", "pendulum_daily", "short_run", "short_off",
+})
+
+
 def evaluate_alerts(
     binary_states: Mapping[str, bool],
     options: Mapping[str, Any] | None,
@@ -277,6 +285,8 @@ def evaluate_alerts(
     context: Mapping[str, Mapping[str, Any]] | None = None,
     emoji_enabled: bool | None = None,
     language: str | None = None,
+    boiler_active: bool = False,
+    hp_running: bool = True,
 ) -> list[AlertSpec]:
     """Return alerts to dispatch now.
 
@@ -308,6 +318,9 @@ def evaluate_alerts(
         # Defensive: guards future alert_type collisions. PR B made all
         # BINARY_ALERT_MAP alert_types unique, so this is currently dead.
         if alert_type in emitted:  # pragma: no cover
+            continue
+        # Issue #218 (Block 3C.2): suppress HP-cycle alerts during boiler-only
+        if boiler_active and not hp_running and alert_type in _BOILER_SUPPRESSED_ALERTS:
             continue
         if not passes_filters(alert_type, severity, options, now):
             continue

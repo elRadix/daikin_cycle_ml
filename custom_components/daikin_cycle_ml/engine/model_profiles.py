@@ -75,6 +75,8 @@ from ..const import (
     MODEL_ERRQ011,
     MODEL_ERRQ014,
     MODEL_ERRQ016,
+    MODEL_EVLQ05CV3,
+    MODEL_EVLQ08CV3,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -167,6 +169,8 @@ MODEL_PROFILES: dict[str, dict[str, Any]] = {
     MODEL_ERRQ011: {**_HT_PROFILE},
     MODEL_ERRQ014: {**_HT_PROFILE},
     MODEL_ERRQ016: {**_HT_PROFILE},
+    MODEL_EVLQ05CV3: {**_BASE},
+    MODEL_EVLQ08CV3: {**_BASE},
     MODEL_CUSTOM: {**_BASE},
 }
 

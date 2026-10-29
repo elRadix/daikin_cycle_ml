@@ -1365,6 +1365,22 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "value_fn": lambda s, c: (c.daily_summary_recent or {}).get("state"),
         "attr_fn": _attrs_daily_summary_recent,
     },
+    {
+        "key": "hybrid_mode", "name": "Hybrid mode",
+        "device_class": SensorDeviceClass.ENUM,
+        "options": ["H/P only", "Hybrid", "Boiler only", "unknown"],
+        "icon": "mdi:heat-pump-outline",
+        "value_fn": lambda s, c: s.hybrid_mode or "unknown",
+        "attr_fn": lambda s, c: {"raw": s.hybrid_mode or ""},
+    },
+    {
+        "key": "boiler_efficiency_cop", "name": "Boiler efficiency COP",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP",
+        "icon": "mdi:fire",
+        "value_fn": lambda s, c: s.boiler_efficiency_cop,
+        "attr_fn": lambda s, c: {"source": "BE COP", "info_only": True},
+    },
 ]
 
 
