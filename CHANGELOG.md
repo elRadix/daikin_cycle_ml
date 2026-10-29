@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-10-29
+
 ### Added
 - **#206** electrical input cascade: power meter > ESPAltherma 2.0 `Stats: Electrical input estimated (kW)` > v1 inverter fallback (`INV_A x 230V x phases + BUH_step1_kW + BUH_step2_kW + 100W`). v2 detection with 300s hysteresis. Ref raomin/ESPAltherma Discussion #599.
 - **#206** OptionsFlow step `cop_calc` (`supply_phases` 1|3, `buh_step1_kw`, `buh_step2_kw`).
