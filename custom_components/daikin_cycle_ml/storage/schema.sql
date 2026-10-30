@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS cycles (
     is_dhw_tail INTEGER DEFAULT 0,
     is_reconstructed INTEGER DEFAULT 0,
     boiler_contribution_samples INTEGER DEFAULT 0,
+    boiler_heat_samples INTEGER DEFAULT 0,
+    boiler_dhw_samples INTEGER DEFAULT 0,
     UNIQUE(start_ts)
 );
 

@@ -88,6 +88,16 @@ def boiler_active_from_attrs(attrs: dict[str, Any]) -> bool:
     )
 
 
+def boiler_heat_active_from_attrs(attrs: dict[str, Any]) -> bool:
+    """True iff boiler is producing HEAT (Boiler Operation Demand ON).
+
+    M2 (v1.15.0): splits boiler co-fire tracking into heat vs DHW.
+    'Boiler Operation Demand' is the heat side; 'Boiler DHW Demand' is
+    the DHW side. boiler_active = OR(heat, dhw); this helper isolates heat.
+    """
+    return safe_bool(attrs.get(ATTR_BOILER_OPERATION_DEMAND))
+
+
 def dhw_tank_temp_from_attrs(attrs: dict[str, Any]) -> float | None:
     """Return DHW tank temp, or None when the sensor reports a disconnected
     sentinel value (< -20 °C). Intergas boilers have their own DHW, so the

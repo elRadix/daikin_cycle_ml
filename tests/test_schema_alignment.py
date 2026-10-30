@@ -110,3 +110,30 @@ def test_async_ensure_create_has_all_schema_columns():
     }
     missing = required - cols
     assert not missing, f"async_ensure CREATE missing columns: {sorted(missing)}"
+
+def test_schema_sql_cycles_has_boiler_split_columns():
+    """Regression (M2 v1.15.0): cycles must have heat + dhw sample columns."""
+    sql = _SCHEMA_PATH.read_text()
+    m = re.search(
+        r"CREATE TABLE IF NOT EXISTS cycles\s*\(([\s\S]*?)\n\);", sql,
+    )
+    assert m, "cycles CREATE not found in schema.sql"
+    cols = _extract_columns_from_create_sql(
+        "CREATE TABLE IF NOT EXISTS cycles (" + m.group(1) + ")"
+    )
+    assert "boiler_contribution_samples" in cols
+    assert "boiler_heat_samples" in cols, f"boiler_heat_samples missing: {sorted(cols)}"
+    assert "boiler_dhw_samples" in cols, f"boiler_dhw_samples missing: {sorted(cols)}"
+
+
+def test_async_insert_cycle_includes_split_columns():
+    """Regression: async_insert_cycle INSERT must reference both new columns."""
+    db_py = _DB_PATH.read_text()
+    m = re.search(
+        r'INSERT OR IGNORE INTO cycles\s*\(([\s\S]*?)\)\s*VALUES',
+        db_py,
+    )
+    assert m, "INSERT INTO cycles column list not found in db.py"
+    col_list = m.group(1)
+    for col in ("boiler_contribution_samples", "boiler_heat_samples", "boiler_dhw_samples"):
+        assert col in col_list, f"{col} missing from async_insert_cycle: {col_list}"

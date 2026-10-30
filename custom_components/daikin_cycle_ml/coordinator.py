@@ -91,6 +91,7 @@ from .engine.thermal import dt_from_attrs as _dt_from_attrs
 from .engine.thermal import flow_from_attrs as _flow_from_attrs
 from .engine.thermal import (
     boiler_active_from_attrs as _boiler_active_from_attrs,
+    boiler_heat_active_from_attrs as _boiler_heat_active_from_attrs,
     boiler_efficiency_cop_from_attrs as _boiler_efficiency_cop_from_attrs,
     hybrid_mode_from_attrs as _hybrid_mode_from_attrs,
     rps_from_attrs as _rps_from_attrs,
@@ -183,6 +184,7 @@ class DataSnapshot:
     cop_trend_detail: dict[str, Any] = field(default_factory=dict)
     # Hybrid (EVLQ) support — issue #218
     boiler_active: bool = False
+    boiler_heat_active: bool = False
     boiler_dhw_active: bool = False
     hybrid_mode: str = ""
     is_hybrid: bool = False
@@ -1397,6 +1399,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.is_hybrid = self._is_hybrid_install()
             snap.boiler_active = _boiler_active_from_attrs(_compat_hybrid)
             snap.boiler_dhw_active = safe_bool(_compat_hybrid.get(ATTR_BOILER_DHW_DEMAND))
+            snap.boiler_heat_active = _boiler_heat_active_from_attrs(_compat_hybrid)
             snap.hybrid_mode = _hybrid_mode_from_attrs(_compat_hybrid)
             snap.boiler_efficiency_cop = _boiler_efficiency_cop_from_attrs(_compat_hybrid)
             snap.inv_freq_secondary = _secondary_rps_from_attrs(_compat_hybrid)
@@ -1407,6 +1410,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             record = self.detector.update(
                 attrs, now=now, power_w=self._read_power_w(),
                 boiler_active=snap.boiler_active,
+                boiler_heat_active=snap.boiler_heat_active,
+                boiler_dhw_active=snap.boiler_dhw_active,
             )
             if self.detector.state != prev_detector_state:
                 await self._persist_detector_state()

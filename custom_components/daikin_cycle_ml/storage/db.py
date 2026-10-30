@@ -219,8 +219,9 @@ class CycleDB:
                 quality_score, label,
                 cop_avg, cop_sample_count, cop_sample_stdev,
                 cop_confidence, thermal_kw_avg, is_transient,
-                boiler_contribution_samples)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                boiler_contribution_samples,
+                boiler_heat_samples, boiler_dhw_samples)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 record.get("start_ts"),
                 record.get("end_ts"),
@@ -242,6 +243,8 @@ class CycleDB:
                 record.get("thermal_kw_avg"),
                 int(bool(record.get("is_transient", 0))),
                 int(record.get("boiler_contribution_samples", 0) or 0),
+                int(record.get("boiler_heat_samples", 0) or 0),
+                int(record.get("boiler_dhw_samples", 0) or 0),
             ),
         )
         try:
@@ -1504,6 +1507,47 @@ class CycleDB:
         stats["duration_s"] = round(_time_now() - t0, 3)
         await self.async_set_model_state(
             "data_migration_v22_completed", stats
+        )
+        return stats
+
+    async def async_migrate_to_v23(self) -> dict[str, Any]:
+        """v23: add boiler_heat_samples + boiler_dhw_samples to cycles.
+
+        M2 (v1.15.0) — issue #221 foundation. Splits aggregate
+        boiler_contribution_samples into heat vs DHW counters so future
+        analytics can distinguish "boiler helps during HP cycle due to
+        heating demand" from "boiler takes over DHW demand".
+        """
+        marker = await self.async_get_model_state(
+            "data_migration_v23_completed"
+        )
+        if marker and isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+
+        t0 = _time_now()
+        conn = self._require()
+        stats: dict[str, Any] = {"columns_added": []}
+
+        cur = await conn.execute("PRAGMA table_info(cycles)")
+        rows = await cur.fetchall()
+        existing = {row[1] for row in rows}
+
+        for name, decl in (
+            ("boiler_heat_samples", "INTEGER DEFAULT 0"),
+            ("boiler_dhw_samples", "INTEGER DEFAULT 0"),
+        ):
+            if name in existing:
+                continue
+            await conn.execute(
+                f"ALTER TABLE cycles ADD COLUMN {name} {decl}"
+            )
+            stats["columns_added"].append(name)
+
+        await conn.commit()
+        stats["completed"] = True
+        stats["duration_s"] = round(_time_now() - t0, 3)
+        await self.async_set_model_state(
+            "data_migration_v23_completed", stats
         )
         return stats
 

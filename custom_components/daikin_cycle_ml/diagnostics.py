@@ -226,6 +226,7 @@ async def async_get_config_entry_diagnostics(
             "attrs_sample": attrs_sample,
             # Hybrid (EVLQ) — issue #218
             "boiler_active": bool(getattr(snap, "boiler_active", False)),
+            "boiler_heat_active": bool(getattr(snap, "boiler_heat_active", False)),
             "boiler_dhw_active": bool(getattr(snap, "boiler_dhw_active", False)),
             "hybrid_mode": str(getattr(snap, "hybrid_mode", "") or ""),
             "boiler_efficiency_cop": getattr(snap, "boiler_efficiency_cop", None),

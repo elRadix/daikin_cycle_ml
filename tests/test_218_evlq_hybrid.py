@@ -1489,3 +1489,140 @@ def test_boiler_kwargs_for_alerts_mock_snapshot_disables_suppression():
         "MagicMock boiler_dhw_active must NOT be truthy -> False"
     )
     assert kw["hp_running"] is False, "state='idle' -> hp_running=False"
+
+
+# ============================================================
+# M2 (v1.15.0) 2b-1: heat vs dhw split counters in CycleDetector
+# ============================================================
+
+def test_boiler_heat_active_from_attrs():
+    """thermal.boiler_heat_active_from_attrs reads Boiler Operation Demand."""
+    from custom_components.daikin_cycle_ml.engine.thermal import (
+        boiler_heat_active_from_attrs,
+    )
+    assert boiler_heat_active_from_attrs({"Boiler Operation Demand": "ON"}) is True
+    assert boiler_heat_active_from_attrs({"Boiler Operation Demand": True}) is True
+    assert boiler_heat_active_from_attrs({"Boiler Operation Demand": "OFF"}) is False
+    assert boiler_heat_active_from_attrs({}) is False
+
+
+def test_boiler_split_heat_only():
+    """heat=True, dhw=False → boiler_samples+heat_samples, dhw stays 0."""
+    from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
+    d = CycleDetector()
+    d.update(_base_attrs(rps=30.0), now=1000.0, power_w=2000.0,
+             boiler_active=True, boiler_heat_active=True, boiler_dhw_active=False)
+    d.update(_base_attrs(rps=32.0), now=1060.0, power_w=2100.0,
+             boiler_active=True, boiler_heat_active=True, boiler_dhw_active=False)
+    rec = d.update(_base_attrs(rps=0.0), now=1120.0, power_w=0.0,
+                   boiler_active=False, boiler_heat_active=False, boiler_dhw_active=False)
+    assert rec is not None
+    assert rec["boiler_contribution_samples"] == 2
+    assert rec["boiler_heat_samples"] == 2
+    assert rec["boiler_dhw_samples"] == 0
+
+
+def test_boiler_split_dhw_only():
+    """heat=False, dhw=True → boiler_samples+dhw_samples, heat stays 0."""
+    from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
+    d = CycleDetector()
+    d.update(_base_attrs(rps=30.0), now=1000.0, power_w=2000.0,
+             boiler_active=True, boiler_heat_active=False, boiler_dhw_active=True)
+    d.update(_base_attrs(rps=32.0), now=1060.0, power_w=2100.0,
+             boiler_active=True, boiler_heat_active=False, boiler_dhw_active=True)
+    rec = d.update(_base_attrs(rps=0.0), now=1120.0, power_w=0.0,
+                   boiler_active=False, boiler_heat_active=False, boiler_dhw_active=False)
+    assert rec is not None
+    assert rec["boiler_contribution_samples"] == 2
+    assert rec["boiler_heat_samples"] == 0
+    assert rec["boiler_dhw_samples"] == 2
+
+
+def test_boiler_split_both_active():
+    """heat=True AND dhw=True → all 3 counters increment."""
+    from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
+    d = CycleDetector()
+    d.update(_base_attrs(rps=30.0), now=1000.0, power_w=2000.0,
+             boiler_active=True, boiler_heat_active=True, boiler_dhw_active=True)
+    d.update(_base_attrs(rps=32.0), now=1060.0, power_w=2100.0,
+             boiler_active=True, boiler_heat_active=True, boiler_dhw_active=True)
+    rec = d.update(_base_attrs(rps=0.0), now=1120.0, power_w=0.0,
+                   boiler_active=False, boiler_heat_active=False, boiler_dhw_active=False)
+    assert rec is not None
+    assert rec["boiler_contribution_samples"] == 2
+    assert rec["boiler_heat_samples"] == 2
+    assert rec["boiler_dhw_samples"] == 2
+
+
+def test_boiler_split_backward_compat():
+    """Old caller: boiler_active=True without heat/dhw kwargs → aggregate only."""
+    from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
+    d = CycleDetector()
+    d.update(_base_attrs(rps=30.0), now=1000.0, power_w=2000.0, boiler_active=True)
+    rec = d.update(_base_attrs(rps=0.0), now=1060.0, power_w=0.0, boiler_active=False)
+    assert rec is not None
+    assert rec["boiler_contribution_samples"] == 1
+    assert rec["boiler_heat_samples"] == 0
+    assert rec["boiler_dhw_samples"] == 0
+
+
+def test_boiler_split_persist_in_to_dict():
+    """Split counters round-trip via to_dict / restore_from_dict."""
+    from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
+    d = CycleDetector()
+    d.update(_base_attrs(rps=30.0), now=1000.0, power_w=2000.0,
+             boiler_active=True, boiler_heat_active=True, boiler_dhw_active=True)
+    payload = d.to_dict()
+    assert payload["boiler_heat_samples"] == 1
+    assert payload["boiler_dhw_samples"] == 1
+    d2 = CycleDetector()
+    d2.restore_from_dict(payload, now=1010.0)
+    payload2 = d2.to_dict()
+    assert payload2["boiler_heat_samples"] == 1
+    assert payload2["boiler_dhw_samples"] == 1
+
+
+@pytest.mark.asyncio
+async def test_migrate_to_v23_adds_columns(tmp_path):
+    """v23 adds boiler_heat_samples + boiler_dhw_samples to cycles."""
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+    db = CycleDB(tmp_path / "v23test.db")
+    await db.async_open()
+    await db.async_initialize()
+    conn = db._require()
+    for col in ("boiler_heat_samples", "boiler_dhw_samples"):
+        try:
+            await conn.execute(f"ALTER TABLE cycles DROP COLUMN {col}")
+            await conn.commit()
+        except Exception as exc:
+            await db.async_close()
+            pytest.skip(f"SQLite cannot DROP COLUMN: {exc}")
+    cur = await conn.execute("PRAGMA table_info(cycles)")
+    cols = {row[1] for row in await cur.fetchall()}
+    await cur.close()
+    assert "boiler_heat_samples" not in cols
+    assert "boiler_dhw_samples" not in cols
+    result = await db.async_migrate_to_v23()
+    assert result.get("completed") is True
+    assert "boiler_heat_samples" in result.get("columns_added", [])
+    assert "boiler_dhw_samples" in result.get("columns_added", [])
+    cur = await conn.execute("PRAGMA table_info(cycles)")
+    cols = {row[1] for row in await cur.fetchall()}
+    await cur.close()
+    assert "boiler_heat_samples" in cols
+    assert "boiler_dhw_samples" in cols
+    await db.async_close()
+
+
+@pytest.mark.asyncio
+async def test_migrate_to_v23_idempotent(tmp_path):
+    """v23 is idempotent via completion marker."""
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+    db = CycleDB(tmp_path / "v23idem.db")
+    await db.async_open()
+    await db.async_initialize()
+    first = await db.async_migrate_to_v23()
+    assert first.get("completed") is True
+    second = await db.async_migrate_to_v23()
+    assert second.get("skipped") == 1
+    await db.async_close()

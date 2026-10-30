@@ -212,6 +212,8 @@ class CycleDetector:
         self._pending_mode: str | None = None
         self._pending_mode_since: float = 0.0
         self._boiler_samples: int = 0
+        self._boiler_heat_samples: int = 0
+        self._boiler_dhw_samples: int = 0
 
     @property
     def state(self) -> str:
@@ -245,6 +247,8 @@ class CycleDetector:
             "pending_mode": self._pending_mode,
             "pending_mode_since": self._pending_mode_since,
             "boiler_samples": self._boiler_samples,
+            "boiler_heat_samples": self._boiler_heat_samples,
+            "boiler_dhw_samples": self._boiler_dhw_samples,
         }
 
     def restore_from_dict(self, payload: Any, now: float) -> None:
@@ -284,6 +288,14 @@ class CycleDetector:
         self._boiler_samples = (
             int(_bs) if isinstance(_bs, int) and not isinstance(_bs, bool) else 0
         )
+        _bhs = payload.get("boiler_heat_samples")
+        self._boiler_heat_samples = (
+            int(_bhs) if isinstance(_bhs, int) and not isinstance(_bhs, bool) else 0
+        )
+        _bds = payload.get("boiler_dhw_samples")
+        self._boiler_dhw_samples = (
+            int(_bds) if isinstance(_bds, int) and not isinstance(_bds, bool) else 0
+        )
 
     def _reset_running(self) -> None:
         self._state = STATE_IDLE
@@ -299,6 +311,8 @@ class CycleDetector:
         self._pending_mode = None
         self._pending_mode_since = 0.0
         self._boiler_samples = 0
+        self._boiler_heat_samples = 0
+        self._boiler_dhw_samples = 0
 
     def _accumulate(self, attrs: Mapping[str, Any]) -> None:
         rps = _safe_float(attrs.get(ATTR_INV_FREQUENCY_RPS))
@@ -351,6 +365,8 @@ class CycleDetector:
             "buh_used": self._buh_used,
             "defrost_used": self._defrost_used,
             "boiler_contribution_samples": self._boiler_samples,
+            "boiler_heat_samples": self._boiler_heat_samples,
+            "boiler_dhw_samples": self._boiler_dhw_samples,
         }
         self._reset_running()
         return record
@@ -392,12 +408,29 @@ class CycleDetector:
             return False
         return (now - self._pending_mode_since) >= debounce
 
+    def _record_boiler_sample(
+        self, *, active: bool, heat: bool, dhw: bool
+    ) -> None:
+        """Increment co-fire counters. M2 (v1.15.0): heat + dhw split.
+
+        active ORs heat+dhw for backward compat (caller may pass only
+        boiler_active=True without heat/dhw kwargs — older API).
+        """
+        if active:
+            self._boiler_samples += 1
+        if heat:
+            self._boiler_heat_samples += 1
+        if dhw:
+            self._boiler_dhw_samples += 1
+
     def update(
         self,
         attrs: Mapping[str, Any],
         now: float,
         power_w: float | None = None,
         boiler_active: bool = False,
+        boiler_heat_active: bool = False,
+        boiler_dhw_active: bool = False,
     ) -> dict[str, Any] | None:
         attrs = build_compat_view(attrs)
         """Process one sample. Returns cycle record on close, else None.
@@ -459,13 +492,19 @@ class CycleDetector:
                 self._start_ts = now
                 self._mode = classify_mode(attrs)
                 self._accumulate(attrs)
-                if boiler_active:
-                    self._boiler_samples += 1
+                self._record_boiler_sample(
+                    active=boiler_active,
+                    heat=boiler_heat_active,
+                    dhw=boiler_dhw_active,
+                )
             return None
 
         if on:
-            if boiler_active:
-                self._boiler_samples += 1
+            self._record_boiler_sample(
+                active=boiler_active,
+                heat=boiler_heat_active,
+                dhw=boiler_dhw_active,
+            )
             if self._should_split(attrs, now):
                 record = self._close(now)
                 self._state = STATE_RUNNING
