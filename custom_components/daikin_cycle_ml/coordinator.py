@@ -2089,8 +2089,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         # v1.6.0-C6a: clamp duration to guard ML/DB against clock jumps.
         _raw_dur = record.get("duration_s")
         if _raw_dur is not None:
-            _max_min = int(self.options.get("max_cycle_duration_min", 240))
-            record["duration_s"] = _clamp_duration(_raw_dur, _max_min)
+            # 4h clamp removed: relying on detector safety net (48h)
+            record["duration_s"] = int(round(float(_raw_dur)))
         cop_avg, lwt_avg, indoor_avg = await self._collect_cycle_averages(
             record
         )

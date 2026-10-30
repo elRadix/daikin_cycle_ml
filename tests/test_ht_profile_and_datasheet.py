@@ -35,7 +35,7 @@ def test_ht_profiles_use_ht_thresholds():
 def test_non_ht_profiles_unchanged():
     p = MODEL_PROFILES["epra08eav3"]
     assert p["good_dt_threshold_k"] == 5.0
-    assert p["max_cycle_duration_min"] == 240
+    assert p["max_cycle_duration_min"] == 2880
     # EBLQ is LT monoblock, must remain on _BASE
     assert MODEL_PROFILES["eblq05cv3"]["good_dt_threshold_k"] == 5.0
 

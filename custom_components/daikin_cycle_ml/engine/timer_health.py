@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import logging
 import time
+from ..const import MAX_CYCLE_DURATION_S
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_MAX_DURATION_MIN = 240
+DEFAULT_MAX_DURATION_MIN = int(MAX_CYCLE_DURATION_S // 60)
 STALE_THRESHOLD_S = 3600.0
 
 
