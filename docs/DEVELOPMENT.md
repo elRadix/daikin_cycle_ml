@@ -890,6 +890,109 @@ The ruleset exists because CI failures are always catchable locally. If CI fails
 
 ---
 
+## 11. Session rules R548–R565 (v1.15.0)
+
+Consolidated rules from the v1.15.0 hardening session. Each encodes a
+hard-won lesson from a bug that 100% line coverage did NOT catch: a
+silently dead alert-suppression feature, and schema drift between two
+CREATE TABLE sources.
+
+### 11.1 Verification (AST, not regex)
+
+**R548 — AST for signature verification.** Never `grep 'def name\([^)]*kwarg'`
+— fails silently on multi-line signatures (Black-wrapped). Use
+`python3 -c 'import ast; ...'` to walk `FunctionDef.args`. Grep-based
+checks in Commit 1 gave a false negative on `CycleDetector.update` — the
+parameter existed, the regex didn't find it.
+
+**R554 — AST for string-literal extraction.** Extract Python string
+literals via `ast.Constant.value`, never regex. Python concatenates
+adjacent literals at parse time, so `Constant.value` is always complete.
+
+**R560 — AST for DDL debugging.** Suspicious concatenation like
+`is_transition_artifactINTEGER` from a debug log may be a display artifact.
+Verify via `ast.Constant.value` on the source bytes.
+
+### 11.2 Schema discipline
+
+**R549 — Single source of truth for CREATE TABLE.** `schema.sql` is
+authoritative for fresh-install DDL. Runtime fallbacks
+(`async_ensure_*_table`) MUST match it column-for-column or be ALTER-only.
+Two divergent CREATE TABLE statements for the same table is a latent
+catastrophe — if the fallback fires before schema execution, tables can
+be missing columns that no later migration backfills.
+
+**R551 — Parity test in CI.** Every runtime `CREATE TABLE IF NOT EXISTS`
+must have a parser-based test asserting column-set equality with
+`schema.sql`. See `tests/test_schema_alignment.py` for the AST-based
+pattern.
+
+### 11.3 Test integrity
+
+**R552 — 100% line coverage is not behavior coverage.** A suppression
+feature ("suppress alerts when X") can be fully covered yet functionally
+dead, because unit tests call the feature function directly with mocked
+kwargs the production path never passes. Integration test through the
+coordinator call site is mandatory for any conditional-suppression
+behavior.
+
+**R553 — `-o addopts=""` for isolated single-file runs.** `pytest.ini`
+configures `--cov-fail-under=100` in `addopts`. Running one test file
+without `-o addopts=""` fails on coverage with `0.00%` even when tests
+pass. Bypass only for isolated runs; keep the gate on the full suite.
+
+**R556 — `python3 - <<'PYEOF'` needs explicit `|| on_fail`.** `sys.exit(1)`
+inside a heredoc subprocess does NOT abort a `set -uo pipefail` shell
+script. Every python3 heredoc in a mutation script MUST be followed by
+`|| on_fail`. Otherwise a failed patch silently continues.
+
+**R557 — Test count from actual content, not comments.** When appending N
+tests via heredoc, compute the expected count via grep on the heredoc
+content, not from a mental tally.
+
+**R558 — Per-field matrix assertions.** Multi-case loop assertions MUST
+use per-row expected values, not "everything should be X". A test asserting
+`lwt is None AND outdoor is None` for rows that each had only one bad
+field failed while the code was correct.
+
+**R559 — Explicit expected values in matrix tests.** Lay out
+`(inputs_tuple) -> (expected_tuple)` explicitly. Implicit "all should be X"
+hides per-field logic errors.
+
+### 11.4 Truthy-value hazards
+
+**R555 — isinstance guards for suppression-relevant bools.**
+`bool(MagicMock())` is `True`. `bool("no")` is `True`. Any truthy non-bool
+gating a suppression decision silently silences real alerts. Use
+`x if isinstance(x, bool) else False`. Principle: **NEVER silence alerts
+on an ambiguous signal** — over-alert rather than under-alert.
+
+### 11.5 Test invocation and imports
+
+**R561 — `--tb=long` for first traceback, never `tail -N`.** When a test
+file fails to import, `pytest`'s short summary truncates to
+`ModuleNotFoundError...` — hiding whether the real error is missing
+module vs missing symbol. Always run ONE failing test with `--tb=long`
+before diagnosing.
+
+**R562 — Verify symbol names before import.** Before writing
+`from module import NAME`, grep `module.py` for `^NAME` to confirm it
+exists. A whole test file imported `MODEL_CHOICES_NAMES` (doesn't exist;
+correct name is `MODEL_LABELS`) — six wasted iterations because the
+traceback was truncated (see R561).
+
+
+**R563 — Specific-test selection.** `pytest X.py::test_a X.py::test_b` per-test works; whole-file may fail sys.path.
+
+**R564 — `python3 -m pytest` for whole-file.** Prefix `python3 -m` puts cwd on sys.path[0].
+
+**R565 — Test files bootstrap own sys.path.** Module top: `_ROOT = Path(__file__).resolve().parent.parent` guarded by `if str(_ROOT) not in sys.path: sys.path.insert(0, str(_ROOT))`.
+
+### 11.6 Docs and delivery
+
+**R566 — Docs path flexibility.** Probe both `docs/X.md` and `X.md`; use whichever exists.
+
+**R567 — SSH paste size ≤ 1100 chars.** Larger pastes truncate silently, hang shell at `>`.
 ## Appendix A — Related files
 
 | File | Purpose |
