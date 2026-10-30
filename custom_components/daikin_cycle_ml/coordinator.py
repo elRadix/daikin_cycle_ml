@@ -2227,6 +2227,36 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             return False
 
+    def _boiler_kwargs_for_alerts(self) -> dict[str, Any]:
+        """Return boiler_active / hp_running / boiler_dhw_active for evaluate_alerts.
+
+        B4 fix (v1.15.0): previously the production dispatch path never
+        passed these kwargs, so boiler-only alert suppression was silently
+        a no-op (defaults False/True made 'boiler_active AND NOT hp_running'
+        always False).
+
+        DEFENSIVE: bool isinstance guards. bool(MagicMock()) is True, and
+        bool(1) / bool("true") are True -- any truthy non-bool would silently
+        suppress real HP-cycle alerts. Safety principle: NEVER silence alerts
+        on an ambiguous signal. Only accept real booleans from the snapshot.
+        Anything else (Mock, int, str, None) -> treated as inactive.
+        """
+        snap = getattr(self, 'data', None)
+        if snap is None:
+            return {
+                "boiler_active": False,
+                "hp_running": True,
+                "boiler_dhw_active": False,
+            }
+        _ba = getattr(snap, 'boiler_active', False)
+        _bd = getattr(snap, 'boiler_dhw_active', False)
+        _st = getattr(snap, 'state', '')
+        return {
+            "boiler_active": _ba if isinstance(_ba, bool) else False,
+            "hp_running": isinstance(_st, str) and _st == 'running',
+            "boiler_dhw_active": _bd if isinstance(_bd, bool) else False,
+        }
+
     async def _refresh_cop_today(self, now: float) -> None:
         if self.db is None:
             return
@@ -4233,6 +4263,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             {},
             context=ctx,
             language=opts.get("notification_language", "en"),
+            **self._boiler_kwargs_for_alerts(),
         )
         if not alerts:
             return (
@@ -4336,6 +4367,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 states, self.options, now, self._last_alert_sent,
                 context=self._build_alert_context(snap),
                 language=self.options.get("notification_language", "en"),
+                **self._boiler_kwargs_for_alerts(),
             )
             for alert in alerts:
                 await self._emit_alert(alert)

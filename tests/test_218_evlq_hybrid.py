@@ -1340,3 +1340,152 @@ async def test_fetch_cop_samples_between_exclude_boiler(tmp_path):
     assert pure_rows[0]["cop"] == 4.0
 
     await db.async_close()
+
+
+# ============================================================
+# M2 (v1.15.0): boiler heat vs DHW split — alert suppression
+# ============================================================
+
+def test_evaluate_alerts_dhw_pendulum_suppressed_when_boiler_dhw_only():
+    """dhw_pendulum suppressed when boiler does DHW + HP idle."""
+    from custom_components.daikin_cycle_ml.engine.notification_engine import (
+        evaluate_alerts,
+    )
+    out = evaluate_alerts(
+        {"dhw_pendulum": True},
+        {"alert_enabled_dhw_pendulum": True},
+        now=1e9,
+        boiler_active=True,
+        hp_running=False,
+        boiler_dhw_active=True,
+    )
+    assert not any(a.alert_type == "dhw_pendulum" for a in out), (
+        "dhw_pendulum should be suppressed when boiler_dhw_active AND !hp_running"
+    )
+
+
+def test_evaluate_alerts_dhw_pendulum_not_suppressed_when_hp_running():
+    """Co-fire (HP running + boiler DHW active) — real HP DHW cycles, not suppressed."""
+    from custom_components.daikin_cycle_ml.engine.notification_engine import (
+        evaluate_alerts,
+    )
+    out = evaluate_alerts(
+        {"dhw_pendulum": True},
+        {"alert_enabled_dhw_pendulum": True},
+        now=1e9,
+        boiler_active=True,
+        hp_running=True,
+        boiler_dhw_active=True,
+    )
+    assert any(a.alert_type == "dhw_pendulum" for a in out), (
+        "dhw_pendulum should NOT be suppressed during co-fire (HP running)"
+    )
+
+
+def test_evaluate_alerts_dhw_pendulum_not_suppressed_when_heat_boiler_only():
+    """Boiler-heat-only (no DHW demand) — dhw_pendulum not suppressed."""
+    from custom_components.daikin_cycle_ml.engine.notification_engine import (
+        evaluate_alerts,
+    )
+    out = evaluate_alerts(
+        {"dhw_pendulum": True},
+        {"alert_enabled_dhw_pendulum": True},
+        now=1e9,
+        boiler_active=True,
+        hp_running=False,
+        boiler_dhw_active=False,
+    )
+    assert any(a.alert_type == "dhw_pendulum" for a in out), (
+        "dhw_pendulum should NOT be suppressed during boiler-HEAT-only "
+        "(no DHW demand)"
+    )
+
+
+def test_evaluate_alerts_short_run_still_suppressed_when_dhw_boiler_only():
+    """Regression: HP-cycle alerts (short_run) still suppressed when ANY
+    boiler active — including boiler-DHW-only."""
+    from custom_components.daikin_cycle_ml.engine.notification_engine import (
+        evaluate_alerts,
+    )
+    out = evaluate_alerts(
+        {"short_run": True},
+        {},
+        now=1e9,
+        boiler_active=True,
+        hp_running=False,
+        boiler_dhw_active=True,
+    )
+    assert not any(a.alert_type == "short_run" for a in out), (
+        "short_run should be suppressed when boiler_active (heat OR dhw) "
+        "AND !hp_running"
+    )
+
+
+# ============================================================
+# B4 (v1.15.0): _boiler_kwargs_for_alerts helper — defensive guards
+# ============================================================
+
+def test_boiler_kwargs_for_alerts_missing_snapshot():
+    """B4 None-safe: no snapshot -> suppression-disabling defaults."""
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator,
+    )
+    c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
+    c.data = None  # type: ignore[assignment]
+    kw = c._boiler_kwargs_for_alerts()
+    assert kw == {
+        "boiler_active": False,
+        "hp_running": True,
+        "boiler_dhw_active": False,
+    }
+
+
+def test_boiler_kwargs_for_alerts_with_snapshot():
+    """B4: helper reads real bool values from snapshot."""
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator, DataSnapshot,
+    )
+    c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
+    snap = DataSnapshot()
+    snap.boiler_active = True
+    snap.boiler_dhw_active = False
+    snap.state = "idle"
+    c.data = snap
+    kw = c._boiler_kwargs_for_alerts()
+    assert kw == {
+        "boiler_active": True,
+        "hp_running": False,
+        "boiler_dhw_active": False,
+    }
+    snap.state = "running"
+    assert c._boiler_kwargs_for_alerts()["hp_running"] is True
+
+
+def test_boiler_kwargs_for_alerts_mock_snapshot_disables_suppression():
+    """REGRESSION (v1.15.0): truthy Mock must NOT trigger suppression.
+
+    First attempt at this commit used bool(getattr(...)) which coerces
+    any truthy value to True — including bool(MagicMock()) which is True.
+    Several existing tests set c.data = MagicMock() before calling
+    async_emit_test_alert. Result: helper returned boiler_active=True,
+    hp_running=False -> suppression fired -> alerts=[] -> emit-loop
+    statements uncovered -> full suite failed at 99.93% coverage.
+
+    Same bug class as B4: alerts silenced by truthy non-bool values.
+    Fix: isinstance(x, bool) guards. This test locks that behavior.
+    """
+    from unittest.mock import MagicMock
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator,
+    )
+    c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
+    c.data = MagicMock()
+    c.data.state = "idle"
+    kw = c._boiler_kwargs_for_alerts()
+    assert kw["boiler_active"] is False, (
+        "MagicMock boiler_active must NOT be truthy -> False (isinstance guard)"
+    )
+    assert kw["boiler_dhw_active"] is False, (
+        "MagicMock boiler_dhw_active must NOT be truthy -> False"
+    )
+    assert kw["hp_running"] is False, "state='idle' -> hp_running=False"

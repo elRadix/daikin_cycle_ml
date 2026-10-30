@@ -276,6 +276,15 @@ _BOILER_SUPPRESSED_ALERTS = frozenset({
 })
 
 
+# M2 (v1.15.0): DHW-cycle alerts suppressed only during boiler-DHW-only.
+# HP DHW compressor cycles are not meaningful while the gas boiler produces
+# DHW on a hybrid install. dhw_pendulum is the only alert in this class;
+# heat-mode boiler activity continues to use _BOILER_SUPPRESSED_ALERTS above.
+_BOILER_DHW_SUPPRESSED_ALERTS = frozenset({
+    "dhw_pendulum",
+})
+
+
 def evaluate_alerts(
     binary_states: Mapping[str, bool],
     options: Mapping[str, Any] | None,
@@ -287,6 +296,7 @@ def evaluate_alerts(
     language: str | None = None,
     boiler_active: bool = False,
     hp_running: bool = True,
+    boiler_dhw_active: bool = False,
 ) -> list[AlertSpec]:
     """Return alerts to dispatch now.
 
@@ -321,6 +331,9 @@ def evaluate_alerts(
             continue
         # Issue #218 (Block 3C.2): suppress HP-cycle alerts during boiler-only
         if boiler_active and not hp_running and alert_type in _BOILER_SUPPRESSED_ALERTS:
+            continue
+        # M2 (v1.15.0): DHW-cycle alerts suppressed only during boiler-DHW-only
+        if boiler_dhw_active and not hp_running and alert_type in _BOILER_DHW_SUPPRESSED_ALERTS:
             continue
         if not passes_filters(alert_type, severity, options, now):
             continue
