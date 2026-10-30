@@ -3,6 +3,12 @@
 ## [Unreleased]
 
 ### Added
+- **#222** EBLA09DA3W1 9 kW 3-phase R32 monobloc datasheet:
+  - EN 14511 nominal heating points (A-7/W35, A2/W35, A7/W35, A7/W45)
+  - EN 14825 part-load: Average climate (Strasbourg) primary + Warmer (Keymark 011-1W0423) as separate reference
+  - SCOP: 4.82 (W35) / 3.44 (W55) Average · 6.20 / 4.26 Warmer
+  - Physical: 3.80 kg R32, 149 kg, 3 kW BUH, 15-60 °C LWT range
+  - `_meta.sources` records 4 canonical URLs; `_meta.climate_zone_note` prevents accidental Average+Warmer merge
 - **#218** Full Daikin Altherma R Hybrid (EVLQ05CV3 + EVLQ08CV3) support:
   - Models: MODEL_EVLQ05CV3 + MODEL_EVLQ08CV3 with EN 14825 W35 datasheets (5 COP points each), R410A, bivalent=true
   - Indoor-unit aliases: `ehyhbh05av32` → EVLQ05, `ehyhbh08av32`/`ehyhbx08av3` → EVLQ08

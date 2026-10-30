@@ -277,7 +277,7 @@ are resolved automatically by the alias layer. See
 required for setup.
 ### Supported model families
 
-The following **40 ESPAltherma definition files** cover **53 technical + 1 commercial alias = 54 user-facing model codes** (EPRA, ERLA, ERGA, EPGA, EDLA, EBLA, EDLQ, EBLQ, EPSK, EKHBRD/ERRQ, ERRQ-ERSQ) from
+The following **40 ESPAltherma definition files** cover **54 technical + 1 commercial alias = 55 user-facing model codes** (EPRA, ERLA, ERGA, EPGA, EDLA, EBLA, EDLQ, EBLQ, EPSK, EKHBRD/ERRQ, ERRQ-ERSQ) from
 [ESPAltherma `beta/definitions`](https://github.com/raomin/ESPAltherma/tree/beta/definitions)
 contain the required attributes for their class (see Known model limitations below) and are verified compatible:
 

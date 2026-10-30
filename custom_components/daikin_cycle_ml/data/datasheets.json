@@ -3,7 +3,15 @@
     "license": "CC BY 4.0",
     "attribution_required": true,
     "attribution_text": "Datasheet COP curves compiled from official Daikin service manuals by Daikin Cycle ML. Reuse permitted with attribution.",
-    "permission_grant": "ESPAltherma (raomin) granted use with attribution per issue #195."
+    "permission_grant": "ESPAltherma (raomin) granted use with attribution per issue #195.",
+    "generated": "2026-10-30T00:00:00Z",
+    "sources": [
+      "https://www.daikin.eu/en_us/products/product.table.html/EBLA09-14D3W1.html",
+      "https://www.heatpumpkeymark.com/en/?cHash=17c32cfa7a65284c633783773878cf0f",
+      "https://www.daikin.at/content/dam/DACE-AT/document-library/catalogues/heat/Daikin_Katalog_Heizung_2025.pdf",
+      "https://www.ncm-pcdb.org.uk/sap/pcdbdetails.jsp?pid=31&id=107746&type=362&mid=020045"
+    ],
+    "climate_zone_note": "EBLA09DA3W1: primary curves Average (Daikin EU spec table). Keymark 011-1W0423 is Warmer climate only — stored separately as part_load_curves_warmer, MUST NOT be merged with Average."
   },
   "schema_version": 1,
   "generated": "2026-10-27T00:00:00Z",
@@ -1231,6 +1239,158 @@
           "t_lwc": 35,
           "cop": 7.27
         }
+      ]
+    },
+    "ebla09da3w1": {
+      "family": "Altherma 3 M",
+      "kw": 9,
+      "lwt_min": 15,
+      "lwt_max": 60,
+      "nom_cop": 4.91,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "charge_kg": 3.8,
+      "buh_kw": 3.0,
+      "noise_db": 62,
+      "bivalent": false,
+      "points": [
+        {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 2.81
+        },
+        {
+          "label": "A2/W35",
+          "t_out": 2,
+          "t_lwc": 35,
+          "cop": 3.79
+        },
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.91
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.71
+        }
+      ],
+      "part_load_curves": {
+        "climate_zone": "average",
+        "w35": [
+          {
+            "t_out": -7,
+            "pdh_kw": 8.5,
+            "cop": 3.07
+          },
+          {
+            "t_out": 2,
+            "pdh_kw": 5.5,
+            "cop": 4.52
+          },
+          {
+            "t_out": 7,
+            "pdh_kw": 4.7,
+            "cop": 6.78
+          },
+          {
+            "t_out": 12,
+            "pdh_kw": 5.5,
+            "cop": 8.75
+          }
+        ],
+        "w55": [
+          {
+            "t_out": -7,
+            "pdh_kw": 8.5,
+            "cop": 2.09
+          },
+          {
+            "t_out": 2,
+            "pdh_kw": 5.0,
+            "cop": 3.28
+          },
+          {
+            "t_out": 7,
+            "pdh_kw": 4.4,
+            "cop": 4.8
+          },
+          {
+            "t_out": 12,
+            "pdh_kw": 5.3,
+            "cop": 6.45
+          }
+        ]
+      },
+      "part_load_curves_warmer": {
+        "climate_zone": "warmer",
+        "w35": [
+          {
+            "t_out": 2,
+            "pdh_kw": 9.0,
+            "cop": 3.36
+          },
+          {
+            "t_out": 7,
+            "pdh_kw": 5.9,
+            "cop": 5.59
+          },
+          {
+            "t_out": 12,
+            "pdh_kw": 5.2,
+            "cop": 7.87
+          }
+        ],
+        "w55": [
+          {
+            "t_out": 2,
+            "pdh_kw": 9.0,
+            "cop": 2.12
+          },
+          {
+            "t_out": 7,
+            "pdh_kw": 5.9,
+            "cop": 3.65
+          },
+          {
+            "t_out": 12,
+            "pdh_kw": 5.2,
+            "cop": 5.68
+          }
+        ]
+      },
+      "scop": {
+        "average": {
+          "w35": 4.82,
+          "w55": 3.44
+        },
+        "warmer": {
+          "w35": 6.2,
+          "w55": 4.26
+        }
+      },
+      "dimensions_mm": [
+        870,
+        1380,
+        460
+      ],
+      "weight_kg": 149,
+      "power_supply": "3N~ 400V",
+      "lwt_range_c": [
+        15,
+        60
+      ],
+      "dhw_range_c": [
+        25,
+        55
+      ],
+      "cooling_range_c": [
+        5,
+        22
       ]
     }
   }
