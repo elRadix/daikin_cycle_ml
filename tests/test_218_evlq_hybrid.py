@@ -2072,3 +2072,120 @@ async def test_insert_cop_sample_preserves_realistic_data(tmp_path):
     assert r[0] == 45.0 and r[1] == -5.0 and r[2] == 42.0 and r[3] == 38.0
     assert r[4] == 18.5
     assert r[5] == 1 and r[6] == 'heat'
+
+
+# ============================================================
+# M2 (v1.15.0) Commit 4: H3 normalize + H4 None-safe
+# ============================================================
+# H3: hybrid_mode_from_attrs normalizes case + whitespace + aliases;
+#     returns 'unknown' for unrecognized values (never garbage).
+# H4: _hybrid_attrs_present uses `is not None`, not `key in dict`
+#     — because ESPAltherma startup window can report the key with
+#     value=None, which would falsely signal "hybrid configured".
+
+# ---------- H3: hybrid_mode_from_attrs normalization ----------
+
+def test_hybrid_mode_normalization_case_insensitive():
+    """Case-insensitive match against 3 valid modes."""
+    from custom_components.daikin_cycle_ml.engine.thermal import (
+        hybrid_mode_from_attrs,
+    )
+    cases = [
+        ("H/P only", "H/P only"),
+        ("h/p only", "H/P only"),
+        ("H/P ONLY", "H/P only"),
+        ("Hybrid", "Hybrid"),
+        ("hybrid", "Hybrid"),
+        ("HYBRID", "Hybrid"),
+        ("Boiler only", "Boiler only"),
+        ("boiler only", "Boiler only"),
+        ("BOILER ONLY", "Boiler only"),
+    ]
+    for inp, want in cases:
+        got = hybrid_mode_from_attrs({"Hybrid Op. Mode": inp})
+        assert got == want, f"{inp!r} -> {got!r}, want {want!r}"
+
+
+def test_hybrid_mode_normalization_whitespace():
+    """Whitespace around valid modes stripped."""
+    from custom_components.daikin_cycle_ml.engine.thermal import (
+        hybrid_mode_from_attrs,
+    )
+    assert hybrid_mode_from_attrs({"Hybrid Op. Mode": "  Hybrid  "}) == "Hybrid"
+    assert hybrid_mode_from_attrs({"Hybrid Op. Mode": "\tH/P only\n"}) == "H/P only"
+    assert hybrid_mode_from_attrs({"Hybrid Op. Mode": " Boiler only   "}) == "Boiler only"
+
+
+def test_hybrid_mode_normalization_aliases():
+    """Common alternative spellings map to canonical modes."""
+    from custom_components.daikin_cycle_ml.engine.thermal import (
+        hybrid_mode_from_attrs,
+    )
+    cases = [
+        ("hp only", "H/P only"),
+        ("HP ONLY", "H/P only"),
+        ("h/p", "H/P only"),
+        ("HP", "H/P only"),
+        ("hp", "H/P only"),
+        ("boiler", "Boiler only"),
+        ("BOILER", "Boiler only"),
+    ]
+    for inp, want in cases:
+        got = hybrid_mode_from_attrs({"Hybrid Op. Mode": inp})
+        assert got == want, f"alias {inp!r} -> {got!r}, want {want!r}"
+
+
+def test_hybrid_mode_normalization_empty_string():
+    """Empty / whitespace-only / absent -> empty string (non-hybrid)."""
+    from custom_components.daikin_cycle_ml.engine.thermal import (
+        hybrid_mode_from_attrs,
+    )
+    assert hybrid_mode_from_attrs({"Hybrid Op. Mode": ""}) == ""
+    assert hybrid_mode_from_attrs({"Hybrid Op. Mode": "   "}) == ""
+    assert hybrid_mode_from_attrs({"Hybrid Op. Mode": "\t\n"}) == ""
+    assert hybrid_mode_from_attrs({}) == ""
+
+
+def test_hybrid_mode_normalization_unknown():
+    """Unrecognized values -> 'unknown' (never garbage in enum sensor)."""
+    from custom_components.daikin_cycle_ml.engine.thermal import (
+        hybrid_mode_from_attrs,
+    )
+    for inp in ("garbage", "gAs", "mode3", "??", "0"):
+        got = hybrid_mode_from_attrs({"Hybrid Op. Mode": inp})
+        assert got == "unknown", f"{inp!r} -> {got!r}, want 'unknown'"
+
+
+# ---------- H4: _hybrid_attrs_present None-safe ----------
+
+def test_hybrid_attrs_present_but_none():
+    """H4 regression: key present but value None -> False (startup window)."""
+    from custom_components.daikin_cycle_ml.config_flow import (
+        _hybrid_attrs_present,
+    )
+    assert _hybrid_attrs_present({"Boiler Operation Demand": None}) is False
+    assert _hybrid_attrs_present({"Boiler DHW Demand": None}) is False
+    assert _hybrid_attrs_present({
+        "Boiler Operation Demand": None,
+        "Boiler DHW Demand": None,
+    }) is False
+    assert _hybrid_attrs_present({}) is False
+
+
+def test_hybrid_attrs_present_mixed():
+    """One key None, one real value -> True (real value wins)."""
+    from custom_components.daikin_cycle_ml.config_flow import (
+        _hybrid_attrs_present,
+    )
+    assert _hybrid_attrs_present({
+        "Boiler Operation Demand": "ON",
+        "Boiler DHW Demand": None,
+    }) is True
+    assert _hybrid_attrs_present({
+        "Boiler Operation Demand": None,
+        "Boiler DHW Demand": "ON",
+    }) is True
+    assert _hybrid_attrs_present({
+        "Boiler Operation Demand": False,  # False is not None -> True
+        "Boiler DHW Demand": None,
+    }) is True

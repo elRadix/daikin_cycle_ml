@@ -109,13 +109,38 @@ def dhw_tank_temp_from_attrs(attrs: dict[str, Any]) -> float | None:
     return v
 
 
-def hybrid_mode_from_attrs(attrs: dict[str, Any]) -> str:
-    """Return the hybrid operating mode string (e.g. 'H/P only', 'Hybrid').
+_HYBRID_MODE_OPTIONS: tuple[str, ...] = (
+    "H/P only", "Hybrid", "Boiler only",
+)
+_HYBRID_MODE_ALIASES: dict[str, str] = {
+    "hp only": "H/P only",
+    "h/p": "H/P only",
+    "hp": "H/P only",
+    "boiler": "Boiler only",
+}
 
-    Empty string when absent (non-hybrid installations).
+
+def hybrid_mode_from_attrs(attrs: dict[str, Any]) -> str:
+    """Return normalized hybrid operating mode string.
+
+    H3 (v1.15.0): normalizes case-insensitive + whitespace variants of
+    the three valid modes. Returns 'unknown' for unrecognized values
+    (so the sensor enum never shows garbage). Empty string when the
+    attr is absent (non-hybrid).
     """
     v = attrs.get(ATTR_HYBRID_OP_MODE)
-    return str(v).strip() if v is not None else ""
+    if v is None:
+        return ""
+    s = str(v).strip()
+    if not s:
+        return ""
+    for opt in _HYBRID_MODE_OPTIONS:
+        if s.lower() == opt.lower():
+            return opt
+    alias = _HYBRID_MODE_ALIASES.get(s.lower())
+    if alias is not None:
+        return alias
+    return "unknown"
 
 
 def boiler_efficiency_cop_from_attrs(attrs: dict[str, Any]) -> float | None:

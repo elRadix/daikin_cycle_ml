@@ -264,11 +264,19 @@ def _is_hybrid_model(model: str) -> bool:
 
 
 def _hybrid_attrs_present(compat_attrs: dict[str, Any]) -> bool:
-    """True if at least one boiler demand attribute is present."""
+    """True if at least one boiler demand attribute has a non-None value.
+
+    H4 (v1.15.0): pre-H4 the check was `key in compat_attrs`, which
+    returned True for None-valued keys -- e.g. during ESPAltherma startup
+    when the source briefly reports Boiler Operation Demand = None. That
+    suppressed the hybrid_hint warning, so the user believed hybrid was
+    configured when it was not, and boiler-cycle suppression stayed
+    inactive. Now requires a non-None value.
+    """
     from .const import ATTR_BOILER_DHW_DEMAND, ATTR_BOILER_OPERATION_DEMAND
     return (
-        ATTR_BOILER_OPERATION_DEMAND in compat_attrs
-        or ATTR_BOILER_DHW_DEMAND in compat_attrs
+        compat_attrs.get(ATTR_BOILER_OPERATION_DEMAND) is not None
+        or compat_attrs.get(ATTR_BOILER_DHW_DEMAND) is not None
     )
 
 
