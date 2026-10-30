@@ -152,24 +152,32 @@ One row per completed compressor cycle.
 CREATE TABLE cycles (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     start_ts         REAL NOT NULL UNIQUE,
-    end_ts           REAL NOT NULL,
-    duration_s       REAL NOT NULL,
-    mode             TEXT NOT NULL,
+    end_ts           REAL,
+    duration_s       INTEGER,
+    mode             TEXT,
     quality_score    INTEGER,
     cluster_id       INTEGER,
     dT_max           REAL,
     dT_avg           REAL,
     rps_max          INTEGER,
     rps_avg          REAL,
-    buh_used         INTEGER NOT NULL DEFAULT 0,
-    defrost_used     INTEGER NOT NULL DEFAULT 0,
+    buh_used         INTEGER DEFAULT 0,
+    defrost_used     INTEGER DEFAULT 0,
     thermal_kw_avg   REAL,
     outdoor_temp     REAL,
     label            TEXT,
     cop_avg          REAL,
     cop_sample_count INTEGER,
     cop_sample_stdev REAL,
-    cop_confidence   TEXT
+    cop_confidence   TEXT,
+    is_transient                INTEGER DEFAULT 0,
+    mode_original               TEXT,
+    parent_cycle_id             INTEGER,
+    is_dhw_tail                 INTEGER DEFAULT 0,
+    is_reconstructed            INTEGER DEFAULT 0,
+    boiler_contribution_samples INTEGER DEFAULT 0,
+    boiler_heat_samples         INTEGER DEFAULT 0,
+    boiler_dhw_samples          INTEGER DEFAULT 0
 );
 ```
 
@@ -240,12 +248,17 @@ CREATE TABLE cop_samples (
     cop           REAL NOT NULL,
     lwt           REAL,
     outdoor       REAL,
+    r1t           REAL,
+    r4t           REAL,
     flow_lmin     REAL,
-    power_w       REAL,
     power_stable  INTEGER DEFAULT 0,
-    mode          TEXT,
-    data_quality  TEXT,
-    source        TEXT DEFAULT 'sensor'
+    mode          TEXT DEFAULT 'unknown',
+    source                 TEXT DEFAULT 'interval',
+    mode_original          TEXT,
+    is_transition_artifact INTEGER DEFAULT 0,
+    boiler_active          INTEGER DEFAULT 0,
+    boiler_mode            TEXT DEFAULT ''
+
 );
 ```
 
@@ -299,7 +312,7 @@ Per-day per-mode aggregates. One row per `(day, mode)`.
 ```sql
 CREATE TABLE daily_summary (
     day              TEXT NOT NULL,
-    mode             TEXT NOT NULL,
+    mode             TEXT,
     cycles           INTEGER DEFAULT 0,
     total_duration_s INTEGER DEFAULT 0,
     duration_min     INTEGER,
