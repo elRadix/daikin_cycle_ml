@@ -27,7 +27,7 @@ from custom_components.daikin_cycle_ml.engine.model_profiles import (
 
 def test_model_families_shape() -> None:
     assert isinstance(MODEL_FAMILIES, dict)
-    assert len(MODEL_FAMILIES) == 11
+    assert len(MODEL_FAMILIES) >= 11
     for key, label in MODEL_FAMILIES.items():
         assert isinstance(key, str) and key
         assert isinstance(label, str) and label

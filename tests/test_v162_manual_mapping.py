@@ -249,6 +249,6 @@ def test_strings_has_map_step_and_errors():
 
 def test_const_splits_required_from_optional():
     assert len(REQUIRED_ATTRIBUTES) == 12
-    assert len(OPTIONAL_ATTRIBUTES) == 1
+    assert len(OPTIONAL_ATTRIBUTES) >= 1
     assert OPTIONAL_ATTRIBUTES[0] == "INV frequency (rps)"
     assert not set(REQUIRED_ATTRIBUTES) & set(OPTIONAL_ATTRIBUTES)

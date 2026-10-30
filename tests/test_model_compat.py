@@ -111,14 +111,11 @@ PARTIAL_MODELS: dict[str, list[str]] = {
         "BUH Step2",
         "LW setpoint (main)",
     ],
-    # Hybrid: no separate after-BUH R2T or outdoor R1T on the wire.
+    # Hybrid: uses "Outlet Water BUH Temp. (R2T)" (covered by alias) but
+    # still lacks the "Outdoor air temp.(R1T)" canonical spelling — upstream
+    # only publishes "Outdoor air temp." without the "(R1T)" suffix.
     "Altherma(Hybrid).h": [
-        "Leaving water temp. after BUH (R2T)",
         "Outdoor air temp.(R1T)",
-    ],
-    # CA-series Monobloc 5-7kW: no BUH after sensor.
-    "Altherma(LT_EBLQ-EBLQ-CA series 5-7kW Monobloc).h": [
-        "Leaving water temp. after BUH (R2T)",
     ],
 }
 

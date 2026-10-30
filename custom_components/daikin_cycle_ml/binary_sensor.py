@@ -1,6 +1,6 @@
 """Binary sensor platform for Daikin Cycle ML (Batch 31d).
 
-15 binary sensors. BUH step1/2 merged into buh_active with step attribute.
+17 binary sensors. BUH step1/2 merged into buh_active with step attribute.
 Cluster binaries removed (see sensor.last_cycle attribute "cluster").
 """
 from __future__ import annotations
@@ -15,6 +15,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -271,6 +272,16 @@ BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
      "device_class": BinarySensorDeviceClass.PROBLEM,
      "icon": "mdi:speedometer",
      "state_fn": _is_high_cycle_rate},
+    {"key": "boiler_operation_demand", "name": "Boiler operation demand",
+     "device_class": BinarySensorDeviceClass.RUNNING,
+     "icon": "mdi:fire",
+     "entity_category": EntityCategory.DIAGNOSTIC,
+     "state_fn": lambda s, c: s.boiler_active if s.is_hybrid else None},
+    {"key": "boiler_dhw_demand", "name": "Boiler DHW demand",
+     "device_class": BinarySensorDeviceClass.RUNNING,
+     "icon": "mdi:water-boiler",
+     "entity_category": EntityCategory.DIAGNOSTIC,
+     "state_fn": lambda s, c: s.boiler_dhw_active if s.is_hybrid else None},
 ]
 
 

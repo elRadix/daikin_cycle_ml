@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### Added
+- **#218** Full Daikin Altherma R Hybrid (EVLQ05CV3 + EVLQ08CV3) support:
+  - Models: MODEL_EVLQ05CV3 + MODEL_EVLQ08CV3 with EN 14825 W35 datasheets (5 COP points each), R410A, bivalent=true
+  - Indoor-unit aliases: `ehyhbh05av32` → EVLQ05, `ehyhbh08av32`/`ehyhbx08av3` → EVLQ08
+  - Attribute aliases: `Outlet Water Heat Exch. Temp. (R1T)`, `Outlet Water BUH Temp. (R2T)`, `DHW tank temp (R5T)`
+  - 2 binary sensors: `boiler_operation_demand`, `boiler_dhw_demand`
+  - 3 sensors: `hybrid_mode` (enum), `boiler_efficiency_cop`, `boiler_contribution_today_pct`
+  - Hybrid-only: sensors return unavailable on non-hybrid installs
+  - Config flow: `hybrid_hint` warning when boiler attrs missing + reconfigure HP↔Hybrid detection
+  - Boiler-cycle guard prevents phantom short-cycle alerts during boiler-only operation
+  - COP isolation: `boiler_active` flag on cop_samples (v22 migration); `cop_today` and heating curve use pure HP samples only; co-fire samples stored with flag for future analytics
+  - Alert suppression: `short_run`, `short_off`, `pendulum_hourly`, `pendulum_daily` suppressed during boiler-only
+  - DB schema v22: `cop_samples.boiler_active`; `cycles.boiler_contribution_samples` (v21)
+  - Diagnostics: boiler_active, boiler_dhw_active, hybrid_mode, boiler_efficiency_cop, inv_freq_secondary
+
+### Fixed
+- **#218** Idle state now correctly returns `unknown` for COP sensors on pure HP installs without boiler (was: coercion)
+
 ### Fixed
 - **#217** IDLE state now forces RPS=0, thermal_power_live=0.0, and COP=None instead of showing stale values.
 - **#217** Add ERG04/06/08 model aliases mapping to ERGA profiles.

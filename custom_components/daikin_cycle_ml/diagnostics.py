@@ -224,6 +224,12 @@ async def async_get_config_entry_diagnostics(
             "errors": getattr(snap, "errors", 0),
             "errors_total": getattr(snap, "errors_total", 0),
             "attrs_sample": attrs_sample,
+            # Hybrid (EVLQ) — issue #218
+            "boiler_active": bool(getattr(snap, "boiler_active", False)),
+            "boiler_dhw_active": bool(getattr(snap, "boiler_dhw_active", False)),
+            "hybrid_mode": str(getattr(snap, "hybrid_mode", "") or ""),
+            "boiler_efficiency_cop": getattr(snap, "boiler_efficiency_cop", None),
+            "inv_freq_secondary": getattr(snap, "inv_freq_secondary", None),
         },
         "store": {
             "cycle_count": store.count(),

@@ -23,7 +23,7 @@
       },
       "attributes": {
         "title": "Attribute check",
-        "description": "Core attributes on the source sensor: **{present} / {total}** present.\n\n**Present:**\n{present_list}\n\n**Missing:**\n{missing_list}"
+        "description": "Core attributes on the source sensor: **{present} / {total}** present.\n\n**Present:**\n{present_list}\n\n**Missing:**\n{missing_list}\n\n{hybrid_hint}"
       },
       "cycle": {
         "title": "Cycle detection",
@@ -141,7 +141,10 @@
           "Water pump operation": "Water pump operation",
           "BUH Step1": "BUH Step1",
           "BUH Step2": "BUH Step2",
-          "LW setpoint (main)": "LW setpoint (main)"
+          "LW setpoint (main)": "LW setpoint (main)",
+          "Boiler Operation Demand": "Boiler Operation Demand",
+          "Boiler DHW Demand": "Boiler DHW Demand",
+          "Hybrid Op. Mode": "Hybrid Op. Mode"
         },
         "data_description": {
           "INV frequency (rps)": "Your sensor's attribute name for the canonical 'INV frequency (rps)' field. Leave empty if the canonical name already exists on the sensor.",
@@ -156,7 +159,10 @@
           "Water pump operation": "Your sensor's attribute name for the canonical 'Water pump operation' field. Leave empty if the canonical name already exists on the sensor.",
           "BUH Step1": "Your sensor's attribute name for the canonical 'BUH Step1' field. Leave empty if the canonical name already exists on the sensor.",
           "BUH Step2": "Your sensor's attribute name for the canonical 'BUH Step2' field. Leave empty if the canonical name already exists on the sensor.",
-          "LW setpoint (main)": "Your sensor's attribute name for the canonical 'LW setpoint (main)' field. Leave empty if the canonical name already exists on the sensor."
+          "LW setpoint (main)": "Your sensor's attribute name for the canonical 'LW setpoint (main)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Boiler Operation Demand": "Sensor attribute name for 'Boiler Operation Demand' (hybrid only — leave empty if not present).",
+          "Boiler DHW Demand": "Sensor attribute name for 'Boiler DHW Demand' (hybrid only — leave empty if not present).",
+          "Hybrid Op. Mode": "Sensor attribute name for 'Hybrid Op. Mode' (hybrid only — leave empty if not present)."
         }
       },
       "diagnose": {
@@ -219,7 +225,8 @@
     },
     "abort": {
       "already_configured": "Already configured",
-      "reconfigure_successful": "Reconfiguration successful"
+      "reconfigure_successful": "Reconfiguration successful",
+      "reconfigure_hybrid_change": "Reconfiguration successful. Note: this changed the model between hybrid (EVLQ) and non-hybrid. Existing cycle history is preserved unchanged. New cycles will use the updated boiler-cycle detection."
     }
   },
   "options": {
@@ -755,6 +762,15 @@
       },
       "electrical_power_estimated": {
         "name": "Electrical power estimated"
+      },
+      "hybrid_mode": {
+        "name": "Hybrid mode"
+      },
+      "boiler_efficiency_cop": {
+        "name": "Boiler efficiency COP"
+      },
+      "boiler_contribution_today_pct": {
+        "name": "Boiler contribution today pct"
       }
     },
     "binary_sensor": {
@@ -802,6 +818,12 @@
       },
       "high_cycle_rate": {
         "name": "High cycle rate"
+      },
+      "boiler_operation_demand": {
+        "name": "Boiler operation demand"
+      },
+      "boiler_dhw_demand": {
+        "name": "Boiler DHW demand"
       }
     }
   },

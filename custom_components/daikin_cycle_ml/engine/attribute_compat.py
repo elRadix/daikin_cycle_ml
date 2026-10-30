@@ -19,12 +19,14 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
         "Leaving water temp. (R1T)",
         "Vorlauf vor BUH (R1T)",
         "[HPSU] Tv inflow Temp (R1T)",
+        "Outlet Water Heat Exch. Temp. (R1T)",
     ),
     "Leaving water temp. after BUH (R2T)": (
         "Leaving water temp.(R2T)",
         "Leaving water temp. (R2T)",
         "D(C)",
         "Outlet Water Temp.",
+        "Outlet Water BUH Temp. (R2T)",
     ),
     "Inlet water temp.(R4T)": (
         "Inlet water temp. (R4T)",
@@ -43,6 +45,7 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
     "DHW tank temp. (R5T)": (
         "DHW tank temp.(R5T)",
         "DHW temperature(R5T)",
+        "DHW tank temp (R5T)",
     ),
     "Flow sensor (l/min)": (
         "Flow sensor(l/min)",
