@@ -172,7 +172,10 @@ cards:
               cop_today:           ['cop_today','cop_vandaag'],
               cycles_today:        ['cycles_today','cycli_vandaag'],
               source_health:       ['source_health','bron_gezondheid'],
-              quality_today:       ['quality_today','kwaliteit_vandaag']
+              quality_today:       ['quality_today','kwaliteit_vandaag'],
+              hybrid_mode:         ['hybrid_mode'],
+              boiler_contribution: ['boiler_contribution_today_pct'],
+              boiler_efficiency:   ['boiler_efficiency_cop']
             };
             var resolveEntity = function(role){
               var names = REGISTRY[role];
@@ -196,6 +199,10 @@ cards:
             var SUMMARY = resolveEntity('daily_summary');
             var SPECS   = resolveEntity('hp_specs');
             var STATE   = resolveEntity('cycle_state');
+            var HYBRID_MODE = resolveEntity('hybrid_mode');
+            var BOILER_CONTRIB = resolveEntity('boiler_contribution');
+            var BOILER_EFF = resolveEntity('boiler_efficiency');
+            var IS_HYBRID = HYBRID_MODE !== null;
 
             if (!SUMMARY || !STATE) {
               return '<div style="padding:16px;color:#C62828;font-family:monospace;font-weight:800;font-size:0.85em;">'
@@ -313,7 +320,10 @@ cards:
               p_energy:  {nl:'Energie', en:'Energy'},
               p_band:    {nl:'Band', en:'Band'},
               p_runtime: {nl:'Runtime', en:'Runtime'},
-              p_elapsed: {nl:'Verstreken', en:'Elapsed'}
+              p_elapsed: {nl:'Verstreken', en:'Elapsed'},
+              hybrid_mode: {nl:'Modus', en:'Mode'},
+              boiler_contrib: {nl:'Bijdrage', en:'Contribution'},
+              boiler_cop: {nl:'Boiler COP', en:'Boiler COP'}
             };
             var t = function(k){ var e=I18N[k]; if(!e) return k; return e[LANG] || e.en || e.nl; };
             var wd = function(iso){ return LANG==='nl' ? weekday(iso) : weekdayEn(iso); };
@@ -611,7 +621,8 @@ cards:
               h += '<div>';
               h += '<div class="pa-hero-lbl">DAIKIN CYCLE ML</div>';
               h += '<div class="pa-hero-model">'+modelDisplay+'</div>';
-              h += '<div class="pa-hero-sub">'+(specFamily||'—')+(specKw?' · '+vI(specKw)+' kW':'')+'</div>';
+              var hybridStr = IS_HYBRID ? ' · 🔥 ' + (String((states[HYBRID_MODE] || {}).state) || 'Hybrid') : '';
+              h += '<div class="pa-hero-sub">'+(specFamily||'—')+(specKw?' · '+vI(specKw)+' kW':'') + hybridStr + '</div>';
               h += '</div></div>';
               h += '<div class="pa-hero-ring">'+ringSvg+'</div>';
               h += '</div>';
@@ -1014,6 +1025,21 @@ cards:
               today += tile('❄', 'Defrost', defCnt+'×', defSub, defCol, defPid);
               today += tile('⚙', 'Duty', v1(dutyPct)+'%', dutyLabel, dutyCol, dutyPid);
               today += tile('🔄', 'Starts', String(startsT), LANG==='nl'?'vandaag':'today', startsT > 0 ? 'var(--secondary-text-color, #1565C0)' : 'var(--disabled-text-color, #94a3b8)', startsPid);
+              if (IS_HYBRID) {
+                var boilerPct = BOILER_CONTRIB ? (parseFloat((states[BOILER_CONTRIB] || {}).state) || 0) : 0;
+                var boilerCop = BOILER_EFF ? (parseFloat((states[BOILER_EFF] || {}).state) || 0) : 0;
+                var boilerMode = HYBRID_MODE ? String((states[HYBRID_MODE] || {}).state) : 'Hybrid';
+                var bPid = registerPayload({
+                  title: '🔥 ' + t('hybrid_mode') + ' · ' + (LANG==='nl'?'vandaag':'today'),
+                  items: [
+                    { k:t('hybrid_mode'), v:boilerMode, hl:true, c:'#E65100' },
+                    { k:t('boiler_contrib'), v:v1(boilerPct)+'%' },
+                    { k:t('boiler_cop'), v:v1(boilerCop) }
+                  ]
+                });
+                var bCol = boilerPct > 0 ? '#E65100' : 'var(--disabled-text-color, #94a3b8)';
+                today += tile('🔥', 'Boiler', v1(boilerPct)+'%', 'COP ' + v1(boilerCop), bCol, bPid);
+              }
               today += '</div></div>';
 
               var cW = 460, cH = 190;
