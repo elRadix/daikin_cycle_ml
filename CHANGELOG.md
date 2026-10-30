@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Cycle duration clamping:** Removed the hardcoded 4-hour limit in `coordinator.py` that silently truncated long compressor cycles before database insertion. The integration now relies correctly on the 48-hour detector safety net, ensuring accurate cycle durations, daily summaries, and sensor values.
+
+### Changed
+- **Dashboard `daily-summary-tabbed` card:** Added native Dark Mode support using HA CSS variables. Renamed misleading labels ("Longest" -> "Longest day", "Cap" -> "Y-axis max"). Added conditional Hybrid (Boiler) stats and mode indicator for EVLQ/EBLQ installations.
+
+
 ## [1.15.2] - 2026-10-30
 
 ### Fixed
