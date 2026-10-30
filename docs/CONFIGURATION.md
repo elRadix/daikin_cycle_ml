@@ -225,6 +225,10 @@ leave the fields in the next step as-is (canonical names). If absent, setup
 still succeeds with a warning — boiler-cycle detection will be inactive
 until those attributes are enabled in ESPAltherma (`ALTHERMA(HYBRID).h`).
 
+**Normalization.** Hybrid Op. Mode case-insensitive; aliases hp/h-p/boiler accepted; unknown -> unknown.
+
+**None-safe hybrid_hint.** Fires on absent OR None-valued attrs.
+
 **Switching HP ↔ Hybrid later.** Use **Reconfigure → Basic** to change the
 model. Both directions are supported; existing cycle history is preserved
 unchanged, new cycles use the new detection logic. A confirmation message
