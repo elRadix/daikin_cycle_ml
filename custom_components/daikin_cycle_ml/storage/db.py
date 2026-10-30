@@ -1483,6 +1483,30 @@ class CycleDB:
         )
         return stats
 
+    async def async_migrate_to_v22(self) -> dict[str, Any]:
+        """v22: ensure boiler_active column exists on cop_samples (#218 hybrid).
+
+        The column is added by async_ensure_cop_samples_table() (which
+        self-heals any pre-v22 DB). This migration just records the
+        completion marker so we don't re-run the check on every startup.
+        """
+        marker = await self.async_get_model_state(
+            "data_migration_v22_completed"
+        )
+        if marker and isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+
+        t0 = _time_now()
+        # ensure does CREATE IF NOT EXISTS + self-healing ALTER
+        await self.async_ensure_cop_samples_table()
+
+        stats: dict[str, Any] = {"completed": True}
+        stats["duration_s"] = round(_time_now() - t0, 3)
+        await self.async_set_model_state(
+            "data_migration_v22_completed", stats
+        )
+        return stats
+
     async def _rebuild_cop_hourly_for_hours(
         self, hours: list[int]
     ) -> int:
@@ -2177,8 +2201,20 @@ class CycleDB:
             "lwt REAL,"
             "outdoor REAL,"
             "flow_lmin REAL,"
-            "power_stable INTEGER DEFAULT 0)"
+            "power_stable INTEGER DEFAULT 0,"
+            "boiler_active INTEGER DEFAULT 0)"
         )
+        # Issue #218 (Block B): self-healing for pre-v22 DBs.
+        # If table already existed without boiler_active, add it now.
+        # Idempotent, ~1ms PRAGMA per call.
+        cur = await conn.execute("PRAGMA table_info(cop_samples)")
+        _cols = {row[1] for row in await cur.fetchall()}
+        await cur.close()
+        if "boiler_active" not in _cols:
+            await conn.execute(
+                "ALTER TABLE cop_samples ADD COLUMN "
+                "boiler_active INTEGER DEFAULT 0"
+            )
         await conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_cop_samples_ts "
             "ON cop_samples(ts)"
@@ -2225,9 +2261,13 @@ class CycleDB:
         now = time.time()
         cutoff = now - float(window_hours) * 3600.0
 
+        # Issue #218 (Block B): aggregate only pure-HP samples.
+        # Co-fire samples are excluded to keep cop_hourly representative
+        # of warmtepomp efficiency, not system (HP+boiler) efficiency.
         async with conn.execute(
-            "SELECT ts, cop, lwt, outdoor, flow_lmin, mode "
-            "FROM cop_samples WHERE ts >= ?",
+            "SELECT ts, cop, lwt, outdoor, flow_lmin, mode, boiler_active "
+            "FROM cop_samples WHERE ts >= ? "
+            "AND (boiler_active IS NULL OR boiler_active = 0)",
             (cutoff,),
         ) as cur:
             rows = await cur.fetchall()
@@ -2306,8 +2346,8 @@ class CycleDB:
             await conn.execute(
                 "INSERT INTO cop_samples "
                 "(ts, cop, lwt, outdoor, r1t, r4t, flow_lmin, "
-                "power_stable, mode, source) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "power_stable, mode, source, boiler_active) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     float(sample["ts"]),
                     float(sample["cop"]),
@@ -2319,6 +2359,7 @@ class CycleDB:
                     1 if sample.get("power_stable") else 0,
                     sample.get("mode") or "unknown",
                     sample.get("source", "interval"),
+                    1 if sample.get("boiler_active") else 0,
                 ),
             )
             await conn.commit()
@@ -2328,31 +2369,47 @@ class CycleDB:
             return False
 
     async def async_fetch_cop_samples(
-        self, days: int = 30
+        self, days: int = 30, *, include_boiler: bool = True,
     ) -> list[dict[str, Any]]:
+        """Fetch cop_samples in the last N days.
+
+        include_boiler=True (default): all samples (backward compat).
+        include_boiler=False: only pure-HP samples (boiler_active=0).
+        """
         await self.async_ensure_cop_samples_table()
         conn = self._require()
         cutoff = time.time() - float(days) * 86400.0
+        where = "ts >= ?"
+        params: list[Any] = [cutoff]
+        if not include_boiler:
+            where += " AND (boiler_active IS NULL OR boiler_active = 0)"
         async with conn.execute(
-            "SELECT ts, cop, lwt, outdoor, flow_lmin, power_stable, mode "
-            "FROM cop_samples WHERE ts >= ? ORDER BY ts ASC",
-            (cutoff,),
+            "SELECT ts, cop, lwt, outdoor, flow_lmin, power_stable, mode, "
+            "boiler_active FROM cop_samples WHERE " + where + " ORDER BY ts ASC",
+            tuple(params),
         ) as cur:
             rows = await cur.fetchall()
         return [dict(r) for r in rows]
 
 
     async def async_fetch_cop_samples_between(
-        self, start_ts: float, end_ts: float
+        self, start_ts: float, end_ts: float, *, include_boiler: bool = True,
     ) -> list[dict[str, Any]]:
-        """Return cop_samples with start_ts <= ts <= end_ts."""
+        """Return cop_samples with start_ts <= ts <= end_ts.
+
+        include_boiler=True (default): all samples.
+        include_boiler=False: only pure-HP samples.
+        """
         await self.async_ensure_cop_samples_table()
         conn = self._require()
+        where = "ts >= ? AND ts <= ?"
+        params: list[Any] = [float(start_ts), float(end_ts)]
+        if not include_boiler:
+            where += " AND (boiler_active IS NULL OR boiler_active = 0)"
         async with conn.execute(
-            "SELECT ts, cop, lwt, outdoor, flow_lmin, power_stable "
-            "FROM cop_samples WHERE ts >= ? AND ts <= ? "
-            "ORDER BY ts ASC",
-            (float(start_ts), float(end_ts)),
+            "SELECT ts, cop, lwt, outdoor, flow_lmin, power_stable, boiler_active "
+            "FROM cop_samples WHERE " + where + " ORDER BY ts ASC",
+            tuple(params),
         ) as cur:
             rows = await cur.fetchall()
         return [dict(r) for r in rows]

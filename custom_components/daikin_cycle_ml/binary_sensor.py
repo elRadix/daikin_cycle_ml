@@ -15,6 +15,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -274,11 +275,13 @@ BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
     {"key": "boiler_operation_demand", "name": "Boiler operation demand",
      "device_class": BinarySensorDeviceClass.RUNNING,
      "icon": "mdi:fire",
-     "state_fn": lambda s, c: s.boiler_active},
+     "entity_category": EntityCategory.DIAGNOSTIC,
+     "state_fn": lambda s, c: s.boiler_active if s.is_hybrid else None},
     {"key": "boiler_dhw_demand", "name": "Boiler DHW demand",
      "device_class": BinarySensorDeviceClass.RUNNING,
      "icon": "mdi:water-boiler",
-     "state_fn": lambda s, c: s.boiler_dhw_active},
+     "entity_category": EntityCategory.DIAGNOSTIC,
+     "state_fn": lambda s, c: s.boiler_dhw_active if s.is_hybrid else None},
 ]
 
 

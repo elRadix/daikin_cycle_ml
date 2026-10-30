@@ -273,8 +273,8 @@ def test_boiler_binary_sensor_operation_demand():
     from custom_components.daikin_cycle_ml.binary_sensor import BINARY_SENSOR_DEFS
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
     d = next(x for x in BINARY_SENSOR_DEFS if x["key"] == "boiler_operation_demand")
-    assert d["state_fn"](DataSnapshot(boiler_active=True), None) is True
-    assert d["state_fn"](DataSnapshot(boiler_active=False), None) is False
+    assert d["state_fn"](DataSnapshot(boiler_active=True, is_hybrid=True), None) is True
+    assert d["state_fn"](DataSnapshot(boiler_active=False, is_hybrid=True), None) is False
 
 
 def test_boiler_binary_sensor_dhw_demand():
@@ -282,8 +282,8 @@ def test_boiler_binary_sensor_dhw_demand():
     from custom_components.daikin_cycle_ml.binary_sensor import BINARY_SENSOR_DEFS
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
     d = next(x for x in BINARY_SENSOR_DEFS if x["key"] == "boiler_dhw_demand")
-    assert d["state_fn"](DataSnapshot(boiler_dhw_active=True), None) is True
-    assert d["state_fn"](DataSnapshot(boiler_dhw_active=False), None) is False
+    assert d["state_fn"](DataSnapshot(boiler_dhw_active=True, is_hybrid=True), None) is True
+    assert d["state_fn"](DataSnapshot(boiler_dhw_active=False, is_hybrid=True), None) is False
 
 
 def test_hybrid_mode_sensor_enum():
@@ -291,9 +291,9 @@ def test_hybrid_mode_sensor_enum():
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
     d = next(x for x in SENSOR_DEFS if x["key"] == "hybrid_mode")
-    assert d["value_fn"](DataSnapshot(hybrid_mode="H/P only"), None) == "H/P only"
-    assert d["value_fn"](DataSnapshot(hybrid_mode="Hybrid"), None) == "Hybrid"
-    assert d["value_fn"](DataSnapshot(hybrid_mode=""), None) == "unknown"
+    assert d["value_fn"](DataSnapshot(hybrid_mode="H/P only", is_hybrid=True), None) == "H/P only"
+    assert d["value_fn"](DataSnapshot(hybrid_mode="Hybrid", is_hybrid=True), None) == "Hybrid"
+    assert d["value_fn"](DataSnapshot(hybrid_mode="", is_hybrid=True), None) == "unknown"
     for opt in ("H/P only", "Hybrid", "Boiler only", "unknown"):
         assert opt in d["options"]
 
@@ -303,9 +303,9 @@ def test_boiler_efficiency_cop_sensor():
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
     d = next(x for x in SENSOR_DEFS if x["key"] == "boiler_efficiency_cop")
-    assert d["value_fn"](DataSnapshot(boiler_efficiency_cop=1.3), None) == 1.3
-    assert d["value_fn"](DataSnapshot(boiler_efficiency_cop=None), None) is None
-    assert d["attr_fn"](DataSnapshot(boiler_efficiency_cop=1.3), None)["info_only"] is True
+    assert d["value_fn"](DataSnapshot(boiler_efficiency_cop=1.3, is_hybrid=True), None) == 1.3
+    assert d["value_fn"](DataSnapshot(boiler_efficiency_cop=None, is_hybrid=True), None) is None
+    assert d["attr_fn"](DataSnapshot(boiler_efficiency_cop=1.3, is_hybrid=True), None)["info_only"] is True
 
 
 def test_diagnostics_includes_hybrid_fields():
@@ -821,3 +821,505 @@ async def test_cop_sample_insert_returns_false_branch():
 
     await DaikinCycleMLCoordinator._maybe_collect_cop_sample(c, now=10000.0)
     assert c._last_cop_sample_ts == 0.0
+
+
+# ============================================================
+# Block B — engineered COP separation (v22 boiler_active)
+# ============================================================
+
+@pytest.mark.asyncio
+async def test_migrate_to_v22_adds_column(tmp_path):
+    """v22 adds boiler_active column to cop_samples."""
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+    db = CycleDB(tmp_path / "v22test.db")
+    await db.async_open()
+    await db.async_initialize()
+
+    # Fresh DB: column already exists via CREATE TABLE. Drop to simulate pre-v22.
+    conn = db._require()
+    try:
+        await conn.execute("ALTER TABLE cop_samples DROP COLUMN boiler_active")
+        await conn.commit()
+    except Exception as exc:
+        await db.async_close()
+        pytest.skip(f"SQLite cannot DROP COLUMN: {exc}")
+
+    result = await db.async_migrate_to_v22()
+    assert result.get("completed") is True
+    assert "boiler_active" in result.get("columns_added", [])
+
+    cur = await conn.execute("PRAGMA table_info(cop_samples)")
+    cols = {row[1] for row in await cur.fetchall()}
+    await cur.close()
+    assert "boiler_active" in cols
+    await db.async_close()
+
+
+@pytest.mark.asyncio
+async def test_migrate_to_v22_idempotent(tmp_path):
+    """v22 is idempotent via marker."""
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+    db = CycleDB(tmp_path / "v22idem.db")
+    await db.async_open()
+    await db.async_initialize()
+    first = await db.async_migrate_to_v22()
+    assert first.get("completed") is True
+    second = await db.async_migrate_to_v22()
+    assert second.get("skipped") == 1
+    await db.async_close()
+
+
+@pytest.mark.asyncio
+async def test_cop_sample_co_fire_saved_with_flag():
+    """Co-fire sample saved with boiler_active=1."""
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator, DataSnapshot,
+    )
+    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+
+    c = _M()
+    c.db = _M()
+    c.db.async_get_max_cop_sample_ts = _AM(return_value=None)
+    c.db.async_insert_cop_sample = _AM(return_value=True)
+    c._cop_sample_seed_done = True
+    c._last_cop_sample_ts = 0.0
+    c.cop_sensor_entity = None
+    c._resolve_cop_sample_mode = _M(return_value="heating")
+
+    snap = DataSnapshot()
+    snap.cop = 4.5
+    snap.state = "running"
+    snap.boiler_active = True  # co-fire
+    snap.attrs = {
+        "Operation Mode": "Heating",
+        "Outdoor air temp.(R1T)": 10.0,
+        "Flow sensor (l/min)": 15.0,
+        "Inlet water temp.(R4T)": 25.0,
+        "Leaving water temp. before BUH (R1T)": 30.0,
+    }
+    c.data = snap
+
+    await DaikinCycleMLCoordinator._maybe_collect_cop_sample(c, now=10000.0)
+    c.db.async_insert_cop_sample.assert_called_once()
+    row = c.db.async_insert_cop_sample.call_args[0][0]
+    assert row.get('boiler_active') == 1
+
+
+@pytest.mark.asyncio
+async def test_cop_sample_pure_hp_has_flag_zero():
+    """Pure HP sample has boiler_active=0."""
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator, DataSnapshot,
+    )
+    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+
+    c = _M()
+    c.db = _M()
+    c.db.async_get_max_cop_sample_ts = _AM(return_value=None)
+    c.db.async_insert_cop_sample = _AM(return_value=True)
+    c._cop_sample_seed_done = True
+    c._last_cop_sample_ts = 0.0
+    c.cop_sensor_entity = None
+    c._resolve_cop_sample_mode = _M(return_value="heating")
+
+    snap = DataSnapshot()
+    snap.cop = 4.5
+    snap.state = "running"
+    snap.boiler_active = False
+    snap.attrs = {
+        "Operation Mode": "Heating",
+        "Outdoor air temp.(R1T)": 10.0,
+        "Flow sensor (l/min)": 15.0,
+        "Inlet water temp.(R4T)": 25.0,
+        "Leaving water temp. before BUH (R1T)": 30.0,
+    }
+    c.data = snap
+
+    await DaikinCycleMLCoordinator._maybe_collect_cop_sample(c, now=10000.0)
+    row = c.db.async_insert_cop_sample.call_args[0][0]
+    assert row.get('boiler_active') == 0
+
+
+# ============================================================
+# Non-hybrid isolation: sensors return None, no boiler_pct field
+# ============================================================
+
+def test_boiler_sensors_none_for_non_hybrid_snapshot():
+    """Non-hybrid snapshot → boiler sensors return None (unavailable)."""
+    from custom_components.daikin_cycle_ml.binary_sensor import BINARY_SENSOR_DEFS
+    from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+
+    snap = DataSnapshot(is_hybrid=False, boiler_active=True, boiler_dhw_active=True)
+    for key in ("boiler_operation_demand", "boiler_dhw_demand"):
+        d = next(x for x in BINARY_SENSOR_DEFS if x["key"] == key)
+        assert d["state_fn"](snap, None) is None
+
+
+def test_boiler_sensors_return_state_for_hybrid_snapshot():
+    """Hybrid snapshot → boiler sensors return actual state."""
+    from custom_components.daikin_cycle_ml.binary_sensor import BINARY_SENSOR_DEFS
+    from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+
+    snap = DataSnapshot(is_hybrid=True, boiler_active=True, boiler_dhw_active=False)
+    for key, expected in (("boiler_operation_demand", True), ("boiler_dhw_demand", False)):
+        d = next(x for x in BINARY_SENSOR_DEFS if x["key"] == key)
+        assert d["state_fn"](snap, None) is expected
+
+
+def test_hybrid_mode_sensor_none_for_non_hybrid():
+    """Non-hybrid → hybrid_mode sensor returns None."""
+    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
+    from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+
+    snap = DataSnapshot(is_hybrid=False, hybrid_mode="H/P only")
+    d = next(x for x in SENSOR_DEFS if x["key"] == "hybrid_mode")
+    assert d["value_fn"](snap, None) is None
+
+
+def test_boiler_contribution_pct_none_for_non_hybrid():
+    """Non-hybrid → boiler_contribution_today_pct returns None."""
+    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
+    from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+
+    snap = DataSnapshot(
+        is_hybrid=False,
+        cop_today={"cop": 4.5, "boiler_pct": 50.0},
+    )
+    d = next(x for x in SENSOR_DEFS if x["key"] == "boiler_contribution_today_pct")
+    assert d["value_fn"](snap, None) is None
+
+
+def test_is_hybrid_install_helper():
+    """_is_hybrid_install() returns True for EVLQ models."""
+    from unittest.mock import MagicMock as _M
+    from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
+
+    c = _M()
+    c.entry = _M()
+    c.entry.data = {"model": "evlq08cv3"}
+    assert DaikinCycleMLCoordinator._is_hybrid_install(c) is True
+
+    c.entry.data = {"model": "epra08eav3"}
+    assert DaikinCycleMLCoordinator._is_hybrid_install(c) is False
+
+    c.entry = None
+    assert DaikinCycleMLCoordinator._is_hybrid_install(c) is False
+
+
+# ============================================================
+# Coverage: _is_hybrid_install + hybrid boiler_pct path + self-healing
+# ============================================================
+
+def test_is_hybrid_install_exception_branch(monkeypatch):
+    """_is_hybrid_install catches exception from family_for_model."""
+    from unittest.mock import MagicMock as _M
+    from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
+    import custom_components.daikin_cycle_ml.coordinator as _coord_mod
+
+    # Monkeypatch family_for_model import path
+    def _raise(*a, **kw):
+        raise RuntimeError("simulated")
+    monkeypatch.setattr(
+        "custom_components.daikin_cycle_ml.const.family_for_model", _raise
+    )
+
+    c = _M()
+    c.entry = _M()
+    c.entry.data = {"model": "evlq08cv3"}
+    # exception in try → returns False
+    assert DaikinCycleMLCoordinator._is_hybrid_install(c) is False
+
+
+@pytest.mark.asyncio
+async def test_refresh_cop_today_hybrid_with_boiler_pct():
+    """Hybrid snapshot: _build adds boiler_pct to cop_today."""
+    import time as _time
+    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator, DataSnapshot,
+    )
+
+    lt = _time.localtime()
+    today_start = _time.mktime(
+        (lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1)
+    )
+    ts = today_start + 3600
+
+    # 2 pure HP + 2 co-fire samples
+    rows = [
+        {"ts": ts, "cop": 4.0, "mode": "heating", "boiler_active": 0},
+        {"ts": ts + 1, "cop": 4.5, "mode": "heating", "boiler_active": 0},
+        {"ts": ts + 2, "cop": 6.0, "mode": "heating", "boiler_active": 1},
+        {"ts": ts + 3, "cop": 6.5, "mode": "heating", "boiler_active": 1},
+    ]
+
+    c = _M()
+    c.entry = _M()
+    c.entry.data = {"model": "evlq08cv3"}
+    c.db = _M()
+    c.db.async_fetch_cop_samples = _AM(return_value=rows)
+    c._cop_today_cache = {}
+    c._cop_today_heating_cache = {}
+
+    await DaikinCycleMLCoordinator._refresh_cop_today(c, ts + 10)
+
+    heating = c._cop_today_heating_cache
+    # 2 pure HP samples → cop = 4.25
+    assert heating.get("cop") == 4.25
+    assert heating.get("samples_today") == 2
+    # 50% of samples were co-fire
+    assert heating.get("boiler_pct") == 50.0
+
+
+@pytest.mark.asyncio
+async def test_refresh_cop_today_all_boiler_only_hybrid():
+    """Hybrid: all co-fire (no pure HP) → boiler_pct only, no cop."""
+    import time as _time
+    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator,
+    )
+
+    lt = _time.localtime()
+    today_start = _time.mktime(
+        (lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1)
+    )
+    ts = today_start + 3600
+    rows = [
+        {"ts": ts, "cop": 6.0, "mode": "heating", "boiler_active": 1},
+    ]
+
+    c = _M()
+    c.entry = _M()
+    c.entry.data = {"model": "evlq08cv3"}
+    c.db = _M()
+    c.db.async_fetch_cop_samples = _AM(return_value=rows)
+    c._cop_today_cache = {}
+    c._cop_today_heating_cache = {}
+
+    await DaikinCycleMLCoordinator._refresh_cop_today(c, ts + 10)
+    heating = c._cop_today_heating_cache
+    assert "cop" not in heating
+    assert heating.get("boiler_pct") == 100.0
+
+
+@pytest.mark.asyncio
+async def test_ensure_cop_samples_table_self_heals_missing_column(tmp_path):
+    """async_ensure_cop_samples_table adds boiler_active to legacy DB."""
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
+    db = CycleDB(tmp_path / "selfheal.db")
+    await db.async_open()
+    await db.async_initialize()
+    conn = db._require()
+
+    # Drop the column to simulate legacy DB
+    try:
+        await conn.execute("ALTER TABLE cop_samples DROP COLUMN boiler_active")
+        await conn.commit()
+    except Exception as exc:
+        await db.async_close()
+        pytest.skip(f"SQLite cannot DROP COLUMN: {exc}")
+
+    # Verify column is gone
+    cur = await conn.execute("PRAGMA table_info(cop_samples)")
+    cols = {row[1] for row in await cur.fetchall()}
+    await cur.close()
+    assert "boiler_active" not in cols
+
+    # Call ensure → should self-heal
+    await db.async_ensure_cop_samples_table()
+
+    cur = await conn.execute("PRAGMA table_info(cop_samples)")
+    cols = {row[1] for row in await cur.fetchall()}
+    await cur.close()
+    assert "boiler_active" in cols
+    await db.async_close()
+
+
+# ============================================================
+# Coverage: 4 exact-missing lines (coordinator 2544, db 1504-1508/2393/2416)
+# ============================================================
+
+@pytest.mark.asyncio
+async def test_refresh_stooklijn_skips_cofire_samples():
+    """coordinator.py line 2544: co-fire samples skipped in stooklijn loop."""
+    import time as _time
+    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator, DataSnapshot,
+    )
+
+    now = _time.time()
+    # 20 pure HP samples (18+ needed for analyze_stooklijn) + 1 co-fire
+    # The co-fire sample triggers `continue` at line 2544.
+    rows = [
+        {
+            "ts": now - i * 60,
+            "cop": 4.5,
+            "lwt": 35.0,
+            "outdoor": 7.0,
+            "flow_lmin": 15.0,
+            "power_stable": 1,
+            "mode": "heating",
+            "boiler_active": 0,
+        }
+        for i in range(20)
+    ]
+    # Append one co-fire sample that MUST be skipped
+    rows.append({
+        "ts": now - 21 * 60,
+        "cop": 8.0,
+        "lwt": 35.0,
+        "outdoor": 7.0,
+        "flow_lmin": 15.0,
+        "power_stable": 1,
+        "mode": "heating",
+        "boiler_active": 1,  # ← triggers continue at line 2544
+    })
+
+    c = _M()
+    c.db = _M()
+    c.db.async_fetch_cop_samples = _AM(return_value=rows)
+    c.options = {}
+    c.indoor_temp_entity = None
+    c.hass = _M()
+    c._stooklijn_cache = {}
+    snap = DataSnapshot()
+    snap.attrs = {}
+    c.data = snap
+
+    # Should not raise; co-fire sample skipped
+    await DaikinCycleMLCoordinator._maybe_refresh_stooklijn(c, now=now, force=True)
+
+
+@pytest.mark.asyncio
+async def test_migrate_to_v22_legacy_db_gets_column(tmp_path):
+    """db.py lines 1504-1508: v22 ALTER path on true legacy DB."""
+    import aiosqlite
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
+    db_path = tmp_path / "legacy_v22.db"
+    # Build legacy schema: cop_samples without boiler_active + model_state
+    # (async_migrate_to_v22 checks the marker in model_state).
+    async with aiosqlite.connect(str(db_path)) as raw:
+        await raw.execute(
+            "CREATE TABLE cop_samples ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "ts REAL NOT NULL,"
+            "cop REAL NOT NULL,"
+            "lwt REAL,"
+            "outdoor REAL,"
+            "flow_lmin REAL,"
+            "power_stable INTEGER DEFAULT 0)"
+        )
+        await raw.execute(
+            "CREATE TABLE cycles ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "start_ts REAL NOT NULL UNIQUE)"
+        )
+        await raw.execute(
+            "CREATE TABLE model_state ("
+            "key TEXT PRIMARY KEY,"
+            "value_json TEXT,"
+            "updated_ts REAL)"
+        )
+        await raw.commit()
+
+    db = CycleDB(db_path)
+    await db.async_open()
+    try:
+        conn = db._require()
+
+        # Pre-condition: no boiler_active
+        cur = await conn.execute("PRAGMA table_info(cop_samples)")
+        cols = {row[1] for row in await cur.fetchall()}
+        await cur.close()
+        assert "boiler_active" not in cols
+
+        # Migrate → ensure self-heals the column
+        result = await db.async_migrate_to_v22()
+        assert result.get("completed") is True
+
+        # Post-condition: column present
+        cur = await conn.execute("PRAGMA table_info(cop_samples)")
+        cols = {row[1] for row in await cur.fetchall()}
+        await cur.close()
+        assert "boiler_active" in cols
+    finally:
+        await db.async_close()
+
+
+@pytest.mark.asyncio
+async def test_fetch_cop_samples_exclude_boiler(tmp_path):
+    """db.py line 2393: include_boiler=False filters co-fire samples."""
+    import time as _time
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
+    db = CycleDB(tmp_path / "fetch_filter.db")
+    await db.async_open()
+    await db.async_initialize()
+
+    now = _time.time()
+    # Insert: 1 pure HP + 1 co-fire
+    await db.async_insert_cop_sample({
+        "ts": now - 10, "cop": 4.0, "lwt": 35.0,
+        "outdoor": 7.0, "flow_lmin": 15.0,
+        "power_stable": True, "mode": "heating",
+        "boiler_active": 0,
+    })
+    await db.async_insert_cop_sample({
+        "ts": now - 5, "cop": 8.0, "lwt": 35.0,
+        "outdoor": 7.0, "flow_lmin": 15.0,
+        "power_stable": True, "mode": "heating",
+        "boiler_active": 1,
+    })
+
+    # include_boiler=True (default): 2 rows
+    all_rows = await db.async_fetch_cop_samples(days=1)
+    assert len(all_rows) == 2
+
+    # include_boiler=False: only pure HP → triggers line 2393
+    pure_rows = await db.async_fetch_cop_samples(days=1, include_boiler=False)
+    assert len(pure_rows) == 1
+    assert pure_rows[0]["cop"] == 4.0
+
+    await db.async_close()
+
+
+@pytest.mark.asyncio
+async def test_fetch_cop_samples_between_exclude_boiler(tmp_path):
+    """db.py line 2416: include_boiler=False on between-fetch."""
+    import time as _time
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
+    db = CycleDB(tmp_path / "between_filter.db")
+    await db.async_open()
+    await db.async_initialize()
+
+    now = _time.time()
+    await db.async_insert_cop_sample({
+        "ts": now - 10, "cop": 4.0, "lwt": 35.0,
+        "outdoor": 7.0, "flow_lmin": 15.0,
+        "power_stable": True, "mode": "heating",
+        "boiler_active": 0,
+    })
+    await db.async_insert_cop_sample({
+        "ts": now - 5, "cop": 8.0, "lwt": 35.0,
+        "outdoor": 7.0, "flow_lmin": 15.0,
+        "power_stable": True, "mode": "heating",
+        "boiler_active": 1,
+    })
+
+    # Both in window
+    all_rows = await db.async_fetch_cop_samples_between(now - 100, now)
+    assert len(all_rows) == 2
+
+    # exclude co-fire → triggers line 2416
+    pure_rows = await db.async_fetch_cop_samples_between(
+        now - 100, now, include_boiler=False
+    )
+    assert len(pure_rows) == 1
+    assert pure_rows[0]["cop"] == 4.0
+
+    await db.async_close()

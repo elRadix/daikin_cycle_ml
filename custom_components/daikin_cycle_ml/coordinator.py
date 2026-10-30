@@ -185,6 +185,7 @@ class DataSnapshot:
     boiler_active: bool = False
     boiler_dhw_active: bool = False
     hybrid_mode: str = ""
+    is_hybrid: bool = False
     boiler_efficiency_cop: float | None = None
     inv_freq_secondary: float | None = None
 
@@ -1393,6 +1394,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.electrical_power_w, snap.electrical_power_source = self._compute_electrical_power(now, attrs)
             # Hybrid (EVLQ) fields — issue #218
             _compat_hybrid = build_compat_view(attrs)
+            snap.is_hybrid = self._is_hybrid_install()
             snap.boiler_active = _boiler_active_from_attrs(_compat_hybrid)
             snap.boiler_dhw_active = safe_bool(_compat_hybrid.get(ATTR_BOILER_DHW_DEMAND))
             snap.hybrid_mode = _hybrid_mode_from_attrs(_compat_hybrid)
@@ -2211,6 +2213,20 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return
         await self._refresh_daily_summary_recent()
 
+    def _is_hybrid_install(self) -> bool:
+        """True if the configured model belongs to the EVLQ hybrid family."""
+        entry = getattr(self, 'entry', None)
+        if entry is None:
+            return False
+        model = (getattr(entry, 'data', None) or {}).get("model", "")
+        if not model:
+            return False
+        try:
+            from .const import family_for_model
+            return family_for_model(model) == "evlq"
+        except Exception:
+            return False
+
     async def _refresh_cop_today(self, now: float) -> None:
         if self.db is None:
             return
@@ -2239,29 +2255,50 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     and float(r['ts']) >= today_start
                     and isinstance(r.get('cop'), (int, float))
                     and float(r['cop']) > 0.0
+                    and not r.get('boiler_active')  # Issue #218: pure HP only
                     and (mode is None or r.get('mode') == mode)
                 ]
+                # Issue #218 (Block B): boiler contribution pct
+                all_todays = [
+                    r for r in rows
+                    if isinstance(r.get('ts'), (int, float))
+                    and float(r['ts']) >= today_start
+                    and isinstance(r.get('cop'), (int, float))
+                    and float(r['cop']) > 0.0
+                    and (mode is None or r.get('mode') == mode)
+                ]
+                if not all_todays:
+                    return {}  # no samples at all for this mode
+                _boiler_n = sum(
+                    1 for r in all_todays if r.get('boiler_active')
+                )
+                _boiler_pct = round(_boiler_n / len(all_todays) * 100.0, 1)
                 if not todays:
-                    return {}
+                    # all samples were co-fire, no pure HP → boiler_pct only
+                    return {'boiler_pct': _boiler_pct}
                 cops = [float(r['cop']) for r in todays]
                 avg = sum(cops) / len(cops)
                 week_cops = [
                     float(r['cop']) for r in week
                     if isinstance(r.get('cop'), (int, float))
                     and float(r['cop']) > 0.0
+                    and not r.get('boiler_active')  # pure HP only
                     and (mode is None or r.get('mode') == mode)
                 ]
                 base = sum(week_cops) / len(week_cops) if week_cops else avg
                 loss = 0.0
                 if base > 0:  # pragma: no branch
                     loss = round(max(0.0, (base - avg) / base * 100.0), 1)
-                return {
+                result = {
                     'cop': round(avg, 2),
                     'samples_today': len(cops),
                     'cop_min': round(min(cops), 2),
                     'cop_max': round(max(cops), 2),
                     'baseline_cop_verlies_pct': loss,
                 }
+                if self._is_hybrid_install():
+                    result['boiler_pct'] = _boiler_pct
+                return result
 
             self._cop_today_cache = _build(None)
             self._cop_today_heating_cache = _build('heating')
@@ -2501,6 +2538,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 if not isinstance(r.get('cop'), (int, float)):
                     continue
                 if float(r['cop']) <= 0.0:
+                    continue
+                # Issue #218: heating curve only uses pure-HP samples
+                if r.get('boiler_active'):
                     continue
                 samples.append(CopSample(
                     cop=float(r['cop']),
@@ -2869,6 +2909,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             'power_stable': True,
             'mode': str(_mode),
             'source': 'interval',
+            'boiler_active': 1 if _boiler else 0,
         }
         ok = await self.db.async_insert_cop_sample(row)
         if ok:

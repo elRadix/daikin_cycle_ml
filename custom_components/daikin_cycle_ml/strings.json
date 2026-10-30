@@ -766,6 +766,9 @@
       },
       "boiler_efficiency_cop": {
         "name": "Boiler efficiency COP"
+      },
+      "boiler_contribution_today_pct": {
+        "name": "Boiler contribution today pct"
       }
     },
     "binary_sensor": {

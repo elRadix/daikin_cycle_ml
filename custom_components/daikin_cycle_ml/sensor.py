@@ -1370,16 +1370,45 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "device_class": SensorDeviceClass.ENUM,
         "options": ["H/P only", "Hybrid", "Boiler only", "unknown"],
         "icon": "mdi:heat-pump-outline",
-        "value_fn": lambda s, c: s.hybrid_mode or "unknown",
-        "attr_fn": lambda s, c: {"raw": s.hybrid_mode or ""},
+        "entity_category": EntityCategory.DIAGNOSTIC,
+        "value_fn": lambda s, c: (s.hybrid_mode or "unknown") if s.is_hybrid else None,
+        "attr_fn": lambda s, c: (
+            {"raw": s.hybrid_mode or "", "install_type": "hybrid"}
+            if s.is_hybrid
+            else {"install_type": "non_hybrid"}
+        ),
     },
     {
         "key": "boiler_efficiency_cop", "name": "Boiler efficiency COP",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "COP",
         "icon": "mdi:fire",
-        "value_fn": lambda s, c: s.boiler_efficiency_cop,
-        "attr_fn": lambda s, c: {"source": "BE COP", "info_only": True},
+        "entity_category": EntityCategory.DIAGNOSTIC,
+        "value_fn": lambda s, c: s.boiler_efficiency_cop if s.is_hybrid else None,
+        "attr_fn": lambda s, c: (
+            {"source": "BE COP", "info_only": True}
+            if s.is_hybrid
+            else {"info_only": True, "note": "hybrid install only"}
+        ),
+    },
+    {
+        "key": "boiler_contribution_today_pct",
+        "name": "Boiler contribution today pct",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "%",
+        "icon": "mdi:fire-circle",
+        "entity_category": EntityCategory.DIAGNOSTIC,
+        "value_fn": lambda s, c: (
+            (s.cop_today or {}).get("boiler_pct") if s.is_hybrid else None
+        ),
+        "attr_fn": lambda s, c: (
+            {
+                "hint": "Percentage of today's HP samples taken during boiler "
+                        "co-fire; excluded from cop_today to keep HP-COP pure",
+            }
+            if s.is_hybrid
+            else {"hint": "hybrid install only"}
+        ),
     },
 ]
 
