@@ -862,7 +862,8 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 else:
                     # Issue #218 (Block 3B.2): detect HP↔Hybrid transitions.
                     # Both paths succeed; only the info message differs.
-                    _old_model = (entry.data or {}).get("model", "")
+                    _entry_data: dict[str, Any] = dict(entry.data or {})
+                    _old_model = _entry_data.get("model", "")
                     _new_model = user_input.get("model", "")
                     _was_hybrid = _is_hybrid_model(_old_model)
                     _is_hybrid = _is_hybrid_model(_new_model)
