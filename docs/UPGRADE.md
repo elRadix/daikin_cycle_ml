@@ -4,13 +4,34 @@ Version-by-version upgrade notes for Daikin Cycle ML, with migration steps and b
 
 - **Covers:** breaking changes, migration paths, deprecated options, DB migrations, entity renames
 - **For:** existing users upgrading from v1.4 to v1.9, users troubleshooting upgrade issues
-- **Version:** v1.15.0
+- **Version:** v1.15.1
 
 Cross-references: [DATABASE.md](DATABASE.md) (schema migrations), [CONFIGURATION.md](CONFIGURATION.md) (options), [ENTITIES.md](ENTITIES.md) (entity surface), [TROUBLESHOOTING.md](TROUBLESHOOTING.md) (when upgrade fails).
 
 ---
 
-## Latest: v1.15.0
+## Latest: v1.15.1
+
+**Released:** 2026-10-30
+**Breaking:** none
+
+Hotfix for v1.15.0. Four bug fixes plus one migration.
+
+### Fixed
+
+- Hybrid entity gating — 5 hybrid-only entities now correctly omitted on non-hybrid installs.
+- Outdoor temp fallback — datasheet COP normalization falls back to snap.attrs when primary source absent.
+- 48-hour cycle cap — max cycle duration 4h to 48h.
+- Migration v25 — merges pre-existing 4h-capped cycle artifacts. Runs on first tick.
+
+### Action required
+
+Nothing. HACS update plus restart.
+
+---
+
+## v1.15.0
+
 
 7 fixes + EBLA09DA3W1:
 - Alert fix (B4/B4b): coordinator was not wiring boiler_active/hp_running to evaluate_alerts. Dead since v1.14.0.
@@ -99,6 +120,7 @@ restore the backup from `/config/.daikin_backups/` manually.
 
 ## Contents
 
+- [Latest: v1.15.1](#latest-v1151)
 - [Latest: v1.15.0](#latest-v1150)
 - [1. Quick upgrade checklist](#1-quick-upgrade-checklist)
 - [2. v1.8.x to v1.9.0](#2-v18x-to-v190)
