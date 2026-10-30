@@ -2873,10 +2873,27 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         # any COP reading on the source is stale (last HP cycle) — not a
         # valid HP-COP sample. Co-fire (HP on + boiler on) is allowed; the
         # boiler_contribution_samples field tracks co-fire separately.
-        _boiler = bool(getattr(data_obj, 'boiler_active', False))
-        _hp_on = getattr(data_obj, 'state', '') == 'running'
-        if _boiler and not _hp_on:
+        # R555 (M2 2b-2): isinstance guards — bool(MagicMock()) is True.
+        # Only real booleans pass through. Truthy non-bool -> treated inactive.
+        _ba = getattr(data_obj, 'boiler_active', False)
+        _ba = _ba if isinstance(_ba, bool) else False
+        _st = getattr(data_obj, 'state', '')
+        _hp_on = isinstance(_st, str) and _st == 'running'
+        if _ba and not _hp_on:
             return
+        # M2 2b-2: derive granular mode from heat/dhw flags (isinstance-guarded).
+        _bh = getattr(data_obj, 'boiler_heat_active', False)
+        _bh = _bh if isinstance(_bh, bool) else False
+        _bd = getattr(data_obj, 'boiler_dhw_active', False)
+        _bd = _bd if isinstance(_bd, bool) else False
+        if _bh and _bd:
+            _boiler_mode = 'both'
+        elif _bh:
+            _boiler_mode = 'heat'
+        elif _bd:
+            _boiler_mode = 'dhw'
+        else:
+            _boiler_mode = ''
 
         source_attrs = getattr(data_obj, 'attrs', None) if data_obj is not None else None
         if not isinstance(source_attrs, dict):
@@ -2944,7 +2961,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             'power_stable': True,
             'mode': str(_mode),
             'source': 'interval',
-            'boiler_active': 1 if _boiler else 0,
+            'boiler_active': 1 if _ba else 0,
+            'boiler_mode': _boiler_mode,
         }
         ok = await self.db.async_insert_cop_sample(row)
         if ok:

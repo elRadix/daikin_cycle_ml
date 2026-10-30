@@ -137,3 +137,28 @@ def test_async_insert_cycle_includes_split_columns():
     col_list = m.group(1)
     for col in ("boiler_contribution_samples", "boiler_heat_samples", "boiler_dhw_samples"):
         assert col in col_list, f"{col} missing from async_insert_cycle: {col_list}"
+
+def test_cop_samples_has_boiler_mode_column():
+    """Regression (M2 2b-2): cop_samples must have boiler_mode column."""
+    sql = _SCHEMA_PATH.read_text()
+    m = re.search(
+        r"CREATE TABLE IF NOT EXISTS cop_samples\s*\(([\s\S]*?)\n\);", sql,
+    )
+    assert m, "cop_samples CREATE not found in schema.sql"
+    cols = _extract_columns_from_create_sql(
+        "CREATE TABLE IF NOT EXISTS cop_samples (" + m.group(1) + ")"
+    )
+    assert "boiler_mode" in cols, f"boiler_mode missing: {sorted(cols)}"
+
+
+def test_async_insert_cop_sample_includes_boiler_mode():
+    """Regression: async_insert_cop_sample INSERT must reference boiler_mode."""
+    db_py = _DB_PATH.read_text()
+    m = re.search(
+        r'INSERT INTO cop_samples "\s*"\(([\s\S]*?)\) "\s*"VALUES',
+        db_py,
+    )
+    assert m, "INSERT INTO cop_samples column list not found in db.py"
+    col_list = m.group(1)
+    for col in ("boiler_active", "boiler_mode"):
+        assert col in col_list, f"{col} missing from async_insert_cop_sample: {col_list}"

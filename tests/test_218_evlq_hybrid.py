@@ -1626,3 +1626,198 @@ async def test_migrate_to_v23_idempotent(tmp_path):
     second = await db.async_migrate_to_v23()
     assert second.get("skipped") == 1
     await db.async_close()
+
+
+# ============================================================
+# M2 (v1.15.0) 2b-2: cop_samples.boiler_mode ('', 'heat', 'dhw', 'both')
+# ============================================================
+
+async def _run_collect_cop_sample(
+    *, boiler_active: bool, boiler_heat_active: bool, boiler_dhw_active: bool,
+    state: str = "running", hp_cop: float = 4.5,
+):
+    """Helper: drive _maybe_collect_cop_sample, return the inserted row dict."""
+    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator, DataSnapshot,
+    )
+    c = _M()
+    c.db = _M()
+    c.db.async_get_max_cop_sample_ts = _AM(return_value=None)
+    c.db.async_insert_cop_sample = _AM(return_value=True)
+    c._cop_sample_seed_done = True
+    c._last_cop_sample_ts = 0.0
+    c.cop_sensor_entity = None
+    c._resolve_cop_sample_mode = _M(return_value="heating")
+    snap = DataSnapshot()
+    snap.cop = hp_cop
+    snap.state = state
+    snap.boiler_active = boiler_active
+    snap.boiler_heat_active = boiler_heat_active
+    snap.boiler_dhw_active = boiler_dhw_active
+    snap.attrs = {
+        "Operation Mode": "Heating",
+        "Outdoor air temp.(R1T)": 10.0,
+        "Flow sensor (l/min)": 15.0,
+        "Inlet water temp.(R4T)": 25.0,
+        "Leaving water temp. before BUH (R1T)": 30.0,
+    }
+    c.data = snap
+    await DaikinCycleMLCoordinator._maybe_collect_cop_sample(c, now=1e9)
+    assert c.db.async_insert_cop_sample.await_count == 1, "sample not inserted"
+    args = c.db.async_insert_cop_sample.await_args
+    return args.args[0]
+
+
+@pytest.mark.asyncio
+async def test_boiler_mode_heat_only_in_cop_sample():
+    """heat=True, dhw=False → boiler_mode='heat', boiler_active=1."""
+    row = await _run_collect_cop_sample(
+        boiler_active=True, boiler_heat_active=True, boiler_dhw_active=False,
+    )
+    assert row["boiler_mode"] == "heat"
+    assert row["boiler_active"] == 1
+
+
+@pytest.mark.asyncio
+async def test_boiler_mode_dhw_only_in_cop_sample():
+    """heat=False, dhw=True → boiler_mode='dhw', boiler_active=1."""
+    row = await _run_collect_cop_sample(
+        boiler_active=True, boiler_heat_active=False, boiler_dhw_active=True,
+    )
+    assert row["boiler_mode"] == "dhw"
+    assert row["boiler_active"] == 1
+
+
+@pytest.mark.asyncio
+async def test_boiler_mode_both_in_cop_sample():
+    """heat=True, dhw=True → boiler_mode='both', boiler_active=1."""
+    row = await _run_collect_cop_sample(
+        boiler_active=True, boiler_heat_active=True, boiler_dhw_active=True,
+    )
+    assert row["boiler_mode"] == "both"
+    assert row["boiler_active"] == 1
+
+
+@pytest.mark.asyncio
+async def test_boiler_mode_pure_hp_empty_in_cop_sample():
+    """No boiler → boiler_mode='', boiler_active=0."""
+    row = await _run_collect_cop_sample(
+        boiler_active=False, boiler_heat_active=False, boiler_dhw_active=False,
+    )
+    assert row["boiler_mode"] == ""
+    assert row["boiler_active"] == 0
+
+
+@pytest.mark.asyncio
+async def test_boiler_mode_skip_when_boiler_only():
+    """Boiler-only (no HP) → sample skipped entirely (pre-existing guard)."""
+    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator, DataSnapshot,
+    )
+    c = _M()
+    c.db = _M()
+    c.db.async_get_max_cop_sample_ts = _AM(return_value=None)
+    c.db.async_insert_cop_sample = _AM(return_value=True)
+    c._cop_sample_seed_done = True
+    c._last_cop_sample_ts = 0.0
+    c.cop_sensor_entity = None
+    c._resolve_cop_sample_mode = _M(return_value="heating")
+    snap = DataSnapshot()
+    snap.cop = 4.5
+    snap.state = "idle"  # HP idle
+    snap.boiler_active = True
+    snap.boiler_heat_active = True
+    snap.boiler_dhw_active = False
+    snap.attrs = {"Operation Mode": "Heating"}
+    c.data = snap
+    await DaikinCycleMLCoordinator._maybe_collect_cop_sample(c, now=1e9)
+    assert c.db.async_insert_cop_sample.await_count == 0, (
+        "sample must be skipped when boiler-only (HP idle)"
+    )
+
+
+@pytest.mark.asyncio
+async def test_boiler_mode_mock_snapshot_not_truthy():
+    """R555 regression: MagicMock snapshot attrs must NOT coerce to truthy.
+
+    Pre-R555, bool(getattr(data_obj, 'boiler_active', False)) returned True
+    for MagicMock. Now isinstance guards force False → no suppression,
+    no bogus boiler_mode. Consistent with B4 helper pattern from 2a.
+    """
+    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+    from custom_components.daikin_cycle_ml.coordinator import (
+        DaikinCycleMLCoordinator, DataSnapshot,
+    )
+    c = _M()
+    c.db = _M()
+    c.db.async_get_max_cop_sample_ts = _AM(return_value=None)
+    c.db.async_insert_cop_sample = _AM(return_value=True)
+    c._cop_sample_seed_done = True
+    c._last_cop_sample_ts = 0.0
+    c.cop_sensor_entity = None
+    c._resolve_cop_sample_mode = _M(return_value="heating")
+    # Real DataSnapshot but force mock attributes
+    snap = DataSnapshot()
+    snap.cop = 4.5
+    snap.state = "running"
+    snap.attrs = {
+        "Operation Mode": "Heating",
+        "Outdoor air temp.(R1T)": 10.0,
+        "Flow sensor (l/min)": 15.0,
+        "Inlet water temp.(R4T)": 25.0,
+        "Leaving water temp. before BUH (R1T)": 30.0,
+    }
+    # Override with Mocks — R555 guards must reject them
+    snap.boiler_active = _M()  # type: ignore[assignment]
+    snap.boiler_heat_active = _M()  # type: ignore[assignment]
+    snap.boiler_dhw_active = _M()  # type: ignore[assignment]
+    c.data = snap
+    await DaikinCycleMLCoordinator._maybe_collect_cop_sample(c, now=1e9)
+    # Sample written (hp running), but boiler_mode='' + boiler_active=0
+    assert c.db.async_insert_cop_sample.await_count == 1
+    row = c.db.async_insert_cop_sample.await_args.args[0]
+    assert row["boiler_active"] == 0, "MagicMock must not coerce to 1"
+    assert row["boiler_mode"] == "", "MagicMock must not produce a mode"
+
+
+@pytest.mark.asyncio
+async def test_migrate_to_v24_adds_column(tmp_path):
+    """v24 adds boiler_mode column to cop_samples."""
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+    db = CycleDB(tmp_path / "v24test.db")
+    await db.async_open()
+    await db.async_initialize()
+    conn = db._require()
+    try:
+        await conn.execute("ALTER TABLE cop_samples DROP COLUMN boiler_mode")
+        await conn.commit()
+    except Exception as exc:
+        await db.async_close()
+        pytest.skip(f"SQLite cannot DROP COLUMN: {exc}")
+    cur = await conn.execute("PRAGMA table_info(cop_samples)")
+    cols = {row[1] for row in await cur.fetchall()}
+    await cur.close()
+    assert "boiler_mode" not in cols
+    result = await db.async_migrate_to_v24()
+    assert result.get("completed") is True
+    cur = await conn.execute("PRAGMA table_info(cop_samples)")
+    cols = {row[1] for row in await cur.fetchall()}
+    await cur.close()
+    assert "boiler_mode" in cols
+    await db.async_close()
+
+
+@pytest.mark.asyncio
+async def test_migrate_to_v24_idempotent(tmp_path):
+    """v24 is idempotent via completion marker."""
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+    db = CycleDB(tmp_path / "v24idem.db")
+    await db.async_open()
+    await db.async_initialize()
+    first = await db.async_migrate_to_v24()
+    assert first.get("completed") is True
+    second = await db.async_migrate_to_v24()
+    assert second.get("skipped") == 1
+    await db.async_close()

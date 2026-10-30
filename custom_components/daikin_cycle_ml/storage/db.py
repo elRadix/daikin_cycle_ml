@@ -1551,6 +1551,31 @@ class CycleDB:
         )
         return stats
 
+    async def async_migrate_to_v24(self) -> dict[str, Any]:
+        """v24: ensure boiler_mode column exists on cop_samples (M2 2b-2).
+
+        Delegates to async_ensure_cop_samples_table (PRAGMA + ALTER for
+        both boiler_active and boiler_mode). Marker prevents re-run on
+        every startup; the runtime PRAGMA check inside async_ensure
+        also self-heals at insert/fetch/rollup time for legacy DBs that
+        missed the migration (crash mid-upgrade, external DB restore).
+        """
+        marker = await self.async_get_model_state(
+            "data_migration_v24_completed"
+        )
+        if marker and isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+
+        t0 = _time_now()
+        await self.async_ensure_cop_samples_table()
+
+        stats: dict[str, Any] = {"completed": True}
+        stats["duration_s"] = round(_time_now() - t0, 3)
+        await self.async_set_model_state(
+            "data_migration_v24_completed", stats
+        )
+        return stats
+
     async def _rebuild_cop_hourly_for_hours(
         self, hours: list[int]
     ) -> int:
@@ -2255,7 +2280,8 @@ class CycleDB:
             "source TEXT DEFAULT 'interval',"
             "mode_original TEXT,"
             "is_transition_artifact INTEGER DEFAULT 0,"
-            "boiler_active INTEGER DEFAULT 0)"
+            "boiler_active INTEGER DEFAULT 0,"
+            "boiler_mode TEXT DEFAULT '')"
         )
         # Issue #218 (Block B): self-healing for pre-v22 DBs.
         # If table already existed without boiler_active, add it now.
@@ -2267,6 +2293,11 @@ class CycleDB:
             await conn.execute(
                 "ALTER TABLE cop_samples ADD COLUMN "
                 "boiler_active INTEGER DEFAULT 0"
+            )
+        if "boiler_mode" not in _cols:
+            await conn.execute(
+                "ALTER TABLE cop_samples ADD COLUMN "
+                "boiler_mode TEXT DEFAULT ''"
             )
         await conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_cop_samples_ts "
@@ -2399,8 +2430,8 @@ class CycleDB:
             await conn.execute(
                 "INSERT INTO cop_samples "
                 "(ts, cop, lwt, outdoor, r1t, r4t, flow_lmin, "
-                "power_stable, mode, source, boiler_active) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "power_stable, mode, source, boiler_active, boiler_mode) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     float(sample["ts"]),
                     float(sample["cop"]),
@@ -2413,6 +2444,7 @@ class CycleDB:
                     sample.get("mode") or "unknown",
                     sample.get("source", "interval"),
                     1 if sample.get("boiler_active") else 0,
+                    sample.get("boiler_mode", "") or "",
                 ),
             )
             await conn.commit()
