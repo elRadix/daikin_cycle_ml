@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-10-30
+
 ### Added
 - **#222** EBLA09DA3W1 9 kW 3-phase R32 monobloc datasheet:
   - EN 14511 nominal heating points (A-7/W35, A2/W35, A7/W35, A7/W45)
