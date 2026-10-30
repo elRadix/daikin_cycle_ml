@@ -659,6 +659,15 @@ Each migration is a Python function in `storage/db.py` named `async_migrate_*_to
 | v14 | `async_migrate_cop_samples_source_v14` | Add `source` column |
 | v14 | `async_create_cop_hourly_v14` | Create `cop_hourly` table |
 | v15 | `async_migrate_cop_samples_mode_default_v15` | Set `mode` default for old rows |
+| v16 | *(inline in `async_initialize`)* | Add `cycles.is_transient` + `cycles.thermal_kw_avg` |
+| v17 | `async_migrate_to_v17` | DHW backfill v1.12.4 |
+| v18 | `async_migrate_schema_to_v18` + `async_migrate_to_v18` | Add `parent_cycle_id`/`is_dhw_tail`/`is_reconstructed` + shape classifier |
+| v19 | `async_migrate_to_v19` | Rebuild `cop_hourly` from `cop_samples` |
+| v20 | `async_migrate_to_v20` | Signed dT from R1T/R4T |
+| v21 | `async_migrate_to_v21` | Add `cycles.boiler_contribution_samples` |
+| v22 | `async_migrate_to_v22` | Add `cop_samples.boiler_active` (self-healing) |
+| v23 | `async_migrate_to_v23` | Add `cycles.boiler_heat_samples` + `cycles.boiler_dhw_samples` |
+| v24 | `async_migrate_to_v24` | Add `cop_samples.boiler_mode` (self-healing) |
 
 ### 7.3 Recovery from failed migration
 
@@ -712,6 +721,41 @@ Legacy DBs (pre-v22) upgrade automatically on next coordinator tick.
 - `_refresh_cop_today` and heating curve — filter boiler_active = 1
 
 **Idempotent:** marker `data_migration_v22_completed`.
+
+### v23 — cycles.boiler_heat_samples + cycles.boiler_dhw_samples (v1.15.0)
+
+Adds two INTEGER columns to `cycles`:
+
+- `boiler_heat_samples` — co-fire samples where `Boiler Operation Demand` was ON
+- `boiler_dhw_samples` — co-fire samples where `Boiler DHW Demand` was ON
+
+Alongside the existing aggregate `boiler_contribution_samples`, these let
+analytics distinguish "boiler helping HP with space heating" from "boiler
+stealing DHW duty". During co-fire (heat + DHW both ON), all 3 counters
+increment. Historical cycles keep aggregate-only; split columns default 0.
+
+**Idempotent:** marker `data_migration_v23_completed`, PRAGMA-guarded ALTER.
+
+### v24 — cop_samples.boiler_mode (v1.15.0)
+
+Adds `boiler_mode TEXT DEFAULT ''` to `cop_samples`:
+
+| Value | Meaning |
+|---|---|
+| `''` | Pure HP sample (no boiler active) |
+| `'heat'` | Boiler co-fire for space-heating demand only |
+| `'dhw'` | Boiler co-fire for DHW demand only |
+| `'both'` | Boiler co-fire for both demands simultaneously |
+
+Boiler-only samples (boiler active, HP idle) are skipped by
+`_maybe_collect_cop_sample` — no row written.
+
+**Self-healing.** `async_ensure_cop_samples_table()` now checks BOTH
+`boiler_active` and `boiler_mode` and issues ALTERs for whichever is
+missing. Legacy DBs upgrade on next tick even if the v24 marker was
+never written.
+
+**Idempotent:** marker `data_migration_v24_completed`.
 
 ## 8. Backup and recovery
 
