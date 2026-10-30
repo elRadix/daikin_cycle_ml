@@ -671,6 +671,35 @@ To downgrade safely:
 
 ---
 
+### v21 — cycles.boiler_contribution_samples (v1.15.0)
+
+Adds `boiler_contribution_samples INTEGER DEFAULT 0` to `cycles`. Records
+how many samples within each cycle were taken during boiler co-fire (HP +
+boiler both active). Non-hybrid cycles always show 0.
+
+**Idempotent:** marker `data_migration_v21_completed` with `completed` flag.
+Fresh installs get the column from `schema.sql` and the ALTER is a no-op.
+
+### v22 — cop_samples.boiler_active (v1.15.0)
+
+Adds `boiler_active INTEGER DEFAULT 0` to `cop_samples`. Flags individual
+COP samples taken during boiler co-fire.
+
+**Self-healing.** `async_ensure_cop_samples_table()` runs
+`PRAGMA table_info` on every call and issues the ALTER if the column is
+missing. Called at `async_initialize()` and before every
+`async_insert_cop_sample` / `async_fetch_cop_samples*` / `async_rollup_cop_hourly`.
+Legacy DBs (pre-v22) upgrade automatically on next coordinator tick.
+
+**Query behavior:**
+
+- `async_fetch_cop_samples(include_boiler=True)` (default) — all samples
+- `async_fetch_cop_samples(include_boiler=False)` — only pure HP (boiler_active = 0)
+- `async_rollup_cop_hourly` — always excludes boiler_active = 1
+- `_refresh_cop_today` and heating curve — filter boiler_active = 1
+
+**Idempotent:** marker `data_migration_v22_completed`.
+
 ## 8. Backup and recovery
 
 ### 8.1 Automatic HA backup

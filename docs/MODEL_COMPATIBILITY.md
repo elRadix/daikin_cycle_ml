@@ -133,6 +133,8 @@ docs/MODEL_ATTRIBUTES.json.
 | EPRA D_D7 ETV16-ETB16-ETVZ16 E_E7 series 1... | Y | Y | Y | Y | Y | Y |
 | EPRA E ETSH-X 16P30-50 E series 8-12kW-ECH2O | Y | Y | Y | Y | Y | Y |
 | EPRA E ETV16-ETB16-ETVZ16 E_EJ series 8-12kW | Y | Y | Y | Y | Y | Y |
+| EVLQ05CV3 Hybrid 5kW | Y | Y | Y | Y | Y | Y |
+| EVLQ08CV3 Hybrid 8kW | Y | Y | Y | Y | Y | Y |
 | ERGA D EHSH-X P30-50 D series 04-08kW-ECH2O | - | - | Y | Y | Y | Y |
 | ERGA D EHV-EHB-EHVZ DA series 04-08kW | Y | Y | Y | Y | Y | Y |
 | ERGA D EHV-EHB-EHVZ DJ series 04-08 kW | Y | Y | Y | Y | Y | Y |
@@ -212,6 +214,49 @@ the upstream .h file:
   Monobloc without BUH after sensor.
 
 ---
+
+### 6.6 Hybrid (2 models)
+
+EVLQ05CV3 (5 kW) and EVLQ08CV3 (8 kW) are bivalent heat pumps that share
+control with an Intergas gas boiler (NHYKOMB33AA / EHYKOMB33AA). Their
+`ALTHERMA(HYBRID).h` profile adds boiler-specific attributes and uses
+non-standard R-label spellings that the integration resolves via
+`ALIAS_GROUPS`:
+
+| Canonical | Hybrid spelling |
+|---|---|
+| Leaving water temp. before BUH (R1T) | `Outlet Water Heat Exch. Temp. (R1T)` |
+| Leaving water temp. after BUH (R2T) | `Outlet Water BUH Temp. (R2T)` |
+| DHW tank temp. (R5T) | `DHW tank temp (R5T)` (no dot) |
+
+**R5T sentinel.** On hybrid installs the DHW tank is handled by the
+Intergas boiler, so the Daikin R5T probe reports `-40.7°C` (disconnected).
+The integration treats values `< -20°C` as `None` before surfacing them.
+
+**Boiler-cycle detection (R561).** When `Boiler Operation Demand` or
+`Boiler DHW Demand` is ON and the HP compressor is OFF, the cycle detector
+skips HP cycle detection entirely. Prevents phantom short-cycle alerts
+during boiler-only operation.
+
+**COP isolation.** Co-fire samples (HP + boiler both active) are stored with
+`boiler_active=1` and excluded from `cop_today` / `cop_hourly` / heating
+curve analysis. The `boiler_contribution_today_pct` sensor exposes co-fire
+frequency. This keeps `cop_today` datasheet-comparable.
+
+**Bivalent modes.** `Hybrid Op. Mode` reports the current controller mode:
+
+- `H/P only` — heat pump alone (boiler standby), most common
+- `Hybrid` — both sources active based on controller efficiency calculation
+- `Boiler only` — heat pump off, boiler carrying the load (typically low outdoor temp)
+
+**Energies (Keymark).** Both models carry EN 14825 W35 curves in
+`datasheets.json`:
+
+- EVLQ05CV3: 4.4 kW, COP 5.04 @ A7/W35 nominal, SCOP 4.50
+- EVLQ08CV3: 7.4 kW, COP 4.45 @ A7/W35 nominal, SCOP 4.25
+
+**Non-hybrid isolation.** All hybrid-only entities return `unavailable` on
+non-hybrid installations. DB columns exist with DEFAULT 0 (functionally no-op).
 
 ## 7. Decoy register
 

@@ -253,7 +253,19 @@ Enable via entity registry if you want them.
 
 ---
 
-## 3. Binary sensors (15)
+### 2.13 Hybrid (3)
+
+**Only available on hybrid installs (EVLQ series). Return `unavailable` on non-hybrid.**
+
+| Entity | Unit | Device class | Description |
+|---|---|---|---|
+| `sensor.daikin_cycle_ml_hybrid_mode` | — | enum | `H/P only` / `Hybrid` / `Boiler only` — current bivalent operating mode from the Daikin controller |
+| `sensor.daikin_cycle_ml_boiler_efficiency_cop` | COP | measurement | `BE COP` reference from the controller (typically 1.3 for condensing gas). Info only — never mixed with HP COP |
+| `sensor.daikin_cycle_ml_boiler_contribution_today_pct` | % | measurement | Percentage of today's HP samples taken during boiler co-fire. Excluded from `cop_today` |
+
+**Why "hybrid only":** on non-hybrid installations the source sensor does not publish `Boiler Operation Demand` or `Hybrid Op. Mode`. All 5 hybrid entities return `unavailable` so no zero-values pollute dashboards or automations.
+
+## 3. Binary sensors (17)
 
 | Entity | Device class | True means |
 |---|---|---|
@@ -272,6 +284,8 @@ Enable via entity registry if you want them.
 | `binary_sensor.daikin_cycle_ml_dhw_pendulum` | problem | DHW cycles/hour ≥ DHW threshold |
 | `binary_sensor.daikin_cycle_ml_source_stale` | problem | Source sensor not updating (> 60s) |
 | `binary_sensor.daikin_cycle_ml_missing_attributes` | problem | Required attributes missing from source |
+| `binary_sensor.daikin_cycle_ml_boiler_operation_demand` | running | Boiler producing heat (hybrid only, `unavailable` otherwise) |
+| `binary_sensor.daikin_cycle_ml_boiler_dhw_demand` | running | Boiler producing DHW (hybrid only, `unavailable` otherwise) |
 
 **`buh_active`** — `step` attribute indicates which BUH step is active:
 - 0 = not active

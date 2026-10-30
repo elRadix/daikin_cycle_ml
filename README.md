@@ -19,7 +19,7 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=elRadix&repository=daikin_cycle_ml&category=integration)
 
-**IoT class:** `calculated` · **Integration type:** `hub` · **47 sensors · 15 binary sensors · 13 services · 19 alerts**
+**IoT class:** `calculated` · **Integration type:** `hub` · **50 sensors · 17 binary sensors · 13 services · 19 alerts**
 
 ---
 
@@ -214,6 +214,33 @@ Everything else is backward compatible.
 Daikin Cycle ML works with both **ESPAltherma stable (v1 suffix labels)** and
 **ESPAltherma beta (v2 prefix labels)** — for example `Outdoor air temp.(R1T)`
 and `R1T-Outdoor air temp.` are both accepted.
+
+### Hybrid systems (EVLQ series)
+
+**Daikin Altherma R Hybrid** (EVLQ05CV3 / EVLQ08CV3) is fully supported
+starting v1.15.0. Requires ESPAltherma profile `ALTHERMA(HYBRID).h`.
+
+**Models:** EVLQ05CV3 (5 kW) + EVLQ08CV3 (8 kW), both with the
+EHYHBH05/08AV32 or EHYHBX08AV3 hydrobox and an Intergas boiler
+(NHYKOMB33AA / EHYKOMB33AA).
+
+**Hybrid-specific behavior:**
+
+- **Boiler-cycle isolation** — when the boiler runs alone (HP idle), no
+  phantom short-cycle alert is raised (R561 guard).
+- **COP isolation** — HP-COP is measured only on pure HP samples. Co-fire
+  samples are stored separately and excluded from `cop_today`, giving a
+  datasheet-comparable COP (5.75 @ A7/W35 deellast, 4.45 @ A7/W35 nominaal).
+- **Boiler contribution** — new sensor `boiler_contribution_today_pct` shows
+  the % of today's samples taken during co-fire.
+- **Hybrid sensors** — 2 binary + 3 sensors dedicated to hybrid installs.
+  They are `unavailable` on non-hybrid installs.
+
+**Attribute caveat:** ESPAltherma's hybrid profile uses non-standard
+R-label spellings (`Outlet Water Heat Exch. Temp. (R1T)`,
+`Outlet Water BUH Temp. (R2T)`, `DHW tank temp (R5T)` — no dot). These
+are resolved automatically by the alias layer. See
+`docs/MODEL_COMPATIBILITY.md` §6.6 for details.
 
 > **⚠️ ESPAltherma definitions are templates — most attributes are commented
 > out by default.** You **MUST enable** the 12 required attributes below in

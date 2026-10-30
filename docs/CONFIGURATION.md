@@ -204,7 +204,31 @@ Your wizard path depends on your model and mapping choice:
 
 **Source sensor.** Any entity with the required attributes. Must be `sensor.*` domain.
 
-**Model.** 8 EPRA (12E / 14E / 16E at A3W or A7W) + 7 ERLA (12–16, low-temp) + **Custom**. Bundled models enable `cop_normalized_a7w35`, `cop_vs_datasheet_pct`, and `hp_specs`. Custom needs Page A spec.
+**Model.** Bundled models enable `cop_normalized_a7w35`, `cop_vs_datasheet_pct`, and `hp_specs`. Available families:
+
+- **Altherma 3 R** (ERGA/ERLA) — Split/monobloc heat pumps
+- **Altherma 3 H** (EPRA/EBLA/EDLA) — Mid-temp and high-temp
+- **Altherma Monobloc** (EDLQ/EBLQ)
+- **Altherma 4** (EPSK) — R290 models
+- **Altherma R Hybrid** (EVLQ05CV3, EVLQ08CV3) — bivalent with Intergas boiler
+- **Custom** — needs Page A HP spec
+
+**Hybrid models (EVLQ series).** Selecting an EVLQ model activates:
+
+- HP-COP isolation (co-fire samples excluded from `cop_today`) — see `MODEL_COMPATIBILITY.md` §6.6
+- 2 extra binary sensors (`boiler_operation_demand`, `boiler_dhw_demand`)
+- 3 extra sensors (`hybrid_mode`, `boiler_efficiency_cop`, `boiler_contribution_today_pct`)
+
+**⚠️ Hybrid attributes are optional.** If your ESPAltherma source exposes
+`Boiler Operation Demand`, `Boiler DHW Demand`, and `Hybrid Op. Mode`,
+leave the fields in the next step as-is (canonical names). If absent, setup
+still succeeds with a warning — boiler-cycle detection will be inactive
+until those attributes are enabled in ESPAltherma (`ALTHERMA(HYBRID).h`).
+
+**Switching HP ↔ Hybrid later.** Use **Reconfigure → Basic** to change the
+model. Both directions are supported; existing cycle history is preserved
+unchanged, new cycles use the new detection logic. A confirmation message
+flags the transition.
 
 **Attribute mode.**
 

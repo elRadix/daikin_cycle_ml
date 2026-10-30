@@ -273,6 +273,63 @@ Without a COP sensor, `sensor.daikin_cycle_ml_cop_today` etc. will not populate.
 
 ---
 
+## 4.5 Hybrid-specific issues
+
+### 4.5.1 Hybrid sensors show "unavailable"
+
+**Expected behavior** on non-hybrid installs. `hybrid_mode`,
+`boiler_efficiency_cop`, `boiler_contribution_today_pct`,
+`boiler_operation_demand`, `boiler_dhw_demand` are all `unavailable`
+unless the configured model is an EVLQ series (EVLQ05CV3 / EVLQ08CV3).
+
+**To activate:** change the model via **Reconfigure → Basic** to a hybrid
+EVLQ model. If your source sensor publishes `Boiler Operation Demand` /
+`Boiler DHW Demand`, the sensors activate immediately after reload.
+
+**If already on EVLQ model but sensors stay unavailable:**
+
+1. Verify ESPAltherma is using `ALTHERMA(HYBRID).h` profile (not a
+   non-hybrid one)
+2. Check `sensor.althermasensors` for `Boiler Operation Demand`,
+   `Hybrid Op. Mode`
+3. Restart HA — the model resolves at config load
+
+### 4.5.2 DHW tank temperature shows -40.7°C
+
+**Expected behavior** on hybrid installs. The Intergas boiler handles DHW,
+so the Daikin R5T probe is disconnected and reports `-40.7°C`. The
+integration treats any value `< -20°C` as `None` before surfacing it — the
+DHW-active binary sensor and `cop_today` (DHW mode) will not be polluted
+by this sentinel.
+
+**If you see -40.7°C as a live value:**
+
+- This should not happen with v1.15.0+ (sentinel filter active)
+- Check the raw value via `sensor.daikin_cycle_ml_*` attributes; if R5T is
+  genuinely `< -20°C` it is filtered
+- File an issue if the raw -40.7°C leaks through the filter
+
+### 4.5.3 Short-cycle alerts don't fire when boiler is active
+
+**Expected behavior.** During boiler-only operation
+(`Boiler Operation Demand = ON`, HP compressor = OFF), these alerts are
+suppressed:
+
+- `short_run`
+- `short_off`
+- `pendulum_hourly`
+- `pendulum_daily`
+
+Rationale: boiler producing heat is not a "heat pump short cycle". Firing
+these alerts during boiler operation would be a false positive.
+
+**What still fires:** `dhw_pendulum`, `source_stale`, `cop_degradation` —
+independent of HP cycle status.
+
+**To verify:** watch `binary_sensor.daikin_cycle_ml_boiler_operation_demand`.
+When ON and compressor OFF, the 4 cycle-shape alerts are suppressed at the
+`evaluate_alerts` level.
+
 ## 5. COP and energy
 
 ### 5.1 COP values are unrealistic (> 10 or < 1)
