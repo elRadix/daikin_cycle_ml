@@ -487,6 +487,12 @@ For users actively debugging:
 
 ---
 
+### 6.6 Boiler-cycle suppression (v1.15.0)
+
+HP-cycle alerts (short_run, short_off, pendulum_hourly, pendulum_daily): suppressed when boiler_active AND NOT hp_running.
+
+DHW-cycle (dhw_pendulum): suppressed only during boiler-DHW-only. Co-fire still fires it.
+
 ## 7. Groups
 
 ### 7.1 What groups do

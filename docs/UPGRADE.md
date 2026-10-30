@@ -4,16 +4,30 @@ Version-by-version upgrade notes for Daikin Cycle ML, with migration steps and b
 
 - **Covers:** breaking changes, migration paths, deprecated options, DB migrations, entity renames
 - **For:** existing users upgrading from v1.4 to v1.9, users troubleshooting upgrade issues
-- **Version:** v1.14.0
+- **Version:** v1.15.0
 
 Cross-references: [DATABASE.md](DATABASE.md) (schema migrations), [CONFIGURATION.md](CONFIGURATION.md) (options), [ENTITIES.md](ENTITIES.md) (entity surface), [TROUBLESHOOTING.md](TROUBLESHOOTING.md) (when upgrade fails).
 
 ---
 
-## Latest: v1.14.0
+## Latest: v1.15.0
 
-**Released:** <pending, in development on main>
-**Breaking:** none
+7 fixes + EBLA09DA3W1:
+- Alert fix (B4/B4b): coordinator was not wiring boiler_active/hp_running to evaluate_alerts. Dead since v1.14.0.
+- Heat/DHW split (M2): cycles.boiler_heat_samples/boiler_dhw_samples; cop_samples.boiler_mode; DB v23/v24.
+- dhw_pendulum suppressed during boiler-DHW-only.
+- schema.sql vs async_ensure_* parity tests.
+- Insert bounds: LWT -30..100C, outdoor -45..55C, flow 0..150 L/min; garbage -> NULL.
+- hybrid_mode normalize + None-safe hint.
+- New EBLA09DA3W1 (9kW 3ph R32).
+- Auto-migrate v23/v24. Historical data preserved.
+- No new entity.
+
+---
+
+## v1.14.0
+
+Breaking: none
 
 ### What changes
 
@@ -85,6 +99,7 @@ restore the backup from `/config/.daikin_backups/` manually.
 
 ## Contents
 
+- [Latest: v1.15.0](#latest-v1150)
 - [1. Quick upgrade checklist](#1-quick-upgrade-checklist)
 - [2. v1.8.x to v1.9.0](#2-v18x-to-v190)
 - [3. v1.7.x to v1.8.x](#3-v17x-to-v18x)

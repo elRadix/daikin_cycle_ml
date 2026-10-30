@@ -233,6 +233,7 @@ EHYHBH05/08AV32 or EHYHBX08AV3 hydrobox and an Intergas boiler
   datasheet-comparable COP (5.75 @ A7/W35 deellast, 4.45 @ A7/W35 nominaal).
 - **Boiler contribution** — new sensor `boiler_contribution_today_pct` shows
   the % of today's samples taken during co-fire.
+- **Heat vs DHW split** -- cycles.boiler_heat_samples vs boiler_dhw_samples; per-sample cop_samples.boiler_mode.
 - **Hybrid sensors** — 2 binary + 3 sensors dedicated to hybrid installs.
   They are `unavailable` on non-hybrid installs.
 
