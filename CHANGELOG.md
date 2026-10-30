@@ -24,8 +24,6 @@
   - Diagnostics: boiler_active, boiler_dhw_active, hybrid_mode, boiler_efficiency_cop, inv_freq_secondary
 
 ### Fixed
-- **#218** Idle state now correctly returns `unknown` for COP sensors on pure HP installs without boiler (was: coercion)
-
 ### Fixed
 - **#217** IDLE state now forces RPS=0, thermal_power_live=0.0, and COP=None instead of showing stale values.
 - **#217** Add ERG04/06/08 model aliases mapping to ERGA profiles.
