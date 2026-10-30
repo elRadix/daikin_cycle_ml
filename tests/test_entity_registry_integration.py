@@ -112,6 +112,7 @@ async def test_all_sensor_defs_registered_with_correct_slug(
     expected = {
         "sensor.daikin_cycle_ml_" + spec["key"]
         for spec in sensor_mod.SENSOR_DEFS
+        if not spec.get("requires_hybrid")
     }
     missing = expected - eids
     assert not missing, (

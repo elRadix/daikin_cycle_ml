@@ -19,7 +19,6 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .engine.timer_health import is_stale
 from .const import (
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
@@ -31,7 +30,8 @@ from .const import (
     UPDATE_INTERVAL_SECONDS,
 )
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
-from .entity import DaikinCycleMLEntity
+from .engine.timer_health import is_stale
+from .entity import DaikinCycleMLEntity, async_remove_stale_entities
 
 PARALLEL_UPDATES = 0  # read-only platform, HA serializes updates
 
@@ -272,12 +272,12 @@ BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
      "device_class": BinarySensorDeviceClass.PROBLEM,
      "icon": "mdi:speedometer",
      "state_fn": _is_high_cycle_rate},
-    {"key": "boiler_operation_demand", "name": "Boiler operation demand",
+    {"key": "boiler_operation_demand", "requires_hybrid": True, "name": "Boiler operation demand",
      "device_class": BinarySensorDeviceClass.RUNNING,
      "icon": "mdi:fire",
      "entity_category": EntityCategory.DIAGNOSTIC,
      "state_fn": lambda s, c: s.boiler_active if s.is_hybrid else None},
-    {"key": "boiler_dhw_demand", "name": "Boiler DHW demand",
+    {"key": "boiler_dhw_demand", "requires_hybrid": True, "name": "Boiler DHW demand",
      "device_class": BinarySensorDeviceClass.RUNNING,
      "icon": "mdi:water-boiler",
      "entity_category": EntityCategory.DIAGNOSTIC,
@@ -294,6 +294,10 @@ async def async_setup_entry(
     if coord is None:
         _LOGGER.error("Coordinator not found for %s", entry.entry_id)
         return
+    is_hybrid = bool(coord.data and getattr(coord.data, "is_hybrid", False))
+    if not is_hybrid:
+        hk = frozenset(d["key"] for d in BINARY_SENSOR_DEFS if d.get("requires_hybrid"))
+        async_remove_stale_entities(hass, entry.entry_id, hk)
     entities = [
         DaikinCycleMLBinarySensor(
             coord,
@@ -305,5 +309,6 @@ async def async_setup_entry(
             icon=spec.get("icon"),
         )
         for spec in BINARY_SENSOR_DEFS
+        if not (spec.get("requires_hybrid") and not is_hybrid)
     ]
     async_add_entities(entities)

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -42,3 +43,15 @@ class DaikinCycleMLEntity(CoordinatorEntity[DaikinCycleMLCoordinator]):
 
     def snapshot(self) -> Any:
         return self.coordinator.data
+
+
+def async_remove_stale_entities(
+    hass: HomeAssistant, entry_id: str, keys: frozenset[str],
+) -> None:
+    """Remove registered entities whose unique_id belongs to ``keys``."""
+    from homeassistant.helpers import entity_registry as er
+    reg = er.async_get(hass)
+    uids = {f"{DOMAIN}_{entry_id}_{k}" for k in keys}
+    for ent in list(er.async_entries_for_config_entry(reg, entry_id)):
+        if ent.unique_id in uids:
+            reg.async_remove(ent.entity_id)

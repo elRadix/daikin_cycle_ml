@@ -48,7 +48,7 @@ from .engine.thermal import (
     safe_float as _safe_float,
 )
 from .engine.timer_health import is_stale
-from .entity import DaikinCycleMLEntity
+from .entity import DaikinCycleMLEntity, async_remove_stale_entities
 
 PARALLEL_UPDATES = 0  # read-only platform, HA serializes updates
 
@@ -1366,7 +1366,8 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "attr_fn": _attrs_daily_summary_recent,
     },
     {
-        "key": "hybrid_mode", "name": "Hybrid mode",
+        "key": "hybrid_mode",
+        "requires_hybrid": True, "name": "Hybrid mode",
         "device_class": SensorDeviceClass.ENUM,
         "options": ["H/P only", "Hybrid", "Boiler only", "unknown"],
         "icon": "mdi:heat-pump-outline",
@@ -1379,7 +1380,8 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         ),
     },
     {
-        "key": "boiler_efficiency_cop", "name": "Boiler efficiency COP",
+        "key": "boiler_efficiency_cop",
+        "requires_hybrid": True, "name": "Boiler efficiency COP",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "COP",
         "icon": "mdi:fire",
@@ -1393,6 +1395,7 @@ SENSOR_DEFS: list[dict[str, Any]] = [
     },
     {
         "key": "boiler_contribution_today_pct",
+        "requires_hybrid": True,
         "name": "Boiler contribution today pct",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "%",
@@ -1493,6 +1496,10 @@ async def async_setup_entry(
         _LOGGER.error("Coordinator not found for %s", entry.entry_id)
         return
     _migrate_entity_ids(hass, entry)
+    is_hybrid = bool(coord.data and getattr(coord.data, "is_hybrid", False))
+    if not is_hybrid:
+        hk = frozenset(d["key"] for d in SENSOR_DEFS if d.get("requires_hybrid"))
+        async_remove_stale_entities(hass, entry.entry_id, hk)
     entities = [
         DaikinCycleMLSensor(
             coord,
@@ -1507,6 +1514,7 @@ async def async_setup_entry(
             entity_category=spec.get("entity_category"),
         )
         for spec in SENSOR_DEFS
+        if not (spec.get("requires_hybrid") and not is_hybrid)
     ]
     async_add_entities(entities)
 
