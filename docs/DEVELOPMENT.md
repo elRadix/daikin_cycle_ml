@@ -4,7 +4,7 @@ Contribution guide, testing, CI gates, IQS status, and scope boundaries for Daik
 
 - **Covers:** local dev setup, test suite, CI workflows, code quality gates, IQS compliance, scope boundaries, release procedure
 - **For:** contributors, forks, maintainers
-- **Version:** v1.14.0
+- **Version:** v1.15.2
 
 Cross-references: [CONFIGURATION.md](CONFIGURATION.md) (options), [ENTITIES.md](ENTITIES.md) (entity surface), [DATABASE.md](DATABASE.md) (schema), [ML.md](ML.md) (ML internals), [ALERTS.md](ALERTS.md) (alert pipeline).
 
@@ -890,7 +890,7 @@ The ruleset exists because CI failures are always catchable locally. If CI fails
 
 ---
 
-## 11. Session rules R548–R565 (v1.15.0)
+## 11. Session rules R548–R577 (v1.15.2)
 
 Consolidated rules from the v1.15.0 hardening session. Each encodes a
 hard-won lesson from a bug that 100% line coverage did NOT catch: a
@@ -993,6 +993,14 @@ traceback was truncated (see R561).
 **R566 — Docs path flexibility.** Probe both `docs/X.md` and `X.md`; use whichever exists.
 
 **R567 — SSH paste size ≤ 1100 chars.** Larger pastes truncate silently, hang shell at `>`.
+### 11.7 Release and tag hygiene
+
+**R576 — Never force-push a published tag.** A tag with a published GitHub release is public history. Force-moving it breaks SHA references, violates semver, and can leave two codebases behind the same tag. Ship a new patch version for any post-release fix.
+
+**R577 — Force-push of main is permitted only for:** docs-only commits, pre-publish tag corrections, or version-bump fixes on unpublished tags. Every force-push must include a `Force-push-reason:` trailer.
+
+---
+
 ## Appendix A — Related files
 
 | File | Purpose |
