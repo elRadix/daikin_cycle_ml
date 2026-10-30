@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [1.15.2] - 2026-10-30
+
+### Fixed
+- **Version manifest correction.** v1.15.1 shipped with `manifest.json`, `const.py`, and `pyproject.toml` still reporting `1.15.0` despite the release tag being `v1.15.1`. HA and HACS displayed the integration as `1.15.0`. All three files now correctly report `1.15.2`. No functional code changes. The v1.15.1 tag has been reverted to its original commit `911898a` for accurate history.
+- Added **R576** (release-tag safety) and **R577** (force-push discipline) to `docs/DEVELOPMENT.md §11`.
+
+### Upgrade notes
+- HACS update to v1.15.2 + restart. No migrations, no DB changes.
+
+
 ## [1.15.1] - 2026-10-30
 
 ### Fixed

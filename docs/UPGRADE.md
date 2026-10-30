@@ -4,13 +4,36 @@ Version-by-version upgrade notes for Daikin Cycle ML, with migration steps and b
 
 - **Covers:** breaking changes, migration paths, deprecated options, DB migrations, entity renames
 - **For:** existing users upgrading from v1.4 to v1.9, users troubleshooting upgrade issues
-- **Version:** v1.15.1
+- **Version:** v1.15.2
 
 Cross-references: [DATABASE.md](DATABASE.md) (schema migrations), [CONFIGURATION.md](CONFIGURATION.md) (options), [ENTITIES.md](ENTITIES.md) (entity surface), [TROUBLESHOOTING.md](TROUBLESHOOTING.md) (when upgrade fails).
 
 ---
 
-## Latest: v1.15.1
+## Latest: v1.15.2
+
+**Released:** 2026-10-30
+**Breaking:** none
+
+Version-manifest-only correction. No functional changes.
+
+### Fixed
+
+- `manifest.json`, `const.py`, `pyproject.toml` now report `1.15.2`. v1.15.1 incorrectly reported `1.15.0` in all three files.
+- v1.15.1 tag reverted to original commit `911898a` for accurate history.
+
+### Added
+
+- R576 (never force-push a published tag) and R577 (force-push discipline) in `docs/DEVELOPMENT.md §11`.
+
+### Action required
+
+HACS update to v1.15.2 + restart. Required if you installed v1.15.1 during 2026-10-30 19:46-20:30 UTC.
+
+---
+
+## v1.15.1
+
 
 **Released:** 2026-10-30
 **Breaking:** none
@@ -120,6 +143,7 @@ restore the backup from `/config/.daikin_backups/` manually.
 
 ## Contents
 
+- [Latest: v1.15.2](#latest-v1152)
 - [Latest: v1.15.1](#latest-v1151)
 - [Latest: v1.15.0](#latest-v1150)
 - [1. Quick upgrade checklist](#1-quick-upgrade-checklist)
