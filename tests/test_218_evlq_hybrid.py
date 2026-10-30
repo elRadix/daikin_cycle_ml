@@ -1821,3 +1821,254 @@ async def test_migrate_to_v24_idempotent(tmp_path):
     second = await db.async_migrate_to_v24()
     assert second.get("skipped") == 1
     await db.async_close()
+
+
+# ============================================================
+# M2 (v1.15.0) Commit 3: insert hardening (H1 + H2)
+# ============================================================
+# Realistic physical bounds (from Daikin Altherma specs + margin):
+#   lwt/r1t/r4t  -30..100   HT max 80C + 20 margin; rejects -40.7 sentinel
+#   outdoor      -45..55    Arctic -35 + margin; extreme summer +45 + margin
+#   flow_lmin      0..150   2.5x over max realistic 60 L/min commercial
+#
+# 18 tests: 14 direct helper + 4 integration (incl 1 positive "realistic
+# data preserved" test).
+
+# ---------- _safe_float_or_none with realistic ranges ----------
+
+def test_safe_float_or_none_accepts_valid_lwt():
+    """Accept realistic LWT/r1t/r4t range (-30..100)."""
+    from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+    for v in (-15.0, 0.0, 15.0, 25.0, 35.0, 45.0, 55.0, 65.0, 75.0, 80.0):
+        assert _safe_float_or_none(v, lo=-30.0, hi=100.0) == v, f"{v}°C rejected"
+    assert _safe_float_or_none(-25.0, lo=-30.0, hi=100.0) == -25.0
+    assert _safe_float_or_none(80.0, lo=-30.0, hi=100.0) == 80.0
+
+
+def test_safe_float_or_none_rejects_sentinel_and_impossible():
+    """Reject -40.7 R5T sentinel and physically impossible LWT values."""
+    from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+    assert _safe_float_or_none(-40.7, lo=-30.0, hi=100.0) is None
+    assert _safe_float_or_none(-99.0, lo=-30.0, hi=100.0) is None
+    assert _safe_float_or_none(150.0, lo=-30.0, hi=100.0) is None
+    assert _safe_float_or_none(200.0, lo=-30.0, hi=100.0) is None
+
+
+def test_safe_float_or_none_accepts_valid_outdoor():
+    """Accept realistic outdoor range (-45..55)."""
+    from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+    for v in (-35.0, -25.0, -15.0, -5.0, 0.0, 7.0, 12.0, 25.0, 35.0, 45.0):
+        assert _safe_float_or_none(v, lo=-45.0, hi=55.0) == v, f"{v}°C rejected"
+
+
+def test_safe_float_or_none_rejects_outdoor_impossible():
+    """Reject impossible outdoor values."""
+    from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+    assert _safe_float_or_none(-99.0, lo=-45.0, hi=55.0) is None
+    assert _safe_float_or_none(-60.0, lo=-45.0, hi=55.0) is None
+    assert _safe_float_or_none(80.0, lo=-45.0, hi=55.0) is None
+    assert _safe_float_or_none(150.0, lo=-45.0, hi=55.0) is None
+
+
+def test_safe_float_or_none_accepts_valid_flow():
+    """Accept realistic flow range (0..150 L/min)."""
+    from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+    for v in (0.0, 5.0, 10.0, 20.0, 30.0, 45.0, 60.0, 100.0):
+        assert _safe_float_or_none(v, lo=0.0, hi=150.0) == v, f"{v} L/min rejected"
+
+
+def test_safe_float_or_none_rejects_flow_impossible():
+    """Reject impossible flow values."""
+    from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+    assert _safe_float_or_none(-5.0, lo=0.0, hi=150.0) is None
+    assert _safe_float_or_none(500.0, lo=0.0, hi=150.0) is None
+    assert _safe_float_or_none(2000.0, lo=0.0, hi=150.0) is None
+
+
+def test_safe_float_or_none_rejects_non_numeric_and_bool():
+    """Reject strings, bools, lists."""
+    from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+    for bad in ("abc", "30.5", "", [], {}, [1, 2], True, False):
+        assert _safe_float_or_none(bad, lo=-30.0, hi=100.0) is None, f"{bad!r}"
+
+
+def test_safe_float_or_none_rejects_nan_inf():
+    """Reject NaN/Inf."""
+    from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+    for bad in (float('nan'), float('inf'), float('-inf')):
+        assert _safe_float_or_none(bad, lo=-30.0, hi=100.0) is None
+
+
+# ---------- _safe_bool_int ----------
+
+def test_safe_bool_int_bool_passthrough():
+    from custom_components.daikin_cycle_ml.storage.db import _safe_bool_int
+    assert _safe_bool_int(True) == 1
+    assert _safe_bool_int(False) == 0
+
+
+def test_safe_bool_int_string_no_is_zero():
+    """H1 regression: string 'no' must be 0."""
+    from custom_components.daikin_cycle_ml.storage.db import _safe_bool_int
+    for s in ("no", "NO", "false", "FALSE", "0", "", "off", "nope"):
+        assert _safe_bool_int(s) == 0, f"string {s!r} must be 0"
+
+
+def test_safe_bool_int_string_yes_is_one():
+    from custom_components.daikin_cycle_ml.storage.db import _safe_bool_int
+    for s in ("yes", "YES", "true", "TRUE", "1", "on", "ON"):
+        assert _safe_bool_int(s) == 1, f"string {s!r} must be 1"
+
+
+def test_safe_bool_int_number_and_other():
+    from custom_components.daikin_cycle_ml.storage.db import _safe_bool_int
+    assert _safe_bool_int(1) == 1
+    assert _safe_bool_int(0) == 0
+    assert _safe_bool_int(42) == 1
+    assert _safe_bool_int(-1) == 1
+    assert _safe_bool_int(None) == 0
+    assert _safe_bool_int([]) == 0
+    assert _safe_bool_int({}) == 0
+
+
+# ---------- _safe_boiler_mode ----------
+
+def test_safe_boiler_mode_valid_passthrough():
+    from custom_components.daikin_cycle_ml.storage.db import _safe_boiler_mode
+    for m in ("", "heat", "dhw", "both"):
+        assert _safe_boiler_mode(m) == m
+
+
+def test_safe_boiler_mode_invalid_to_empty():
+    from custom_components.daikin_cycle_ml.storage.db import _safe_boiler_mode
+    for m in ("garbage", "HEAT", "Both", "DHW"):
+        assert _safe_boiler_mode(m) == ""
+    assert _safe_boiler_mode(" heat ") == "heat"
+    assert _safe_boiler_mode(None) == ""
+    assert _safe_boiler_mode(1) == ""
+    assert _safe_boiler_mode([]) == ""
+
+
+# ---------- Integration: async_insert_cop_sample coerces ----------
+
+@pytest.mark.asyncio
+async def test_insert_cop_sample_coerces_bad_lwt_to_null(tmp_path):
+    """H2 regression: string 'abc' as lwt -> NULL, not TEXT."""
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+    db = CycleDB(tmp_path / "insert_coerce.db")
+    await db.async_open()
+    await db.async_initialize()
+    row = {
+        'ts': 1e9, 'cop': 4.5, 'lwt': 'abc',
+        'outdoor': 10.0, 'flow_lmin': 15.0,
+        'power_stable': True, 'mode': 'heating',
+        'source': 'interval', 'boiler_active': 0,
+    }
+    ok = await db.async_insert_cop_sample(row)
+    assert ok is True
+    conn = db._require()
+    cur = await conn.execute(
+        "SELECT lwt, typeof(lwt) FROM cop_samples WHERE ts = ?", (1e9,)
+    )
+    r = await cur.fetchone()
+    await cur.close()
+    await db.async_close()
+    assert r[0] is None
+    assert r[1] == 'null'
+
+
+@pytest.mark.asyncio
+async def test_insert_cop_sample_rejects_sentinel_and_impossible(tmp_path):
+    """H2 integration: each row has ONE bad field; per-field assertions.
+
+    Cases:
+      - lwt=-40.7 (R5T sentinel) -> NULL;  outdoor=10.0 -> 10.0
+      - lwt=150.0 (impossible)   -> NULL;  outdoor=10.0 -> 10.0
+      - lwt=30.0   (valid)       -> 30.0;  outdoor=-99.0 -> NULL
+      - lwt=30.0   (valid)       -> 30.0;  outdoor=80.0  -> NULL
+    """
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+    db = CycleDB(tmp_path / "insert_range.db")
+    await db.async_open()
+    await db.async_initialize()
+    conn = db._require()
+    cases = [
+        (1e9,     -40.7, 10.0,  None,  10.0),
+        (1e9 + 1,  150.0, 10.0,  None,  10.0),
+        (1e9 + 2,   30.0, -99.0, 30.0,  None),
+        (1e9 + 3,   30.0,  80.0, 30.0,  None),
+    ]
+    for ts, in_lwt, in_out, want_lwt, want_out in cases:
+        row = {
+            'ts': ts, 'cop': 4.5, 'lwt': in_lwt, 'outdoor': in_out,
+            'flow_lmin': 15.0, 'power_stable': True, 'mode': 'heating',
+            'source': 'interval', 'boiler_active': 0,
+        }
+        ok = await db.async_insert_cop_sample(row)
+        assert ok is True
+        cur = await conn.execute(
+            "SELECT lwt, outdoor FROM cop_samples WHERE ts = ?", (ts,)
+        )
+        r = await cur.fetchone()
+        await cur.close()
+        assert r[0] == want_lwt, (
+            f"ts={ts} in_lwt={in_lwt}: want {want_lwt!r}, got {r[0]!r}"
+        )
+        assert r[1] == want_out, (
+            f"ts={ts} in_out={in_out}: want {want_out!r}, got {r[1]!r}"
+        )
+    await db.async_close()
+
+
+@pytest.mark.asyncio
+async def test_insert_cop_sample_coerces_boiler_active_string(tmp_path):
+    """H1 regression: string 'no' as boiler_active -> 0."""
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+    db = CycleDB(tmp_path / "insert_bool.db")
+    await db.async_open()
+    await db.async_initialize()
+    row = {
+        'ts': 2e9, 'cop': 4.5, 'lwt': 30.0, 'outdoor': 10.0, 'flow_lmin': 15.0,
+        'power_stable': True, 'mode': 'heating', 'source': 'interval',
+        'boiler_active': 'no', 'boiler_mode': 'garbage',
+    }
+    ok = await db.async_insert_cop_sample(row)
+    assert ok is True
+    conn = db._require()
+    cur = await conn.execute(
+        "SELECT boiler_active, boiler_mode FROM cop_samples WHERE ts = ?", (2e9,)
+    )
+    r = await cur.fetchone()
+    await cur.close()
+    await db.async_close()
+    assert r[0] == 0
+    assert r[1] == ""
+
+
+@pytest.mark.asyncio
+async def test_insert_cop_sample_preserves_realistic_data(tmp_path):
+    """Positive regression: real Daikin data passes through unchanged."""
+    from custom_components.daikin_cycle_ml.storage.db import CycleDB
+    db = CycleDB(tmp_path / "insert_real.db")
+    await db.async_open()
+    await db.async_initialize()
+    row = {
+        'ts': 3e9, 'cop': 3.8,
+        'lwt': 45.0, 'outdoor': -5.0, 'r1t': 42.0, 'r4t': 38.0,
+        'flow_lmin': 18.5,
+        'power_stable': True, 'mode': 'heating', 'source': 'interval',
+        'boiler_active': True, 'boiler_mode': 'heat',
+    }
+    ok = await db.async_insert_cop_sample(row)
+    assert ok is True
+    conn = db._require()
+    cur = await conn.execute(
+        "SELECT lwt, outdoor, r1t, r4t, flow_lmin, boiler_active, boiler_mode "
+        "FROM cop_samples WHERE ts = ?", (3e9,)
+    )
+    r = await cur.fetchone()
+    await cur.close()
+    await db.async_close()
+    assert r[0] == 45.0 and r[1] == -5.0 and r[2] == 42.0 and r[3] == 38.0
+    assert r[4] == 18.5
+    assert r[5] == 1 and r[6] == 'heat'

@@ -26,6 +26,68 @@ _R446_MIN_RUN_S = 900.0  # v18 R446: minimum run duration to synthesize
 _R446B_MERGE_GAP_S = 120.0  # v18 R446b: gap < 2x MODE_DEBOUNCE_S
 
 
+
+def _safe_float_or_none(
+    v: Any, *, lo: float | None = None, hi: float | None = None
+) -> float | None:
+    """R555/R557 (v1.15.0): defensive float coercion for DB insert.
+
+    Rejects: bool, non-numeric, NaN, Inf, out-of-range -> returns None
+    (SQLite stores NULL instead of TEXT garbage or impossible numeric
+    values). A single bad sensor tick currently persists as TEXT in a
+    REAL column, breaking every downstream float(r[...]) consumer for up
+    to retention_days (365 for cop_samples).
+
+    Ranges chosen from real Daikin Altherma specs + margin:
+      lwt/r1t/r4t  -30..100  (HT max 80C + 20 margin; -30 = frozen-glycol
+                              fault; rejects -40.7 R5T sentinel if leaked)
+      outdoor      -45..55   (Arctic -35 + margin; extreme summer +45 +
+                              margin; catches -99 corrupted sensors)
+      flow_lmin      0..150  (max realistic ~60 L/min commercial; rejects
+                              negative and 2000-style garbage)
+    """
+    import math
+    if isinstance(v, bool):
+        return None
+    if not isinstance(v, (int, float)):
+        return None
+    f = float(v)
+    if not math.isfinite(f):
+        return None
+    if lo is not None and f < lo:
+        return None
+    if hi is not None and f > hi:
+        return None
+    return f
+
+
+def _safe_bool_int(v: Any) -> int:
+    """Coerce to 0/1. Only recognized truthy values become 1 (R555).
+
+    bool(MagicMock()) is True, bool("no") is True -> both must NOT be 1.
+    Strings: "on"/"true"/"1"/"yes" (case-insensitive) -> 1; else -> 0.
+    Numbers: non-zero -> 1; zero -> 0.
+    Anything else -> 0.
+    """
+    if isinstance(v, bool):
+        return 1 if v else 0
+    if isinstance(v, str):
+        return 1 if v.strip().upper() in ("ON", "TRUE", "1", "YES") else 0
+    if isinstance(v, (int, float)):
+        return 1 if v != 0 else 0
+    return 0
+
+
+def _safe_boiler_mode(v: Any) -> str:
+    """Whitelist boiler_mode. Only '', 'heat', 'dhw', 'both' pass through."""
+    if not isinstance(v, str):
+        return ""
+    s = v.strip()
+    if s in ("", "heat", "dhw", "both"):
+        return s
+    return ""
+
+
 class CycleDB:
     """Thin async wrapper around aiosqlite with schema bootstrap."""
 
@@ -2435,16 +2497,16 @@ class CycleDB:
                 (
                     float(sample["ts"]),
                     float(sample["cop"]),
-                    sample.get("lwt"),
-                    sample.get("outdoor"),
-                    sample.get("r1t"),
-                    sample.get("r4t"),
-                    sample.get("flow_lmin"),
-                    1 if sample.get("power_stable") else 0,
+                    _safe_float_or_none(sample.get("lwt"), lo=-30.0, hi=100.0),
+                    _safe_float_or_none(sample.get("outdoor"), lo=-45.0, hi=55.0),
+                    _safe_float_or_none(sample.get("r1t"), lo=-30.0, hi=100.0),
+                    _safe_float_or_none(sample.get("r4t"), lo=-30.0, hi=100.0),
+                    _safe_float_or_none(sample.get("flow_lmin"), lo=0.0, hi=150.0),
+                    _safe_bool_int(sample.get("power_stable")),
                     sample.get("mode") or "unknown",
                     sample.get("source", "interval"),
-                    1 if sample.get("boiler_active") else 0,
-                    sample.get("boiler_mode", "") or "",
+                    _safe_bool_int(sample.get("boiler_active")),
+                    _safe_boiler_mode(sample.get("boiler_mode")),
                 ),
             )
             await conn.commit()
