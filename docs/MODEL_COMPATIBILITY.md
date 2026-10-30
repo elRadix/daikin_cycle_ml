@@ -421,7 +421,7 @@ Public Daikin datasheet values for the 53 technical model codes plus 1 commercia
 | EBLA04EV3 | 5.10 | 3.65 | 4.3 | 65 °C |
 | EBLA06EV3 | 4.85 | 3.50 | 6.0 | 65 °C |
 | EBLA08EV3 | 4.60 | 3.50 | 7.3 | 65 °C |
-| EBLA09DA3W1 | 4.60 | 3.50 | 7.3 | 65 °C |
+| EBLA09DA3W1 | 4.91 | 3.71 (A7/W45) | 9.37 | 60 °C |
 
 ### LT split — ERGA EAV3 (R-32)
 
