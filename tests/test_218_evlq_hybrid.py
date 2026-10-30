@@ -828,14 +828,25 @@ async def test_cop_sample_insert_returns_false_branch():
 # ============================================================
 
 @pytest.mark.asyncio
-async def test_migrate_to_v22_adds_column(tmp_path):
-    """v22 adds boiler_active column to cop_samples."""
+async def test_migrate_to_v22_self_heals_dropped_column(tmp_path):
+    """v22 delegates to async_ensure which restores boiler_active if dropped.
+
+    On main (a1831c0), the predecessor test (test_migrate_to_v22_adds_column)
+    SILENTLY SKIPPED because schema.sql did not include boiler_active, so
+    ALTER TABLE ... DROP COLUMN failed with "no such column". It also
+    asserted on result["columns_added"], a key that async_migrate_to_v22
+    never returns (only v21 does). Result: dead test, 0 coverage
+    contribution, never actually tested v22 self-heal.
+
+    After schema.sql fix (B2, this commit), the column exists post-init,
+    DROP succeeds, and this test genuinely exercises v22 -> async_ensure
+    PRAGMA+ALTER self-heal path.
+    """
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
     db = CycleDB(tmp_path / "v22test.db")
     await db.async_open()
     await db.async_initialize()
 
-    # Fresh DB: column already exists via CREATE TABLE. Drop to simulate pre-v22.
     conn = db._require()
     try:
         await conn.execute("ALTER TABLE cop_samples DROP COLUMN boiler_active")
@@ -844,14 +855,20 @@ async def test_migrate_to_v22_adds_column(tmp_path):
         await db.async_close()
         pytest.skip(f"SQLite cannot DROP COLUMN: {exc}")
 
+    cur = await conn.execute("PRAGMA table_info(cop_samples)")
+    cols = {row[1] for row in await cur.fetchall()}
+    await cur.close()
+    assert "boiler_active" not in cols, "DROP COLUMN failed silently"
+
     result = await db.async_migrate_to_v22()
     assert result.get("completed") is True
-    assert "boiler_active" in result.get("columns_added", [])
+    # v22 delegates to async_ensure; contract: no columns_added key
+    assert "columns_added" not in result
 
     cur = await conn.execute("PRAGMA table_info(cop_samples)")
     cols = {row[1] for row in await cur.fetchall()}
     await cur.close()
-    assert "boiler_active" in cols
+    assert "boiler_active" in cols, "v22 failed to restore dropped column"
     await db.async_close()
 
 

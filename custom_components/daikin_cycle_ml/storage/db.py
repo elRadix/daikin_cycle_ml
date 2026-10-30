@@ -2193,6 +2193,9 @@ class CycleDB:
 
     async def async_ensure_cop_samples_table(self) -> None:
         conn = self._require()
+        # R549 (v112.7): this CREATE TABLE MUST match schema.sql column-for-column.
+        # Only fires when async_ensure runs before async_initialize (tests, edge
+        # paths). Production path has schema.sql run first, then this is a no-op.
         await conn.execute(
             "CREATE TABLE IF NOT EXISTS cop_samples ("
             "id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -2200,8 +2203,14 @@ class CycleDB:
             "cop REAL NOT NULL,"
             "lwt REAL,"
             "outdoor REAL,"
+            "r1t REAL,"
+            "r4t REAL,"
             "flow_lmin REAL,"
             "power_stable INTEGER DEFAULT 0,"
+            "mode TEXT DEFAULT 'unknown',"
+            "source TEXT DEFAULT 'interval',"
+            "mode_original TEXT,"
+            "is_transition_artifact INTEGER DEFAULT 0,"
             "boiler_active INTEGER DEFAULT 0)"
         )
         # Issue #218 (Block B): self-healing for pre-v22 DBs.

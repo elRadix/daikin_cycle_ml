@@ -85,7 +85,8 @@ CREATE TABLE IF NOT EXISTS cop_samples (
     mode TEXT DEFAULT 'unknown',
     source TEXT DEFAULT 'interval',
     mode_original TEXT,
-    is_transition_artifact INTEGER DEFAULT 0
+    is_transition_artifact INTEGER DEFAULT 0,
+    boiler_active INTEGER DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_cop_samples_ts ON cop_samples(ts);
