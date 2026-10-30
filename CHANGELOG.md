@@ -34,6 +34,7 @@
 - #214 [docs] Fix 3 logic contradictions: wizard step count, "contain all 12" vs Known-model-limitations, "published alongside each release" for static MODEL_COMPATIBILITY.md.
 - **#215** README structural pass: added `## Contents` TOC (19 auto-derived anchors), moved `## Why this exists` above `## What you get` for clearer narrative flow (Showcase position unchanged); blank-line and divider symmetry restored at section boundaries.
 
+- **#224 #218** Hybrid EVLQ documentation: README supported-models section, ENTITIES.md §2.13 hybrid sensors (3) + 2 boiler binary sensors, MODEL_COMPATIBILITY.md §6.6 hybrid (R5T sentinel, R561 guard, COP isolation), CONFIGURATION.md §3.3 six model families, DATABASE.md v21/v22 migrations, TROUBLESHOOTING.md §4.5 three hybrid scenarios.
 
 ## [1.14.0] - 2026-10-29
 
