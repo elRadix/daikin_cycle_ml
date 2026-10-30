@@ -10,7 +10,11 @@ UPDATE_INTERVAL_SECONDS = 30
 
 # R288: dt_s cap and warning threshold for energy accumulator.
 ENERGY_DT_CAP_S = 300.0
-MAX_CYCLE_DURATION_S = 4 * 3600.0
+# R315 safety net: force-close runaway cycles (stuck pump signal, etc).
+# 48h covers legitimate long modulating runs (weather-compensated
+# Daikin units routinely exceed 18h in steady winter operation);
+# still caps true runaway cycles that never report pump-off.
+MAX_CYCLE_DURATION_S = 48 * 3600.0
 
 # --- Sanity gates for cycle aggregates (#129, #124) ---
 # COP: MIN+MAX in _collect_cycle_averages; Thermal: MAX only.

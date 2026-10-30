@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.15.1] - 2026-10-30
+
+### Fixed
+- Hybrid-only entities (3 sensors + 2 binary_sensors: `hybrid_mode`, `boiler_efficiency_cop`, `boiler_contribution_today_pct`, `boiler_operation_demand`, `boiler_dhw_demand`) are no longer created on non-hybrid installs; stale registry entries purged on setup so upgrades no longer leave ghost `off`/`unknown` entities.
+- `cop_normalized_a7w35` and `cop_vs_datasheet_pct` now fall back to `snap.attrs['R1T-Outdoor air temp.']` when `snap.last_record.outdoor_temp` is absent, fixing `unknown` state on systems without a rolled last_record.
+- `MAX_CYCLE_DURATION_S` raised from 4h to 48h. The R315 hard-cap that force-closes cycles exceeding a fixed duration was truncating legitimate long modulating runs — real 18h 8min cycle was recorded as 4h. Reported via Tweakers forum. 48h still caps true runaway cycles but no longer interferes with steady winter operation.
+- DB migration v25 (idempotent, marker-guarded): merges pre-existing 4h capped-cycle artifacts left in the database from before the cap raise. Capped parents (duration_s==14400, end_ts-start_ts>14400) are chained with children starting within 60s in the same mode; aggregate fields (dT_max, rps_max, buh_used, defrost_used) combined via MAX; child features remapped to parent; affected daily_summary rows re-rolled. Standalone capped cycles (no adjacent child) left untouched. Existing DBs gain real 5-18h durations in Daily Summary on first restart.
+
+
 ## [1.15.0] - 2026-10-30
 
 ### Added
@@ -26,7 +35,6 @@
   - Diagnostics: boiler_active, boiler_dhw_active, hybrid_mode, boiler_efficiency_cop, inv_freq_secondary
 
 ### Fixed
-### Fixed
 - **#217** IDLE state now forces RPS=0, thermal_power_live=0.0, and COP=None instead of showing stale values.
 - **#217** Add ERG04/06/08 model aliases mapping to ERGA profiles.
 - **#217** Heating Curve advice now requires 18+ samples; sets `reason=insufficient_samples` otherwise.
@@ -45,7 +53,7 @@
 ## [1.14.0] - 2026-10-29
 
 ### Added
-- **#206** electrical input cascade: power meter > ESPAltherma 2.0 `Stats: Electrical input estimated (kW)` > v1 inverter fallback (`INV_A x 230V x phases + BUH_step1_kW + BUH_step2_kW + 100W`). v2 detection with 300s hysteresis. Ref raomin/ESPAltherma Discussion #599.
+- **#206** electrical input cascade: power meter > the upstream 2.0 `Stats: Electrical input estimated (kW)` > v1 inverter fallback (`INV_A x 230V x phases + BUH_step1_kW + BUH_step2_kW + 100W`). v2 detection with 300s hysteresis. Ref raomin/the upstream Discussion #599.
 - **#206** OptionsFlow step `cop_calc` (`supply_phases` 1|3, `buh_step1_kw`, `buh_step2_kw`).
 - **#206** sensor `electrical_power_estimated` (W) with `source` attribute (`power_meter`|`espaltherma_v2_stats`|`inverter_estimated_v1`|`none`).
 - **#206** coordinator `_read_cop_effective` fallback (cop_sensor > computed flow_dt / electrical power). MAX_COP (11.0) gate. DataSnapshot: `cop_source`, `electrical_power_w`, `electrical_power_source`.
@@ -69,11 +77,11 @@ Suite: 3703 -> 3729 (+26).
 ### Fixed
 
 - **#201 (v1.13.2)** - clearable optional sensor fields: OptionsFlow._save normalizes omitted keys to None before merge so clearing persists (HA core #154795 pattern). 5 tests.
-- **#188 + #184 (v1.13.2)** - thermal power physical delta T: mode-aware (heating/dhw: R1T-before-BUH minus R4T, cooling: R4T minus R1T), matching raomin ESPAltherma commit 5382853; clamp negative to 0kW, drop >14kW. v20 migration adds cop_samples.r1t + r4t columns; sampler writes both. Historical pre-v1.13.2 samples fall back to legacy formula (no history rewrite).
+- **#188 + #184 (v1.13.2)** - thermal power physical delta T: mode-aware (heating/dhw: R1T-before-BUH minus R4T, cooling: R4T minus R1T), matching raomin the upstream commit 5382853; clamp negative to 0kW, drop >14kW. v20 migration adds cop_samples.r1t + r4t columns; sampler writes both. Historical pre-v1.13.2 samples fall back to legacy formula (no history rewrite).
 
 ### Docs
 
-- **#191 + #195 (v1.13.2)** - ESPAltherma data-source credit in README + reciprocal link; datasheets.json `_meta` (CC BY 4.0, attribution_required, permission_grant for raomin); MODEL_COMPATIBILITY.md sources section; permission granted both directions.
+- **#191 + #195 (v1.13.2)** - the upstream data-source credit in README + reciprocal link; datasheets.json `_meta` (CC BY 4.0, attribution_required, permission_grant for raomin); MODEL_COMPATIBILITY.md sources section; permission granted both directions.
 
 ## [1.13.1] - 2026-10-28
 
@@ -91,7 +99,7 @@ Suite: 3703 -> 3729 (+26).
 
 ### Fixed
 
-- **#196 cop_samples=0 on fresh installs** (v1.13.0 regression): `_maybe_collect_cop_sample` now reads source ESPAltherma attributes via `build_compat_view` and overlays the COP value from `cop_sensor`. Previously read the cop_sensor's own attributes only (numeric template sensor with no synthetic keys like `leaving_temp`/`outdoor_temperature`), causing `data_quality='unknown'` -> hard reject -> 0 samples on fresh installs despite valid cycles. Legacy fallback preserved for callers without source attributes. Source path also correctly extracts `lwt`/`outdoor`/`flow_lmin` so samples are analytically complete. Confirmed root cause on 2 users (ERGA08EVH7 split + EPRA12EAV3 monoblock). 10 new tests cover the source path, legacy fallback, edge cases, and `data.cop` fallback.
+- **#196 cop_samples=0 on fresh installs** (v1.13.0 regression): `_maybe_collect_cop_sample` now reads source the upstream attributes via `build_compat_view` and overlays the COP value from `cop_sensor`. Previously read the cop_sensor's own attributes only (numeric template sensor with no synthetic keys like `leaving_temp`/`outdoor_temperature`), causing `data_quality='unknown'` -> hard reject -> 0 samples on fresh installs despite valid cycles. Legacy fallback preserved for callers without source attributes. Source path also correctly extracts `lwt`/`outdoor`/`flow_lmin` so samples are analytically complete. Confirmed root cause on 2 users (ERGA08EVH7 split + EPRA12EAV3 monoblock). 10 new tests cover the source path, legacy fallback, edge cases, and `data.cop` fallback.
 
 ## [1.13.0] — 2026-10-27
 
@@ -186,26 +194,26 @@ Suite: 3703 -> 3729 (+26).
 
 ### Fixed
 
-- **Reconfigure failure during source offline window** - when the user triggered reconfigure while `sensor.althermasensors` was momentarily `unavailable` or had empty attributes (e.g., during an ESPAltherma reboot, WiFi/MQTT reconnect, or right after an HA restart), the code called `missing_required({})` which returned all 12 required attributes as missing. The resulting UX message was misleading - "required attributes missing" - when the real problem was "sensor is offline, try again in 30-60s".
+- **Reconfigure failure during source offline window** - when the user triggered reconfigure while `sensor.althermasensors` was momentarily `unavailable` or had empty attributes (e.g., during an the upstream reboot, WiFi/MQTT reconnect, or right after an HA restart), the code called `missing_required({})` which returned all 12 required attributes as missing. The resulting UX message was misleading - "required attributes missing" - when the real problem was "sensor is offline, try again in 30-60s".
   - New guards: `source_offline` (state is unavailable/unknown) and `source_empty` (state is Online but attributes is empty).
   - Existing `missing_attributes` path now includes `len(attrs)` and `last_updated` in the log for future diagnosis.
   - `entity_not_found` path unchanged.
-  - **Not a v1/v2 ESPAltherma compat issue** - v1 and v2 both publish all 12 required attributes when the sensor is online (verified against prod 2 v1 dump 2026-10-25).
+  - **Not a v1/v2 the upstream compat issue** - v1 and v2 both publish all 12 required attributes when the sensor is online (verified against prod 2 v1 dump 2026-10-25).
 
-Refs: reported via prod 2 (v1 ESPAltherma) log 2026-10-25T22:00:47 local. Setup wizard hardening deferred to #141 (v1.12.9).
+Refs: reported via prod 2 (v1 the upstream) log 2026-10-25T22:00:47 local. Setup wizard hardening deferred to #141 (v1.12.9).
 
 ## [1.12.7] — 2026-10-25
 
 ### Fixed
 
-- **ESPAltherma beta compatibility (#150)** — `R1T-Outdoor air temp.` prefix format was bypassed by `cycle_detector.update()` and `coordinator._snap_attr()` when called with raw attrs (bypassing `read()`). Result: `outdoor_mean: None` in all `cop_curve_recent` points, `stooklijn_advies.buckets` stuck on `unknown`, `cop_degradatie_week.bins_used` empty. Fix: apply `build_compat_view()` at both entry points (idempotent, safe when `read()` already applied).
+- **the upstream beta compatibility (#150)** — `R1T-Outdoor air temp.` prefix format was bypassed by `cycle_detector.update()` and `coordinator._snap_attr()` when called with raw attrs (bypassing `read()`). Result: `outdoor_mean: None` in all `cop_curve_recent` points, `stooklijn_advies.buckets` stuck on `unknown`, `cop_degradatie_week.bins_used` empty. Fix: apply `build_compat_view()` at both entry points (idempotent, safe when `read()` already applied).
 - **ERGA D ECH2O config flow (#150)** — HPSU inlet label `[HPSU] Tr return Temp (R4T)` not aliased. Setup wizard raised `missing_attributes`. Alias added.
 - **EPRA D / ERGA D ECH2O lwt_before_buh (#150)** — HPSU label `[HPSU] Tv inflow Temp (R1T)` (double-space, handled by `normalize_key`) not aliased. Alias added.
 - **DEFAULT.h fallbacks (#150)** — `Inlet temperature(R4T)` and `DHW temperature(R5T)` shorter forms not aliased. Aliases added.
 
 ### Docs
 
-- **README — Supported models & ESPAltherma attributes** — new section documenting the 12 required attributes, how to enable them in the ESPAltherma web UI, 39 supported model families, known limitations (Altherma 4, ERGA/EPRA D ECH2O HPSU, Hybrid, LT_EBLQ 5-7kW Monobloc, Mini chiller EWAQ), and not-supported (HT protocol S, PROTOCOL_S, PROTOCOL_S_ROTEX).
+- **README — Supported models & the upstream attributes** — new section documenting the 12 required attributes, how to enable them in the the upstream web UI, 39 supported model families, known limitations (Altherma 4, ERGA/EPRA D ECH2O HPSU, Hybrid, LT_EBLQ 5-7kW Monobloc, Mini chiller EWAQ), and not-supported (HT protocol S, PROTOCOL_S, PROTOCOL_S_ROTEX).
 - **README cleanup** — removed outdated `## What's new` and `## Version history` sections. Full version history now lives in `CHANGELOG.md` only.
 
 ### Tests
@@ -214,7 +222,7 @@ Refs: reported via prod 2 (v1 ESPAltherma) log 2026-10-25T22:00:47 local. Setup 
 
 ### Coverage source
 
-- 39 root ESPAltherma beta model definitions indexed; 401 unique labels (active + commented templates)
+- 39 root the upstream beta model definitions indexed; 401 unique labels (active + commented templates)
 - 33/39 use `R1T-Outdoor air temp.` (prefix format)
 - 32/39 use `Inlet water temp.(R4T)` (suffix)
 - 34/39 use `DHW tank temp. (R5T)` (suffix)
@@ -416,7 +424,7 @@ findings plus enables WAL durability properly.
 **Patch release.** Fixes the restart phantom short_off from #109.
 
 ### Fixed
-- Restart phantom short_off (#109). When ESPAltherma is not
+- Restart phantom short_off (#109). When the upstream is not
   initialised at HA boot, the coordinator advanced the detector
   with missing rps, force-closing the running cycle and producing
   a phantom ~60s off-gap that triggered short_off. The detector
@@ -570,7 +578,7 @@ Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#
 
 ### Fixed
 
-- Config flow and reconfigure now honor the ESPAltherma attribute compat
+- Config flow and reconfigure now honor the the upstream attribute compat
   view, matching the coordinator. Fixes false-positive reconfigure warnings
   and wrong "core attributes" counts on definition files that label the
   outdoor sensor `R1T-Outdoor air temp.`. Also makes manual mapping accept
@@ -589,7 +597,7 @@ Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#
 
 ### Fixed
 
-- ESPAltherma definition files that label the outdoor sensor
+- the upstream definition files that label the outdoor sensor
   `R1T-Outdoor air temp.` (e.g. ALTHERMA LT_CA_CB, both v1 and v2 builds) now
   resolve the required `Outdoor air temp.(R1T)` attribute. Fixes the
   "Reconfigure missing attrs: ['Outdoor air temp.(R1T)']" repair issue and
@@ -602,7 +610,7 @@ Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#
 ## [1.11.0] - 2026-10-21
 
 ### Added
-- ESPAltherma v2 attribute compatibility layer. Legacy v1 attributes are
+- the upstream v2 attribute compatibility layer. Legacy v1 attributes are
   preserved; canonical v2 English names are materialised beside them.
   Lookup is tolerant of v2 punctuation/spacing and translated v1 labels.
 
@@ -858,7 +866,7 @@ Alerts v2, 3 new P3 alerts, and full documentation restructure.
 ## [1.8.0] - 2026-10-08
 
 ### Added
-- Smart auto-import for non-canonical ESPAltherma setups (issue #51):
+- Smart auto-import for non-canonical the upstream setups (issue #51):
   - Laag 1 - entity discovery via canonical-attribute overlap scoring
   - Laag 2 - alias table + normalized matching (14+ community variants)
   - Laag 3 - fuzzy fallback (Jaccard + register-code conflict guard)
@@ -918,7 +926,7 @@ Alerts v2, 3 new P3 alerts, and full documentation restructure.
 
 ### Fixed
 - Cycle detector stuck in RUNNING up to 46h (issue #49). Root cause:
-  pump is False identity check failed when ESPAltherma _normalize()
+  pump is False identity check failed when the upstream _normalize()
   returned string 'OFF', None, or numeric values. Both pump-check
   sites now use _pump_is_off() helper (R316).
 - MAX_CYCLE_DURATION_S hard-cap added (R315) - any RUNNING cycle
@@ -1195,7 +1203,7 @@ Patch release: Hassfest 2026.10 weigert ICU-escape in translations.
 ## [1.6.2] - 2026-10-06
 
 Patch release: onboarding blocker for units that do not expose every
-canonical ESPAltherma attribute (issue #25). Adds a Manual mapping mode
+canonical the upstream attribute (issue #25). Adds a Manual mapping mode
 and downgrades `INV frequency (rps)` from required to optional.
 
 [Full diff v1.6.1...v1.6.2](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.1...v1.6.2)
@@ -1230,7 +1238,7 @@ and downgrades `INV frequency (rps)` from required to optional.
   non-canonical attribute names. Manual mode bypasses the required-check
   and lets the user map each attribute explicitly (issue #25).
 - Improved error message lists the exact missing attribute keys instead
-  of a generic "Sensor mist vereiste ESPAltherma-attributen".
+  of a generic "Sensor mist vereiste the upstream-attributen".
 
 ### Notes
 

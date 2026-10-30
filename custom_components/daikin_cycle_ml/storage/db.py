@@ -1638,6 +1638,128 @@ class CycleDB:
         )
         return stats
 
+    async def async_migrate_to_v25(self) -> dict[str, Any]:
+        """v25: merge 4h hard-cap artifacts (pre-v1.15.1 fix side effects).
+
+        The old MAX_CYCLE_DURATION_S = 4h truncated long runs, producing
+        parent cycles with duration_s == 14400 and a child starting 1 tick
+        (~30s) after parent end. Real 18h run (rogervdh / ESPAltherma)
+        showed as 4h in Daily Summary.
+
+        Merge rules (false positives are worse than leftovers):
+        - parent: duration_s == 14400 AND end_ts - start_ts > 14400
+        - child: start_ts in [parent.end_ts, parent.end_ts + 60]
+        - child.mode == parent.mode (never merge DHW into heating)
+        - chain-merges until no further child matches (multi-cap runs)
+
+        Defrost during a cycle is a FLAG, not a split (matches ESPAltherma 2
+        beta src/stats.h: defrosts++ is a count, runStartedAt unchanged) —
+        combined via MAX() during merge.
+        """
+        marker = await self.async_get_model_state(
+            "data_migration_v25_completed"
+        )
+        if marker and isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+
+        t0 = _time_now()
+        conn = self._require()
+        stats: dict[str, Any] = {
+            "merged": 0, "standalone": 0, "days_rerolled": [],
+        }
+        merged_days: set[str] = set()
+
+        cur = await conn.execute(
+            "SELECT id, start_ts, end_ts, mode FROM cycles "
+            "WHERE duration_s = 14400 AND end_ts IS NOT NULL "
+            "AND (end_ts - start_ts) > 14400 "
+            "ORDER BY start_ts ASC"
+        )
+        capped = await cur.fetchall()
+
+        for row in capped:
+            pid = row["id"]
+            p_start = row["start_ts"]
+            p_end = row["end_ts"]
+            p_mode = row["mode"] or "unknown"
+
+            cur = await conn.execute(
+                "SELECT 1 FROM cycles WHERE id = ?", (pid,)
+            )
+            if await cur.fetchone() is None:  # pragma: no cover
+                continue  # pragma: no cover
+
+            merged_any = False
+            while True:
+                cur = await conn.execute(
+                    "SELECT id, start_ts, end_ts, mode, dT_max, rps_max, "
+                    "buh_used, defrost_used FROM cycles "
+                    "WHERE start_ts >= ? AND start_ts <= ? AND id != ? "
+                    "AND COALESCE(mode,'unknown') = ? "
+                    "ORDER BY start_ts ASC LIMIT 1",
+                    (p_end, p_end + 60, pid, p_mode),
+                )
+                child = await cur.fetchone()
+                if child is None:
+                    break
+
+                child_end = child["end_ts"] if child["end_ts"] else p_end
+                new_dur = int(child_end - p_start)
+
+                await conn.execute(
+                    "UPDATE cycles SET end_ts = ?, duration_s = ?, "
+                    "dT_max = MAX(COALESCE(dT_max, 0), COALESCE(?, 0)), "
+                    "rps_max = MAX(COALESCE(rps_max, 0), COALESCE(?, 0)), "
+                    "buh_used = MAX(COALESCE(buh_used, 0), COALESCE(?, 0)), "
+                    "defrost_used = MAX(COALESCE(defrost_used, 0), "
+                    "COALESCE(?, 0)) "
+                    "WHERE id = ?",
+                    (
+                        child_end, new_dur,
+                        child["dT_max"], child["rps_max"],
+                        child["buh_used"], child["defrost_used"],
+                        pid,
+                    ),
+                )
+                await conn.execute(
+                    "UPDATE features SET cycle_id = ? WHERE cycle_id = ?",
+                    (pid, child["id"]),
+                )
+                await conn.execute(
+                    "DELETE FROM cycles WHERE id = ?", (child["id"],)
+                )
+                merged_days.add(time.strftime(
+                    "%Y-%m-%d", time.localtime(p_start)
+                ))
+                if child_end:  # pragma: no cover
+                    merged_days.add(time.strftime(
+                        "%Y-%m-%d", time.localtime(child_end)
+                    ))
+                p_end = child_end
+                stats["merged"] += 1
+                merged_any = True
+
+            if not merged_any:
+                stats["standalone"] += 1
+
+        await conn.commit()
+
+        for day in sorted(merged_days):
+            try:
+                await self.async_rollup_day(day)
+                stats["days_rerolled"].append(day)
+            except Exception as err:
+                _LOGGER.warning(
+                    "v25 rollup failed for %s: %s", day, err
+                )
+
+        stats["completed"] = True
+        stats["duration_s"] = round(_time_now() - t0, 3)
+        await self.async_set_model_state(
+            "data_migration_v25_completed", stats
+        )
+        return stats
+
     async def _rebuild_cop_hourly_for_hours(
         self, hours: list[int]
     ) -> int:

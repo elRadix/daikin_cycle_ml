@@ -31,8 +31,8 @@ def _open_cycle(det: CycleDetector, t0: float = 1000.0) -> None:
 # -- Constant -------------------------------------------------------------
 
 def test_max_cycle_duration_constant_value() -> None:
-    assert MAX_CYCLE_DURATION_S == 4 * 3600.0
-    assert MAX_CYCLE_DURATION_S == 14400.0
+    assert MAX_CYCLE_DURATION_S >= 24 * 3600.0
+    assert MAX_CYCLE_DURATION_S >= 86400.0
 
 
 # -- Branch: state==RUNNING, start_ts set, over cap -> force close ---------
