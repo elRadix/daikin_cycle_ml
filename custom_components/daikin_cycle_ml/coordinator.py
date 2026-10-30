@@ -1463,7 +1463,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._refresh_datasheet_state(
                 now,
                 _safe_float_opt(self._stooklijn_cache.get("huidige_lwt")),
-                _safe_float_opt((snap.last_record or {}).get("outdoor_temp")),
+                self._resolve_outdoor_temp(snap),
                 snap.cop,
             )
             snap.datasheet = self._datasheet_cache.get("datasheet")
@@ -2431,6 +2431,19 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             if isinstance(v, dict):
                 out[k] = str(v.get("source", "bundled"))
         return out
+
+    def _resolve_outdoor_temp(self, snap: Any) -> float | None:
+        """Resolve outdoor temp with attr fallback for datasheet normalization.
+
+        Primary: ``snap.last_record['outdoor_temp']``. Fallback:
+        ``snap.attrs['R1T-Outdoor air temp.']`` (ESPAltherma raw key).
+        Returns None if neither source has a usable value.
+        """
+        t_out = _safe_float_opt((snap.last_record or {}).get("outdoor_temp"))
+        if t_out is None:
+            raw_attrs = getattr(snap, "attrs", None) or {}
+            t_out = _safe_float_opt(raw_attrs.get("R1T-Outdoor air temp."))
+        return t_out
 
     async def _refresh_datasheet_state(
         self,
