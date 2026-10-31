@@ -81,17 +81,17 @@ from .const import (
     MODEL_EPRA12EAV3,
     MODEL_FAMILIES,
     MODEL_LABELS,
-    family_for_model,
-    models_in_family,
     NAME,
     OPTIONAL_ATTRIBUTES,
     REQUIRED_ATTRIBUTES,
     SOURCE_SENSOR_ENTITY,
+    family_for_model,
+    models_in_family,
 )
-from .engine.model_datasheets import validate_spec
-from .engine.model_profiles import expected_attributes
 from .engine.attribute_compat import build_compat_view
 from .engine.attribute_reader import missing_required
+from .engine.model_datasheets import validate_spec
+from .engine.model_profiles import expected_attributes
 from .engine.smart_import import build_diagnostic, resolve_canonical
 
 _LOGGER = logging.getLogger(__name__)

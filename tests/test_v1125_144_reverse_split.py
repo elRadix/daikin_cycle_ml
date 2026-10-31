@@ -1,10 +1,8 @@
 """v1.12.5 #144: reverse split dhw->heating/cooling in _should_split."""
 from custom_components.daikin_cycle_ml.engine.cycle_detector import (
-    CycleDetector,
     MODE_DEBOUNCE_S,
-    MAX_CYCLE_DURATION_S,
     STATE_RUNNING,
-    STATE_IDLE,
+    CycleDetector,
 )
 
 VALVE_KEY = "3way valve(On:DHW_Off:Space)"

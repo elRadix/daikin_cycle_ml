@@ -1,11 +1,7 @@
 """Tests for daily_summary_live_enabled toggle (v1.7.0, #42)."""
 from __future__ import annotations
 
-import json
 from pathlib import Path
-
-import pytest
-
 
 BASE = Path("custom_components/daikin_cycle_ml")
 

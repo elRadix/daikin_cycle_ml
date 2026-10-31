@@ -10,6 +10,7 @@ New guards in async_step_reconfigure_basic:
 - else -> existing missing_attributes
 """
 from __future__ import annotations
+
 from unittest.mock import MagicMock
 
 import pytest

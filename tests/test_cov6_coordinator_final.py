@@ -16,8 +16,6 @@ from collections import deque
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from custom_components.daikin_cycle_ml.const import (
     ATTR_LW_SETPOINT,
 )

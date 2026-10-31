@@ -1,10 +1,13 @@
 """v1.9.0 J — avg_duration_7d_min (Q5) tests."""
 from __future__ import annotations
+
 import time
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
+
 from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
 
 

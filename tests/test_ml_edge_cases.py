@@ -4,13 +4,19 @@ from __future__ import annotations
 import pytest
 
 from custom_components.daikin_cycle_ml.ml.adaptive_thresholds import (
-    AdaptiveThresholds, MIN_RUN_MIN,
+    MIN_RUN_MIN,
+    AdaptiveThresholds,
 )
 from custom_components.daikin_cycle_ml.ml.baseline import (
-    Baseline, AdaptiveBaseline, baseline_from_dict,
+    AdaptiveBaseline,
+    Baseline,
+    baseline_from_dict,
 )
 from custom_components.daikin_cycle_ml.ml.clustering import (
-    kmeans, classify_clusters, nearest_centroid, labels_to_dict,
+    classify_clusters,
+    kmeans,
+    labels_to_dict,
+    nearest_centroid,
 )
 from custom_components.daikin_cycle_ml.ml.multi_baseline import MultiBaseline
 
@@ -121,7 +127,7 @@ def test_ewma_baseline_nonzero_variance_skips_outlier():
 
 
 def test_ewma_baseline_alpha_clamped():
-    from custom_components.daikin_cycle_ml.ml.baseline import MIN_ALPHA, MAX_ALPHA
+    from custom_components.daikin_cycle_ml.ml.baseline import MAX_ALPHA, MIN_ALPHA
     b = AdaptiveBaseline(dim=1, alpha=-0.5)
     assert b.alpha == MIN_ALPHA
     b2 = AdaptiveBaseline(dim=1, alpha=99.0)
@@ -219,7 +225,7 @@ def test_multibaseline_unknown_mode_default():
 
 
 def test_multibaseline_from_dict_migration():
-    from custom_components.daikin_cycle_ml.ml.features import VECTOR_LEN_LEGACY, VECTOR_LEN
+    from custom_components.daikin_cycle_ml.ml.features import VECTOR_LEN, VECTOR_LEN_LEGACY
     old = {"dim": VECTOR_LEN_LEGACY, "baselines": {}}
     mb = MultiBaseline.from_dict(old)
     assert mb.dim == VECTOR_LEN

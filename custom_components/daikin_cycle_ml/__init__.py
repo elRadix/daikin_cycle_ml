@@ -6,24 +6,24 @@ from pathlib import Path
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
-from .const import DOMAIN as DOMAIN
-from .const import VERSION as VERSION
-from .const import GOOD_CYCLE_MIN_SCORE as GOOD_CYCLE_MIN_SCORE
+from .api import CopHourlyView
 from .const import DB_FILENAME as DB_FILENAME
 from .const import DB_FILENAME_TEMPLATE as DB_FILENAME_TEMPLATE
-from .engine.quality_scorer import score_cycle as _score_cycle
+from .const import DOMAIN as DOMAIN
+from .const import GOOD_CYCLE_MIN_SCORE as GOOD_CYCLE_MIN_SCORE
+from .const import VERSION as VERSION
 from .coordinator import DaikinCycleMLCoordinator
+from .engine.quality_scorer import score_cycle as _score_cycle
 from .repairs import (
     clear_datasheet_load_failed,
     raise_datasheet_load_failed,
 )
 from .services import async_register_services
-from .api import CopHourlyView
 from .storage.db import CycleDB
 from .storage.migration import async_migrate_legacy_db
 
@@ -259,7 +259,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if not unloaded:
@@ -296,7 +296,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         except Exception:
             _LOGGER.exception("Failed closing Cycle DB")
     _LOGGER.info("Daikin Cycle ML unloaded entry %s", entry.entry_id)
-    pass
+    return True
 
 
 async def async_remove_entry(

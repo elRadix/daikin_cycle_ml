@@ -116,8 +116,9 @@ async def test_register_short_circuits_when_present():
 
 @pytest.mark.asyncio
 async def test_handle_recompute_kmeans_success(monkeypatch):
-    from custom_components.daikin_cycle_ml.services import _handle_recompute_kmeans
     from unittest.mock import AsyncMock
+
+    from custom_components.daikin_cycle_ml.services import _handle_recompute_kmeans
 
     coord = MagicMock()
     coord.async_run_kmeans = AsyncMock(return_value={"ok": True, "n": 47, "k": 3})
@@ -141,8 +142,9 @@ async def test_handle_recompute_kmeans_success(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_handle_recompute_kmeans_failure_reason(monkeypatch):
-    from custom_components.daikin_cycle_ml.services import _handle_recompute_kmeans
     from unittest.mock import AsyncMock
+
+    from custom_components.daikin_cycle_ml.services import _handle_recompute_kmeans
 
     coord = MagicMock()
     coord.async_run_kmeans = AsyncMock(return_value={"ok": False, "reason": "too_few", "n": 2})
@@ -161,8 +163,9 @@ async def test_handle_recompute_kmeans_failure_reason(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_handle_recompute_kmeans_custom_days():
-    from custom_components.daikin_cycle_ml.services import _handle_recompute_kmeans
     from unittest.mock import AsyncMock
+
+    from custom_components.daikin_cycle_ml.services import _handle_recompute_kmeans
 
     coord = MagicMock()
     coord.async_run_kmeans = AsyncMock(return_value={"ok": True, "n": 10, "k": 3})
@@ -188,8 +191,9 @@ async def test_handle_recompute_kmeans_unknown_entry():
 
 @pytest.mark.asyncio
 async def test_handle_recompute_kmeans_notification_failure_swallowed():
-    from custom_components.daikin_cycle_ml.services import _handle_recompute_kmeans
     from unittest.mock import AsyncMock
+
+    from custom_components.daikin_cycle_ml.services import _handle_recompute_kmeans
 
     coord = MagicMock()
     coord.async_run_kmeans = AsyncMock(return_value={"ok": True, "n": 5, "k": 3})
@@ -221,12 +225,12 @@ def test_schema_recompute_kmeans_default_days():
 
 @pytest.mark.asyncio
 async def test_register_services_includes_recompute_kmeans():
+    from unittest.mock import MagicMock
+
     from custom_components.daikin_cycle_ml.services import (
         SERVICE_RECOMPUTE_KMEANS,
         async_register_services,
     )
-    from custom_components.daikin_cycle_ml.const import DOMAIN
-    from unittest.mock import MagicMock
 
     hass = MagicMock()
     hass.services.has_service = MagicMock(return_value=False)

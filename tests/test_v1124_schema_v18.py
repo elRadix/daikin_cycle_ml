@@ -81,12 +81,12 @@ async def fresh_db(tmp_path: Path):
 
 
 async def test_fresh_db_has_v18_columns(fresh_db):
-    assert V18_CYCLES_COLS <= await _get_columns(fresh_db, "cycles")
-    assert V18_SAMPLES_COLS <= await _get_columns(fresh_db, "cop_samples")
+    assert await _get_columns(fresh_db, "cycles") >= V18_CYCLES_COLS
+    assert await _get_columns(fresh_db, "cop_samples") >= V18_SAMPLES_COLS
 
 
 async def test_fresh_db_has_v18_indices(fresh_db):
-    assert V18_INDICES <= await _get_indices(fresh_db)
+    assert await _get_indices(fresh_db) >= V18_INDICES
 
 
 async def test_schema_migration_idempotent_on_fresh_db(fresh_db):
@@ -117,9 +117,9 @@ async def test_upgrade_from_v16_adds_v18_columns(tmp_path: Path):
         # Upgrade via async_initialize (production path)
         await db.async_initialize()
 
-        assert V18_CYCLES_COLS <= await _get_columns(db, "cycles")
-        assert V18_SAMPLES_COLS <= await _get_columns(db, "cop_samples")
-        assert V18_INDICES <= await _get_indices(db)
+        assert await _get_columns(db, "cycles") >= V18_CYCLES_COLS
+        assert await _get_columns(db, "cop_samples") >= V18_SAMPLES_COLS
+        assert await _get_indices(db) >= V18_INDICES
     finally:
         await db.async_close()
 

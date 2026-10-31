@@ -10,7 +10,7 @@ import argparse
 import json
 import re
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -65,7 +65,7 @@ def _build(source: Path, branch: str | None, prior: dict[str, Any] | None = None
             "source": "https://github.com/raomin/ESPAltherma",
             "branch": branch or _git(source, "rev-parse", "--abbrev-ref", "HEAD"),
             "commit": _git(source, "rev-parse", "HEAD"),
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "note": (
                 "ESPAltherma definitions are TEMPLATES. Users uncomment the labels "
                 "they need. This index includes both active and commented labels — "

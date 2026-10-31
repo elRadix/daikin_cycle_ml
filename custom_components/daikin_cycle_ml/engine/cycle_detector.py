@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from ..const import (
-    MAX_THERMAL_KW,
+    ATTR_3WAY_VALVE,
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
     ATTR_DEFROST_OPERATION,
@@ -18,10 +18,10 @@ from ..const import (
     ATTR_OPERATION_MODE,
     ATTR_OUTDOOR_AIR_R1T,
     ATTR_WATER_PUMP_OPERATION,
-    ATTR_3WAY_VALVE,
     DEFAULT_COMPRESSOR_RPS_THRESHOLD,
     DEFAULT_FALLBACK_POWER_THRESHOLD_W,
     MAX_CYCLE_DURATION_S,
+    MAX_THERMAL_KW,
     OP_MODE_COOLING,
     OP_MODE_DHW,
     OP_MODE_HEATING,

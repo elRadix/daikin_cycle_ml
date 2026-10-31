@@ -4,10 +4,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType
-
 from custom_components.daikin_cycle_ml.const import (
     ATTRIBUTE_MODE_AUTO,
     ATTRIBUTE_MODE_MANUAL,
@@ -17,6 +13,9 @@ from custom_components.daikin_cycle_ml.const import (
     REQUIRED_ATTRIBUTES,
     SOURCE_SENSOR_ENTITY,
 )
+from homeassistant import config_entries
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 
 
 def _set_state(hass: HomeAssistant, attrs: dict | None = None) -> None:
@@ -113,7 +112,7 @@ async def test_manual_mode_empty_fields_use_canonical(hass: HomeAssistant):
         },
     )
     r3 = await hass.config_entries.flow.async_configure(
-        r2["flow_id"], user_input={c: "" for c in REQUIRED_ATTRIBUTES},
+        r2["flow_id"], user_input=dict.fromkeys(REQUIRED_ATTRIBUTES, ""),
     )
     assert r3["type"] == FlowResultType.FORM
     assert r3["step_id"] == "attributes"
@@ -130,7 +129,7 @@ async def test_manual_mode_bad_user_key_errors(hass: HomeAssistant):
             "attribute_mode": ATTRIBUTE_MODE_MANUAL,
         },
     )
-    user_input = {c: "" for c in REQUIRED_ATTRIBUTES}
+    user_input = dict.fromkeys(REQUIRED_ATTRIBUTES, "")
     user_input[REQUIRED_ATTRIBUTES[0]] = "does.not.exist"
     r3 = await hass.config_entries.flow.async_configure(
         r2["flow_id"], user_input=user_input,
@@ -152,7 +151,7 @@ async def test_manual_mode_unmapped_required_errors(hass: HomeAssistant):
         },
     )
     r3 = await hass.config_entries.flow.async_configure(
-        r2["flow_id"], user_input={c: "" for c in REQUIRED_ATTRIBUTES},
+        r2["flow_id"], user_input=dict.fromkeys(REQUIRED_ATTRIBUTES, ""),
     )
     assert r3["type"] == FlowResultType.FORM
     assert r3["errors"]["base"] == "required_attrs_unmapped"
@@ -171,7 +170,7 @@ async def test_manual_mode_optional_can_be_mapped(hass: HomeAssistant):
             "attribute_mode": ATTRIBUTE_MODE_MANUAL,
         },
     )
-    user_input = {c: "" for c in REQUIRED_ATTRIBUTES}
+    user_input = dict.fromkeys(REQUIRED_ATTRIBUTES, "")
     for opt in OPTIONAL_ATTRIBUTES:
         user_input[opt] = "my_rps"
     r3 = await hass.config_entries.flow.async_configure(
@@ -221,7 +220,7 @@ async def test_manual_mode_optional_bad_key_errors(hass: HomeAssistant):
             "attribute_mode": ATTRIBUTE_MODE_MANUAL,
         },
     )
-    user_input = {c: "" for c in REQUIRED_ATTRIBUTES}
+    user_input = dict.fromkeys(REQUIRED_ATTRIBUTES, "")
     for opt in OPTIONAL_ATTRIBUTES:
         user_input[opt] = "does.not.exist"
     r3 = await hass.config_entries.flow.async_configure(

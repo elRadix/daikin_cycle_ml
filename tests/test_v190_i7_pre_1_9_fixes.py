@@ -11,7 +11,6 @@ import pytest
 from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
-
 # ---------- helpers ----------
 
 def _coord() -> DaikinCycleMLCoordinator:

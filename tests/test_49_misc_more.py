@@ -73,11 +73,8 @@ async def test_unload_entry_full():
     coord = MagicMock()
     coord.async_shutdown = AsyncMock()
     entry.runtime_data = coord
-    try:
-        ok = await mod.async_unload_entry(hass, entry)
-        assert ok is True
-    except Exception:
-        pass
+    ok = await mod.async_unload_entry(hass, entry)
+    assert ok is True
 
 
 @pytest.mark.asyncio

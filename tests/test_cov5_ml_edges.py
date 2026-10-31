@@ -34,7 +34,6 @@ from custom_components.daikin_cycle_ml.ml.clustering import (
     nearest_centroid,
 )
 
-
 # ============ anomaly_engine.py ============
 
 def test_opt_float_bad_value_returns_default():

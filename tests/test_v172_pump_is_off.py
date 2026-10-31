@@ -19,7 +19,6 @@ from custom_components.daikin_cycle_ml.engine.cycle_detector import (
     _pump_is_off,
 )
 
-
 # ── Helper unit tests: parametrised over all off/on/unknown inputs ────────
 
 @pytest.mark.parametrize(

@@ -2,11 +2,9 @@
 from __future__ import annotations
 
 import json
-from typing import Any
 
 import pytest
 
-from custom_components.daikin_cycle_ml.const import MAX_THERMAL_KW
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
 

@@ -13,22 +13,17 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
-from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-
 from custom_components.daikin_cycle_ml.const import (
-    ATTR_3WAY_VALVE,
     ATTR_LEAVING_WATER_AFTER_BUH,
-    ATTR_LW_SETPOINT,
     ATTR_OPERATION_MODE,
     DOMAIN,
     MODEL_CUSTOM,
     MODEL_EPRA12EAV3,
     SOURCE_SENSOR_ENTITY,
 )
+from homeassistant import config_entries
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
 
 
 def _alias_attrs() -> dict[str, Any]:

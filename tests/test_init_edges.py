@@ -1,14 +1,15 @@
 """Tests for __init__ edge paths (Batch 8d)."""
 from __future__ import annotations
-import pytest
-from homeassistant.exceptions import HomeAssistantError
 
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from custom_components.daikin_cycle_ml import (
     _async_setup_database,
     async_unload_entry,
 )
+from homeassistant.exceptions import HomeAssistantError
 
 
 async def test_setup_database_exception_sets_db_none():
@@ -44,7 +45,7 @@ async def test_unload_db_close_error_caught():
     entry.runtime_data = coord
     # must not raise
     out = await async_unload_entry(hass, entry)
-    assert out is None
+    assert out is True
 
 
 async def test_unload_no_coordinator_ok():
@@ -53,7 +54,7 @@ async def test_unload_no_coordinator_ok():
     entry = MagicMock()
     entry.runtime_data = None
     out = await async_unload_entry(hass, entry)
-    assert out is None
+    assert out is True
 
 
 async def test_unload_db_none_ok():
@@ -64,4 +65,4 @@ async def test_unload_db_none_ok():
     entry = MagicMock()
     entry.runtime_data = coord
     out = await async_unload_entry(hass, entry)
-    assert out is None
+    assert out is True

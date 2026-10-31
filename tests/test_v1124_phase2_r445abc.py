@@ -13,7 +13,6 @@ Covers all branches of _classify_and_fix_cycle_shapes and helpers:
 """
 from __future__ import annotations
 
-import time
 from pathlib import Path
 
 import pytest

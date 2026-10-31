@@ -19,7 +19,6 @@ from custom_components.daikin_cycle_ml.const import (
     ATTR_INLET_WATER_R4T,
     ATTR_INV_FREQUENCY_RPS,
     ATTR_LEAVING_WATER_AFTER_BUH,
-    ATTR_LW_SETPOINT,
     ATTR_OPERATION_MODE,
     ATTR_OUTDOOR_AIR_R1T,
 )
@@ -28,7 +27,6 @@ from custom_components.daikin_cycle_ml.engine.smart_import import (
     PHASE_HINT,
     SUSPICIOUS_VALUES,
     AttrMatch,
-    CandidateSensor,
     DiagnosticReport,
     _has_register_conflict,
     _normalize,
@@ -41,14 +39,13 @@ from custom_components.daikin_cycle_ml.engine.smart_import import (
     similarity,
 )
 
-
 # =========================================================================
 # Helper: minimal valid core attrs (12 of 13, one missing to test 'missing')
 # =========================================================================
 
 def _full_attrs() -> dict[str, object]:
     from custom_components.daikin_cycle_ml.const import CORE_ATTRIBUTES
-    return {c: 1.0 for c in CORE_ATTRIBUTES}
+    return dict.fromkeys(CORE_ATTRIBUTES, 1.0)
 
 
 # =========================================================================
@@ -221,7 +218,7 @@ def test_find_candidates_single_default() -> None:
 
 def test_find_candidates_renamed_entity() -> None:
     # mawashigeri case
-    attrs = {c: 1.0 for c in list(_full_attrs())[:11]}
+    attrs = dict.fromkeys(list(_full_attrs())[:11], 1.0)
     states = [("sensor.altherma", attrs)]
     res = find_candidate_sensors(states, min_overlap=3)
     assert len(res) == 1
@@ -231,7 +228,7 @@ def test_find_candidates_renamed_entity() -> None:
 
 def test_find_candidates_sorted_desc_then_entity_id() -> None:
     full = _full_attrs()
-    partial = {c: 1.0 for c in list(full)[:5]}
+    partial = dict.fromkeys(list(full)[:5], 1.0)
     states = [
         ("sensor.zzz", partial),
         ("sensor.aaa", full),
@@ -245,7 +242,7 @@ def test_find_candidates_sorted_desc_then_entity_id() -> None:
 
 def test_find_candidates_none_prefix_bug() -> None:
     # Videopac case
-    attrs = {c: 1.0 for c in list(_full_attrs())[:12]}
+    attrs = dict.fromkeys(list(_full_attrs())[:12], 1.0)
     states = [("sensor.none_althermasensors", attrs)]
     res = find_candidate_sensors(states, min_overlap=3)
     assert res[0].entity_id == "sensor.none_althermasensors"

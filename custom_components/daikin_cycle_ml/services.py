@@ -5,7 +5,6 @@ import csv
 import io
 import json
 import logging
-import shutil
 import sqlite3
 import time
 from functools import partial
@@ -542,7 +541,7 @@ def _export_table_csv(
     """Write one table to CSV (read-only). Returns row count."""
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
-        cur = conn.execute(f"SELECT * FROM {table}")  # noqa: S608
+        cur = conn.execute(f"SELECT * FROM {table}")
         cols = [d[0] for d in cur.description]
         n = 0
         csv_path = out_dir / f"{table}.csv"

@@ -1,6 +1,7 @@
 """Tests for OptionsFlow.async_step_cop_calc (v1.14.0, #206)."""
 import asyncio
 from unittest.mock import MagicMock
+
 from custom_components.daikin_cycle_ml.config_flow import (
     DaikinCycleMLOptionsFlow,
 )

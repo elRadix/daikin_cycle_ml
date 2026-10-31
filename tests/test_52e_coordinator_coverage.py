@@ -25,6 +25,7 @@ from custom_components.daikin_cycle_ml.ml.multi_baseline import (
     MultiBaseline,
 )
 
+
 class _RaisingDetector:
     """Detector whose .state property raises (line 394-395 coverage)."""
 

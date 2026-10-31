@@ -5,9 +5,6 @@ import json
 import pathlib
 import re
 
-import pytest
-
-
 REPO_ROOT = pathlib.Path(__file__).parent.parent
 COMPONENT_DIR = REPO_ROOT / "custom_components" / "daikin_cycle_ml"
 

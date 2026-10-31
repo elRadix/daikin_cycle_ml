@@ -24,4 +24,4 @@ def test_cap_allows_18h8m_real_cycle():
 
 def test_cap_still_finishes_runaway_at_48h():
     """R315 safety net still fires — not a functional cap, a runaway guard."""
-    assert 48 * 3600.0 <= MAX_CYCLE_DURATION_S
+    assert MAX_CYCLE_DURATION_S >= 48 * 3600.0

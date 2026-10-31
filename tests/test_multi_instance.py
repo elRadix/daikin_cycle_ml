@@ -4,8 +4,6 @@ from __future__ import annotations
 import asyncio
 import time
 
-import pytest
-
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
 
@@ -26,7 +24,7 @@ async def test_two_dbs_isolated(tmp_path):
     await db_b.async_open()
     await db_b.async_initialize()
     try:
-        now = time.time()
+        now = (time.time() // 3600) * 3600 + 1800
         await db_a.async_insert_cop_sample(_sample(now - 60, "heating", 6.0))
         await db_b.async_insert_cop_sample(_sample(now - 60, "heating", 4.0))
         rows_a = await db_a.async_fetch_cop_samples_between(now - 3600, now + 60)
@@ -49,7 +47,7 @@ async def test_rollup_isolated(tmp_path):
     await db_b.async_open()
     await db_b.async_initialize()
     try:
-        now = time.time()
+        now = (time.time() // 3600) * 3600 + 1800
         for i in range(5):
             await db_a.async_insert_cop_sample(_sample(now - i * 60, "dhw", 3.5))
         for i in range(3):

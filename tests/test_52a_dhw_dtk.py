@@ -11,7 +11,6 @@ from unittest.mock import MagicMock, patch
 from custom_components.daikin_cycle_ml.binary_sensor import _is_dhw_active
 from custom_components.daikin_cycle_ml.const import (
     ATTR_IU_OPERATION_MODE,
-    MODE_DHW,
 )
 from custom_components.daikin_cycle_ml.sensor import _attrs_current_cycle
 

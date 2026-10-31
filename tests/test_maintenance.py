@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
+
 _INTEG = Path(__file__).resolve().parent.parent / "custom_components" / "daikin_cycle_ml"
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import voluptuous as vol
@@ -33,6 +34,12 @@ class _Entry:
             "model": "basisprofiel",
         }
         self.options = options or {}
+        self.async_on_unload = MagicMock()
+        self.state = "setup_in_progress"
+        self.title = "Daikin Cycle ML"
+
+    def async_on_unload(self, cb):
+        return lambda: None
 
 
 class FakeDB:

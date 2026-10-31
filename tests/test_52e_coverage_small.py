@@ -21,7 +21,6 @@ from custom_components.daikin_cycle_ml.engine.attribute_reader import (
     read,
 )
 
-
 # ---------- attribute_reader._to_float (line 47) ----------
 
 def test_to_float_bool_returns_none() -> None:

@@ -1,15 +1,15 @@
 """C3b - coordinator integration: reload, sources, hp_specs attrs."""
 from __future__ import annotations
+
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from homeassistant.core import HomeAssistant
 
-from custom_components.daikin_cycle_ml.engine import model_datasheets as md
 from custom_components.daikin_cycle_ml.engine.model_datasheets import (
     UserDatasheetError,
 )
+from homeassistant.core import HomeAssistant
 
 EID = "abcdef0123456789abcdef0123456789"
 
@@ -156,11 +156,11 @@ class TestRefreshLazyLoadFallback:
 class TestRefreshEarlyReturn:
     async def test_refresh_returns_early_on_non_positive_dt_live(self) -> None:
         """Cover the dT_live <= 0 guard in _refresh_datasheet_state."""
-        from custom_components.daikin_cycle_ml.engine.model_datasheets import (
-            load_bundled,
-        )
         from custom_components.daikin_cycle_ml.coordinator import (
             DaikinCycleMLCoordinator,
+        )
+        from custom_components.daikin_cycle_ml.engine.model_datasheets import (
+            load_bundled,
         )
         coord = MagicMock()
         coord._datasheet_merged = load_bundled()

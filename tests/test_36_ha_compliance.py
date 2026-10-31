@@ -1,9 +1,8 @@
 """Batch 36 -- HA config flow compliance."""
 from __future__ import annotations
 
-import re
-
 import json
+import re
 from pathlib import Path
 
 import pytest

@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 
 from custom_components.daikin_cycle_ml.engine.model_profiles import (
-    MODEL_PROFILES,
     _BASE,
+    MODEL_PROFILES,
 )
 
 DATA_PATH = (

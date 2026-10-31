@@ -1,5 +1,4 @@
 """v1.14.0: defensive guards — bare coordinator fixtures + cycles_today."""
-import pytest
 from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
 from custom_components.daikin_cycle_ml.storage.store import CycleStore
 

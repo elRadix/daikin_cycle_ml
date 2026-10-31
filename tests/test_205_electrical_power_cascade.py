@@ -1,10 +1,15 @@
 """Tests for electrical power cascade (v1.14.0, R507)."""
-import pytest
 from unittest.mock import MagicMock
-from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
+
+import pytest
+
 from custom_components.daikin_cycle_ml.const import (
-    V2_STATS_KEY, INV_PRIMARY_CURRENT_KEY, BUH_STEP1_KEY, BUH_STEP2_KEY,
+    BUH_STEP1_KEY,
+    BUH_STEP2_KEY,
+    INV_PRIMARY_CURRENT_KEY,
+    V2_STATS_KEY,
 )
+from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
 
 
 def _coord(options=None, power_sensor=None, cop_sensor=None):

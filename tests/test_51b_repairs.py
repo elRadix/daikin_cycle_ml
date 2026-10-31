@@ -3,9 +3,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
-from homeassistant.helpers import issue_registry as ir
-
 from custom_components.daikin_cycle_ml.const import DOMAIN
 from custom_components.daikin_cycle_ml.repairs import (
     ISSUE_DB_CORRUPT,
@@ -14,6 +11,7 @@ from custom_components.daikin_cycle_ml.repairs import (
     NOTIFY_FAIL_THRESHOLD,
     async_check_repairs,
 )
+from homeassistant.helpers import issue_registry as ir
 
 ENTRY_ID = "test_entry_51b"
 

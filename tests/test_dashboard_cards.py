@@ -6,7 +6,6 @@ import re
 
 import pytest
 
-
 REPO_ROOT = pathlib.Path(__file__).parent.parent
 CARDS_DIR = REPO_ROOT / "dashboard" / "cards"
 

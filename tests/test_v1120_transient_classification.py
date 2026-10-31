@@ -8,7 +8,6 @@ from custom_components.daikin_cycle_ml.coordinator import (
 )
 from custom_components.daikin_cycle_ml.storage.store import CycleStore
 
-
 # ---- _classify_transient branch coverage ----
 
 def _rec(**kw):
@@ -104,11 +103,11 @@ def test_non_transient_in_window_filters():
 
 # ---- integration: baseline guard + sensor attrs ----
 
-import datetime as _dt2  # noqa: E402
+import datetime as _dt2
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock  # noqa: E402
+from unittest.mock import AsyncMock, MagicMock
 
-from custom_components.daikin_cycle_ml.coordinator import (  # noqa: E402
+from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,
 )
 

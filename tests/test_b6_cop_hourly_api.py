@@ -1,13 +1,9 @@
 """B6: cop_hourly REST view + curve sensor. Marker: B6_COP_HOURLY_API_v1"""
 from __future__ import annotations
 
-import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
-from custom_components.daikin_cycle_ml import api as api_mod
 from custom_components.daikin_cycle_ml.api import (
     CopHourlyView,
     _parse_days,
@@ -26,8 +22,6 @@ from custom_components.daikin_cycle_ml.sensor import (
     SENSOR_DEFS,
     _attrs_cop_curve_recent,
 )
-from custom_components.daikin_cycle_ml.storage.db import CycleDB
-
 
 # ---------- _parse_days ----------
 

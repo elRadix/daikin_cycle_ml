@@ -6,7 +6,6 @@ from pathlib import Path
 
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
-
 LEGACY_COP = """
 CREATE TABLE cop_samples (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

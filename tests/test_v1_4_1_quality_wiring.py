@@ -43,7 +43,7 @@ class _StoreStub:
     def off_time_since_last(self, now):
         if self._raise_off:
             raise RuntimeError('off boom')
-        return None
+        return
 
     def increment(self, key, delta=1):
         if self._raise_inc:

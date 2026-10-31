@@ -1,6 +1,7 @@
 """v1.9.2 HACS review — security regression tests."""
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
+
 from custom_components.daikin_cycle_ml.engine.notification_engine import (
     async_send_notification,
 )
@@ -51,6 +52,7 @@ def test_accept_notify_entity_path():
 def test_schema_rejects_non_notify_target():
     import pytest
     import voluptuous as vol
+
     from custom_components.daikin_cycle_ml.services import SCHEMA_SEND_TEST
     with pytest.raises(vol.Invalid):
         SCHEMA_SEND_TEST({"target": "light.turn_on"})
@@ -138,9 +140,10 @@ def test_async_setup_database_uses_executor(monkeypatch, tmp_path):
 
 async def test_migrate_skips_foreign_entity(hass):
     from pytest_homeassistant_custom_component.common import MockConfigEntry
-    from homeassistant.helpers import entity_registry as er
+
     from custom_components.daikin_cycle_ml.const import DOMAIN
     from custom_components.daikin_cycle_ml.sensor import _migrate_entity_ids
+    from homeassistant.helpers import entity_registry as er
     foreign = MockConfigEntry(domain=DOMAIN, entry_id='foreign1', data={})
     foreign.add_to_hass(hass)
     own = MockConfigEntry(domain=DOMAIN, entry_id='own1', data={})
@@ -159,9 +162,10 @@ async def test_migrate_skips_foreign_entity(hass):
 
 async def test_migrate_renames_own_entity(hass):
     from pytest_homeassistant_custom_component.common import MockConfigEntry
-    from homeassistant.helpers import entity_registry as er
+
     from custom_components.daikin_cycle_ml.const import DOMAIN
     from custom_components.daikin_cycle_ml.sensor import _migrate_entity_ids
+    from homeassistant.helpers import entity_registry as er
     own = MockConfigEntry(domain=DOMAIN, entry_id='own1', data={})
     own.add_to_hass(hass)
     reg = er.async_get(hass)

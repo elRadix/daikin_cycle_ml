@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -322,13 +323,13 @@ async def test_persist_noop_without_store() -> None:
 
 async def test_schedule_alert_save_fires_callback(monkeypatch: Any) -> None:
     """The registered callback actually calls _async_persist_last_alert_sent."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     fired: list[bool] = []
 
     def _fake_acl(hass: Any, delay: float, cb: Any) -> Any:
         # Schedule the returned coroutine so it runs on the loop
-        coro = cb(datetime.now(timezone.utc))
+        coro = cb(datetime.now(UTC))
         if asyncio.iscoroutine(coro):
             asyncio.ensure_future(coro)
         fired.append(True)

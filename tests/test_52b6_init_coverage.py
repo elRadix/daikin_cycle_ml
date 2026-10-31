@@ -1,8 +1,6 @@
 """Batch 52b6: coverage for __init__.py setup paths."""
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from custom_components.daikin_cycle_ml import (
     _async_setup_database,
     async_setup_entry,

@@ -3,10 +3,9 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
 from custom_components.daikin_cycle_ml.binary_sensor import BINARY_SENSOR_DEFS
+from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
 from custom_components.daikin_cycle_ml.sensor import (
-    _attrs_thermal_power_live,
     _value_thermal_power_live,
 )
 

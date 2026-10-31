@@ -13,20 +13,18 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import (
+    async_call_later,
     async_track_time_change,
     async_track_time_interval,
 )
-from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 # v1.4.1 BUG-2 / BUG-3: score wiring + threshold.
 from .const import (
-    MAX_COP,
-    MIN_SAMPLES_FOR_AVG,
-    COP_CURVE_RECENT_HOURS,
-    COP_CURVE_RECENT_MAX_POINTS,
-    COP_ROLLUP_WINDOW_HOURS,
-    COP_SENSOR_ENTITY,
+    ALERT_STORE_KEY,
+    ALERT_STORE_SAVE_DELAY,
+    ALERT_STORE_VERSION,
+    ATTR_BOILER_DHW_DEMAND,
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
     ATTR_DEFROST_OPERATION,
@@ -36,77 +34,66 @@ from .const import (
     ATTR_LW_SETPOINT,
     ATTR_OUTDOOR_AIR_R1T,
     ATTR_TARGET_COND_TEMP,
-    buh_step_kw_for_model as _buh_step_kw_for_model,
-    DEFAULT_COMFORT_MIN_C,
-    DOMAIN,
-    GOOD_CYCLE_MIN_SCORE,
-    MODEL_BASISPROFIEL,
-    SOURCE_SENSOR_ENTITY,
-    UPDATE_INTERVAL_SECONDS,
     BUH_7D_RATIO_THRESHOLD_DEFAULT,
+    COP_CURVE_RECENT_HOURS,
+    COP_CURVE_RECENT_MAX_POINTS,
+    COP_LOW_MIN_SAMPLES,
+    COP_LOW_THRESHOLD,
+    COP_ROLLUP_WINDOW_HOURS,
+    COP_SENSOR_ENTITY,
+    COP_VS_DATASHEET_LOW_PCT,
+    DEFAULT_ALERT_RETENTION_DAYS,
+    DEFAULT_COMFORT_MIN_C,
+    DEFAULT_CYCLE_RETENTION_DAYS,
+    DEFAULT_DHW_PENDULUM_CPH,
+    DEFAULT_MODEL_STATE_RETENTION_DAYS,
     DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
-
     DEGRADATION_BASELINE_DAYS,
     DEGRADATION_REFRESH_THROTTLE_S,
     DEGRADATION_WINDOW_DAYS,
-    ENERGY_DT_CAP_S,
-    ENERGY_DT_WARN_S,
-    ENERGY_PERSIST_INTERVAL_S,
-    TRANSIENT_MAX_DURATION_S,
-    TRANSIENT_NEAR_MAX_DURATION_S,
-    TRANSIENT_NEAR_MAX_DT_K,
-    TRANSIENT_NEAR_MIN_RPS,
-    COP_LOW_MIN_SAMPLES,
-    COP_LOW_THRESHOLD,
-    STOOKLIJN_MIN_CONFIDENCE,
-    STOOKLIJN_MIN_SAVINGS_PCT,
-    TEST_ALERT_DELTA,
-    ALERT_STORE_VERSION,
-    ALERT_STORE_KEY,
-    ALERT_STORE_SAVE_DELAY,
-    COP_VS_DATASHEET_LOW_PCT,
-    DEFAULT_DHW_PENDULUM_CPH,
-    HIGH_CYCLE_RATE_MULTIPLIER,
-    MODE_DHW,
-    DEFAULT_ALERT_RETENTION_DAYS,
-    DEFAULT_MODEL_STATE_RETENTION_DAYS,
-    DEFAULT_CYCLE_RETENTION_DAYS,
-    KMEANS_STALE_AFTER_DAYS,
+    DOMAIN,
     ENERGY_ANOMALY_FLOOR_KWH,
     ENERGY_ANOMALY_MIN_DAYS,
     ENERGY_ANOMALY_SIGMA_THRESHOLD,
-    ATTR_BOILER_DHW_DEMAND,
+    ENERGY_DT_CAP_S,
+    ENERGY_DT_WARN_S,
+    ENERGY_PERSIST_INTERVAL_S,
+    GOOD_CYCLE_MIN_SCORE,
+    HIGH_CYCLE_RATE_MULTIPLIER,
+    KMEANS_STALE_AFTER_DAYS,
+    MAX_COP,
+    MIN_SAMPLES_FOR_AVG,
+    MODE_DHW,
+    MODEL_BASISPROFIEL,
+    OPTION_DAILY_SUMMARY_LIVE_ENABLED,
+    SOURCE_SENSOR_ENTITY,
+    STOOKLIJN_MIN_CONFIDENCE,
+    STOOKLIJN_MIN_SAVINGS_PCT,
+    TEST_ALERT_DELTA,
+    TRANSIENT_MAX_DURATION_S,
+    TRANSIENT_NEAR_MAX_DT_K,
+    TRANSIENT_NEAR_MAX_DURATION_S,
+    TRANSIENT_NEAR_MIN_RPS,
+    UPDATE_INTERVAL_SECONDS,
 )
+from .engine.action_engine import generate_advice
+from .engine.anomaly_engine import evaluate as evaluate_anomaly
+from .engine.attribute_compat import build_compat_view
+from .engine.attribute_reader import missing_required, read
 from .engine.cop_degradation import (
     analyze_degradation,
     analyze_trend,
     build_dirty_hours,
 )
-from .engine.action_engine import generate_advice
-from .engine.attribute_compat import build_compat_view
-from .engine.anomaly_engine import evaluate as evaluate_anomaly
-from .engine.attribute_reader import missing_required, read
-from .engine.thermal import compute_thermal_power_live as _compute_thermal_power_live
-from .engine.thermal import dt_from_attrs as _dt_from_attrs
-from .engine.thermal import flow_from_attrs as _flow_from_attrs
-from .engine.thermal import (
-    boiler_active_from_attrs as _boiler_active_from_attrs,
-    boiler_heat_active_from_attrs as _boiler_heat_active_from_attrs,
-    boiler_efficiency_cop_from_attrs as _boiler_efficiency_cop_from_attrs,
-    hybrid_mode_from_attrs as _hybrid_mode_from_attrs,
-    rps_from_attrs as _rps_from_attrs,
-    safe_bool,
-    secondary_rps_from_attrs as _secondary_rps_from_attrs,
-)
 from .engine.cycle_detector import CycleDetector
+from .engine.model_datasheets import (
+    UserDatasheetError,
+)
 from .engine.model_datasheets import (
     get_datasheet as _get_datasheet,
 )
 from .engine.model_datasheets import (
     load_bundled as _load_bundled_datasheets,
-)
-from .engine.model_datasheets import (
-    UserDatasheetError,
 )
 from .engine.model_datasheets import (
     load_defaults as _load_datasheet_defaults,
@@ -124,17 +111,37 @@ from .engine.notification_engine import (
     passes_filters,
 )
 from .engine.quality_scorer import score_cycle
+from .engine.status_report import KMEANS_ADVICE_BY_REASON  # I2
+from .engine.thermal import (
+    boiler_active_from_attrs as _boiler_active_from_attrs,
+)
+from .engine.thermal import (
+    boiler_efficiency_cop_from_attrs as _boiler_efficiency_cop_from_attrs,
+)
+from .engine.thermal import (
+    boiler_heat_active_from_attrs as _boiler_heat_active_from_attrs,
+)
+from .engine.thermal import compute_thermal_power_live as _compute_thermal_power_live
+from .engine.thermal import dt_from_attrs as _dt_from_attrs
+from .engine.thermal import flow_from_attrs as _flow_from_attrs
+from .engine.thermal import (
+    hybrid_mode_from_attrs as _hybrid_mode_from_attrs,
+)
+from .engine.thermal import (
+    rps_from_attrs as _rps_from_attrs,
+)
+from .engine.thermal import (
+    safe_bool,
+)
+from .engine.thermal import (
+    secondary_rps_from_attrs as _secondary_rps_from_attrs,
+)
 from .ml.adaptive_thresholds import AdaptiveThresholds
 from .ml.clustering import classify_clusters, nearest_centroid
 from .ml.features import VECTOR_LEN, extract_feature_vector
 from .ml.multi_baseline import MultiBaseline
-from .engine.timer_health import clamp_cycle_duration as _clamp_duration
-from .engine.status_report import KMEANS_ADVICE_BY_REASON  # I2
-
 from .repairs import async_check_repairs
 from .storage.store import CycleStore
-
-from .const import OPTION_DAILY_SUMMARY_LIVE_ENABLED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -604,6 +611,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=entry,
             name=DOMAIN,
             update_interval=timedelta(seconds=UPDATE_INTERVAL_SECONDS),
         )
@@ -1273,14 +1281,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     ) -> float | None:
         """v1.14.0: v1 fallback — INV current + BUH + offset (R507)."""
         from .const import (
-            INV_PRIMARY_CURRENT_KEY,
-            VOLTAGE_NOMINAL_V,
-            SUPPLY_PHASES_DEFAULT,
-            BUH_STEP1_KW_DEFAULT,
-            BUH_STEP2_KW_DEFAULT,
             BUH_STEP1_KEY,
+            BUH_STEP1_KW_DEFAULT,
             BUH_STEP2_KEY,
+            BUH_STEP2_KW_DEFAULT,
             ELECTRICAL_OFFSET_W_V1,
+            INV_PRIMARY_CURRENT_KEY,
+            SUPPLY_PHASES_DEFAULT,
+            VOLTAGE_NOMINAL_V,
         )
         if not attrs:
             return None
@@ -1319,7 +1327,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if power_w is None or power_w <= 0:
             return None, "no_power"
         from .engine.attribute_compat import build_compat_view
-        from .engine.thermal import dt_from_attrs, compute_thermal_power_live
+        from .engine.thermal import compute_thermal_power_live, dt_from_attrs
         compat = build_compat_view(attrs)
         dt_k = dt_from_attrs(compat)
         if dt_k is None or dt_k <= 0:

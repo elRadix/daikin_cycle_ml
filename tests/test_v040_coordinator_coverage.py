@@ -74,14 +74,14 @@ async def test_maintenance_write_state_exception():
 
 async def test_kmeans_callback_not_sunday():
     c = _bare()
-    c.async_run_kmeans = AsyncMock()
+    c.async_run_kmeans = AsyncMock(return_value={"ok": True, "n": 0})
     await c._async_kmeans_callback(datetime(2026, 9, 21))
     c.async_run_kmeans.assert_not_called()
 
 
 async def test_kmeans_callback_sunday():
     c = _bare()
-    c.async_run_kmeans = AsyncMock()
+    c.async_run_kmeans = AsyncMock(return_value={"ok": True, "n": 0})
     await c._async_kmeans_callback(datetime(2026, 9, 27))
     c.async_run_kmeans.assert_called_once()
 

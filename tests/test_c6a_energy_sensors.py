@@ -4,13 +4,12 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock
 
+from custom_components.daikin_cycle_ml import sensor as s_mod
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorStateClass,
 )
 from homeassistant.util import slugify
-
-from custom_components.daikin_cycle_ml import sensor as s_mod
 
 C6A1A_KEYS = {
     "electrical_energy_heating_today",

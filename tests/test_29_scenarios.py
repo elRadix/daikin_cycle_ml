@@ -1,6 +1,5 @@
 """Batch 29 tests: semantic end-to-end scenarios."""
 from __future__ import annotations
-import pytest
 
 import time
 from collections import deque

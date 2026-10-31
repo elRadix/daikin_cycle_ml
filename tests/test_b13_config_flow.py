@@ -15,7 +15,6 @@ from custom_components.daikin_cycle_ml.config_flow import (
     DaikinCycleMLOptionsFlow,
 )
 
-
 CC = Path(__file__).parent.parent / "custom_components" / "daikin_cycle_ml"
 
 

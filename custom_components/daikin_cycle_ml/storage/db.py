@@ -10,8 +10,8 @@ from typing import Any
 
 import aiosqlite
 
-from ..ml.features import VECTOR_LEN
 from ..const import DAILY_SUMMARY_BACKFILL_KEY, MAX_THERMAL_KW
+from ..ml.features import VECTOR_LEN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -143,8 +143,8 @@ class CycleDB:
         #   going forward via INSERT in async_insert_cycle)
         from ..const import (
             TRANSIENT_MAX_DURATION_S,
-            TRANSIENT_NEAR_MAX_DURATION_S,
             TRANSIENT_NEAR_MAX_DT_K,
+            TRANSIENT_NEAR_MAX_DURATION_S,
             TRANSIENT_NEAR_MIN_RPS,
         )
         cursor = await conn.execute("PRAGMA table_info(cycles)")

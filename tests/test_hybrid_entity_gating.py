@@ -78,7 +78,7 @@ async def test_sensor_hybrid_creates_hybrid_entities():
                       side_effect=_fake_sensor_factory(created)):
         await sensor_mod.async_setup_entry(MagicMock(), entry, lambda ents: None)
     keys = {e._key for e in created}
-    assert _HYBRID_SENSOR_KEYS <= keys
+    assert keys >= _HYBRID_SENSOR_KEYS
     purge.assert_not_called()
 
 
@@ -107,7 +107,7 @@ async def test_binary_sensor_hybrid_creates_hybrid_entities():
                       side_effect=_fake_binary_factory(created)):
         await binary_mod.async_setup_entry(MagicMock(), entry, lambda ents: None)
     keys = {e._key for e in created}
-    assert _HYBRID_BINARY_KEYS <= keys
+    assert keys >= _HYBRID_BINARY_KEYS
     purge.assert_not_called()
 
 

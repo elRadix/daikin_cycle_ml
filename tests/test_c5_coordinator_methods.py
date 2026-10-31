@@ -7,11 +7,11 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.daikin_cycle_ml.const import (
-    ENERGY_PERSIST_INTERVAL_S,
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
     ATTR_DEFROST_OPERATION,
     ATTR_INV_FREQUENCY_RPS,
+    ENERGY_PERSIST_INTERVAL_S,
 )
 from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,

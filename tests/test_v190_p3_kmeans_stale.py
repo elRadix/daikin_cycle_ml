@@ -308,9 +308,10 @@ async def test_persist_attempt_success_without_extra():
 
 def test_notif_id_kmeans_retrain_stale_constant():
     from custom_components.daikin_cycle_ml.const import (
-        NOTIF_ID_KMEANS_RETRAIN_STALE, DOMAIN,
+        DOMAIN,
+        NOTIF_ID_KMEANS_RETRAIN_STALE,
     )
-    assert NOTIF_ID_KMEANS_RETRAIN_STALE == f"{DOMAIN}_kmeans_retrain_stale"
+    assert f"{DOMAIN}_kmeans_retrain_stale" == NOTIF_ID_KMEANS_RETRAIN_STALE
 
 
 def test_alert_type_emoji_has_kmeans_retrain_stale():
@@ -327,7 +328,8 @@ def test_alert_dedup_defaults_has_kmeans_retrain_stale():
 
 def test_binary_alert_map_has_kmeans_retrain_stale():
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
-        BINARY_ALERT_MAP, SEV_INFO,
+        BINARY_ALERT_MAP,
+        SEV_INFO,
     )
     assert "kmeans_retrain_stale" in BINARY_ALERT_MAP
     bkey, sev, tmpl = BINARY_ALERT_MAP["kmeans_retrain_stale"]
@@ -339,11 +341,11 @@ def test_binary_alert_map_has_kmeans_retrain_stale():
 
 
 def test_notif_id_by_type_has_kmeans_retrain_stale():
-    from custom_components.daikin_cycle_ml.engine.notification_engine import (
-        NOTIF_ID_BY_TYPE,
-    )
     from custom_components.daikin_cycle_ml.const import (
         NOTIF_ID_KMEANS_RETRAIN_STALE,
+    )
+    from custom_components.daikin_cycle_ml.engine.notification_engine import (
+        NOTIF_ID_BY_TYPE,
     )
     assert NOTIF_ID_BY_TYPE["kmeans_retrain_stale"] == NOTIF_ID_KMEANS_RETRAIN_STALE
 
@@ -459,7 +461,6 @@ def test_alert_binary_states_has_kmeans_retrain_stale_key():
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
     c = _bare(db=None)
     # Inject minimum attrs the function reads
-    import time as _t
     c.options = {}
     c.store = MagicMock()
     c.store.last_cycle = MagicMock(return_value={})
@@ -511,8 +512,9 @@ def test_alert_schema_kmeans_retrain_stale_entry():
 def test_alert_schema_field_references_resolve():
     """R331 regression: every {placeholder} in schema template
     must be a live context key in _build_alert_context."""
-    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
     import re
+
+    from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
     for emoji, label_key, tpl in ALERT_SCHEMA["kmeans_retrain_stale"]:
         # label_key must exist in ALERT_LABELS (checked in test below)
         placeholders = re.findall(r"\{(\w+)\}", tpl)

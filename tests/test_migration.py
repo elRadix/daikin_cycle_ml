@@ -3,9 +3,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from homeassistant.core import HomeAssistant
-
 from custom_components.daikin_cycle_ml.sensor import _migrate_entity_ids
+from homeassistant.core import HomeAssistant
 
 
 def _mock_registry(existing_ids=None):

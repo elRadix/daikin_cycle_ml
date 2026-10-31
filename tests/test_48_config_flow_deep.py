@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 import asyncio
+from unittest.mock import MagicMock
 
 import pytest
-from unittest.mock import MagicMock
 
 from custom_components.daikin_cycle_ml import config_flow as cf
 

@@ -17,14 +17,15 @@ from ..const import (
     ATTR_FLOW_SENSOR,
     ATTR_HYBRID_OP_MODE,
     ATTR_INLET_WATER_R4T,
-    ATTR_INV_FREQUENCY_RPS,
     ATTR_INV_FREQUENCY_2_RPS,
+    ATTR_INV_FREQUENCY_RPS,
     ATTR_LEAVING_WATER_AFTER_BUH,
     R5T_DISCONNECTED_THRESHOLD,
     RPS_KW_FACTOR,
     WATER_DENSITY_KG_L,
     WATER_SPECIFIC_HEAT_KJ_KG_K,
 )
+
 
 def safe_float(v: Any) -> float | None:
     if isinstance(v, bool):

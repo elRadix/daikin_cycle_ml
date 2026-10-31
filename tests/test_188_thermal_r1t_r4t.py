@@ -1,8 +1,11 @@
 """Tests for #188 + #184: v20 thermal R1T/R4T fix (matches raomin ESPAltherma 5382853)."""
 from __future__ import annotations
+
+from unittest.mock import MagicMock
+
 import pytest
 from pytest import approx
-from unittest.mock import MagicMock
+
 from custom_components.daikin_cycle_ml.engine.thermal import dt_from_attrs
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
 

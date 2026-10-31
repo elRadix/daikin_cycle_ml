@@ -17,10 +17,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
-
 from custom_components.daikin_cycle_ml.sensor import _migrate_entity_ids
-
 
 ENTRY_ID = "01M5PE5F4PKTN6001N91MMQGY8"
 DOMAIN = "daikin_cycle_ml"

@@ -8,7 +8,6 @@ Refs #66.
 """
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
 from typing import Any
@@ -19,10 +18,10 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.daikin_cycle_ml import const
 from custom_components.daikin_cycle_ml.const import (
-    ALERT_TYPE_EMOJI,
     ALERT_GROUP_COMPONENT_HEALTH,
-    ALERT_GROUP_DATA_QUALITY,
     ALERT_GROUP_COP_STOOKLIJN,
+    ALERT_GROUP_DATA_QUALITY,
+    ALERT_TYPE_EMOJI,
     BUH_7D_RATIO_THRESHOLD_DEFAULT,
     COP_DEGRADATION_WEEK_PCT_THRESHOLD,
     DEFROST_7D_COUNT_THRESHOLD_DEFAULT,

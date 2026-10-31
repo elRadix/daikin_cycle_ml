@@ -20,7 +20,6 @@ from custom_components.daikin_cycle_ml.engine.notification_engine import (
     NOTIF_ID_BY_TYPE,
 )
 
-
 PKG = Path("custom_components/daikin_cycle_ml")
 
 
@@ -114,14 +113,14 @@ def test_alert_advice_nl():
 
 # ---------- C4: dispatch wiring ----------
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 
 @pytest.mark.asyncio
 async def test_compute_db_retention_stale_no_db():
     """No db -> returns empty dict, cache unchanged."""
-    from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
     from custom_components.daikin_cycle_ml import coordinator as coord_mod
 
     # Build minimal coordinator-like object via __new__

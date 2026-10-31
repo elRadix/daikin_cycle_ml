@@ -39,7 +39,7 @@ def _patch(coord: Any, ret: Any = None) -> AsyncMock:
     m = AsyncMock(
         return_value=ret if ret is not None else {"ok": True, "n": 10, "k": 3}
     )
-    setattr(coord, "async_run_kmeans", m)
+    coord.async_run_kmeans = m
     return m
 
 
@@ -117,7 +117,7 @@ async def test_setup_kmeans_backfill_idempotent(hass: Any) -> None:
 async def test_shutdown_handles_no_timer(hass: Any) -> None:
     coord = _mk_coord(hass, {})
     coord._kmeans_backfill_unsub = None
-    setattr(coord, "_async_flush_accumulators", AsyncMock())
+    coord._async_flush_accumulators = AsyncMock()
     await coord._async_handle_shutdown()
     assert coord._kmeans_backfill_unsub is None
 
@@ -127,7 +127,7 @@ async def test_shutdown_cancels_pending_timer(hass: Any) -> None:
     coord = _mk_coord(hass, {})
     cancel = MagicMock()
     coord._kmeans_backfill_unsub = cancel
-    setattr(coord, "_async_flush_accumulators", AsyncMock())
+    coord._async_flush_accumulators = AsyncMock()
     await coord._async_handle_shutdown()
     cancel.assert_called_once()
     assert coord._kmeans_backfill_unsub is None
@@ -139,7 +139,7 @@ async def test_shutdown_swallows_cancel_error(hass: Any) -> None:
     coord._kmeans_backfill_unsub = MagicMock(
         side_effect=RuntimeError("boom")
     )
-    setattr(coord, "_async_flush_accumulators", AsyncMock())
+    coord._async_flush_accumulators = AsyncMock()
     await coord._async_handle_shutdown()
     assert coord._kmeans_backfill_unsub is None
 
@@ -215,9 +215,7 @@ async def test_backfill_handles_run_error(hass: Any) -> None:
         "kmeans_state": {"last_ok_ts": time.time() - 26 * 3600}
     }
     coord = _mk_coord(hass, store)
-    setattr(coord, "async_run_kmeans", AsyncMock(
-        side_effect=RuntimeError("boom")
-    ))
+    coord.async_run_kmeans = AsyncMock(side_effect=RuntimeError("boom"))
     await coord._run_kmeans_backfill_check(None)
 
 
@@ -238,7 +236,8 @@ async def test_post_migration_fires_when_ready(hass: Any) -> None:
     store: dict[str, Any] = {"data_migration_v1_12_4": {"completed": True}}
     coord = _mk_coord(hass, store)
     m = _patch(coord)
-    from unittest.mock import patch as _p, AsyncMock as _AM
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import patch as _p
     with _p(
         "custom_components.daikin_cycle_ml.services._do_recompute_baseline",
         new=_AM(return_value={"computed": True, "days": 30}),
@@ -291,7 +290,8 @@ async def test_post_migration_kmeans_fails_no_marker(hass: Any) -> None:
     store: dict[str, Any] = {"data_migration_v1_12_4": {"completed": True}}
     coord = _mk_coord(hass, store)
     m = _patch(coord, ret={"ok": False, "reason": "too_few", "n": 2})
-    from unittest.mock import patch as _p, AsyncMock as _AM
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import patch as _p
     with _p(
         "custom_components.daikin_cycle_ml.services._do_recompute_baseline",
         new=_AM(return_value={"computed": True, "days": 30}),
@@ -310,7 +310,8 @@ async def test_post_migration_only_baseline_needed(hass: Any) -> None:
     }
     coord = _mk_coord(hass, store)
     m = _patch(coord)
-    from unittest.mock import patch as _p, AsyncMock as _AM
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import patch as _p
     with _p(
         "custom_components.daikin_cycle_ml.services._do_recompute_baseline",
         new=_AM(return_value={"computed": True, "days": 30}),
@@ -328,7 +329,8 @@ async def test_post_migration_baseline_not_computed(hass: Any) -> None:
         "post_v1124_retrain_v1125": {"ts": 1.0},
     }
     coord = _mk_coord(hass, store)
-    from unittest.mock import patch as _p, AsyncMock as _AM
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import patch as _p
     with _p(
         "custom_components.daikin_cycle_ml.services._do_recompute_baseline",
         new=_AM(return_value={"computed": False, "days": 30}),

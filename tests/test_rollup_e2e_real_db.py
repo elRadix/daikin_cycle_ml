@@ -4,8 +4,6 @@ from __future__ import annotations
 import asyncio
 import time
 
-import pytest
-
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
 
@@ -28,7 +26,7 @@ def _sample(ts, mode="heating", cop=5.0):
 async def test_dhw_cycle_end_to_cop_hourly_queryable(tmp_path):
     db = await _mk_db(tmp_path)
     try:
-        now = time.time()
+        now = (time.time() // 3600) * 3600 + 1800
         for i in range(17):
             await db.async_insert_cop_sample(_sample(now - (16 - i) * 300, "dhw", 3.0 + i * 0.05))
         for i in range(10):
@@ -49,7 +47,7 @@ async def test_dhw_cycle_end_to_cop_hourly_queryable(tmp_path):
 async def test_after_rollup_query_returns_data_immediately(tmp_path):
     db = await _mk_db(tmp_path)
     try:
-        now = time.time()
+        now = (time.time() // 3600) * 3600 + 1800
         await db.async_insert_cop_sample(_sample(now - 60, "dhw", 4.5))
         n = await db.async_rollup_cop_hourly(window_hours=48)
         assert n >= 1
@@ -64,7 +62,7 @@ async def test_after_rollup_query_returns_data_immediately(tmp_path):
 async def test_two_rollups_same_window_idempotent(tmp_path):
     db = await _mk_db(tmp_path)
     try:
-        now = time.time()
+        now = (time.time() // 3600) * 3600 + 1800
         for i in range(5):
             await db.async_insert_cop_sample(_sample(now - i * 60, "heating", 5.5))
         await db.async_rollup_cop_hourly(window_hours=48)
@@ -82,7 +80,7 @@ async def test_startup_rollup_fills_gap_from_previous_session(tmp_path):
     """Deterministic: pins samples to exact hour boundaries."""
     db = await _mk_db(tmp_path)
     try:
-        now = time.time()
+        now = (time.time() // 3600) * 3600 + 1800
         current_hour = int(now // 3600) * 3600
         for hour_offset in range(1, 4):
             hour_ts = current_hour - hour_offset * 3600 + 60
@@ -107,7 +105,7 @@ async def test_startup_rollup_fills_gap_from_previous_session(tmp_path):
 async def test_rollup_30_days_within_720h_window(tmp_path):
     db = await _mk_db(tmp_path)
     try:
-        now = time.time()
+        now = (time.time() // 3600) * 3600 + 1800
         current_hour = int(now // 3600) * 3600
         for day_offset in range(30):
             for i in range(4):
@@ -129,7 +127,7 @@ async def test_rollup_30_days_within_720h_window(tmp_path):
 async def test_rollup_outside_window_not_included(tmp_path):
     db = await _mk_db(tmp_path)
     try:
-        now = time.time()
+        now = (time.time() // 3600) * 3600 + 1800
         await db.async_insert_cop_sample(_sample(now - 60, "heating", 5.0))
         await db.async_insert_cop_sample(_sample(now - 10 * 3600, "heating", 6.0))
         n = await db.async_rollup_cop_hourly(window_hours=6)

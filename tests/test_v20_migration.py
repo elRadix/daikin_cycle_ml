@@ -1,8 +1,12 @@
 """v20 migration tests (#188)."""
 from __future__ import annotations
-import pytest
+
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
 
 def _mk_db():
     db = CycleDB.__new__(CycleDB)

@@ -288,8 +288,8 @@ def test_boiler_binary_sensor_dhw_demand():
 
 def test_hybrid_mode_sensor_enum():
     """hybrid_mode returns value or 'unknown', exposes valid options."""
-    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
     d = next(x for x in SENSOR_DEFS if x["key"] == "hybrid_mode")
     assert d["value_fn"](DataSnapshot(hybrid_mode="H/P only", is_hybrid=True), None) == "H/P only"
     assert d["value_fn"](DataSnapshot(hybrid_mode="Hybrid", is_hybrid=True), None) == "Hybrid"
@@ -300,8 +300,8 @@ def test_hybrid_mode_sensor_enum():
 
 def test_boiler_efficiency_cop_sensor():
     """boiler_efficiency_cop returns value or None."""
-    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
     d = next(x for x in SENSOR_DEFS if x["key"] == "boiler_efficiency_cop")
     assert d["value_fn"](DataSnapshot(boiler_efficiency_cop=1.3, is_hybrid=True), None) == 1.3
     assert d["value_fn"](DataSnapshot(boiler_efficiency_cop=None, is_hybrid=True), None) is None
@@ -324,8 +324,8 @@ def test_diagnostics_includes_hybrid_fields():
 # ============================================================
 
 from custom_components.daikin_cycle_ml.config_flow import (
-    _is_hybrid_model,
     _hybrid_attrs_present,
+    _is_hybrid_model,
 )
 
 
@@ -365,6 +365,7 @@ def test_hybrid_attrs_present_absent():
 
 import asyncio
 from unittest.mock import MagicMock
+
 from custom_components.daikin_cycle_ml import config_flow as _cf
 
 
@@ -527,8 +528,10 @@ def test_reconfigure_source_only_no_model_change():
 # Block 3C.1 — COP sample filter (boiler-only skip)
 # ============================================================
 
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock as _MM
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock as _MM
 
 
 def _cop_coord(state: str, boiler_active: bool):
@@ -658,7 +661,6 @@ def test_evaluate_alerts_non_suppressed_type_passes():
 # Block 3D — v21 migration coverage
 # ============================================================
 
-import pytest as _pytest
 
 
 @pytest.mark.asyncio
@@ -719,8 +721,10 @@ async def test_migrate_to_v21_idempotent(tmp_path):
 @pytest.mark.asyncio
 async def test_cop_sample_with_none_data_obj():
     """_maybe_collect_cop_sample with data=None uses getattr defaults."""
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import MagicMock as _M
+
     from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
-    from unittest.mock import AsyncMock as _AM, MagicMock as _M
 
     c = _M()
     c.db = _M()
@@ -754,11 +758,14 @@ async def test_cop_sample_with_none_data_obj():
 @pytest.mark.asyncio
 async def test_cop_sample_invalid_parse_returns_early(monkeypatch):
     """Line 2853: parse returns None → return before INSERT."""
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import MagicMock as _M
+
     from custom_components.daikin_cycle_ml.coordinator import (
-        DaikinCycleMLCoordinator, DataSnapshot,
+        DaikinCycleMLCoordinator,
+        DataSnapshot,
     )
     from custom_components.daikin_cycle_ml.engine import cop_analyzer as _ca
-    from unittest.mock import AsyncMock as _AM, MagicMock as _M
 
     monkeypatch.setattr(_ca, "parse_global_cop_attrs", lambda _m: None)
 
@@ -792,10 +799,13 @@ async def test_cop_sample_invalid_parse_returns_early(monkeypatch):
 @pytest.mark.asyncio
 async def test_cop_sample_insert_returns_false_branch():
     """Line 2874->exit: insert returns False → _last_cop_sample_ts unchanged."""
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import MagicMock as _M
+
     from custom_components.daikin_cycle_ml.coordinator import (
-        DaikinCycleMLCoordinator, DataSnapshot,
+        DaikinCycleMLCoordinator,
+        DataSnapshot,
     )
-    from unittest.mock import AsyncMock as _AM, MagicMock as _M
 
     c = _M()
     c.db = _M()
@@ -889,10 +899,13 @@ async def test_migrate_to_v22_idempotent(tmp_path):
 @pytest.mark.asyncio
 async def test_cop_sample_co_fire_saved_with_flag():
     """Co-fire sample saved with boiler_active=1."""
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import MagicMock as _M
+
     from custom_components.daikin_cycle_ml.coordinator import (
-        DaikinCycleMLCoordinator, DataSnapshot,
+        DaikinCycleMLCoordinator,
+        DataSnapshot,
     )
-    from unittest.mock import AsyncMock as _AM, MagicMock as _M
 
     c = _M()
     c.db = _M()
@@ -925,10 +938,13 @@ async def test_cop_sample_co_fire_saved_with_flag():
 @pytest.mark.asyncio
 async def test_cop_sample_pure_hp_has_flag_zero():
     """Pure HP sample has boiler_active=0."""
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import MagicMock as _M
+
     from custom_components.daikin_cycle_ml.coordinator import (
-        DaikinCycleMLCoordinator, DataSnapshot,
+        DaikinCycleMLCoordinator,
+        DataSnapshot,
     )
-    from unittest.mock import AsyncMock as _AM, MagicMock as _M
 
     c = _M()
     c.db = _M()
@@ -985,8 +1001,8 @@ def test_boiler_sensors_return_state_for_hybrid_snapshot():
 
 def test_hybrid_mode_sensor_none_for_non_hybrid():
     """Non-hybrid → hybrid_mode sensor returns None."""
-    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
 
     snap = DataSnapshot(is_hybrid=False, hybrid_mode="H/P only")
     d = next(x for x in SENSOR_DEFS if x["key"] == "hybrid_mode")
@@ -995,8 +1011,8 @@ def test_hybrid_mode_sensor_none_for_non_hybrid():
 
 def test_boiler_contribution_pct_none_for_non_hybrid():
     """Non-hybrid → boiler_contribution_today_pct returns None."""
-    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+    from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
 
     snap = DataSnapshot(
         is_hybrid=False,
@@ -1009,6 +1025,7 @@ def test_boiler_contribution_pct_none_for_non_hybrid():
 def test_is_hybrid_install_helper():
     """_is_hybrid_install() returns True for EVLQ models."""
     from unittest.mock import MagicMock as _M
+
     from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
 
     c = _M()
@@ -1030,8 +1047,8 @@ def test_is_hybrid_install_helper():
 def test_is_hybrid_install_exception_branch(monkeypatch):
     """_is_hybrid_install catches exception from family_for_model."""
     from unittest.mock import MagicMock as _M
+
     from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
-    import custom_components.daikin_cycle_ml.coordinator as _coord_mod
 
     # Monkeypatch family_for_model import path
     def _raise(*a, **kw):
@@ -1051,9 +1068,11 @@ def test_is_hybrid_install_exception_branch(monkeypatch):
 async def test_refresh_cop_today_hybrid_with_boiler_pct():
     """Hybrid snapshot: _build adds boiler_pct to cop_today."""
     import time as _time
-    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import MagicMock as _M
+
     from custom_components.daikin_cycle_ml.coordinator import (
-        DaikinCycleMLCoordinator, DataSnapshot,
+        DaikinCycleMLCoordinator,
     )
 
     lt = _time.localtime()
@@ -1092,7 +1111,9 @@ async def test_refresh_cop_today_hybrid_with_boiler_pct():
 async def test_refresh_cop_today_all_boiler_only_hybrid():
     """Hybrid: all co-fire (no pure HP) → boiler_pct only, no cop."""
     import time as _time
-    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import MagicMock as _M
+
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
@@ -1162,9 +1183,12 @@ async def test_ensure_cop_samples_table_self_heals_missing_column(tmp_path):
 async def test_refresh_stooklijn_skips_cofire_samples():
     """coordinator.py line 2544: co-fire samples skipped in stooklijn loop."""
     import time as _time
-    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import MagicMock as _M
+
     from custom_components.daikin_cycle_ml.coordinator import (
-        DaikinCycleMLCoordinator, DataSnapshot,
+        DaikinCycleMLCoordinator,
+        DataSnapshot,
     )
 
     now = _time.time()
@@ -1214,6 +1238,7 @@ async def test_refresh_stooklijn_skips_cofire_samples():
 async def test_migrate_to_v22_legacy_db_gets_column(tmp_path):
     """db.py lines 1504-1508: v22 ALTER path on true legacy DB."""
     import aiosqlite
+
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
     db_path = tmp_path / "legacy_v22.db"
@@ -1271,6 +1296,7 @@ async def test_migrate_to_v22_legacy_db_gets_column(tmp_path):
 async def test_fetch_cop_samples_exclude_boiler(tmp_path):
     """db.py line 2393: include_boiler=False filters co-fire samples."""
     import time as _time
+
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
     db = CycleDB(tmp_path / "fetch_filter.db")
@@ -1308,6 +1334,7 @@ async def test_fetch_cop_samples_exclude_boiler(tmp_path):
 async def test_fetch_cop_samples_between_exclude_boiler(tmp_path):
     """db.py line 2416: include_boiler=False on between-fetch."""
     import time as _time
+
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
     db = CycleDB(tmp_path / "between_filter.db")
@@ -1443,7 +1470,8 @@ def test_boiler_kwargs_for_alerts_missing_snapshot():
 def test_boiler_kwargs_for_alerts_with_snapshot():
     """B4: helper reads real bool values from snapshot."""
     from custom_components.daikin_cycle_ml.coordinator import (
-        DaikinCycleMLCoordinator, DataSnapshot,
+        DaikinCycleMLCoordinator,
+        DataSnapshot,
     )
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     snap = DataSnapshot()
@@ -1475,6 +1503,7 @@ def test_boiler_kwargs_for_alerts_mock_snapshot_disables_suppression():
     Fix: isinstance(x, bool) guards. This test locks that behavior.
     """
     from unittest.mock import MagicMock
+
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
@@ -1637,9 +1666,12 @@ async def _run_collect_cop_sample(
     state: str = "running", hp_cop: float = 4.5,
 ):
     """Helper: drive _maybe_collect_cop_sample, return the inserted row dict."""
-    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import MagicMock as _M
+
     from custom_components.daikin_cycle_ml.coordinator import (
-        DaikinCycleMLCoordinator, DataSnapshot,
+        DaikinCycleMLCoordinator,
+        DataSnapshot,
     )
     c = _M()
     c.db = _M()
@@ -1712,9 +1744,12 @@ async def test_boiler_mode_pure_hp_empty_in_cop_sample():
 @pytest.mark.asyncio
 async def test_boiler_mode_skip_when_boiler_only():
     """Boiler-only (no HP) → sample skipped entirely (pre-existing guard)."""
-    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import MagicMock as _M
+
     from custom_components.daikin_cycle_ml.coordinator import (
-        DaikinCycleMLCoordinator, DataSnapshot,
+        DaikinCycleMLCoordinator,
+        DataSnapshot,
     )
     c = _M()
     c.db = _M()
@@ -1746,9 +1781,12 @@ async def test_boiler_mode_mock_snapshot_not_truthy():
     for MagicMock. Now isinstance guards force False → no suppression,
     no bogus boiler_mode. Consistent with B4 helper pattern from 2a.
     """
-    from unittest.mock import AsyncMock as _AM, MagicMock as _M
+    from unittest.mock import AsyncMock as _AM
+    from unittest.mock import MagicMock as _M
+
     from custom_components.daikin_cycle_ml.coordinator import (
-        DaikinCycleMLCoordinator, DataSnapshot,
+        DaikinCycleMLCoordinator,
+        DataSnapshot,
     )
     c = _M()
     c.db = _M()

@@ -3,13 +3,8 @@ from __future__ import annotations
 
 import asyncio
 import time
-from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
 
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
-from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
 
 
 async def _mk_db(tmp_path, name="edge.db"):

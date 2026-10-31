@@ -17,7 +17,6 @@ from ..const import (
     OUTDOOR_BINS,
 )
 
-
 SEVERITY_NONE = "none"
 SEVERITY_INFO = "info"
 SEVERITY_WARNING = "warning"

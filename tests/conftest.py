@@ -11,7 +11,7 @@ _ROOT = str(Path(__file__).resolve().parent.parent)
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-import pytest  # noqa: E402
+import pytest
 
 pytest_plugins = ["pytest_homeassistant_custom_component"]
 

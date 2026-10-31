@@ -9,8 +9,9 @@ def test_const_domain():
 
 
 def test_const_version_semver():
-    from custom_components.daikin_cycle_ml import const
     import re
+
+    from custom_components.daikin_cycle_ml import const
     assert re.fullmatch(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", const.VERSION), const.VERSION
 
 

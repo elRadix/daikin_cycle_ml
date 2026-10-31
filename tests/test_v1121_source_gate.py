@@ -9,7 +9,6 @@ from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,
 )
 
-
 _COORD_MOD = "custom_components.daikin_cycle_ml.coordinator"
 
 

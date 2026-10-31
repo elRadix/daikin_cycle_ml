@@ -1,7 +1,6 @@
 """Family wizard + selector factory tests (v1.13.2)."""
 from __future__ import annotations
 
-from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.daikin_cycle_ml.config_flow import (
@@ -16,7 +15,7 @@ from custom_components.daikin_cycle_ml.const import (
     MODEL_FAMILIES,
     models_in_family,
 )
-
+from homeassistant.data_entry_flow import FlowResultType
 
 _VALID_STATE = {
     "R1T": 30.0, "R2T": 25.0, "R4T": 40.0, "R5T": 22.0, "R6T": 21.0,

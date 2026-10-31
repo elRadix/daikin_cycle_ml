@@ -1,5 +1,6 @@
 """Regression: kmeans inertia saturates on overflow (Audit v44.0 A1)."""
 import sys
+
 from custom_components.daikin_cycle_ml.ml.clustering import kmeans
 
 EXTREME = 2.6815615859885194e154  # (x)**2 would overflow float64

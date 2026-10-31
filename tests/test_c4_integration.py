@@ -5,10 +5,9 @@ Marker: C4_INTEGRATION_TESTS_v1
 from __future__ import annotations
 
 import time
-from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,

@@ -312,10 +312,10 @@ async def test_v17_ds_unknown_delete_failure_isolated(db):
         def __init__(self, inner):
             self._inner = inner
 
-        async def execute(self, sql, *args, **kwargs):
+        def execute(self, sql, *args, **kwargs):
             if isinstance(sql, str) and "DELETE FROM daily_summary" in sql:
                 raise RuntimeError("forced delete failure")
-            return await self._inner.execute(sql, *args, **kwargs)
+            return self._inner.execute(sql, *args, **kwargs)
 
         def __getattr__(self, name):
             return getattr(self._inner, name)

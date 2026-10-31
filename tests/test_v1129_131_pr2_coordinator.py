@@ -1,5 +1,6 @@
 """v1.12.9 (#131 PR-2): coordinator forward-merge hook integration."""
 from __future__ import annotations
+
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 

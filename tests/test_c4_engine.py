@@ -22,7 +22,6 @@ from custom_components.daikin_cycle_ml.engine.cop_degradation import (
     weighted_mean,
 )
 
-
 # --- bin_for_outdoor ---
 
 @pytest.mark.parametrize("t,expected", [

@@ -23,7 +23,6 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.daikin_cycle_ml import config_flow as cf
 from custom_components.daikin_cycle_ml.const import DOMAIN
 
-
 # ---------- _flatten_notify_choice ----------
 
 def test_flatten_active_choice_entity():

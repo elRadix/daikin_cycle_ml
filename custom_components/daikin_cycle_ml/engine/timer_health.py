@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import time
+
 from ..const import MAX_CYCLE_DURATION_S
 
 _LOGGER = logging.getLogger(__name__)

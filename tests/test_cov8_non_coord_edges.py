@@ -18,7 +18,8 @@ def test_flatten_notify_choice_rejects_non_dict_non_str():
 
 def test_action_engine_add_skips_duplicate():
     from custom_components.daikin_cycle_ml.engine.action_engine import (
-        ActionAdvice, _add,
+        ActionAdvice,
+        _add,
     )
 
     def _mk(code):

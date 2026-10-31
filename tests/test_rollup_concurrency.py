@@ -4,8 +4,6 @@ from __future__ import annotations
 import asyncio
 import time
 
-import pytest
-
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
 
@@ -28,7 +26,7 @@ def _sample(ts, mode="heating", cop=5.0):
 async def test_concurrent_rollups_no_duplicate_rows(tmp_path):
     db = await _mk_db(tmp_path)
     try:
-        now = time.time()
+        now = (time.time() // 3600) * 3600 + 1800
         for i in range(6):
             await db.async_insert_cop_sample(_sample(now - i * 60, "heating", 5.5))
         await asyncio.gather(
@@ -46,7 +44,7 @@ async def test_concurrent_rollups_no_duplicate_rows(tmp_path):
 async def test_concurrent_insert_and_rollup(tmp_path):
     db = await _mk_db(tmp_path)
     try:
-        now = time.time()
+        now = (time.time() // 3600) * 3600 + 1800
         async def insert_batch():
             for i in range(5):
                 await db.async_insert_cop_sample(_sample(now - i * 60, "dhw", 4.0))

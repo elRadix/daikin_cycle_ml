@@ -133,7 +133,7 @@ def _count_tables_sync(db_path: Path) -> dict[str, int]:
     try:
         for table in DB_TABLES:
             try:
-                cur = conn.execute(f"SELECT COUNT(*) FROM {table}")  # noqa: S608
+                cur = conn.execute(f"SELECT COUNT(*) FROM {table}")
                 row = cur.fetchone()
                 if row is not None:  # pragma: no branch
                     counts[table] = int(row[0])

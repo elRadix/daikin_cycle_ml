@@ -6,8 +6,9 @@ import time
 from typing import Any
 
 from aiohttp.web import Request, Response
-from homeassistant.helpers.http import HomeAssistantView
+
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.http import HomeAssistantView
 
 from .const import (
     COP_HOURLY_API_DEFAULT_DAYS,

@@ -54,8 +54,5 @@ async def test_async_setup_registers_services():
     hass.services.has_service = MagicMock(return_value=False)
     hass.services.async_register = MagicMock()
     hass.data = {}
-    try:
-        ok = await mod.async_setup(hass, {})
-        assert isinstance(ok, bool)
-    except Exception:
-        pass
+    ok = await mod.async_setup(hass, {})
+    assert isinstance(ok, bool)

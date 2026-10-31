@@ -8,46 +8,44 @@ from __future__ import annotations
 
 import math
 
-
-from custom_components.daikin_cycle_ml.engine.quality_scorer import (
-    score_cycle,
-    DEFAULT_GOOD_RUN_MIN,
-    DEFAULT_GOOD_DT_K,
-    DEFAULT_GOOD_OFF_MIN,
-    PENALTY_SHORT_RUN,
-)
-from custom_components.daikin_cycle_ml.engine.thermal import (
-    safe_float,
-    dt_from_attrs,
-    compute_thermal_power_live,
-)
-from custom_components.daikin_cycle_ml.ml.features import is_valid_record
-from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
-    bucket_for_outdoor,
-    _parse_float,
+from custom_components.daikin_cycle_ml.const import (
+    ATTR_BUH_STEP1,
+    ATTR_BUH_STEP2,
+    ATTR_INLET_WATER_R4T,
+    ATTR_INV_FREQUENCY_RPS,
+    ATTR_LEAVING_WATER_AFTER_BUH,
 )
 from custom_components.daikin_cycle_ml.engine.anomaly_engine import (
     classify_severity,
 )
+from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
+    _parse_float,
+    bucket_for_outdoor,
+)
 from custom_components.daikin_cycle_ml.engine.cycle_detector import (
-    detect_compressor_on,
     _is_on,
+    detect_compressor_on,
+)
+from custom_components.daikin_cycle_ml.engine.quality_scorer import (
+    DEFAULT_GOOD_DT_K,
+    DEFAULT_GOOD_OFF_MIN,
+    DEFAULT_GOOD_RUN_MIN,
+    PENALTY_SHORT_RUN,
+    score_cycle,
+)
+from custom_components.daikin_cycle_ml.engine.thermal import (
+    compute_thermal_power_live,
+    dt_from_attrs,
+    safe_float,
 )
 from custom_components.daikin_cycle_ml.ml.adaptive_thresholds import (
     _percentile,
 )
 from custom_components.daikin_cycle_ml.ml.baseline import (
-    Baseline,
     AdaptiveBaseline,
+    Baseline,
 )
-from custom_components.daikin_cycle_ml.const import (
-    ATTR_LEAVING_WATER_AFTER_BUH,
-    ATTR_INLET_WATER_R4T,
-    ATTR_INV_FREQUENCY_RPS,
-    ATTR_BUH_STEP1,
-    ATTR_BUH_STEP2,
-)
-
+from custom_components.daikin_cycle_ml.ml.features import is_valid_record
 
 # ── quality_scorer boundaries ────────────────────────────────────────
 

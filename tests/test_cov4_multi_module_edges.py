@@ -12,7 +12,6 @@ No HA fixtures. R153-compliant.
 from __future__ import annotations
 
 import asyncio
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from custom_components.daikin_cycle_ml import services as svc
@@ -27,7 +26,6 @@ from custom_components.daikin_cycle_ml.engine.status_report import (
     build_stooklijn_report,
 )
 from custom_components.daikin_cycle_ml.sensor import DaikinCycleMLSensor
-
 
 # ============ status_report.py ============
 
