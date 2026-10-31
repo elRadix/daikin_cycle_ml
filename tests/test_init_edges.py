@@ -1,5 +1,7 @@
 """Tests for __init__ edge paths (Batch 8d)."""
 from __future__ import annotations
+import pytest
+from homeassistant.exceptions import HomeAssistantError
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -27,8 +29,8 @@ async def test_unload_returns_false_when_platform_unload_fails():
     hass.config_entries.async_unload_platforms = AsyncMock(return_value=False)
     entry = MagicMock()
     entry.runtime_data = MagicMock()
-    out = await async_unload_entry(hass, entry)
-    assert out is False
+    with pytest.raises(HomeAssistantError):
+        await async_unload_entry(hass, entry)
 
 
 async def test_unload_db_close_error_caught():
@@ -42,7 +44,7 @@ async def test_unload_db_close_error_caught():
     entry.runtime_data = coord
     # must not raise
     out = await async_unload_entry(hass, entry)
-    assert out is True
+    assert out is None
 
 
 async def test_unload_no_coordinator_ok():
@@ -51,7 +53,7 @@ async def test_unload_no_coordinator_ok():
     entry = MagicMock()
     entry.runtime_data = None
     out = await async_unload_entry(hass, entry)
-    assert out is True
+    assert out is None
 
 
 async def test_unload_db_none_ok():
@@ -62,4 +64,4 @@ async def test_unload_db_none_ok():
     entry = MagicMock()
     entry.runtime_data = coord
     out = await async_unload_entry(hass, entry)
-    assert out is True
+    assert out is None

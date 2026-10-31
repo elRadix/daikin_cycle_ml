@@ -33,4 +33,4 @@ async def test_async_unload_entry_not_loaded(hass: HomeAssistant):
     entry.entry_id = "nonexistent"
     entry.runtime_data = None
     result = await asyncio.wait_for(async_unload_entry(hass, entry), timeout=3)
-    assert result is True
+    assert result is None

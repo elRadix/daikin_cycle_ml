@@ -46,7 +46,7 @@ async def async_setup(hass: HomeAssistant, _config: dict[str, Any]) -> bool:
             hass.data[_VIEW_FLAG] = True
         except Exception:
             _LOGGER.exception("cop_hourly view registration failed")
-    pass
+    return True
 
 
 async def _async_setup_database(
@@ -204,7 +204,7 @@ async def _async_backfill_quality(
     return n
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Daikin Cycle ML from a config entry."""
     coordinator = DaikinCycleMLCoordinator(hass, entry)
     try:
@@ -256,7 +256,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     _LOGGER.info(
         "Daikin Cycle ML %s setup for entry %s", VERSION, entry.entry_id
     )
-    pass
+    return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:

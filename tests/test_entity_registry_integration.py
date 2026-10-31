@@ -58,6 +58,15 @@ async def _setup_integration(hass, monkeypatch, entry_id="r194_int_test"):
     coord = _mock_coordinator(entry_id)
 
     def _factory(h, e):
+        coord.async_reload_user_datasheets = AsyncMock()
+        coord.async_setup_alert_persistence = AsyncMock()
+        coord.async_config_entry_first_refresh = AsyncMock()
+        coord.async_setup_maintenance = AsyncMock()
+        coord.async_setup_baseline_persistence = AsyncMock()
+        coord.async_setup_kmeans = AsyncMock()
+        coord.async_setup_kmeans_backfill = AsyncMock()
+        coord.async_setup_status_updates = AsyncMock()
+        coord.async_setup_stooklijn = AsyncMock()
         return coord
 
     monkeypatch.setattr(
@@ -68,6 +77,7 @@ async def _setup_integration(hass, monkeypatch, entry_id="r194_int_test"):
         "custom_components.daikin_cycle_ml._async_setup_database",
         AsyncMock(),
     )
+    monkeypatch.setattr(hass, "http", MagicMock())
     monkeypatch.setattr(
         "custom_components.daikin_cycle_ml.PLATFORMS",
         (Platform.SENSOR,),
