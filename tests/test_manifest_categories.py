@@ -10,11 +10,13 @@ def test_manifest_has_valid_categories():
     assert "categories" in data, "manifest.json must contain 'categories'"
     assert isinstance(data["categories"], list), "'categories' must be a list"
 
+    # Real HA category enum, derived from homeassistant/components/
+    # homeassistant/strings.json (verified: NO "sensor")
     valid_categories = {
         "adc", "analytics", "automation", "car", "climate", "cover",
         "device_tracker", "doorbell", "energy", "event", "fan", "health",
         "humidifier", "light", "lock", "media_source", "multimedia",
-        "network", "notifier", "number", "remote", "sensor", "siren",
+        "network", "notifier", "number", "remote", "siren",
         "switch", "system", "weather", "update"
     }
 

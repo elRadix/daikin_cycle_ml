@@ -19,6 +19,21 @@ def test_manifest_has_all_marketplace_fields():
                 "quality_scale", "iot_class", "integration_type"]
     for field in required:
         assert field in data, f"manifest.json missing {field!r}"
+
+    # Real HA category enum (see homeassistant/components/homeassistant/strings.json)
+    VALID = {
+        "adc", "analytics", "automation", "car", "climate", "cover",
+        "device_tracker", "doorbell", "energy", "event", "fan", "health",
+        "humidifier", "light", "lock", "media_source", "multimedia",
+        "network", "notifier", "number", "remote", "siren",
+        "switch", "system", "weather", "update"
+    }
+    for cat in data.get("categories", []):
+        assert cat in VALID, (
+            f"Invalid HA category {cat!r}. Not in homeassistant/strings.json enum. "
+            f"Did you mean one of {sorted(VALID)}?"
+        )
+
     assert data["issue_tracker"].startswith("https://")
     assert isinstance(data["codeowners"], list)
     assert len(data["codeowners"]) >= 1
