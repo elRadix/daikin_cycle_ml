@@ -807,7 +807,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_finalize(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             if self._reconfigure_entry is not None:
-                return self.async_update_reload_and_abort(
+                return self.async_update_and_abort(
                     self._reconfigure_entry,
                     data_updates=self._data,
                     options=self._options,
@@ -879,7 +879,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                         _reason = "reconfigure_hybrid_change"
                     else:
                         _reason = "reconfigure_successful"
-                    return self.async_update_reload_and_abort(
+                    return self.async_update_and_abort(
                         entry,
                         data_updates=dict(user_input),
                         reason=_reason,

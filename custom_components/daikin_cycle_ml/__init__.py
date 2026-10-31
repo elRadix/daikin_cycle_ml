@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
@@ -45,7 +46,7 @@ async def async_setup(hass: HomeAssistant, _config: dict[str, Any]) -> bool:
             hass.data[_VIEW_FLAG] = True
         except Exception:
             _LOGGER.exception("cop_hourly view registration failed")
-    return True
+    pass
 
 
 async def _async_setup_database(
@@ -203,7 +204,7 @@ async def _async_backfill_quality(
     return n
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Set up Daikin Cycle ML from a config entry."""
     coordinator = DaikinCycleMLCoordinator(hass, entry)
     try:
@@ -255,14 +256,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.info(
         "Daikin Cycle ML %s setup for entry %s", VERSION, entry.entry_id
     )
-    return True
+    pass
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Unload a config entry."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if not unloaded:
-        return False
+        raise HomeAssistantError('Unload failed')
     coordinator = getattr(entry, "runtime_data", None)
     if coordinator is not None:
         try:
@@ -295,7 +296,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except Exception:
             _LOGGER.exception("Failed closing Cycle DB")
     _LOGGER.info("Daikin Cycle ML unloaded entry %s", entry.entry_id)
-    return True
+    pass
 
 
 async def async_remove_entry(
