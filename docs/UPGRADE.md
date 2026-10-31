@@ -10,6 +10,14 @@ Cross-references: [DATABASE.md](DATABASE.md) (schema migrations), [CONFIGURATION
 
 ---
 
+## Upgrading to v1.17.0
+
+### Breaking Changes
+- **KMeans Labels:** The clustering label `dhw_like` has been renamed to `long_cycle`. If you have Lovelace cards or automations that rely on `cluster == "dhw_like"`, update them to `long_cycle`.
+
+### Notes
+- **Dashboard Cards:** The heating-curve card now dynamically reads specs from the `sensor.daikin_cycle_ml_hp_specs` sensor. No YAML changes required, but updating the card will resolve incorrect kW values for some models (e.g., EDLA09).
+
 ## Latest: v1.15.2
 
 **Released:** 2026-10-30
@@ -754,4 +762,3 @@ The v1.6.2 wizard split attribute handling into two modes.
 1. options.custom_attribute_map
 2. data.custom_attribute_map
 3. data.attribute_map
-

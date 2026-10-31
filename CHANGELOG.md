@@ -14,27 +14,23 @@
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-11-01
+
+### Added
+- **Dashboard dynamic HP specs:** The heating-curve card now dynamically reads specs from `sensor.daikin_cycle_ml_hp_specs` instead of a hardcoded JS dictionary (Fixes #226). Falls back to the old table only when the sensor isn't configured.
+- **Comprehensive test coverage** for rollup orchestration, sensor-chain E2E, concurrency, marketplace compliance, migrations idempotency, multi-instance isolation, and dashboard card integrity. 10 new test files, ~1500 lines, `pytest` total: 3974 passed, 100% coverage.
+- **ML Clustering Labels:** Updated KMeans cluster labels from `pendulum`/`dhw_like`/`normal` to `pendulum`/`normal`/`long_cycle`. The previous `dhw_like` label incorrectly classified long heating cycles as DHW. Users with automations depending on `cluster == "dhw_like"` should update them to `long_cycle`.
+
+### Changed
+- **Ruff CI config:** `fix = true` was removed from `pyproject.toml`. CI now checks only (read-only). 20 additional style rules are ignored as they have no runtime impact.
+- **Dashboard `daily-summary-tabbed` card:** Added native Dark Mode support using HA CSS variables. Renamed misleading labels ("Longest" -> "Longest day", "Cap" -> "Y-axis max"). Added conditional Hybrid (Boiler) stats and mode indicator for EVLQ/EBLQ installations.
+- **Cycle duration clamping:** Removed the hardcoded 4-hour limit in `coordinator.py` that silently truncated long compressor cycles before database insertion. The integration now relies correctly on the 48-hour detector safety net, ensuring accurate cycle durations, daily summaries, and sensor values.
+
 ### Fixed
 - **Rollup gap after HA restart:** Startup rollup now fills the gap between the last rollup before a restart and the first tick after it. Previously, up to 6 hours of `cop_hourly` data could be missing after a HA restart, leaving `cop_dhw_day` and `cop_heating_day` sensors showing stale data.
 - **6-hour delay in per-cycle COP visibility:** Post-cycle rollup with `window_hours=48` runs immediately after every completed cycle. Previously, DHW or heating data from the just-finished cycle would not appear in `cop_dhw_day` or `cop_heating_day` until the next 6-hour tick.
 - **Zero-variance baseline outlier detection:** When all training samples are identical (std=0), any deviating sample was silently accepted as non-outlier because z-scores returned 0. Now detected via direct mean-deviation check, so an outlier against a zero-variance baseline is properly skipped.
 - **`strings.json` missing error keys:** Added `config.error.source_offline` and `config.error.source_empty`. These existed in `translations/en.json` and `translations/nl.json` but were missing from `strings.json` (the HA-runtime source), causing users to see a generic error message instead of the specific ESPAltherma source guidance when the source was offline or empty.
-
-### Changed
-- **Ruff CI config:** `fix = true` was removed from `pyproject.toml`. Previous behavior: `ruff check .` silently auto-fixed 205+ lines per run, creating uncommitted churn on every CI invocation. CI now checks only (read-only). 20 additional style rules (B905, B007, SIM108, SIM102, SIM105, SIM115, SIM118, UP031, RUF002, RUF003, RUF006, RUF015, RUF046, RUF059, RET504, PIE810, C408) are ignored as they have no runtime impact and would otherwise require a 2000+ line mechanical refactor.
-
-### Added
-- **Comprehensive test coverage** for rollup orchestration, sensor-chain E2E, concurrency, marketplace compliance, migrations idempotency, multi-instance isolation, and dashboard card integrity. 10 new test files, ~1500 lines, `pytest` total: 3974 passed, 100% coverage.
-
-- **ML Clustering Labels:** Updated KMeans cluster labels from `pendulum`/`dhw_like`/`normal` to `pendulum`/`normal`/`long_cycle`. The previous `dhw_like` label incorrectly classified long heating cycles (e.g., 16h runs during cold weather) as DHW because it relied on a fixed `dT_max` threshold. Since DHW vs. heating is already accurately determined by the `mode` column, the clustering algorithm now groups cycles purely by relative duration to avoid false positives and support all DHW setpoints (45°C - 60°C). Users with automations depending on `cluster == "dhw_like"` should update them to `long_cycle` in a future release.
-
-
-### Fixed
-- **Cycle duration clamping:** Removed the hardcoded 4-hour limit in `coordinator.py` that silently truncated long compressor cycles before database insertion. The integration now relies correctly on the 48-hour detector safety net, ensuring accurate cycle durations, daily summaries, and sensor values.
-
-### Changed
-- **Dashboard `daily-summary-tabbed` card:** Added native Dark Mode support using HA CSS variables. Renamed misleading labels ("Longest" -> "Longest day", "Cap" -> "Y-axis max"). Added conditional Hybrid (Boiler) stats and mode indicator for EVLQ/EBLQ installations.
-
 
 ## [1.15.2] - 2026-10-30
 
