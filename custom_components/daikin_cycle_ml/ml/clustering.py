@@ -229,12 +229,18 @@ def nearest_centroid(vector: list[float], centroids: list[list[float]]) -> int |
 
 
 def classify_clusters(centroids: list[list[float]]) -> dict[int, str]:
-    """Assign semantic labels to cluster indices based on centroid properties.
+    """Assign semantic labels to cluster indices based on mean duration.
 
-    Heuristic:
-      - Shortest mean duration (dim 0)          -> "pendulum"
-      - Highest dT_max (dim 1) among remaining  -> "dhw_like"
-      - Everything else                         -> "normal"
+    Rationale: DHW vs heating is already distinguished by the `mode` field
+    in the database and by MultiBaseline. KMeans is only used to find
+    useful sub-patterns within a single mode, primarily duration-based:
+      - Shortest mean duration  -> "pendulum"
+      - Longest mean duration   -> "long_cycle"
+      - Everything else         -> "normal"
+
+    This is robust against varying DHW setpoints (45, 50, 55, 60°C) and
+    against individual outliers, because it relies only on relative
+    duration ordering, not on absolute temperature thresholds.
 
     Deterministic for a given centroid set.
     """
@@ -242,20 +248,19 @@ def classify_clusters(centroids: list[list[float]]) -> dict[int, str]:
         return {}
     if len(centroids) == 1:
         return {0: "normal"}
+    if len(centroids) == 2:
+        # Two clusters: shortest vs longest
+        indexed = sorted(range(len(centroids)), key=lambda i: float(centroids[i][0]))
+        return {indexed[0]: "pendulum", indexed[1]: "long_cycle"}
 
     # sorted by duration ascending
     indexed = sorted(range(len(centroids)), key=lambda i: float(centroids[i][0]))
 
     labels: dict[int, str] = {}
-    labels[indexed[0]] = "pendulum"
+    labels[indexed[0]] = "pendulum"       # kortste
+    labels[indexed[-1]] = "long_cycle"    # langste
 
-    remaining = indexed[1:]
-    # highest dT_max among remaining
-    dhw_idx = max(remaining, key=lambda i: float(centroids[i][1]))
-    labels[dhw_idx] = "dhw_like"
-
-    for i in remaining:
-        if i not in labels:
-            labels[i] = "normal"
+    for i in indexed[1:-1]:
+        labels[i] = "normal"
 
     return labels

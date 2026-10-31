@@ -14,6 +14,10 @@
 
 ## [Unreleased]
 
+### Changed
+- **ML Clustering Labels:** Updated KMeans cluster labels from `pendulum`/`dhw_like`/`normal` to `pendulum`/`normal`/`long_cycle`. The previous `dhw_like` label incorrectly classified long heating cycles (e.g., 16h runs during cold weather) as DHW because it relied on a fixed `dT_max` threshold. Since DHW vs. heating is already accurately determined by the `mode` column, the clustering algorithm now groups cycles purely by relative duration to avoid false positives and support all DHW setpoints (45°C - 60°C). Users with automations depending on `cluster == "dhw_like"` should update them to `long_cycle` in a future release.
+
+
 ### Fixed
 - **Cycle duration clamping:** Removed the hardcoded 4-hour limit in `coordinator.py` that silently truncated long compressor cycles before database insertion. The integration now relies correctly on the 48-hour detector safety net, ensuring accurate cycle durations, daily summaries, and sensor values.
 

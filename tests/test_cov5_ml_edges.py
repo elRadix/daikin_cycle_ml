@@ -112,14 +112,17 @@ def test_classify_clusters_single():
 
 
 def test_classify_clusters_three_covers_normal_fill():
-    # 3 centroids: one pendulum (smallest dim0), one dhw_like
-    # (largest dim1 among remaining), one normal (line 236)
-    centroids = [[1.0, 5.0], [10.0, 20.0], [5.0, 3.0]]
+    """Test the 3-cluster logic: pendulum, normal, long_cycle."""
+    # 3 clusters with clear duration differences
+    centroids = [
+        [100.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],   # Kortste (pendulum)
+        [5000.0, 2.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Middelste (normal)
+        [50000.0, 3.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], # Langste (long_cycle)
+    ]
     labels = classify_clusters(centroids)
     assert labels[0] == "pendulum"
-    assert labels[1] == "dhw_like"
-    assert labels[2] == "normal"
-
+    assert labels[1] == "normal"
+    assert labels[2] == "long_cycle"
 
 def test_labels_to_dict_roundtrip():
     r = kmeans([[0.0, 0.0], [10.0, 0.0]], k=2, seed=1)
