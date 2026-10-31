@@ -1,0 +1,62 @@
+{
+  "entity": {
+    "sensor": {
+      "cop_today": {
+        "default": "mdi:heat-pump"
+      },
+      "cop_mean_day": {
+        "default": "mdi:calendar-today"
+      },
+      "cop_mean_week": {
+        "default": "mdi:calendar-week"
+      },
+      "cop_mean_month": {
+        "default": "mdi:calendar-month"
+      },
+      "cycles_today": {
+        "default": "mdi:counter"
+      },
+      "compressor_starts_today": {
+        "default": "mdi:restart"
+      },
+      "defrost_count_today": {
+        "default": "mdi:snowflake-melt"
+      },
+      "runtime_buh_today": {
+        "default": "mdi:fire-alert"
+      },
+      "source_health": {
+        "default": "mdi:heart-pulse"
+      },
+      "quality_today": {
+        "default": "mdi:star-outline"
+      },
+      "last_cycle": {
+        "default": "mdi:star-outline"
+      },
+      "current_cycle": {
+        "default": "mdi:hvac"
+      },
+      "cycle_state": {
+        "default": "mdi:state-machine"
+      },
+      "hp_specs": {
+        "default": "mdi:heat-pump-outline"
+      }
+    },
+    "binary_sensor": {
+      "compressor_running": {
+        "default": "mdi:engine"
+      },
+      "defrost_active": {
+        "default": "mdi:snowflake-melt"
+      },
+      "short_run": {
+        "default": "mdi:alert-circle"
+      },
+      "source_stale": {
+        "default": "mdi:alert"
+      }
+    }
+  }
+}
