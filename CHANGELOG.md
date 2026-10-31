@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.16.0] - 2026-10-31
+
+### Added
+- **Dashboard:** Native Dark Mode support, updated labels, and conditional Hybrid (Boiler) statistics for EVLQ/EBLQ installations.
+
+### Fixed
+- **Cycle duration:** Removed the 4-hour limit in `coordinator.py` that silently truncated long compressor cycles. The integration now relies on the 48-hour detector safety net, ensuring accurate cycle durations, daily summaries, and sensor values.
+
+### Changed
+- **HA 2026+ Compliance:** Removed `try/except` blocks in `async_setup_entry` so errors bubble up correctly. `async_unload_entry` now raises `HomeAssistantError` instead of returning `False`.
+- **Marketplace Ready:** Added `quality_scale.yaml` (Gold tier), `icons.json`, `issue_tracker`, and `codeowners`.
+
 ## [Unreleased]
 
 ### Fixed
