@@ -1,6 +1,10 @@
 {
   "domain": "daikin_cycle_ml",
   "name": "Daikin Cycle ML",
+  "categories": [
+    "climate",
+    "energy"
+  ],
   "codeowners": [
     "@elRadix"
   ],
@@ -17,10 +21,5 @@
   ],
   "quality_scale": "gold",
   "requirements": [],
-  "version": "1.16.0",
-  "categories": [
-    "climate",
-    "energy",
-    "sensor"
-  ]
+  "version": "1.16.0"
 }
