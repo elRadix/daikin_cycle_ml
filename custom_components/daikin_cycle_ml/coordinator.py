@@ -780,6 +780,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 await self._load_kmeans_state()
             except Exception:
                 _LOGGER.warning("cluster state setup failed", exc_info=True)
+            try:
+                await self._maybe_rollup_cop_hourly()
+                _LOGGER.debug("Startup cop_hourly rollup complete")
+            except Exception:
+                _LOGGER.exception("Startup cop_hourly rollup failed")
         if self._baseline_save_unsub is None:
             self._baseline_save_unsub = async_track_time_interval(
                 self.hass,
@@ -2194,6 +2199,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         # `if self.db is None: return` behaviour before rollup).
         if self.db is not None:  # pragma: no branch
             await self._maybe_rollup_day(record)
+            try:
+                await self._maybe_rollup_cop_hourly(window_hours=48)
+            except Exception:
+                _LOGGER.exception("Post-cycle cop_hourly rollup failed")
 
     async def _maybe_rollup_day(
         self, record: dict[str, Any]

@@ -1,732 +1,375 @@
 {
   "config": {
+    "abort": {
+      "already_configured": "Already configured",
+      "reconfigure_hybrid_change": "Reconfiguration successful. Note: this changed the model between hybrid (EVLQ) and non-hybrid. Existing cycle history is preserved unchanged. New cycles will use the updated boiler-cycle detection.",
+      "reconfigure_successful": "Reconfiguration successful"
+    },
+    "error": {
+      "attribute_not_found": "One or more mapped attribute names were not found on the source sensor.",
+      "entity_not_found": "Sensor not found",
+      "invalid_json": "Invalid JSON",
+      "missing_attributes": "Sensor is missing one or more required ESPAltherma attributes. See the description for the exact list, or switch Attribute mode to Manual.",
+      "required_attrs_unmapped": "One or more required attributes have no mapping and no canonical match on the sensor.",
+      "source_empty": "ESPAltherma sensor has no data yet. Wait for the next update and try again.",
+      "source_offline": "ESPAltherma sensor is currently unavailable. Wait 30-60s for it to come back online and try again."
+    },
     "step": {
-      "model_custom": {
-        "title": "Custom attribute mapping",
-        "description": "Optional JSON mapping from standard keys to your attribute names. Provide a JSON object; see the README for an example. Leave empty to use defaults.",
-        "data": {
-          "custom_attribute_map": "Custom attribute map (JSON)"
-        },
-        "data_description": {
-          "custom_attribute_map": "JSON object mapping standard keys to attribute names. See the documentation for the exact format."
-        }
-      },
-      "model_custom_info": {
-        "title": "Custom heat pump",
-        "description": "Your heat pump is not one of the bundled Daikin models.\n\nA custom selection inherits the **Basic profile** defaults (safe fallback). You can tune detection thresholds, comfort bounds, and COP analysis later in the integration Options menu.\n\nThe next page maps your ESPAltherma attribute names to the integration's canonical keys.",
-        "data": {
-          "custom_datasheet_json": "Heat pump spec (JSON, optional)"
-        },
-        "data_description": {
-          "custom_datasheet_json": "Optional spec for your heat pump. Leave empty to use the Basic profile defaults.\n\n**Minimum required fields:** `family` (str), `kw` (float), `lwt_min` (float), `lwt_max` (float), `nom_cop` (float).\n\n**Optional fields:** `bivalent` (bool), `buh_kw` (float), `refrigerant` (R32 / R290 / R410A), `min_modulation_kw` (float), `max_flow_lmin` (float), `noise_db` (float).\n\n**Optional COP curve points:** list of objects with keys `label`, `t_out`, `t_lwc`, `cop`.\n\n**Minimal example:**\n\n    {spec_example_min}\n\n**Example with COP curve:**\n\n    {spec_example_full}"
-        }
-      },
-      "attributes": {
-        "title": "Attribute check",
-        "description": "Core attributes on the source sensor: **{present} / {total}** present.\n\n**Present:**\n{present_list}\n\n**Missing:**\n{missing_list}\n\n{hybrid_hint}"
-      },
-      "cycle": {
-        "title": "Cycle detection",
-        "description": "Thresholds that decide when the compressor counts as ON.\n\n- **Compressor RPS threshold** (default 3): ON when RPS ≥ this. Increase to ignore brief spikes.\n- **Power sensor** (optional): used as fallback when RPS is unavailable.\n- **Fallback power threshold** (default 200 W): lower = more sensitive.",
-        "data": {
-          "compressor_rps_threshold": "Compressor RPS threshold",
-          "power_sensor_entity": "Power sensor (optional fallback)",
-          "fallback_power_threshold_w": "Fallback power threshold",
-          "indoor_temp_sensor": "Indoor temperature sensor"
-        },
-        "data_description": {
-          "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3. Increase to ignore brief spikes.",
-          "power_sensor_entity": "Optional. Used as fallback when RPS is unavailable or zero. Leave empty to disable.",
-          "fallback_power_threshold_w": "Power threshold (W) for the fallback sensor. Default 200. Lower = more sensitive.",
-          "indoor_temp_sensor": "Optional sensor for indoor temperature (used for ML feature indoor_temp_avg)."
-        }
-      },
-      "pendulum": {
-        "title": "Pendulum thresholds",
-        "data": {
-          "short_run_threshold_min": "Short run threshold",
-          "short_off_threshold_min": "Short off threshold",
-          "pendulum_cycles_per_day": "Pendulum cycles per day",
-          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour"
-        },
-        "description": "Values below mark a cycle as 'short' (pendelen). Lower = stricter, more alerts.\n\n- **Short run** (default 20 min): cycles shorter than this are flagged.\n- **Short off** (default 5 min): off-times shorter than this are flagged.\n- **Pendulum cycles/day** (default 35-40): daily count that triggers an alert.\n- **DHW cycles/hour** (default 3): DHW-specific pendulum trigger.",
-        "data_description": {
-          "short_run_threshold_min": "Cycles shorter than this are 'short runs'. Default 20 min. Lower = stricter.",
-          "short_off_threshold_min": "Off-times shorter than this are 'short offs'. Default 5 min. Lower = stricter.",
-          "pendulum_cycles_per_day": "Daily cycle count that triggers a pendulum alert. Default 35-40. Lower = more alerts.",
-          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour that trigger a DHW pendulum alert. Default 3."
-        }
-      },
-      "quality": {
-        "title": "Quality thresholds",
-        "data": {
-          "good_run_threshold_min": "Good run threshold",
-          "good_dt_threshold_k": "Good dT threshold",
-          "good_off_threshold_min": "Good off threshold",
-          "target_cycles_per_day": "Target cycles per day"
-        },
-        "description": "Thresholds used to score a cycle 0-100. Meeting a threshold avoids a penalty.\n\n- **Good run** (default 45 min): runtime ≥ this scores full marks. Below: −30 points.\n- **Good dT** (default 5.0 K): minimum dT for full marks. Below: −20 points.\n- **Good off** (default 20 min): minimum off-time for full marks. Below: −20 points.\n- **Target cycles/day** (default 8): efficiency target, used in ratio-based advice.",
-        "data_description": {
-          "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min. Below = -30 points.",
-          "good_dt_threshold_k": "Minimum dT (K) for full marks. Default 5.0 K. Below = -20 points.",
-          "good_off_threshold_min": "Minimum off-time for full marks. Default 20 min. Below = -20 points.",
-          "target_cycles_per_day": "Target cycles per day for efficient operation. Default 8. Used for ratio-based advice."
-        }
-      },
-      "notifications": {
-        "title": "Notifications",
-        "data": {
-          "persistent_enabled": "Persistent notifications",
-          "status_update_enabled": "Periodic status updates",
-          "status_update_interval_hours": "Status interval (hours)",
-          "notify_emoji_enabled": "Emoji in notifications",
-          "notify_service": "Notify target",
-          "quiet_hours_enabled": "Quiet hours",
-          "quiet_hours_start": "Quiet hours start",
-          "quiet_hours_end": "Quiet hours end"
-        },
-        "description": "How and when alerts are delivered.\n\n- **Persistent notifications**: sidebar alerts.\n- **Notify service** (optional): e.g. `notify.telegram_rachid`.\n- **Quiet hours**: suppress non-critical alerts during the window (default 22:00–07:00).",
-        "data_description": {
-          "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
-          "notify_service": "Pick a notify entity (recommended) or a legacy notify service. Leave empty to disable push notifications.",
-          "quiet_hours_enabled": "Suppress non-critical alerts during the quiet window.",
-          "quiet_hours_start": "Start of quiet hours, HH:MM (24h). Default 22:00.",
-          "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00.",
-          "status_update_enabled": "Enable periodic status-update notifications (multi-line summary).",
-          "status_update_interval_hours": "Hours between status updates (1-168).",
-          "notify_emoji_enabled": "Prefix notifications with a status/severity emoji."
-        }
-      },
-      "finalize": {
-        "title": "Confirm",
-        "description": "Model: {model}. Source: {source}. Submit to create the entry."
-      },
-      "reconfigure": {
-        "title": "Reconfigure Daikin Cycle ML",
-        "description": "Choose how much to change.\n\n- **Quick**: only source and model.\n- **Full wizard**: all settings with current values prefilled.",
-        "menu_options": {
-          "reconfigure_basic": "Source sensor and model only (quick)",
-          "reconfigure_full": "Full wizard (all settings)"
-        }
-      },
-      "reconfigure_basic": {
-        "title": "Source sensor and model",
-        "description": "Change the source sensor or heat-pump model. Other settings stay untouched.",
-        "data": {
-          "source_sensor": "Source sensor",
-          "model": "Heat-pump model"
-        },
-        "data_description": {
-          "source_sensor": "ESPAltherma sensor that exposes the 13 required heat-pump attributes. Typical: sensor.althermasensors.",
-          "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map."
-        }
-      },
-      "reconfigure_full": {
-        "title": "Full wizard",
-        "description": "Rerun the full wizard. All current values are prefilled as defaults."
-      },
-      "map_attributes": {
-        "title": "Map required attributes",
-        "description": "Map each canonical attribute to the matching attribute name on your sensor. Leave a field empty if the canonical name already exists on your sensor.\n\nSensor exposes **{available_count}** attributes.\n\nSample of available keys:\n{available_list}\n\nUnmatched: {bad_list}",
-        "data": {
-          "INV frequency (rps)": "INV frequency (rps)",
-          "Operation Mode": "Operation Mode",
-          "I/U operation mode": "I/U operation mode",
-          "3way valve(On:DHW_Off:Space)": "3way valve(On:DHW_Off:Space)",
-          "Defrost Operation": "Defrost Operation",
-          "Leaving water temp. after BUH (R2T)": "Leaving water temp. after BUH (R2T)",
-          "Inlet water temp.(R4T)": "Inlet water temp.(R4T)",
-          "Outdoor air temp.(R1T)": "Outdoor air temp.(R1T)",
-          "Flow sensor (l/min)": "Flow sensor (l/min)",
-          "Water pump operation": "Water pump operation",
-          "BUH Step1": "BUH Step1",
-          "BUH Step2": "BUH Step2",
-          "LW setpoint (main)": "LW setpoint (main)",
-          "Boiler Operation Demand": "Boiler Operation Demand",
-          "Boiler DHW Demand": "Boiler DHW Demand",
-          "Hybrid Op. Mode": "Hybrid Op. Mode"
-        },
-        "data_description": {
-          "INV frequency (rps)": "Your sensor's attribute name for the canonical 'INV frequency (rps)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Operation Mode": "Your sensor's attribute name for the canonical 'Operation Mode' field. Leave empty if the canonical name already exists on the sensor.",
-          "I/U operation mode": "Your sensor's attribute name for the canonical 'I/U operation mode' field. Leave empty if the canonical name already exists on the sensor.",
-          "3way valve(On:DHW_Off:Space)": "Your sensor's attribute name for the canonical '3way valve(On:DHW_Off:Space)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Defrost Operation": "Your sensor's attribute name for the canonical 'Defrost Operation' field. Leave empty if the canonical name already exists on the sensor.",
-          "Leaving water temp. after BUH (R2T)": "Your sensor's attribute name for the canonical 'Leaving water temp. after BUH (R2T)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Inlet water temp.(R4T)": "Your sensor's attribute name for the canonical 'Inlet water temp.(R4T)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Outdoor air temp.(R1T)": "Your sensor's attribute name for the canonical 'Outdoor air temp.(R1T)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Flow sensor (l/min)": "Your sensor's attribute name for the canonical 'Flow sensor (l/min)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Water pump operation": "Your sensor's attribute name for the canonical 'Water pump operation' field. Leave empty if the canonical name already exists on the sensor.",
-          "BUH Step1": "Your sensor's attribute name for the canonical 'BUH Step1' field. Leave empty if the canonical name already exists on the sensor.",
-          "BUH Step2": "Your sensor's attribute name for the canonical 'BUH Step2' field. Leave empty if the canonical name already exists on the sensor.",
-          "LW setpoint (main)": "Your sensor's attribute name for the canonical 'LW setpoint (main)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Boiler Operation Demand": "Sensor attribute name for 'Boiler Operation Demand' (hybrid only — leave empty if not present).",
-          "Boiler DHW Demand": "Sensor attribute name for 'Boiler DHW Demand' (hybrid only — leave empty if not present).",
-          "Hybrid Op. Mode": "Sensor attribute name for 'Hybrid Op. Mode' (hybrid only — leave empty if not present)."
-        }
-      },
-      "diagnose": {
-        "title": "Smart auto-import diagnostic",
-        "description": "Automatic attribute detection report (issue #51).\n\n**Matches:**\n{report_lines}\n\n**Warnings:**\n{warnings}\n\n**Missing canonicals:** {missing_count}\n\nReview before continuing. Unresolved attributes can be mapped manually in the following step."
-      },
       "attribute_mapping": {
-        "title": "Attribute mapping",
-        "description": "Your ESPAltherma setup may use attribute names that differ from the integration's canonical keys. Choose how to map them.\n\n**JSON** - paste a JSON object that maps canonical keys to your ESPAltherma attribute names. Best for advanced users. The next page shows the 13-attribute example.\n\n**Manual** - one text field per attribute. Best if you prefer a form over JSON.",
         "data": {
           "mapping_mode": "Mapping mode"
         },
         "data_description": {
           "mapping_mode": "JSON for advanced (single object), Manual for a per-attribute form."
-        }
+        },
+        "description": "Your ESPAltherma setup may use attribute names that differ from the integration's canonical keys. Choose how to map them.\n\n**JSON** - paste a JSON object that maps canonical keys to your ESPAltherma attribute names. Best for advanced users. The next page shows the 13-attribute example.\n\n**Manual** - one text field per attribute. Best if you prefer a form over JSON.",
+        "title": "Attribute mapping"
       },
       "attribute_mapping_advanced": {
-        "title": "Advanced attribute mapping",
-        "description": "Paste a JSON object that maps canonical keys to your ESPAltherma attribute names. Leave empty to use the profile defaults.",
         "data": {
           "custom_attribute_map": "Custom attribute map (JSON)"
         },
         "data_description": {
           "custom_attribute_map": "JSON object mapping standard keys to attribute names. See the documentation for the exact format."
-        }
+        },
+        "description": "Paste a JSON object that maps canonical keys to your ESPAltherma attribute names. Leave empty to use the profile defaults.",
+        "title": "Advanced attribute mapping"
       },
-      "model": {
-        "title": "Daikin Cycle ML setup",
-        "description": "Choose the ESPAltherma source sensor, your heat-pump model, and how required attributes are mapped.\n\n- **Source sensor**: must expose the 12 required ESPAltherma attributes. Typical: `sensor.althermasensors`.\n- **Model**: determines default thresholds.\n- **Attribute mode**: Automatic uses canonical names. Manual lets you map each attribute yourself.",
+      "attributes": {
+        "description": "Core attributes on the source sensor: **{present} / {total}** present.\n\n**Present:**\n{present_list}\n\n**Missing:**\n{missing_list}\n\n{hybrid_hint}",
+        "title": "Attribute check"
+      },
+      "cycle": {
         "data": {
-          "source_sensor": "Source sensor",
-          "model": "Heat-pump model",
-          "attribute_mode": "Attribute mode"
+          "compressor_rps_threshold": "Compressor RPS threshold",
+          "fallback_power_threshold_w": "Fallback power threshold",
+          "indoor_temp_sensor": "Indoor temperature sensor",
+          "power_sensor_entity": "Power sensor (optional fallback)"
         },
         "data_description": {
-          "source_sensor": "ESPAltherma sensor that exposes the 12 required heat-pump attributes. Typical: sensor.althermasensors.",
+          "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3. Increase to ignore brief spikes.",
+          "fallback_power_threshold_w": "Power threshold (W) for the fallback sensor. Default 200. Lower = more sensitive.",
+          "indoor_temp_sensor": "Optional sensor for indoor temperature (used for ML feature indoor_temp_avg).",
+          "power_sensor_entity": "Optional. Used as fallback when RPS is unavailable or zero. Leave empty to disable."
+        },
+        "description": "Thresholds that decide when the compressor counts as ON.\n\n- **Compressor RPS threshold** (default 3): ON when RPS \u2265 this. Increase to ignore brief spikes.\n- **Power sensor** (optional): used as fallback when RPS is unavailable.\n- **Fallback power threshold** (default 200 W): lower = more sensitive.",
+        "title": "Cycle detection"
+      },
+      "diagnose": {
+        "description": "Automatic attribute detection report (issue #51).\n\n**Matches:**\n{report_lines}\n\n**Warnings:**\n{warnings}\n\n**Missing canonicals:** {missing_count}\n\nReview before continuing. Unresolved attributes can be mapped manually in the following step.",
+        "title": "Smart auto-import diagnostic"
+      },
+      "finalize": {
+        "description": "Model: {model}. Source: {source}. Submit to create the entry.",
+        "title": "Confirm"
+      },
+      "map_attributes": {
+        "data": {
+          "3way valve(On:DHW_Off:Space)": "3way valve(On:DHW_Off:Space)",
+          "BUH Step1": "BUH Step1",
+          "BUH Step2": "BUH Step2",
+          "Boiler DHW Demand": "Boiler DHW Demand",
+          "Boiler Operation Demand": "Boiler Operation Demand",
+          "Defrost Operation": "Defrost Operation",
+          "Flow sensor (l/min)": "Flow sensor (l/min)",
+          "Hybrid Op. Mode": "Hybrid Op. Mode",
+          "I/U operation mode": "I/U operation mode",
+          "INV frequency (rps)": "INV frequency (rps)",
+          "Inlet water temp.(R4T)": "Inlet water temp.(R4T)",
+          "LW setpoint (main)": "LW setpoint (main)",
+          "Leaving water temp. after BUH (R2T)": "Leaving water temp. after BUH (R2T)",
+          "Operation Mode": "Operation Mode",
+          "Outdoor air temp.(R1T)": "Outdoor air temp.(R1T)",
+          "Water pump operation": "Water pump operation"
+        },
+        "data_description": {
+          "3way valve(On:DHW_Off:Space)": "Your sensor's attribute name for the canonical '3way valve(On:DHW_Off:Space)' field. Leave empty if the canonical name already exists on the sensor.",
+          "BUH Step1": "Your sensor's attribute name for the canonical 'BUH Step1' field. Leave empty if the canonical name already exists on the sensor.",
+          "BUH Step2": "Your sensor's attribute name for the canonical 'BUH Step2' field. Leave empty if the canonical name already exists on the sensor.",
+          "Boiler DHW Demand": "Sensor attribute name for 'Boiler DHW Demand' (hybrid only \u2014 leave empty if not present).",
+          "Boiler Operation Demand": "Sensor attribute name for 'Boiler Operation Demand' (hybrid only \u2014 leave empty if not present).",
+          "Defrost Operation": "Your sensor's attribute name for the canonical 'Defrost Operation' field. Leave empty if the canonical name already exists on the sensor.",
+          "Flow sensor (l/min)": "Your sensor's attribute name for the canonical 'Flow sensor (l/min)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Hybrid Op. Mode": "Sensor attribute name for 'Hybrid Op. Mode' (hybrid only \u2014 leave empty if not present).",
+          "I/U operation mode": "Your sensor's attribute name for the canonical 'I/U operation mode' field. Leave empty if the canonical name already exists on the sensor.",
+          "INV frequency (rps)": "Your sensor's attribute name for the canonical 'INV frequency (rps)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Inlet water temp.(R4T)": "Your sensor's attribute name for the canonical 'Inlet water temp.(R4T)' field. Leave empty if the canonical name already exists on the sensor.",
+          "LW setpoint (main)": "Your sensor's attribute name for the canonical 'LW setpoint (main)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Leaving water temp. after BUH (R2T)": "Your sensor's attribute name for the canonical 'Leaving water temp. after BUH (R2T)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Operation Mode": "Your sensor's attribute name for the canonical 'Operation Mode' field. Leave empty if the canonical name already exists on the sensor.",
+          "Outdoor air temp.(R1T)": "Your sensor's attribute name for the canonical 'Outdoor air temp.(R1T)' field. Leave empty if the canonical name already exists on the sensor.",
+          "Water pump operation": "Your sensor's attribute name for the canonical 'Water pump operation' field. Leave empty if the canonical name already exists on the sensor."
+        },
+        "description": "Map each canonical attribute to the matching attribute name on your sensor. Leave a field empty if the canonical name already exists on your sensor.\n\nSensor exposes **{available_count}** attributes.\n\nSample of available keys:\n{available_list}\n\nUnmatched: {bad_list}",
+        "title": "Map required attributes"
+      },
+      "model": {
+        "data": {
+          "attribute_mode": "Attribute mode",
+          "model": "Heat-pump model",
+          "source_sensor": "Source sensor"
+        },
+        "data_description": {
+          "attribute_mode": "Automatic uses the canonical ESPAltherma attribute names. Manual lets you map each required attribute to your own sensor's name.",
           "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map.",
-          "attribute_mode": "Automatic uses the canonical ESPAltherma attribute names. Manual lets you map each required attribute to your own sensor's name."
-        }
+          "source_sensor": "ESPAltherma sensor that exposes the 12 required heat-pump attributes. Typical: sensor.althermasensors."
+        },
+        "description": "Choose the ESPAltherma source sensor, your heat-pump model, and how required attributes are mapped.\n\n- **Source sensor**: must expose the 12 required ESPAltherma attributes. Typical: `sensor.althermasensors`.\n- **Model**: determines default thresholds.\n- **Attribute mode**: Automatic uses canonical names. Manual lets you map each attribute yourself.",
+        "title": "Daikin Cycle ML setup"
+      },
+      "model_custom": {
+        "data": {
+          "custom_attribute_map": "Custom attribute map (JSON)"
+        },
+        "data_description": {
+          "custom_attribute_map": "JSON object mapping standard keys to attribute names. See the documentation for the exact format."
+        },
+        "description": "Optional JSON mapping from standard keys to your attribute names. Provide a JSON object; see the README for an example. Leave empty to use defaults.",
+        "title": "Custom attribute mapping"
+      },
+      "model_custom_info": {
+        "data": {
+          "custom_datasheet_json": "Heat pump spec (JSON, optional)"
+        },
+        "data_description": {
+          "custom_datasheet_json": "Optional spec for your heat pump. Leave empty to use the Basic profile defaults.\n\n**Minimum required fields:** `family` (str), `kw` (float), `lwt_min` (float), `lwt_max` (float), `nom_cop` (float).\n\n**Optional fields:** `bivalent` (bool), `buh_kw` (float), `refrigerant` (R32 / R290 / R410A), `min_modulation_kw` (float), `max_flow_lmin` (float), `noise_db` (float).\n\n**Optional COP curve points:** list of objects with keys `label`, `t_out`, `t_lwc`, `cop`.\n\n**Minimal example:**\n\n    {spec_example_min}\n\n**Example with COP curve:**\n\n    {spec_example_full}"
+        },
+        "description": "Your heat pump is not one of the bundled Daikin models.\n\nA custom selection inherits the **Basic profile** defaults (safe fallback). You can tune detection thresholds, comfort bounds, and COP analysis later in the integration Options menu.\n\nThe next page maps your ESPAltherma attribute names to the integration's canonical keys.",
+        "title": "Custom heat pump"
+      },
+      "notifications": {
+        "data": {
+          "notify_emoji_enabled": "Emoji in notifications",
+          "notify_service": "Notify target",
+          "persistent_enabled": "Persistent notifications",
+          "quiet_hours_enabled": "Quiet hours",
+          "quiet_hours_end": "Quiet hours end",
+          "quiet_hours_start": "Quiet hours start",
+          "status_update_enabled": "Periodic status updates",
+          "status_update_interval_hours": "Status interval (hours)"
+        },
+        "data_description": {
+          "notify_emoji_enabled": "Prefix notifications with a status/severity emoji.",
+          "notify_service": "Pick a notify entity (recommended) or a legacy notify service. Leave empty to disable push notifications.",
+          "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
+          "quiet_hours_enabled": "Suppress non-critical alerts during the quiet window.",
+          "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00.",
+          "quiet_hours_start": "Start of quiet hours, HH:MM (24h). Default 22:00.",
+          "status_update_enabled": "Enable periodic status-update notifications (multi-line summary).",
+          "status_update_interval_hours": "Hours between status updates (1-168)."
+        },
+        "description": "How and when alerts are delivered.\n\n- **Persistent notifications**: sidebar alerts.\n- **Notify service** (optional): e.g. `notify.telegram_rachid`.\n- **Quiet hours**: suppress non-critical alerts during the window (default 22:00\u201307:00).",
+        "title": "Notifications"
+      },
+      "pendulum": {
+        "data": {
+          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour",
+          "pendulum_cycles_per_day": "Pendulum cycles per day",
+          "short_off_threshold_min": "Short off threshold",
+          "short_run_threshold_min": "Short run threshold"
+        },
+        "data_description": {
+          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour that trigger a DHW pendulum alert. Default 3.",
+          "pendulum_cycles_per_day": "Daily cycle count that triggers a pendulum alert. Default 35-40. Lower = more alerts.",
+          "short_off_threshold_min": "Off-times shorter than this are 'short offs'. Default 5 min. Lower = stricter.",
+          "short_run_threshold_min": "Cycles shorter than this are 'short runs'. Default 20 min. Lower = stricter."
+        },
+        "description": "Values below mark a cycle as 'short' (pendelen). Lower = stricter, more alerts.\n\n- **Short run** (default 20 min): cycles shorter than this are flagged.\n- **Short off** (default 5 min): off-times shorter than this are flagged.\n- **Pendulum cycles/day** (default 35-40): daily count that triggers an alert.\n- **DHW cycles/hour** (default 3): DHW-specific pendulum trigger.",
+        "title": "Pendulum thresholds"
+      },
+      "quality": {
+        "data": {
+          "good_dt_threshold_k": "Good dT threshold",
+          "good_off_threshold_min": "Good off threshold",
+          "good_run_threshold_min": "Good run threshold",
+          "target_cycles_per_day": "Target cycles per day"
+        },
+        "data_description": {
+          "good_dt_threshold_k": "Minimum dT (K) for full marks. Default 5.0 K. Below = -20 points.",
+          "good_off_threshold_min": "Minimum off-time for full marks. Default 20 min. Below = -20 points.",
+          "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min. Below = -30 points.",
+          "target_cycles_per_day": "Target cycles per day for efficient operation. Default 8. Used for ratio-based advice."
+        },
+        "description": "Thresholds used to score a cycle 0-100. Meeting a threshold avoids a penalty.\n\n- **Good run** (default 45 min): runtime \u2265 this scores full marks. Below: \u221230 points.\n- **Good dT** (default 5.0 K): minimum dT for full marks. Below: \u221220 points.\n- **Good off** (default 20 min): minimum off-time for full marks. Below: \u221220 points.\n- **Target cycles/day** (default 8): efficiency target, used in ratio-based advice.",
+        "title": "Quality thresholds"
+      },
+      "reconfigure": {
+        "description": "Choose how much to change.\n\n- **Quick**: only source and model.\n- **Full wizard**: all settings with current values prefilled.",
+        "menu_options": {
+          "reconfigure_basic": "Source sensor and model only (quick)",
+          "reconfigure_full": "Full wizard (all settings)"
+        },
+        "title": "Reconfigure Daikin Cycle ML"
+      },
+      "reconfigure_basic": {
+        "data": {
+          "model": "Heat-pump model",
+          "source_sensor": "Source sensor"
+        },
+        "data_description": {
+          "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map.",
+          "source_sensor": "ESPAltherma sensor that exposes the 13 required heat-pump attributes. Typical: sensor.althermasensors."
+        },
+        "description": "Change the source sensor or heat-pump model. Other settings stay untouched.",
+        "title": "Source sensor and model"
+      },
+      "reconfigure_full": {
+        "description": "Rerun the full wizard. All current values are prefilled as defaults.",
+        "title": "Full wizard"
       },
       "user": {
-        "title": "Daikin Cycle ML - select model family",
-        "description": "Select the model family of your Daikin Altherma unit. The family is the prefix of the outdoor unit model code (e.g. ERGA, EPRA, EKHBRD). You will pick the exact model on the next screen.\n\n- **Basic profile**: safe defaults when the exact model is unknown.\n- **Custom**: supply your own attribute map.",
         "data": {
           "family": "Model family"
         },
         "data_description": {
           "family": "Prefix of the outdoor unit model code. Example: ERGA, EPRA, EKHBRD."
-        }
-      }
-    },
-    "error": {
-      "entity_not_found": "Sensor not found",
-      "missing_attributes": "Sensor is missing one or more required ESPAltherma attributes. See the description for the exact list, or switch Attribute mode to Manual.",
-      "invalid_json": "Invalid JSON",
-      "attribute_not_found": "One or more mapped attribute names were not found on the source sensor.",
-      "required_attrs_unmapped": "One or more required attributes have no mapping and no canonical match on the sensor."
-    },
-    "abort": {
-      "already_configured": "Already configured",
-      "reconfigure_successful": "Reconfiguration successful",
-      "reconfigure_hybrid_change": "Reconfiguration successful. Note: this changed the model between hybrid (EVLQ) and non-hybrid. Existing cycle history is preserved unchanged. New cycles will use the updated boiler-cycle detection."
-    }
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Daikin Cycle ML options",
-        "description": "Choose a section to edit.",
-        "menu_options": {
-          "device": "Device",
-          "pendulum": "Pendulum",
-          "quality_ml": "Quality & ML",
-          "notifications": "Notifications",
-          "advanced": "Advanced",
-          "cop_calc": "COP calculation",
-          "test_notification": "Send test notification now",
-          "test_all_notifications": "Send ALL test notifications"
         },
-        "menu_option_descriptions": {
-          "device": "Sensors and cycle-detection thresholds",
-          "pendulum": "Pendulum and setpoint-oscillation detection",
-          "quality_ml": "Quality scoring thresholds",
-          "notifications": "Notify target, quiet hours, alert groups, language",
-          "advanced": "Retention, daily rollup, VACUUM",
-          "cop_calc": "Supply phases and backup-heater power for COP",
-          "test_notification": "Send one sample alert to the notify target",
-          "test_all_notifications": "One click — sends one of each alert type (filters bypassed)"
-        }
-      },
-      "device": {
-        "title": "Device",
-        "description": "Sensors and detection thresholds.\n\nSource sensor: {source_sensor}\nModel: {model}\n\nTo change source or model, use Reconfigure.",
-        "sections": {
-          "sensors": {
-            "name": "Sensors",
-            "data": {
-              "power_sensor_entity": "Power sensor (fallback)",
-              "cop_sensor_entity": "COP sensor",
-              "indoor_temp_sensor": "Indoor temperature sensor"
-            },
-            "data_description": {
-              "power_sensor_entity": "Optional. Used as fallback when RPS is unavailable.",
-              "cop_sensor_entity": "Global COP sensor, e.g. sensor.altherma_global_cop. Used for cop_samples.",
-              "indoor_temp_sensor": "Optional. Used for the indoor_temp_avg feature (dim #10)."
-            }
-          },
-          "detection": {
-            "name": "Detection",
-            "data": {
-              "compressor_rps_threshold": "Compressor RPS threshold",
-              "fallback_power_threshold_w": "Fallback power threshold"
-            },
-            "data_description": {
-              "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3.",
-              "fallback_power_threshold_w": "Power threshold (W) for the fallback sensor. Default 200."
-            }
-          },
-          "comfort": {
-            "name": "Comfort",
-            "data": {
-              "comfort_min_c": "Minimum indoor temperature (°C)",
-              "comfort_max_c": "Maximum indoor temperature (°C)"
-            },
-            "data_description": {
-              "comfort_min_c": "Lower LWT will not be advised below this indoor temperature. Default 20 °C.",
-              "comfort_max_c": "Higher LWT will not be advised above this indoor temperature. Default 24 °C."
-            }
-          }
-        }
-      },
-      "pendulum": {
-        "title": "Pendulum",
-        "description": "What counts as a bad cycle.",
-        "sections": {
-          "run_off": {
-            "name": "Run/off thresholds",
-            "data": {
-              "short_run_threshold_min": "Short run threshold",
-              "short_off_threshold_min": "Short off threshold"
-            },
-            "data_description": {
-              "short_run_threshold_min": "Cycles shorter than this are flagged. Default 20 min.",
-              "short_off_threshold_min": "Off-times shorter than this are flagged. Default 5 min."
-            }
-          },
-          "pendulum": {
-            "name": "Pendulum detection",
-            "data": {
-              "pendulum_cycles_per_hour": "Cycles per hour",
-              "pendulum_cycles_per_day": "Cycles per day",
-              "dhw_pendulum_cycles_per_hour": "DHW pendulum cycles per hour"
-            },
-            "data_description": {
-              "pendulum_cycles_per_hour": "Hourly cycle count triggering a pendulum alert. Default 4.",
-              "pendulum_cycles_per_day": "Daily cycle count triggering a pendulum alert. Default 40.",
-              "dhw_pendulum_cycles_per_hour": "DHW cycles per hour triggering a pendulum alert. Default 3."
-            }
-          },
-          "setpoint": {
-            "name": "Setpoint oscillation",
-            "data": {
-              "setpoint_oscillation_threshold": "Setpoint oscillation threshold",
-              "setpoint_osc_window_min": "Setpoint window (min)",
-              "setpoint_osc_min_delta": "Minimum setpoint change (°C)"
-            },
-            "data_description": {
-              "setpoint_oscillation_threshold": "Number of setpoint changes in the window before an alert fires. Default 6 — filters normal thermostat tuning, warns on real oscillation.",
-              "setpoint_osc_window_min": "Rolling window in minutes. Default 30.",
-              "setpoint_osc_min_delta": "Minimum °C change to count as a setpoint change. Default 0.5 — filters floating-point noise."
-            }
-          }
-        }
-      },
-      "quality_ml": {
-        "title": "Quality & ML",
-        "description": "Cycle quality scoring (0-100).",
-        "sections": {
-          "quality": {
-            "name": "Quality score",
-            "data": {
-              "good_run_threshold_min": "Good run threshold",
-              "good_dt_threshold_k": "Good dT threshold",
-              "good_off_threshold_min": "Good off threshold",
-              "target_cycles_per_day": "Target cycles per day"
-            },
-            "data_description": {
-              "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min.",
-              "good_dt_threshold_k": "Minimum dT (K) for full marks. Default 5.0 K.",
-              "good_off_threshold_min": "Minimum off-time for full marks. Default 20 min.",
-              "target_cycles_per_day": "Efficiency target used in ratio-based advice. Default 8."
-            }
-          },
-          "adaptive": {
-            "name": "Adaptive learning",
-            "data": {
-              "adaptive_thresholds_enabled": "Adaptive thresholds",
-              "adaptive_min_samples": "Minimum samples"
-            },
-            "data_description": {
-              "adaptive_thresholds_enabled": "Auto-tune thresholds from observed cycles.",
-              "adaptive_min_samples": "Cycles needed before adaptive tuning activates. Default 20."
-            }
-          }
-        }
-      },
-      "notifications": {
-        "title": "Notifications",
-        "description": "How and when alerts are delivered. Choose a subsection.",
-        "menu_options": {
-          "notifications_delivery": "Delivery",
-          "notifications_quiet_hours": "Quiet hours and status",
-          "notifications_content": "Content and language",
-          "notifications_test_menu": "Test notifications",
-          "notifications_enabled": "Per-alert enables"
-        },
-        "menu_option_descriptions": {
-          "notifications_delivery": "Persistent notifications, notify target, emoji, action advice",
-          "notifications_quiet_hours": "Quiet hours window, dedup window, periodic status updates",
-          "notifications_content": "Language and per-alert-group toggles",
-          "notifications_test_menu": "Send one or all sample alerts",
-          "notifications_enabled": "Turn individual alerts on or off"
-        }
-      },
-      "advanced": {
-        "title": "Advanced",
-        "description": "Retention and database maintenance.",
-        "sections": {
-          "retention": {
-            "name": "Retention",
-            "data": {
-              "retention_enabled": "Retention enabled",
-              "cycle_retention_days": "Cycle retention (days)",
-              "alert_retention_days": "Alert retention (days)",
-              "vacuum_enabled": "VACUUM after prune",
-              "daily_summary_live_enabled": "Live daily summary"
-            },
-            "data_description": {
-              "retention_enabled": "Run daily maintenance at 03:00 local time.",
-              "cycle_retention_days": "Cycles older than N days are rolled up and pruned. Default 90.",
-              "alert_retention_days": "Alerts older than N days are deleted. Default 30.",
-              "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning.",
-              "daily_summary_live_enabled": "Update daily summary as each cycle closes. Backfill and maintenance always run."
-            }
-          },
-          "season": {
-            "name": "Season",
-            "data": {
-              "season_start_month": "Season start month"
-            },
-            "data_description": {
-              "season_start_month": "First month of the heating season (1-12). Used for SPF calculation. Default: 10."
-            }
-          }
-        }
-      },
-      "test_notification": {
-        "title": "Test notification",
-        "description": "Send **one sample alert** to your configured notify target.\n\n• **Alert type** — which alert to simulate (or *All alerts* to send everything)\n• **Force send** — bypass alert-group toggles, quiet hours and anti-spam window just for this test\n\nThis uses the current options (notify_service + persistent_enabled) and does not change them.",
-        "data": {
-          "alert_kind": "Alert type",
-          "ignore_group_filters": "Force send (bypass filters)"
-        },
-        "data_description": {
-          "alert_kind": "Which alert type to send as a test. Choose 'All alerts' to send every alert type at once.",
-          "ignore_group_filters": "Normally alerts are suppressed if their alert group is disabled, during quiet hours, or within the anti-spam (dedup) window. Enable this to send the test alert anyway."
-        }
-      },
-      "test_notification_result": {
-        "title": "Test result",
-        "description": "Kind: **{kind}**\n\nResult: **{status}**\n\nPreview:\n```\n{preview}\n```\n\nSubmit to return to the options menu."
-      },
-      "test_all_notifications": {
-        "title": "Send all test notifications",
-        "description": "Sends **one of each alert type** to the configured notify target with filters bypassed (alert groups, quiet hours, dedup window).\n\nSubmit to send."
-      },
-      "test_all_notifications_result": {
-        "title": "All-notifications result",
-        "description": "Result: **{status}**\n\nAlerts sent: **{count}**\n\nPreview:\n```\n{preview}\n```\n\nSubmit to return to the menu."
-      },
-      "notifications_delivery": {
-        "title": "Delivery",
-        "description": "How alerts reach you.",
-        "data": {
-          "persistent_enabled": "Persistent notifications",
-          "notify_service": "Notify target",
-          "notify_emoji_enabled": "Emoji in notifications",
-          "action_advice_enabled": "Include action advice"
-        },
-        "data_description": {
-          "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
-          "notify_service": "Notify entity or legacy service. Empty disables push.",
-          "notify_emoji_enabled": "Prefix messages with emoji for quick scanning.",
-          "action_advice_enabled": "Include actionable advice in alert messages."
-        }
-      },
-      "notifications_quiet_hours": {
-        "title": "Quiet hours and status updates",
-        "description": "Suppress non-critical alerts and schedule periodic summaries.",
-        "data": {
-          "quiet_hours_enabled": "Quiet hours",
-          "quiet_hours_start": "Quiet hours start",
-          "quiet_hours_end": "Quiet hours end",
-          "alert_aggregation_minutes": "Alert aggregation (minutes)",
-          "status_update_enabled": "Periodic status updates",
-          "status_update_interval_hours": "Status interval (hours)"
-        },
-        "data_description": {
-          "quiet_hours_enabled": "Suppress non-critical alerts during the quiet window.",
-          "quiet_hours_start": "Start of quiet hours, HH:MM (24h). Default 22:00.",
-          "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00.",
-          "alert_aggregation_minutes": "Suppress duplicate alerts within this window. Default 30.",
-          "status_update_enabled": "Send a periodic summary of cycle activity.",
-          "status_update_interval_hours": "How often the summary is sent (1-168 hours)."
-        }
-      },
-      "notifications_content": {
-        "title": "Alert content and language",
-        "description": "Language and per-group alert toggles.",
-        "data": {
-          "notification_language": "Notification language",
-          "alert_group_pendulum": "Alert: pendulum",
-          "alert_group_short_cycle": "Alert: short cycle",
-          "alert_group_ml": "Alert: ML anomaly",
-          "alert_group_setpoint": "Alert: setpoint oscillation",
-          "alert_group_cop_stooklijn": "Alert: COP / heat curve",
-          "alert_group_component_health": "Alert: component health",
-          "alert_group_data_quality": "Alert: data quality"
-        },
-        "data_description": {
-          "notification_language": "Language for alert messages. Default English.",
-          "alert_group_pendulum": "Hourly/daily pendulum alerts.",
-          "alert_group_short_cycle": "Short-run and short-off alerts.",
-          "alert_group_ml": "ML anomaly alerts (z-score).",
-          "alert_group_setpoint": "LWT setpoint oscillation alerts.",
-          "alert_group_cop_stooklijn": "Daily COP and heat-curve advice alerts.",
-          "alert_group_component_health": "Defrost and backup-heater health alerts.",
-          "alert_group_data_quality": "Source-stale and missing-attributes alerts."
-        }
-      },
-      "notifications_dedup": {
-        "title": "Alert deduplication windows",
-        "description": "Minimum minutes between consecutive alerts of the same type. Applies to evaluate_alerts-routed alerts and the standalone cop_low and stooklijn_advies emitters.",
-        "data": {
-          "alert_agg_pendulum_hourly_min": "Pendulum hourly window",
-          "alert_agg_pendulum_daily_min": "Pendulum daily window",
-          "alert_agg_short_run_min": "Short run window",
-          "alert_agg_short_off_min": "Short off window",
-          "alert_agg_ml_anomaly_min": "ML anomaly window",
-          "alert_agg_setpoint_osc_min": "Setpoint oscillation window",
-          "alert_agg_cop_low_min": "COP low window",
-          "alert_agg_stooklijn_advies_min": "Heating curve advice window",
-          "alert_agg_cop_degradation_min": "COP degradation window",
-          "alert_agg_defrost_excessive_min": "Defrost excessive window",
-          "alert_agg_buh_excessive_min": "Backup heater window",
-          "alert_agg_source_stale_min": "Source stale window",
-          "alert_agg_missing_attributes_min": "Missing attributes window",
-          "alert_agg_dhw_pendulum_min": "DHW pendulum window",
-          "alert_agg_high_cycle_rate_min": "High cycle rate window",
-          "alert_agg_cop_vs_datasheet_low_min": "COP vs datasheet window",
-          "alert_agg_db_retention_warning_min": "Database retention warning dedup window",
-          "alert_agg_kmeans_retrain_stale_min": "K-means retrain stale dedup window",
-          "alert_agg_energy_daily_anomaly_min": "Energy daily anomaly dedup window"
-        },
-        "data_description": {
-          "alert_agg_pendulum_hourly_min": "Default 60 min.",
-          "alert_agg_pendulum_daily_min": "Default 1440 min (24 h).",
-          "alert_agg_short_run_min": "Default 30 min.",
-          "alert_agg_short_off_min": "Default 30 min.",
-          "alert_agg_ml_anomaly_min": "Default 60 min.",
-          "alert_agg_setpoint_osc_min": "Default 30 min.",
-          "alert_agg_cop_low_min": "Default 30 min.",
-          "alert_agg_stooklijn_advies_min": "Default 10080 min (7 days).",
-          "alert_agg_cop_degradation_min": "Default 1440 min (24 h).",
-          "alert_agg_defrost_excessive_min": "Default 1440 min (24 h).",
-          "alert_agg_buh_excessive_min": "Default 1440 min (24 h).",
-          "alert_agg_source_stale_min": "Default 60 min.",
-          "alert_agg_missing_attributes_min": "Default 60 min.",
-          "alert_agg_dhw_pendulum_min": "Default 60 min.",
-          "alert_agg_high_cycle_rate_min": "Default 60 min.",
-          "alert_agg_cop_vs_datasheet_low_min": "Default 1440 min (24 h).",
-          "alert_agg_db_retention_warning_min": "Database retention warning dedup window",
-          "alert_agg_kmeans_retrain_stale_min": "K-means retrain stale dedup window",
-          "alert_agg_energy_daily_anomaly_min": "Energy daily anomaly dedup window"
-        }
-      },
-      "notifications_test_menu": {
-        "title": "Test notifications",
-        "description": "Send a sample alert to your notify target.",
-        "menu_options": {
-          "test_notification": "Send one test alert",
-          "test_all_notifications": "Send all alerts at once"
-        },
-        "menu_option_descriptions": {
-          "test_notification": "Pick an alert type and send one sample",
-          "test_all_notifications": "One click sends one of each alert type"
-        }
-      },
-      "notifications_enabled": {
-        "title": "Per-alert enable",
-        "description": "Enable or disable individual alerts. Disabled alerts still respect group and quiet-hours gating.",
-        "data": {
-          "alert_enabled_cop_degradation": "Enable COP degradation alert",
-          "alert_enabled_defrost_excessive": "Enable defrost excessive alert",
-          "alert_enabled_buh_excessive": "Enable backup-heater excessive alert",
-          "alert_enabled_source_stale": "Enable source-stale alert",
-          "alert_enabled_missing_attributes": "Enable missing-attributes alert",
-          "alert_enabled_dhw_pendulum": "Enable DHW pendulum alert",
-          "alert_enabled_high_cycle_rate": "Enable high cycle rate alert",
-          "alert_enabled_cop_vs_datasheet_low": "Enable COP below datasheet alert",
-          "alert_enabled_db_retention_warning": "Enable database-retention warning",
-          "alert_enabled_kmeans_retrain_stale": "Enable k-means retrain stale alert",
-          "alert_enabled_energy_daily_anomaly": "Enable energy daily anomaly alert"
-        },
-        "data_description": {
-          "alert_enabled_cop_degradation": "Fires when week-over-week COP drops below -15%.",
-          "alert_enabled_defrost_excessive": "Fires when 7d defrost count exceeds the threshold.",
-          "alert_enabled_buh_excessive": "Fires when 7d backup-heater cycle ratio exceeds the threshold.",
-          "alert_enabled_source_stale": "Fires when the source sensor stops updating (critical).",
-          "alert_enabled_missing_attributes": "Fires when required source attributes are absent.",
-          "alert_enabled_dhw_pendulum": "Fires when DHW cycles per hour reach the target.",
-          "alert_enabled_high_cycle_rate": "Fires when cycle rate exceeds 1.5× the hourly target.",
-          "alert_enabled_cop_vs_datasheet_low": "Fires when COP drops more than 10% below the datasheet value.",
-          "alert_enabled_db_retention_warning": "Enable database-retention warning",
-          "alert_enabled_kmeans_retrain_stale": "Enable k-means retrain stale alert",
-          "alert_enabled_energy_daily_anomaly": "Enable energy daily anomaly alert"
-        }
-      },
-      "cop_calc": {
-        "title": "COP calculation",
-        "description": "Configure supply phases and backup-heater power for the electrical-input estimate.",
-        "sections": {
-          "electrical": {
-            "name": "Electrical input",
-            "data": {
-              "supply_phases": "Supply phases",
-              "buh_step1_kw": "Backup heater step 1 (kW)",
-              "buh_step2_kw": "Backup heater step 2 (kW)"
-            },
-            "data_description": {
-              "supply_phases": "Power-supply phases of the heat pump. 1 = single-phase, 3 = three-phase. Default 1.",
-              "buh_step1_kw": "Rated power of backup-heater step 1. Default 3 kW (Daikin standard).",
-              "buh_step2_kw": "Rated power of backup-heater step 2. Default 3 kW (some units use 6 kW)."
-            }
-          }
-        }
+        "description": "Select the model family of your Daikin Altherma unit. The family is the prefix of the outdoor unit model code (e.g. ERGA, EPRA, EKHBRD). You will pick the exact model on the next screen.\n\n- **Basic profile**: safe defaults when the exact model is unknown.\n- **Custom**: supply your own attribute map.",
+        "title": "Daikin Cycle ML - select model family"
       }
     }
   },
   "entity": {
+    "binary_sensor": {
+      "boiler_dhw_demand": {
+        "name": "Boiler DHW demand"
+      },
+      "boiler_operation_demand": {
+        "name": "Boiler operation demand"
+      },
+      "buh_active": {
+        "name": "BUH active"
+      },
+      "compressor_running": {
+        "name": "Compressor running"
+      },
+      "cooling_active": {
+        "name": "Cooling active"
+      },
+      "defrost_active": {
+        "name": "Defrost active"
+      },
+      "dhw_active": {
+        "name": "DHW active"
+      },
+      "dhw_pendulum": {
+        "name": "DHW pendulum"
+      },
+      "heating_active": {
+        "name": "Heating active"
+      },
+      "high_cycle_rate": {
+        "name": "High cycle rate"
+      },
+      "missing_attrs": {
+        "name": "Missing attributes"
+      },
+      "pendulum_daily": {
+        "name": "Pendulum daily"
+      },
+      "pendulum_hourly": {
+        "name": "Pendulum hourly"
+      },
+      "setpoint_oscillating": {
+        "name": "Setpoint oscillating"
+      },
+      "short_off": {
+        "name": "Short off"
+      },
+      "short_run": {
+        "name": "Short run"
+      },
+      "source_stale": {
+        "name": "Source stale"
+      }
+    },
     "sensor": {
-      "cycle_state": {
-        "name": "Cycle state"
+      "boiler_contribution_today_pct": {
+        "name": "Boiler contribution today pct"
       },
-      "current_cycle": {
-        "name": "Current cycle"
+      "boiler_efficiency_cop": {
+        "name": "Boiler efficiency COP"
       },
-      "last_cycle": {
-        "name": "Last cycle"
-      },
-      "cycles_today": {
-        "name": "Cycles today"
-      },
-      "quality_today": {
-        "name": "Quality today"
-      },
-      "source_health": {
-        "name": "Source health"
-      },
-      "learned_thresholds": {
-        "name": "Learned thresholds"
-      },
-      "cop_today": {
-        "name": "COP today"
-      },
-      "heating_curve_advice": {
-        "name": "Heating curve advice"
-      },
-      "cop_mean_day": {
-        "name": "COP mean day"
-      },
-      "cop_mean_week": {
-        "name": "COP mean week"
-      },
-      "cop_mean_month": {
-        "name": "COP mean month"
-      },
-      "cop_curve_recent": {
-        "name": "COP curve recent"
-      },
-      "thermal_power_live": {
-        "name": "Thermal power live"
-      },
-      "cop_heating_day": {
-        "name": "COP heating (day)"
-      },
-      "cop_heating_week": {
-        "name": "COP heating (week)"
-      },
-      "cop_heating_month": {
-        "name": "COP heating (month)"
-      },
-      "cop_dhw_day": {
-        "name": "COP DHW (day)"
-      },
-      "cop_dhw_week": {
-        "name": "COP DHW (week)"
-      },
-      "cop_dhw_month": {
-        "name": "COP DHW (month)"
-      },
-      "cop_cooling_day": {
-        "name": "COP cooling (day)"
-      },
-      "cop_cooling_week": {
-        "name": "COP cooling (week)"
-      },
-      "cop_cooling_month": {
-        "name": "COP cooling (month)"
+      "compressor_starts_today": {
+        "name": "Compressor starts today"
       },
       "cop_combined_today": {
         "name": "COP combined today"
       },
-      "spf_season": {
-        "name": "SPF season"
+      "cop_cooling_day": {
+        "name": "COP cooling (day)"
       },
-      "spf_ytd": {
-        "name": "SPF YTD"
+      "cop_cooling_month": {
+        "name": "COP cooling (month)"
       },
-      "scop_running_365d": {
-        "name": "SCOP running 365d"
+      "cop_cooling_week": {
+        "name": "COP cooling (week)"
       },
-      "hp_specs": {
-        "name": "HP specs"
-      },
-      "cop_normalized_a7w35": {
-        "name": "COP normalized A7W35"
-      },
-      "cop_vs_datasheet_pct": {
-        "name": "COP vs datasheet pct"
+      "cop_curve_recent": {
+        "name": "COP curve recent"
       },
       "cop_degradation_status": {
         "name": "COP degradation status",
         "state": {
-          "none": "Normal",
+          "critical": "Critical",
           "info": "Informational",
-          "warning": "Warning",
-          "critical": "Critical"
+          "none": "Normal",
+          "warning": "Warning"
         }
       },
       "cop_degradation_week_pct": {
         "name": "COP degradation week pct"
       },
+      "cop_dhw_day": {
+        "name": "COP DHW (day)"
+      },
+      "cop_dhw_month": {
+        "name": "COP DHW (month)"
+      },
+      "cop_dhw_week": {
+        "name": "COP DHW (week)"
+      },
+      "cop_heating_day": {
+        "name": "COP heating (day)"
+      },
+      "cop_heating_month": {
+        "name": "COP heating (month)"
+      },
+      "cop_heating_week": {
+        "name": "COP heating (week)"
+      },
+      "cop_mean_day": {
+        "name": "COP mean day"
+      },
+      "cop_mean_month": {
+        "name": "COP mean month"
+      },
+      "cop_mean_week": {
+        "name": "COP mean week"
+      },
+      "cop_normalized_a7w35": {
+        "name": "COP normalized A7W35"
+      },
+      "cop_today": {
+        "name": "COP today"
+      },
       "cop_trend_30d": {
         "name": "COP trend 30d"
       },
-      "runtime_compressor_today": {
-        "name": "Runtime compressor today"
+      "cop_vs_datasheet_pct": {
+        "name": "COP vs datasheet pct"
       },
-      "runtime_buh_today": {
-        "name": "Runtime BUH today"
+      "current_cycle": {
+        "name": "Current cycle"
       },
-      "compressor_starts_today": {
-        "name": "Compressor starts today"
+      "cycle_state": {
+        "name": "Cycle state"
+      },
+      "cycles_today": {
+        "name": "Cycles today"
+      },
+      "daily_summary_recent": {
+        "name": "Daily summary recent"
       },
       "defrost_count_today": {
         "name": "Defrost count today"
@@ -737,362 +380,721 @@
       "duty_cycle_today": {
         "name": "Duty cycle today"
       },
-      "electrical_energy_heating_today": {
-        "name": "Electrical energy heating today"
+      "electrical_energy_cooling_today": {
+        "name": "Electrical energy cooling today"
       },
       "electrical_energy_dhw_today": {
         "name": "Electrical energy dhw today"
       },
-      "electrical_energy_cooling_today": {
-        "name": "Electrical energy cooling today"
+      "electrical_energy_heating_today": {
+        "name": "Electrical energy heating today"
       },
       "electrical_energy_total_today": {
         "name": "Electrical energy total today"
       },
-      "thermal_energy_heating_today": {
-        "name": "Thermal energy heating today"
-      },
-      "thermal_energy_cooling_today": {
-        "name": "Thermal energy cooling today"
-      },
-      "daily_summary_recent": {
-        "name": "Daily summary recent"
-      },
       "electrical_power_estimated": {
         "name": "Electrical power estimated"
+      },
+      "heating_curve_advice": {
+        "name": "Heating curve advice"
+      },
+      "hp_specs": {
+        "name": "HP specs"
       },
       "hybrid_mode": {
         "name": "Hybrid mode"
       },
-      "boiler_efficiency_cop": {
-        "name": "Boiler efficiency COP"
+      "last_cycle": {
+        "name": "Last cycle"
       },
-      "boiler_contribution_today_pct": {
-        "name": "Boiler contribution today pct"
-      }
-    },
-    "binary_sensor": {
-      "compressor_running": {
-        "name": "Compressor running"
+      "learned_thresholds": {
+        "name": "Learned thresholds"
       },
-      "pendulum_hourly": {
-        "name": "Pendulum hourly"
+      "quality_today": {
+        "name": "Quality today"
       },
-      "pendulum_daily": {
-        "name": "Pendulum daily"
+      "runtime_buh_today": {
+        "name": "Runtime BUH today"
       },
-      "short_run": {
-        "name": "Short run"
+      "runtime_compressor_today": {
+        "name": "Runtime compressor today"
       },
-      "short_off": {
-        "name": "Short off"
+      "scop_running_365d": {
+        "name": "SCOP running 365d"
       },
-      "defrost_active": {
-        "name": "Defrost active"
+      "source_health": {
+        "name": "Source health"
       },
-      "buh_active": {
-        "name": "BUH active"
+      "spf_season": {
+        "name": "SPF season"
       },
-      "dhw_active": {
-        "name": "DHW active"
+      "spf_ytd": {
+        "name": "SPF YTD"
       },
-      "heating_active": {
-        "name": "Heating active"
+      "thermal_energy_cooling_today": {
+        "name": "Thermal energy cooling today"
       },
-      "cooling_active": {
-        "name": "Cooling active"
+      "thermal_energy_heating_today": {
+        "name": "Thermal energy heating today"
       },
-      "source_stale": {
-        "name": "Source stale"
-      },
-      "missing_attrs": {
-        "name": "Missing attributes"
-      },
-      "setpoint_oscillating": {
-        "name": "Setpoint oscillating"
-      },
-      "dhw_pendulum": {
-        "name": "DHW pendulum"
-      },
-      "high_cycle_rate": {
-        "name": "High cycle rate"
-      },
-      "boiler_operation_demand": {
-        "name": "Boiler operation demand"
-      },
-      "boiler_dhw_demand": {
-        "name": "Boiler DHW demand"
+      "thermal_power_live": {
+        "name": "Thermal power live"
       }
     }
   },
   "issues": {
-    "source_stale": {
-      "title": "Source sensor is stale",
-      "description": "The ESPAltherma source sensor has not produced fresh data. Check the ESP device and Wi-Fi connection."
-    },
-    "missing_attrs": {
-      "title": "Missing required attributes",
-      "description": "The source sensor is missing {count} required attribute(s). Verify that ESPAltherma is publishing all fields."
-    },
-    "db_corrupt": {
-      "title": "Database integrity check failed",
-      "description": "The Cycle DB failed its integrity check. Data may be inconsistent. Consider exporting cycles and re-running maintenance."
-    },
-    "notify_failed": {
-      "title": "Notify service failing",
-      "description": "{count} consecutive failures sending to {target}. Check the notify service configuration."
-    },
-    "migration_failed": {
-      "title": "Feature vector migration failed",
-      "description": "Migration error: {error}. Historical feature vectors may be incompatible with the current model."
-    },
     "datasheet_import_invalid": {
-      "title": "Datasheet import failed",
-      "description": "{count} validation error(s). First: {first}"
-    },
-    "datasheet_schema_unknown": {
-      "title": "Datasheet schema version unsupported",
-      "description": "Payload has schema_version {found}; only {supported} is supported."
+      "description": "{count} validation error(s). First: {first}",
+      "title": "Datasheet import failed"
     },
     "datasheet_load_failed": {
-      "title": "User datasheet store unreadable",
-      "description": "Could not load user datasheet store: {reason}"
+      "description": "Could not load user datasheet store: {reason}",
+      "title": "User datasheet store unreadable"
+    },
+    "datasheet_schema_unknown": {
+      "description": "Payload has schema_version {found}; only {supported} is supported.",
+      "title": "Datasheet schema version unsupported"
+    },
+    "db_corrupt": {
+      "description": "The Cycle DB failed its integrity check. Data may be inconsistent. Consider exporting cycles and re-running maintenance.",
+      "title": "Database integrity check failed"
     },
     "legacy_db_multi_entry": {
-      "title": "Legacy DB data assigned to one entry",
-      "description": "The historical Daikin Cycle ML database was created before v1.10.0 and contains data from multiple config entries. It has been assigned to {assigned_title} (oldest entry). Legacy file preserved at: {legacy_path}. Entries present: {n_entries}. If the assignment is wrong, use the daikin_cycle_ml.assign_legacy_db service. To archive (start fresh), use daikin_cycle_ml.archive_legacy_db. To export as CSV, use daikin_cycle_ml.export_legacy_db."
+      "description": "The historical Daikin Cycle ML database was created before v1.10.0 and contains data from multiple config entries. It has been assigned to {assigned_title} (oldest entry). Legacy file preserved at: {legacy_path}. Entries present: {n_entries}. If the assignment is wrong, use the daikin_cycle_ml.assign_legacy_db service. To archive (start fresh), use daikin_cycle_ml.archive_legacy_db. To export as CSV, use daikin_cycle_ml.export_legacy_db.",
+      "title": "Legacy DB data assigned to one entry"
+    },
+    "migration_failed": {
+      "description": "Migration error: {error}. Historical feature vectors may be incompatible with the current model.",
+      "title": "Feature vector migration failed"
+    },
+    "missing_attrs": {
+      "description": "The source sensor is missing {count} required attribute(s). Verify that ESPAltherma is publishing all fields.",
+      "title": "Missing required attributes"
+    },
+    "notify_failed": {
+      "description": "{count} consecutive failures sending to {target}. Check the notify service configuration.",
+      "title": "Notify service failing"
+    },
+    "source_stale": {
+      "description": "The ESPAltherma source sensor has not produced fresh data. Check the ESP device and Wi-Fi connection.",
+      "title": "Source sensor is stale"
     }
   },
-  "services": {
-    "reset_counters": {
-      "name": "Reset counters",
-      "description": "Reset daily counters (all or a subset).",
-      "fields": {
-        "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+  "options": {
+    "step": {
+      "advanced": {
+        "description": "Retention and database maintenance.",
+        "sections": {
+          "retention": {
+            "data": {
+              "alert_retention_days": "Alert retention (days)",
+              "cycle_retention_days": "Cycle retention (days)",
+              "daily_summary_live_enabled": "Live daily summary",
+              "retention_enabled": "Retention enabled",
+              "vacuum_enabled": "VACUUM after prune"
+            },
+            "data_description": {
+              "alert_retention_days": "Alerts older than N days are deleted. Default 30.",
+              "cycle_retention_days": "Cycles older than N days are rolled up and pruned. Default 90.",
+              "daily_summary_live_enabled": "Update daily summary as each cycle closes. Backfill and maintenance always run.",
+              "retention_enabled": "Run daily maintenance at 03:00 local time.",
+              "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning."
+            },
+            "name": "Retention"
+          },
+          "season": {
+            "data": {
+              "season_start_month": "Season start month"
+            },
+            "data_description": {
+              "season_start_month": "First month of the heating season (1-12). Used for SPF calculation. Default: 10."
+            },
+            "name": "Season"
+          }
         },
-        "counters": {
-          "name": "Counters",
-          "description": "List of counter keys (leave empty for all)."
-        }
-      }
-    },
-    "export_cycles": {
-      "name": "Export cycles",
-      "description": "Export cached cycles as JSON or CSV.",
-      "fields": {
-        "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+        "title": "Advanced"
+      },
+      "cop_calc": {
+        "description": "Configure supply phases and backup-heater power for the electrical-input estimate.",
+        "sections": {
+          "electrical": {
+            "data": {
+              "buh_step1_kw": "Backup heater step 1 (kW)",
+              "buh_step2_kw": "Backup heater step 2 (kW)",
+              "supply_phases": "Supply phases"
+            },
+            "data_description": {
+              "buh_step1_kw": "Rated power of backup-heater step 1. Default 3 kW (Daikin standard).",
+              "buh_step2_kw": "Rated power of backup-heater step 2. Default 3 kW (some units use 6 kW).",
+              "supply_phases": "Power-supply phases of the heat pump. 1 = single-phase, 3 = three-phase. Default 1."
+            },
+            "name": "Electrical input"
+          }
         },
-        "days": {
-          "name": "Days",
-          "description": "Look-back window in days."
+        "title": "COP calculation"
+      },
+      "device": {
+        "description": "Sensors and detection thresholds.\n\nSource sensor: {source_sensor}\nModel: {model}\n\nTo change source or model, use Reconfigure.",
+        "sections": {
+          "comfort": {
+            "data": {
+              "comfort_max_c": "Maximum indoor temperature (\u00b0C)",
+              "comfort_min_c": "Minimum indoor temperature (\u00b0C)"
+            },
+            "data_description": {
+              "comfort_max_c": "Higher LWT will not be advised above this indoor temperature. Default 24 \u00b0C.",
+              "comfort_min_c": "Lower LWT will not be advised below this indoor temperature. Default 20 \u00b0C."
+            },
+            "name": "Comfort"
+          },
+          "detection": {
+            "data": {
+              "compressor_rps_threshold": "Compressor RPS threshold",
+              "fallback_power_threshold_w": "Fallback power threshold"
+            },
+            "data_description": {
+              "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3.",
+              "fallback_power_threshold_w": "Power threshold (W) for the fallback sensor. Default 200."
+            },
+            "name": "Detection"
+          },
+          "sensors": {
+            "data": {
+              "cop_sensor_entity": "COP sensor",
+              "indoor_temp_sensor": "Indoor temperature sensor",
+              "power_sensor_entity": "Power sensor (fallback)"
+            },
+            "data_description": {
+              "cop_sensor_entity": "Global COP sensor, e.g. sensor.altherma_global_cop. Used for cop_samples.",
+              "indoor_temp_sensor": "Optional. Used for the indoor_temp_avg feature (dim #10).",
+              "power_sensor_entity": "Optional. Used as fallback when RPS is unavailable."
+            },
+            "name": "Sensors"
+          }
         },
-        "format": {
-          "name": "Format",
-          "description": "Output format."
-        }
-      }
-    },
-    "label_cycle": {
-      "name": "Label cycle",
-      "description": "Attach a user label to a stored cycle (ML training).",
-      "fields": {
-        "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+        "title": "Device"
+      },
+      "init": {
+        "description": "Choose a section to edit.",
+        "menu_option_descriptions": {
+          "advanced": "Retention, daily rollup, VACUUM",
+          "cop_calc": "Supply phases and backup-heater power for COP",
+          "device": "Sensors and cycle-detection thresholds",
+          "notifications": "Notify target, quiet hours, alert groups, language",
+          "pendulum": "Pendulum and setpoint-oscillation detection",
+          "quality_ml": "Quality scoring thresholds",
+          "test_all_notifications": "One click \u2014 sends one of each alert type (filters bypassed)",
+          "test_notification": "Send one sample alert to the notify target"
         },
-        "cycle_id": {
-          "name": "Cycle ID",
-          "description": "Database ID of the cycle."
+        "menu_options": {
+          "advanced": "Advanced",
+          "cop_calc": "COP calculation",
+          "device": "Device",
+          "notifications": "Notifications",
+          "pendulum": "Pendulum",
+          "quality_ml": "Quality & ML",
+          "test_all_notifications": "Send ALL test notifications",
+          "test_notification": "Send test notification now"
         },
-        "label": {
-          "name": "Label",
-          "description": "Label string."
-        }
-      }
-    },
-    "recompute_baseline": {
-      "name": "Recompute baseline",
-      "description": "Recompute ML baseline (deferred to Batch 7).",
-      "fields": {
-        "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+        "title": "Daikin Cycle ML options"
+      },
+      "notifications": {
+        "description": "How and when alerts are delivered. Choose a subsection.",
+        "menu_option_descriptions": {
+          "notifications_content": "Language and per-alert-group toggles",
+          "notifications_delivery": "Persistent notifications, notify target, emoji, action advice",
+          "notifications_enabled": "Turn individual alerts on or off",
+          "notifications_quiet_hours": "Quiet hours window, dedup window, periodic status updates",
+          "notifications_test_menu": "Send one or all sample alerts"
         },
-        "days": {
-          "name": "Days",
-          "description": "Baseline window in days."
-        }
-      }
-    },
-    "run_maintenance": {
-      "name": "Run maintenance",
-      "description": "Aggregate and prune old cycles/alerts, optionally VACUUM.",
-      "fields": {
-        "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+        "menu_options": {
+          "notifications_content": "Content and language",
+          "notifications_delivery": "Delivery",
+          "notifications_enabled": "Per-alert enables",
+          "notifications_quiet_hours": "Quiet hours and status",
+          "notifications_test_menu": "Test notifications"
         },
-        "cycle_retention_days": {
-          "name": "Cycle retention (days)",
-          "description": "Delete cycles older than N days."
+        "title": "Notifications"
+      },
+      "notifications_content": {
+        "data": {
+          "alert_group_component_health": "Alert: component health",
+          "alert_group_cop_stooklijn": "Alert: COP / heat curve",
+          "alert_group_data_quality": "Alert: data quality",
+          "alert_group_ml": "Alert: ML anomaly",
+          "alert_group_pendulum": "Alert: pendulum",
+          "alert_group_setpoint": "Alert: setpoint oscillation",
+          "alert_group_short_cycle": "Alert: short cycle",
+          "notification_language": "Notification language"
         },
-        "alert_retention_days": {
-          "name": "Alert retention (days)",
-          "description": "Delete alerts older than N days."
+        "data_description": {
+          "alert_group_component_health": "Defrost and backup-heater health alerts.",
+          "alert_group_cop_stooklijn": "Daily COP and heat-curve advice alerts.",
+          "alert_group_data_quality": "Source-stale and missing-attributes alerts.",
+          "alert_group_ml": "ML anomaly alerts (z-score).",
+          "alert_group_pendulum": "Hourly/daily pendulum alerts.",
+          "alert_group_setpoint": "LWT setpoint oscillation alerts.",
+          "alert_group_short_cycle": "Short-run and short-off alerts.",
+          "notification_language": "Language for alert messages. Default English."
         },
-        "vacuum": {
-          "name": "Vacuum",
-          "description": "Run SQLite VACUUM after prune."
-        }
-      }
-    },
-    "export_cop_hourly": {
-      "name": "Export COP hourly",
-      "description": "Export aggregated COP-per-hour rows as JSON or CSV.",
-      "fields": {
-        "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+        "description": "Language and per-group alert toggles.",
+        "title": "Alert content and language"
+      },
+      "notifications_dedup": {
+        "data": {
+          "alert_agg_buh_excessive_min": "Backup heater window",
+          "alert_agg_cop_degradation_min": "COP degradation window",
+          "alert_agg_cop_low_min": "COP low window",
+          "alert_agg_cop_vs_datasheet_low_min": "COP vs datasheet window",
+          "alert_agg_db_retention_warning_min": "Database retention warning dedup window",
+          "alert_agg_defrost_excessive_min": "Defrost excessive window",
+          "alert_agg_dhw_pendulum_min": "DHW pendulum window",
+          "alert_agg_energy_daily_anomaly_min": "Energy daily anomaly dedup window",
+          "alert_agg_high_cycle_rate_min": "High cycle rate window",
+          "alert_agg_kmeans_retrain_stale_min": "K-means retrain stale dedup window",
+          "alert_agg_missing_attributes_min": "Missing attributes window",
+          "alert_agg_ml_anomaly_min": "ML anomaly window",
+          "alert_agg_pendulum_daily_min": "Pendulum daily window",
+          "alert_agg_pendulum_hourly_min": "Pendulum hourly window",
+          "alert_agg_setpoint_osc_min": "Setpoint oscillation window",
+          "alert_agg_short_off_min": "Short off window",
+          "alert_agg_short_run_min": "Short run window",
+          "alert_agg_source_stale_min": "Source stale window",
+          "alert_agg_stooklijn_advies_min": "Heating curve advice window"
         },
-        "days": {
-          "name": "Days",
-          "description": "Look-back window in days."
+        "data_description": {
+          "alert_agg_buh_excessive_min": "Default 1440 min (24 h).",
+          "alert_agg_cop_degradation_min": "Default 1440 min (24 h).",
+          "alert_agg_cop_low_min": "Default 30 min.",
+          "alert_agg_cop_vs_datasheet_low_min": "Default 1440 min (24 h).",
+          "alert_agg_db_retention_warning_min": "Database retention warning dedup window",
+          "alert_agg_defrost_excessive_min": "Default 1440 min (24 h).",
+          "alert_agg_dhw_pendulum_min": "Default 60 min.",
+          "alert_agg_energy_daily_anomaly_min": "Energy daily anomaly dedup window",
+          "alert_agg_high_cycle_rate_min": "Default 60 min.",
+          "alert_agg_kmeans_retrain_stale_min": "K-means retrain stale dedup window",
+          "alert_agg_missing_attributes_min": "Default 60 min.",
+          "alert_agg_ml_anomaly_min": "Default 60 min.",
+          "alert_agg_pendulum_daily_min": "Default 1440 min (24 h).",
+          "alert_agg_pendulum_hourly_min": "Default 60 min.",
+          "alert_agg_setpoint_osc_min": "Default 30 min.",
+          "alert_agg_short_off_min": "Default 30 min.",
+          "alert_agg_short_run_min": "Default 30 min.",
+          "alert_agg_source_stale_min": "Default 60 min.",
+          "alert_agg_stooklijn_advies_min": "Default 10080 min (7 days)."
         },
-        "mode": {
-          "name": "Mode",
-          "description": "Optional filter (heating, dhw, defrost, unknown)."
+        "description": "Minimum minutes between consecutive alerts of the same type. Applies to evaluate_alerts-routed alerts and the standalone cop_low and stooklijn_advies emitters.",
+        "title": "Alert deduplication windows"
+      },
+      "notifications_delivery": {
+        "data": {
+          "action_advice_enabled": "Include action advice",
+          "notify_emoji_enabled": "Emoji in notifications",
+          "notify_service": "Notify target",
+          "persistent_enabled": "Persistent notifications"
         },
-        "format": {
-          "name": "Format",
-          "description": "Output format."
-        }
-      }
-    },
-    "send_test_notification": {
-      "name": "Send test notification",
-      "description": "Send a test message via the configured notify target.",
-      "fields": {
-        "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID. Omit when only one Daikin entry is loaded."
+        "data_description": {
+          "action_advice_enabled": "Include actionable advice in alert messages.",
+          "notify_emoji_enabled": "Prefix messages with emoji for quick scanning.",
+          "notify_service": "Notify entity or legacy service. Empty disables push.",
+          "persistent_enabled": "Show alerts as persistent notifications in the sidebar."
         },
-        "message": {
-          "name": "Message",
-          "description": "Optional custom message body."
+        "description": "How alerts reach you.",
+        "title": "Delivery"
+      },
+      "notifications_enabled": {
+        "data": {
+          "alert_enabled_buh_excessive": "Enable backup-heater excessive alert",
+          "alert_enabled_cop_degradation": "Enable COP degradation alert",
+          "alert_enabled_cop_vs_datasheet_low": "Enable COP below datasheet alert",
+          "alert_enabled_db_retention_warning": "Enable database-retention warning",
+          "alert_enabled_defrost_excessive": "Enable defrost excessive alert",
+          "alert_enabled_dhw_pendulum": "Enable DHW pendulum alert",
+          "alert_enabled_energy_daily_anomaly": "Enable energy daily anomaly alert",
+          "alert_enabled_high_cycle_rate": "Enable high cycle rate alert",
+          "alert_enabled_kmeans_retrain_stale": "Enable k-means retrain stale alert",
+          "alert_enabled_missing_attributes": "Enable missing-attributes alert",
+          "alert_enabled_source_stale": "Enable source-stale alert"
         },
-        "target": {
-          "name": "Target override",
-          "description": "Optional override of the configured notify target."
+        "data_description": {
+          "alert_enabled_buh_excessive": "Fires when 7d backup-heater cycle ratio exceeds the threshold.",
+          "alert_enabled_cop_degradation": "Fires when week-over-week COP drops below -15%.",
+          "alert_enabled_cop_vs_datasheet_low": "Fires when COP drops more than 10% below the datasheet value.",
+          "alert_enabled_db_retention_warning": "Enable database-retention warning",
+          "alert_enabled_defrost_excessive": "Fires when 7d defrost count exceeds the threshold.",
+          "alert_enabled_dhw_pendulum": "Fires when DHW cycles per hour reach the target.",
+          "alert_enabled_energy_daily_anomaly": "Enable energy daily anomaly alert",
+          "alert_enabled_high_cycle_rate": "Fires when cycle rate exceeds 1.5\u00d7 the hourly target.",
+          "alert_enabled_kmeans_retrain_stale": "Enable k-means retrain stale alert",
+          "alert_enabled_missing_attributes": "Fires when required source attributes are absent.",
+          "alert_enabled_source_stale": "Fires when the source sensor stops updating (critical)."
         },
-        "alert_kind": {
-          "name": "Alert kind",
-          "description": "Send a specific alert type as a test. Omit for a plain passthrough message."
+        "description": "Enable or disable individual alerts. Disabled alerts still respect group and quiet-hours gating.",
+        "title": "Per-alert enable"
+      },
+      "notifications_quiet_hours": {
+        "data": {
+          "alert_aggregation_minutes": "Alert aggregation (minutes)",
+          "quiet_hours_enabled": "Quiet hours",
+          "quiet_hours_end": "Quiet hours end",
+          "quiet_hours_start": "Quiet hours start",
+          "status_update_enabled": "Periodic status updates",
+          "status_update_interval_hours": "Status interval (hours)"
         },
-        "ignore_filters": {
-          "name": "Ignore filters",
-          "description": "Bypass quiet hours, aggregation, and group gating."
-        }
-      }
-    },
-    "import_datasheet": {
-      "name": "Import datasheet",
-      "description": "Import or override user-supplied Daikin datasheet specs.",
-      "fields": {
-        "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+        "data_description": {
+          "alert_aggregation_minutes": "Suppress duplicate alerts within this window. Default 30.",
+          "quiet_hours_enabled": "Suppress non-critical alerts during the quiet window.",
+          "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00.",
+          "quiet_hours_start": "Start of quiet hours, HH:MM (24h). Default 22:00.",
+          "status_update_enabled": "Send a periodic summary of cycle activity.",
+          "status_update_interval_hours": "How often the summary is sent (1-168 hours)."
         },
-        "payload": {
-          "name": "Payload",
-          "description": "Datasheet payload (dict or JSON string)."
+        "description": "Suppress non-critical alerts and schedule periodic summaries.",
+        "title": "Quiet hours and status updates"
+      },
+      "notifications_test_menu": {
+        "description": "Send a sample alert to your notify target.",
+        "menu_option_descriptions": {
+          "test_all_notifications": "One click sends one of each alert type",
+          "test_notification": "Pick an alert type and send one sample"
         },
-        "source_url": {
-          "name": "Source URL",
-          "description": "Optional source reference for provenance."
-        }
-      }
-    },
-    "remove_user_datasheet": {
-      "name": "Remove user datasheet",
-      "description": "Remove a user-supplied datasheet override for a specific model.",
-      "fields": {
-        "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+        "menu_options": {
+          "test_all_notifications": "Send all alerts at once",
+          "test_notification": "Send one test alert"
         },
-        "model_key": {
-          "name": "Model key",
-          "description": "Model key to remove from user store."
-        }
-      }
-    },
-    "recompute_kmeans": {
-      "name": "Recompute k-means",
-      "description": "Trigger a k-means retrain on the last N days of cycles and notify the outcome.",
-      "fields": {
-        "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+        "title": "Test notifications"
+      },
+      "pendulum": {
+        "description": "What counts as a bad cycle.",
+        "sections": {
+          "pendulum": {
+            "data": {
+              "dhw_pendulum_cycles_per_hour": "DHW pendulum cycles per hour",
+              "pendulum_cycles_per_day": "Cycles per day",
+              "pendulum_cycles_per_hour": "Cycles per hour"
+            },
+            "data_description": {
+              "dhw_pendulum_cycles_per_hour": "DHW cycles per hour triggering a pendulum alert. Default 3.",
+              "pendulum_cycles_per_day": "Daily cycle count triggering a pendulum alert. Default 40.",
+              "pendulum_cycles_per_hour": "Hourly cycle count triggering a pendulum alert. Default 4."
+            },
+            "name": "Pendulum detection"
+          },
+          "run_off": {
+            "data": {
+              "short_off_threshold_min": "Short off threshold",
+              "short_run_threshold_min": "Short run threshold"
+            },
+            "data_description": {
+              "short_off_threshold_min": "Off-times shorter than this are flagged. Default 5 min.",
+              "short_run_threshold_min": "Cycles shorter than this are flagged. Default 20 min."
+            },
+            "name": "Run/off thresholds"
+          },
+          "setpoint": {
+            "data": {
+              "setpoint_osc_min_delta": "Minimum setpoint change (\u00b0C)",
+              "setpoint_osc_window_min": "Setpoint window (min)",
+              "setpoint_oscillation_threshold": "Setpoint oscillation threshold"
+            },
+            "data_description": {
+              "setpoint_osc_min_delta": "Minimum \u00b0C change to count as a setpoint change. Default 0.5 \u2014 filters floating-point noise.",
+              "setpoint_osc_window_min": "Rolling window in minutes. Default 30.",
+              "setpoint_oscillation_threshold": "Number of setpoint changes in the window before an alert fires. Default 6 \u2014 filters normal thermostat tuning, warns on real oscillation."
+            },
+            "name": "Setpoint oscillation"
+          }
         },
-        "days": {
-          "name": "Days",
-          "description": "Training window in days."
-        }
-      }
-    },
-    "assign_legacy_db": {
-      "name": "Assign legacy DB",
-      "description": "Move the per-entry SQLite DB from one config entry to another. Both entries must be reloaded for the change to take effect.",
-      "fields": {
-        "entry_id": {
-          "name": "Source entry",
-          "description": "Config entry whose DB should be moved."
+        "title": "Pendulum"
+      },
+      "quality_ml": {
+        "description": "Cycle quality scoring (0-100).",
+        "sections": {
+          "adaptive": {
+            "data": {
+              "adaptive_min_samples": "Minimum samples",
+              "adaptive_thresholds_enabled": "Adaptive thresholds"
+            },
+            "data_description": {
+              "adaptive_min_samples": "Cycles needed before adaptive tuning activates. Default 20.",
+              "adaptive_thresholds_enabled": "Auto-tune thresholds from observed cycles."
+            },
+            "name": "Adaptive learning"
+          },
+          "quality": {
+            "data": {
+              "good_dt_threshold_k": "Good dT threshold",
+              "good_off_threshold_min": "Good off threshold",
+              "good_run_threshold_min": "Good run threshold",
+              "target_cycles_per_day": "Target cycles per day"
+            },
+            "data_description": {
+              "good_dt_threshold_k": "Minimum dT (K) for full marks. Default 5.0 K.",
+              "good_off_threshold_min": "Minimum off-time for full marks. Default 20 min.",
+              "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min.",
+              "target_cycles_per_day": "Efficiency target used in ratio-based advice. Default 8."
+            },
+            "name": "Quality score"
+          }
         },
-        "target_entry_id": {
-          "name": "Target entry",
-          "description": "Config entry that should own the DB. Fails if it already has its own DB."
-        }
-      }
-    },
-    "archive_legacy_db": {
-      "name": "Archive legacy DB",
-      "description": "Rename the current per-entry DB to .legacy-[timestamp] and start fresh on next reload. Preserved for audit.",
-      "fields": {
-        "entry_id": {
-          "name": "Config entry",
-          "description": "Entry whose live DB should be archived."
-        }
-      }
-    },
-    "export_legacy_db": {
-      "name": "Export legacy DB",
-      "description": "Export all tables from the entry DB to CSV files plus manifest.json in /config/daikin_cycle_ml_export_[entry_id]_[timestamp]/.",
-      "fields": {
-        "entry_id": {
-          "name": "Config entry",
-          "description": "Entry whose DB should be exported."
-        }
+        "title": "Quality & ML"
+      },
+      "test_all_notifications": {
+        "description": "Sends **one of each alert type** to the configured notify target with filters bypassed (alert groups, quiet hours, dedup window).\n\nSubmit to send.",
+        "title": "Send all test notifications"
+      },
+      "test_all_notifications_result": {
+        "description": "Result: **{status}**\n\nAlerts sent: **{count}**\n\nPreview:\n```\n{preview}\n```\n\nSubmit to return to the menu.",
+        "title": "All-notifications result"
+      },
+      "test_notification": {
+        "data": {
+          "alert_kind": "Alert type",
+          "ignore_group_filters": "Force send (bypass filters)"
+        },
+        "data_description": {
+          "alert_kind": "Which alert type to send as a test. Choose 'All alerts' to send every alert type at once.",
+          "ignore_group_filters": "Normally alerts are suppressed if their alert group is disabled, during quiet hours, or within the anti-spam (dedup) window. Enable this to send the test alert anyway."
+        },
+        "description": "Send **one sample alert** to your configured notify target.\n\n\u2022 **Alert type** \u2014 which alert to simulate (or *All alerts* to send everything)\n\u2022 **Force send** \u2014 bypass alert-group toggles, quiet hours and anti-spam window just for this test\n\nThis uses the current options (notify_service + persistent_enabled) and does not change them.",
+        "title": "Test notification"
+      },
+      "test_notification_result": {
+        "description": "Kind: **{kind}**\n\nResult: **{status}**\n\nPreview:\n```\n{preview}\n```\n\nSubmit to return to the options menu.",
+        "title": "Test result"
       }
     }
   },
   "selector": {
     "alert_kind": {
       "options": {
-        "status_summary": "Daily status summary",
-        "pendulum_hourly": "Pendulum (hourly)",
-        "pendulum_daily": "Pendulum (daily)",
-        "short_run": "Short run",
-        "short_off": "Short off",
-        "ml_anomaly": "ML anomaly",
-        "setpoint_osc": "Setpoint oscillating",
+        "all_alerts": "All alerts (test everything)",
         "cop_low": "Low day COP",
-        "stooklijn_advies": "Stooklijn advice",
-        "all_alerts": "All alerts (test everything)"
+        "ml_anomaly": "ML anomaly",
+        "pendulum_daily": "Pendulum (daily)",
+        "pendulum_hourly": "Pendulum (hourly)",
+        "setpoint_osc": "Setpoint oscillating",
+        "short_off": "Short off",
+        "short_run": "Short run",
+        "status_summary": "Daily status summary",
+        "stooklijn_advies": "Stooklijn advice"
       }
+    }
+  },
+  "services": {
+    "archive_legacy_db": {
+      "description": "Rename the current per-entry DB to .legacy-[timestamp] and start fresh on next reload. Preserved for audit.",
+      "fields": {
+        "entry_id": {
+          "description": "Entry whose live DB should be archived.",
+          "name": "Config entry"
+        }
+      },
+      "name": "Archive legacy DB"
+    },
+    "assign_legacy_db": {
+      "description": "Move the per-entry SQLite DB from one config entry to another. Both entries must be reloaded for the change to take effect.",
+      "fields": {
+        "entry_id": {
+          "description": "Config entry whose DB should be moved.",
+          "name": "Source entry"
+        },
+        "target_entry_id": {
+          "description": "Config entry that should own the DB. Fails if it already has its own DB.",
+          "name": "Target entry"
+        }
+      },
+      "name": "Assign legacy DB"
+    },
+    "export_cop_hourly": {
+      "description": "Export aggregated COP-per-hour rows as JSON or CSV.",
+      "fields": {
+        "days": {
+          "description": "Look-back window in days.",
+          "name": "Days"
+        },
+        "entry_id": {
+          "description": "Config entry ID.",
+          "name": "Config entry"
+        },
+        "format": {
+          "description": "Output format.",
+          "name": "Format"
+        },
+        "mode": {
+          "description": "Optional filter (heating, dhw, defrost, unknown).",
+          "name": "Mode"
+        }
+      },
+      "name": "Export COP hourly"
+    },
+    "export_cycles": {
+      "description": "Export cached cycles as JSON or CSV.",
+      "fields": {
+        "days": {
+          "description": "Look-back window in days.",
+          "name": "Days"
+        },
+        "entry_id": {
+          "description": "Config entry ID.",
+          "name": "Config entry"
+        },
+        "format": {
+          "description": "Output format.",
+          "name": "Format"
+        }
+      },
+      "name": "Export cycles"
+    },
+    "export_legacy_db": {
+      "description": "Export all tables from the entry DB to CSV files plus manifest.json in /config/daikin_cycle_ml_export_[entry_id]_[timestamp]/.",
+      "fields": {
+        "entry_id": {
+          "description": "Entry whose DB should be exported.",
+          "name": "Config entry"
+        }
+      },
+      "name": "Export legacy DB"
+    },
+    "import_datasheet": {
+      "description": "Import or override user-supplied Daikin datasheet specs.",
+      "fields": {
+        "entry_id": {
+          "description": "Config entry ID.",
+          "name": "Config entry"
+        },
+        "payload": {
+          "description": "Datasheet payload (dict or JSON string).",
+          "name": "Payload"
+        },
+        "source_url": {
+          "description": "Optional source reference for provenance.",
+          "name": "Source URL"
+        }
+      },
+      "name": "Import datasheet"
+    },
+    "label_cycle": {
+      "description": "Attach a user label to a stored cycle (ML training).",
+      "fields": {
+        "cycle_id": {
+          "description": "Database ID of the cycle.",
+          "name": "Cycle ID"
+        },
+        "entry_id": {
+          "description": "Config entry ID.",
+          "name": "Config entry"
+        },
+        "label": {
+          "description": "Label string.",
+          "name": "Label"
+        }
+      },
+      "name": "Label cycle"
+    },
+    "recompute_baseline": {
+      "description": "Recompute ML baseline (deferred to Batch 7).",
+      "fields": {
+        "days": {
+          "description": "Baseline window in days.",
+          "name": "Days"
+        },
+        "entry_id": {
+          "description": "Config entry ID.",
+          "name": "Config entry"
+        }
+      },
+      "name": "Recompute baseline"
+    },
+    "recompute_kmeans": {
+      "description": "Trigger a k-means retrain on the last N days of cycles and notify the outcome.",
+      "fields": {
+        "days": {
+          "description": "Training window in days.",
+          "name": "Days"
+        },
+        "entry_id": {
+          "description": "Config entry ID.",
+          "name": "Config entry"
+        }
+      },
+      "name": "Recompute k-means"
+    },
+    "remove_user_datasheet": {
+      "description": "Remove a user-supplied datasheet override for a specific model.",
+      "fields": {
+        "entry_id": {
+          "description": "Config entry ID.",
+          "name": "Config entry"
+        },
+        "model_key": {
+          "description": "Model key to remove from user store.",
+          "name": "Model key"
+        }
+      },
+      "name": "Remove user datasheet"
+    },
+    "reset_counters": {
+      "description": "Reset daily counters (all or a subset).",
+      "fields": {
+        "counters": {
+          "description": "List of counter keys (leave empty for all).",
+          "name": "Counters"
+        },
+        "entry_id": {
+          "description": "Config entry ID.",
+          "name": "Config entry"
+        }
+      },
+      "name": "Reset counters"
+    },
+    "run_maintenance": {
+      "description": "Aggregate and prune old cycles/alerts, optionally VACUUM.",
+      "fields": {
+        "alert_retention_days": {
+          "description": "Delete alerts older than N days.",
+          "name": "Alert retention (days)"
+        },
+        "cycle_retention_days": {
+          "description": "Delete cycles older than N days.",
+          "name": "Cycle retention (days)"
+        },
+        "entry_id": {
+          "description": "Config entry ID.",
+          "name": "Config entry"
+        },
+        "vacuum": {
+          "description": "Run SQLite VACUUM after prune.",
+          "name": "Vacuum"
+        }
+      },
+      "name": "Run maintenance"
+    },
+    "send_test_notification": {
+      "description": "Send a test message via the configured notify target.",
+      "fields": {
+        "alert_kind": {
+          "description": "Send a specific alert type as a test. Omit for a plain passthrough message.",
+          "name": "Alert kind"
+        },
+        "entry_id": {
+          "description": "Config entry ID. Omit when only one Daikin entry is loaded.",
+          "name": "Config entry"
+        },
+        "ignore_filters": {
+          "description": "Bypass quiet hours, aggregation, and group gating.",
+          "name": "Ignore filters"
+        },
+        "message": {
+          "description": "Optional custom message body.",
+          "name": "Message"
+        },
+        "target": {
+          "description": "Optional override of the configured notify target.",
+          "name": "Target override"
+        }
+      },
+      "name": "Send test notification"
     }
   }
 }

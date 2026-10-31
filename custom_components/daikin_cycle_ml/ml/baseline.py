@@ -189,13 +189,21 @@ class AdaptiveBaseline(Baseline):
             self._outlier_skip_z > 0.0
             and self._n >= self._min_samples_before_skip
         ):
-            z = self.max_abs_z(vector)
-            if z > self._outlier_skip_z:
-                _LOGGER.debug(
-                    "Baseline: skipping outlier z=%.2f > %.2f",
-                    z, self._outlier_skip_z,
-                )
-                return False
+            std = self.std
+            if all(s == 0.0 for s in std):
+                if any(abs(x - m) > 1e-6 for x, m in zip(vector, self._mean)):
+                    _LOGGER.debug(
+                        "Baseline: skipping outlier (zero-variance, deviates from mean)"
+                    )
+                    return False
+            else:
+                z = self.max_abs_z(vector)
+                if z > self._outlier_skip_z:
+                    _LOGGER.debug(
+                        "Baseline: skipping outlier z=%.2f > %.2f",
+                        z, self._outlier_skip_z,
+                    )
+                    return False
         a = self._alpha
         if self._n == 0:
             for i, x in enumerate(vector):
