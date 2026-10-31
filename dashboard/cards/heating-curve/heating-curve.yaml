@@ -204,12 +204,31 @@ cards:
             'erla14': { kw: 14, lwtMin: 25, lwtMax: 65, nomCop: 4.2, family: 'Split',     ref: 'R32' },
             'erla16': { kw: 16, lwtMin: 25, lwtMax: 65, nomCop: 4.1, family: 'Split',     ref: 'R32' }
           };
-          var hpKey = cfgModel.substring(0,6);
-          var hp = HP_SPECS[hpKey] || { kw: 12, lwtMin: 25, lwtMax: 60, nomCop: 4.2, family: 'Generic', ref: 'R32' };
-          hp.outMin = -25; hp.outMax = 35;
-          hp.defrostBelow = 5;
-          hp.buhAbove = hp.lwtMax - 5;
-          hp.offAbove = 20;
+          var S_SPECS = 'sensor.daikin_cycle_ml_hp_specs';
+          var hpIsConfigured = aB(S_SPECS, 'configured', false);
+          var hp;
+          if (hpIsConfigured) {
+            hp = {
+              kw: aN(S_SPECS, 'kw', 12),
+              lwtMin: aN(S_SPECS, 'lwt_min', 25),
+              lwtMax: aN(S_SPECS, 'lwt_max', 60),
+              nomCop: aN(S_SPECS, 'nom_cop', 4.2),
+              family: String(attr(S_SPECS, 'family', 'Generic')),
+              ref: String(attr(S_SPECS, 'refrigerant', 'R32')),
+              outMin: aN(S_SPECS, 'outdoor_min_c', -25),
+              outMax: aN(S_SPECS, 'outdoor_max_c', 35),
+              defrostBelow: aN(S_SPECS, 'defrost_below_c', 5),
+              buhAbove: aN(S_SPECS, 'buh_above_c', 55),
+              offAbove: aN(S_SPECS, 'off_above_c', 20)
+            };
+          } else {
+            var hpKey = cfgModel.substring(0,6);
+            hp = HP_SPECS[hpKey] || { kw: 12, lwtMin: 25, lwtMax: 60, nomCop: 4.2, family: 'Generic', ref: 'R32' };
+            hp.outMin = -25; hp.outMax = 35;
+            hp.defrostBelow = 5;
+            hp.buhAbove = hp.lwtMax - 5;
+            hp.offAbove = 20;
+          }
 
           /* ============ Buckets → regressie ============ */
           var pts = [];
