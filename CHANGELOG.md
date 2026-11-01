@@ -1,18 +1,20 @@
 # Changelog
 
-## [1.16.0] - 2026-10-31
+## [Unreleased]
 
-### Added
-- **Dashboard:** Native Dark Mode support, updated labels, and conditional Hybrid (Boiler) statistics for EVLQ/EBLQ installations.
+## [1.17.1] - 2026-11-01
 
 ### Fixed
-- **Cycle duration:** Removed the 4-hour limit in `coordinator.py` that silently truncated long compressor cycles. The integration now relies on the 48-hour detector safety net, ensuring accurate cycle durations, daily summaries, and sensor values.
+- **`async_unload_entry` return type (HA 2026.10.4):** Explicitly returns `True` instead of implicit `None`. HA Core 2026.10.4 asserts `isinstance(result, bool)` in `config_entries.py:1132`, which failed on unload and prevented clean reload/removal.
+- **Coordinator `config_entry` (HA 2026.10.4):** `DaikinCycleMLCoordinator` now passes `config_entry=entry` to `DataUpdateCoordinator.__init__`. Without it, `async_config_entry_first_refresh()` raised `ConfigEntryError` on every setup and the integration failed to load.
 
 ### Changed
-- **HA 2026+ Compliance:** Removed `try/except` blocks in `async_setup_entry` so errors bubble up correctly. `async_unload_entry` now raises `HomeAssistantError` instead of returning `False`.
-- **Marketplace Ready:** Added `quality_scale.yaml` (Gold tier), `icons.json`, `issue_tracker`, and `codeowners`.
+- **Test contract hardening (R580):** Removed `try/except Exception: pass` from `test_47_init_edges.py` and `test_49_misc_more.py`. Assertions now fail loudly on regressions.
+- **Deterministic rollup tests:** `test_multi_instance.py`, `test_rollup_concurrency.py`, and `test_rollup_e2e_real_db.py` now use a fixed mid-hour timestamp instead of `time.time()`, eliminating hour-boundary flakiness.
+- **Auto-fixed 221 ruff errors** (I001 import sorting, F401 unused imports) to eliminate pre-existing debt from v1.16.0's `fix=false` change.
 
-## [Unreleased]
+### Added
+- **7 new test suites:** `test_ha_contracts.py`, `test_diagnostics_redaction.py`, `test_services_validation.py`, `test_entity_lifecycle.py`, `test_migrations_idempotency.py`, `test_coordinator_resilience.py`, `test_db_concurrency.py`. Total: **3988 passed, 4 skipped, 100% coverage**.
 
 ## [1.17.0] - 2026-11-01
 
@@ -31,6 +33,18 @@
 - **6-hour delay in per-cycle COP visibility:** Post-cycle rollup with `window_hours=48` runs immediately after every completed cycle. Previously, DHW or heating data from the just-finished cycle would not appear in `cop_dhw_day` or `cop_heating_day` until the next 6-hour tick.
 - **Zero-variance baseline outlier detection:** When all training samples are identical (std=0), any deviating sample was silently accepted as non-outlier because z-scores returned 0. Now detected via direct mean-deviation check, so an outlier against a zero-variance baseline is properly skipped.
 - **`strings.json` missing error keys:** Added `config.error.source_offline` and `config.error.source_empty`. These existed in `translations/en.json` and `translations/nl.json` but were missing from `strings.json` (the HA-runtime source), causing users to see a generic error message instead of the specific ESPAltherma source guidance when the source was offline or empty.
+
+## [1.16.0] - 2026-10-31
+
+### Added
+- **Dashboard:** Native Dark Mode support, updated labels, and conditional Hybrid (Boiler) statistics for EVLQ/EBLQ installations.
+
+### Fixed
+- **Cycle duration:** Removed the 4-hour limit in `coordinator.py` that silently truncated long compressor cycles. The integration now relies on the 48-hour detector safety net, ensuring accurate cycle durations, daily summaries, and sensor values.
+
+### Changed
+- **HA 2026+ Compliance:** Removed `try/except` blocks in `async_setup_entry` so errors bubble up correctly. `async_unload_entry` now raises `HomeAssistantError` instead of returning `False`.
+- **Marketplace Ready:** Added `quality_scale.yaml` (Gold tier), `icons.json`, `issue_tracker`, and `codeowners`.
 
 ## [1.15.2] - 2026-10-30
 

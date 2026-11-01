@@ -10,6 +10,15 @@ Cross-references: [DATABASE.md](DATABASE.md) (schema migrations), [CONFIGURATION
 
 ---
 
+## Latest: v1.17.1
+
+### What changed
+- **HA 2026.10.4 compatibility fix:** `async_unload_entry` now explicitly returns `True`. Coordinator now passes `config_entry=entry`. Without these fixes, the integration failed to reload/unload/remove on HA Core 2026.10.4+.
+- **Test hardening:** 7 new test suites; 221 auto-fixed ruff errors. No functional changes for end users.
+
+### Action required
+None. Drop-in patch release. No DB migrations, no entity changes, no config changes.
+
 ## Upgrading to v1.17.0
 
 ### Breaking Changes
@@ -18,7 +27,7 @@ Cross-references: [DATABASE.md](DATABASE.md) (schema migrations), [CONFIGURATION
 ### Notes
 - **Dashboard Cards:** The heating-curve card now dynamically reads specs from the `sensor.daikin_cycle_ml_hp_specs` sensor. No YAML changes required, but updating the card will resolve incorrect kW values for some models (e.g., EDLA09).
 
-## Latest: v1.15.2
+## v1.15.2
 
 **Released:** 2026-10-30
 **Breaking:** none
