@@ -1410,21 +1410,30 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             # Hybrid (EVLQ) fields — issue #218
             _compat_hybrid = build_compat_view(attrs)
             snap.is_hybrid = self._is_hybrid_install()
+            # v1.17.2: boiler_* fields are functional on ALL installs
+            # (supplementary electric boiler possible on non-EVLQ units).
             snap.boiler_active = _boiler_active_from_attrs(_compat_hybrid)
             snap.boiler_dhw_active = safe_bool(_compat_hybrid.get(ATTR_BOILER_DHW_DEMAND))
             snap.boiler_heat_active = _boiler_heat_active_from_attrs(_compat_hybrid)
-            snap.hybrid_mode = _hybrid_mode_from_attrs(_compat_hybrid)
-            snap.boiler_efficiency_cop = _boiler_efficiency_cop_from_attrs(_compat_hybrid)
-            snap.inv_freq_secondary = _secondary_rps_from_attrs(_compat_hybrid)
+            # v1.17.2: pure hybrid-only indicators are gated on is_hybrid.
+            # Non-EVLQ units may still publish these attrs (ESPAltherma
+            # template drift), which previously leaked into diagnostics
+            # (e.g. 'Hybrid Op. Mode: H/P only' on EPRA/ERLA installs).
+            if snap.is_hybrid:
+                snap.hybrid_mode = _hybrid_mode_from_attrs(_compat_hybrid)
+                snap.boiler_efficiency_cop = _boiler_efficiency_cop_from_attrs(_compat_hybrid)
+                snap.inv_freq_secondary = _secondary_rps_from_attrs(_compat_hybrid)
             snap.setpoint_oscillating = self._compute_setpoint_oscillating()
             prev_detector_state = self.detector.state
             # R317: use unit-normalised power (kW->W) so the fallback
             # threshold compares in watts regardless of source sensor unit.
             record = self.detector.update(
                 attrs, now=now, power_w=self._read_power_w(),
-                boiler_active=snap.boiler_active,
-                boiler_heat_active=snap.boiler_heat_active,
-                boiler_dhw_active=snap.boiler_dhw_active,
+                # v1.17.2: R561 boiler-only close guard is hybrid-only;
+                # non-EVLQ template drift would close running HP cycles early.
+                boiler_active=snap.boiler_active if snap.is_hybrid else False,
+                boiler_heat_active=snap.boiler_heat_active if snap.is_hybrid else False,
+                boiler_dhw_active=snap.boiler_dhw_active if snap.is_hybrid else False,
             )
             if self.detector.state != prev_detector_state:
                 await self._persist_detector_state()
@@ -2193,7 +2202,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             per_mode = self.baseline.get(mode)
             if not record.get("is_transient"):
                 # v1.12.0 (#105): skip baseline update on transients
-                per_mode.update(vector)
+                # v1.17.2: also skip co-fire cycles on hybrid (boiler
+                # contributed heat skews thermal_kw_avg/dT and triggers
+                # false ml_anomaly on pure-HP cycles). Non-hybrid has 0
+                # boiler_contribution_samples so this is a no-op there.
+                _boiler_n = int(record.get("boiler_contribution_samples", 0) or 0)
+                if _boiler_n == 0:
+                    per_mode.update(vector)
             result = evaluate_anomaly(vector, per_mode, self.options)
             snap.anomaly = result
             if self.options.get("action_advice_enabled", True):
@@ -2270,9 +2285,17 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "hp_running": True,
                 "boiler_dhw_active": False,
             }
+        _st = getattr(snap, 'state', '')
+        # v1.17.2: boiler-alert suppression is hybrid-only; non-EVLQ
+        # template drift would otherwise suppress real HP-cycle alerts.
+        if not getattr(snap, 'is_hybrid', False):
+            return {
+                "boiler_active": False,
+                "hp_running": isinstance(_st, str) and _st == 'running',
+                "boiler_dhw_active": False,
+            }
         _ba = getattr(snap, 'boiler_active', False)
         _bd = getattr(snap, 'boiler_dhw_active', False)
-        _st = getattr(snap, 'state', '')
         return {
             "boiler_active": _ba if isinstance(_ba, bool) else False,
             "hp_running": isinstance(_st, str) and _st == 'running',
@@ -2907,6 +2930,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         # Only real booleans pass through. Truthy non-bool -> treated inactive.
         _ba = getattr(data_obj, 'boiler_active', False)
         _ba = _ba if isinstance(_ba, bool) else False
+        # v1.17.2: boiler-flag gated on is_hybrid; non-EVLQ template drift
+        # would otherwise skip valid HP samples AND flag them as co-fire
+        # (which downstream cop_today/stooklijn filters then remove).
+        if not getattr(data_obj, 'is_hybrid', False):
+            _ba = False
         _st = getattr(data_obj, 'state', '')
         _hp_on = isinstance(_st, str) and _st == 'running'
         if _ba and not _hp_on:
@@ -2916,6 +2944,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         _bh = _bh if isinstance(_bh, bool) else False
         _bd = getattr(data_obj, 'boiler_dhw_active', False)
         _bd = _bd if isinstance(_bd, bool) else False
+        if not getattr(data_obj, 'is_hybrid', False):
+            _bh = False
+            _bd = False
         if _bh and _bd:
             _boiler_mode = 'both'
         elif _bh:

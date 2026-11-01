@@ -122,3 +122,18 @@ async def test_process_new_cycle_never_raises_on_bad_record():
     c = _bare_coord()
     snap = DataSnapshot()
     await c._process_new_cycle({}, snap)
+
+
+async def test_process_new_cycle_skips_baseline_on_cofire():
+    """v1.17.2: co-fire cycles (boiler_contribution>0) must NOT update the
+    pure-HP baseline. Prevents false ml_anomaly on hybrid installs where
+    boiler heat skews thermal_kw_avg/dT."""
+    c = _bare_coord()
+    snap = DataSnapshot()
+    record = _good_record()
+    record["boiler_contribution_samples"] = 50  # co-fire detected
+    await c._process_new_cycle(record, snap)
+    # baseline must remain empty (cycle skipped)
+    assert c.baseline.total_samples() == 0
+    # anomaly evaluation still runs (code after the if-block)
+    assert hasattr(snap, "anomaly")

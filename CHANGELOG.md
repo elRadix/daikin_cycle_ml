@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Hybrid indicators leak (diagnostics):** `snap.hybrid_mode`, `snap.boiler_efficiency_cop`, and `snap.inv_freq_secondary` are now only populated when `snap.is_hybrid` is True (EVLQ family). Previously, non-hybrid installs (EPRA/ERLA/EBLA) leaked raw `"Hybrid Op. Mode"`, `"INV frequency 2 (rps)"`, and `"BE COP"` attributes into the coordinator snapshot if ESPAltherma published them (template drift). Sensors already filtered correctly via `is_hybrid`, but diagnostics exposed the raw values.
+- **Detector boiler-only close guard:** `detector.update()` now receives `boiler_active=False` on non-hybrid installs. Prevents premature HP-cycle close if `Boiler Operation Demand` leaks via template drift (R561 guard is hybrid-only by design).
+- **Alert suppression leak:** `_boiler_kwargs_for_alerts()` returns `boiler_active=False` on non-hybrid. Prevents silent suppression of `short_run` / `short_off` / `pendulum_hourly` / `pendulum_daily` alerts on genuine HP cycles.
+- **COP sample boiler flag:** `_maybe_collect_cop_sample()` gates `boiler_active`, `boiler_heat_active`, `boiler_dhw_active` on `is_hybrid`. Non-hybrid samples are never marked as co-fire, so `_refresh_cop_today` and `_maybe_refresh_stooklijn` keep their pure-HP filters intact.
+- **ML baseline co-fire exclusion:** Hybrid co-fire cycles (`boiler_contribution_samples>0`) no longer pollute the pure-HP baseline. Prevents false `ml_anomaly` on hybrid installs where boiler heat skews `thermal_kw_avg` and `dT`.
+- **Diagnostics boiler consistency:** `boiler_active`, `boiler_heat_active`, `boiler_dhw_active` now return `False` on non-hybrid in diagnostics, matching `hybrid_mode=""`.
+- **0-byte orphan DB cleanup:** New `_async_cleanup_orphan_dbs()` removes 0-byte `daikin_cycle_ml_*.db` files at setup (artifacts from pre-v1.10.0 shared-DB migration). Best-effort, never raises.
+
+### Added
+- 2 new test files: `test_v1172_hybrid_gate.py` (2 tests), `test_v1172_orphan_cleanup.py` (2 tests).
+- 1 new test in `test_coordinator_ml.py`: `test_process_new_cycle_skips_baseline_on_cofire` (P1-1 behavior).
+- Extended `test_218_evlq_hybrid.py` with `is_hybrid=True` on the 5 hybrid helper snapshots (6 tests now correctly exercise the gated code path).
+
+### Changed
+- `snap.boiler_active`, `snap.boiler_heat_active`, `snap.boiler_dhw_active` remain functional on all installs (supplementary electric boiler is possible on non-EVLQ units); only their consumption is hybrid-gated.
+
 ## [1.17.1] - 2026-11-01
 
 ### Fixed

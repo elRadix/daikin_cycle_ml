@@ -204,8 +204,40 @@ async def _async_backfill_quality(
     return n
 
 
+
+
+async def _async_cleanup_orphan_dbs(hass: HomeAssistant) -> None:
+    """v1.17.2: remove 0-byte orphan daikin_cycle_ml_*.db files.
+
+    Pre-v1.10.0 shared-DB migration left empty placeholder files
+    behind after entry removal. Best-effort, runs on every setup,
+    never raises.
+    """
+    storage = Path(hass.config.config_dir) / ".storage"
+
+    def _scan() -> list[str]:
+        cleaned: list[str] = []
+        for f in storage.glob("daikin_cycle_ml_*.db"):
+            try:
+                if f.stat().st_size == 0:
+                    f.unlink()
+                    cleaned.append(f.name)
+            except OSError:  # pragma: no cover
+                pass
+        return cleaned
+
+    try:
+        cleaned = await hass.async_add_executor_job(_scan)
+        if cleaned:
+            _LOGGER.info(
+                "Cleaned up 0-byte orphan DB files: %s", cleaned
+            )
+    except Exception:  # pragma: no cover
+        _LOGGER.debug("Orphan DB cleanup failed", exc_info=True)
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Daikin Cycle ML from a config entry."""
+    await _async_cleanup_orphan_dbs(hass)
     coordinator = DaikinCycleMLCoordinator(hass, entry)
     try:
         await coordinator.async_reload_user_datasheets()

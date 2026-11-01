@@ -28,7 +28,7 @@ def _sample(ts, mode="heating", cop=5.0, *, boiler_active=0, **overrides):
 async def test_rollup_excludes_cofire_samples(tmp_path):
     db = await _mk_db(tmp_path)
     try:
-        now = time.time()
+        now = (time.time() // 3600) * 3600 + 1800  # mid-hour to avoid boundary flake
         for i in range(3):
             await db.async_insert_cop_sample(_sample(now - i * 60, "heating", 6.0, boiler_active=0))
         for i in range(2):

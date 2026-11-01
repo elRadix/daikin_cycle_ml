@@ -550,6 +550,7 @@ def _cop_coord(state: str, boiler_active: bool):
     c.adaptive.suggest = _MM(return_value={})
 
     snap = DataSnapshot()
+    snap.is_hybrid = True  # v1.17.2: boiler_* gated on is_hybrid
     snap.cop = 4.5
     snap.state = state
     snap.boiler_active = boiler_active
@@ -917,6 +918,7 @@ async def test_cop_sample_co_fire_saved_with_flag():
     c._resolve_cop_sample_mode = _M(return_value="heating")
 
     snap = DataSnapshot()
+    snap.is_hybrid = True  # v1.17.2: boiler_* gated on is_hybrid
     snap.cop = 4.5
     snap.state = "running"
     snap.boiler_active = True  # co-fire
@@ -1475,6 +1477,7 @@ def test_boiler_kwargs_for_alerts_with_snapshot():
     )
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     snap = DataSnapshot()
+    snap.is_hybrid = True  # v1.17.2: boiler_* gated on is_hybrid
     snap.boiler_active = True
     snap.boiler_dhw_active = False
     snap.state = "idle"
@@ -1682,6 +1685,7 @@ async def _run_collect_cop_sample(
     c.cop_sensor_entity = None
     c._resolve_cop_sample_mode = _M(return_value="heating")
     snap = DataSnapshot()
+    snap.is_hybrid = True  # v1.17.2: boiler_* gated on is_hybrid
     snap.cop = hp_cop
     snap.state = state
     snap.boiler_active = boiler_active
