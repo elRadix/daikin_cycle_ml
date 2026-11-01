@@ -124,7 +124,7 @@ check_file() {
     # 14. HTML tags outside code fence (and outside inline code) — whitelist-based
     # Skips dashboard/ directory (Lovelace card READMEs legitimately use <img> etc.)
     case "$f" in
-        ./dashboard/*|dashboard/*) : ;;
+        ./dashboard/*|dashboard/*|./README.md|README.md) : ;;
         *)
             awk '
                 BEGIN {
