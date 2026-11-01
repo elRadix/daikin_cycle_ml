@@ -6,6 +6,7 @@ _emit_all_test_alerts).
 
 Refs #66.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -29,8 +30,10 @@ def _bare_alert(
     c.hass = MagicMock()
     c.hass.services = MagicMock()
     c.hass.services.async_call = AsyncMock()
+
     def _create_task(coro: Any) -> Any:
         return asyncio.ensure_future(coro)
+
     c.hass.async_create_task = _create_task
     c._last_alert_sent = {}
     c._alert_store = store
@@ -102,11 +105,7 @@ async def test_store_hydrates_on_setup() -> None:
     raw = await c._alert_store.async_load() or {}
     data = raw.get("data", {}) if isinstance(raw, dict) else {}
     last = data.get("last_sent", {}) if isinstance(data, dict) else {}
-    c._last_alert_sent = {
-        str(k): float(v)
-        for k, v in last.items()
-        if isinstance(v, (int, float))
-    }
+    c._last_alert_sent = {str(k): float(v) for k, v in last.items() if isinstance(v, (int, float))}
     assert c._last_alert_sent == {"cop_low": 1234.5}
 
 
@@ -117,28 +116,18 @@ async def test_store_empty_on_first_boot() -> None:
     raw = await c._alert_store.async_load() or {}
     data = raw.get("data", {}) if isinstance(raw, dict) else {}
     last = data.get("last_sent", {}) if isinstance(data, dict) else {}
-    c._last_alert_sent = {
-        str(k): float(v)
-        for k, v in last.items()
-        if isinstance(v, (int, float))
-    }
+    c._last_alert_sent = {str(k): float(v) for k, v in last.items() if isinstance(v, (int, float))}
     assert c._last_alert_sent == {}
 
 
 async def test_store_corrupt_values_dropped() -> None:
     """Non-numeric entries in last_sent are silently dropped."""
-    store = _fake_store(
-        initial={"data": {"last_sent": {"cop_low": 1234.5, "bad": "not-a-number"}}}
-    )
+    store = _fake_store(initial={"data": {"last_sent": {"cop_low": 1234.5, "bad": "not-a-number"}}})
     c = _bare_alert(store=store)
     raw = await c._alert_store.async_load() or {}
     data = raw.get("data", {}) if isinstance(raw, dict) else {}
     last = data.get("last_sent", {}) if isinstance(data, dict) else {}
-    c._last_alert_sent = {
-        str(k): float(v)
-        for k, v in last.items()
-        if isinstance(v, (int, float))
-    }
+    c._last_alert_sent = {str(k): float(v) for k, v in last.items() if isinstance(v, (int, float))}
     assert c._last_alert_sent == {"cop_low": 1234.5}
     assert "bad" not in c._last_alert_sent
 
@@ -168,6 +157,7 @@ def test_schedule_alert_save_uses_async_call_later(monkeypatch: Any) -> None:
         return lambda: None  # unsub handle
 
     import custom_components.daikin_cycle_ml.coordinator as coord_mod
+
     monkeypatch.setattr(coord_mod, "async_call_later", _fake_acl)
 
     store = _fake_store()
@@ -188,10 +178,12 @@ def test_schedule_alert_save_cancels_previous(monkeypatch: Any) -> None:
     def _fake_acl(hass: Any, delay: float, cb: Any) -> Any:
         def _cancel() -> None:
             cancelled.append(True)
+
         handles.append(_cancel)
         return _cancel
 
     import custom_components.daikin_cycle_ml.coordinator as coord_mod
+
     monkeypatch.setattr(coord_mod, "async_call_later", _fake_acl)
 
     store = _fake_store()
@@ -237,11 +229,7 @@ async def test_reload_preserves_dedup() -> None:
     raw = await b._alert_store.async_load() or {}
     data = raw.get("data", {}) if isinstance(raw, dict) else {}
     last = data.get("last_sent", {}) if isinstance(data, dict) else {}
-    b._last_alert_sent = {
-        str(k): float(v)
-        for k, v in last.items()
-        if isinstance(v, (int, float))
-    }
+    b._last_alert_sent = {str(k): float(v) for k, v in last.items() if isinstance(v, (int, float))}
 
     assert b._last_alert_sent == {"cop_low": 1234.5}
 
@@ -256,6 +244,7 @@ def test_single_emitter_uses_shared_delta() -> None:
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
         build_cop_low_message,
     )
+
     demo_cop = const.COP_LOW_THRESHOLD - const.TEST_ALERT_DELTA
     msg = build_cop_low_message(demo_cop, 8)
     assert f"{demo_cop:.2f}" in msg
@@ -266,6 +255,7 @@ def test_testall_emitter_uses_shared_delta() -> None:
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
         build_cop_low_message,
     )
+
     demo_cop = const.COP_LOW_THRESHOLD - const.TEST_ALERT_DELTA
     msg = build_cop_low_message(demo_cop, 8)
     expected = f"{const.COP_LOW_THRESHOLD - const.TEST_ALERT_DELTA:.2f}"
@@ -277,6 +267,7 @@ def test_dual_emitter_parity_for_cop_low() -> None:
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
         build_cop_low_message,
     )
+
     demo_cop = const.COP_LOW_THRESHOLD - const.TEST_ALERT_DELTA
     msg_single = build_cop_low_message(demo_cop, 8)
     msg_all = build_cop_low_message(demo_cop, 8)
@@ -302,9 +293,7 @@ def test_i18n_dedup_keys_present_in_all_files() -> None:
         assert "notifications_dedup" in steps, f"{f.name} missing block"
         for key in const.ALERT_DEDUP_DEFAULTS:
             field = f"alert_agg_{key}_min"
-            assert field in steps["notifications_dedup"]["data"], (
-                f"{f.name} data missing {field}"
-            )
+            assert field in steps["notifications_dedup"]["data"], f"{f.name} data missing {field}"
             assert field in steps["notifications_dedup"]["data_description"], (
                 f"{f.name} dd missing {field}"
             )
@@ -318,7 +307,6 @@ async def test_persist_noop_without_store() -> None:
     c = _bare_alert(store=None)
     # Should not raise; _alert_store is None so early return
     await c._async_persist_last_alert_sent()
-
 
 
 async def test_schedule_alert_save_fires_callback(monkeypatch: Any) -> None:
@@ -336,6 +324,7 @@ async def test_schedule_alert_save_fires_callback(monkeypatch: Any) -> None:
         return lambda: None
 
     import custom_components.daikin_cycle_ml.coordinator as coord_mod
+
     monkeypatch.setattr(coord_mod, "async_call_later", _fake_acl)
 
     store = _fake_store()

@@ -9,6 +9,7 @@ New guards in async_step_reconfigure_basic:
 - state.attributes empty (state Online) -> source_empty
 - else -> existing missing_attributes
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock

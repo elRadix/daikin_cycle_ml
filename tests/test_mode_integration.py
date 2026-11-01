@@ -5,6 +5,7 @@ classify_mode() returned lowercase but binary_sensor compared against
 capitalized OP_MODE_* constants, causing heating/cooling/dhw binary
 sensors to be permanently off.
 """
+
 from __future__ import annotations
 
 from collections import deque
@@ -65,8 +66,8 @@ def test_snap_mode_matches_binary_sensor_comparison():
     mode = det.snapshot().get("mode", "unknown")
 
     # Simulate binary_sensor state_fn logic (was buggy):
-    old_broken = (mode == OP_MODE_HEATING)      # "heating" == "Heating" → False
-    new_fixed = (mode == MODE_HEATING)          # "heating" == "heating" → True
+    old_broken = mode == OP_MODE_HEATING  # "heating" == "Heating" → False
+    new_fixed = mode == MODE_HEATING  # "heating" == "heating" → True
 
     assert old_broken is False, "sanity: old code truly broken"
     assert new_fixed is True, "new code must match"
@@ -77,6 +78,7 @@ def test_binary_sensor_module_uses_MODE_constants():
     import inspect
 
     from custom_components.daikin_cycle_ml import binary_sensor as bs_mod
+
     src = inspect.getsource(bs_mod)
     # OP_MODE_* imports should be absent
     assert "OP_MODE_HEATING" not in src

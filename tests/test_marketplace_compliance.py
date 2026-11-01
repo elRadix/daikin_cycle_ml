@@ -1,4 +1,5 @@
 """Marketplace + Gold-tier compliance tests."""
+
 from __future__ import annotations
 
 import json
@@ -11,19 +12,49 @@ COMPONENT_DIR = REPO_ROOT / "custom_components" / "daikin_cycle_ml"
 
 def test_manifest_has_all_marketplace_fields():
     data = json.loads((COMPONENT_DIR / "manifest.json").read_text())
-    required = ["domain", "name", "version", "documentation",
-                "issue_tracker", "codeowners", "categories",
-                "quality_scale", "iot_class", "integration_type"]
+    required = [
+        "domain",
+        "name",
+        "version",
+        "documentation",
+        "issue_tracker",
+        "codeowners",
+        "categories",
+        "quality_scale",
+        "iot_class",
+        "integration_type",
+    ]
     for field in required:
         assert field in data, f"manifest.json missing {field!r}"
 
     # Real HA category enum (see homeassistant/components/homeassistant/strings.json)
     VALID = {
-        "adc", "analytics", "automation", "car", "climate", "cover",
-        "device_tracker", "doorbell", "energy", "event", "fan", "health",
-        "humidifier", "light", "lock", "media_source", "multimedia",
-        "network", "notifier", "number", "remote", "siren",
-        "switch", "system", "weather", "update"
+        "adc",
+        "analytics",
+        "automation",
+        "car",
+        "climate",
+        "cover",
+        "device_tracker",
+        "doorbell",
+        "energy",
+        "event",
+        "fan",
+        "health",
+        "humidifier",
+        "light",
+        "lock",
+        "media_source",
+        "multimedia",
+        "network",
+        "notifier",
+        "number",
+        "remote",
+        "siren",
+        "switch",
+        "system",
+        "weather",
+        "update",
     }
     for cat in data.get("categories", []):
         assert cat in VALID, (
@@ -56,8 +87,10 @@ def test_quality_scale_yaml_present():
 
 def test_translation_keys_match():
     import json as _json
+
     en = _json.loads((COMPONENT_DIR / "translations" / "en.json").read_text())
     nl = _json.loads((COMPONENT_DIR / "translations" / "nl.json").read_text())
+
     def _keys(d, prefix=""):
         out = set()
         for k, v in d.items():
@@ -67,6 +100,7 @@ def test_translation_keys_match():
             else:
                 out.add(key)
         return out
+
     en_keys = _keys(en)
     nl_keys = _keys(nl)
     assert not (en_keys - nl_keys), f"Missing in nl: {en_keys - nl_keys}"
@@ -75,8 +109,10 @@ def test_translation_keys_match():
 
 def test_strings_json_and_translations_en_match():
     import json as _json
+
     strings = _json.loads((COMPONENT_DIR / "strings.json").read_text())
     en = _json.loads((COMPONENT_DIR / "translations" / "en.json").read_text())
+
     def _keys(d, prefix=""):
         out = set()
         for k, v in d.items():
@@ -86,6 +122,7 @@ def test_strings_json_and_translations_en_match():
             else:
                 out.add(key)
         return out
+
     s_keys = _keys(strings)
     e_keys = _keys(en)
     assert not (s_keys - e_keys), f"In strings not en: {s_keys - e_keys}"
@@ -94,6 +131,7 @@ def test_strings_json_and_translations_en_match():
 
 def test_version_consistency_across_three_files():
     import json as _json
+
     manifest = _json.loads((COMPONENT_DIR / "manifest.json").read_text())
     v_manifest = manifest["version"]
     const_text = (COMPONENT_DIR / "const.py").read_text()
@@ -117,6 +155,7 @@ def test_brand_assets_present():
 
 def test_icons_json_present_and_parses():
     import json as _json
+
     icons = COMPONENT_DIR / "translations" / "icons.json"
     assert icons.exists()
     data = _json.loads(icons.read_text())

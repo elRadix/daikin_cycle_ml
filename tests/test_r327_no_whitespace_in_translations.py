@@ -4,6 +4,7 @@ all translation string values (\\n counts as whitespace).
 Local R290 guard checks ICU braces only; this test catches the
 whitespace case that Hassfest's translations validator enforces.
 """
+
 from __future__ import annotations
 
 import json
@@ -32,6 +33,4 @@ def test_no_leading_or_trailing_whitespace_in_translations():
     for rel in _FILES:
         data = json.loads((_ROOT / rel).read_text(encoding="utf-8"))
         for path, val in _walk(data):
-            assert val == val.strip(), (
-                f"{rel}:{path} has leading/trailing whitespace: {val!r}"
-            )
+            assert val == val.strip(), f"{rel}:{path} has leading/trailing whitespace: {val!r}"

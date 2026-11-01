@@ -1,4 +1,5 @@
 """Batch 31cd booster #3: notification builders + db cop helpers."""
+
 from __future__ import annotations
 
 import asyncio
@@ -13,13 +14,18 @@ from custom_components.daikin_cycle_ml.storage.db import CycleDB
 # notification_engine public builders
 # ────────────────────────────────────────────────────────────
 
+
 def test_build_status_message_minimal():
     snap = {
-        "mode": "heating", "state": "idle",
-        "cycles_today": 5, "target_cpd": 8,
-        "last_cycle_ago_min": 12, "quality_last": 85,
+        "mode": "heating",
+        "state": "idle",
+        "cycles_today": 5,
+        "target_cpd": 8,
+        "last_cycle_ago_min": 12,
+        "quality_last": 85,
         "anomaly_severity": None,
-        "baseline_samples": 100, "baseline_modes": ["heating"],
+        "baseline_samples": 100,
+        "baseline_modes": ["heating"],
         "top_advice": None,
     }
     msg = ne.build_status_message(snap, None, emoji_enabled=False)
@@ -29,11 +35,15 @@ def test_build_status_message_minimal():
 
 def test_build_status_message_full():
     snap = {
-        "mode": "dhw", "state": "running",
-        "cycles_today": 12, "target_cpd": 8,
-        "last_cycle_ago_min": 3, "quality_last": 70,
+        "mode": "dhw",
+        "state": "running",
+        "cycles_today": 12,
+        "target_cpd": 8,
+        "last_cycle_ago_min": 3,
+        "quality_last": 70,
         "anomaly_severity": "warning",
-        "baseline_samples": 250, "baseline_modes": ["heating", "dhw"],
+        "baseline_samples": 250,
+        "baseline_modes": ["heating", "dhw"],
         "top_advice": "Check hysteresis",
     }
     msg = ne.build_status_message(snap, None, emoji_enabled=True)
@@ -50,7 +60,8 @@ def test_build_status_message_handles_missing_keys():
 def test_build_stooklijn_message_basic():
     cache = {
         "state": "lower_lwt",
-        "huidige_lwt": 35.0, "optimale_lwt": 33.0,
+        "huidige_lwt": 35.0,
+        "optimale_lwt": 33.0,
         "besparing_cop_pct": 8.0,
         "comfort_impact": 0.5,
         "betrouwbaarheid": 85,
@@ -82,6 +93,7 @@ def test_build_cop_low_message_zero_samples():
 # db cop helpers
 # ────────────────────────────────────────────────────────────
 
+
 async def _mkdb(tmp_path, name):
     db = CycleDB(str(tmp_path / name))
     await db.async_open()
@@ -99,12 +111,16 @@ async def test_db_cop_samples_between(tmp_path):
         now = time.time()
         for i in range(3):
             try:
-                await db.async_insert_cop_sample({
-                    "ts": now - i * 60,
-                    "cop": 3.0 + i * 0.1,
-                    "lwt": 35.0, "outdoor": 8.0,
-                    "flow_lmin": 12.0, "power_stable": 1,
-                })
+                await db.async_insert_cop_sample(
+                    {
+                        "ts": now - i * 60,
+                        "cop": 3.0 + i * 0.1,
+                        "lwt": 35.0,
+                        "outdoor": 8.0,
+                        "flow_lmin": 12.0,
+                        "power_stable": 1,
+                    }
+                )
             except TypeError:
                 pytest.skip("cop sample signature differs")
         rows = await db.async_fetch_cop_samples_between(now - 600, now + 60)
@@ -119,10 +135,16 @@ async def test_db_cop_samples_avg(tmp_path):
     try:
         now = time.time()
         try:
-            await db.async_insert_cop_sample({
-                "ts": now, "cop": 3.5, "lwt": 35.0, "outdoor": 8.0,
-                "flow_lmin": 12.0, "power_stable": 1,
-            })
+            await db.async_insert_cop_sample(
+                {
+                    "ts": now,
+                    "cop": 3.5,
+                    "lwt": 35.0,
+                    "outdoor": 8.0,
+                    "flow_lmin": 12.0,
+                    "power_stable": 1,
+                }
+            )
         except TypeError:
             pytest.skip("cop sample signature differs")
         v = await db.async_avg_cop_between(now - 600, now + 60)
@@ -181,13 +203,22 @@ async def test_db_daily_summary_after_insert(tmp_path):
     db = await _mkdb(tmp_path, "ds.db")
     try:
         now = time.time()
-        await db.async_insert_cycle({
-            "start_ts": now - 300, "end_ts": now - 100,
-            "duration_s": 200, "mode": "heating",
-            "dT_max": 5.0, "dT_avg": 3.0,
-            "rps_max": 40, "rps_avg": 30, "outdoor_temp": 7,
-            "buh_used": 0, "defrost_used": 0, "quality_score": 80,
-        })
+        await db.async_insert_cycle(
+            {
+                "start_ts": now - 300,
+                "end_ts": now - 100,
+                "duration_s": 200,
+                "mode": "heating",
+                "dT_max": 5.0,
+                "dT_avg": 3.0,
+                "rps_max": 40,
+                "rps_avg": 30,
+                "outdoor_temp": 7,
+                "buh_used": 0,
+                "defrost_used": 0,
+                "quality_score": 80,
+            }
+        )
         result = await db.async_daily_summary(days=1)
         assert isinstance(result, (list, dict))
     finally:
@@ -199,13 +230,22 @@ async def test_db_fetch_cycles_with_data(tmp_path):
     db = await _mkdb(tmp_path, "fwd.db")
     try:
         now = time.time()
-        await db.async_insert_cycle({
-            "start_ts": now - 300, "end_ts": now - 100,
-            "duration_s": 200, "mode": "heating",
-            "dT_max": 5.0, "dT_avg": 3.0,
-            "rps_max": 40, "rps_avg": 30, "outdoor_temp": 7,
-            "buh_used": 0, "defrost_used": 0, "quality_score": 80,
-        })
+        await db.async_insert_cycle(
+            {
+                "start_ts": now - 300,
+                "end_ts": now - 100,
+                "duration_s": 200,
+                "mode": "heating",
+                "dT_max": 5.0,
+                "dT_avg": 3.0,
+                "rps_max": 40,
+                "rps_avg": 30,
+                "outdoor_temp": 7,
+                "buh_used": 0,
+                "defrost_used": 0,
+                "quality_score": 80,
+            }
+        )
         rows = await db.async_fetch_cycles(days=1)
         assert len(rows) >= 1
     finally:
@@ -217,8 +257,10 @@ async def test_db_fetch_cycles_with_data(tmp_path):
 # services helpers
 # ────────────────────────────────────────────────────────────
 
+
 def test_services_flatten_notify_choice_dict():
     from custom_components.daikin_cycle_ml import services as svc
+
     fn = getattr(svc, "_flatten_notify_choice", None)
     if fn is None:
         pytest.skip("no flatten helper")
@@ -228,14 +270,17 @@ def test_services_flatten_notify_choice_dict():
 
 def test_services_flatten_notify_choice_string():
     from custom_components.daikin_cycle_ml import services as svc
+
     fn = getattr(svc, "_flatten_notify_choice", None)
     if fn is None:
         pytest.skip("no flatten helper")
     assert fn("notify.x") == "notify.x"
 
+
 # ────────────────────────────────────────────────────────────
 # Additional tiny coverage tests (Batch 31cd-fix9)
 # ────────────────────────────────────────────────────────────
+
 
 async def test_db_path_property(tmp_path):
     db = CycleDB(str(tmp_path / "p.db"))
@@ -276,17 +321,27 @@ async def test_db_insert_features(tmp_path):
     await db.async_initialize()
     try:
         now = time.time()
-        cid = await db.async_insert_cycle({
-            "start_ts": now - 300, "end_ts": now - 100,
-            "duration_s": 200, "mode": "heating",
-            "dT_max": 5.0, "dT_avg": 3.0,
-            "rps_max": 40, "rps_avg": 30, "outdoor_temp": 7,
-            "buh_used": 0, "defrost_used": 0, "quality_score": 80,
-        })
+        cid = await db.async_insert_cycle(
+            {
+                "start_ts": now - 300,
+                "end_ts": now - 100,
+                "duration_s": 200,
+                "mode": "heating",
+                "dT_max": 5.0,
+                "dT_avg": 3.0,
+                "rps_max": 40,
+                "rps_avg": 30,
+                "outdoor_temp": 7,
+                "buh_used": 0,
+                "defrost_used": 0,
+                "quality_score": 80,
+            }
+        )
         if cid is None:
             pytest.skip("cycle insert failed")
         # Build a vector of correct length
         from custom_components.daikin_cycle_ml.ml.features import VECTOR_LEN
+
         vec = [1.0] * VECTOR_LEN
         try:
             await db.async_insert_features(cid, vec)
@@ -307,16 +362,26 @@ async def test_db_insert_features_twice_or_conflict(tmp_path):
     await db.async_initialize()
     try:
         now = time.time()
-        cid = await db.async_insert_cycle({
-            "start_ts": now - 300, "end_ts": now - 100,
-            "duration_s": 200, "mode": "heating",
-            "dT_max": 5.0, "dT_avg": 3.0,
-            "rps_max": 40, "rps_avg": 30, "outdoor_temp": 7,
-            "buh_used": 0, "defrost_used": 0, "quality_score": 80,
-        })
+        cid = await db.async_insert_cycle(
+            {
+                "start_ts": now - 300,
+                "end_ts": now - 100,
+                "duration_s": 200,
+                "mode": "heating",
+                "dT_max": 5.0,
+                "dT_avg": 3.0,
+                "rps_max": 40,
+                "rps_avg": 30,
+                "outdoor_temp": 7,
+                "buh_used": 0,
+                "defrost_used": 0,
+                "quality_score": 80,
+            }
+        )
         if cid is None:
             pytest.skip("cycle insert failed")
         from custom_components.daikin_cycle_ml.ml.features import VECTOR_LEN
+
         vec = [0.5] * VECTOR_LEN
         try:
             await db.async_insert_features(cid, vec)

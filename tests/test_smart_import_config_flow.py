@@ -9,6 +9,7 @@ Covers the diagnose-step wiring added in commit 2:
 - Backward compat: default sensor.althermasensors without aliases still
   follows the original AUTO path
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -64,6 +65,7 @@ async def _start_user_step(hass: HomeAssistant) -> dict[str, Any]:
 # =========================================================================
 # Smart fallback path (Laag 1-3)
 # =========================================================================
+
 
 async def test_smart_fallback_routes_to_diagnose(hass: HomeAssistant) -> None:
     """Missing exact attrs, but >=3 resolvable -> diagnose step."""
@@ -127,6 +129,7 @@ async def test_smart_fallback_insufficient_routes_to_error(
 # Diagnose submit -> attributes, internal key popped
 # =========================================================================
 
+
 async def test_diagnose_submit_advances_to_attributes(
     hass: HomeAssistant,
 ) -> None:
@@ -141,9 +144,7 @@ async def test_diagnose_submit_advances_to_attributes(
         },
     )
     assert result["step_id"] == "diagnose"
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {}
-    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "attributes"
 
@@ -165,9 +166,7 @@ async def test_diagnose_submit_pops_internal_key(
     handler = hass.config_entries.flow._progress[result["flow_id"]]
     # Before submit: _smart_available is in handler._data
     assert "_smart_available" in handler._data
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {}
-    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["step_id"] == "attributes"
     # After submit: popped
     assert "_smart_available" not in handler._data
@@ -176,6 +175,7 @@ async def test_diagnose_submit_pops_internal_key(
 # =========================================================================
 # Diagnose -> custom model (issue #51, L286 branch)
 # =========================================================================
+
 
 async def test_diagnose_submit_custom_model_routes_to_model_custom(
     hass: HomeAssistant,
@@ -192,9 +192,7 @@ async def test_diagnose_submit_custom_model_routes_to_model_custom(
         },
     )
     assert result["step_id"] == "diagnose"
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {}
-    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "model_custom_info"
 
@@ -202,6 +200,7 @@ async def test_diagnose_submit_custom_model_routes_to_model_custom(
 # =========================================================================
 # Backward compat: exact-match path unchanged
 # =========================================================================
+
 
 async def test_backward_compat_exact_default_sensor(
     hass: HomeAssistant,
@@ -242,6 +241,7 @@ async def test_backward_compat_exact_default_sensor(
 # Anti-alias regression in config-flow context (julG COP~11)
 # =========================================================================
 
+
 async def test_anti_alias_r2t_not_resolved_to_r1t(
     hass: HomeAssistant,
 ) -> None:
@@ -269,5 +269,3 @@ async def test_anti_alias_r2t_not_resolved_to_r1t(
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "model"
     assert result["errors"] == {"source_sensor": "missing_attributes"}
-
-

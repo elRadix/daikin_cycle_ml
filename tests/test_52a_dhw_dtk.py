@@ -4,6 +4,7 @@ Bug A: _is_dhw_active mag niet puur op 3-way valve triggeren
        (klep rust in DHW-positie op Daikin units).
 Bug C: dt_k moet None zijn als state idle is.
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -71,12 +72,15 @@ def test_dhw_inactive_idle_no_buh():
 
 def test_dtk_none_when_idle():
     s = _snap(state="idle")
-    with patch(
-        "custom_components.daikin_cycle_ml.sensor._dt_from_attrs",
-        return_value=11.2,
-    ), patch(
-        "custom_components.daikin_cycle_ml.sensor._rps_from_attrs",
-        return_value=0.0,
+    with (
+        patch(
+            "custom_components.daikin_cycle_ml.sensor._dt_from_attrs",
+            return_value=11.2,
+        ),
+        patch(
+            "custom_components.daikin_cycle_ml.sensor._rps_from_attrs",
+            return_value=0.0,
+        ),
     ):
         attrs = _attrs_current_cycle(s, MagicMock())
     assert attrs["dt_k"] is None
@@ -85,12 +89,15 @@ def test_dtk_none_when_idle():
 
 def test_dtk_present_when_running():
     s = _snap(state="running")
-    with patch(
-        "custom_components.daikin_cycle_ml.sensor._dt_from_attrs",
-        return_value=7.5,
-    ), patch(
-        "custom_components.daikin_cycle_ml.sensor._rps_from_attrs",
-        return_value=45.0,
+    with (
+        patch(
+            "custom_components.daikin_cycle_ml.sensor._dt_from_attrs",
+            return_value=7.5,
+        ),
+        patch(
+            "custom_components.daikin_cycle_ml.sensor._rps_from_attrs",
+            return_value=45.0,
+        ),
     ):
         attrs = _attrs_current_cycle(s, MagicMock())
     assert attrs["dt_k"] == 7.5

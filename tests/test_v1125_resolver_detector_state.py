@@ -1,4 +1,5 @@
 """v1.12.5 #128: _resolve_cop_sample_mode prefers detector.state."""
+
 from unittest.mock import MagicMock
 
 from custom_components.daikin_cycle_ml.coordinator import (

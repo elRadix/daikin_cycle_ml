@@ -1,4 +1,5 @@
 """Tests for storage.store.CycleStore."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.storage.store import CycleStore

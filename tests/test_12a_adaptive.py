@@ -1,4 +1,5 @@
 """Tests for 12a: adaptive thresholds (pure percentile learning)."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.ml.adaptive_thresholds import (
@@ -41,32 +42,32 @@ def test_clamp_int_bounds():
 
 def test_observe_cycle_stores_both():
     at = AdaptiveThresholds(min_samples=3)
-    assert at.observe_cycle('heating', 900.0, 600.0) is True
-    counts = at.sample_count('heating')
-    assert counts['run'] == 1
-    assert counts['off'] == 1
+    assert at.observe_cycle("heating", 900.0, 600.0) is True
+    counts = at.sample_count("heating")
+    assert counts["run"] == 1
+    assert counts["off"] == 1
 
 
 def test_observe_cycle_skips_invalid():
     at = AdaptiveThresholds(min_samples=3)
-    assert at.observe_cycle('heating', None, None) is False
-    assert at.observe_cycle('heating', -10.0, None) is False
-    assert at.sample_count('heating')['run'] == 0
+    assert at.observe_cycle("heating", None, None) is False
+    assert at.observe_cycle("heating", -10.0, None) is False
+    assert at.sample_count("heating")["run"] == 0
 
 
 def test_learn_short_run_returns_none_below_min():
     at = AdaptiveThresholds(min_samples=5)
     for d in (600, 700, 800):
-        at.observe_cycle('heating', d, None)
-    assert at.learn_short_run_min('heating') is None
+        at.observe_cycle("heating", d, None)
+    assert at.learn_short_run_min("heating") is None
 
 
 def test_learn_short_run_p20():
     at = AdaptiveThresholds(min_samples=5)
     # 5 samples: 5, 10, 15, 20, 25 min -> p20 near 10
     for m in (5, 10, 15, 20, 25):
-        at.observe_cycle('heating', m * 60.0, None)
-    v = at.learn_short_run_min('heating')
+        at.observe_cycle("heating", m * 60.0, None)
+    v = at.learn_short_run_min("heating")
     assert v is not None
     assert 8 <= v <= 12
 
@@ -74,8 +75,8 @@ def test_learn_short_run_p20():
 def test_learn_good_off_p50():
     at = AdaptiveThresholds(min_samples=5)
     for m in (5, 10, 15, 20, 25):
-        at.observe_cycle('heating', None, m * 60.0)
-    v = at.learn_good_off_min('heating')
+        at.observe_cycle("heating", None, m * 60.0)
+    v = at.learn_good_off_min("heating")
     assert v == 15
 
 
@@ -96,10 +97,10 @@ def test_learn_target_returns_none_when_empty():
 def test_modes_isolation():
     at = AdaptiveThresholds(min_samples=2)
     for _ in range(5):
-        at.observe_cycle('heating', 900.0, None)
-        at.observe_cycle('dhw', 300.0, None)
-    h = at.learn_short_run_min('heating')
-    d = at.learn_short_run_min('dhw')
+        at.observe_cycle("heating", 900.0, None)
+        at.observe_cycle("dhw", 300.0, None)
+    h = at.learn_short_run_min("heating")
+    d = at.learn_short_run_min("dhw")
     assert h is not None and h >= 14
     assert d is not None and d <= 6
 
@@ -107,35 +108,35 @@ def test_modes_isolation():
 def test_suggest_returns_available_keys():
     at = AdaptiveThresholds(min_samples=3)
     for _ in range(5):
-        at.observe_cycle('heating', 1200.0, 900.0)
+        at.observe_cycle("heating", 1200.0, 900.0)
     for _ in range(5):
         at.observe_day(10)
-    s = at.suggest('heating')
-    assert 'short_run_threshold_min' in s
-    assert 'good_off_threshold_min' in s
-    assert 'target_cycles_per_day' in s
+    s = at.suggest("heating")
+    assert "short_run_threshold_min" in s
+    assert "good_off_threshold_min" in s
+    assert "target_cycles_per_day" in s
 
 
 def test_clamp_upper_bound_run():
     at = AdaptiveThresholds(min_samples=2)
     for _ in range(10):
-        at.observe_cycle('heating', 99999 * 60.0, None)
-    v = at.learn_short_run_min('heating')
+        at.observe_cycle("heating", 99999 * 60.0, None)
+    v = at.learn_short_run_min("heating")
     assert v == 240
 
 
 def test_to_from_dict_roundtrip():
     at = AdaptiveThresholds(min_samples=7)
-    at.observe_cycle('heating', 900.0, 600.0)
-    at.observe_cycle('dhw', 300.0, None)
+    at.observe_cycle("heating", 900.0, 600.0)
+    at.observe_cycle("dhw", 300.0, None)
     at.observe_day(8)
     at.observe_day(12)
     d = at.to_dict()
     restored = AdaptiveThresholds.from_dict(d)
     assert restored.min_samples == 7
-    assert restored.sample_count('heating')['run'] == 1
-    assert restored.sample_count('dhw')['run'] == 1
-    assert restored.sample_count('heating')['days'] == 2
+    assert restored.sample_count("heating")["run"] == 1
+    assert restored.sample_count("dhw")["run"] == 1
+    assert restored.sample_count("heating")["days"] == 2
 
 
 def test_from_dict_empty_returns_fresh():
@@ -146,16 +147,16 @@ def test_from_dict_empty_returns_fresh():
 
 def test_reset_mode_only():
     at = AdaptiveThresholds(min_samples=2)
-    at.observe_cycle('heating', 900.0, None)
-    at.observe_cycle('dhw', 300.0, None)
-    at.reset('heating')
-    assert at.sample_count('heating')['run'] == 0
-    assert at.sample_count('dhw')['run'] == 1
+    at.observe_cycle("heating", 900.0, None)
+    at.observe_cycle("dhw", 300.0, None)
+    at.reset("heating")
+    assert at.sample_count("heating")["run"] == 0
+    assert at.sample_count("dhw")["run"] == 1
 
 
 def test_reset_all():
     at = AdaptiveThresholds(min_samples=2)
-    at.observe_cycle('heating', 900.0, 600.0)
+    at.observe_cycle("heating", 900.0, 600.0)
     at.observe_day(10)
     at.reset()
     assert at.total_samples() == 0
@@ -164,7 +165,6 @@ def test_reset_all():
 
 def test_total_samples_counts_both():
     at = AdaptiveThresholds(min_samples=2)
-    at.observe_cycle('heating', 900.0, 600.0)
-    at.observe_cycle('heating', 950.0, None)
+    at.observe_cycle("heating", 900.0, 600.0)
+    at.observe_cycle("heating", 950.0, None)
     assert at.total_samples() == 3
-

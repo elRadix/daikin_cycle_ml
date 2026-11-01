@@ -1,4 +1,5 @@
 """Tests for retention / daily_summary (Batch 11b-1)."""
+
 from __future__ import annotations
 
 import asyncio
@@ -42,6 +43,7 @@ def _rec(days_ago: float, mode: str = "Heating", quality: int = 80) -> dict:
 
 # ---------- schema ----------
 
+
 async def test_daily_summary_table_exists(db):
     assert await db.async_count("daily_summary") == 0
 
@@ -52,6 +54,7 @@ async def test_count_rejects_unknown_table(db):
 
 
 # ---------- rollup ----------
+
 
 async def test_maintenance_no_data(db):
     out = await db.async_run_maintenance()
@@ -114,13 +117,12 @@ async def test_maintenance_idempotent(db):
 @pytest.mark.expected_lingering_timers(True)
 async def test_maintenance_no_vacuum_when_disabled(db):
     await db.async_insert_cycle(_rec(100))
-    out = await db.async_run_maintenance(
-        cycle_retention_days=90, vacuum=False
-    )
+    out = await db.async_run_maintenance(cycle_retention_days=90, vacuum=False)
     assert out["cycles_deleted"] == 1
 
 
 # ---------- daily_summary query ----------
+
 
 async def test_daily_summary_empty(db):
     assert await db.async_daily_summary() == []

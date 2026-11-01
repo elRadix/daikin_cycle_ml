@@ -2,6 +2,7 @@
 
 C1 scope: const + _persist_energy_baseline (Welford) + _compute_energy_daily_anomaly.
 """
+
 from __future__ import annotations
 
 import time
@@ -30,6 +31,7 @@ def _yesterday() -> str:
 
 # ========== Group A: const ==========
 
+
 def test_sigma_threshold_is_2():
     assert ENERGY_ANOMALY_SIGMA_THRESHOLD == 2.0
 
@@ -44,6 +46,7 @@ def test_min_days_is_7():
 
 # ========== Group B: _persist_energy_baseline ==========
 
+
 @pytest.mark.asyncio
 async def test_persist_no_db_returns():
     c = _bare(db=None)
@@ -54,10 +57,12 @@ async def test_persist_no_db_returns():
 async def test_persist_first_day_initializes_n1():
     db = MagicMock()
     y = _yesterday()
-    db.async_get_model_state = AsyncMock(side_effect=[
-        {},
-        {"heating_el_kwh": 5.0, "dhw_el_kwh": 2.0, "cooling_el_kwh": 0.0},
-    ])
+    db.async_get_model_state = AsyncMock(
+        side_effect=[
+            {},
+            {"heating_el_kwh": 5.0, "dhw_el_kwh": 2.0, "cooling_el_kwh": 0.0},
+        ]
+    )
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db)
     await c._persist_energy_baseline()
@@ -78,7 +83,7 @@ async def test_persist_same_last_day_no_persist():
     y = _yesterday()
     existing = {
         "heating": {"mean": 5.0, "m2": 2.0, "n": 3, "last_day": y},
-        "dhw":     {"mean": 2.0, "m2": 0.5, "n": 3, "last_day": y},
+        "dhw": {"mean": 2.0, "m2": 0.5, "n": 3, "last_day": y},
         "cooling": {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": y},
     }
     db.async_get_model_state = AsyncMock(side_effect=[existing, {}])
@@ -94,13 +99,15 @@ async def test_persist_new_day_welford_advances():
     y = _yesterday()
     existing = {
         "heating": {"mean": 5.0, "m2": 2.0, "n": 3, "last_day": "2020-01-01"},
-        "dhw":     {"mean": 2.0, "m2": 0.5, "n": 3, "last_day": "2020-01-01"},
+        "dhw": {"mean": 2.0, "m2": 0.5, "n": 3, "last_day": "2020-01-01"},
         "cooling": {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": "2020-01-01"},
     }
-    db.async_get_model_state = AsyncMock(side_effect=[
-        existing,
-        {"heating_el_kwh": 7.0, "dhw_el_kwh": 2.0, "cooling_el_kwh": 0.0},
-    ])
+    db.async_get_model_state = AsyncMock(
+        side_effect=[
+            existing,
+            {"heating_el_kwh": 7.0, "dhw_el_kwh": 2.0, "cooling_el_kwh": 0.0},
+        ]
+    )
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db)
     await c._persist_energy_baseline()
@@ -123,7 +130,7 @@ async def test_persist_missing_yesterday_advances_marker():
     y = _yesterday()
     existing = {
         "heating": {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": ""},
-        "dhw":     {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": ""},
+        "dhw": {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": ""},
         "cooling": {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": ""},
     }
     db.async_get_model_state = AsyncMock(side_effect=[existing, None])
@@ -164,13 +171,15 @@ async def test_persist_mode_state_not_dict_initialized():
     y = _yesterday()
     existing = {
         "heating": {"mean": 5.0, "m2": 2.0, "n": 3, "last_day": "2020-01-01"},
-        "dhw":     None,
+        "dhw": None,
         "cooling": {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": ""},
     }
-    db.async_get_model_state = AsyncMock(side_effect=[
-        existing,
-        {"heating_el_kwh": 5.0, "dhw_el_kwh": 2.0, "cooling_el_kwh": 0.0},
-    ])
+    db.async_get_model_state = AsyncMock(
+        side_effect=[
+            existing,
+            {"heating_el_kwh": 5.0, "dhw_el_kwh": 2.0, "cooling_el_kwh": 0.0},
+        ]
+    )
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db)
     await c._persist_energy_baseline()
@@ -188,7 +197,7 @@ async def test_persist_energy_y_not_dict_returns_early():
     db = MagicMock()
     existing = {
         "heating": {"mean": 5.0, "m2": 2.0, "n": 3, "last_day": "2020-01-01"},
-        "dhw":     {"mean": 2.0, "m2": 0.5, "n": 3, "last_day": "2020-01-01"},
+        "dhw": {"mean": 2.0, "m2": 0.5, "n": 3, "last_day": "2020-01-01"},
         "cooling": {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": "2020-01-01"},
     }
     db.async_get_model_state = AsyncMock(side_effect=[existing, ["bad"]])
@@ -205,13 +214,15 @@ async def test_persist_x_valueerror_skips_mode():
     y = _yesterday()
     existing = {
         "heating": {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": ""},
-        "dhw":     {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": ""},
+        "dhw": {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": ""},
         "cooling": {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": ""},
     }
-    db.async_get_model_state = AsyncMock(side_effect=[
-        existing,
-        {"heating_el_kwh": "not-a-number", "dhw_el_kwh": 3.0, "cooling_el_kwh": 0.0},
-    ])
+    db.async_get_model_state = AsyncMock(
+        side_effect=[
+            existing,
+            {"heating_el_kwh": "not-a-number", "dhw_el_kwh": 3.0, "cooling_el_kwh": 0.0},
+        ]
+    )
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db)
     await c._persist_energy_baseline()
@@ -232,13 +243,15 @@ async def test_persist_n_mean_m2_corrupt_resets():
     y = _yesterday()
     existing = {
         "heating": {"mean": "bad", "m2": "bad", "n": "bad", "last_day": "2020-01-01"},
-        "dhw":     {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": ""},
+        "dhw": {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": ""},
         "cooling": {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": ""},
     }
-    db.async_get_model_state = AsyncMock(side_effect=[
-        existing,
-        {"heating_el_kwh": 5.0, "dhw_el_kwh": 0.0, "cooling_el_kwh": 0.0},
-    ])
+    db.async_get_model_state = AsyncMock(
+        side_effect=[
+            existing,
+            {"heating_el_kwh": 5.0, "dhw_el_kwh": 0.0, "cooling_el_kwh": 0.0},
+        ]
+    )
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db)
     await c._persist_energy_baseline()
@@ -268,13 +281,15 @@ async def test_persist_all_already_finalized_no_persist():
     y = _yesterday()
     existing = {
         "heating": {"mean": 5.0, "m2": 2.0, "n": 3, "last_day": y},
-        "dhw":     {"mean": 2.0, "m2": 0.5, "n": 3, "last_day": y},
+        "dhw": {"mean": 2.0, "m2": 0.5, "n": 3, "last_day": y},
         "cooling": {"mean": 0.0, "m2": 0.0, "n": 0, "last_day": y},
     }
-    db.async_get_model_state = AsyncMock(side_effect=[
-        existing,
-        {"heating_el_kwh": 7.0, "dhw_el_kwh": 2.0, "cooling_el_kwh": 0.0},
-    ])
+    db.async_get_model_state = AsyncMock(
+        side_effect=[
+            existing,
+            {"heating_el_kwh": 7.0, "dhw_el_kwh": 2.0, "cooling_el_kwh": 0.0},
+        ]
+    )
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db)
     await c._persist_energy_baseline()
@@ -282,6 +297,7 @@ async def test_persist_all_already_finalized_no_persist():
 
 
 # ========== Group C: _compute_energy_daily_anomaly ==========
+
 
 @pytest.mark.asyncio
 async def test_compute_no_db_returns_empty():
@@ -345,7 +361,7 @@ async def test_compute_insufficient_history_no_fire():
     db = MagicMock()
     baseline = {
         "heating": {"n": 5, "mean": 2.0, "m2": 1.0},
-        "dhw":     {"n": 6, "mean": 2.0, "m2": 1.0},
+        "dhw": {"n": 6, "mean": 2.0, "m2": 1.0},
         "cooling": {"n": 0, "mean": 0.0, "m2": 0.0},
     }
     today = {"heating_el_kwh": 999.0, "dhw_el_kwh": 999.0}
@@ -361,7 +377,7 @@ async def test_compute_sigma_zero_no_fire():
     db = MagicMock()
     baseline = {
         "heating": {"n": 10, "mean": 2.0, "m2": 0.0},
-        "dhw":     {"n": 0, "mean": 0.0, "m2": 0.0},
+        "dhw": {"n": 0, "mean": 0.0, "m2": 0.0},
         "cooling": {"n": 0, "mean": 0.0, "m2": 0.0},
     }
     today = {"heating_el_kwh": 999.0}
@@ -377,7 +393,7 @@ async def test_compute_today_el_corrupt_skipped():
     db = MagicMock()
     baseline = {
         "heating": {"n": 10, "mean": 2.0, "m2": 2.0},
-        "dhw":     {"n": 10, "mean": 2.0, "m2": 2.0},
+        "dhw": {"n": 10, "mean": 2.0, "m2": 2.0},
         "cooling": {"n": 0, "mean": 0.0, "m2": 0.0},
     }
     today = {"heating_el_kwh": "bad", "dhw_el_kwh": 10.0}
@@ -394,7 +410,7 @@ async def test_compute_below_floor_no_fire():
     db = MagicMock()
     baseline = {
         "heating": {"n": 10, "mean": 0.5, "m2": 0.1},
-        "dhw":     {"n": 0, "mean": 0.0, "m2": 0.0},
+        "dhw": {"n": 0, "mean": 0.0, "m2": 0.0},
         "cooling": {"n": 0, "mean": 0.0, "m2": 0.0},
     }
     today = {"heating_el_kwh": 1.5}
@@ -410,7 +426,7 @@ async def test_compute_below_threshold_no_fire():
     db = MagicMock()
     baseline = {
         "heating": {"n": 10, "mean": 5.0, "m2": 40.0},
-        "dhw":     {"n": 0, "mean": 0.0, "m2": 0.0},
+        "dhw": {"n": 0, "mean": 0.0, "m2": 0.0},
         "cooling": {"n": 0, "mean": 0.0, "m2": 0.0},
     }
     today = {"heating_el_kwh": 8.0}
@@ -427,7 +443,7 @@ async def test_compute_fires_above_threshold():
     # mean=5, sigma=1, today=10 → z=5 > 2
     baseline = {
         "heating": {"n": 10, "mean": 5.0, "m2": 10.0},
-        "dhw":     {"n": 0, "mean": 0.0, "m2": 0.0},
+        "dhw": {"n": 0, "mean": 0.0, "m2": 0.0},
         "cooling": {"n": 0, "mean": 0.0, "m2": 0.0},
     }
     today = {"heating_el_kwh": 10.0}
@@ -450,7 +466,7 @@ async def test_compute_multi_mode_highest_z_wins():
     db = MagicMock()
     baseline = {
         "heating": {"n": 10, "mean": 5.0, "m2": 10.0},
-        "dhw":     {"n": 10, "mean": 2.0, "m2": 10.0},
+        "dhw": {"n": 10, "mean": 2.0, "m2": 10.0},
         "cooling": {"n": 0, "mean": 0.0, "m2": 0.0},
     }
     today = {"heating_el_kwh": 10.0, "dhw_el_kwh": 12.0}
@@ -468,7 +484,7 @@ async def test_compute_none_exceed_no_fire():
     db = MagicMock()
     baseline = {
         "heating": {"n": 10, "mean": 5.0, "m2": 40.0},
-        "dhw":     {"n": 10, "mean": 3.0, "m2": 40.0},
+        "dhw": {"n": 10, "mean": 3.0, "m2": 40.0},
         "cooling": {"n": 10, "mean": 1.0, "m2": 40.0},
     }
     today = {"heating_el_kwh": 6.0, "dhw_el_kwh": 4.0, "cooling_el_kwh": 2.0}
@@ -505,7 +521,7 @@ async def test_compute_lower_z_after_fire_kept_first():
     # dhw:     mean=2, m2=1, n=10 → sigma=0.316; today=5  → z=9.5
     baseline = {
         "heating": {"n": 10, "mean": 5.0, "m2": 1.0},
-        "dhw":     {"n": 10, "mean": 2.0, "m2": 1.0},
+        "dhw": {"n": 10, "mean": 2.0, "m2": 1.0},
         "cooling": {"n": 0, "mean": 0.0, "m2": 0.0},
     }
     today = {"heating_el_kwh": 10.0, "dhw_el_kwh": 5.0}
@@ -519,23 +535,34 @@ async def test_compute_lower_z_after_fire_kept_first():
 
 # ---------- C4: schema / titles / advice / labels ----------
 
+
 def test_energy_daily_anomaly_schema_has_6_fields():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
+
     assert "energy_daily_anomaly" in ALERT_SCHEMA
     entry = ALERT_SCHEMA["energy_daily_anomaly"]
     assert len(entry) == 6  # I7: samples row added
     fields = [f[1] for f in entry]
-    assert fields == ["today_el_kwh", "baseline_el_mean", "baseline_el_sigma", "z_score", "samples", "mode"]
+    assert fields == [
+        "today_el_kwh",
+        "baseline_el_mean",
+        "baseline_el_sigma",
+        "z_score",
+        "samples",
+        "mode",
+    ]
 
 
 def test_energy_daily_anomaly_titles():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
+
     assert ALERT_TITLES["en"]["energy_daily_anomaly"] == "Energy daily anomaly"
     assert ALERT_TITLES["nl"]["energy_daily_anomaly"] == "Energie-dagelijkse afwijking"
 
 
 def test_energy_daily_anomaly_advice():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
+
     assert "energy_daily_anomaly" in ALERT_ADVICE["en"]
     assert "energy_daily_anomaly" in ALERT_ADVICE["nl"]
     assert len(ALERT_ADVICE["en"]["energy_daily_anomaly"]) > 10
@@ -544,6 +571,7 @@ def test_energy_daily_anomaly_advice():
 
 def test_energy_daily_anomaly_label_keys():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_LABELS
+
     for lang in ("en", "nl"):
         for key in ("today_el_kwh", "baseline_el_mean", "baseline_el_sigma", "z_score"):
             assert key in ALERT_LABELS[lang], f"ALERT_LABELS[{lang}] missing {key}"
@@ -551,14 +579,17 @@ def test_energy_daily_anomaly_label_keys():
 
 def test_energy_daily_anomaly_renders_emoji():
     from custom_components.daikin_cycle_ml.const import ALERT_TYPE_EMOJI
+
     assert ALERT_TYPE_EMOJI["energy_daily_anomaly"] == "\u26a1\ufe0f"
 
 
 # ---------- C5: dispatch / render end-to-end ----------
 
+
 def test_energy_daily_anomaly_build_rich_alert_en():
     """Fired ctx renders via build_rich_alert with all schema fields."""
     from custom_components.daikin_cycle_ml.engine.status_report import build_rich_alert
+
     ctx = {
         "today_el_kwh": 15.5,
         "baseline_el_mean": 5.0,
@@ -580,6 +611,7 @@ def test_energy_daily_anomaly_binary_alert_map_format():
         BINARY_ALERT_MAP,
         _format_message,
     )
+
     _, _, template = BINARY_ALERT_MAP["energy_daily_anomaly"]
     ctx = {
         "today_el_kwh": 15.5,
@@ -604,7 +636,7 @@ async def test_compute_display_populated_when_not_fired_n_lt_min():
     db = MagicMock()
     baseline = {
         "heating": {"n": 1, "mean": 2.51, "m2": 0.0},
-        "dhw":     {"n": 0, "mean": 0.0, "m2": 0.0},
+        "dhw": {"n": 0, "mean": 0.0, "m2": 0.0},
         "cooling": {"n": 0, "mean": 0.0, "m2": 0.0},
     }
     today = {"heating_el_kwh": 5.88}
@@ -627,7 +659,7 @@ async def test_compute_all_modes_corrupt_energy_falls_back_zero():
     db = MagicMock()
     baseline = {
         "heating": {"n": 10, "mean": 5.0, "m2": 40.0},
-        "dhw":     {"n": 10, "mean": 3.0, "m2": 40.0},
+        "dhw": {"n": 10, "mean": 3.0, "m2": 40.0},
         "cooling": {"n": 10, "mean": 1.0, "m2": 40.0},
     }
     today = {"heating_el_kwh": "bad", "dhw_el_kwh": "bad", "cooling_el_kwh": "bad"}
@@ -644,21 +676,25 @@ async def test_compute_all_modes_corrupt_energy_falls_back_zero():
 
 # ---------- C6: short_run duration_min store fallback ----------
 
+
 def test_build_alert_context_short_run_falls_back_to_store():
     """When snap.last_record is None, duration_min comes from store.last_cycle."""
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
         DataSnapshot,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     # Provide required attrs accessed by _build_alert_context
     c.options = {}
     c._kmeans_stale = {}
     c._db_retention_stale = {}
     c._energy_daily_anomaly = {}
+
     class _Store:
         def last_cycle(self):
             return {"duration_s": 900}
+
     c.store = _Store()
     snap = DataSnapshot()
     snap.last_record = None
@@ -672,14 +708,17 @@ def test_build_alert_context_short_run_store_raises_keeps_none():
         DaikinCycleMLCoordinator,
         DataSnapshot,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.options = {}
     c._kmeans_stale = {}
     c._db_retention_stale = {}
     c._energy_daily_anomaly = {}
+
     class _Store:
         def last_cycle(self):
             raise RuntimeError("db down")
+
     c.store = _Store()
     snap = DataSnapshot()
     snap.last_record = None

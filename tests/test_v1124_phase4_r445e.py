@@ -13,6 +13,7 @@ Tests cover:
 - Live evidence sample: cop=16.486, lwt=30.9, out=8.8 -> flagged
 - NULL lwt/outdoor -> flagged conservatively
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -23,8 +24,11 @@ from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
 
 async def _insert_sample(
-    db: CycleDB, ts: float, cop: float,
-    lwt: float | None, outdoor: float | None,
+    db: CycleDB,
+    ts: float,
+    cop: float,
+    lwt: float | None,
+    outdoor: float | None,
 ) -> int:
     conn = db._require()
     cur = await conn.execute(
@@ -85,7 +89,7 @@ async def test_preserves_legit_mild_weather(db):
 
 async def test_flags_negative_dt_division_guard(db):
     """lwt <= outdoor -> unconditional flag (div-by-zero guard)."""
-    sid1 = await _insert_sample(db, 1000.0, 3.5, 5.0, 10.0)   # lwt < out
+    sid1 = await _insert_sample(db, 1000.0, 3.5, 5.0, 10.0)  # lwt < out
     sid2 = await _insert_sample(db, 1100.0, 3.5, 10.0, 10.0)  # lwt == out
     n = await db._flag_carnot_artifacts()
     assert n == 2

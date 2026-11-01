@@ -13,6 +13,7 @@ Sensor platform setup failed for the whole entry.
 New guard: if old_entry.unique_id == new_uid, update only entity_id +
 translation_key (the unique_id is already correct).
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -59,6 +60,7 @@ def _make_entity(eid, uid, config_entry_id=ENTRY_ID):
 
 def _run_migrate(monkeypatch, entities):
     import custom_components.daikin_cycle_ml.sensor as sensor_mod
+
     registry, _ = _make_registry(entities)
 
     def _fake_entries(reg, eid):
@@ -70,7 +72,9 @@ def _run_migrate(monkeypatch, entities):
     # producing an empty `owned` set and silently skipping all updates.
     monkeypatch.setattr(sensor_mod.er, "async_get", lambda hass: registry)
     monkeypatch.setattr(
-        sensor_mod.er, "async_entries_for_config_entry", _fake_entries,
+        sensor_mod.er,
+        "async_entries_for_config_entry",
+        _fake_entries,
     )
     _migrate_entity_ids(MagicMock(), _make_entry())
     return registry

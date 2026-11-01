@@ -1,4 +1,5 @@
 """Tests for coordinator.DaikinCycleMLCoordinator."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.const import (

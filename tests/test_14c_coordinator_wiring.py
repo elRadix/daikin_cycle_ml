@@ -54,33 +54,33 @@ def test_indoor_entity_from_options(fake_hass, fake_entry):
 
 def test_accumulate_skipped_when_idle(fake_hass, fake_entry):
     c = DaikinCycleMLCoordinator(fake_hass, fake_entry)
-    _set_detector_state(c, 'idle')
+    _set_detector_state(c, "idle")
     c._accumulate_cycle_samples({"lwt": 35.0})
     assert c._cycle_lwt_count == 0
 
 
 def test_accumulate_lwt_when_active(fake_hass, fake_entry):
     c = DaikinCycleMLCoordinator(fake_hass, fake_entry)
-    _set_detector_state(c, 'heating')
+    _set_detector_state(c, "heating")
     c._accumulate_cycle_samples({"lwt": 35.0})
-    c._accumulate_cycle_samples({'lwt': 37.0})
+    c._accumulate_cycle_samples({"lwt": 37.0})
     assert c._cycle_lwt_count == 2
     assert c._cycle_lwt_sum == 72.0
 
 
 def test_accumulate_lwt_alternate_keys(fake_hass, fake_entry):
     c = DaikinCycleMLCoordinator(fake_hass, fake_entry)
-    _set_detector_state(c, 'heating')
-    c._accumulate_cycle_samples({'leaving_water_temp': 34.0})
+    _set_detector_state(c, "heating")
+    c._accumulate_cycle_samples({"leaving_water_temp": 34.0})
     assert c._cycle_lwt_sum == 34.0
 
 
 def test_accumulate_indoor_when_entity_set(fake_hass, fake_entry):
     fake_entry.options = {"indoor_temp_sensor": "sensor.temp"}
     c = DaikinCycleMLCoordinator(fake_hass, fake_entry)
-    _set_detector_state(c, 'heating')
+    _set_detector_state(c, "heating")
     st = MagicMock()
-    st.state = '21.5'
+    st.state = "21.5"
     fake_hass.states.get = MagicMock(return_value=st)
     c._accumulate_cycle_samples({})
     assert c._cycle_indoor_count == 1
@@ -90,9 +90,9 @@ def test_accumulate_indoor_when_entity_set(fake_hass, fake_entry):
 def test_accumulate_indoor_invalid_state(fake_hass, fake_entry):
     fake_entry.options = {"indoor_temp_sensor": "sensor.temp"}
     c = DaikinCycleMLCoordinator(fake_hass, fake_entry)
-    _set_detector_state(c, 'heating')
+    _set_detector_state(c, "heating")
     st = MagicMock()
-    st.state = 'unknown'
+    st.state = "unknown"
     fake_hass.states.get = MagicMock(return_value=st)
     c._accumulate_cycle_samples({})
     assert c._cycle_indoor_count == 0
@@ -137,19 +137,15 @@ async def test_collect_averages_cop_from_db(fake_hass, fake_entry):
         {"start_ts": 100.0, "end_ts": 200.0, "mode": "heating"}
     )
     assert cop == 3.4
-    c.db._sample_aggregates.assert_awaited_once_with(
-        100.0, 200.0, mode="heating"
-    )
+    c.db._sample_aggregates.assert_awaited_once_with(100.0, 200.0, mode="heating")
 
 
 @pytest.mark.asyncio
 async def test_collect_averages_cop_db_error_swallowed(fake_hass, fake_entry):
     c = DaikinCycleMLCoordinator(fake_hass, fake_entry)
     c.db = MagicMock()
-    c.db.async_avg_cop_between = AsyncMock(side_effect=RuntimeError('boom'))
-    cop, _, _ = await c._collect_cycle_averages(
-        {"start_ts": 100.0, "end_ts": 200.0}
-    )
+    c.db.async_avg_cop_between = AsyncMock(side_effect=RuntimeError("boom"))
+    cop, _, _ = await c._collect_cycle_averages({"start_ts": 100.0, "end_ts": 200.0})
     assert cop is None
 
 
@@ -161,4 +157,3 @@ async def test_collect_averages_no_start_end(fake_hass, fake_entry):
     cop, _, _ = await c._collect_cycle_averages({})
     assert cop is None
     c.db.async_avg_cop_between.assert_not_awaited()
-

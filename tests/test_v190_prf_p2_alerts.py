@@ -3,6 +3,7 @@
 Covers: const registrations, BINARY_ALERT_MAP/NOTIF_ID_BY_TYPE, group mapping,
 dedup defaults, schema render (real + collapse), i18n parity, config_flow toggles.
 """
+
 from __future__ import annotations
 
 import json
@@ -45,6 +46,7 @@ PRF_ALERTS = ("dhw_pendulum", "high_cycle_rate", "cop_vs_datasheet_low")
 
 # --- const.py registrations ---
 
+
 def test_notif_ids_registered():
     assert NOTIF_ID_DHW_PENDULUM.endswith("dhw_pendulum")
     assert NOTIF_ID_HIGH_CYCLE_RATE.endswith("high_cycle_rate")
@@ -76,6 +78,7 @@ def test_alert_dedup_defaults():
 
 # --- notification_engine.py registrations ---
 
+
 def test_binary_alert_map_entries():
     assert BINARY_ALERT_MAP["dhw_pendulum"][1] == SEV_WARNING
     assert BINARY_ALERT_MAP["high_cycle_rate"][1] == SEV_WARNING
@@ -93,6 +96,7 @@ def test_sev_info_constant():
 
 
 # --- status_report.py registrations ---
+
 
 def test_alert_schema_entries():
     for at in PRF_ALERTS:
@@ -125,10 +129,14 @@ def test_severity_labels_have_info():
 
 # --- schema render ---
 
+
 def test_render_dhw_pendulum_real_values():
     ctx = {
-        "dhw_cph": 5, "target_cph": 3,
-        "mode": "dhw", "outdoor": "8.0", "advice": "",
+        "dhw_cph": 5,
+        "target_cph": 3,
+        "mode": "dhw",
+        "outdoor": "8.0",
+        "advice": "",
     }
     out = build_rich_alert("dhw_pendulum", "warning", ctx, language="en")
     assert "DHW pendulum detected" in out
@@ -138,8 +146,12 @@ def test_render_dhw_pendulum_real_values():
 
 def test_render_high_cycle_rate_real_values():
     ctx = {
-        "cph": 8, "target_cph": 4, "multiplier": 1.5,
-        "mode": "heating", "outdoor": "5.0", "advice": "",
+        "cph": 8,
+        "target_cph": 4,
+        "multiplier": 1.5,
+        "mode": "heating",
+        "outdoor": "5.0",
+        "advice": "",
     }
     out = build_rich_alert("high_cycle_rate", "warning", ctx, language="en")
     assert "High cycle rate" in out
@@ -149,8 +161,11 @@ def test_render_high_cycle_rate_real_values():
 
 def test_render_cop_vs_datasheet_low_real_values():
     ctx = {
-        "pct_diff": "-12.5", "cop_expected": "3.2",
-        "mode": "heating", "outdoor": "3.0", "advice": "",
+        "pct_diff": "-12.5",
+        "cop_expected": "3.2",
+        "mode": "heating",
+        "outdoor": "3.0",
+        "advice": "",
     }
     out = build_rich_alert("cop_vs_datasheet_low", "info", ctx, language="en")
     assert "COP below datasheet" in out
@@ -160,19 +175,25 @@ def test_render_cop_vs_datasheet_low_real_values():
 
 def test_render_cop_vs_datasheet_uses_type_emoji():
     ctx = {
-        "pct_diff": "-12.5", "cop_expected": "3.2",
-        "mode": "heating", "outdoor": "3.0", "advice": "",
+        "pct_diff": "-12.5",
+        "cop_expected": "3.2",
+        "mode": "heating",
+        "outdoor": "3.0",
+        "advice": "",
     }
     out = build_rich_alert("cop_vs_datasheet_low", "info", ctx, language="en")
     # alert-type emoji must be used in the header, not severity fallback
-    assert "\U0001F4CA" in out  # \U0001F4CA = bar chart
+    assert "\U0001f4ca" in out  # \U0001F4CA = bar chart
 
 
-@pytest.mark.parametrize("at", [
-    "dhw_pendulum",
-    "high_cycle_rate",
-    "cop_vs_datasheet_low",
-])
+@pytest.mark.parametrize(
+    "at",
+    [
+        "dhw_pendulum",
+        "high_cycle_rate",
+        "cop_vs_datasheet_low",
+    ],
+)
 def test_render_collapses_when_missing(at):
     ctx: dict = {}
     out = build_rich_alert(at, "warning", ctx, language="en")
@@ -182,6 +203,7 @@ def test_render_collapses_when_missing(at):
 
 # --- i18n parity across the 3 translation files ---
 
+
 @pytest.mark.parametrize("fname", ["strings.json", "translations/en.json", "translations/nl.json"])
 def test_translation_files_have_prf_keys(fname):
     path = ROOT / "custom_components" / "daikin_cycle_ml" / fname
@@ -189,14 +211,18 @@ def test_translation_files_have_prf_keys(fname):
     st = data["options"]["step"]
     ne = st["notifications_enabled"]
     nd = st["notifications_dedup"]
-    for k in ("alert_enabled_dhw_pendulum",
-              "alert_enabled_high_cycle_rate",
-              "alert_enabled_cop_vs_datasheet_low"):
+    for k in (
+        "alert_enabled_dhw_pendulum",
+        "alert_enabled_high_cycle_rate",
+        "alert_enabled_cop_vs_datasheet_low",
+    ):
         assert k in ne["data"], f"{fname} missing data.{k}"
         assert k in ne["data_description"], f"{fname} missing desc.{k}"
-    for k in ("alert_agg_dhw_pendulum_min",
-              "alert_agg_high_cycle_rate_min",
-              "alert_agg_cop_vs_datasheet_low_min"):
+    for k in (
+        "alert_agg_dhw_pendulum_min",
+        "alert_agg_high_cycle_rate_min",
+        "alert_agg_cop_vs_datasheet_low_min",
+    ):
         assert k in nd["data"], f"{fname} missing data.{k}"
         assert k in nd["data_description"], f"{fname} missing desc.{k}"
 
@@ -215,6 +241,7 @@ def test_translation_keys_parity(fname):
 
 # --- labels present in both languages ---
 
+
 @pytest.mark.parametrize("lang", ["en", "nl"])
 def test_new_label_keys_present(lang):
     labels = ALERT_LABELS[lang]
@@ -223,6 +250,7 @@ def test_new_label_keys_present(lang):
 
 
 # --- invariants: totals expected after PR F ---
+
 
 def test_schema_total():
     assert len(ALERT_SCHEMA) == 17

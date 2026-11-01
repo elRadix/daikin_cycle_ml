@@ -10,6 +10,7 @@ Includes Hypothesis property tests for mathematical invariants:
   - nearest_centroid(v, [v]) == 0
   - kmeans is deterministic for a fixed seed
 """
+
 from __future__ import annotations
 
 from hypothesis import given, settings
@@ -35,6 +36,7 @@ from custom_components.daikin_cycle_ml.ml.clustering import (
 )
 
 # ============ anomaly_engine.py ============
+
 
 def test_opt_float_bad_value_returns_default():
     assert _opt_float({"watch_z": "not-a-number"}, "watch_z", 2.0) == 2.0
@@ -67,6 +69,7 @@ def test_message_warn_with_top_dim():
 
 
 # ============ clustering.py ============
+
 
 def test_cluster_sizes_invalid_label_skipped():
     r = ClusteringResult(labels=[0, 1, 5, 2, -1], k=3)
@@ -114,32 +117,36 @@ def test_classify_clusters_three_covers_normal_fill():
     """Test the 3-cluster logic: pendulum, normal, long_cycle."""
     # 3 clusters with clear duration differences
     centroids = [
-        [100.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],   # Kortste (pendulum)
+        [100.0, 1.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Kortste (pendulum)
         [5000.0, 2.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Middelste (normal)
-        [50000.0, 3.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], # Langste (long_cycle)
+        [50000.0, 3.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Langste (long_cycle)
     ]
     labels = classify_clusters(centroids)
     assert labels[0] == "pendulum"
     assert labels[1] == "normal"
     assert labels[2] == "long_cycle"
 
+
 def test_labels_to_dict_roundtrip():
     r = kmeans([[0.0, 0.0], [10.0, 0.0]], k=2, seed=1)
     d = labels_to_dict(r)
-    assert set(d.keys()) >= {"k", "n", "iterations", "inertia",
-                             "labels", "centroids", "cluster_sizes"}
+    assert set(d.keys()) >= {
+        "k",
+        "n",
+        "iterations",
+        "inertia",
+        "labels",
+        "centroids",
+        "cluster_sizes",
+    }
 
 
 # ============ Hypothesis property tests ============
 
 _SEV_ORDER = {SEV_NORMAL: 0, SEV_WATCH: 1, SEV_WARN: 2, SEV_CRITICAL: 3}
 
-_floats = st.floats(
-    allow_nan=False, allow_infinity=False, min_value=-1e6, max_value=1e6
-)
-_z = st.floats(
-    allow_nan=False, allow_infinity=False, min_value=0.0, max_value=10.0
-)
+_floats = st.floats(allow_nan=False, allow_infinity=False, min_value=-1e6, max_value=1e6)
+_z = st.floats(allow_nan=False, allow_infinity=False, min_value=0.0, max_value=10.0)
 
 
 @given(z=_z)
@@ -171,8 +178,7 @@ def test_nearest_centroid_self_is_zero(v):
 
 
 @given(
-    vs=st.lists(st.lists(_floats, min_size=1, max_size=4),
-                min_size=2, max_size=6),
+    vs=st.lists(st.lists(_floats, min_size=1, max_size=4), min_size=2, max_size=6),
     seed=st.integers(min_value=0, max_value=10_000),
 )
 @settings(max_examples=40, deadline=None)

@@ -2,6 +2,7 @@
 
 Marker: C4_INTEGRATION_TESTS_v1
 """
+
 from __future__ import annotations
 
 import time
@@ -41,6 +42,7 @@ def _coord() -> DaikinCycleMLCoordinator:
 
 # --- DataSnapshot defaults ---
 
+
 def test_snapshot_defaults():
     s = DataSnapshot()
     assert s.cop_degradation_status == "none"
@@ -51,6 +53,7 @@ def test_snapshot_defaults():
 
 
 # --- value_fns ---
+
 
 def test_value_status():
     s = _snap(cop_degradation_status="warning")
@@ -73,6 +76,7 @@ def test_value_trend():
 
 
 # --- attr_fns with populated detail ---
+
 
 def test_attrs_status_full():
     detail = {
@@ -121,9 +125,15 @@ def test_attrs_week_full():
         "n_bins_used": 2,
         "dynamic_min_samples": 100,
         "bins_used": [
-            {"range": "mild", "hours_recent": 10, "hours_prev": 10,
-             "cop_recent": 3.2, "cop_prev": 3.6,
-             "ratio": 0.889, "weight": 10},
+            {
+                "range": "mild",
+                "hours_recent": 10,
+                "hours_prev": 10,
+                "cop_recent": 3.2,
+                "cop_prev": 3.6,
+                "ratio": 0.889,
+                "weight": 10,
+            },
         ],
         "excluded_hours_recent": 0,
         "excluded_hours_prev": 1,
@@ -182,6 +192,7 @@ def test_attrs_trend_empty():
 
 # --- SENSOR_DEFS coverage ---
 
+
 def test_sensor_defs_present():
     keys = {d["key"] for d in SENSOR_DEFS}
     assert "cop_degradation_status" in keys
@@ -190,36 +201,31 @@ def test_sensor_defs_present():
 
 
 def test_status_def_is_enum():
-    st = next(
-        d for d in SENSOR_DEFS if d["key"] == "cop_degradation_status"
-    )
+    st = next(d for d in SENSOR_DEFS if d["key"] == "cop_degradation_status")
     assert st["options"] == ["none", "info", "warning", "critical"]
     assert "state_class" not in st
 
 
 def test_week_pct_def_is_measurement():
-    st = next(
-        d for d in SENSOR_DEFS
-        if d["key"] == "cop_degradation_week_pct"
-    )
+    st = next(d for d in SENSOR_DEFS if d["key"] == "cop_degradation_week_pct")
     assert st["unit"] == "%"
     assert st["state_class"] is not None
 
 
 def test_trend_def_is_measurement():
-    st = next(
-        d for d in SENSOR_DEFS if d["key"] == "cop_trend_30d"
-    )
+    st = next(d for d in SENSOR_DEFS if d["key"] == "cop_trend_30d")
     assert st["unit"] == "%"
 
 
 # --- coordinator method: _maybe_refresh_cop_degradation ---
+
 
 @pytest.mark.asyncio
 async def test_refresh_no_db_returns_silently():
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.db = None
     c._cop_degradation_cache = {}
@@ -233,6 +239,7 @@ async def test_refresh_throttled():
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.db = AsyncMock()
     c.db.async_query_cop_hourly = AsyncMock(return_value=[])
@@ -250,6 +257,7 @@ async def test_refresh_populates_cache():
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.db = AsyncMock()
     c.db.async_query_cop_hourly = AsyncMock(return_value=[])
@@ -268,6 +276,7 @@ async def test_refresh_db_error_preserves_cache():
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.db = AsyncMock()
     c.db.async_query_cop_hourly = AsyncMock(side_effect=RuntimeError("boom"))

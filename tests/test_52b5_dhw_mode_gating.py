@@ -1,11 +1,13 @@
 """Batch 52b5: DHW-mode gating for short_run/short_off/pendulum."""
+
 from unittest.mock import MagicMock
 
 from custom_components.daikin_cycle_ml import binary_sensor as bs
 
 
-def _mk_coord(options=None, last_cycle=None, off_time=0,
-              cycles_hour=0, cycles_hour_dhw=0, cycles_today=None):
+def _mk_coord(
+    options=None, last_cycle=None, off_time=0, cycles_hour=0, cycles_hour_dhw=0, cycles_today=None
+):
     c = MagicMock()
     c.options = options or {}
     c.store = MagicMock()
@@ -54,8 +56,7 @@ def test_short_run_fires_for_unknown_mode():
 
 
 def test_short_off_skips_dhw_current():
-    c = _mk_coord(last_cycle={"duration_s": 300, "mode": "heating"},
-                  off_time=60)
+    c = _mk_coord(last_cycle={"duration_s": 300, "mode": "heating"}, off_time=60)
     s = _mk_snap(mode="dhw")
     assert bs._is_short_off(s, c) is False
 

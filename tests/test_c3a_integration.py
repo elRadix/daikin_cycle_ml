@@ -1,4 +1,5 @@
 """Integration tests for C3a datasheet sensor pipeline."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -59,19 +60,26 @@ def test_attrs_hp_specs_no_datasheet():
 
 def test_attrs_hp_specs_full():
     ds = {
-        "model": "erla11dav3", "source": "bundled",
-        "family": "Split", "kw": 11,
-        "lwt_min": 15, "lwt_max": 60,
-        "outdoor_min_c": -25, "outdoor_max_c": 35,
-        "nom_cop": 4.83, "scop_w35": 4.63, "scop_w55": 3.23,
-        "refrigerant": "R32", "gwp": 675, "charge_kg": 3.8,
-        "buh_above_c": 55, "defrost_below_c": 5, "off_above_c": 20,
-        "points": [{"label": "A7/W35", "t_out": 7, "t_lwc": 35,
-                    "cop": 4.83, "hc": 10.56}],
+        "model": "erla11dav3",
+        "source": "bundled",
+        "family": "Split",
+        "kw": 11,
+        "lwt_min": 15,
+        "lwt_max": 60,
+        "outdoor_min_c": -25,
+        "outdoor_max_c": 35,
+        "nom_cop": 4.83,
+        "scop_w35": 4.63,
+        "scop_w55": 3.23,
+        "refrigerant": "R32",
+        "gwp": 675,
+        "charge_kg": 3.8,
+        "buh_above_c": 55,
+        "defrost_below_c": 5,
+        "off_above_c": 20,
+        "points": [{"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 4.83, "hc": 10.56}],
     }
-    a = sensor._attrs_hp_specs(
-        _snap(datasheet_model="erla11dav3", datasheet=ds), None
-    )
+    a = sensor._attrs_hp_specs(_snap(datasheet_model="erla11dav3", datasheet=ds), None)
     assert a["configured"] is True
     assert a["kw"] == 11
     assert a["buh_above_c"] == 55
@@ -85,10 +93,13 @@ def test_attrs_cop_normalized_empty():
 
 
 def test_attrs_cop_normalized_full():
-    ds = {"family": "Split", "kw": 11, "nom_cop": 4.83,
-          "points": [{"label": "A7/W35", "cop": 4.83}]}
-    s = _snap(datasheet=ds, datasheet_model="erla11dav3",
-              cop=4.1, cop_normalized_a7w35=4.5)
+    ds = {
+        "family": "Split",
+        "kw": 11,
+        "nom_cop": 4.83,
+        "points": [{"label": "A7/W35", "cop": 4.83}],
+    }
+    s = _snap(datasheet=ds, datasheet_model="erla11dav3", cop=4.1, cop_normalized_a7w35=4.5)
     a = sensor._attrs_cop_normalized_a7w35(s, None)
     assert a["model"] == "erla11dav3"
     assert a["ref_cop_a7w35"] == 4.83
@@ -102,30 +113,22 @@ def test_band_none():
 
 
 def test_band_on_spec():
-    a = sensor._attrs_cop_vs_datasheet_pct(
-        _snap(cop_vs_datasheet_pct=0.0), None
-    )
+    a = sensor._attrs_cop_vs_datasheet_pct(_snap(cop_vs_datasheet_pct=0.0), None)
     assert a["band"] == "on_spec"
 
 
 def test_band_below_spec():
-    a = sensor._attrs_cop_vs_datasheet_pct(
-        _snap(cop_vs_datasheet_pct=-5.0), None
-    )
+    a = sensor._attrs_cop_vs_datasheet_pct(_snap(cop_vs_datasheet_pct=-5.0), None)
     assert a["band"] == "below_spec"
 
 
 def test_band_below_spec_boundary():
-    a = sensor._attrs_cop_vs_datasheet_pct(
-        _snap(cop_vs_datasheet_pct=-20.0), None
-    )
+    a = sensor._attrs_cop_vs_datasheet_pct(_snap(cop_vs_datasheet_pct=-20.0), None)
     assert a["band"] == "below_spec"
 
 
 def test_band_critical():
-    a = sensor._attrs_cop_vs_datasheet_pct(
-        _snap(cop_vs_datasheet_pct=-20.01), None
-    )
+    a = sensor._attrs_cop_vs_datasheet_pct(_snap(cop_vs_datasheet_pct=-20.01), None)
     assert a["band"] == "critical"
 
 
@@ -146,7 +149,9 @@ def test_sensor_defs_no_duplicate_keys():
 
 
 def test_sensor_defs_count():
-    assert len(sensor.SENSOR_DEFS) == 50  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop, +boiler_contribution_today_pct
+    assert (
+        len(sensor.SENSOR_DEFS) == 50
+    )  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop, +boiler_contribution_today_pct
 
 
 @pytest.mark.asyncio
@@ -156,9 +161,7 @@ async def test_refresh_no_datasheet_model():
     coord._datasheet_defaults = {}
     coord.entry.data = {"model": "basisprofiel"}
     coord._datasheet_cache = {}
-    await DaikinCycleMLCoordinator._refresh_datasheet_state(
-        coord, 1000.0, 40.0, 5.0, 3.5
-    )
+    await DaikinCycleMLCoordinator._refresh_datasheet_state(coord, 1000.0, 40.0, 5.0, 3.5)
     assert coord._datasheet_cache["model"] == "basisprofiel"
     assert coord._datasheet_cache["datasheet"] is None
     assert coord._datasheet_cache["cop_normalized_a7w35"] is None
@@ -169,15 +172,14 @@ async def test_refresh_with_real_datasheet():
     from custom_components.daikin_cycle_ml.engine.model_datasheets import (
         load_bundled,
     )
+
     coord = MagicMock()
     coord._datasheet_merged = load_bundled()
     coord._datasheet_user_loaded = True
     coord._datasheet_defaults = {}
     coord.entry.data = {"model": "erla11dav3"}
     coord._datasheet_cache = {}
-    await DaikinCycleMLCoordinator._refresh_datasheet_state(
-        coord, 1000.0, 40.0, 5.0, 3.5
-    )
+    await DaikinCycleMLCoordinator._refresh_datasheet_state(coord, 1000.0, 40.0, 5.0, 3.5)
     cache = coord._datasheet_cache
     assert cache["model"] == "erla11dav3"
     assert cache["datasheet"] is not None
@@ -194,11 +196,14 @@ def test_entity_category_diagnostic_branch():
 
     from custom_components.daikin_cycle_ml.sensor import DaikinCycleMLSensor
     from homeassistant.const import EntityCategory
+
     coord = MagicMock()
     coord.entry.entry_id = "x"
     coord.entry.data = {"model": "basisprofiel"}
     s = DaikinCycleMLSensor(
-        coord, key="k", name="K",
+        coord,
+        key="k",
+        name="K",
         value_fn=lambda s, c: None,
         entity_category="diagnostic",
     )
@@ -210,11 +215,14 @@ def test_entity_category_config_branch():
 
     from custom_components.daikin_cycle_ml.sensor import DaikinCycleMLSensor
     from homeassistant.const import EntityCategory
+
     coord = MagicMock()
     coord.entry.entry_id = "x"
     coord.entry.data = {"model": "basisprofiel"}
     s = DaikinCycleMLSensor(
-        coord, key="k", name="K",
+        coord,
+        key="k",
+        name="K",
         value_fn=lambda s, c: None,
         entity_category="config",
     )
@@ -225,11 +233,14 @@ def test_entity_category_none_branch():
     from unittest.mock import MagicMock
 
     from custom_components.daikin_cycle_ml.sensor import DaikinCycleMLSensor
+
     coord = MagicMock()
     coord.entry.entry_id = "x"
     coord.entry.data = {"model": "basisprofiel"}
     s = DaikinCycleMLSensor(
-        coord, key="k", name="K",
+        coord,
+        key="k",
+        name="K",
         value_fn=lambda s, c: None,
         entity_category=None,
     )
@@ -239,23 +250,29 @@ def test_entity_category_none_branch():
 # ---------- coverage: early-return branches + _safe_float_opt ----------
 def test_safe_float_opt_type_error():
     from custom_components.daikin_cycle_ml.coordinator import _safe_float_opt
+
     class Weird:
-        def __float__(self): raise TypeError("nope")
+        def __float__(self):
+            raise TypeError("nope")
+
     assert _safe_float_opt(Weird()) is None
 
 
 def test_safe_float_opt_value_error():
     from custom_components.daikin_cycle_ml.coordinator import _safe_float_opt
+
     assert _safe_float_opt("not-a-number") is None
 
 
 def test_safe_float_opt_valid():
     from custom_components.daikin_cycle_ml.coordinator import _safe_float_opt
+
     assert _safe_float_opt("3.5") == 3.5
 
 
 def test_safe_float_opt_none():
     from custom_components.daikin_cycle_ml.coordinator import _safe_float_opt
+
     assert _safe_float_opt(None) is None
 
 
@@ -267,9 +284,7 @@ async def test_refresh_entry_data_broken_triggers_except():
     coord._datasheet_defaults = {}
     coord.entry.data = "not-a-dict"
     coord._datasheet_cache = {}
-    await DaikinCycleMLCoordinator._refresh_datasheet_state(
-        coord, 1000.0, 40.0, 5.0, 3.5
-    )
+    await DaikinCycleMLCoordinator._refresh_datasheet_state(coord, 1000.0, 40.0, 5.0, 3.5)
     assert coord._datasheet_cache["model"] == "basisprofiel"
 
 
@@ -279,7 +294,10 @@ async def test_refresh_no_a7w35_point():
     coord = MagicMock()
     coord._datasheet_merged = {
         "test_model": {
-            "family": "Split", "kw": 11, "lwt_min": 15, "lwt_max": 60,
+            "family": "Split",
+            "kw": 11,
+            "lwt_min": 15,
+            "lwt_max": 60,
             "nom_cop": 4.5,
             "points": [{"label": "A10/W35", "t_out": 10, "t_lwc": 35, "cop": 5.0}],
             "source": "bundled",
@@ -288,9 +306,7 @@ async def test_refresh_no_a7w35_point():
     coord._datasheet_defaults = {"buh_above_offset_c": -5}
     coord.entry.data = {"model": "test_model"}
     coord._datasheet_cache = {}
-    await DaikinCycleMLCoordinator._refresh_datasheet_state(
-        coord, 1000.0, 40.0, 5.0, 3.5
-    )
+    await DaikinCycleMLCoordinator._refresh_datasheet_state(coord, 1000.0, 40.0, 5.0, 3.5)
     assert coord._datasheet_cache["cop_normalized_a7w35"] is None
 
 
@@ -300,7 +316,10 @@ async def test_refresh_zero_ref_cop():
     coord = MagicMock()
     coord._datasheet_merged = {
         "test_model": {
-            "family": "Split", "kw": 11, "lwt_min": 15, "lwt_max": 60,
+            "family": "Split",
+            "kw": 11,
+            "lwt_min": 15,
+            "lwt_max": 60,
             "nom_cop": 4.5,
             "points": [{"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 0.0}],
             "source": "bundled",
@@ -309,9 +328,7 @@ async def test_refresh_zero_ref_cop():
     coord._datasheet_defaults = {"buh_above_offset_c": -5}
     coord.entry.data = {"model": "test_model"}
     coord._datasheet_cache = {}
-    await DaikinCycleMLCoordinator._refresh_datasheet_state(
-        coord, 1000.0, 40.0, 5.0, 3.5
-    )
+    await DaikinCycleMLCoordinator._refresh_datasheet_state(coord, 1000.0, 40.0, 5.0, 3.5)
     assert coord._datasheet_cache["cop_normalized_a7w35"] is None
 
 
@@ -324,9 +341,7 @@ async def test_refresh_dT_live_nonpositive():
     coord.entry.data = {"model": "erla11dav3"}
     coord._datasheet_cache = {}
     # t_out = 100, lwt_now = 15 -> t_evap = 365.15, t_cond = 293.15 -> dT < 0
-    await DaikinCycleMLCoordinator._refresh_datasheet_state(
-        coord, 1000.0, 15.0, 100.0, 3.5
-    )
+    await DaikinCycleMLCoordinator._refresh_datasheet_state(coord, 1000.0, 15.0, 100.0, 3.5)
     assert coord._datasheet_cache["cop_normalized_a7w35"] is None
 
 
@@ -337,9 +352,7 @@ async def test_refresh_none_lwt():
     coord._datasheet_defaults = {}
     coord.entry.data = {"model": "erla11dav3"}
     coord._datasheet_cache = {}
-    await DaikinCycleMLCoordinator._refresh_datasheet_state(
-        coord, 1000.0, None, 5.0, 3.5
-    )
+    await DaikinCycleMLCoordinator._refresh_datasheet_state(coord, 1000.0, None, 5.0, 3.5)
     assert coord._datasheet_cache["cop_normalized_a7w35"] is None
 
 
@@ -350,9 +363,7 @@ async def test_refresh_none_tout():
     coord._datasheet_defaults = {}
     coord.entry.data = {"model": "erla11dav3"}
     coord._datasheet_cache = {}
-    await DaikinCycleMLCoordinator._refresh_datasheet_state(
-        coord, 1000.0, 40.0, None, 3.5
-    )
+    await DaikinCycleMLCoordinator._refresh_datasheet_state(coord, 1000.0, 40.0, None, 3.5)
     assert coord._datasheet_cache["cop_normalized_a7w35"] is None
 
 
@@ -363,7 +374,5 @@ async def test_refresh_none_cop():
     coord._datasheet_defaults = {}
     coord.entry.data = {"model": "erla11dav3"}
     coord._datasheet_cache = {}
-    await DaikinCycleMLCoordinator._refresh_datasheet_state(
-        coord, 1000.0, 40.0, 5.0, None
-    )
+    await DaikinCycleMLCoordinator._refresh_datasheet_state(coord, 1000.0, 40.0, 5.0, None)
     assert coord._datasheet_cache["cop_normalized_a7w35"] is None

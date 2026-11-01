@@ -2,6 +2,7 @@
 
 Marker: COV8B
 """
+
 from __future__ import annotations
 
 import inspect
@@ -25,16 +26,17 @@ def _find_fn(mod, marker):
 
 def test_cov8b_cop_analyzer_skip_dhw_mode():
     from custom_components.daikin_cycle_ml.engine import cop_analyzer as m
+
     fn = _find_fn(m, "for s in samples:")
     assert fn is not None, "helper not found"
     # heating sample -> False branch of mode check (kept)
-    s1 = m.CopSample(cop=3.0, lwt=35.0, outdoor=5.0,
-                     flow_lmin=10.0, power_stable=True,
-                     mode="heating", ts=1000.0)
+    s1 = m.CopSample(
+        cop=3.0, lwt=35.0, outdoor=5.0, flow_lmin=10.0, power_stable=True, mode="heating", ts=1000.0
+    )
     # dhw sample -> True branch (continue)
-    s2 = m.CopSample(cop=2.5, lwt=45.0, outdoor=5.0,
-                     flow_lmin=10.0, power_stable=True,
-                     mode="dhw", ts=2000.0)
+    s2 = m.CopSample(
+        cop=2.5, lwt=45.0, outdoor=5.0, flow_lmin=10.0, power_stable=True, mode="dhw", ts=2000.0
+    )
     result = fn([s1, s2])
     assert isinstance(result, dict)
 
@@ -43,6 +45,7 @@ def test_cov8b_cycle_detector_accumulate_no_rps():
     from custom_components.daikin_cycle_ml.engine.cycle_detector import (
         CycleDetector,
     )
+
     d = CycleDetector.__new__(CycleDetector)
     d._rps_samples = []
     d._dt_samples = []
@@ -56,6 +59,7 @@ async def test_cov8b_setup_baseline_persistence_no_db():
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.db = None
     c._baseline_save_unsub = MagicMock()
@@ -67,6 +71,7 @@ def test_cov8b_accumulate_cycle_samples_indoor_no_state():
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.detector = SimpleNamespace(state="active")
     c.indoor_temp_entity = "sensor.indoor"
@@ -89,6 +94,7 @@ async def test_cov8b_collect_cycle_averages_no_avg_cop_attr():
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.db = MagicMock(spec=[])
     c._cycle_lwt_sum = 0.0
@@ -104,6 +110,7 @@ def test_cov8b_build_alert_context_no_duration():
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.options = {}
     c._setpoint_history = []
@@ -124,6 +131,7 @@ def test_cov8b_build_alert_context_no_duration():
 
 async def test_cov8b_diag_empty_stooklijn_cache():
     from custom_components.daikin_cycle_ml import diagnostics as diag
+
     fn = _find_fn(diag, "_stooklijn_cache")
     assert fn is not None, "diag helper not found"
     coord = SimpleNamespace(
@@ -150,6 +158,7 @@ async def test_cov8b_diag_empty_stooklijn_cache():
 
 async def test_cov8b_diag_no_counters_snapshot():
     from custom_components.daikin_cycle_ml import diagnostics as diag
+
     fn = _find_fn(diag, "counters_snapshot")
     assert fn is not None, "diag helper not found"
     store = SimpleNamespace()

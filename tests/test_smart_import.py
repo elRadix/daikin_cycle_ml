@@ -10,6 +10,7 @@ Covers all 5 layers of the smart auto-import proposal:
 
 Anti-alias regression (issue #51, julG COP~11): R2T must NEVER match R1T.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -43,8 +44,10 @@ from custom_components.daikin_cycle_ml.engine.smart_import import (
 # Helper: minimal valid core attrs (12 of 13, one missing to test 'missing')
 # =========================================================================
 
+
 def _full_attrs() -> dict[str, object]:
     from custom_components.daikin_cycle_ml.const import CORE_ATTRIBUTES
+
     return dict.fromkeys(CORE_ATTRIBUTES, 1.0)
 
 
@@ -52,12 +55,16 @@ def _full_attrs() -> dict[str, object]:
 # _normalize / _tokens / _register_codes
 # =========================================================================
 
-@pytest.mark.parametrize("raw,expected", [
-    ("Hello World", "helloworld"),
-    ("3way valve(On:DHW_Off:Space)", "3wayvalveondhwoffspace"),
-    ("R1T-Outdoor", "r1toutdoor"),
-    ("Foo.Bar,()", "foobar"),
-])
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("Hello World", "helloworld"),
+        ("3way valve(On:DHW_Off:Space)", "3wayvalveondhwoffspace"),
+        ("R1T-Outdoor", "r1toutdoor"),
+        ("Foo.Bar,()", "foobar"),
+    ],
+)
 def test_normalize(raw: str, expected: str) -> None:
     assert _normalize(raw) == expected
 
@@ -75,6 +82,7 @@ def test_register_codes_basic() -> None:
 # =========================================================================
 # Laag 2 — _has_register_conflict (anti-alias, issue case 15)
 # =========================================================================
+
 
 def test_register_conflict_both_present_disjoint() -> None:
     assert _has_register_conflict("temp after BUH (R2T)", "temp before BUH (R1T)")
@@ -97,16 +105,20 @@ def test_register_conflict_both_missing() -> None:
 # Laag 3 — similarity
 # =========================================================================
 
+
 def test_similarity_identical_is_one() -> None:
     assert similarity("Foo Bar", "Foo Bar") == pytest.approx(1.0)
 
 
 def test_similarity_register_conflict_is_zero() -> None:
     # R2T vs R1T -> blocked regardless of token overlap (case julG)
-    assert similarity(
-        "Leaving water temp. after BUH (R2T)",
-        "Leaving water temp. before BUH (R1T)",
-    ) == 0.0
+    assert (
+        similarity(
+            "Leaving water temp. after BUH (R2T)",
+            "Leaving water temp. before BUH (R1T)",
+        )
+        == 0.0
+    )
 
 
 def test_similarity_same_register_boost() -> None:
@@ -130,6 +142,7 @@ def test_similarity_disjoint_no_register() -> None:
 # =========================================================================
 # Laag 2 — resolve_canonical
 # =========================================================================
+
 
 def test_resolve_exact() -> None:
     m = resolve_canonical(ATTR_OPERATION_MODE, {ATTR_OPERATION_MODE})
@@ -191,6 +204,7 @@ def test_resolve_fuzzy_blocked_by_register_conflict() -> None:
 def test_resolve_alias_table_covers_core_keys() -> None:
     # Every ALIASES key must be a CORE attr
     from custom_components.daikin_cycle_ml.const import CORE_ATTRIBUTES
+
     for key in ALIASES:
         assert key in CORE_ATTRIBUTES, f"alias key {key!r} not in CORE_ATTRIBUTES"
 
@@ -198,6 +212,7 @@ def test_resolve_alias_table_covers_core_keys() -> None:
 # =========================================================================
 # Laag 1 — find_candidate_sensors
 # =========================================================================
+
 
 def test_find_candidates_empty() -> None:
     assert find_candidate_sensors([]) == []
@@ -236,7 +251,9 @@ def test_find_candidates_sorted_desc_then_entity_id() -> None:
     ]
     res = find_candidate_sensors(states, min_overlap=3)
     assert [c.entity_id for c in res] == [
-        "sensor.aaa", "sensor.mmm", "sensor.zzz",
+        "sensor.aaa",
+        "sensor.mmm",
+        "sensor.zzz",
     ]
 
 
@@ -251,6 +268,7 @@ def test_find_candidates_none_prefix_bug() -> None:
 # =========================================================================
 # Laag 5 — check_sanity
 # =========================================================================
+
 
 @pytest.mark.parametrize("suspicious", sorted(SUSPICIOUS_VALUES))
 def test_check_sanity_flags_each_suspicious(suspicious: float) -> None:
@@ -282,6 +300,7 @@ def test_check_sanity_missing_key() -> None:
 # =========================================================================
 # Laag 4 — build_diagnostic
 # =========================================================================
+
 
 def test_build_diagnostic_empty_available() -> None:
     rep = build_diagnostic(available=set())
@@ -322,6 +341,7 @@ def test_build_diagnostic_sanity_and_phase_together() -> None:
 # =========================================================================
 # Regression: anti-alias (issue #51 case julG COP~11)
 # =========================================================================
+
 
 def test_regression_julg_cop11_r2t_never_matches_r1t() -> None:
     """Issue #51: R2T (after BUH) must NEVER resolve to R1T (before BUH)."""

@@ -1,4 +1,5 @@
 """v1.12.9 (#131): forward bridge-aware cycle merge."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -9,8 +10,11 @@ from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
 
 async def _insert_cycle(
-    db: CycleDB, start_ts: float, end_ts: float,
-    mode: str = "dhw", is_transient: int = 0,
+    db: CycleDB,
+    start_ts: float,
+    end_ts: float,
+    mode: str = "dhw",
+    is_transient: int = 0,
 ) -> int:
     conn = db._require()
     cur = await conn.execute(
@@ -27,20 +31,24 @@ async def _insert_cycle(
 async def _insert_features(db: CycleDB, cid: int) -> None:
     conn = db._require()
     await conn.execute(
-        "INSERT OR IGNORE INTO features (cycle_id, vector_json) "
-        "VALUES (?, ?)", (cid, "[0,0,0,0,0,0,0,0,0,0,0,0]"),
+        "INSERT OR IGNORE INTO features (cycle_id, vector_json) VALUES (?, ?)",
+        (cid, "[0,0,0,0,0,0,0,0,0,0,0,0]"),
     )
     await conn.commit()
 
 
 async def _insert_sample(
-    db: CycleDB, ts: float, cop: float = 3.5, mode: str = "dhw",
+    db: CycleDB,
+    ts: float,
+    cop: float = 3.5,
+    mode: str = "dhw",
 ) -> None:
     conn = db._require()
     await conn.execute(
         "INSERT INTO cop_samples (ts, cop, lwt, outdoor, "
         "flow_lmin, power_stable, mode) "
-        "VALUES (?, ?, 40.0, 5.0, 26.0, 1, ?)", (ts, cop, mode),
+        "VALUES (?, ?, 40.0, 5.0, 26.0, 1, ?)",
+        (ts, cop, mode),
     )
     await conn.commit()
 
@@ -56,8 +64,16 @@ async def _get_cycle(db: CycleDB, cid: int) -> dict | None:
     await cur.close()
     if row is None:
         return None
-    cols = ("id", "start_ts", "end_ts", "duration_s", "mode",
-            "cop_avg", "cop_sample_count", "is_reconstructed")
+    cols = (
+        "id",
+        "start_ts",
+        "end_ts",
+        "duration_s",
+        "mode",
+        "cop_avg",
+        "cop_sample_count",
+        "is_reconstructed",
+    )
     return dict(zip(cols, row))
 
 
@@ -114,9 +130,7 @@ async def test_bridge_three_cycle_merge_131_pattern(db):
     assert await _get_cycle(db, ghost) is None
     assert await _get_cycle(db, b) is None
     conn = db._require()
-    cur = await conn.execute(
-        "SELECT COUNT(*) FROM features WHERE cycle_id=?", (ghost,)
-    )
+    cur = await conn.execute("SELECT COUNT(*) FROM features WHERE cycle_id=?", (ghost,))
     row = await cur.fetchone()
     await cur.close()
     assert int(row[0]) == 0
@@ -198,6 +212,7 @@ async def test_merge_updates_cop_aggregates(db):
     assert keeper["cop_sample_count"] == 4
     assert keeper["cop_avg"] is not None
     assert 3.0 <= keeper["cop_avg"] <= 5.0
+
 
 async def test_bridge_blocked_when_only_two_rows(db):
     """L1120 branch: prev is transient but no pp row exists.

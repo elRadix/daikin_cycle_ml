@@ -1,4 +1,5 @@
 """v1.3.1 entity_id migration tests."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -16,17 +17,21 @@ def _mock_registry(existing_ids=None):
 
 def test_migration_renames_wrong_entity_ids(hass: HomeAssistant) -> None:
     from custom_components.daikin_cycle_ml.const import DOMAIN
+
     reg = _mock_registry(existing_ids=["sensor.daikin_cycle_ml"])
     entry = MagicMock(entry_id="abc")
     owned = MagicMock()
     owned.entity_id = "sensor.daikin_cycle_ml"
     owned.platform = DOMAIN
-    with patch(
-        "custom_components.daikin_cycle_ml.sensor.er.async_get",
-        return_value=reg,
-    ), patch(
-        "custom_components.daikin_cycle_ml.sensor.er.async_entries_for_config_entry",
-        return_value=[owned],
+    with (
+        patch(
+            "custom_components.daikin_cycle_ml.sensor.er.async_get",
+            return_value=reg,
+        ),
+        patch(
+            "custom_components.daikin_cycle_ml.sensor.er.async_entries_for_config_entry",
+            return_value=[owned],
+        ),
     ):
         _migrate_entity_ids(hass, entry)
     reg.async_update_entity.assert_called_once_with(
@@ -44,7 +49,9 @@ def test_migration_skips_absent(hass: HomeAssistant) -> None:
 
 
 def test_migration_idempotent_already_correct(hass: HomeAssistant) -> None:
-    reg = _mock_registry(existing_ids=["sensor.daikin_cycle_ml", "sensor.daikin_cycle_ml_cop_mean_day"])
+    reg = _mock_registry(
+        existing_ids=["sensor.daikin_cycle_ml", "sensor.daikin_cycle_ml_cop_mean_day"]
+    )
     entry = MagicMock(entry_id="abc")
     with patch("custom_components.daikin_cycle_ml.sensor.er.async_get", return_value=reg):
         _migrate_entity_ids(hass, entry)

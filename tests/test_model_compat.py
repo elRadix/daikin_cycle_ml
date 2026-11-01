@@ -12,6 +12,7 @@ Fails if:
 
 Weekly drift detection lives in .github/workflows/model-compat.yml.
 """
+
 from __future__ import annotations
 
 import json
@@ -33,24 +34,26 @@ CANONICAL_LABELS: list[str] = sorted(ALIAS_GROUPS.keys())
 # Known decoys: attributes that LOOK like canonical sensors but are not.
 # Sourced from handoff v102.0 §6 (prod-1 decoy warnings).
 DECOYS: list[str] = [
-    "Heat exchanger mid-temp.(R5T)",   # refrigerant, NOT DHW tank (R5T)
-    "O/U Heat Exch. Temp.(R4T)",       # refrigerant, NOT inlet water (R4T)
-    "Indoor ambient temp. (R1T)",      # indoor ambient, NOT outdoor air (R1T)
+    "Heat exchanger mid-temp.(R5T)",  # refrigerant, NOT DHW tank (R5T)
+    "O/U Heat Exch. Temp.(R4T)",  # refrigerant, NOT inlet water (R4T)
+    "Indoor ambient temp. (R1T)",  # indoor ambient, NOT outdoor air (R1T)
 ]
 
 # Models that legitimately do NOT support heating (cooling-only, DHW-only,
 # alternative-protocol specs, or empty template skeletons). Skipped from the
 # REQUIRED_ATTRIBUTES coverage check.
-NON_HEATING_MODELS: frozenset[str] = frozenset({
-    "Daikin Mini chiller(EWAA-EWYA D series 4-8kW).h",
-    "Daikin Mini chiller(EWAA-EWYA D series 9-16kW).h",
-    "Daikin Mini chiller(EWAQ-EWYQ B series 4-8kW).h",
-    "CKHWS-BJV3(Multi DHW tank 2).h",
-    "EKHWET-BAV3(Multi DHW tank).h",
-    "PROTOCOL_S.h",
-    "PROTOCOL_S_ROTEX.h",
-    "DEFAULT.h",  # empty template skeleton, no labels
-})
+NON_HEATING_MODELS: frozenset[str] = frozenset(
+    {
+        "Daikin Mini chiller(EWAA-EWYA D series 4-8kW).h",
+        "Daikin Mini chiller(EWAA-EWYA D series 9-16kW).h",
+        "Daikin Mini chiller(EWAQ-EWYQ B series 4-8kW).h",
+        "CKHWS-BJV3(Multi DHW tank 2).h",
+        "EKHWET-BAV3(Multi DHW tank).h",
+        "PROTOCOL_S.h",
+        "PROTOCOL_S_ROTEX.h",
+        "DEFAULT.h",  # empty template skeleton, no labels
+    }
+)
 
 # Heating models that DO NOT have all REQUIRED_ATTRIBUTES by design.
 # Any change here must be justified by a re-analysis of the upstream
@@ -119,13 +122,9 @@ PARTIAL_MODELS: dict[str, list[str]] = {
     ],
 }
 
-_HEATING_MODELS: list[str] = [
-    m for m in _DATA["models"] if m not in NON_HEATING_MODELS
-]
+_HEATING_MODELS: list[str] = [m for m in _DATA["models"] if m not in NON_HEATING_MODELS]
 
-_FULL_COVERAGE_MODELS: list[str] = [
-    m for m in _HEATING_MODELS if m not in PARTIAL_MODELS
-]
+_FULL_COVERAGE_MODELS: list[str] = [m for m in _HEATING_MODELS if m not in PARTIAL_MODELS]
 
 
 # ── Structure invariants ────────────────────────────────────────────────────
@@ -159,6 +158,7 @@ def test_meta_invariants():
 
 # ── Canonical label presence ────────────────────────────────────────────────
 
+
 def _resolvable_labels(canonical: str) -> list[str]:
     """All spellings that the resolver accepts for one canonical label."""
     return [canonical, *ALIAS_GROUPS.get(canonical, ())]
@@ -184,15 +184,16 @@ def test_canonical_label_resolvable(label: str):
 
 # ── Decoy safety ────────────────────────────────────────────────────────────
 
+
 @pytest.mark.parametrize("decoy", DECOYS)
 def test_decoy_not_canonical(decoy: str):
     assert decoy not in CANONICAL_LABELS, (
-        f"decoy {decoy!r} must never be promoted to canonical; "
-        f"see handoff v102.0 §6 decoy register"
+        f"decoy {decoy!r} must never be promoted to canonical; see handoff v102.0 §6 decoy register"
     )
 
 
 # ── Per-model matrix ────────────────────────────────────────────────────────
+
 
 @pytest.mark.parametrize("model", _DATA["models"])
 def test_model_is_string(model):
@@ -207,9 +208,7 @@ def test_model_appears_in_some_label(model: str):
     assert hits > 0, f"model {model!r} appears in no label's model list"
 
 
-_HEATING_MODELS = [
-    m for m in _DATA["models"] if m not in NON_HEATING_MODELS
-]
+_HEATING_MODELS = [m for m in _DATA["models"] if m not in NON_HEATING_MODELS]
 
 
 def _canonical_present_for_model(model: str, canonical: str) -> bool:
@@ -227,8 +226,7 @@ def test_required_attrs_fully_covered(model: str):
     that install (missing_attributes repair would fire). Catch it here.
     """
     missing = [
-        attr for attr in REQUIRED_ATTRIBUTES
-        if not _canonical_present_for_model(model, attr)
+        attr for attr in REQUIRED_ATTRIBUTES if not _canonical_present_for_model(model, attr)
     ]
     assert not missing, (
         f"{model!r} missing required attrs: {missing}. "
@@ -246,8 +244,7 @@ def test_partial_models_match_expected(model: str, expected_missing: list[str]):
     -> regression, investigate. This test guards both directions.
     """
     actual = sorted(
-        attr for attr in REQUIRED_ATTRIBUTES
-        if not _canonical_present_for_model(model, attr)
+        attr for attr in REQUIRED_ATTRIBUTES if not _canonical_present_for_model(model, attr)
     )
     expected = sorted(expected_missing)
     assert actual == expected, (
@@ -269,6 +266,7 @@ def test_heating_partition_complete():
 
 
 # ── Orphan / duplicate guards ───────────────────────────────────────────────
+
 
 def test_no_orphan_labels():
     """Every label must map to at least one model."""

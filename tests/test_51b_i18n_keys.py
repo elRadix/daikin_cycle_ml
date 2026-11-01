@@ -1,4 +1,5 @@
 """Batch 51b -- translation key consistency."""
+
 from __future__ import annotations
 
 import json

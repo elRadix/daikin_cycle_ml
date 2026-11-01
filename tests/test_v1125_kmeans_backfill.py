@@ -1,4 +1,5 @@
 """v1.12.5 — kmeans startup backfill + scheduled instrumentation (#125)."""
+
 from __future__ import annotations
 
 import sys
@@ -36,18 +37,14 @@ def _mk_coord(hass: Any, store: dict[str, Any]) -> DaikinCycleMLCoordinator:
 
 
 def _patch(coord: Any, ret: Any = None) -> AsyncMock:
-    m = AsyncMock(
-        return_value=ret if ret is not None else {"ok": True, "n": 10, "k": 3}
-    )
+    m = AsyncMock(return_value=ret if ret is not None else {"ok": True, "n": 10, "k": 3})
     coord.async_run_kmeans = m
     return m
 
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_backfill_triggers_when_stale(hass: Any) -> None:
-    store: dict[str, Any] = {
-        "kmeans_state": {"last_ok_ts": time.time() - 26 * 3600}
-    }
+    store: dict[str, Any] = {"kmeans_state": {"last_ok_ts": time.time() - 26 * 3600}}
     coord = _mk_coord(hass, store)
     m = _patch(coord)
     await coord._run_kmeans_backfill_check(None)
@@ -56,9 +53,7 @@ async def test_backfill_triggers_when_stale(hass: Any) -> None:
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_backfill_no_trigger_when_fresh(hass: Any) -> None:
-    store: dict[str, Any] = {
-        "kmeans_state": {"last_ok_ts": time.time() - 1 * 3600}
-    }
+    store: dict[str, Any] = {"kmeans_state": {"last_ok_ts": time.time() - 1 * 3600}}
     coord = _mk_coord(hass, store)
     m = _patch(coord)
     await coord._run_kmeans_backfill_check(None)
@@ -92,9 +87,7 @@ async def test_callback_writes_outcome_on_too_few(hass: Any) -> None:
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_merge_kmeans_state_preserves_existing_keys(hass: Any) -> None:
-    store: dict[str, Any] = {
-        "kmeans_state": {"centroids": [[1.0, 2.0]], "ts": 123.0}
-    }
+    store: dict[str, Any] = {"kmeans_state": {"centroids": [[1.0, 2.0]], "ts": 123.0}}
     coord = _mk_coord(hass, store)
     await coord._merge_kmeans_state({"last_scheduled_fire_ts": 456.0})
     assert store["kmeans_state"]["centroids"] == [[1.0, 2.0]]
@@ -136,9 +129,7 @@ async def test_shutdown_cancels_pending_timer(hass: Any) -> None:
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_shutdown_swallows_cancel_error(hass: Any) -> None:
     coord = _mk_coord(hass, {})
-    coord._kmeans_backfill_unsub = MagicMock(
-        side_effect=RuntimeError("boom")
-    )
+    coord._kmeans_backfill_unsub = MagicMock(side_effect=RuntimeError("boom"))
     coord._async_flush_accumulators = AsyncMock()
     await coord._async_handle_shutdown()
     assert coord._kmeans_backfill_unsub is None
@@ -148,9 +139,7 @@ async def test_shutdown_swallows_cancel_error(hass: Any) -> None:
 async def test_merge_kmeans_state_swallows_write_error(hass: Any) -> None:
     store: dict[str, Any] = {"kmeans_state": {"a": 1}}
     coord = _mk_coord(hass, store)
-    coord.db.async_set_model_state = AsyncMock(
-        side_effect=RuntimeError("boom")
-    )
+    coord.db.async_set_model_state = AsyncMock(side_effect=RuntimeError("boom"))
     await coord._merge_kmeans_state({"b": 2})
     assert store["kmeans_state"]["a"] == 1
 
@@ -174,9 +163,7 @@ async def test_backfill_handles_no_db(hass: Any) -> None:
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_backfill_handles_read_error(hass: Any) -> None:
     coord = _mk_coord(hass, {})
-    coord.db.async_get_model_state = AsyncMock(
-        side_effect=RuntimeError("boom")
-    )
+    coord.db.async_get_model_state = AsyncMock(side_effect=RuntimeError("boom"))
     m = _patch(coord)
     await coord._run_kmeans_backfill_check(None)
     m.assert_not_awaited()
@@ -211,9 +198,7 @@ async def test_backfill_handles_missing_last_ok_ts(hass: Any) -> None:
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_backfill_handles_run_error(hass: Any) -> None:
-    store: dict[str, Any] = {
-        "kmeans_state": {"last_ok_ts": time.time() - 26 * 3600}
-    }
+    store: dict[str, Any] = {"kmeans_state": {"last_ok_ts": time.time() - 26 * 3600}}
     coord = _mk_coord(hass, store)
     coord.async_run_kmeans = AsyncMock(side_effect=RuntimeError("boom"))
     await coord._run_kmeans_backfill_check(None)
@@ -238,6 +223,7 @@ async def test_post_migration_fires_when_ready(hass: Any) -> None:
     m = _patch(coord)
     from unittest.mock import AsyncMock as _AM
     from unittest.mock import patch as _p
+
     with _p(
         "custom_components.daikin_cycle_ml.services._do_recompute_baseline",
         new=_AM(return_value={"computed": True, "days": 30}),
@@ -261,9 +247,7 @@ async def test_post_migration_skips_when_no_marker(hass: Any) -> None:
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_post_migration_defers_when_incomplete(hass: Any) -> None:
-    store: dict[str, Any] = {
-        "data_migration_v1_12_4": {"completed": False}
-    }
+    store: dict[str, Any] = {"data_migration_v1_12_4": {"completed": False}}
     coord = _mk_coord(hass, store)
     m = _patch(coord)
     handled = await coord._post_migration_retrain_check(coord.db)
@@ -292,6 +276,7 @@ async def test_post_migration_kmeans_fails_no_marker(hass: Any) -> None:
     m = _patch(coord, ret={"ok": False, "reason": "too_few", "n": 2})
     from unittest.mock import AsyncMock as _AM
     from unittest.mock import patch as _p
+
     with _p(
         "custom_components.daikin_cycle_ml.services._do_recompute_baseline",
         new=_AM(return_value={"computed": True, "days": 30}),
@@ -312,6 +297,7 @@ async def test_post_migration_only_baseline_needed(hass: Any) -> None:
     m = _patch(coord)
     from unittest.mock import AsyncMock as _AM
     from unittest.mock import patch as _p
+
     with _p(
         "custom_components.daikin_cycle_ml.services._do_recompute_baseline",
         new=_AM(return_value={"computed": True, "days": 30}),
@@ -331,6 +317,7 @@ async def test_post_migration_baseline_not_computed(hass: Any) -> None:
     coord = _mk_coord(hass, store)
     from unittest.mock import AsyncMock as _AM
     from unittest.mock import patch as _p
+
     with _p(
         "custom_components.daikin_cycle_ml.services._do_recompute_baseline",
         new=_AM(return_value={"computed": False, "days": 30}),
@@ -345,11 +332,13 @@ async def test_backfill_falls_through_on_migration_error(hass: Any) -> None:
     store: dict[str, Any] = {}
     coord = _mk_coord(hass, store)
     calls = {"n": 0}
+
     async def _get(key: str, default: Any = None) -> Any:
         calls["n"] += 1
         if calls["n"] == 1:
             raise RuntimeError("boom")
         return {}
+
     coord.db.async_get_model_state = AsyncMock(side_effect=_get)
     m = _patch(coord)
     await coord._run_kmeans_backfill_check(None)
@@ -375,11 +364,13 @@ async def test_post_migration_kmeans_only(hass: Any) -> None:
 async def test_backfill_non_dict_trigger2(hass: Any) -> None:
     """Line 1085: Trigger 1 returns False, then kmeans_state non-dict."""
     calls = {"n": 0}
+
     async def _get(key: str, default: Any = None) -> Any:
         calls["n"] += 1
         if key == "data_migration_v1_12_4":
             return None
         return [1, 2, 3]
+
     coord = _mk_coord(hass, {})
     coord.db.async_get_model_state = AsyncMock(side_effect=_get)
     m = _patch(coord)

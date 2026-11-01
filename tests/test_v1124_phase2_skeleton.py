@@ -5,6 +5,7 @@ Verifies async_migrate_to_v18() skeleton:
 - Does NOT write marker (Phase 9 adds marker write)
 - Second call behaves identically (no skip branch since no marker)
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -65,9 +66,7 @@ async def test_skeleton_skips_when_marker_completed(db):
 
 async def test_skeleton_runs_when_marker_incomplete(db):
     """Covers marker-exists-but-completed-False branch (falls through)."""
-    await db.async_set_model_state(
-        "data_migration_v1_12_4", {"completed": False}
-    )
+    await db.async_set_model_state("data_migration_v1_12_4", {"completed": False})
     stats = await db.async_migrate_to_v18()
     assert stats.get("skipped") is None
     assert stats["completed"] is True

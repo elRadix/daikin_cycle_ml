@@ -1,4 +1,5 @@
 """Ensure all SENSOR_DEFS keys have translation entries."""
+
 from __future__ import annotations
 
 import json

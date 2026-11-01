@@ -1,4 +1,5 @@
 """FEAT-2: thermal_power_live sensor cascade tests."""
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -23,7 +24,11 @@ from custom_components.daikin_cycle_ml.sensor import (
 
 def test_cascade_power_cop() -> None:
     kw, src = _compute_thermal_power_live(
-        power_w=800.0, cop=3.5, flow_lmin=None, dt_k=None, rps=None,
+        power_w=800.0,
+        cop=3.5,
+        flow_lmin=None,
+        dt_k=None,
+        rps=None,
     )
     assert kw == pytest.approx(2.8, abs=0.01)
     assert src == "power_cop"
@@ -31,17 +36,24 @@ def test_cascade_power_cop() -> None:
 
 def test_cascade_flow_dt() -> None:
     kw, src = _compute_thermal_power_live(
-        power_w=None, cop=None, flow_lmin=15.0, dt_k=5.0, rps=None,
+        power_w=None,
+        cop=None,
+        flow_lmin=15.0,
+        dt_k=5.0,
+        rps=None,
     )
-    expected = (15.0 * WATER_DENSITY_KG_L
-                * WATER_SPECIFIC_HEAT_KJ_KG_K * 5.0 / 60.0)
+    expected = 15.0 * WATER_DENSITY_KG_L * WATER_SPECIFIC_HEAT_KJ_KG_K * 5.0 / 60.0
     assert kw == pytest.approx(expected, abs=0.01)
     assert src == "flow_dt"
 
 
 def test_cascade_rps_heuristic() -> None:
     kw, src = _compute_thermal_power_live(
-        power_w=None, cop=None, flow_lmin=None, dt_k=None, rps=34.0,
+        power_w=None,
+        cop=None,
+        flow_lmin=None,
+        dt_k=None,
+        rps=34.0,
     )
     assert kw == pytest.approx(34.0 * RPS_KW_FACTOR, abs=0.01)
     assert src == "rps_heuristic"
@@ -49,7 +61,11 @@ def test_cascade_rps_heuristic() -> None:
 
 def test_cascade_idle() -> None:
     kw, src = _compute_thermal_power_live(
-        power_w=None, cop=None, flow_lmin=None, dt_k=None, rps=None,
+        power_w=None,
+        cop=None,
+        flow_lmin=None,
+        dt_k=None,
+        rps=None,
     )
     assert kw is None
     assert src == "idle"
@@ -57,7 +73,11 @@ def test_cascade_idle() -> None:
 
 def test_cascade_partial_power_no_cop() -> None:
     kw, src = _compute_thermal_power_live(
-        power_w=800.0, cop=None, flow_lmin=None, dt_k=None, rps=10.0,
+        power_w=800.0,
+        cop=None,
+        flow_lmin=None,
+        dt_k=None,
+        rps=10.0,
     )
     assert src == "rps_heuristic"
     assert kw == pytest.approx(10.0 * RPS_KW_FACTOR, abs=0.01)
@@ -65,18 +85,27 @@ def test_cascade_partial_power_no_cop() -> None:
 
 def test_cascade_negative_filtered() -> None:
     kw, src = _compute_thermal_power_live(
-        power_w=-100.0, cop=3.5, flow_lmin=None, dt_k=None, rps=None,
+        power_w=-100.0,
+        cop=3.5,
+        flow_lmin=None,
+        dt_k=None,
+        rps=None,
     )
     assert kw is None
     assert src == "idle"
 
 
 def test_value_fn_via_simple_namespace() -> None:
-    snap = SimpleNamespace(attrs={
-        ATTR_LEAVING_WATER_AFTER_BUH: 35.0,
-        ATTR_INLET_WATER_R4T: 30.0,
-        ATTR_INV_FREQUENCY_RPS: 20.0,
-    }, power_w=500.0, cop=4.0, mode="heating")
+    snap = SimpleNamespace(
+        attrs={
+            ATTR_LEAVING_WATER_AFTER_BUH: 35.0,
+            ATTR_INLET_WATER_R4T: 30.0,
+            ATTR_INV_FREQUENCY_RPS: 20.0,
+        },
+        power_w=500.0,
+        cop=4.0,
+        mode="heating",
+    )
     coord = SimpleNamespace(
         _read_power_w=lambda: 500.0,
         _read_cop=lambda: 4.0,
@@ -86,20 +115,29 @@ def test_value_fn_via_simple_namespace() -> None:
 
 
 def test_attrs_fn_via_simple_namespace_forward_compat() -> None:
-    snap = SimpleNamespace(attrs={
-        ATTR_LEAVING_WATER_AFTER_BUH: 35.0,
-        ATTR_INLET_WATER_R4T: 30.0,
-        ATTR_INV_FREQUENCY_RPS: 20.0,
-        ATTR_FLOW_SENSOR: 12.0,
-    }, power_w=500.0, cop=4.0, mode="heating")
+    snap = SimpleNamespace(
+        attrs={
+            ATTR_LEAVING_WATER_AFTER_BUH: 35.0,
+            ATTR_INLET_WATER_R4T: 30.0,
+            ATTR_INV_FREQUENCY_RPS: 20.0,
+            ATTR_FLOW_SENSOR: 12.0,
+        },
+        power_w=500.0,
+        cop=4.0,
+        mode="heating",
+    )
     coord = SimpleNamespace(
         _read_power_w=lambda: 500.0,
         _read_cop=lambda: 4.0,
     )
     a = _attrs_thermal_power_live(snap, coord)
     assert set(a.keys()) >= {
-        "input_power_w", "input_cop", "input_flow_lmin",
-        "input_dt_k", "input_rps", "calculation_source",
+        "input_power_w",
+        "input_cop",
+        "input_flow_lmin",
+        "input_dt_k",
+        "input_rps",
+        "calculation_source",
     }
     assert a["calculation_source"] == "power_cop"
     assert a["input_power_w"] == 500.0

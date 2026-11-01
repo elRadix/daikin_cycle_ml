@@ -6,6 +6,7 @@ tests/test_18_options_menu.py.
 
 Refs #66.
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
@@ -20,12 +21,17 @@ from custom_components.daikin_cycle_ml.const import DOMAIN
 @pytest.fixture(autouse=True)
 def _disable_options_reload(hass):
     """OptionsFlowWithReload triggers reload; skip in unit tests."""
-    with patch.object(
-        hass.config_entries, "async_reload",
-        new=AsyncMock(return_value=True),
-    ), patch.object(
-        hass.config_entries, "async_schedule_reload",
-        new=lambda *a, **k: None,
+    with (
+        patch.object(
+            hass.config_entries,
+            "async_reload",
+            new=AsyncMock(return_value=True),
+        ),
+        patch.object(
+            hass.config_entries,
+            "async_schedule_reload",
+            new=lambda *a, **k: None,
+        ),
     ):
         yield
 
@@ -71,11 +77,6 @@ async def test_notifications_dedup_submits_values(hass):
         r["flow_id"], user_input={"next_step_id": "notifications_dedup"}
     )
     assert r["type"] == "form"
-    payload = {
-        f"alert_agg_{k}_min": v
-        for k, v in const.ALERT_DEDUP_DEFAULTS.items()
-    }
-    r = await hass.config_entries.options.async_configure(
-        r["flow_id"], user_input=payload
-    )
+    payload = {f"alert_agg_{k}_min": v for k, v in const.ALERT_DEDUP_DEFAULTS.items()}
+    r = await hass.config_entries.options.async_configure(r["flow_id"], user_input=payload)
     assert r["type"] == "create_entry"

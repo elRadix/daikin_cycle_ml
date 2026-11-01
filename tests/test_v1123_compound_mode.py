@@ -1,4 +1,5 @@
 """v1.12.3 compound-mode tests (issue #116)."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -32,6 +33,7 @@ def _rps(attrs: dict, rps: float = 30.0) -> dict:
 
 # --- classify_mode (6 tests) ---
 
+
 def test_classify_heating_only():
     assert classify_mode({ATTR_IU_OPERATION_MODE: OP_MODE_HEATING}) == "heating"
 
@@ -58,6 +60,7 @@ def test_classify_fallback_operation_mode():
 
 # --- splitter (4 tests) ---
 
+
 def test_splitter_mode_transition_debounce():
     d = CycleDetector()
     d.update(_rps({ATTR_IU_OPERATION_MODE: OP_MODE_HEATING}), now=100.0)
@@ -79,10 +82,14 @@ def test_splitter_valve_shortens_debounce():
     d = CycleDetector()
     d.update(_rps({ATTR_IU_OPERATION_MODE: OP_MODE_HEATING}), now=100.0)
     t_transition = 100.0 + VALVE_DEBOUNCE_S
-    d.update(_rps({ATTR_IU_OPERATION_MODE: "Heating + DHW", ATTR_3WAY_VALVE: "ON"}), now=t_transition)
+    d.update(
+        _rps({ATTR_IU_OPERATION_MODE: "Heating + DHW", ATTR_3WAY_VALVE: "ON"}), now=t_transition
+    )
     assert d.state == STATE_RUNNING
     t_split = t_transition + VALVE_DEBOUNCE_S
-    record = d.update(_rps({ATTR_IU_OPERATION_MODE: "Heating + DHW", ATTR_3WAY_VALVE: "ON"}), now=t_split)
+    record = d.update(
+        _rps({ATTR_IU_OPERATION_MODE: "Heating + DHW", ATTR_3WAY_VALVE: "ON"}), now=t_split
+    )
     assert record is not None
     assert record["mode"] == "heating"
     assert d.snapshot()["mode"] == "dhw"
@@ -106,6 +113,7 @@ def test_splitter_idle_opens_dhw_directly():
 
 
 # --- _attr_contains_mode + _is_dhw_active (4 tests) ---
+
 
 def test_attr_contains_mode_compound_dhw():
     attrs = {ATTR_IU_OPERATION_MODE: "Heating + DHW"}
@@ -132,6 +140,7 @@ def test_is_dhw_active_heating_only_false():
 
 
 # --- persistence (3 tests) ---
+
 
 def test_to_dict_includes_pending_fields():
     d = CycleDetector()
@@ -179,8 +188,10 @@ def test_restore_old_payload_missing_pending_fields():
 
 # --- coverage completeness (5 tests, branch-level) ---
 
+
 def test_parse_valve_edge_cases():
     from custom_components.daikin_cycle_ml.engine.cycle_detector import _parse_valve
+
     assert _parse_valve({ATTR_3WAY_VALVE: "garbage"}) is None
     assert _parse_valve({ATTR_3WAY_VALVE: "on"}) == "ON"
     assert _parse_valve({ATTR_3WAY_VALVE: "off"}) == "OFF"
@@ -189,6 +200,7 @@ def test_parse_valve_edge_cases():
 
 def test_mode_tokens_empty_and_repeated_separators():
     from custom_components.daikin_cycle_ml.engine.cycle_detector import _mode_tokens
+
     assert _mode_tokens("") == set()
     assert _mode_tokens(" + ") == set()
     assert _mode_tokens("Heating + + DHW") == {"heating", "dhw"}

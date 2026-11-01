@@ -10,7 +10,14 @@ Cross-references: [DATABASE.md](DATABASE.md) (schema migrations), [CONFIGURATION
 
 ---
 
-## Latest: v1.17.1
+## Latest: v1.18.0
+
+## Upgrading to v1.18.0
+
+- **Issue #229:** Branding assets added. Strict pytest warnings enforced. No breaking changes for end-users.
+- **Hybrid Isolation:** Fixes for non-hybrid installs to prevent false boiler flags.
+
+## v1.17.1
 
 ### What changed
 - **HA 2026.10.4 compatibility fix:** `async_unload_entry` now explicitly returns `True`. Coordinator now passes `config_entry=entry`. Without these fixes, the integration failed to reload/unload/remove on HA Core 2026.10.4+.

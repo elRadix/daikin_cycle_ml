@@ -4,6 +4,7 @@ Each test targets a specific `< vs <=`, `== 0`, `== threshold`, or
 edge-input case discovered during hand-rolled mutation testing. All
 tests validate existing correct behaviour.
 """
+
 from __future__ import annotations
 
 import math
@@ -49,6 +50,7 @@ from custom_components.daikin_cycle_ml.ml.features import is_valid_record
 
 # ── quality_scorer boundaries ────────────────────────────────────────
 
+
 def test_quality_duration_exactly_at_threshold():
     """duration == good_run_min*60 → NO penalty (uses <)."""
     exact = DEFAULT_GOOD_RUN_MIN * 60
@@ -70,6 +72,7 @@ def test_quality_off_time_exactly_at_threshold():
 
 
 # ── thermal boundaries ───────────────────────────────────────────────
+
 
 def test_thermal_safe_float_rejects_bool():
     """bool is not a valid float for sensor inputs."""
@@ -98,12 +101,20 @@ def test_thermal_dt_rounds_to_2_decimals():
 def test_thermal_power_zero_is_idle():
     """power_w == 0 or cop == 0 → not the power_cop branch."""
     kw, src = compute_thermal_power_live(
-        power_w=0.0, cop=2.5, flow_lmin=None, dt_k=None, rps=None,
+        power_w=0.0,
+        cop=2.5,
+        flow_lmin=None,
+        dt_k=None,
+        rps=None,
     )
     assert kw is None
     assert src == "idle"
     kw, src = compute_thermal_power_live(
-        power_w=1000.0, cop=0.0, flow_lmin=None, dt_k=None, rps=None,
+        power_w=1000.0,
+        cop=0.0,
+        flow_lmin=None,
+        dt_k=None,
+        rps=None,
     )
     assert kw is None
     assert src == "idle"
@@ -111,12 +122,14 @@ def test_thermal_power_zero_is_idle():
 
 # ── ml/features boundaries ───────────────────────────────────────────
 
+
 def test_features_valid_record_empty_dict():
     """Empty dict → not a valid record."""
     assert is_valid_record({}) is False
 
 
 # ── cop_analyzer boundaries ──────────────────────────────────────────
+
 
 def test_bucket_at_minus_10_boundary():
     """temp in [-10, -8) → bucket -10--8 (not -10-)."""
@@ -133,6 +146,7 @@ def test_parse_float_filters_all_null_variants():
 
 # ── anomaly_engine boundaries ────────────────────────────────────────
 
+
 def test_severity_watch_boundary_uses_ge():
     """z == watch → WATCH (uses >=)."""
     assert classify_severity(2.0, watch=2.0, warn=3.0, critical=4.5) == "watch"
@@ -141,16 +155,23 @@ def test_severity_watch_boundary_uses_ge():
 
 # ── cycle_detector boundaries ────────────────────────────────────────
 
+
 def test_compressor_rps_exactly_at_threshold_off():
     """rps == threshold → OFF (uses >)."""
-    assert detect_compressor_on(
-        {ATTR_INV_FREQUENCY_RPS: 3.0},
-        {"compressor_rps_threshold": 3.0},
-    ) is False
-    assert detect_compressor_on(
-        {ATTR_INV_FREQUENCY_RPS: 3.01},
-        {"compressor_rps_threshold": 3.0},
-    ) is True
+    assert (
+        detect_compressor_on(
+            {ATTR_INV_FREQUENCY_RPS: 3.0},
+            {"compressor_rps_threshold": 3.0},
+        )
+        is False
+    )
+    assert (
+        detect_compressor_on(
+            {ATTR_INV_FREQUENCY_RPS: 3.01},
+            {"compressor_rps_threshold": 3.0},
+        )
+        is True
+    )
 
 
 def test_is_on_requires_literal_true():
@@ -163,6 +184,7 @@ def test_is_on_requires_literal_true():
 
 # ── adaptive_thresholds boundaries ───────────────────────────────────
 
+
 def test_percentile_pct_zero_returns_min():
     """pct == 0 → min (uses <=)."""
     assert _percentile([5.0, 1.0, 3.0, 2.0, 4.0], 0.0) == 1.0
@@ -174,6 +196,7 @@ def test_percentile_pct_100_returns_max():
 
 
 # ── baseline boundaries ──────────────────────────────────────────────
+
 
 def test_welford_std_uses_sample_variance():
     """Welford std uses n-1 (sample), not n (population)."""

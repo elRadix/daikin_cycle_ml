@@ -1,4 +1,5 @@
 """v1.6.0-C5 sensor tests: runtime, BUH, defrost, duty."""
+
 from __future__ import annotations
 
 import time
@@ -30,13 +31,16 @@ def _mk_coord(**overrides: Any) -> DaikinCycleMLCoordinator:
     c.store.cycles_today.return_value = overrides.get("cycles", [])
     c.entry = MagicMock()
     c.entry.data = {"model": overrides.get("model", "EPRA08")}
-    rt = overrides.get("runtime", {
-        "buh_step1_s": 0.0,
-        "buh_step2_s": 0.0,
-        "defrost_count": 0.0,
-        "defrost_duration_s": 0.0,
-        "last_defrost_ts": 0.0,
-    })
+    rt = overrides.get(
+        "runtime",
+        {
+            "buh_step1_s": 0.0,
+            "buh_step2_s": 0.0,
+            "defrost_count": 0.0,
+            "defrost_duration_s": 0.0,
+            "last_defrost_ts": 0.0,
+        },
+    )
     c.runtime_snapshot = rt
     c.energy_snapshot = {}
     return c
@@ -64,10 +68,12 @@ def test_c5_sensors_have_value_and_attr_fn():
 
 def test_runtime_compressor_today_sums_cycles():
     now = time.time()
-    c = _mk_coord(cycles=[
-        {"duration_s": 100, "mode": "heating", "start_ts": now - 3600},
-        {"duration_s": 50,  "mode": "dhw",     "start_ts": now - 1800},
-    ])
+    c = _mk_coord(
+        cycles=[
+            {"duration_s": 100, "mode": "heating", "start_ts": now - 3600},
+            {"duration_s": 50, "mode": "dhw", "start_ts": now - 1800},
+        ]
+    )
     s = _mk_snap()
     assert s_mod._value_runtime_compressor_today_s(s, c) == 150
 
@@ -81,11 +87,15 @@ def test_runtime_compressor_today_adds_live_elapsed():
 
 
 def test_runtime_buh_today_sums_steps():
-    c = _mk_coord(runtime={
-        "buh_step1_s": 60.0, "buh_step2_s": 30.0,
-        "defrost_count": 0.0, "defrost_duration_s": 0.0,
-        "last_defrost_ts": 0.0,
-    })
+    c = _mk_coord(
+        runtime={
+            "buh_step1_s": 60.0,
+            "buh_step2_s": 30.0,
+            "defrost_count": 0.0,
+            "defrost_duration_s": 0.0,
+            "last_defrost_ts": 0.0,
+        }
+    )
     s = _mk_snap()
     assert s_mod._value_runtime_buh_today_s(s, c) == 90
 
@@ -97,21 +107,29 @@ def test_compressor_starts_counts_cycles():
 
 
 def test_defrost_count_reads_snapshot():
-    c = _mk_coord(runtime={
-        "buh_step1_s": 0.0, "buh_step2_s": 0.0,
-        "defrost_count": 5.0, "defrost_duration_s": 0.0,
-        "last_defrost_ts": 0.0,
-    })
+    c = _mk_coord(
+        runtime={
+            "buh_step1_s": 0.0,
+            "buh_step2_s": 0.0,
+            "defrost_count": 5.0,
+            "defrost_duration_s": 0.0,
+            "last_defrost_ts": 0.0,
+        }
+    )
     s = _mk_snap()
     assert s_mod._value_defrost_count_today(s, c) == 5
 
 
 def test_defrost_duration_reads_snapshot():
-    c = _mk_coord(runtime={
-        "buh_step1_s": 0.0, "buh_step2_s": 0.0,
-        "defrost_count": 0.0, "defrost_duration_s": 123.4,
-        "last_defrost_ts": 0.0,
-    })
+    c = _mk_coord(
+        runtime={
+            "buh_step1_s": 0.0,
+            "buh_step2_s": 0.0,
+            "defrost_count": 0.0,
+            "defrost_duration_s": 123.4,
+            "last_defrost_ts": 0.0,
+        }
+    )
     s = _mk_snap()
     assert s_mod._value_defrost_duration_today_s(s, c) == 123
 
@@ -126,14 +144,10 @@ def test_duty_cycle_computes_pct(monkeypatch):
     # Anchor at local midday so elapsed_since_midnight >> runtime (see #97).
     # v1.14.0: mock _now so test is wall-clock independent.
     import datetime as _dt
-    now = _dt.datetime.now().replace(
-        hour=12, minute=0, second=0, microsecond=0
-    ).timestamp()
-    monkeypatch.setattr(
-        "custom_components.daikin_cycle_ml.sensor._now", lambda: now
-    )
-    c = _mk_coord(cycles=[{"duration_s": 3600, "mode": "heating",
-                            "start_ts": now - 7200}])
+
+    now = _dt.datetime.now().replace(hour=12, minute=0, second=0, microsecond=0).timestamp()
+    monkeypatch.setattr("custom_components.daikin_cycle_ml.sensor._now", lambda: now)
+    c = _mk_coord(cycles=[{"duration_s": 3600, "mode": "heating", "start_ts": now - 7200}])
     s = _mk_snap()
     pct = s_mod._value_duty_cycle_today_pct(s, c)
     assert 0.0 < pct < 100.0
@@ -164,11 +178,13 @@ def test_local_midnight_is_before_now():
 
 def test_attrs_runtime_per_mode_split():
     now = time.time()
-    c = _mk_coord(cycles=[
-        {"duration_s": 100, "mode": "heating", "start_ts": now - 3600},
-        {"duration_s": 50,  "mode": "dhw",     "start_ts": now - 1800},
-        {"duration_s": 30,  "mode": "cooling", "start_ts": now - 900},
-    ])
+    c = _mk_coord(
+        cycles=[
+            {"duration_s": 100, "mode": "heating", "start_ts": now - 3600},
+            {"duration_s": 50, "mode": "dhw", "start_ts": now - 1800},
+            {"duration_s": 30, "mode": "cooling", "start_ts": now - 900},
+        ]
+    )
     s = _mk_snap()
     a = s_mod._attrs_runtime_compressor_today_s(s, c)
     assert a["heating_s"] == 100
@@ -178,11 +194,13 @@ def test_attrs_runtime_per_mode_split():
 
 
 def test_attrs_compressor_starts_per_mode():
-    c = _mk_coord(cycles=[
-        {"mode": "heating", "start_ts": 1.0},
-        {"mode": "heating", "start_ts": 2.0},
-        {"mode": "dhw",     "start_ts": 3.0},
-    ])
+    c = _mk_coord(
+        cycles=[
+            {"mode": "heating", "start_ts": 1.0},
+            {"mode": "heating", "start_ts": 2.0},
+            {"mode": "dhw", "start_ts": 3.0},
+        ]
+    )
     s = _mk_snap()
     a = s_mod._attrs_compressor_starts_today(s, c)
     assert a["per_mode"]["heating"] == 2
@@ -190,11 +208,15 @@ def test_attrs_compressor_starts_per_mode():
 
 
 def test_attrs_defrost_count_avg():
-    c = _mk_coord(runtime={
-        "buh_step1_s": 0.0, "buh_step2_s": 0.0,
-        "defrost_count": 2.0, "defrost_duration_s": 600.0,
-        "last_defrost_ts": 1234.0,
-    })
+    c = _mk_coord(
+        runtime={
+            "buh_step1_s": 0.0,
+            "buh_step2_s": 0.0,
+            "defrost_count": 2.0,
+            "defrost_duration_s": 600.0,
+            "last_defrost_ts": 1234.0,
+        }
+    )
     s = _mk_snap()
     a = s_mod._attrs_defrost_count_today(s, c)
     assert a["avg_duration_s"] == 300.0
@@ -202,11 +224,15 @@ def test_attrs_defrost_count_avg():
 
 
 def test_attrs_defrost_count_zero_none_avg():
-    c = _mk_coord(runtime={
-        "buh_step1_s": 0.0, "buh_step2_s": 0.0,
-        "defrost_count": 0.0, "defrost_duration_s": 0.0,
-        "last_defrost_ts": 0.0,
-    })
+    c = _mk_coord(
+        runtime={
+            "buh_step1_s": 0.0,
+            "buh_step2_s": 0.0,
+            "defrost_count": 0.0,
+            "defrost_duration_s": 0.0,
+            "last_defrost_ts": 0.0,
+        }
+    )
     s = _mk_snap()
     a = s_mod._attrs_defrost_count_today(s, c)
     assert a["avg_duration_s"] is None
@@ -237,11 +263,16 @@ def test_attrs_duty_cycle_nominal_band():
 
 
 def test_attrs_runtime_buh_includes_energy_est():
-    c = _mk_coord(model="EPRA12", runtime={
-        "buh_step1_s": 3600.0, "buh_step2_s": 0.0,
-        "defrost_count": 0.0, "defrost_duration_s": 0.0,
-        "last_defrost_ts": 0.0,
-    })
+    c = _mk_coord(
+        model="EPRA12",
+        runtime={
+            "buh_step1_s": 3600.0,
+            "buh_step2_s": 0.0,
+            "defrost_count": 0.0,
+            "defrost_duration_s": 0.0,
+            "last_defrost_ts": 0.0,
+        },
+    )
     s = _mk_snap()
     a = s_mod._attrs_runtime_buh_today_s(s, c)
     assert a["step1_s"] == 3600
@@ -249,11 +280,15 @@ def test_attrs_runtime_buh_includes_energy_est():
 
 
 def test_attrs_defrost_duration_includes_count():
-    c = _mk_coord(runtime={
-        "buh_step1_s": 0.0, "buh_step2_s": 0.0,
-        "defrost_count": 3.0, "defrost_duration_s": 900.0,
-        "last_defrost_ts": 0.0,
-    })
+    c = _mk_coord(
+        runtime={
+            "buh_step1_s": 0.0,
+            "buh_step2_s": 0.0,
+            "defrost_count": 3.0,
+            "defrost_duration_s": 900.0,
+            "last_defrost_ts": 0.0,
+        }
+    )
     s = _mk_snap()
     a = s_mod._attrs_defrost_duration_today_s(s, c)
     assert a["defrost_count"] == 3
@@ -268,10 +303,12 @@ def test_buh_energy_kwh_est_swallows_exception():
 
 def test_attrs_runtime_unknown_mode_skipped():
     now = time.time()
-    c = _mk_coord(cycles=[
-        {"duration_s": 100, "mode": "unknown", "start_ts": now - 3600},
-        {"duration_s": 50, "mode": "heating", "start_ts": now - 1800},
-    ])
+    c = _mk_coord(
+        cycles=[
+            {"duration_s": 100, "mode": "unknown", "start_ts": now - 3600},
+            {"duration_s": 50, "mode": "heating", "start_ts": now - 1800},
+        ]
+    )
     s = _mk_snap()
     a = s_mod._attrs_runtime_compressor_today_s(s, c)
     assert a["heating_s"] == 50
@@ -279,10 +316,12 @@ def test_attrs_runtime_unknown_mode_skipped():
 
 
 def test_attrs_starts_unknown_mode_skipped():
-    c = _mk_coord(cycles=[
-        {"mode": "unknown", "start_ts": 1.0},
-        {"mode": "heating", "start_ts": 2.0},
-    ])
+    c = _mk_coord(
+        cycles=[
+            {"mode": "unknown", "start_ts": 1.0},
+            {"mode": "heating", "start_ts": 2.0},
+        ]
+    )
     s = _mk_snap()
     a = s_mod._attrs_compressor_starts_today(s, c)
     assert a["per_mode"]["heating"] == 1
@@ -307,12 +346,15 @@ def test_attrs_duty_cycle_saturated_band(monkeypatch):
     a = s_mod._attrs_duty_cycle_today_pct(s, c)
     assert a["band"] == "saturated"
 
+
 def test_idle_state_thermal_power_zero() -> None:
     """Thermal power should be 0.0 when state is idle, even with RPS=13."""
     from custom_components.daikin_cycle_ml.sensor import _value_thermal_power_live
+
     s = _mk_snap(state="idle")
     s.attrs["INV frequency (rps)"] = 13.0
     assert _value_thermal_power_live(s, None) == 0.0
+
 
 def test_idle_state_cop_none() -> None:
     """COP sensors should be None when state is idle."""
@@ -320,23 +362,28 @@ def test_idle_state_cop_none() -> None:
         _value_cop_normalized_a7w35,
         _value_cop_vs_datasheet_pct,
     )
+
     s = _mk_snap(state="idle")
     s.cop_normalized_a7w35 = 4.5
     s.cop_vs_datasheet_pct = 100.0
     assert _value_cop_normalized_a7w35(s, None) is None
     assert _value_cop_vs_datasheet_pct(s, None) is None
 
+
 def test_idle_state_cop_today_none() -> None:
     """cop_today should be None when state is idle."""
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
+
     s = _mk_snap(state="idle")
     s.cop_today = {"cop": 6.55}
     fn = next(d["value_fn"] for d in SENSOR_DEFS if d["key"] == "cop_today")
     assert fn(s, None) is None
 
+
 def test_current_cycle_rps_zero_when_idle() -> None:
     """The current_cycle attrs must show rps=0 when idle."""
     from custom_components.daikin_cycle_ml.sensor import _attrs_current_cycle
+
     s = _mk_snap(state="idle")
     s.attrs["INV frequency (rps)"] = 13.0
     attrs = _attrs_current_cycle(s, None)

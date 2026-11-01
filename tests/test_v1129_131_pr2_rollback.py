@@ -1,4 +1,5 @@
 """v1.12.9 (#131 PR-2): store.rollback_last_cycles unit tests."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.storage.store import CycleStore

@@ -1,4 +1,5 @@
 """v1.10.0 #75 - legacy DB correction service tests."""
+
 from __future__ import annotations
 
 import json
@@ -36,31 +37,19 @@ def svc_env(hass, tmp_path):
 
 
 def _db(tmp_path: Path, entry_id: str) -> Path:
-    return tmp_path / ".storage" / DB_FILENAME_TEMPLATE.format(
-        entry_id=entry_id
-    )
+    return tmp_path / ".storage" / DB_FILENAME_TEMPLATE.format(entry_id=entry_id)
 
 
 def _create_full_db(path: Path) -> None:
     conn = sqlite3.connect(path)
     try:
-        conn.execute(
-            "CREATE TABLE cycles (id INTEGER PRIMARY KEY, start_ts REAL)"
-        )
-        conn.execute(
-            "CREATE TABLE features (id INTEGER PRIMARY KEY, cycle_id INTEGER)"
-        )
-        conn.execute(
-            "CREATE TABLE cop_samples (id INTEGER PRIMARY KEY, ts REAL)"
-        )
+        conn.execute("CREATE TABLE cycles (id INTEGER PRIMARY KEY, start_ts REAL)")
+        conn.execute("CREATE TABLE features (id INTEGER PRIMARY KEY, cycle_id INTEGER)")
+        conn.execute("CREATE TABLE cop_samples (id INTEGER PRIMARY KEY, ts REAL)")
         conn.execute("CREATE TABLE cop_hourly (ts_hour INTEGER, mode TEXT)")
         conn.execute("CREATE TABLE daily_summary (day TEXT, mode TEXT)")
-        conn.execute(
-            "CREATE TABLE alerts (id INTEGER PRIMARY KEY, ts REAL)"
-        )
-        conn.execute(
-            "CREATE TABLE model_state (key TEXT PRIMARY KEY, value_json TEXT)"
-        )
+        conn.execute("CREATE TABLE alerts (id INTEGER PRIMARY KEY, ts REAL)")
+        conn.execute("CREATE TABLE model_state (key TEXT PRIMARY KEY, value_json TEXT)")
         conn.execute("INSERT INTO cycles (start_ts) VALUES (1.0)")
         conn.execute("INSERT INTO cycles (start_ts) VALUES (2.0)")
         conn.commit()
@@ -125,13 +114,12 @@ async def test_assign_rename_failed(svc_env, monkeypatch):
 
 async def test_assign_happy_path(svc_env, monkeypatch):
     from custom_components.daikin_cycle_ml import services
+
     hass, tmp_path = svc_env
     hass.config_entries.async_get_entry = MagicMock(return_value=MagicMock())
     _db(tmp_path, "a").write_bytes(b"db-content")
     clear_mock = MagicMock()
-    monkeypatch.setattr(
-        services, "clear_legacy_db_multi_entry", clear_mock
-    )
+    monkeypatch.setattr(services, "clear_legacy_db_multi_entry", clear_mock)
     call = _make_call("a", target="b")
     result = await _handle_assign_legacy_db(hass, call)
     assert result["ok"] is True
@@ -172,12 +160,11 @@ async def test_archive_rename_failed(svc_env, monkeypatch):
 
 async def test_archive_happy_path(svc_env, monkeypatch):
     from custom_components.daikin_cycle_ml import services
+
     hass, tmp_path = svc_env
     _db(tmp_path, "a").write_bytes(b"db-content")
     clear_mock = MagicMock()
-    monkeypatch.setattr(
-        services, "clear_legacy_db_multi_entry", clear_mock
-    )
+    monkeypatch.setattr(services, "clear_legacy_db_multi_entry", clear_mock)
     call = _make_call("a")
     result = await _handle_archive_legacy_db(hass, call)
     assert result["ok"] is True
@@ -247,16 +234,19 @@ async def test_export_happy_path(svc_env):
     assert out_dir.name.startswith("daikin_cycle_ml_export_a_")
     # All 7 tables exported
     assert set(result["tables"].keys()) == {
-        "cycles", "features", "cop_samples", "cop_hourly",
-        "daily_summary", "alerts", "model_state",
+        "cycles",
+        "features",
+        "cop_samples",
+        "cop_hourly",
+        "daily_summary",
+        "alerts",
+        "model_state",
     }
     assert result["tables"]["cycles"] == 2
     # CSVs + manifest present
     assert (out_dir / "cycles.csv").exists()
     assert (out_dir / "manifest.json").exists()
-    manifest = json.loads(
-        (out_dir / "manifest.json").read_text(encoding="utf-8")
-    )
+    manifest = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["entry_id"] == "a"
     assert manifest["tables"]["cycles"] == 2
     assert manifest["errors"] == {}
@@ -271,6 +261,7 @@ async def test_export_manifest_write_failed(svc_env, monkeypatch):
     # Second call (CSV per table) succeeds.
     # Only manifest write should fail -> patch Path.write_text
     from pathlib import Path as _Path
+
     real_write_text = _Path.write_text
 
     def selective_boom(self, *args, **kwargs):
@@ -288,6 +279,7 @@ async def test_export_manifest_write_failed(svc_env, monkeypatch):
 
 async def test_legacy_services_registered(hass):
     from custom_components.daikin_cycle_ml import services as svc
+
     await svc.async_register_services(hass)
     for name in (
         "assign_legacy_db",

@@ -1,4 +1,5 @@
 """v1.10.0 #75 - end-to-end migration via async_setup_entry tests."""
+
 from __future__ import annotations
 
 import asyncio
@@ -93,22 +94,28 @@ async def test_migration_runs_end_to_end_through_async_setup_entry(
 
     from custom_components.daikin_cycle_ml import async_setup_entry
 
-    with patch(
-        "custom_components.daikin_cycle_ml.DaikinCycleMLCoordinator",
-        return_value=coord,
-    ), patch(
-        "custom_components.daikin_cycle_ml.CycleDB",
-        return_value=mock_db,
-    ), patch(
-        "custom_components.daikin_cycle_ml.async_register_services",
-        new=AsyncMock(),
-    ), patch(
-        "custom_components.daikin_cycle_ml.PLATFORMS",
-        (),
-    ), patch.object(
-        hass.config_entries,
-        "async_forward_entry_setups",
-        new=AsyncMock(return_value=True),
+    with (
+        patch(
+            "custom_components.daikin_cycle_ml.DaikinCycleMLCoordinator",
+            return_value=coord,
+        ),
+        patch(
+            "custom_components.daikin_cycle_ml.CycleDB",
+            return_value=mock_db,
+        ),
+        patch(
+            "custom_components.daikin_cycle_ml.async_register_services",
+            new=AsyncMock(),
+        ),
+        patch(
+            "custom_components.daikin_cycle_ml.PLATFORMS",
+            (),
+        ),
+        patch.object(
+            hass.config_entries,
+            "async_forward_entry_setups",
+            new=AsyncMock(return_value=True),
+        ),
     ):
         ok = await async_setup_entry(hass, entry)
 

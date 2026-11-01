@@ -1,4 +1,5 @@
 """Test v14 schema migration via CycleDB public methods."""
+
 from __future__ import annotations
 
 import sqlite3

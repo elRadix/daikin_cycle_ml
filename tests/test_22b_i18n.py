@@ -1,4 +1,5 @@
 """Batch 22b tests: alert i18n language selection + rendering."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.engine.notification_engine import (
@@ -77,9 +78,14 @@ def test_context_renders_nl():
 
 
 def test_setpoint_osc_renders_threshold():
-    ctx = {"setpoint_osc": {
-        "osc_count": 7, "window_min": 30, "threshold": 6, "advice": "",
-    }}
+    ctx = {
+        "setpoint_osc": {
+            "osc_count": 7,
+            "window_min": 30,
+            "threshold": 6,
+            "advice": "",
+        }
+    }
     out = evaluate_alerts(
         {"setpoint_osc": True},
         {"notify_emoji_enabled": False},
@@ -95,11 +101,15 @@ def test_setpoint_osc_renders_threshold():
 
 
 def test_pendulum_hourly_renders_cph():
-    ctx = {"pendulum_hourly": {
-        "cph": 5, "target_cph": 4,
-        "cycles_today": 42, "target_cpd": 40,
-        "advice": "",
-    }}
+    ctx = {
+        "pendulum_hourly": {
+            "cph": 5,
+            "target_cph": 4,
+            "cycles_today": 42,
+            "target_cpd": 40,
+            "advice": "",
+        }
+    }
     out = evaluate_alerts(
         {"pendulum_hourly": True},
         {"notify_emoji_enabled": False},

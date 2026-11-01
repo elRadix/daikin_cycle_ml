@@ -1,4 +1,5 @@
 """Regression: OverflowError in nearest_centroid (Audit v44.0 A1)."""
+
 from custom_components.daikin_cycle_ml.ml.clustering import nearest_centroid
 
 EXTREME = 2.6815615859885194e154  # (x)**2 would overflow float64

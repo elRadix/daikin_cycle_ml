@@ -1,4 +1,5 @@
 """Batch 34 -- notifications data_description + version consistency."""
+
 from __future__ import annotations
 
 import json
@@ -29,7 +30,10 @@ def test_notifications_step_dd_keys_complete(rel):
 
 def test_version_consistent_in_three_files():
     const = (ROOT / "const.py").read_text()
-    m = re.search(r"VERSION" + chr(92) + "s*=" + chr(92) + "s*" + chr(34) + "([^" + chr(34) + "]+)" + chr(34), const)
+    m = re.search(
+        r"VERSION" + chr(92) + "s*=" + chr(92) + "s*" + chr(34) + "([^" + chr(34) + "]+)" + chr(34),
+        const,
+    )
     assert m is not None
     ver = m.group(1)
     assert re.fullmatch(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?", ver), ver

@@ -1,4 +1,5 @@
 """Tests for services handlers + resolve (Batch 8d)."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -27,8 +28,10 @@ def _coord():
     c = MagicMock()
     c.store = CycleStore()
     c.db = MagicMock()
+
     async def fake_label(cid, lbl):
         return True
+
     c.db.async_label_cycle = fake_label
     return c
 
@@ -40,6 +43,7 @@ def _call(data):
 
 
 # ---------- _resolve_coordinator ----------
+
 
 def test_resolve_unknown_entry_raises():
     hass = _hass_with_entry(None)
@@ -64,6 +68,7 @@ def test_resolve_returns_coordinator():
 
 
 # ---------- handlers ----------
+
 
 async def test_handle_reset_counters():
     entry = MagicMock()
@@ -104,6 +109,7 @@ async def test_handle_recompute_baseline():
 
 # ---------- registration idempotence ----------
 
+
 async def test_register_short_circuits_when_present():
     hass = MagicMock()
     hass.services.has_service = MagicMock(return_value=True)
@@ -113,6 +119,7 @@ async def test_register_short_circuits_when_present():
 
 
 # ============ C4b (I2): recompute_kmeans service ============
+
 
 @pytest.mark.asyncio
 async def test_handle_recompute_kmeans_success(monkeypatch):
@@ -127,8 +134,10 @@ async def test_handle_recompute_kmeans_success(monkeypatch):
     hass = _hass_with_entry(entry)
     # Mock async_create_task to run eagerly and avoid dangling tasks
     notified = []
+
     def fake_create_task(coro):
         notified.append(coro)
+
     hass.async_create_task = fake_create_task
     hass.services.async_call = MagicMock()
 
@@ -182,6 +191,7 @@ async def test_handle_recompute_kmeans_custom_days():
 @pytest.mark.asyncio
 async def test_handle_recompute_kmeans_unknown_entry():
     from custom_components.daikin_cycle_ml.services import _handle_recompute_kmeans
+
     hass = MagicMock()
     hass.config_entries.async_get_entry = MagicMock(return_value=None)
 
@@ -200,8 +210,10 @@ async def test_handle_recompute_kmeans_notification_failure_swallowed():
     entry = MagicMock()
     entry.runtime_data = coord
     hass = _hass_with_entry(entry)
+
     def boom(coro):
         raise RuntimeError("create_task boom")
+
     hass.async_create_task = boom
     hass.services.async_call = MagicMock()
 
@@ -212,6 +224,7 @@ async def test_handle_recompute_kmeans_notification_failure_swallowed():
 
 def test_schema_recompute_kmeans_valid():
     from custom_components.daikin_cycle_ml.services import SCHEMA_RECOMPUTE_KMEANS
+
     data = SCHEMA_RECOMPUTE_KMEANS({"entry_id": "e1", "days": 14})
     assert data["entry_id"] == "e1"
     assert data["days"] == 14
@@ -219,6 +232,7 @@ def test_schema_recompute_kmeans_valid():
 
 def test_schema_recompute_kmeans_default_days():
     from custom_components.daikin_cycle_ml.services import SCHEMA_RECOMPUTE_KMEANS
+
     data = SCHEMA_RECOMPUTE_KMEANS({"entry_id": "e1"})
     assert data["days"] == 7
 

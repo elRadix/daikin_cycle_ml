@@ -1,4 +1,5 @@
 """v1.6.2 -- attribute-mode + manual mapping tests (issue #25)."""
+
 from __future__ import annotations
 
 import json
@@ -26,7 +27,8 @@ def _set_state(hass: HomeAssistant, attrs: dict | None = None) -> None:
 
 async def _start(hass: HomeAssistant):
     return await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": config_entries.SOURCE_USER},
+        DOMAIN,
+        context={"source": config_entries.SOURCE_USER},
     )
 
 
@@ -94,7 +96,8 @@ async def test_manual_mode_correct_mapping_saves(hass: HomeAssistant):
         },
     )
     r3 = await hass.config_entries.flow.async_configure(
-        r2["flow_id"], user_input=user_input,
+        r2["flow_id"],
+        user_input=user_input,
     )
     assert r3["type"] == FlowResultType.FORM
     assert r3["step_id"] == "attributes"
@@ -112,7 +115,8 @@ async def test_manual_mode_empty_fields_use_canonical(hass: HomeAssistant):
         },
     )
     r3 = await hass.config_entries.flow.async_configure(
-        r2["flow_id"], user_input=dict.fromkeys(REQUIRED_ATTRIBUTES, ""),
+        r2["flow_id"],
+        user_input=dict.fromkeys(REQUIRED_ATTRIBUTES, ""),
     )
     assert r3["type"] == FlowResultType.FORM
     assert r3["step_id"] == "attributes"
@@ -132,7 +136,8 @@ async def test_manual_mode_bad_user_key_errors(hass: HomeAssistant):
     user_input = dict.fromkeys(REQUIRED_ATTRIBUTES, "")
     user_input[REQUIRED_ATTRIBUTES[0]] = "does.not.exist"
     r3 = await hass.config_entries.flow.async_configure(
-        r2["flow_id"], user_input=user_input,
+        r2["flow_id"],
+        user_input=user_input,
     )
     assert r3["type"] == FlowResultType.FORM
     assert r3["step_id"] == "map_attributes"
@@ -151,7 +156,8 @@ async def test_manual_mode_unmapped_required_errors(hass: HomeAssistant):
         },
     )
     r3 = await hass.config_entries.flow.async_configure(
-        r2["flow_id"], user_input=dict.fromkeys(REQUIRED_ATTRIBUTES, ""),
+        r2["flow_id"],
+        user_input=dict.fromkeys(REQUIRED_ATTRIBUTES, ""),
     )
     assert r3["type"] == FlowResultType.FORM
     assert r3["errors"]["base"] == "required_attrs_unmapped"
@@ -174,7 +180,8 @@ async def test_manual_mode_optional_can_be_mapped(hass: HomeAssistant):
     for opt in OPTIONAL_ATTRIBUTES:
         user_input[opt] = "my_rps"
     r3 = await hass.config_entries.flow.async_configure(
-        r2["flow_id"], user_input=user_input,
+        r2["flow_id"],
+        user_input=user_input,
     )
     assert r3["type"] == FlowResultType.FORM
     assert r3["step_id"] == "attributes"
@@ -200,9 +207,7 @@ async def test_map_step_shows_all_attributes(hass: HomeAssistant):
 async def test_user_step_shows_attribute_mode_field(hass: HomeAssistant):
     # v1.13.2: attribute_mode lives in async_step_model, not async_step_user
     r = await _start(hass)
-    r2 = await hass.config_entries.flow.async_configure(
-        r["flow_id"], {"family": "epra"}
-    )
+    r2 = await hass.config_entries.flow.async_configure(r["flow_id"], {"family": "epra"})
     assert r2["step_id"] == "model"
     schema = r2["data_schema"].schema
     keys = {str(k) for k in schema}
@@ -224,7 +229,8 @@ async def test_manual_mode_optional_bad_key_errors(hass: HomeAssistant):
     for opt in OPTIONAL_ATTRIBUTES:
         user_input[opt] = "does.not.exist"
     r3 = await hass.config_entries.flow.async_configure(
-        r2["flow_id"], user_input=user_input,
+        r2["flow_id"],
+        user_input=user_input,
     )
     assert r3["type"] == FlowResultType.FORM
     assert r3["step_id"] == "map_attributes"
@@ -241,8 +247,7 @@ def test_strings_has_map_step_and_errors():
         for canonical in REQUIRED_ATTRIBUTES + OPTIONAL_ATTRIBUTES:
             assert canonical in data, f"{fname}: {canonical}"
         err = d["config"]["error"]
-        for key in ("missing_attributes", "attribute_not_found",
-                    "required_attrs_unmapped"):
+        for key in ("missing_attributes", "attribute_not_found", "required_attrs_unmapped"):
             assert key in err, f"{fname}: {key}"
 
 

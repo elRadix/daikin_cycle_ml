@@ -1,4 +1,5 @@
 """Batch 11b-2 tests: maintenance hook + service + retention options."""
+
 from __future__ import annotations
 
 import time
@@ -70,9 +71,7 @@ def _coord(hass, options=None, db=None):
 
 async def test_setup_maintenance_schedules_3am(hass):
     c = _coord(hass)
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator.async_track_time_change"
-    ) as m:
+    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_change") as m:
         await c.async_setup_maintenance()
         assert m.call_count == 1
         _a, kwargs = m.call_args
@@ -83,9 +82,7 @@ async def test_setup_maintenance_schedules_3am(hass):
 
 async def test_setup_maintenance_idempotent(hass):
     c = _coord(hass)
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator.async_track_time_change"
-    ) as m:
+    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_change") as m:
         await c.async_setup_maintenance()
         await c.async_setup_maintenance()
         assert m.call_count == 1
@@ -150,9 +147,7 @@ async def test_force_bypasses_guard(hass):
 async def test_params_override_options(hass):
     db = FakeDB(last_ts=None)
     c = _coord(hass, options={"cycle_retention_days": 30}, db=db)
-    await c.async_run_maintenance(
-        cycle_retention_days=7, alert_retention_days=3, vacuum=False
-    )
+    await c.async_run_maintenance(cycle_retention_days=7, alert_retention_days=3, vacuum=False)
     kw = db.run_calls[0]
     assert kw["cycle_retention_days"] == 7
     assert kw["alert_retention_days"] == 3
@@ -229,4 +224,3 @@ def test_options_flow_source_contains_new_fields():
         "vacuum_enabled",
     ):
         assert (chr(34) + key + chr(34)) in src, key
-

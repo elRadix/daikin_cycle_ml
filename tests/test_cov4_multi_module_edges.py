@@ -9,6 +9,7 @@ Targets:
 Style: direct function calls, MagicMock/AsyncMock, __new__ bypass.
 No HA fixtures. R153-compliant.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -28,6 +29,7 @@ from custom_components.daikin_cycle_ml.engine.status_report import (
 from custom_components.daikin_cycle_ml.sensor import DaikinCycleMLSensor
 
 # ============ status_report.py ============
+
 
 def test_fmt_float_none():
     assert _fmt_float(None) == "\u2014"
@@ -75,11 +77,10 @@ def test_rich_alert_unknown_language():
 
 # ============ services.py ============
 
+
 def test_resolve_optional_with_entry_id():
     hass = MagicMock()
-    with patch.object(
-        svc, "_resolve_coordinator", return_value="COORD"
-    ) as p:
+    with patch.object(svc, "_resolve_coordinator", return_value="COORD") as p:
         assert svc._resolve_optional_coordinator(hass, "e1") == "COORD"
     p.assert_called_once_with(hass, "e1")
 
@@ -97,12 +98,15 @@ def test_do_recompute_baseline_extract_raises():
     ):
         setattr(coord.db, name, AsyncMock(return_value=sample))
     coord.db.async_set_model_state = AsyncMock()
-    with patch(
-        "custom_components.daikin_cycle_ml.ml.features.is_valid_record",
-        return_value=True,
-    ), patch(
-        "custom_components.daikin_cycle_ml.ml.features.extract_feature_vector",
-        side_effect=RuntimeError("boom"),
+    with (
+        patch(
+            "custom_components.daikin_cycle_ml.ml.features.is_valid_record",
+            return_value=True,
+        ),
+        patch(
+            "custom_components.daikin_cycle_ml.ml.features.extract_feature_vector",
+            side_effect=RuntimeError("boom"),
+        ),
     ):
         result = asyncio.run(svc._do_recompute_baseline(coord, 30))
     assert result["computed"] is True
@@ -126,6 +130,7 @@ def test_handle_run_maintenance_calls_runner():
 
 
 # ============ notification_engine.py ============
+
 
 def test_format_message_invalid_template():
     out = ne._format_message("{unclosed", {"x": 1})
@@ -153,6 +158,7 @@ def test_evaluate_alerts_non_schema_alert():
 
 
 # ============ sensor.py ============
+
 
 def _mk_sensor(value_fn=None, attr_fn=None):
     s = DaikinCycleMLSensor.__new__(DaikinCycleMLSensor)
@@ -203,10 +209,9 @@ def test_sensor_init_icon_none_branch():
     from custom_components.daikin_cycle_ml.entity import (
         DaikinCycleMLEntity,
     )
+
     s = DaikinCycleMLSensor.__new__(DaikinCycleMLSensor)
     coord = MagicMock()
     with patch.object(DaikinCycleMLEntity, "__init__", return_value=None):
-        DaikinCycleMLSensor.__init__(
-            s, coord, "k", "n", lambda snap, c: 1.0, icon=None
-        )
+        DaikinCycleMLSensor.__init__(s, coord, "k", "n", lambda snap, c: 1.0, icon=None)
     assert getattr(s, "_attr_icon", None) is None

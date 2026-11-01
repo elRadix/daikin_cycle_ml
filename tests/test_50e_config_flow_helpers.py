@@ -1,5 +1,7 @@
 """Batch 50e -- direct helper coverage in config_flow."""
+
 from __future__ import annotations
+import contextlib
 
 from custom_components.daikin_cycle_ml import config_flow as cf
 
@@ -45,8 +47,6 @@ def test_default_notify_choice_empty():
 
 
 def test_legacy_notify_options_none_hass():
-    try:
+    with contextlib.suppress(Exception):
         v = cf._legacy_notify_options(None)
         assert isinstance(v, list)
-    except Exception:
-        pass

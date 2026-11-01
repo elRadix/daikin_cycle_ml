@@ -1,4 +1,5 @@
 """Tests for engine.model_profiles."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.const import (
@@ -54,8 +55,10 @@ def test_no_model_expects_brine():
 
 def test_expected_attributes_returns_core():
     from custom_components.daikin_cycle_ml.const import CORE_ATTRIBUTES
+
     attrs = expected_attributes(MODEL_EPRA12EAV3)
     assert set(attrs) == set(CORE_ATTRIBUTES)
+
 
 def test_defaults_for_excludes_expects_brine():
     d = defaults_for(MODEL_EPRA12EAV3)

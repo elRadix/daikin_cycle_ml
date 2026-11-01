@@ -1,4 +1,5 @@
 """Batch 25 tests: runtime coordinator functions (status, adaptive, kmeans)."""
+
 from __future__ import annotations
 
 import time
@@ -10,8 +11,7 @@ from custom_components.daikin_cycle_ml.coordinator import (
 )
 
 
-def _bare(options=None, db=None, store=None, data=None, baseline=None,
-          adaptive=None):
+def _bare(options=None, db=None, store=None, data=None, baseline=None, adaptive=None):
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.options = options or {}
     c._setpoint_history = None
@@ -31,6 +31,7 @@ def _bare(options=None, db=None, store=None, data=None, baseline=None,
 
 
 # ============ _build_status_snapshot ============
+
 
 def test_status_snapshot_empty_store():
     st = MagicMock()
@@ -58,8 +59,7 @@ def test_status_snapshot_with_counters_and_last_cycle():
     base = MagicMock()
     base.total_samples.return_value = 42
     base.modes.return_value = ["Heating", "DHW"]
-    c = _bare(options={"target_cycles_per_day": 12},
-              store=st, baseline=base, data=DataSnapshot())
+    c = _bare(options={"target_cycles_per_day": 12}, store=st, baseline=base, data=DataSnapshot())
     snap = c._build_status_snapshot()
     assert snap["cycles_today"] == 7
     assert snap["target_cpd"] == 12
@@ -129,26 +129,32 @@ def test_status_snapshot_bad_end_ts_safe():
 
 # ============ async_setup_status_updates ============
 
+
 async def test_setup_status_updates_already_scheduled_no_op():
     c = _bare(options={"status_update_enabled": True})
     c._status_update_unsub = object()
-    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_interval") as tracker:
+    with patch(
+        "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval"
+    ) as tracker:
         await c.async_setup_status_updates()
     tracker.assert_not_called()
 
 
 async def test_setup_status_updates_disabled_by_option():
     c = _bare(options={"status_update_enabled": False})
-    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_interval") as tracker:
+    with patch(
+        "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval"
+    ) as tracker:
         await c.async_setup_status_updates()
     tracker.assert_not_called()
     assert c._status_update_unsub is None
 
 
 async def test_setup_status_updates_valid_schedules():
-    c = _bare(options={"status_update_enabled": True,
-                       "status_update_interval_hours": 6})
-    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_interval") as tracker:
+    c = _bare(options={"status_update_enabled": True, "status_update_interval_hours": 6})
+    with patch(
+        "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval"
+    ) as tracker:
         tracker.return_value = "UNSUB"
         await c.async_setup_status_updates()
     tracker.assert_called_once()
@@ -156,24 +162,27 @@ async def test_setup_status_updates_valid_schedules():
 
 
 async def test_setup_status_updates_bad_hours_fallback():
-    c = _bare(options={"status_update_enabled": True,
-                       "status_update_interval_hours": "junk"})
-    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_interval") as tracker:
+    c = _bare(options={"status_update_enabled": True, "status_update_interval_hours": "junk"})
+    with patch(
+        "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval"
+    ) as tracker:
         tracker.return_value = "UNSUB"
         await c.async_setup_status_updates()
     tracker.assert_called_once()
 
 
 async def test_setup_status_updates_hours_below_min():
-    c = _bare(options={"status_update_enabled": True,
-                       "status_update_interval_hours": 0})
-    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_interval") as tracker:
+    c = _bare(options={"status_update_enabled": True, "status_update_interval_hours": 0})
+    with patch(
+        "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval"
+    ) as tracker:
         tracker.return_value = "UNSUB"
         await c.async_setup_status_updates()
     tracker.assert_called_once()
 
 
 # ============ _async_status_update_callback ============
+
 
 async def test_callback_calls_emit():
     c = _bare()
@@ -190,6 +199,7 @@ async def test_callback_swallows_exception():
 
 # ============ async_emit_status_update ============
 
+
 async def test_emit_status_persistent_only():
     st = MagicMock()
     st.counters_snapshot.return_value = {}
@@ -197,8 +207,7 @@ async def test_emit_status_persistent_only():
     base = MagicMock()
     base.total_samples.return_value = 0
     base.modes.return_value = []
-    c = _bare(options={"notify_emoji_enabled": False},
-              store=st, baseline=base, data=DataSnapshot())
+    c = _bare(options={"notify_emoji_enabled": False}, store=st, baseline=base, data=DataSnapshot())
     msg = await c.async_emit_status_update()
     assert isinstance(msg, str)
     assert msg
@@ -215,9 +224,12 @@ async def test_emit_status_with_notify_service():
     base = MagicMock()
     base.total_samples.return_value = 0
     base.modes.return_value = []
-    c = _bare(options={"notify_emoji_enabled": False,
-                       "notify_service": "notify.mobile_app_test"},
-              store=st, baseline=base, data=DataSnapshot())
+    c = _bare(
+        options={"notify_emoji_enabled": False, "notify_service": "notify.mobile_app_test"},
+        store=st,
+        baseline=base,
+        data=DataSnapshot(),
+    )
     await c.async_emit_status_update()
     assert c.hass.services.async_call.await_count == 2
 
@@ -229,8 +241,7 @@ async def test_emit_status_persistent_throws_still_returns():
     base = MagicMock()
     base.total_samples.return_value = 0
     base.modes.return_value = []
-    c = _bare(options={"notify_emoji_enabled": False},
-              store=st, baseline=base, data=DataSnapshot())
+    c = _bare(options={"notify_emoji_enabled": False}, store=st, baseline=base, data=DataSnapshot())
 
     call_count = [0]
 
@@ -251,9 +262,12 @@ async def test_emit_status_notify_service_throws_still_returns():
     base = MagicMock()
     base.total_samples.return_value = 0
     base.modes.return_value = []
-    c = _bare(options={"notify_emoji_enabled": False,
-                       "notify_service": "notify.broken"},
-              store=st, baseline=base, data=DataSnapshot())
+    c = _bare(
+        options={"notify_emoji_enabled": False, "notify_service": "notify.broken"},
+        store=st,
+        baseline=base,
+        data=DataSnapshot(),
+    )
 
     call_count = [0]
 
@@ -268,6 +282,7 @@ async def test_emit_status_notify_service_throws_still_returns():
 
 
 # ============ async_save_adaptive_state ============
+
 
 async def test_save_adaptive_no_db():
     c = _bare(db=None)
@@ -295,6 +310,7 @@ async def test_save_adaptive_db_throws():
 
 # ============ async_load_adaptive_state ============
 
+
 async def test_load_adaptive_no_db():
     c = _bare(db=None)
     assert await c.async_load_adaptive_state() is False
@@ -311,9 +327,7 @@ async def test_load_adaptive_ok():
     db = MagicMock()
     db.async_get_model_state = AsyncMock(return_value={"dims": {}})
     c = _bare(db=db)
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator.AdaptiveThresholds"
-    ) as AT:
+    with patch("custom_components.daikin_cycle_ml.coordinator.AdaptiveThresholds") as AT:
         AT.from_dict.return_value = "NEW"
         assert await c.async_load_adaptive_state() is True
         assert c.adaptive == "NEW"
@@ -327,6 +341,7 @@ async def test_load_adaptive_db_throws():
 
 
 # ============ _load_kmeans_state ============
+
 
 async def test_load_kmeans_no_db():
     c = _bare(db=None)
@@ -349,9 +364,7 @@ async def test_load_kmeans_empty_centroids():
 
 async def test_load_kmeans_legacy_8dim_reset():
     db = MagicMock()
-    db.async_get_model_state = AsyncMock(
-        return_value={"centroids": [[1.0] * 8, [2.0] * 8]}
-    )
+    db.async_get_model_state = AsyncMock(return_value={"centroids": [[1.0] * 8, [2.0] * 8]})
     c = _bare(db=db)
     assert await c._load_kmeans_state() is False
     assert c._kmeans_centroids == []
@@ -359,13 +372,9 @@ async def test_load_kmeans_legacy_8dim_reset():
 
 async def test_load_kmeans_ok_11dim():
     db = MagicMock()
-    db.async_get_model_state = AsyncMock(
-        return_value={"centroids": [[1.0] * 11, [2.0] * 11]}
-    )
+    db.async_get_model_state = AsyncMock(return_value={"centroids": [[1.0] * 11, [2.0] * 11]})
     c = _bare(db=db)
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator.classify_clusters"
-    ) as cc:
+    with patch("custom_components.daikin_cycle_ml.coordinator.classify_clusters") as cc:
         cc.return_value = {"labels": "set"}
         assert await c._load_kmeans_state() is True
         assert len(c._kmeans_centroids) == 2

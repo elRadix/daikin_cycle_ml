@@ -1,4 +1,5 @@
 """Tests for reconfigure flow (Batch 9e)."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
@@ -53,9 +54,7 @@ async def test_reconfigure_shows_menu(hass):
     result = await _init_reconfigure(hass, entry)
     assert result["type"] == "menu"
     assert result["step_id"] == "reconfigure"
-    assert set(result["menu_options"]) == {
-        "reconfigure_basic", "reconfigure_full"
-    }
+    assert set(result["menu_options"]) == {"reconfigure_basic", "reconfigure_full"}
 
 
 async def test_reconfigure_basic_shows_form(hass):
@@ -138,9 +137,7 @@ async def test_reconfigure_full_completes(hass, no_db):
         {"source_sensor": SOURCE_SENSOR_ENTITY, "model": MODEL_EPRA12EAV3},
     )
     assert result["step_id"] == "attributes"
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {}
-    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["step_id"] == "cycle"
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -172,9 +169,7 @@ async def test_reconfigure_full_completes(hass, no_db):
         {"persistent_enabled": True, "quiet_hours_enabled": False},
     )
     assert result["step_id"] == "finalize"
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {}
-    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     await hass.async_block_till_done()
     assert result["type"] == "abort"
     assert result["reason"] == "reconfigure_successful"
@@ -194,9 +189,7 @@ async def test_reconfigure_full_preserves_options(hass, no_db):
         result["flow_id"],
         {"source_sensor": SOURCE_SENSOR_ENTITY, "model": MODEL_EPRA08EAV3},
     )
-    await hass.config_entries.flow.async_configure(
-        result["flow_id"], {}
-    )
+    await hass.config_entries.flow.async_configure(result["flow_id"], {})
     await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {"compressor_rps_threshold": 3, "fallback_power_threshold_w": 200},
@@ -223,9 +216,7 @@ async def test_reconfigure_full_preserves_options(hass, no_db):
         result["flow_id"],
         {"persistent_enabled": True, "quiet_hours_enabled": False},
     )
-    await hass.config_entries.flow.async_configure(
-        result["flow_id"], {}
-    )
+    await hass.config_entries.flow.async_configure(result["flow_id"], {})
     await hass.async_block_till_done()
     refreshed = hass.config_entries.async_get_entry(entry.entry_id)
     assert refreshed.options["pendulum_cycles_per_day"] == 30

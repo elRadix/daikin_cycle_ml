@@ -28,21 +28,29 @@ def _rec(start_ts: float = 100.0) -> dict:
     test_multibaseline_wiring.py: dT_max and dT_avg (not dt_max_k / dt_avg_k).
     """
     return {
-        "start_ts": start_ts, "end_ts": start_ts + 100.0,
-        "duration_s": 100, "mode": "heating",
-        "dT_max": 5.0, "dT_avg": 3.0,
-        "rps_max": 40, "rps_avg": 30, "outdoor_temp": 8.0,
-        "buh_used": 0, "defrost_used": 0,
+        "start_ts": start_ts,
+        "end_ts": start_ts + 100.0,
+        "duration_s": 100,
+        "mode": "heating",
+        "dT_max": 5.0,
+        "dT_avg": 3.0,
+        "rps_max": 40,
+        "rps_avg": 30,
+        "outdoor_temp": 8.0,
+        "buh_used": 0,
+        "defrost_used": 0,
     }
 
 
 # ---------- 1. constant exists ----------
+
 
 def test_kmeans_stale_after_days_is_14():
     assert KMEANS_STALE_AFTER_DAYS == 14
 
 
 # ---------- 2. persist success from empty ----------
+
 
 @pytest.mark.asyncio
 async def test_persist_attempt_success_from_empty():
@@ -52,7 +60,8 @@ async def test_persist_attempt_success_from_empty():
     c = _bare(db=db)
 
     await c._persist_kmeans_attempt(
-        ok=True, extra={"centroids": [[1, 2]], "labels": {0: "a"}, "ts": 1.0},
+        ok=True,
+        extra={"centroids": [[1, 2]], "labels": {0: "a"}, "ts": 1.0},
     )
 
     db.async_set_model_state.assert_awaited_once()
@@ -67,6 +76,7 @@ async def test_persist_attempt_success_from_empty():
 
 
 # ---------- 3. persist failure from empty ----------
+
 
 @pytest.mark.asyncio
 async def test_persist_attempt_failure_from_empty():
@@ -86,6 +96,7 @@ async def test_persist_attempt_failure_from_empty():
 
 # ---------- 4. three consecutive failures increments ----------
 
+
 @pytest.mark.asyncio
 async def test_persist_attempt_three_failures_increments():
     db = MagicMock()
@@ -104,6 +115,7 @@ async def test_persist_attempt_three_failures_increments():
 
 # ---------- 5. success after failures resets counters ----------
 
+
 @pytest.mark.asyncio
 async def test_persist_attempt_success_after_failures_resets():
     db = MagicMock()
@@ -118,7 +130,8 @@ async def test_persist_attempt_success_after_failures_resets():
     c = _bare(db=db)
 
     await c._persist_kmeans_attempt(
-        ok=True, extra={"centroids": [[1]], "labels": {}, "ts": 2.0},
+        ok=True,
+        extra={"centroids": [[1]], "labels": {}, "ts": 2.0},
     )
 
     _, payload = db.async_set_model_state.await_args[0]
@@ -129,6 +142,7 @@ async def test_persist_attempt_success_after_failures_resets():
 
 
 # ---------- 6. async_run_kmeans too_few persists failure ----------
+
 
 @pytest.mark.asyncio
 async def test_run_kmeans_too_few_persists_failure():
@@ -150,9 +164,11 @@ async def test_run_kmeans_too_few_persists_failure():
 
 # ---------- 7. async_run_kmeans kmeans_failed persists failure ----------
 
+
 @pytest.mark.asyncio
 async def test_run_kmeans_kmeans_failed_persists_failure(monkeypatch):
     from custom_components.daikin_cycle_ml.ml import clustering
+
     db = MagicMock()
     db.async_fetch_cycles = AsyncMock(
         return_value=[_rec(0.0), _rec(1.0), _rec(2.0)],
@@ -175,6 +191,7 @@ async def test_run_kmeans_kmeans_failed_persists_failure(monkeypatch):
 
 
 # ---------- 8. legacy state preserved ----------
+
 
 @pytest.mark.asyncio
 async def test_persist_attempt_preserves_legacy_payload():
@@ -200,6 +217,7 @@ async def test_persist_attempt_preserves_legacy_payload():
 
 # ---------- 9. _persist_kmeans_attempt: db is None ----------
 
+
 @pytest.mark.asyncio
 async def test_persist_attempt_db_none_returns_early():
     """Coverage: guard when self.db is None (defensive getattr path)."""
@@ -209,6 +227,7 @@ async def test_persist_attempt_db_none_returns_early():
 
 
 # ---------- 10. _persist_kmeans_attempt: read fails ----------
+
 
 @pytest.mark.asyncio
 async def test_persist_attempt_read_exception_swallowed():
@@ -224,6 +243,7 @@ async def test_persist_attempt_read_exception_swallowed():
 
 # ---------- 11. _persist_kmeans_attempt: write fails ----------
 
+
 @pytest.mark.asyncio
 async def test_persist_attempt_write_exception_swallowed():
     """Coverage: guard when async_set_model_state raises (R366-safe)."""
@@ -236,6 +256,7 @@ async def test_persist_attempt_write_exception_swallowed():
 
 
 # ---------- 12. coverage: non-dict existing state (line 832->834 branch) ----------
+
 
 @pytest.mark.asyncio
 async def test_persist_attempt_existing_state_not_dict():
@@ -256,6 +277,7 @@ async def test_persist_attempt_existing_state_not_dict():
 
 
 # ---------- 13. coverage: non-numeric consecutive_failures (lines 841-842) ----------
+
 
 @pytest.mark.asyncio
 async def test_persist_attempt_prev_failures_not_convertible():
@@ -278,6 +300,7 @@ async def test_persist_attempt_prev_failures_not_convertible():
 
 
 # ---------- 14. coverage: success path with no extra payload (line 832->834) ----------
+
 
 @pytest.mark.asyncio
 async def test_persist_attempt_success_without_extra():
@@ -306,22 +329,26 @@ async def test_persist_attempt_success_without_extra():
 # C2 — registration tests
 # ==================================================================
 
+
 def test_notif_id_kmeans_retrain_stale_constant():
     from custom_components.daikin_cycle_ml.const import (
         DOMAIN,
         NOTIF_ID_KMEANS_RETRAIN_STALE,
     )
+
     assert f"{DOMAIN}_kmeans_retrain_stale" == NOTIF_ID_KMEANS_RETRAIN_STALE
 
 
 def test_alert_type_emoji_has_kmeans_retrain_stale():
     from custom_components.daikin_cycle_ml.const import ALERT_TYPE_EMOJI
+
     assert "kmeans_retrain_stale" in ALERT_TYPE_EMOJI
     assert ALERT_TYPE_EMOJI["kmeans_retrain_stale"] == "\u2699\ufe0f"
 
 
 def test_alert_dedup_defaults_has_kmeans_retrain_stale():
     from custom_components.daikin_cycle_ml.const import ALERT_DEDUP_DEFAULTS
+
     assert "kmeans_retrain_stale" in ALERT_DEDUP_DEFAULTS
     assert ALERT_DEDUP_DEFAULTS["kmeans_retrain_stale"] == 1440
 
@@ -331,6 +358,7 @@ def test_binary_alert_map_has_kmeans_retrain_stale():
         BINARY_ALERT_MAP,
         SEV_INFO,
     )
+
     assert "kmeans_retrain_stale" in BINARY_ALERT_MAP
     bkey, sev, tmpl = BINARY_ALERT_MAP["kmeans_retrain_stale"]
     assert bkey == "kmeans_retrain_stale"
@@ -347,12 +375,14 @@ def test_notif_id_by_type_has_kmeans_retrain_stale():
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
         NOTIF_ID_BY_TYPE,
     )
+
     assert NOTIF_ID_BY_TYPE["kmeans_retrain_stale"] == NOTIF_ID_KMEANS_RETRAIN_STALE
 
 
 def test_i18n_notifications_enabled_has_kmeans_key():
     import json
     from pathlib import Path
+
     for fname in ("strings.json", "translations/en.json", "translations/nl.json"):
         path = Path("custom_components/daikin_cycle_ml") / fname
         d = json.loads(path.read_text(encoding="utf-8"))
@@ -364,6 +394,7 @@ def test_i18n_notifications_enabled_has_kmeans_key():
 def test_i18n_notifications_dedup_has_kmeans_key():
     import json
     from pathlib import Path
+
     for fname in ("strings.json", "translations/en.json", "translations/nl.json"):
         path = Path("custom_components/daikin_cycle_ml") / fname
         d = json.loads(path.read_text(encoding="utf-8"))
@@ -375,13 +406,15 @@ def test_i18n_notifications_dedup_has_kmeans_key():
 def test_config_flow_notifications_enabled_has_kmeans_field():
     """config_flow source contains the new toggle in notifications_enabled."""
     from pathlib import Path
+
     src = Path("custom_components/daikin_cycle_ml/config_flow.py").read_text(encoding="utf-8")
-    assert 'alert_enabled_kmeans_retrain_stale' in src
+    assert "alert_enabled_kmeans_retrain_stale" in src
 
 
 # ==================================================================
 # C3 — _compute_kmeans_stale cache helper + _alert_binary_states key
 # ==================================================================
+
 
 @pytest.mark.asyncio
 async def test_compute_kmeans_stale_no_db():
@@ -407,6 +440,7 @@ async def test_compute_kmeans_stale_fresh_install_no_last_ok():
 async def test_compute_kmeans_stale_13_days_no_fire():
     """13 days old: fired=False (under 14-day threshold)."""
     import time as _t
+
     db = MagicMock()
     db.async_get_model_state = AsyncMock(
         return_value={"last_ok_ts": _t.time() - 13 * 86400},
@@ -421,6 +455,7 @@ async def test_compute_kmeans_stale_13_days_no_fire():
 async def test_compute_kmeans_stale_15_days_fires():
     """15 days old: fired=True."""
     import time as _t
+
     db = MagicMock()
     db.async_get_model_state = AsyncMock(
         return_value={"last_ok_ts": _t.time() - 15 * 86400},
@@ -444,6 +479,7 @@ async def test_compute_kmeans_stale_db_exception_returns_empty():
 async def test_compute_kmeans_stale_corrupted_failures_count():
     """Non-numeric consecutive_failures -> coerced to 0, no crash."""
     import time as _t
+
     db = MagicMock()
     db.async_get_model_state = AsyncMock(
         return_value={
@@ -459,6 +495,7 @@ async def test_compute_kmeans_stale_corrupted_failures_count():
 def test_alert_binary_states_has_kmeans_retrain_stale_key():
     """_alert_binary_states returns kmeans_retrain_stale based on cache."""
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+
     c = _bare(db=None)
     # Inject minimum attrs the function reads
     c.options = {}
@@ -496,16 +533,21 @@ async def test_compute_kmeans_stale_non_dict_state_returns_empty():
 # C4 — schema / titles / advice / labels
 # ==================================================================
 
+
 def test_alert_schema_kmeans_retrain_stale_entry():
     """5 fields, mirroring I1's db_retention_warning shape."""
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
+
     assert "kmeans_retrain_stale" in ALERT_SCHEMA
     fields = ALERT_SCHEMA["kmeans_retrain_stale"]
     assert len(fields) == 5
     field_keys = [f[1] for f in fields]
     assert field_keys == [
-        "hours_since_ok", "last_ok_ts", "consecutive_failures",
-        "last_failure_reason", "mode",
+        "hours_since_ok",
+        "last_ok_ts",
+        "consecutive_failures",
+        "last_failure_reason",
+        "mode",
     ]
 
 
@@ -515,6 +557,7 @@ def test_alert_schema_field_references_resolve():
     import re
 
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
+
     for emoji, label_key, tpl in ALERT_SCHEMA["kmeans_retrain_stale"]:
         # label_key must exist in ALERT_LABELS (checked in test below)
         placeholders = re.findall(r"\{(\w+)\}", tpl)
@@ -525,16 +568,19 @@ def test_alert_schema_field_references_resolve():
 
 def test_alert_titles_en():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
+
     assert ALERT_TITLES["en"]["kmeans_retrain_stale"] == "K-means retrain stale"
 
 
 def test_alert_titles_nl():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
+
     assert ALERT_TITLES["nl"]["kmeans_retrain_stale"] == "K-means hertraining verouderd"
 
 
 def test_alert_advice_en_static_fallback():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
+
     advice = ALERT_ADVICE["en"]["kmeans_retrain_stale"]
     assert "14" in advice
     assert "recompute_kmeans" in advice
@@ -542,6 +588,7 @@ def test_alert_advice_en_static_fallback():
 
 def test_alert_advice_nl_static_fallback():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
+
     advice = ALERT_ADVICE["nl"]["kmeans_retrain_stale"]
     assert "14" in advice
     assert "recompute_kmeans" in advice
@@ -549,6 +596,7 @@ def test_alert_advice_nl_static_fallback():
 
 def test_kmeans_advice_by_reason_en_all_reasons():
     from custom_components.daikin_cycle_ml.engine.status_report import KMEANS_ADVICE_BY_REASON
+
     en = KMEANS_ADVICE_BY_REASON["en"]
     assert "too_few" in en
     assert "fetch_failed" in en
@@ -564,6 +612,7 @@ def test_kmeans_advice_by_reason_en_all_reasons():
 
 def test_kmeans_advice_by_reason_nl_parity():
     from custom_components.daikin_cycle_ml.engine.status_report import KMEANS_ADVICE_BY_REASON
+
     nl = KMEANS_ADVICE_BY_REASON["nl"]
     assert set(nl.keys()) == set(KMEANS_ADVICE_BY_REASON["en"].keys())
     for v in nl.values():
@@ -572,6 +621,7 @@ def test_kmeans_advice_by_reason_nl_parity():
 
 def test_alert_labels_en_new_keys():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_LABELS
+
     en = ALERT_LABELS["en"]
     assert en["hours_since_ok"] == "Hours since OK"
     assert en["last_ok_ts"] == "Last OK"
@@ -581,6 +631,7 @@ def test_alert_labels_en_new_keys():
 
 def test_alert_labels_nl_new_keys():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_LABELS
+
     nl = ALERT_LABELS["nl"]
     assert nl["hours_since_ok"] == "Uren sinds OK"
     assert nl["last_ok_ts"] == "Laatste OK"
@@ -590,6 +641,7 @@ def test_alert_labels_nl_new_keys():
 
 def test_format_last_ok_ts_valid():
     from custom_components.daikin_cycle_ml.coordinator import _format_last_ok_ts
+
     formatted = _format_last_ok_ts(1000000000.0)  # 2001-09-09 01:46 UTC
     assert len(formatted) == 16  # "YYYY-MM-DD HH:MM"
     assert formatted[4] == "-"
@@ -598,6 +650,7 @@ def test_format_last_ok_ts_valid():
 
 def test_format_last_ok_ts_none_returns_em_dash():
     from custom_components.daikin_cycle_ml.coordinator import _format_last_ok_ts
+
     assert _format_last_ok_ts(None) == "\u2014"
     assert _format_last_ok_ts("not a ts") == "\u2014"
     assert _format_last_ok_ts(float("inf")) in ("\u2014",)  # OverflowError path
@@ -605,6 +658,7 @@ def test_format_last_ok_ts_none_returns_em_dash():
 
 def test_kmeans_advice_lookup_by_reason():
     from custom_components.daikin_cycle_ml.coordinator import _kmeans_advice
+
     assert "cycles" in _kmeans_advice("too_few", "en").lower()
     assert "database" in _kmeans_advice("fetch_failed", "en").lower()
     assert "report" in _kmeans_advice("kmeans_failed", "en").lower()
@@ -613,6 +667,7 @@ def test_kmeans_advice_lookup_by_reason():
 
 def test_kmeans_advice_falls_back_for_unknown_reason():
     from custom_components.daikin_cycle_ml.coordinator import _kmeans_advice
+
     result = _kmeans_advice("unknown_reason_xyz", "en")
     # Falls back to None-key entry
     assert "retrain" in result.lower()
@@ -620,10 +675,12 @@ def test_kmeans_advice_falls_back_for_unknown_reason():
 
 def test_kmeans_advice_nl():
     from custom_components.daikin_cycle_ml.coordinator import _kmeans_advice
+
     result = _kmeans_advice("too_few", "nl")
     assert "cycli" in result.lower()
 
 
 def test_alert_type_emoji_resolves_for_kmeans_retrain_stale():
     from custom_components.daikin_cycle_ml.const import ALERT_TYPE_EMOJI
+
     assert ALERT_TYPE_EMOJI["kmeans_retrain_stale"] == "\u2699\ufe0f"

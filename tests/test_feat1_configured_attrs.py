@@ -3,6 +3,7 @@
 Test-only additions. No source changes to verify here — purely attribute
 exposure on the cycle_state container sensor.
 """
+
 from __future__ import annotations
 
 from types import SimpleNamespace

@@ -1,4 +1,5 @@
 """Batch 44 -- one-click test-all-notifications menu item."""
+
 from __future__ import annotations
 
 import json
@@ -26,7 +27,7 @@ def test_cf_init_menu_has_item():
     start = src.index("async def async_step_init(")
     end = src.index("def _save(", start)
     block = src[start:end]
-    assert "\"test_all_notifications\"" in block
+    assert '"test_all_notifications"' in block
 
 
 def test_cf_uses_async_emit_test_alert():
@@ -35,7 +36,7 @@ def test_cf_uses_async_emit_test_alert():
     end = src.index("async def async_step_test_all_notifications_result(", start)
     block = src[start:end]
     assert "async_emit_test_alert" in block
-    assert "\"all_alerts\"" in block
+    assert '"all_alerts"' in block
     assert "ignore_filters=True" in block
 
 

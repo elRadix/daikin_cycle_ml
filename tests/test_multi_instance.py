@@ -1,4 +1,5 @@
 """Multi-instance: two config entries must not interfere."""
+
 from __future__ import annotations
 
 import asyncio
@@ -9,10 +10,18 @@ from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
 def _sample(ts, mode="heating", cop=5.0):
     return {
-        "ts": ts, "cop": cop, "lwt": 30.0, "outdoor": 7.0,
-        "r1t": 28.0, "r4t": 27.0, "flow_lmin": 15.0,
-        "power_stable": True, "mode": mode, "source": "interval",
-        "boiler_active": 0, "boiler_mode": "",
+        "ts": ts,
+        "cop": cop,
+        "lwt": 30.0,
+        "outdoor": 7.0,
+        "r1t": 28.0,
+        "r4t": 27.0,
+        "flow_lmin": 15.0,
+        "power_stable": True,
+        "mode": mode,
+        "source": "interval",
+        "boiler_active": 0,
+        "boiler_mode": "",
     }
 
 

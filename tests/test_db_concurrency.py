@@ -10,6 +10,7 @@ from tests.test_rollup_concurrency import _mk_db, _sample
 async def test_simultaneous_writes(tmp_path):
     db = await _mk_db(tmp_path)
     now = time.time()
+
     async def write_batch(offset):
         for i in range(5):
             await db.async_insert_cop_sample(_sample(now - i * 60 - offset, "heating", 5.0))

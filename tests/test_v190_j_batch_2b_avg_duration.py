@@ -1,4 +1,5 @@
 """v1.9.0 J — avg_duration_7d_min (Q5) tests."""
+
 from __future__ import annotations
 
 import time
@@ -16,6 +17,7 @@ def _bare() -> DaikinCycleMLCoordinator:
 
 
 # --- helper: _compute_avg_duration_7d_min ---
+
 
 @pytest.mark.asyncio
 async def test_helper_none_when_db_absent() -> None:
@@ -73,11 +75,17 @@ async def test_helper_passes_7day_window() -> None:
 
 # --- ctx: field only on 3 targets ---
 
+
 def _snap() -> Any:
     n = SimpleNamespace()
     for f in (
-        "lwt_setpoint", "lwt_actual", "indoor_temp", "flow_lmin", "outdoor_temp",
-        "cop_degradation_week_pct", "cop_trend_30d",
+        "lwt_setpoint",
+        "lwt_actual",
+        "indoor_temp",
+        "flow_lmin",
+        "outdoor_temp",
+        "cop_degradation_week_pct",
+        "cop_trend_30d",
     ):
         setattr(n, f, None)
     return n
@@ -85,6 +93,7 @@ def _snap() -> Any:
 
 def _coord_for_ctx() -> Any:
     from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator as C
+
     c = object.__new__(C)
     c._avg_duration_7d_min = 42
     c.store = MagicMock()
@@ -129,35 +138,42 @@ def test_ctx_short_run_unchanged() -> None:
 
 # --- schema + labels ---
 
+
 def test_schema_pendulum_hourly_has_row() -> None:
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
+
     keys = [t[1] for t in ALERT_SCHEMA["pendulum_hourly"]]
     assert "avg_duration_7d" in keys
 
 
 def test_schema_pendulum_daily_has_row() -> None:
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
+
     keys = [t[1] for t in ALERT_SCHEMA["pendulum_daily"]]
     assert "avg_duration_7d" in keys
 
 
 def test_schema_ml_anomaly_has_row() -> None:
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
+
     keys = [t[1] for t in ALERT_SCHEMA["ml_anomaly"]]
     assert "avg_duration_7d" in keys
 
 
 def test_labels_en_present() -> None:
     from custom_components.daikin_cycle_ml.engine import status_report as sr
+
     assert sr.ALERT_LABELS["en"]["avg_duration_7d"] == "Avg duration 7d"
 
 
 def test_labels_nl_present() -> None:
     from custom_components.daikin_cycle_ml.engine import status_report as sr
+
     assert sr.ALERT_LABELS["nl"]["avg_duration_7d"] == "Gem. duur 7d"
 
 
 def test_last_duration_min_preserved() -> None:
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
+
     keys = [t[1] for t in ALERT_SCHEMA["pendulum_hourly"]]
     assert "last_duration" in keys

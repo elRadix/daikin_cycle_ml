@@ -1,4 +1,5 @@
 """Tests for ml.features (Batch 7a)."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.ml.features import (

@@ -8,7 +8,9 @@ Targets (from --cov coordinator, dotted import):
 
 Style: __new__ bypass, MagicMock/AsyncMock, SimpleNamespace (R153).
 """
+
 from __future__ import annotations
+import contextlib
 
 import asyncio
 import time
@@ -86,6 +88,7 @@ def _mk():
 
 # ---------- statement targets ----------
 
+
 def test_maybe_notify_cop_low_non_numeric_cop():
     c = _mk()
     asyncio.run(c._maybe_notify_cop_low(time.time(), {"cop": "abc"}))
@@ -112,8 +115,13 @@ def test_maybe_collect_cop_sample_zero_cop():
     c.db = MagicMock()
     c.db.async_insert_cop_sample = AsyncMock(return_value=True)
     bad_sample = SimpleNamespace(
-        cop=0.0, defrost=False, data_quality="Good",
-        power_stable=True, lwt=35.0, outdoor=10.0, flow_lmin=15.0,
+        cop=0.0,
+        defrost=False,
+        data_quality="Good",
+        power_stable=True,
+        lwt=35.0,
+        outdoor=10.0,
+        flow_lmin=15.0,
     )
     with patch(
         "custom_components.daikin_cycle_ml.engine.cop_analyzer.parse_global_cop_attrs",
@@ -137,13 +145,12 @@ def test_emit_test_alert_ignore_filters():
     }
     c._build_alert_context = MagicMock(return_value={})
     c._emit_alert = AsyncMock()
-    out = asyncio.run(
-        c.async_emit_test_alert("short_run", ignore_filters=True)
-    )
+    out = asyncio.run(c.async_emit_test_alert("short_run", ignore_filters=True))
     assert isinstance(out, str)
 
 
 # ---------- partial-branch targets ----------
+
 
 def test_run_maintenance_db_none():
     c = _mk()
@@ -164,16 +171,16 @@ def test_run_maintenance_result_not_dict():
 def test_setup_baseline_persistence_db_none():
     c = _mk()
     c.db = None
-    with patch.object(
-        c, "async_load_baseline_state", AsyncMock()
-    ) if hasattr(c, "async_load_baseline_state") else patch(
-        "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval",
-        return_value=MagicMock(),
+    with (
+        patch.object(c, "async_load_baseline_state", AsyncMock())
+        if hasattr(c, "async_load_baseline_state")
+        else patch(
+            "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval",
+            return_value=MagicMock(),
+        )
     ):
-        try:
+        with contextlib.suppress(Exception):
             asyncio.run(c.async_setup_baseline_persistence())
-        except Exception:
-            pass
 
 
 def test_collect_cycle_averages_indoor_state_none():
@@ -213,20 +220,22 @@ def test_process_new_cycle_advice_disabled():
     snap.attributes = {}
     snap.advice = None
     record = {"duration_s": 600, "mode": "heating", "quality_score": 80}
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator.extract_feature_vector",
-        return_value=[0.0] * 12,
-    ), patch(
-        "custom_components.daikin_cycle_ml.coordinator.generate_advice",
-        return_value=["advice"],
-    ) as p_adv, patch(
-        "custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
-        return_value=MagicMock(),
+    with (
+        patch(
+            "custom_components.daikin_cycle_ml.coordinator.extract_feature_vector",
+            return_value=[0.0] * 12,
+        ),
+        patch(
+            "custom_components.daikin_cycle_ml.coordinator.generate_advice",
+            return_value=["advice"],
+        ) as p_adv,
+        patch(
+            "custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
+            return_value=MagicMock(),
+        ),
     ):
-        try:
+        with contextlib.suppress(Exception):
             asyncio.run(c._process_new_cycle(record, snap))
-        except Exception:
-            pass
     p_adv.assert_not_called()
 
 
@@ -248,8 +257,13 @@ def test_maybe_collect_cop_sample_insert_false():
     c.db = MagicMock()
     c.db.async_insert_cop_sample = AsyncMock(return_value=False)
     good_sample = SimpleNamespace(
-        cop=2.5, defrost=False, data_quality="Good",
-        power_stable=True, lwt=35.0, outdoor=10.0, flow_lmin=15.0,
+        cop=2.5,
+        defrost=False,
+        data_quality="Good",
+        power_stable=True,
+        lwt=35.0,
+        outdoor=10.0,
+        flow_lmin=15.0,
     )
     with patch(
         "custom_components.daikin_cycle_ml.engine.cop_analyzer.parse_global_cop_attrs",
@@ -278,6 +292,7 @@ def test_build_status_snapshot_store_bare():
 
 # ---------- line 1549 (dup bkey) via custom mapping ----------
 
+
 def test_emit_all_test_alerts_duplicate_bkey():
     c = _mk()
     c._build_alert_context = MagicMock(return_value={})
@@ -292,6 +307,7 @@ def test_emit_all_test_alerts_duplicate_bkey():
     from custom_components.daikin_cycle_ml.engine import (
         notification_engine as ne,
     )
+
     orig = ne.BINARY_ALERT_MAP
     try:
         ne.BINARY_ALERT_MAP = _DupDict(orig)
@@ -300,12 +316,12 @@ def test_emit_all_test_alerts_duplicate_bkey():
     finally:
         ne.BINARY_ALERT_MAP = orig
 
+
 def _collect_args():
     """Return fake args matching _collect_cycle_averages signature."""
     import inspect
-    sig = inspect.signature(
-        DaikinCycleMLCoordinator._collect_cycle_averages
-    )
+
+    sig = inspect.signature(DaikinCycleMLCoordinator._collect_cycle_averages)
     args = []
     for name, p in sig.parameters.items():
         if name == "self":

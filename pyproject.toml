@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "daikin_cycle_ml"
-version = "1.17.1"
+version = "1.18.0"
 requires-python = ">=3.12"
 
 [tool.ruff]
@@ -48,6 +48,13 @@ markers = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 addopts = "-q --cov=custom_components.daikin_cycle_ml --cov-fail-under=100"
+filterwarnings = [
+    "error::RuntimeWarning",
+    "error::pytest.PytestUnraisableExceptionWarning",
+    "ignore::DeprecationWarning:homeassistant",
+    "ignore::DeprecationWarning:voluptuous",
+    "ignore::DeprecationWarning:sqlite3",
+]
 
 [tool.coverage.run]
 branch = true

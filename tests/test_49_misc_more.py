@@ -1,5 +1,7 @@
 """Batch 49 -- misc modules coverage."""
+
 from __future__ import annotations
+import contextlib
 
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -17,17 +19,15 @@ async def test_setup_entry_db_fails():
     hass = MagicMock()
     hass.data = {}
     entry = MagicMock()
-    entry.entry_id = 'x'
-    entry.data = {'source_sensor': 'sensor.x', 'model': 'epra12eav3'}
+    entry.entry_id = "x"
+    entry.data = {"source_sensor": "sensor.x", "model": "epra12eav3"}
     entry.options = {}
     with patch(
-        'custom_components.daikin_cycle_ml._async_setup_database',
-        side_effect=RuntimeError('db fail'),
+        "custom_components.daikin_cycle_ml._async_setup_database",
+        side_effect=RuntimeError("db fail"),
     ):
-        try:
+        with contextlib.suppress(Exception):
             await mod.async_setup_entry(hass, entry)
-        except Exception:
-            pass
 
 
 @pytest.mark.asyncio
@@ -37,15 +37,18 @@ async def test_setup_entry_missing_source():
     hass.config_entries = MagicMock()
     hass.services = MagicMock()
     entry = MagicMock()
-    entry.entry_id = 'x'
+    entry.entry_id = "x"
     entry.data = {}
     entry.options = {}
-    with patch(
-        'custom_components.daikin_cycle_ml._async_setup_database',
-        new=AsyncMock(),
-    ), patch(
-        'custom_components.daikin_cycle_ml.DaikinCycleMLCoordinator',
-    ) as mkcoord:
+    with (
+        patch(
+            "custom_components.daikin_cycle_ml._async_setup_database",
+            new=AsyncMock(),
+        ),
+        patch(
+            "custom_components.daikin_cycle_ml.DaikinCycleMLCoordinator",
+        ) as mkcoord,
+    ):
         coord = MagicMock()
         coord.async_config_entry_first_refresh = AsyncMock()
         coord.async_setup_maintenance = AsyncMock()
@@ -57,7 +60,8 @@ async def test_setup_entry_missing_source():
         mkcoord.return_value = coord
         try:
             await asyncio.wait_for(
-                mod.async_setup_entry(hass, entry), timeout=3,
+                mod.async_setup_entry(hass, entry),
+                timeout=3,
             )
         except (TimeoutError, Exception):
             pass
@@ -69,7 +73,7 @@ async def test_unload_entry_full():
     hass.config_entries = MagicMock()
     hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
     entry = MagicMock()
-    entry.entry_id = 'x'
+    entry.entry_id = "x"
     coord = MagicMock()
     coord.async_shutdown = AsyncMock()
     entry.runtime_data = coord
@@ -86,44 +90,38 @@ async def test_services_handler_no_service():
     hass.states = MagicMock()
     hass.states.get = MagicMock(return_value=None)
     call = MagicMock()
-    call.data = {'target': 'notify.missing', 'message': 'hi'}
-    try:
+    call.data = {"target": "notify.missing", "message": "hi"}
+    with contextlib.suppress(Exception):
         await svc._handle_send_test_notification(hass, call)
-    except Exception:
-        pass
 
 
 def test_sensor_setup_entry_with_coordinator():
     hass = MagicMock()
     hass.data = {}
     entry = MagicMock()
-    entry.entry_id = 'x'
+    entry.entry_id = "x"
     coord = MagicMock()
     coord.data = MagicMock()
-    coord.data.state = 'idle'
-    coord.data.mode = 'heating'
+    coord.data.state = "idle"
+    coord.data.mode = "heating"
     coord.options = {}
     entry.runtime_data = coord
     add_entities = MagicMock()
-    try:
+    with contextlib.suppress(Exception):
         asyncio.run(sm.async_setup_entry(hass, entry, add_entities))
-    except Exception:
-        pass
 
 
 def test_binary_sensor_setup_entry_with_coordinator():
     hass = MagicMock()
     hass.data = {}
     entry = MagicMock()
-    entry.entry_id = 'x'
+    entry.entry_id = "x"
     coord = MagicMock()
     coord.data = MagicMock()
-    coord.data.state = 'idle'
-    coord.data.mode = 'heating'
+    coord.data.state = "idle"
+    coord.data.mode = "heating"
     coord.options = {}
     entry.runtime_data = coord
     add_entities = MagicMock()
-    try:
+    with contextlib.suppress(Exception):
         asyncio.run(bs.async_setup_entry(hass, entry, add_entities))
-    except Exception:
-        pass

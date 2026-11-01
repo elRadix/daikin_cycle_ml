@@ -1,4 +1,5 @@
 """R306: CycleDetector state persistence across HA reloads."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.const import (
@@ -64,8 +65,15 @@ def test_restore_from_dict_stale_gap() -> None:
 
 
 def test_restore_from_dict_invalid_payload() -> None:
-    for bad in (None, {}, "x", 1, [], {"state": STATE_RUNNING},
-                {"state": STATE_RUNNING, "start_ts": "bad"}):
+    for bad in (
+        None,
+        {},
+        "x",
+        1,
+        [],
+        {"state": STATE_RUNNING},
+        {"state": STATE_RUNNING, "start_ts": "bad"},
+    ):
         d = CycleDetector()
         d.restore_from_dict(bad, now=1000.0)
         assert d.state == STATE_IDLE

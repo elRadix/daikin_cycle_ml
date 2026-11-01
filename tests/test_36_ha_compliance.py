@@ -1,4 +1,5 @@
 """Batch 36 -- HA config flow compliance."""
+
 from __future__ import annotations
 
 import json
@@ -53,9 +54,17 @@ def test_version_bumped():
 def test_selector_alert_kind_options(rel):
     d = json.loads((ROOT / rel).read_text(encoding="utf-8"))
     opts = d["selector"]["alert_kind"]["options"]
-    for k in ("status_summary", "pendulum_hourly", "pendulum_daily",
-              "short_run", "short_off", "ml_anomaly", "setpoint_osc",
-              "cop_low", "stooklijn_advies"):
+    for k in (
+        "status_summary",
+        "pendulum_hourly",
+        "pendulum_daily",
+        "short_run",
+        "short_off",
+        "ml_anomaly",
+        "setpoint_osc",
+        "cop_low",
+        "stooklijn_advies",
+    ):
         assert k in opts, rel + " missing " + k
 
 
@@ -81,8 +90,7 @@ def test_result_step_exists(rel):
 def test_menu_option_descriptions(rel):
     d = json.loads((ROOT / rel).read_text(encoding="utf-8"))
     mod = d["options"]["step"]["init"].get("menu_option_descriptions") or {}
-    for k in ("device", "pendulum", "quality_ml", "notifications",
-              "advanced", "test_notification"):
+    for k in ("device", "pendulum", "quality_ml", "notifications", "advanced", "test_notification"):
         assert k in mod, rel + " missing menu description " + k
 
 

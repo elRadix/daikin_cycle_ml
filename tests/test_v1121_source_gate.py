@@ -1,4 +1,5 @@
 """v1.12.1: source gate tests for #109 restart phantom short_off."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -24,9 +25,7 @@ def _bare() -> DaikinCycleMLCoordinator:
     c.store.daily_reset_if_needed = MagicMock(return_value=False)
     c.detector = MagicMock()
     c.detector.state = "running"
-    c.detector.snapshot = MagicMock(
-        return_value={"mode": "heating", "start_ts": 1700000000.0}
-    )
+    c.detector.snapshot = MagicMock(return_value={"mode": "heating", "start_ts": 1700000000.0})
     c.detector.update = MagicMock(return_value=None)
     c.db = None
     c._runtime_day_key = ""
@@ -57,6 +56,7 @@ async def test_detector_not_updated_when_attrs_missing(monkeypatch):
 @pytest.mark.asyncio
 async def test_detector_updated_when_attrs_complete(monkeypatch):
     """Gate bypassed -> execution reaches detector.update() on complete attrs."""
+
     # BaseException (not Exception): _async_update_data wraps its body in
     # 'except Exception' -- we must bypass that to escape with the sentinel.
     class _Reached(BaseException):

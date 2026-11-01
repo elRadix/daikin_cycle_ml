@@ -1,4 +1,5 @@
 """Batch 51b -- repair trigger tests."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -53,7 +54,9 @@ async def test_db_corrupt_resolves(hass):
 
 async def test_notify_failed_creates_issue(hass):
     await async_check_repairs(
-        hass, ENTRY_ID, _snap(),
+        hass,
+        ENTRY_ID,
+        _snap(),
         _coord(_notify_fail_streak=NOTIFY_FAIL_THRESHOLD, _notify_fail_target="notify.x"),
     )
     assert _has(hass, ISSUE_NOTIFY_FAILED)
@@ -61,7 +64,9 @@ async def test_notify_failed_creates_issue(hass):
 
 async def test_notify_failed_below_threshold(hass):
     await async_check_repairs(
-        hass, ENTRY_ID, _snap(),
+        hass,
+        ENTRY_ID,
+        _snap(),
         _coord(_notify_fail_streak=NOTIFY_FAIL_THRESHOLD - 1),
     )
     assert not _has(hass, ISSUE_NOTIFY_FAILED)
@@ -69,7 +74,9 @@ async def test_notify_failed_below_threshold(hass):
 
 async def test_notify_failed_resolves(hass):
     await async_check_repairs(
-        hass, ENTRY_ID, _snap(),
+        hass,
+        ENTRY_ID,
+        _snap(),
         _coord(_notify_fail_streak=NOTIFY_FAIL_THRESHOLD),
     )
     assert _has(hass, ISSUE_NOTIFY_FAILED)
@@ -79,7 +86,9 @@ async def test_notify_failed_resolves(hass):
 
 async def test_migration_failed_creates_issue(hass):
     await async_check_repairs(
-        hass, ENTRY_ID, _snap(),
+        hass,
+        ENTRY_ID,
+        _snap(),
         _coord(_migration_error="boom"),
     )
     assert _has(hass, ISSUE_MIGRATION_FAILED)
@@ -87,7 +96,9 @@ async def test_migration_failed_creates_issue(hass):
 
 async def test_migration_failed_resolves(hass):
     await async_check_repairs(
-        hass, ENTRY_ID, _snap(),
+        hass,
+        ENTRY_ID,
+        _snap(),
         _coord(_migration_error="boom"),
     )
     assert _has(hass, ISSUE_MIGRATION_FAILED)

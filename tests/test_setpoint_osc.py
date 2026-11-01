@@ -1,4 +1,5 @@
 """Batch 21 tests: setpoint oscillation tracker + alert state."""
+
 from __future__ import annotations
 
 import time
@@ -71,10 +72,12 @@ def test_track_setpoint_bad_value_safe():
 
 
 def test_track_setpoint_bad_option_safe():
-    c = _bare_coordinator(options={
-        "setpoint_osc_window_min": "not-a-number",
-        "setpoint_osc_min_delta": "not-a-number",
-    })
+    c = _bare_coordinator(
+        options={
+            "setpoint_osc_window_min": "not-a-number",
+            "setpoint_osc_min_delta": "not-a-number",
+        }
+    )
     assert c._track_setpoint({ATTR_LW_SETPOINT: 35.0}) == 0
 
 
@@ -102,8 +105,7 @@ def test_compute_oscillating_zero_threshold_falls_back():
     c = _bare_coordinator(options={"setpoint_oscillation_threshold": 0})
     now = time.time()
     # Q4: alternate values so reversal gate passes
-    c._setpoint_history = deque([(now, 35.0 if i % 2 == 0 else 34.5)
-                                 for i in range(10)])
+    c._setpoint_history = deque([(now, 35.0 if i % 2 == 0 else 34.5) for i in range(10)])
     assert c._compute_setpoint_oscillating() is True
 
 
@@ -133,11 +135,13 @@ def test_compute_oscillating_skips_non_tuple_entries():
     """Q4: non-tuple entries in hist are skipped, not crashed on."""
     c = _bare_coordinator(options={"setpoint_oscillation_threshold": 2})
     now = time.time()
-    c._setpoint_history = deque([
-        "garbage",
-        (now, 35.0),
-        (now, 36.0),
-    ])
+    c._setpoint_history = deque(
+        [
+            "garbage",
+            (now, 35.0),
+            (now, 36.0),
+        ]
+    )
     assert c._compute_setpoint_oscillating() is False
 
 
@@ -145,13 +149,15 @@ def test_compute_oscillating_skips_unparseable_values():
     """Q4: floats that raise on coercion are skipped, not crashed on."""
     c = _bare_coordinator(options={"setpoint_oscillation_threshold": 2})
     now = time.time()
-    c._setpoint_history = deque([
-        (now, "bad"),
-        (now, None),
-        (now, 35.0),
-        (now, 36.0),
-        (now, 35.0),
-    ])
+    c._setpoint_history = deque(
+        [
+            (now, "bad"),
+            (now, None),
+            (now, 35.0),
+            (now, 36.0),
+            (now, 35.0),
+        ]
+    )
     assert c._compute_setpoint_oscillating() is True
 
 
@@ -159,10 +165,12 @@ def test_compute_oscillating_insufficient_valid_floats():
     """Q4: hist count >= th but valid floats < th → False."""
     c = _bare_coordinator(options={"setpoint_oscillation_threshold": 3})
     now = time.time()
-    c._setpoint_history = deque([
-        (now, "bad"),
-        (now, "also bad"),
-        (now, 35.0),
-        (now, 36.0),
-    ])
+    c._setpoint_history = deque(
+        [
+            (now, "bad"),
+            (now, "also bad"),
+            (now, 35.0),
+            (now, 36.0),
+        ]
+    )
     assert c._compute_setpoint_oscillating() is False

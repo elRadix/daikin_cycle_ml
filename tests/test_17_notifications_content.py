@@ -1,4 +1,5 @@
 """Batch 17a: notification content consistency."""
+
 import re
 from unittest.mock import MagicMock
 
@@ -18,9 +19,7 @@ def _opts():
 
 
 def _first_msg(bkey, ctx):
-    alerts = evaluate_alerts(
-        {bkey: True}, _opts(), now=1000.0, context=ctx
-    )
+    alerts = evaluate_alerts({bkey: True}, _opts(), now=1000.0, context=ctx)
     assert len(alerts) == 1
     return alerts[0].message
 
@@ -28,8 +27,10 @@ def _first_msg(bkey, ctx):
 def test_pendulum_hourly_real_numbers():
     ctx = {
         "pendulum_hourly": {
-            "cph": 6, "target_cph": 4,
-            "cycles_today": 42, "target_cpd": 40,
+            "cph": 6,
+            "target_cph": 4,
+            "cycles_today": 42,
+            "target_cpd": 40,
             "advice": "",
         }
     }
@@ -43,8 +44,10 @@ def test_pendulum_hourly_real_numbers():
 def test_pendulum_daily_real_numbers():
     ctx = {
         "pendulum_daily": {
-            "cph": 1, "target_cph": 4,
-            "cycles_today": 42, "target_cpd": 40,
+            "cph": 1,
+            "target_cph": 4,
+            "cycles_today": 42,
+            "target_cpd": 40,
             "advice": "",
         }
     }
@@ -54,10 +57,11 @@ def test_pendulum_daily_real_numbers():
 
 
 def test_short_run_with_advice():
-    advice = "\n\U0001F4A1 Consider wider setpoint delta"
+    advice = "\n\U0001f4a1 Consider wider setpoint delta"
     ctx = {
         "short_run": {
-            "duration_min": 12, "threshold_min": 20,
+            "duration_min": 12,
+            "threshold_min": 20,
             "advice": advice,
         }
     }
@@ -69,7 +73,9 @@ def test_short_run_with_advice():
 def test_short_run_without_advice():
     ctx = {
         "short_run": {
-            "duration_min": 12, "threshold_min": 20, "advice": "",
+            "duration_min": 12,
+            "threshold_min": 20,
+            "advice": "",
         }
     }
     msg = _first_msg("short_run", ctx)
@@ -79,8 +85,10 @@ def test_short_run_without_advice():
 def test_ml_anomaly_format():
     ctx = {
         "ml_anomaly": {
-            "mode": "Heating", "z_max": 3.8,
-            "top_dim": "duration_s", "advice": "",
+            "mode": "Heating",
+            "z_max": 3.8,
+            "top_dim": "duration_s",
+            "advice": "",
         }
     }
     msg = _first_msg("ml_anomaly", ctx)
@@ -92,7 +100,9 @@ def test_ml_anomaly_format():
 def test_setpoint_osc_format():
     ctx = {
         "setpoint_osc": {
-            "osc_count": 5, "window_min": 60, "advice": "",
+            "osc_count": 5,
+            "window_min": 60,
+            "advice": "",
         }
     }
     msg = _first_msg("setpoint_osc", ctx)
@@ -105,12 +115,19 @@ def test_multiline_all_templates():
         atype = BINARY_ALERT_MAP[bkey][0]
         ctx = {
             atype: {
-                "cph": 1, "target_cph": 2,
-                "cycles_today": 3, "target_cpd": 4,
-                "duration_min": 5, "threshold_min": 6,
+                "cph": 1,
+                "target_cph": 2,
+                "cycles_today": 3,
+                "target_cpd": 4,
+                "duration_min": 5,
+                "threshold_min": 6,
                 "off_min": 7,
-                "mode": "H", "z_max": 1.0, "top_dim": "x",
-                "osc_count": 8, "window_min": 9, "threshold": 10,
+                "mode": "H",
+                "z_max": 1.0,
+                "top_dim": "x",
+                "osc_count": 8,
+                "window_min": 9,
+                "threshold": 10,
                 "advice": "",
             }
         }
@@ -127,29 +144,39 @@ def test_no_question_mark_left():
         atype = BINARY_ALERT_MAP[bkey][0]
         ctx = {
             atype: {
-                "cph": 1, "target_cph": 2,
-                "cycles_today": 3, "target_cpd": 4,
-                "duration_min": 5, "threshold_min": 6,
+                "cph": 1,
+                "target_cph": 2,
+                "cycles_today": 3,
+                "target_cpd": 4,
+                "duration_min": 5,
+                "threshold_min": 6,
                 "off_min": 7,
-                "mode": "H", "z_max": 1.0, "top_dim": "x",
-                "osc_count": 8, "window_min": 9,
+                "mode": "H",
+                "z_max": 1.0,
+                "top_dim": "x",
+                "osc_count": 8,
+                "window_min": 9,
                 "advice": "",
             }
         }
         msg = _first_msg(bkey, ctx)
         assert "?" not in msg, bkey + ": " + msg
 
+
 def test_stooklijn_format_lower():
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
         build_stooklijn_message,
     )
-    msg = build_stooklijn_message({
-        "state": "verlaag_lwt_2c",
-        "besparing_cop_pct": 8.0,
-        "comfort_impact": 0.5,
-        "betrouwbaarheid": 0.87,
-        "samples": 14,
-    })
+
+    msg = build_stooklijn_message(
+        {
+            "state": "verlaag_lwt_2c",
+            "besparing_cop_pct": 8.0,
+            "comfort_impact": 0.5,
+            "betrouwbaarheid": 0.87,
+            "samples": 14,
+        }
+    )
     assert "Stooklijn" in msg
     assert "Lower LWT" in msg
     assert ("COP gain" in msg or "COP-winst" in msg) and ("8" in msg)
@@ -163,6 +190,7 @@ def test_stooklijn_format_unknown_state():
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
         build_stooklijn_message,
     )
+
     msg = build_stooklijn_message({"state": "behoud"})
     assert "Keep current LWT" in msg
 
@@ -171,6 +199,7 @@ def test_stooklijn_empty_cache():
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
         build_stooklijn_message,
     )
+
     msg = build_stooklijn_message({})
     assert ("Samples" in msg) or ("insufficient" in msg.lower())
 
@@ -179,14 +208,17 @@ def test_cop_low_format():
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
         build_cop_low_message,
     )
+
     msg = build_cop_low_message(2.31, 5)
     assert "Day COP low" in msg
     assert "2.31" in msg
     assert ("Threshold" in msg) and ("2.50" in msg or "2.5" in msg)
     assert ("Samples" in msg) and ("5" in msg)
 
+
 def test_resolve_optional_single_entry():
     from custom_components.daikin_cycle_ml import services as svc
+
     h = MagicMock()
     e = MagicMock()
     e.entry_id = "abc"
@@ -198,6 +230,7 @@ def test_resolve_optional_single_entry():
 
 def test_resolve_optional_zero_entries():
     from custom_components.daikin_cycle_ml import services as svc
+
     h = MagicMock()
     h.config_entries.async_entries = MagicMock(return_value=[])
     try:
@@ -209,6 +242,7 @@ def test_resolve_optional_zero_entries():
 
 def test_resolve_optional_multiple_entries():
     from custom_components.daikin_cycle_ml import services as svc
+
     h = MagicMock()
     e1, e2 = MagicMock(), MagicMock()
     h.config_entries.async_entries = MagicMock(return_value=[e1, e2])
@@ -221,5 +255,6 @@ def test_resolve_optional_multiple_entries():
 
 def test_schema_entry_id_optional():
     from custom_components.daikin_cycle_ml import services as svc
+
     parsed = svc.SCHEMA_SEND_TEST({})
     assert parsed == {}

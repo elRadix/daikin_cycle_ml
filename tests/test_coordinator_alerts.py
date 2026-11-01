@@ -1,4 +1,5 @@
 """Tests for coordinator alert dispatch (Batch 6b-3b)."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -25,6 +26,7 @@ def _bare_coord(options=None, store=None):
 
 # ---------- _alert_binary_states ----------
 
+
 def test_states_empty_store_all_false():
     c = _bare_coord()
     out = c._alert_binary_states(DataSnapshot())
@@ -39,7 +41,10 @@ def test_states_keys_four():
     c = _bare_coord()
     # R42: forward-compat -- require known keys, allow additions
     assert set(c._alert_binary_states(DataSnapshot()).keys()) >= {
-        "short_run", "short_off", "pendulum_hourly", "pendulum_daily"
+        "short_run",
+        "short_off",
+        "pendulum_hourly",
+        "pendulum_daily",
     }
 
 
@@ -59,6 +64,7 @@ def test_states_short_run_false_when_long():
 
 def test_states_pendulum_hourly_true():
     import time
+
     st = CycleStore()
     now = time.time()
     for i in range(4):
@@ -68,6 +74,7 @@ def test_states_pendulum_hourly_true():
 
 
 # ---------- _async_dispatch_alerts ----------
+
 
 async def test_dispatch_no_alerts_no_service_calls():
     c = _bare_coord()
@@ -88,14 +95,9 @@ async def test_dispatch_short_run_creates_persistent():
 async def test_dispatch_uses_notify_service():
     st = CycleStore()
     st.add_cycle({"start_ts": 100, "duration_s": 300})
-    c = _bare_coord(
-        options={"notify_service": "notify.telegram_test"}, store=st
-    )
+    c = _bare_coord(options={"notify_service": "notify.telegram_test"}, store=st)
     await c._async_dispatch_alerts(DataSnapshot())
-    called = [
-        (call.args[0], call.args[1])
-        for call in c.hass.services.async_call.call_args_list
-    ]
+    called = [(call.args[0], call.args[1]) for call in c.hass.services.async_call.call_args_list]
     assert ("notify", "telegram_test") in called
 
 

@@ -1,4 +1,5 @@
 """Tests for daily_summary_live_enabled toggle (v1.7.0, #42)."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,6 +11,7 @@ def test_default_constant_true():
     from custom_components.daikin_cycle_ml.const import (
         DEFAULT_DAILY_SUMMARY_LIVE_ENABLED,
     )
+
     assert DEFAULT_DAILY_SUMMARY_LIVE_ENABLED is True
 
 
@@ -17,6 +19,7 @@ def test_option_key_literal():
     from custom_components.daikin_cycle_ml.const import (
         OPTION_DAILY_SUMMARY_LIVE_ENABLED,
     )
+
     assert OPTION_DAILY_SUMMARY_LIVE_ENABLED == "daily_summary_live_enabled"
 
 

@@ -6,6 +6,7 @@ pipeline routing, schema render, advice strings, config flow, i18n.
 
 Refs #66.
 """
+
 from __future__ import annotations
 
 import json
@@ -238,6 +239,7 @@ def test_binary_states_source_stale_true() -> None:
     c = _bare_coord(store=_mk_store())
     snap = DataSnapshot()
     import time as _t
+
     snap.last_success_ts = _t.time() - 999
     assert c._alert_binary_states(snap)["source_stale"] is True
 
@@ -246,6 +248,7 @@ def test_binary_states_source_stale_false() -> None:
     c = _bare_coord(store=_mk_store())
     snap = DataSnapshot()
     import time as _t
+
     snap.last_success_ts = _t.time()
     assert c._alert_binary_states(snap)["source_stale"] is False
 
@@ -310,6 +313,7 @@ def test_context_source_stale_fields() -> None:
     c = _bare_coord(store=_mk_store())
     snap = DataSnapshot()
     import time as _t
+
     snap.last_success_ts = _t.time() - 120
     ctx = c._build_alert_context(snap)
     assert float(ctx["source_stale"]["age_s"]) > 100
@@ -435,12 +439,21 @@ def test_build_rich_alert_renders(alert_type: str) -> None:
     ctx = {
         "mode": "heating",
         "advice": ALERT_ADVICE["en"][alert_type],
-        "week_pct": -20.0, "threshold_pct": "-15", "trend_30d": -3.5,
+        "week_pct": -20.0,
+        "threshold_pct": "-15",
+        "trend_30d": -3.5,
         "outdoor": 5.0,
-        "count_7d": 40, "threshold": 30, "duration_7d_min": 0,
-        "buh_ratio_7d": 0.25, "threshold_ratio": 0.15, "buh_count_7d": 12,
-        "age_s": 999.0, "threshold_s": 60.0, "source_sensor": "sensor.x",
-        "missing_count": 3, "missing_list": "a, b, c",
+        "count_7d": 40,
+        "threshold": 30,
+        "duration_7d_min": 0,
+        "buh_ratio_7d": 0.25,
+        "threshold_ratio": 0.15,
+        "buh_count_7d": 12,
+        "age_s": 999.0,
+        "threshold_s": 60.0,
+        "source_sensor": "sensor.x",
+        "missing_count": 3,
+        "missing_list": "a, b, c",
     }
     msg = build_rich_alert(alert_type, "warning", ctx, language="en")
     assert ALERT_TITLES["en"][alert_type] in msg
@@ -455,12 +468,17 @@ def test_build_rich_alert_renders(alert_type: str) -> None:
 
 @pytest.fixture(autouse=True)
 def _disable_options_reload(hass):
-    with patch.object(
-        hass.config_entries, "async_reload",
-        new=AsyncMock(return_value=True),
-    ), patch.object(
-        hass.config_entries, "async_schedule_reload",
-        new=lambda *a, **k: None,
+    with (
+        patch.object(
+            hass.config_entries,
+            "async_reload",
+            new=AsyncMock(return_value=True),
+        ),
+        patch.object(
+            hass.config_entries,
+            "async_schedule_reload",
+            new=lambda *a, **k: None,
+        ),
     ):
         yield
 
@@ -500,9 +518,7 @@ async def test_notifications_enabled_submits(hass) -> None:
         r["flow_id"], user_input={"next_step_id": "notifications_enabled"}
     )
     payload = {f"alert_enabled_{a}": True for a in _PR_E_NEW}
-    r = await hass.config_entries.options.async_configure(
-        r["flow_id"], user_input=payload
-    )
+    r = await hass.config_entries.options.async_configure(r["flow_id"], user_input=payload)
     assert r["type"] == "create_entry"
 
 

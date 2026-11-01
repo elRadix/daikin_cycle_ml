@@ -4,6 +4,7 @@ R195: never entry.mock_state(LOADED) + async_forward_entry_setups.
 Use hass.config_entries.async_setup(entry.entry_id) with a monkeypatched
 DaikinCycleMLCoordinator + _async_setup_database no-op.
 """
+
 from __future__ import annotations
 
 import re
@@ -94,7 +95,10 @@ async def _setup_integration(hass, monkeypatch, entry_id="r194_int_test"):
     )
 
     entry = MockConfigEntry(
-        domain=DOMAIN, entry_id=entry_id, data={}, options={},
+        domain=DOMAIN,
+        entry_id=entry_id,
+        data={},
+        options={},
         title="Daikin Cycle ML",
     )
     entry.add_to_hass(hass)
@@ -125,15 +129,14 @@ async def test_all_sensor_defs_registered_with_correct_slug(
         if not spec.get("requires_hybrid")
     }
     missing = expected - eids
-    assert not missing, (
-        "missing expected slugs: %s; got: %s" % (sorted(missing), sorted(eids))
-    )
+    assert not missing, "missing expected slugs: %s; got: %s" % (sorted(missing), sorted(eids))
 
     bad_shape = [eid for eid in eids if not _SLUG_RE.match(eid)]
     assert not bad_shape, "non-conforming slugs: %s" % sorted(bad_shape)
 
     collision = [
-        eid for eid in eids
+        eid
+        for eid in eids
         if eid == "sensor.daikin_cycle_ml"
         or eid.endswith("_2")
         or eid.endswith("_3")
@@ -144,8 +147,7 @@ async def test_all_sensor_defs_registered_with_correct_slug(
     # R194 language leak: SENSOR_DEFS keys must be English slugs.
     _NL_LEAKS = ("vandaag", "stooklijn", "advies")
     leaked = [
-        spec["key"] for spec in sensor_mod.SENSOR_DEFS
-        if any(w in spec["key"] for w in _NL_LEAKS)
+        spec["key"] for spec in sensor_mod.SENSOR_DEFS if any(w in spec["key"] for w in _NL_LEAKS)
     ]
     assert not leaked, "NL-word in SENSOR_DEFS key: %s" % sorted(leaked)
 
@@ -159,6 +161,7 @@ async def test_migration_runs_through_real_registry(
 ) -> None:
     """_migrate_entity_ids must rename legacy slugs in the real registry."""
     from custom_components.daikin_cycle_ml import sensor as _sensor_mod
+
     registry = er.async_get(hass)
 
     legacy = registry.async_get_or_create(
@@ -169,15 +172,18 @@ async def test_migration_runs_through_real_registry(
     )
     if legacy.entity_id != "sensor.daikin_cycle_ml":
         registry.async_update_entity(
-            legacy.entity_id, new_entity_id="sensor.daikin_cycle_ml",
+            legacy.entity_id,
+            new_entity_id="sensor.daikin_cycle_ml",
         )
     assert registry.async_get("sensor.daikin_cycle_ml") is not None
 
     _real = _sensor_mod.er.async_entries_for_config_entry
+
     def _owned(reg, eid):
         if eid == "r194_mig_test":
             return [legacy]
         return _real(reg, eid)
+
     monkeypatch.setattr(_sensor_mod.er, "async_entries_for_config_entry", _owned)
 
     await _setup_integration(hass, monkeypatch, entry_id="r194_mig_test")
@@ -185,6 +191,7 @@ async def test_migration_runs_through_real_registry(
     renamed = registry.async_get("sensor.daikin_cycle_ml_cop_mean_day")
     assert renamed is not None, "migration did not rename bare slug"
     assert registry.async_get("sensor.daikin_cycle_ml") is None
+
 
 @pytest.mark.asyncio
 @pytest.mark.expected_lingering_timers(True)
@@ -195,6 +202,7 @@ async def test_v140_key_rename_migrates_through_real_registry(
 ) -> None:
     """v1.4.0: _migrate_entity_ids renames legacy keys via real registry."""
     from custom_components.daikin_cycle_ml import sensor as _sensor_mod
+
     registry = er.async_get(hass)
     entry_id = "r140_key_mig"
     pairs = (
@@ -215,10 +223,12 @@ async def test_v140_key_rename_migrates_through_real_registry(
         legacies.append(legacy)
 
     _real = _sensor_mod.er.async_entries_for_config_entry
+
     def _owned(reg, eid):
         if eid == entry_id:
             return legacies
         return _real(reg, eid)
+
     monkeypatch.setattr(_sensor_mod.er, "async_entries_for_config_entry", _owned)
 
     await _setup_integration(hass, monkeypatch, entry_id=entry_id)
@@ -229,7 +239,5 @@ async def test_v140_key_rename_migrates_through_real_registry(
         assert registry.async_get(old_eid) is None, old_eid
         renamed = registry.async_get(new_eid)
         assert renamed is not None, new_eid
-        assert renamed.unique_id == (
-            "daikin_cycle_ml_%s_%s" % (entry_id, new_key)
-        )
+        assert renamed.unique_id == ("daikin_cycle_ml_%s_%s" % (entry_id, new_key))
         assert renamed.translation_key == new_key

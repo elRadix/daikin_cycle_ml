@@ -1,4 +1,5 @@
 """Tests for __init__ edge paths (Batch 8d)."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch

@@ -1,4 +1,5 @@
 """Tests for engine.action_engine (Batch 7c)."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.engine.action_engine import (
@@ -20,12 +21,17 @@ from custom_components.daikin_cycle_ml.engine.anomaly_engine import (
 
 def _anom(sev=SEV_WARN, is_a=True, top=0, z=3.0):
     return AnomalyResult(
-        is_anomaly=is_a, severity=sev, max_abs_z=z,
-        top_dim=top, top_dim_value=0.0, message="test",
+        is_anomaly=is_a,
+        severity=sev,
+        max_abs_z=z,
+        top_dim=top,
+        top_dim_value=0.0,
+        message="test",
     )
 
 
 # ---------- basic shape ----------
+
 
 def test_generate_advice_returns_list():
     assert isinstance(generate_advice(None, {}), list)
@@ -42,8 +48,11 @@ def test_generate_advice_never_raises_on_bad_input():
 
 def test_advice_to_dict_roundtrip():
     a = ActionAdvice(
-        priority=1, category="x", code="y",
-        title="t", description="d",
+        priority=1,
+        category="x",
+        code="y",
+        title="t",
+        description="d",
     )
     d = a.to_dict()
     assert d["priority"] == 1
@@ -51,6 +60,7 @@ def test_advice_to_dict_roundtrip():
 
 
 # ---------- anomaly-driven ----------
+
 
 def test_anomaly_duration_creates_advice():
     out = generate_advice(_anom(top=0), {})
@@ -100,6 +110,7 @@ def test_outdoor_temp_anomaly_priority_low():
 
 # ---------- record-driven ----------
 
+
 def test_buh_used_creates_advice():
     out = generate_advice(None, {"buh_used": 1})
     codes = {a.code for a in out}
@@ -112,18 +123,17 @@ def test_defrost_used_creates_advice():
 
 
 def test_short_cycle_pattern():
-    out = generate_advice(None, {"duration_s": 300},
-                          options={"short_run_threshold_min": 20})
+    out = generate_advice(None, {"duration_s": 300}, options={"short_run_threshold_min": 20})
     assert any(a.code == "short_cycle_pattern" for a in out)
 
 
 def test_low_dt_pattern():
-    out = generate_advice(None, {"dT_max": 2.0},
-                          options={"good_dt_threshold_k": 5.0})
+    out = generate_advice(None, {"dT_max": 2.0}, options={"good_dt_threshold_k": 5.0})
     assert any(a.code == "low_dt" for a in out)
 
 
 # ---------- mode context ----------
+
 
 def test_mode_suffix_in_title():
     out = generate_advice(None, {"buh_used": 1}, mode="DHW")
@@ -138,6 +148,7 @@ def test_no_mode_suffix_when_unknown():
 
 
 # ---------- ordering + dedupe ----------
+
 
 def test_advice_sorted_by_priority():
     # duration anomaly = HIGH, defrost = LOW

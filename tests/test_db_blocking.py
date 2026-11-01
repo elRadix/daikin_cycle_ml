@@ -1,4 +1,5 @@
 """Regression: async_initialize must not call blocking read_text in loop."""
+
 from __future__ import annotations
 
 from unittest.mock import patch

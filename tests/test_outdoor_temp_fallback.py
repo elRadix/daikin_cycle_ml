@@ -9,6 +9,7 @@ Guards (Discussion #117 / Issue #150):
 - Placeholder values treated as missing by missing_required()
 - cycle_detector.update() applies compat view internally
 """
+
 from __future__ import annotations
 
 import pytest
@@ -86,28 +87,37 @@ class TestDefaultFallbacks:
 
 
 class TestDecoys:
-    @pytest.mark.parametrize("decoy", [
-        "Indoor ambient temp. (R1T)",
-        "Outlet PHE(R1T)",
-        "Outlet Water Heat Exch. Temp. (R1T)",
-        "[EKMIK] Bizone kit mixed leaving water temperature R1T",
-    ])
+    @pytest.mark.parametrize(
+        "decoy",
+        [
+            "Indoor ambient temp. (R1T)",
+            "Outlet PHE(R1T)",
+            "Outlet Water Heat Exch. Temp. (R1T)",
+            "[EKMIK] Bizone kit mixed leaving water temperature R1T",
+        ],
+    )
     def test_r1t_decoys_never_match_outdoor(self, decoy: str) -> None:
         view = build_compat_view({decoy: 99.9})
         assert view.get(ATTR_OUTDOOR_AIR_R1T) != 99.9
 
-    @pytest.mark.parametrize("decoy", [
-        "O/U Heat Exch. Temp.(R4T)",
-        "2 phase thermistor (R4T)",
-    ])
+    @pytest.mark.parametrize(
+        "decoy",
+        [
+            "O/U Heat Exch. Temp.(R4T)",
+            "2 phase thermistor (R4T)",
+        ],
+    )
     def test_r4t_decoys_never_match_inlet(self, decoy: str) -> None:
         view = build_compat_view({decoy: 99.9})
         assert view.get(ATTR_INLET_WATER_R4T) != 99.9
 
-    @pytest.mark.parametrize("decoy", [
-        "Heat exchanger mid-temp.(R5T)",
-        "Entering brine temp.(R5T)",
-    ])
+    @pytest.mark.parametrize(
+        "decoy",
+        [
+            "Heat exchanger mid-temp.(R5T)",
+            "Entering brine temp.(R5T)",
+        ],
+    )
     def test_r5t_decoys_never_match_dhw(self, decoy: str) -> None:
         view = build_compat_view({decoy: 99.9})
         assert view.get(ATTR_DHW_TANK_TEMP) != 99.9

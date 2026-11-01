@@ -1,4 +1,5 @@
 """Tests for Daikin Altherma R Hybrid (EVLQ series) — issue #218."""
+
 from __future__ import annotations
 
 import json
@@ -38,7 +39,13 @@ def test_evlq_indoor_unit_aliases_resolve():
 
 
 def test_evlq_datasheets_loadable():
-    path = Path(__file__).parent.parent / "custom_components" / "daikin_cycle_ml" / "data" / "datasheets.json"
+    path = (
+        Path(__file__).parent.parent
+        / "custom_components"
+        / "daikin_cycle_ml"
+        / "data"
+        / "datasheets.json"
+    )
     data = json.loads(path.read_text(encoding="utf-8"))
     for m in (MODEL_EVLQ05CV3, MODEL_EVLQ08CV3):
         assert m in data["models"], f"{m} missing from datasheets.json"
@@ -55,7 +62,10 @@ def test_evlq_datasheets_loadable():
 
 
 def test_evlq_attribute_aliases():
-    assert "Outlet Water Heat Exch. Temp. (R1T)" in ALIAS_GROUPS["Leaving water temp. before BUH (R1T)"]
+    assert (
+        "Outlet Water Heat Exch. Temp. (R1T)"
+        in ALIAS_GROUPS["Leaving water temp. before BUH (R1T)"]
+    )
     assert "Outlet Water BUH Temp. (R2T)" in ALIAS_GROUPS["Leaving water temp. after BUH (R2T)"]
     assert "DHW tank temp (R5T)" in ALIAS_GROUPS["DHW tank temp. (R5T)"]
 
@@ -107,10 +117,15 @@ def test_boiler_active_absent_attrs():
 
 def test_boiler_active_either_demand():
     """Either demand signal triggers boiler_active."""
-    assert boiler_active_from_attrs({
-        "Boiler Operation Demand": "OFF",
-        "Boiler DHW Demand": "ON",
-    }) is True
+    assert (
+        boiler_active_from_attrs(
+            {
+                "Boiler Operation Demand": "OFF",
+                "Boiler DHW Demand": "ON",
+            }
+        )
+        is True
+    )
 
 
 def test_dhw_tank_temp_disconnected_sentinel():
@@ -211,8 +226,12 @@ def test_boiler_contribution_counted_in_record():
     # Record may be None if pump=ON keeps IDLE; force a longer idle instead
     if rec is None:
         # send a close by pump off (which triggers _close in idle? Let's just verify state)
-        rec = d.update({**_base_attrs(rps=0.0), "Water pump operation": "OFF"},
-                       now=1180.0, power_w=0.0, boiler_active=False)
+        rec = d.update(
+            {**_base_attrs(rps=0.0), "Water pump operation": "OFF"},
+            now=1180.0,
+            power_w=0.0,
+            boiler_active=False,
+        )
     assert rec is not None
     assert rec["boiler_contribution_samples"] >= 2
 
@@ -260,9 +279,11 @@ def test_boiler_samples_restore_invalid_payload():
 # Block 3A: Sensors + Binary sensors + Diagnostics
 # ============================================================
 
+
 def test_boiler_binary_sensor_defs_exist():
     """Both boiler binary sensors must be registered."""
     from custom_components.daikin_cycle_ml.binary_sensor import BINARY_SENSOR_DEFS
+
     keys = {d["key"] for d in BINARY_SENSOR_DEFS}
     assert "boiler_operation_demand" in keys
     assert "boiler_dhw_demand" in keys
@@ -272,6 +293,7 @@ def test_boiler_binary_sensor_operation_demand():
     """boiler_operation_demand reflects snap.boiler_active."""
     from custom_components.daikin_cycle_ml.binary_sensor import BINARY_SENSOR_DEFS
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+
     d = next(x for x in BINARY_SENSOR_DEFS if x["key"] == "boiler_operation_demand")
     assert d["state_fn"](DataSnapshot(boiler_active=True, is_hybrid=True), None) is True
     assert d["state_fn"](DataSnapshot(boiler_active=False, is_hybrid=True), None) is False
@@ -281,6 +303,7 @@ def test_boiler_binary_sensor_dhw_demand():
     """boiler_dhw_demand reflects snap.boiler_dhw_active."""
     from custom_components.daikin_cycle_ml.binary_sensor import BINARY_SENSOR_DEFS
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+
     d = next(x for x in BINARY_SENSOR_DEFS if x["key"] == "boiler_dhw_demand")
     assert d["state_fn"](DataSnapshot(boiler_dhw_active=True, is_hybrid=True), None) is True
     assert d["state_fn"](DataSnapshot(boiler_dhw_active=False, is_hybrid=True), None) is False
@@ -290,6 +313,7 @@ def test_hybrid_mode_sensor_enum():
     """hybrid_mode returns value or 'unknown', exposes valid options."""
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
+
     d = next(x for x in SENSOR_DEFS if x["key"] == "hybrid_mode")
     assert d["value_fn"](DataSnapshot(hybrid_mode="H/P only", is_hybrid=True), None) == "H/P only"
     assert d["value_fn"](DataSnapshot(hybrid_mode="Hybrid", is_hybrid=True), None) == "Hybrid"
@@ -302,19 +326,27 @@ def test_boiler_efficiency_cop_sensor():
     """boiler_efficiency_cop returns value or None."""
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
+
     d = next(x for x in SENSOR_DEFS if x["key"] == "boiler_efficiency_cop")
     assert d["value_fn"](DataSnapshot(boiler_efficiency_cop=1.3, is_hybrid=True), None) == 1.3
     assert d["value_fn"](DataSnapshot(boiler_efficiency_cop=None, is_hybrid=True), None) is None
-    assert d["attr_fn"](DataSnapshot(boiler_efficiency_cop=1.3, is_hybrid=True), None)["info_only"] is True
+    assert (
+        d["attr_fn"](DataSnapshot(boiler_efficiency_cop=1.3, is_hybrid=True), None)["info_only"]
+        is True
+    )
 
 
 def test_diagnostics_includes_hybrid_fields():
     """Diagnostics dump contains all 5 hybrid fields."""
     from pathlib import Path
+
     src = Path("custom_components/daikin_cycle_ml/diagnostics.py").read_text()
     for field in (
-        "boiler_active", "boiler_dhw_active", "hybrid_mode",
-        "boiler_efficiency_cop", "inv_freq_secondary",
+        "boiler_active",
+        "boiler_dhw_active",
+        "hybrid_mode",
+        "boiler_efficiency_cop",
+        "inv_freq_secondary",
     ):
         assert f'"{field}"' in src, f"missing {field} in diagnostics"
 
@@ -437,10 +469,12 @@ def test_attributes_non_hybrid_no_hint():
 # Block 3B.2 — Reconfigure HP↔Hybrid transition detection
 # ============================================================
 
+
 def _reconfig_wizard(current_model, new_model, src_attrs=None):
     """Helper: minimal flow for reconfigure_basic."""
     if src_attrs is None:
         from custom_components.daikin_cycle_ml.const import REQUIRED_ATTRIBUTES
+
         src_attrs = dict.fromkeys(REQUIRED_ATTRIBUTES, 0)
 
     src = MagicMock()
@@ -472,10 +506,14 @@ def _reconfig_wizard(current_model, new_model, src_attrs=None):
 def test_reconfigure_hp_to_hybrid_reason():
     """HP→Hybrid transition emits reconfigure_hybrid_change reason."""
     flow, _ = _reconfig_wizard("epra08eav3", "evlq08cv3")
-    r = asyncio.run(flow.async_step_reconfigure_basic(user_input={
-        "source_sensor": "sensor.x",
-        "model": "evlq08cv3",
-    }))
+    r = asyncio.run(
+        flow.async_step_reconfigure_basic(
+            user_input={
+                "source_sensor": "sensor.x",
+                "model": "evlq08cv3",
+            }
+        )
+    )
     assert r["type"] == "abort"
     assert r["reason"] == "reconfigure_hybrid_change"
 
@@ -483,10 +521,14 @@ def test_reconfigure_hp_to_hybrid_reason():
 def test_reconfigure_hybrid_to_hp_reason():
     """Hybrid→HP transition emits reconfigure_hybrid_change reason."""
     flow, _ = _reconfig_wizard("evlq08cv3", "epra08eav3")
-    r = asyncio.run(flow.async_step_reconfigure_basic(user_input={
-        "source_sensor": "sensor.x",
-        "model": "epra08eav3",
-    }))
+    r = asyncio.run(
+        flow.async_step_reconfigure_basic(
+            user_input={
+                "source_sensor": "sensor.x",
+                "model": "epra08eav3",
+            }
+        )
+    )
     assert r["type"] == "abort"
     assert r["reason"] == "reconfigure_hybrid_change"
 
@@ -494,10 +536,14 @@ def test_reconfigure_hybrid_to_hp_reason():
 def test_reconfigure_hp_to_hp_reason_unchanged():
     """HP→HP change emits reconfigure_successful reason."""
     flow, _ = _reconfig_wizard("epra08eav3", "edla09d3v3")
-    r = asyncio.run(flow.async_step_reconfigure_basic(user_input={
-        "source_sensor": "sensor.x",
-        "model": "edla09d3v3",
-    }))
+    r = asyncio.run(
+        flow.async_step_reconfigure_basic(
+            user_input={
+                "source_sensor": "sensor.x",
+                "model": "edla09d3v3",
+            }
+        )
+    )
     assert r["type"] == "abort"
     assert r["reason"] == "reconfigure_successful"
 
@@ -505,10 +551,14 @@ def test_reconfigure_hp_to_hp_reason_unchanged():
 def test_reconfigure_hybrid_to_hybrid_reason_unchanged():
     """Hybrid→Hybrid change emits reconfigure_successful reason."""
     flow, _ = _reconfig_wizard("evlq05cv3", "evlq08cv3")
-    r = asyncio.run(flow.async_step_reconfigure_basic(user_input={
-        "source_sensor": "sensor.x",
-        "model": "evlq08cv3",
-    }))
+    r = asyncio.run(
+        flow.async_step_reconfigure_basic(
+            user_input={
+                "source_sensor": "sensor.x",
+                "model": "evlq08cv3",
+            }
+        )
+    )
     assert r["type"] == "abort"
     assert r["reason"] == "reconfigure_successful"
 
@@ -516,10 +566,14 @@ def test_reconfigure_hybrid_to_hybrid_reason_unchanged():
 def test_reconfigure_source_only_no_model_change():
     """Source-only change (no model change) emits reconfigure_successful."""
     flow, _ = _reconfig_wizard("epra08eav3", "epra08eav3")
-    r = asyncio.run(flow.async_step_reconfigure_basic(user_input={
-        "source_sensor": "sensor.x",
-        "model": "epra08eav3",
-    }))
+    r = asyncio.run(
+        flow.async_step_reconfigure_basic(
+            user_input={
+                "source_sensor": "sensor.x",
+                "model": "epra08eav3",
+            }
+        )
+    )
     assert r["type"] == "abort"
     assert r["reason"] == "reconfigure_successful"
 
@@ -603,6 +657,7 @@ async def test_cop_sample_written_when_hp_running_with_boiler():
 def test_evaluate_alerts_boiler_suppress():
     """Boiler-only suppresses HP-cycle alerts."""
     from custom_components.daikin_cycle_ml.engine.notification_engine import evaluate_alerts
+
     alerts = evaluate_alerts(
         binary_states={"short_run": True, "pendulum_hourly": True},
         options={},
@@ -618,6 +673,7 @@ def test_evaluate_alerts_boiler_suppress():
 def test_evaluate_alerts_hp_running_not_suppressed():
     """HP running overrides boiler suppress (co-fire)."""
     from custom_components.daikin_cycle_ml.engine.notification_engine import evaluate_alerts
+
     alerts = evaluate_alerts(
         binary_states={"short_run": True},
         options={},
@@ -632,6 +688,7 @@ def test_evaluate_alerts_hp_running_not_suppressed():
 def test_evaluate_alerts_no_boiler_no_suppress():
     """No boiler → all alerts pass through."""
     from custom_components.daikin_cycle_ml.engine.notification_engine import evaluate_alerts
+
     alerts = evaluate_alerts(
         binary_states={"short_run": True, "pendulum_hourly": True},
         options={},
@@ -647,6 +704,7 @@ def test_evaluate_alerts_no_boiler_no_suppress():
 def test_evaluate_alerts_non_suppressed_type_passes():
     """Non-HP-cycle alerts pass through even with boiler."""
     from custom_components.daikin_cycle_ml.engine.notification_engine import evaluate_alerts
+
     alerts = evaluate_alerts(
         binary_states={"dhw_pendulum": True},
         options={},
@@ -663,11 +721,11 @@ def test_evaluate_alerts_non_suppressed_type_passes():
 # ============================================================
 
 
-
 @pytest.mark.asyncio
 async def test_migrate_to_v21_adds_column(tmp_path):
     """v21 adds boiler_contribution_samples when missing."""
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
     db = CycleDB(tmp_path / "v21test.db")
     await db.async_open()
     await db.async_initialize()
@@ -675,9 +733,7 @@ async def test_migrate_to_v21_adds_column(tmp_path):
 
     # Drop the column to simulate pre-v21 schema
     try:
-        await conn.execute(
-            "ALTER TABLE cycles DROP COLUMN boiler_contribution_samples"
-        )
+        await conn.execute("ALTER TABLE cycles DROP COLUMN boiler_contribution_samples")
         await conn.commit()
     except Exception as exc:
         await db.async_close()
@@ -700,6 +756,7 @@ async def test_migrate_to_v21_adds_column(tmp_path):
 async def test_migrate_to_v21_idempotent(tmp_path):
     """v21 is idempotent via completion marker."""
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
     db = CycleDB(tmp_path / "v21idem.db")
     await db.async_open()
     await db.async_initialize()
@@ -718,6 +775,7 @@ async def test_migrate_to_v21_idempotent(tmp_path):
 # ============================================================
 # Block 3C.1 — coordinator edge: data_obj=None path
 # ============================================================
+
 
 @pytest.mark.asyncio
 async def test_cop_sample_with_none_data_obj():
@@ -755,6 +813,7 @@ async def test_cop_sample_with_none_data_obj():
 # ============================================================
 # Coverage: coordinator lines 2853 + 2874->exit
 # ============================================================
+
 
 @pytest.mark.asyncio
 async def test_cop_sample_invalid_parse_returns_early(monkeypatch):
@@ -838,6 +897,7 @@ async def test_cop_sample_insert_returns_false_branch():
 # Block B — engineered COP separation (v22 boiler_active)
 # ============================================================
 
+
 @pytest.mark.asyncio
 async def test_migrate_to_v22_self_heals_dropped_column(tmp_path):
     """v22 delegates to async_ensure which restores boiler_active if dropped.
@@ -854,6 +914,7 @@ async def test_migrate_to_v22_self_heals_dropped_column(tmp_path):
     PRAGMA+ALTER self-heal path.
     """
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
     db = CycleDB(tmp_path / "v22test.db")
     await db.async_open()
     await db.async_initialize()
@@ -887,6 +948,7 @@ async def test_migrate_to_v22_self_heals_dropped_column(tmp_path):
 async def test_migrate_to_v22_idempotent(tmp_path):
     """v22 is idempotent via marker."""
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
     db = CycleDB(tmp_path / "v22idem.db")
     await db.async_open()
     await db.async_initialize()
@@ -934,7 +996,7 @@ async def test_cop_sample_co_fire_saved_with_flag():
     await DaikinCycleMLCoordinator._maybe_collect_cop_sample(c, now=10000.0)
     c.db.async_insert_cop_sample.assert_called_once()
     row = c.db.async_insert_cop_sample.call_args[0][0]
-    assert row.get('boiler_active') == 1
+    assert row.get("boiler_active") == 1
 
 
 @pytest.mark.asyncio
@@ -972,12 +1034,13 @@ async def test_cop_sample_pure_hp_has_flag_zero():
 
     await DaikinCycleMLCoordinator._maybe_collect_cop_sample(c, now=10000.0)
     row = c.db.async_insert_cop_sample.call_args[0][0]
-    assert row.get('boiler_active') == 0
+    assert row.get("boiler_active") == 0
 
 
 # ============================================================
 # Non-hybrid isolation: sensors return None, no boiler_pct field
 # ============================================================
+
 
 def test_boiler_sensors_none_for_non_hybrid_snapshot():
     """Non-hybrid snapshot → boiler sensors return None (unavailable)."""
@@ -1046,6 +1109,7 @@ def test_is_hybrid_install_helper():
 # Coverage: _is_hybrid_install + hybrid boiler_pct path + self-healing
 # ============================================================
 
+
 def test_is_hybrid_install_exception_branch(monkeypatch):
     """_is_hybrid_install catches exception from family_for_model."""
     from unittest.mock import MagicMock as _M
@@ -1055,9 +1119,8 @@ def test_is_hybrid_install_exception_branch(monkeypatch):
     # Monkeypatch family_for_model import path
     def _raise(*a, **kw):
         raise RuntimeError("simulated")
-    monkeypatch.setattr(
-        "custom_components.daikin_cycle_ml.const.family_for_model", _raise
-    )
+
+    monkeypatch.setattr("custom_components.daikin_cycle_ml.const.family_for_model", _raise)
 
     c = _M()
     c.entry = _M()
@@ -1078,9 +1141,7 @@ async def test_refresh_cop_today_hybrid_with_boiler_pct():
     )
 
     lt = _time.localtime()
-    today_start = _time.mktime(
-        (lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1)
-    )
+    today_start = _time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1))
     ts = today_start + 3600
 
     # 2 pure HP + 2 co-fire samples
@@ -1121,9 +1182,7 @@ async def test_refresh_cop_today_all_boiler_only_hybrid():
     )
 
     lt = _time.localtime()
-    today_start = _time.mktime(
-        (lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1)
-    )
+    today_start = _time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1))
     ts = today_start + 3600
     rows = [
         {"ts": ts, "cop": 6.0, "mode": "heating", "boiler_active": 1},
@@ -1181,6 +1240,7 @@ async def test_ensure_cop_samples_table_self_heals_missing_column(tmp_path):
 # Coverage: 4 exact-missing lines (coordinator 2544, db 1504-1508/2393/2416)
 # ============================================================
 
+
 @pytest.mark.asyncio
 async def test_refresh_stooklijn_skips_cofire_samples():
     """coordinator.py line 2544: co-fire samples skipped in stooklijn loop."""
@@ -1210,16 +1270,18 @@ async def test_refresh_stooklijn_skips_cofire_samples():
         for i in range(20)
     ]
     # Append one co-fire sample that MUST be skipped
-    rows.append({
-        "ts": now - 21 * 60,
-        "cop": 8.0,
-        "lwt": 35.0,
-        "outdoor": 7.0,
-        "flow_lmin": 15.0,
-        "power_stable": 1,
-        "mode": "heating",
-        "boiler_active": 1,  # ← triggers continue at line 2544
-    })
+    rows.append(
+        {
+            "ts": now - 21 * 60,
+            "cop": 8.0,
+            "lwt": 35.0,
+            "outdoor": 7.0,
+            "flow_lmin": 15.0,
+            "power_stable": 1,
+            "mode": "heating",
+            "boiler_active": 1,  # ← triggers continue at line 2544
+        }
+    )
 
     c = _M()
     c.db = _M()
@@ -1263,10 +1325,7 @@ async def test_migrate_to_v22_legacy_db_gets_column(tmp_path):
             "start_ts REAL NOT NULL UNIQUE)"
         )
         await raw.execute(
-            "CREATE TABLE model_state ("
-            "key TEXT PRIMARY KEY,"
-            "value_json TEXT,"
-            "updated_ts REAL)"
+            "CREATE TABLE model_state (key TEXT PRIMARY KEY,value_json TEXT,updated_ts REAL)"
         )
         await raw.commit()
 
@@ -1307,18 +1366,30 @@ async def test_fetch_cop_samples_exclude_boiler(tmp_path):
 
     now = _time.time()
     # Insert: 1 pure HP + 1 co-fire
-    await db.async_insert_cop_sample({
-        "ts": now - 10, "cop": 4.0, "lwt": 35.0,
-        "outdoor": 7.0, "flow_lmin": 15.0,
-        "power_stable": True, "mode": "heating",
-        "boiler_active": 0,
-    })
-    await db.async_insert_cop_sample({
-        "ts": now - 5, "cop": 8.0, "lwt": 35.0,
-        "outdoor": 7.0, "flow_lmin": 15.0,
-        "power_stable": True, "mode": "heating",
-        "boiler_active": 1,
-    })
+    await db.async_insert_cop_sample(
+        {
+            "ts": now - 10,
+            "cop": 4.0,
+            "lwt": 35.0,
+            "outdoor": 7.0,
+            "flow_lmin": 15.0,
+            "power_stable": True,
+            "mode": "heating",
+            "boiler_active": 0,
+        }
+    )
+    await db.async_insert_cop_sample(
+        {
+            "ts": now - 5,
+            "cop": 8.0,
+            "lwt": 35.0,
+            "outdoor": 7.0,
+            "flow_lmin": 15.0,
+            "power_stable": True,
+            "mode": "heating",
+            "boiler_active": 1,
+        }
+    )
 
     # include_boiler=True (default): 2 rows
     all_rows = await db.async_fetch_cop_samples(days=1)
@@ -1344,27 +1415,37 @@ async def test_fetch_cop_samples_between_exclude_boiler(tmp_path):
     await db.async_initialize()
 
     now = _time.time()
-    await db.async_insert_cop_sample({
-        "ts": now - 10, "cop": 4.0, "lwt": 35.0,
-        "outdoor": 7.0, "flow_lmin": 15.0,
-        "power_stable": True, "mode": "heating",
-        "boiler_active": 0,
-    })
-    await db.async_insert_cop_sample({
-        "ts": now - 5, "cop": 8.0, "lwt": 35.0,
-        "outdoor": 7.0, "flow_lmin": 15.0,
-        "power_stable": True, "mode": "heating",
-        "boiler_active": 1,
-    })
+    await db.async_insert_cop_sample(
+        {
+            "ts": now - 10,
+            "cop": 4.0,
+            "lwt": 35.0,
+            "outdoor": 7.0,
+            "flow_lmin": 15.0,
+            "power_stable": True,
+            "mode": "heating",
+            "boiler_active": 0,
+        }
+    )
+    await db.async_insert_cop_sample(
+        {
+            "ts": now - 5,
+            "cop": 8.0,
+            "lwt": 35.0,
+            "outdoor": 7.0,
+            "flow_lmin": 15.0,
+            "power_stable": True,
+            "mode": "heating",
+            "boiler_active": 1,
+        }
+    )
 
     # Both in window
     all_rows = await db.async_fetch_cop_samples_between(now - 100, now)
     assert len(all_rows) == 2
 
     # exclude co-fire → triggers line 2416
-    pure_rows = await db.async_fetch_cop_samples_between(
-        now - 100, now, include_boiler=False
-    )
+    pure_rows = await db.async_fetch_cop_samples_between(now - 100, now, include_boiler=False)
     assert len(pure_rows) == 1
     assert pure_rows[0]["cop"] == 4.0
 
@@ -1375,11 +1456,13 @@ async def test_fetch_cop_samples_between_exclude_boiler(tmp_path):
 # M2 (v1.15.0): boiler heat vs DHW split — alert suppression
 # ============================================================
 
+
 def test_evaluate_alerts_dhw_pendulum_suppressed_when_boiler_dhw_only():
     """dhw_pendulum suppressed when boiler does DHW + HP idle."""
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
         evaluate_alerts,
     )
+
     out = evaluate_alerts(
         {"dhw_pendulum": True},
         {"alert_enabled_dhw_pendulum": True},
@@ -1398,6 +1481,7 @@ def test_evaluate_alerts_dhw_pendulum_not_suppressed_when_hp_running():
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
         evaluate_alerts,
     )
+
     out = evaluate_alerts(
         {"dhw_pendulum": True},
         {"alert_enabled_dhw_pendulum": True},
@@ -1416,6 +1500,7 @@ def test_evaluate_alerts_dhw_pendulum_not_suppressed_when_heat_boiler_only():
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
         evaluate_alerts,
     )
+
     out = evaluate_alerts(
         {"dhw_pendulum": True},
         {"alert_enabled_dhw_pendulum": True},
@@ -1425,8 +1510,7 @@ def test_evaluate_alerts_dhw_pendulum_not_suppressed_when_heat_boiler_only():
         boiler_dhw_active=False,
     )
     assert any(a.alert_type == "dhw_pendulum" for a in out), (
-        "dhw_pendulum should NOT be suppressed during boiler-HEAT-only "
-        "(no DHW demand)"
+        "dhw_pendulum should NOT be suppressed during boiler-HEAT-only (no DHW demand)"
     )
 
 
@@ -1436,6 +1520,7 @@ def test_evaluate_alerts_short_run_still_suppressed_when_dhw_boiler_only():
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
         evaluate_alerts,
     )
+
     out = evaluate_alerts(
         {"short_run": True},
         {},
@@ -1445,8 +1530,7 @@ def test_evaluate_alerts_short_run_still_suppressed_when_dhw_boiler_only():
         boiler_dhw_active=True,
     )
     assert not any(a.alert_type == "short_run" for a in out), (
-        "short_run should be suppressed when boiler_active (heat OR dhw) "
-        "AND !hp_running"
+        "short_run should be suppressed when boiler_active (heat OR dhw) AND !hp_running"
     )
 
 
@@ -1454,11 +1538,13 @@ def test_evaluate_alerts_short_run_still_suppressed_when_dhw_boiler_only():
 # B4 (v1.15.0): _boiler_kwargs_for_alerts helper — defensive guards
 # ============================================================
 
+
 def test_boiler_kwargs_for_alerts_missing_snapshot():
     """B4 None-safe: no snapshot -> suppression-disabling defaults."""
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.data = None  # type: ignore[assignment]
     kw = c._boiler_kwargs_for_alerts()
@@ -1475,6 +1561,7 @@ def test_boiler_kwargs_for_alerts_with_snapshot():
         DaikinCycleMLCoordinator,
         DataSnapshot,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     snap = DataSnapshot()
     snap.is_hybrid = True  # v1.17.2: boiler_* gated on is_hybrid
@@ -1510,6 +1597,7 @@ def test_boiler_kwargs_for_alerts_mock_snapshot_disables_suppression():
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.data = MagicMock()
     c.data.state = "idle"
@@ -1527,11 +1615,13 @@ def test_boiler_kwargs_for_alerts_mock_snapshot_disables_suppression():
 # M2 (v1.15.0) 2b-1: heat vs dhw split counters in CycleDetector
 # ============================================================
 
+
 def test_boiler_heat_active_from_attrs():
     """thermal.boiler_heat_active_from_attrs reads Boiler Operation Demand."""
     from custom_components.daikin_cycle_ml.engine.thermal import (
         boiler_heat_active_from_attrs,
     )
+
     assert boiler_heat_active_from_attrs({"Boiler Operation Demand": "ON"}) is True
     assert boiler_heat_active_from_attrs({"Boiler Operation Demand": True}) is True
     assert boiler_heat_active_from_attrs({"Boiler Operation Demand": "OFF"}) is False
@@ -1541,13 +1631,32 @@ def test_boiler_heat_active_from_attrs():
 def test_boiler_split_heat_only():
     """heat=True, dhw=False → boiler_samples+heat_samples, dhw stays 0."""
     from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
+
     d = CycleDetector()
-    d.update(_base_attrs(rps=30.0), now=1000.0, power_w=2000.0,
-             boiler_active=True, boiler_heat_active=True, boiler_dhw_active=False)
-    d.update(_base_attrs(rps=32.0), now=1060.0, power_w=2100.0,
-             boiler_active=True, boiler_heat_active=True, boiler_dhw_active=False)
-    rec = d.update(_base_attrs(rps=0.0), now=1120.0, power_w=0.0,
-                   boiler_active=False, boiler_heat_active=False, boiler_dhw_active=False)
+    d.update(
+        _base_attrs(rps=30.0),
+        now=1000.0,
+        power_w=2000.0,
+        boiler_active=True,
+        boiler_heat_active=True,
+        boiler_dhw_active=False,
+    )
+    d.update(
+        _base_attrs(rps=32.0),
+        now=1060.0,
+        power_w=2100.0,
+        boiler_active=True,
+        boiler_heat_active=True,
+        boiler_dhw_active=False,
+    )
+    rec = d.update(
+        _base_attrs(rps=0.0),
+        now=1120.0,
+        power_w=0.0,
+        boiler_active=False,
+        boiler_heat_active=False,
+        boiler_dhw_active=False,
+    )
     assert rec is not None
     assert rec["boiler_contribution_samples"] == 2
     assert rec["boiler_heat_samples"] == 2
@@ -1557,13 +1666,32 @@ def test_boiler_split_heat_only():
 def test_boiler_split_dhw_only():
     """heat=False, dhw=True → boiler_samples+dhw_samples, heat stays 0."""
     from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
+
     d = CycleDetector()
-    d.update(_base_attrs(rps=30.0), now=1000.0, power_w=2000.0,
-             boiler_active=True, boiler_heat_active=False, boiler_dhw_active=True)
-    d.update(_base_attrs(rps=32.0), now=1060.0, power_w=2100.0,
-             boiler_active=True, boiler_heat_active=False, boiler_dhw_active=True)
-    rec = d.update(_base_attrs(rps=0.0), now=1120.0, power_w=0.0,
-                   boiler_active=False, boiler_heat_active=False, boiler_dhw_active=False)
+    d.update(
+        _base_attrs(rps=30.0),
+        now=1000.0,
+        power_w=2000.0,
+        boiler_active=True,
+        boiler_heat_active=False,
+        boiler_dhw_active=True,
+    )
+    d.update(
+        _base_attrs(rps=32.0),
+        now=1060.0,
+        power_w=2100.0,
+        boiler_active=True,
+        boiler_heat_active=False,
+        boiler_dhw_active=True,
+    )
+    rec = d.update(
+        _base_attrs(rps=0.0),
+        now=1120.0,
+        power_w=0.0,
+        boiler_active=False,
+        boiler_heat_active=False,
+        boiler_dhw_active=False,
+    )
     assert rec is not None
     assert rec["boiler_contribution_samples"] == 2
     assert rec["boiler_heat_samples"] == 0
@@ -1573,13 +1701,32 @@ def test_boiler_split_dhw_only():
 def test_boiler_split_both_active():
     """heat=True AND dhw=True → all 3 counters increment."""
     from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
+
     d = CycleDetector()
-    d.update(_base_attrs(rps=30.0), now=1000.0, power_w=2000.0,
-             boiler_active=True, boiler_heat_active=True, boiler_dhw_active=True)
-    d.update(_base_attrs(rps=32.0), now=1060.0, power_w=2100.0,
-             boiler_active=True, boiler_heat_active=True, boiler_dhw_active=True)
-    rec = d.update(_base_attrs(rps=0.0), now=1120.0, power_w=0.0,
-                   boiler_active=False, boiler_heat_active=False, boiler_dhw_active=False)
+    d.update(
+        _base_attrs(rps=30.0),
+        now=1000.0,
+        power_w=2000.0,
+        boiler_active=True,
+        boiler_heat_active=True,
+        boiler_dhw_active=True,
+    )
+    d.update(
+        _base_attrs(rps=32.0),
+        now=1060.0,
+        power_w=2100.0,
+        boiler_active=True,
+        boiler_heat_active=True,
+        boiler_dhw_active=True,
+    )
+    rec = d.update(
+        _base_attrs(rps=0.0),
+        now=1120.0,
+        power_w=0.0,
+        boiler_active=False,
+        boiler_heat_active=False,
+        boiler_dhw_active=False,
+    )
     assert rec is not None
     assert rec["boiler_contribution_samples"] == 2
     assert rec["boiler_heat_samples"] == 2
@@ -1589,6 +1736,7 @@ def test_boiler_split_both_active():
 def test_boiler_split_backward_compat():
     """Old caller: boiler_active=True without heat/dhw kwargs → aggregate only."""
     from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
+
     d = CycleDetector()
     d.update(_base_attrs(rps=30.0), now=1000.0, power_w=2000.0, boiler_active=True)
     rec = d.update(_base_attrs(rps=0.0), now=1060.0, power_w=0.0, boiler_active=False)
@@ -1601,9 +1749,16 @@ def test_boiler_split_backward_compat():
 def test_boiler_split_persist_in_to_dict():
     """Split counters round-trip via to_dict / restore_from_dict."""
     from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
+
     d = CycleDetector()
-    d.update(_base_attrs(rps=30.0), now=1000.0, power_w=2000.0,
-             boiler_active=True, boiler_heat_active=True, boiler_dhw_active=True)
+    d.update(
+        _base_attrs(rps=30.0),
+        now=1000.0,
+        power_w=2000.0,
+        boiler_active=True,
+        boiler_heat_active=True,
+        boiler_dhw_active=True,
+    )
     payload = d.to_dict()
     assert payload["boiler_heat_samples"] == 1
     assert payload["boiler_dhw_samples"] == 1
@@ -1618,6 +1773,7 @@ def test_boiler_split_persist_in_to_dict():
 async def test_migrate_to_v23_adds_columns(tmp_path):
     """v23 adds boiler_heat_samples + boiler_dhw_samples to cycles."""
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
     db = CycleDB(tmp_path / "v23test.db")
     await db.async_open()
     await db.async_initialize()
@@ -1650,6 +1806,7 @@ async def test_migrate_to_v23_adds_columns(tmp_path):
 async def test_migrate_to_v23_idempotent(tmp_path):
     """v23 is idempotent via completion marker."""
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
     db = CycleDB(tmp_path / "v23idem.db")
     await db.async_open()
     await db.async_initialize()
@@ -1664,9 +1821,14 @@ async def test_migrate_to_v23_idempotent(tmp_path):
 # M2 (v1.15.0) 2b-2: cop_samples.boiler_mode ('', 'heat', 'dhw', 'both')
 # ============================================================
 
+
 async def _run_collect_cop_sample(
-    *, boiler_active: bool, boiler_heat_active: bool, boiler_dhw_active: bool,
-    state: str = "running", hp_cop: float = 4.5,
+    *,
+    boiler_active: bool,
+    boiler_heat_active: bool,
+    boiler_dhw_active: bool,
+    state: str = "running",
+    hp_cop: float = 4.5,
 ):
     """Helper: drive _maybe_collect_cop_sample, return the inserted row dict."""
     from unittest.mock import AsyncMock as _AM
@@ -1676,6 +1838,7 @@ async def _run_collect_cop_sample(
         DaikinCycleMLCoordinator,
         DataSnapshot,
     )
+
     c = _M()
     c.db = _M()
     c.db.async_get_max_cop_sample_ts = _AM(return_value=None)
@@ -1709,7 +1872,9 @@ async def _run_collect_cop_sample(
 async def test_boiler_mode_heat_only_in_cop_sample():
     """heat=True, dhw=False → boiler_mode='heat', boiler_active=1."""
     row = await _run_collect_cop_sample(
-        boiler_active=True, boiler_heat_active=True, boiler_dhw_active=False,
+        boiler_active=True,
+        boiler_heat_active=True,
+        boiler_dhw_active=False,
     )
     assert row["boiler_mode"] == "heat"
     assert row["boiler_active"] == 1
@@ -1719,7 +1884,9 @@ async def test_boiler_mode_heat_only_in_cop_sample():
 async def test_boiler_mode_dhw_only_in_cop_sample():
     """heat=False, dhw=True → boiler_mode='dhw', boiler_active=1."""
     row = await _run_collect_cop_sample(
-        boiler_active=True, boiler_heat_active=False, boiler_dhw_active=True,
+        boiler_active=True,
+        boiler_heat_active=False,
+        boiler_dhw_active=True,
     )
     assert row["boiler_mode"] == "dhw"
     assert row["boiler_active"] == 1
@@ -1729,7 +1896,9 @@ async def test_boiler_mode_dhw_only_in_cop_sample():
 async def test_boiler_mode_both_in_cop_sample():
     """heat=True, dhw=True → boiler_mode='both', boiler_active=1."""
     row = await _run_collect_cop_sample(
-        boiler_active=True, boiler_heat_active=True, boiler_dhw_active=True,
+        boiler_active=True,
+        boiler_heat_active=True,
+        boiler_dhw_active=True,
     )
     assert row["boiler_mode"] == "both"
     assert row["boiler_active"] == 1
@@ -1739,7 +1908,9 @@ async def test_boiler_mode_both_in_cop_sample():
 async def test_boiler_mode_pure_hp_empty_in_cop_sample():
     """No boiler → boiler_mode='', boiler_active=0."""
     row = await _run_collect_cop_sample(
-        boiler_active=False, boiler_heat_active=False, boiler_dhw_active=False,
+        boiler_active=False,
+        boiler_heat_active=False,
+        boiler_dhw_active=False,
     )
     assert row["boiler_mode"] == ""
     assert row["boiler_active"] == 0
@@ -1755,6 +1926,7 @@ async def test_boiler_mode_skip_when_boiler_only():
         DaikinCycleMLCoordinator,
         DataSnapshot,
     )
+
     c = _M()
     c.db = _M()
     c.db.async_get_max_cop_sample_ts = _AM(return_value=None)
@@ -1792,6 +1964,7 @@ async def test_boiler_mode_mock_snapshot_not_truthy():
         DaikinCycleMLCoordinator,
         DataSnapshot,
     )
+
     c = _M()
     c.db = _M()
     c.db.async_get_max_cop_sample_ts = _AM(return_value=None)
@@ -1828,6 +2001,7 @@ async def test_boiler_mode_mock_snapshot_not_truthy():
 async def test_migrate_to_v24_adds_column(tmp_path):
     """v24 adds boiler_mode column to cop_samples."""
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
     db = CycleDB(tmp_path / "v24test.db")
     await db.async_open()
     await db.async_initialize()
@@ -1855,6 +2029,7 @@ async def test_migrate_to_v24_adds_column(tmp_path):
 async def test_migrate_to_v24_idempotent(tmp_path):
     """v24 is idempotent via completion marker."""
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
     db = CycleDB(tmp_path / "v24idem.db")
     await db.async_open()
     await db.async_initialize()
@@ -1878,9 +2053,11 @@ async def test_migrate_to_v24_idempotent(tmp_path):
 
 # ---------- _safe_float_or_none with realistic ranges ----------
 
+
 def test_safe_float_or_none_accepts_valid_lwt():
     """Accept realistic LWT/r1t/r4t range (-30..100)."""
     from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+
     for v in (-15.0, 0.0, 15.0, 25.0, 35.0, 45.0, 55.0, 65.0, 75.0, 80.0):
         assert _safe_float_or_none(v, lo=-30.0, hi=100.0) == v, f"{v}°C rejected"
     assert _safe_float_or_none(-25.0, lo=-30.0, hi=100.0) == -25.0
@@ -1890,6 +2067,7 @@ def test_safe_float_or_none_accepts_valid_lwt():
 def test_safe_float_or_none_rejects_sentinel_and_impossible():
     """Reject -40.7 R5T sentinel and physically impossible LWT values."""
     from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+
     assert _safe_float_or_none(-40.7, lo=-30.0, hi=100.0) is None
     assert _safe_float_or_none(-99.0, lo=-30.0, hi=100.0) is None
     assert _safe_float_or_none(150.0, lo=-30.0, hi=100.0) is None
@@ -1899,6 +2077,7 @@ def test_safe_float_or_none_rejects_sentinel_and_impossible():
 def test_safe_float_or_none_accepts_valid_outdoor():
     """Accept realistic outdoor range (-45..55)."""
     from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+
     for v in (-35.0, -25.0, -15.0, -5.0, 0.0, 7.0, 12.0, 25.0, 35.0, 45.0):
         assert _safe_float_or_none(v, lo=-45.0, hi=55.0) == v, f"{v}°C rejected"
 
@@ -1906,6 +2085,7 @@ def test_safe_float_or_none_accepts_valid_outdoor():
 def test_safe_float_or_none_rejects_outdoor_impossible():
     """Reject impossible outdoor values."""
     from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+
     assert _safe_float_or_none(-99.0, lo=-45.0, hi=55.0) is None
     assert _safe_float_or_none(-60.0, lo=-45.0, hi=55.0) is None
     assert _safe_float_or_none(80.0, lo=-45.0, hi=55.0) is None
@@ -1915,6 +2095,7 @@ def test_safe_float_or_none_rejects_outdoor_impossible():
 def test_safe_float_or_none_accepts_valid_flow():
     """Accept realistic flow range (0..150 L/min)."""
     from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+
     for v in (0.0, 5.0, 10.0, 20.0, 30.0, 45.0, 60.0, 100.0):
         assert _safe_float_or_none(v, lo=0.0, hi=150.0) == v, f"{v} L/min rejected"
 
@@ -1922,6 +2103,7 @@ def test_safe_float_or_none_accepts_valid_flow():
 def test_safe_float_or_none_rejects_flow_impossible():
     """Reject impossible flow values."""
     from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+
     assert _safe_float_or_none(-5.0, lo=0.0, hi=150.0) is None
     assert _safe_float_or_none(500.0, lo=0.0, hi=150.0) is None
     assert _safe_float_or_none(2000.0, lo=0.0, hi=150.0) is None
@@ -1930,6 +2112,7 @@ def test_safe_float_or_none_rejects_flow_impossible():
 def test_safe_float_or_none_rejects_non_numeric_and_bool():
     """Reject strings, bools, lists."""
     from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
+
     for bad in ("abc", "30.5", "", [], {}, [1, 2], True, False):
         assert _safe_float_or_none(bad, lo=-30.0, hi=100.0) is None, f"{bad!r}"
 
@@ -1937,14 +2120,17 @@ def test_safe_float_or_none_rejects_non_numeric_and_bool():
 def test_safe_float_or_none_rejects_nan_inf():
     """Reject NaN/Inf."""
     from custom_components.daikin_cycle_ml.storage.db import _safe_float_or_none
-    for bad in (float('nan'), float('inf'), float('-inf')):
+
+    for bad in (float("nan"), float("inf"), float("-inf")):
         assert _safe_float_or_none(bad, lo=-30.0, hi=100.0) is None
 
 
 # ---------- _safe_bool_int ----------
 
+
 def test_safe_bool_int_bool_passthrough():
     from custom_components.daikin_cycle_ml.storage.db import _safe_bool_int
+
     assert _safe_bool_int(True) == 1
     assert _safe_bool_int(False) == 0
 
@@ -1952,18 +2138,21 @@ def test_safe_bool_int_bool_passthrough():
 def test_safe_bool_int_string_no_is_zero():
     """H1 regression: string 'no' must be 0."""
     from custom_components.daikin_cycle_ml.storage.db import _safe_bool_int
+
     for s in ("no", "NO", "false", "FALSE", "0", "", "off", "nope"):
         assert _safe_bool_int(s) == 0, f"string {s!r} must be 0"
 
 
 def test_safe_bool_int_string_yes_is_one():
     from custom_components.daikin_cycle_ml.storage.db import _safe_bool_int
+
     for s in ("yes", "YES", "true", "TRUE", "1", "on", "ON"):
         assert _safe_bool_int(s) == 1, f"string {s!r} must be 1"
 
 
 def test_safe_bool_int_number_and_other():
     from custom_components.daikin_cycle_ml.storage.db import _safe_bool_int
+
     assert _safe_bool_int(1) == 1
     assert _safe_bool_int(0) == 0
     assert _safe_bool_int(42) == 1
@@ -1975,14 +2164,17 @@ def test_safe_bool_int_number_and_other():
 
 # ---------- _safe_boiler_mode ----------
 
+
 def test_safe_boiler_mode_valid_passthrough():
     from custom_components.daikin_cycle_ml.storage.db import _safe_boiler_mode
+
     for m in ("", "heat", "dhw", "both"):
         assert _safe_boiler_mode(m) == m
 
 
 def test_safe_boiler_mode_invalid_to_empty():
     from custom_components.daikin_cycle_ml.storage.db import _safe_boiler_mode
+
     for m in ("garbage", "HEAT", "Both", "DHW"):
         assert _safe_boiler_mode(m) == ""
     assert _safe_boiler_mode(" heat ") == "heat"
@@ -1993,30 +2185,35 @@ def test_safe_boiler_mode_invalid_to_empty():
 
 # ---------- Integration: async_insert_cop_sample coerces ----------
 
+
 @pytest.mark.asyncio
 async def test_insert_cop_sample_coerces_bad_lwt_to_null(tmp_path):
     """H2 regression: string 'abc' as lwt -> NULL, not TEXT."""
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
     db = CycleDB(tmp_path / "insert_coerce.db")
     await db.async_open()
     await db.async_initialize()
     row = {
-        'ts': 1e9, 'cop': 4.5, 'lwt': 'abc',
-        'outdoor': 10.0, 'flow_lmin': 15.0,
-        'power_stable': True, 'mode': 'heating',
-        'source': 'interval', 'boiler_active': 0,
+        "ts": 1e9,
+        "cop": 4.5,
+        "lwt": "abc",
+        "outdoor": 10.0,
+        "flow_lmin": 15.0,
+        "power_stable": True,
+        "mode": "heating",
+        "source": "interval",
+        "boiler_active": 0,
     }
     ok = await db.async_insert_cop_sample(row)
     assert ok is True
     conn = db._require()
-    cur = await conn.execute(
-        "SELECT lwt, typeof(lwt) FROM cop_samples WHERE ts = ?", (1e9,)
-    )
+    cur = await conn.execute("SELECT lwt, typeof(lwt) FROM cop_samples WHERE ts = ?", (1e9,))
     r = await cur.fetchone()
     await cur.close()
     await db.async_close()
     assert r[0] is None
-    assert r[1] == 'null'
+    assert r[1] == "null"
 
 
 @pytest.mark.asyncio
@@ -2030,35 +2227,36 @@ async def test_insert_cop_sample_rejects_sentinel_and_impossible(tmp_path):
       - lwt=30.0   (valid)       -> 30.0;  outdoor=80.0  -> NULL
     """
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
     db = CycleDB(tmp_path / "insert_range.db")
     await db.async_open()
     await db.async_initialize()
     conn = db._require()
     cases = [
-        (1e9,     -40.7, 10.0,  None,  10.0),
-        (1e9 + 1,  150.0, 10.0,  None,  10.0),
-        (1e9 + 2,   30.0, -99.0, 30.0,  None),
-        (1e9 + 3,   30.0,  80.0, 30.0,  None),
+        (1e9, -40.7, 10.0, None, 10.0),
+        (1e9 + 1, 150.0, 10.0, None, 10.0),
+        (1e9 + 2, 30.0, -99.0, 30.0, None),
+        (1e9 + 3, 30.0, 80.0, 30.0, None),
     ]
     for ts, in_lwt, in_out, want_lwt, want_out in cases:
         row = {
-            'ts': ts, 'cop': 4.5, 'lwt': in_lwt, 'outdoor': in_out,
-            'flow_lmin': 15.0, 'power_stable': True, 'mode': 'heating',
-            'source': 'interval', 'boiler_active': 0,
+            "ts": ts,
+            "cop": 4.5,
+            "lwt": in_lwt,
+            "outdoor": in_out,
+            "flow_lmin": 15.0,
+            "power_stable": True,
+            "mode": "heating",
+            "source": "interval",
+            "boiler_active": 0,
         }
         ok = await db.async_insert_cop_sample(row)
         assert ok is True
-        cur = await conn.execute(
-            "SELECT lwt, outdoor FROM cop_samples WHERE ts = ?", (ts,)
-        )
+        cur = await conn.execute("SELECT lwt, outdoor FROM cop_samples WHERE ts = ?", (ts,))
         r = await cur.fetchone()
         await cur.close()
-        assert r[0] == want_lwt, (
-            f"ts={ts} in_lwt={in_lwt}: want {want_lwt!r}, got {r[0]!r}"
-        )
-        assert r[1] == want_out, (
-            f"ts={ts} in_out={in_out}: want {want_out!r}, got {r[1]!r}"
-        )
+        assert r[0] == want_lwt, f"ts={ts} in_lwt={in_lwt}: want {want_lwt!r}, got {r[0]!r}"
+        assert r[1] == want_out, f"ts={ts} in_out={in_out}: want {want_out!r}, got {r[1]!r}"
     await db.async_close()
 
 
@@ -2066,13 +2264,21 @@ async def test_insert_cop_sample_rejects_sentinel_and_impossible(tmp_path):
 async def test_insert_cop_sample_coerces_boiler_active_string(tmp_path):
     """H1 regression: string 'no' as boiler_active -> 0."""
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
     db = CycleDB(tmp_path / "insert_bool.db")
     await db.async_open()
     await db.async_initialize()
     row = {
-        'ts': 2e9, 'cop': 4.5, 'lwt': 30.0, 'outdoor': 10.0, 'flow_lmin': 15.0,
-        'power_stable': True, 'mode': 'heating', 'source': 'interval',
-        'boiler_active': 'no', 'boiler_mode': 'garbage',
+        "ts": 2e9,
+        "cop": 4.5,
+        "lwt": 30.0,
+        "outdoor": 10.0,
+        "flow_lmin": 15.0,
+        "power_stable": True,
+        "mode": "heating",
+        "source": "interval",
+        "boiler_active": "no",
+        "boiler_mode": "garbage",
     }
     ok = await db.async_insert_cop_sample(row)
     assert ok is True
@@ -2091,29 +2297,38 @@ async def test_insert_cop_sample_coerces_boiler_active_string(tmp_path):
 async def test_insert_cop_sample_preserves_realistic_data(tmp_path):
     """Positive regression: real Daikin data passes through unchanged."""
     from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
     db = CycleDB(tmp_path / "insert_real.db")
     await db.async_open()
     await db.async_initialize()
     row = {
-        'ts': 3e9, 'cop': 3.8,
-        'lwt': 45.0, 'outdoor': -5.0, 'r1t': 42.0, 'r4t': 38.0,
-        'flow_lmin': 18.5,
-        'power_stable': True, 'mode': 'heating', 'source': 'interval',
-        'boiler_active': True, 'boiler_mode': 'heat',
+        "ts": 3e9,
+        "cop": 3.8,
+        "lwt": 45.0,
+        "outdoor": -5.0,
+        "r1t": 42.0,
+        "r4t": 38.0,
+        "flow_lmin": 18.5,
+        "power_stable": True,
+        "mode": "heating",
+        "source": "interval",
+        "boiler_active": True,
+        "boiler_mode": "heat",
     }
     ok = await db.async_insert_cop_sample(row)
     assert ok is True
     conn = db._require()
     cur = await conn.execute(
         "SELECT lwt, outdoor, r1t, r4t, flow_lmin, boiler_active, boiler_mode "
-        "FROM cop_samples WHERE ts = ?", (3e9,)
+        "FROM cop_samples WHERE ts = ?",
+        (3e9,),
     )
     r = await cur.fetchone()
     await cur.close()
     await db.async_close()
     assert r[0] == 45.0 and r[1] == -5.0 and r[2] == 42.0 and r[3] == 38.0
     assert r[4] == 18.5
-    assert r[5] == 1 and r[6] == 'heat'
+    assert r[5] == 1 and r[6] == "heat"
 
 
 # ============================================================
@@ -2127,11 +2342,13 @@ async def test_insert_cop_sample_preserves_realistic_data(tmp_path):
 
 # ---------- H3: hybrid_mode_from_attrs normalization ----------
 
+
 def test_hybrid_mode_normalization_case_insensitive():
     """Case-insensitive match against 3 valid modes."""
     from custom_components.daikin_cycle_ml.engine.thermal import (
         hybrid_mode_from_attrs,
     )
+
     cases = [
         ("H/P only", "H/P only"),
         ("h/p only", "H/P only"),
@@ -2153,6 +2370,7 @@ def test_hybrid_mode_normalization_whitespace():
     from custom_components.daikin_cycle_ml.engine.thermal import (
         hybrid_mode_from_attrs,
     )
+
     assert hybrid_mode_from_attrs({"Hybrid Op. Mode": "  Hybrid  "}) == "Hybrid"
     assert hybrid_mode_from_attrs({"Hybrid Op. Mode": "\tH/P only\n"}) == "H/P only"
     assert hybrid_mode_from_attrs({"Hybrid Op. Mode": " Boiler only   "}) == "Boiler only"
@@ -2163,6 +2381,7 @@ def test_hybrid_mode_normalization_aliases():
     from custom_components.daikin_cycle_ml.engine.thermal import (
         hybrid_mode_from_attrs,
     )
+
     cases = [
         ("hp only", "H/P only"),
         ("HP ONLY", "H/P only"),
@@ -2182,6 +2401,7 @@ def test_hybrid_mode_normalization_empty_string():
     from custom_components.daikin_cycle_ml.engine.thermal import (
         hybrid_mode_from_attrs,
     )
+
     assert hybrid_mode_from_attrs({"Hybrid Op. Mode": ""}) == ""
     assert hybrid_mode_from_attrs({"Hybrid Op. Mode": "   "}) == ""
     assert hybrid_mode_from_attrs({"Hybrid Op. Mode": "\t\n"}) == ""
@@ -2193,6 +2413,7 @@ def test_hybrid_mode_normalization_unknown():
     from custom_components.daikin_cycle_ml.engine.thermal import (
         hybrid_mode_from_attrs,
     )
+
     for inp in ("garbage", "gAs", "mode3", "??", "0"):
         got = hybrid_mode_from_attrs({"Hybrid Op. Mode": inp})
         assert got == "unknown", f"{inp!r} -> {got!r}, want 'unknown'"
@@ -2200,17 +2421,24 @@ def test_hybrid_mode_normalization_unknown():
 
 # ---------- H4: _hybrid_attrs_present None-safe ----------
 
+
 def test_hybrid_attrs_present_but_none():
     """H4 regression: key present but value None -> False (startup window)."""
     from custom_components.daikin_cycle_ml.config_flow import (
         _hybrid_attrs_present,
     )
+
     assert _hybrid_attrs_present({"Boiler Operation Demand": None}) is False
     assert _hybrid_attrs_present({"Boiler DHW Demand": None}) is False
-    assert _hybrid_attrs_present({
-        "Boiler Operation Demand": None,
-        "Boiler DHW Demand": None,
-    }) is False
+    assert (
+        _hybrid_attrs_present(
+            {
+                "Boiler Operation Demand": None,
+                "Boiler DHW Demand": None,
+            }
+        )
+        is False
+    )
     assert _hybrid_attrs_present({}) is False
 
 
@@ -2219,15 +2447,31 @@ def test_hybrid_attrs_present_mixed():
     from custom_components.daikin_cycle_ml.config_flow import (
         _hybrid_attrs_present,
     )
-    assert _hybrid_attrs_present({
-        "Boiler Operation Demand": "ON",
-        "Boiler DHW Demand": None,
-    }) is True
-    assert _hybrid_attrs_present({
-        "Boiler Operation Demand": None,
-        "Boiler DHW Demand": "ON",
-    }) is True
-    assert _hybrid_attrs_present({
-        "Boiler Operation Demand": False,  # False is not None -> True
-        "Boiler DHW Demand": None,
-    }) is True
+
+    assert (
+        _hybrid_attrs_present(
+            {
+                "Boiler Operation Demand": "ON",
+                "Boiler DHW Demand": None,
+            }
+        )
+        is True
+    )
+    assert (
+        _hybrid_attrs_present(
+            {
+                "Boiler Operation Demand": None,
+                "Boiler DHW Demand": "ON",
+            }
+        )
+        is True
+    )
+    assert (
+        _hybrid_attrs_present(
+            {
+                "Boiler Operation Demand": False,  # False is not None -> True
+                "Boiler DHW Demand": None,
+            }
+        )
+        is True
+    )

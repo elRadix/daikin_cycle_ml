@@ -1,4 +1,5 @@
 """Batch 51b-fix: coverage for _async_setup_database paths."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -59,7 +60,6 @@ async def test_setup_database_v14_raises(hass):
     assert coord._migration_error == "v14 boom"
 
 
-
 async def test_setup_database_integrity_raises(hass):
     coord = MagicMock()
     inst = _mock_db()
@@ -71,8 +71,7 @@ async def test_setup_database_integrity_raises(hass):
 
 async def test_setup_database_outer_fail(hass):
     coord = MagicMock()
-    with patch("custom_components.daikin_cycle_ml.CycleDB",
-               side_effect=RuntimeError("open boom")):
+    with patch("custom_components.daikin_cycle_ml.CycleDB", side_effect=RuntimeError("open boom")):
         await _async_setup_database(hass, coord)
     assert coord.db is None
 

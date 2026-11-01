@@ -1,4 +1,5 @@
 """Batch 41 -- rich pendulum path + all-alerts test option."""
+
 from __future__ import annotations
 
 import json
@@ -27,8 +28,13 @@ def test_ne_uses_bkey_for_schema_lookup():
 
 
 def test_pendulum_rich_output():
-    ctx = {"cph": 6, "target_cph": 4, "cycles_today": 12, "target_cpd": 40,
-           "advice": "\u2022 advice"}
+    ctx = {
+        "cph": 6,
+        "target_cph": 4,
+        "cycles_today": 12,
+        "target_cpd": 40,
+        "advice": "\u2022 advice",
+    }
     for bkey in ("pendulum_hourly", "pendulum_daily"):
         assert bkey in ALERT_SCHEMA
         out = build_rich_alert(bkey, "warning", ctx, language="en")
@@ -46,7 +52,7 @@ def test_coordinator_has_emit_all():
 
 def test_config_flow_dropdown_has_all_alerts():
     src = (ROOT / "config_flow.py").read_text()
-    assert "\"all_alerts\"" in src
+    assert '"all_alerts"' in src
 
 
 @pytest.mark.parametrize("rel", JSON_FILES)

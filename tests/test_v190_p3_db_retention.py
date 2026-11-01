@@ -5,6 +5,7 @@ entry, config_flow toggle presence, i18n parity.
 
 Trigger / schema / dispatch live in C3/C4.
 """
+
 from __future__ import annotations
 
 import json
@@ -71,11 +72,13 @@ def test_i18n_key_counts_equal():
     assert len(set(counts)) == 1, f"i18n parity mismatch: {counts}"
     assert counts[0] == 11, f"expected 11 toggles, got {counts[0]}"
 
+
 # ---------- C3: schema / titles / advice ----------
 
 
 def test_alert_schema_entry():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
+
     assert "db_retention_warning" in ALERT_SCHEMA
     fields = ALERT_SCHEMA["db_retention_warning"]
     assert isinstance(fields, list)
@@ -90,16 +93,19 @@ def test_alert_schema_entry():
 
 def test_alert_titles_en():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
+
     assert ALERT_TITLES["en"]["db_retention_warning"] == "Database retention warning"
 
 
 def test_alert_titles_nl():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
+
     assert ALERT_TITLES["nl"]["db_retention_warning"] == "Database-retentie waarschuwing"
 
 
 def test_alert_advice_en():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
+
     advice = ALERT_ADVICE["en"]["db_retention_warning"]
     assert "Database" in advice
     assert "maintenance" in advice
@@ -107,9 +113,11 @@ def test_alert_advice_en():
 
 def test_alert_advice_nl():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
+
     advice = ALERT_ADVICE["nl"]["db_retention_warning"]
     assert "Database" in advice
     assert "onderhoud" in advice
+
 
 # ---------- C4: dispatch wiring ----------
 
@@ -136,6 +144,7 @@ async def test_compute_db_retention_stale_no_db():
 async def test_compute_db_retention_stale_under_threshold():
     """Both counts under 100 -> fired=False."""
     from custom_components.daikin_cycle_ml import coordinator as coord_mod
+
     cls = coord_mod.DaikinCycleMLCoordinator
     obj = cls.__new__(cls)
     obj.db = MagicMock()
@@ -152,6 +161,7 @@ async def test_compute_db_retention_stale_under_threshold():
 async def test_compute_db_retention_stale_alerts_fired():
     """stale_alerts > 100 -> fired=True regardless of cycles."""
     from custom_components.daikin_cycle_ml import coordinator as coord_mod
+
     cls = coord_mod.DaikinCycleMLCoordinator
     obj = cls.__new__(cls)
     obj.db = MagicMock()
@@ -166,6 +176,7 @@ async def test_compute_db_retention_stale_alerts_fired():
 async def test_compute_db_retention_stale_cycles_fired():
     """stale_cycles > 100 -> fired=True regardless of alerts."""
     from custom_components.daikin_cycle_ml import coordinator as coord_mod
+
     cls = coord_mod.DaikinCycleMLCoordinator
     obj = cls.__new__(cls)
     obj.db = MagicMock()
@@ -180,6 +191,7 @@ async def test_compute_db_retention_stale_cycles_fired():
 async def test_compute_db_retention_stale_boundary_exactly_100():
     """Exactly 100 does NOT fire (strict >)."""
     from custom_components.daikin_cycle_ml import coordinator as coord_mod
+
     cls = coord_mod.DaikinCycleMLCoordinator
     obj = cls.__new__(cls)
     obj.db = MagicMock()
@@ -194,22 +206,23 @@ async def test_compute_db_retention_stale_boundary_exactly_100():
 async def test_compute_db_retention_stale_db_error_returns_empty():
     """DB exception -> returns {} so cache is preserved."""
     from custom_components.daikin_cycle_ml import coordinator as coord_mod
+
     cls = coord_mod.DaikinCycleMLCoordinator
     obj = cls.__new__(cls)
     obj.db = MagicMock()
-    obj.db.async_count_alerts_before = AsyncMock(
-        side_effect=RuntimeError("db fail")
-    )
+    obj.db.async_count_alerts_before = AsyncMock(side_effect=RuntimeError("db fail"))
     obj.db.async_count_cycles_before = AsyncMock(return_value=0)
     obj.options = {}
     result = await obj._compute_db_retention_stale()
     assert result == {}
+
 
 # ---------- C4b: ALERT_LABELS field labels ----------
 
 
 def test_alert_labels_en_present():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_LABELS
+
     labels = ALERT_LABELS["en"]
     assert labels["stale_alerts"] == "Stale alerts"
     assert labels["stale_cycles"] == "Stale cycles"
@@ -219,6 +232,7 @@ def test_alert_labels_en_present():
 
 def test_alert_labels_nl_present():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_LABELS
+
     labels = ALERT_LABELS["nl"]
     assert labels["stale_alerts"] == "Verouderde meldingen"
     assert labels["stale_cycles"] == "Verouderde cycli"
@@ -229,6 +243,7 @@ def test_alert_labels_nl_present():
 def test_alert_renders_labels_not_raw_keys():
     """Regression: build_rich_alert must render labels, not fallback to key."""
     from custom_components.daikin_cycle_ml.engine.status_report import build_rich_alert
+
     ctx = {
         "stale_alerts": 42,
         "stale_cycles": 7,
@@ -245,4 +260,3 @@ def test_alert_renders_labels_not_raw_keys():
     # Raw keys do NOT appear collapsed:
     assert "stalealerts" not in msg
     assert "stalecycles" not in msg
-

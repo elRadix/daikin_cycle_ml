@@ -1,4 +1,5 @@
 """Tests for model_datasheets loader (C3a)."""
+
 from __future__ import annotations
 
 import pytest
@@ -8,7 +9,10 @@ from custom_components.daikin_cycle_ml.engine import model_datasheets as md
 
 def _valid_model(**over):
     base = {
-        "family": "Split", "kw": 8, "lwt_min": 15, "lwt_max": 60,
+        "family": "Split",
+        "kw": 8,
+        "lwt_min": 15,
+        "lwt_max": 60,
         "nom_cop": 4.5,
         "points": [{"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 4.5}],
     }
@@ -45,31 +49,49 @@ def test_validate_point_missing_keys():
     assert any("missing" in e for e in errs)
 
 
-@pytest.mark.parametrize("field,val", [
-    ("t_out", 999), ("t_lwc", 999), ("cop", 999),
-    ("t_out", "x"), ("cop", None),
-])
+@pytest.mark.parametrize(
+    "field,val",
+    [
+        ("t_out", 999),
+        ("t_lwc", 999),
+        ("cop", 999),
+        ("t_out", "x"),
+        ("cop", None),
+    ],
+)
 def test_validate_point_out_of_range(field, val):
     p = {"label": "X", "t_out": 7, "t_lwc": 35, "cop": 4.5, field: val}
     errs = md._validate_model("k", _valid_model(points=[p]))
     assert any("out of range" in e for e in errs)
 
 
-@pytest.mark.parametrize("field,val", [
-    ("t_out", -30.0), ("t_out", 40.0),
-    ("t_lwc", 10.0), ("t_lwc", 70.0),
-    ("cop", 0.5), ("cop", 10.0),
-])
+@pytest.mark.parametrize(
+    "field,val",
+    [
+        ("t_out", -30.0),
+        ("t_out", 40.0),
+        ("t_lwc", 10.0),
+        ("t_lwc", 70.0),
+        ("cop", 0.5),
+        ("cop", 10.0),
+    ],
+)
 def test_validate_boundary_valid(field, val):
     p = {"label": "X", "t_out": 7, "t_lwc": 35, "cop": 4.5, field: val}
     assert md._validate_model("k", _valid_model(points=[p])) == []
 
 
-@pytest.mark.parametrize("field,val", [
-    ("t_out", -30.01), ("t_out", 40.01),
-    ("t_lwc", 9.99), ("t_lwc", 80.01),
-    ("cop", 0.49), ("cop", 10.01),
-])
+@pytest.mark.parametrize(
+    "field,val",
+    [
+        ("t_out", -30.01),
+        ("t_out", 40.01),
+        ("t_lwc", 9.99),
+        ("t_lwc", 80.01),
+        ("cop", 0.49),
+        ("cop", 10.01),
+    ],
+)
 def test_validate_just_outside(field, val):
     p = {"label": "X", "t_out": 7, "t_lwc": 35, "cop": 4.5, field: val}
     errs = md._validate_model("k", _valid_model(points=[p]))
@@ -154,6 +176,7 @@ def test_load_bundled_directory(tmp_path):
 
 def test_load_bundled_wrong_schema(tmp_path):
     import json
+
     p = tmp_path / "wrong.json"
     p.write_text(json.dumps({"schema_version": 99, "models": {}}))
     assert md.load_bundled(p) == {}
@@ -265,9 +288,13 @@ def test_roundtrip_bundled_load_merge_get():
 
 def test_roundtrip_user_overrides_bundled_empty_model():
     b = md.load_bundled()
-    u = md.parse_user_payload(_payload({
-        "erla12dav3": _valid_model(family="Split", kw=12, nom_cop=4.85),
-    }))
+    u = md.parse_user_payload(
+        _payload(
+            {
+                "erla12dav3": _valid_model(family="Split", kw=12, nom_cop=4.85),
+            }
+        )
+    )
     m = md.merge(b, u)
     assert md.get_datasheet(m, "erla12dav3") is not None
     # bundled others intact

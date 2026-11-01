@@ -1,4 +1,5 @@
 """v1.10.0 #75 - per-entry DB migration tests."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -50,12 +51,8 @@ def _per_entry(tmp_path: Path, entry_id: str) -> Path:
 
 async def test_migrate_skipped_when_no_legacy(mig_env):
     hass, tmp_path = mig_env
-    hass.config_entries.async_entries = MagicMock(
-        return_value=[_make_entry("a")]
-    )
-    result = await migration.async_migrate_legacy_db(
-        hass, _make_entry("a")
-    )
+    hass.config_entries.async_entries = MagicMock(return_value=[_make_entry("a")])
+    result = await migration.async_migrate_legacy_db(hass, _make_entry("a"))
     assert result.status == "skipped"
     assert _marker(tmp_path).exists()
 
@@ -63,18 +60,14 @@ async def test_migrate_skipped_when_no_legacy(mig_env):
 async def test_migrate_already_when_marker_present(mig_env):
     hass, tmp_path = mig_env
     _marker(tmp_path).write_text("v1100:single\nentry=a\n")
-    result = await migration.async_migrate_legacy_db(
-        hass, _make_entry("a")
-    )
+    result = await migration.async_migrate_legacy_db(hass, _make_entry("a"))
     assert result.status == "already"
 
 
 async def test_migrate_recovered_when_per_entry_exists(mig_env):
     hass, tmp_path = mig_env
     _per_entry(tmp_path, "a").write_bytes(b"x")
-    result = await migration.async_migrate_legacy_db(
-        hass, _make_entry("a")
-    )
+    result = await migration.async_migrate_legacy_db(hass, _make_entry("a"))
     assert result.status == "already"
     assert "recovered" in _marker(tmp_path).read_text()
 
@@ -82,13 +75,9 @@ async def test_migrate_recovered_when_per_entry_exists(mig_env):
 async def test_migrate_backup_fails(mig_env):
     hass, tmp_path = mig_env
     _legacy(tmp_path).write_bytes(b"legacy")
-    hass.config_entries.async_entries = MagicMock(
-        return_value=[_make_entry("a")]
-    )
+    hass.config_entries.async_entries = MagicMock(return_value=[_make_entry("a")])
     with patch.object(migration, "_backup_legacy_file", return_value=None):
-        result = await migration.async_migrate_legacy_db(
-            hass, _make_entry("a")
-        )
+        result = await migration.async_migrate_legacy_db(hass, _make_entry("a"))
     assert result.status == "error"
     assert result.error == "backup_failed"
 
@@ -126,9 +115,7 @@ async def test_migrate_multi_success(mig_env):
     a = _make_entry("a", title="First")
     b = _make_entry("b", title="Second")
     hass.config_entries.async_entries = MagicMock(return_value=[a, b])
-    with patch.object(
-        migration, "raise_legacy_db_multi_entry"
-    ) as raise_mock:
+    with patch.object(migration, "raise_legacy_db_multi_entry") as raise_mock:
         result = await migration.async_migrate_legacy_db(hass, b)
     assert result.status == "multi"
     assert result.assigned_entry_id == "a"
@@ -142,9 +129,7 @@ async def test_migrate_multi_target_exists(mig_env):
     a = _make_entry("a")
     b = _make_entry("b")
     hass.config_entries.async_entries = MagicMock(return_value=[a, b])
-    with patch.object(
-        migration, "raise_legacy_db_multi_entry"
-    ) as raise_mock:
+    with patch.object(migration, "raise_legacy_db_multi_entry") as raise_mock:
         result = await migration.async_migrate_legacy_db(hass, b)
     assert result.status == "error"
     assert result.error == "target_exists"
@@ -171,9 +156,7 @@ def test_do_rename_oserror(mig_env):
     hass, tmp_path = mig_env
     legacy = _legacy(tmp_path)  # does NOT exist
     target = _per_entry(tmp_path, "a")
-    result = migration._do_rename(
-        hass, legacy, target, Path("/tmp/bk"), 1, "a", single=True
-    )
+    result = migration._do_rename(hass, legacy, target, Path("/tmp/bk"), 1, "a", single=True)
     assert result.status == "error"
     assert result.error
 
@@ -189,9 +172,7 @@ def test_do_rename_size_mismatch_rollback(mig_env, monkeypatch):
         self.unlink()
 
     monkeypatch.setattr(Path, "replace", fake_replace)
-    result = migration._do_rename(
-        hass, legacy, target, Path("/tmp/bk"), 1, "a", single=True
-    )
+    result = migration._do_rename(hass, legacy, target, Path("/tmp/bk"), 1, "a", single=True)
     assert result.status == "error"
     assert result.error == "size_mismatch"
 
@@ -212,9 +193,7 @@ def test_do_rename_size_mismatch_rollback_fails(mig_env, monkeypatch):
             raise OSError("rollback boom")
 
     monkeypatch.setattr(Path, "replace", fake_replace)
-    result = migration._do_rename(
-        hass, legacy, target, Path("/tmp/bk"), 1, "a", single=True
-    )
+    result = migration._do_rename(hass, legacy, target, Path("/tmp/bk"), 1, "a", single=True)
     assert result.status == "error"
     assert result.error == "size_mismatch"
 
@@ -227,9 +206,7 @@ async def test_migrate_wraps_exception(mig_env):
         new_callable=AsyncMock,
         side_effect=RuntimeError("boom"),
     ):
-        result = await migration.async_migrate_legacy_db(
-            hass, _make_entry("a")
-        )
+        result = await migration.async_migrate_legacy_db(hass, _make_entry("a"))
     assert result.status == "error"
     assert "boom" in (result.error or "")
 
@@ -295,6 +272,7 @@ async def test_setup_database_migration_error_logs(hass, tmp_path):
     from custom_components.daikin_cycle_ml.storage.migration import (
         MigrationResult,
     )
+
     hass.config.config_dir = str(tmp_path)
     (tmp_path / ".storage").mkdir()
     coord = MagicMock()
@@ -303,12 +281,13 @@ async def test_setup_database_migration_error_logs(hass, tmp_path):
     inst = AsyncMock()
     inst.async_migrate_features_to_v11 = AsyncMock(return_value=0)
     inst.async_integrity_check = AsyncMock(return_value=True)
-    with patch(
-        "custom_components.daikin_cycle_ml.async_migrate_legacy_db",
-        new_callable=AsyncMock,
-        return_value=MigrationResult(status="error", error="boom"),
-    ), patch(
-        "custom_components.daikin_cycle_ml.CycleDB", return_value=inst
+    with (
+        patch(
+            "custom_components.daikin_cycle_ml.async_migrate_legacy_db",
+            new_callable=AsyncMock,
+            return_value=MigrationResult(status="error", error="boom"),
+        ),
+        patch("custom_components.daikin_cycle_ml.CycleDB", return_value=inst),
     ):
         await _async_setup_database(hass, coord, entry)
     assert coord.db is inst
@@ -320,6 +299,7 @@ async def test_setup_database_migration_multi_logs(hass, tmp_path):
     from custom_components.daikin_cycle_ml.storage.migration import (
         MigrationResult,
     )
+
     hass.config.config_dir = str(tmp_path)
     (tmp_path / ".storage").mkdir()
     coord = MagicMock()
@@ -328,23 +308,22 @@ async def test_setup_database_migration_multi_logs(hass, tmp_path):
     inst = AsyncMock()
     inst.async_migrate_features_to_v11 = AsyncMock(return_value=0)
     inst.async_integrity_check = AsyncMock(return_value=True)
-    with patch(
-        "custom_components.daikin_cycle_ml.async_migrate_legacy_db",
-        new_callable=AsyncMock,
-        return_value=MigrationResult(
-            status="multi", assigned_entry_id="oldest"
+    with (
+        patch(
+            "custom_components.daikin_cycle_ml.async_migrate_legacy_db",
+            new_callable=AsyncMock,
+            return_value=MigrationResult(status="multi", assigned_entry_id="oldest"),
         ),
-    ), patch(
-        "custom_components.daikin_cycle_ml.CycleDB", return_value=inst
+        patch("custom_components.daikin_cycle_ml.CycleDB", return_value=inst),
     ):
         await _async_setup_database(hass, coord, entry)
     assert coord.db is inst
 
 
-
 async def test_remove_entry_deletes_db(mig_env):
     """v1.10.0 #75: per-entry DB deleted on entry removal."""
     from custom_components.daikin_cycle_ml import async_remove_entry
+
     hass, tmp_path = mig_env
     entry = _make_entry("a")
     db_file = _per_entry(tmp_path, "a")
@@ -356,6 +335,7 @@ async def test_remove_entry_deletes_db(mig_env):
 async def test_remove_entry_missing_db_no_error(mig_env):
     """Missing DB: silent no-op, no exception."""
     from custom_components.daikin_cycle_ml import async_remove_entry
+
     hass, tmp_path = mig_env
     entry = _make_entry("a")
     await async_remove_entry(hass, entry)
@@ -364,6 +344,7 @@ async def test_remove_entry_missing_db_no_error(mig_env):
 async def test_remove_entry_unlink_fails_logs(mig_env, monkeypatch):
     """OSError on unlink is logged, not raised (R366)."""
     from custom_components.daikin_cycle_ml import async_remove_entry
+
     hass, tmp_path = mig_env
     entry = _make_entry("a")
     db_file = _per_entry(tmp_path, "a")
@@ -380,13 +361,12 @@ async def test_remove_entry_unlink_fails_logs(mig_env, monkeypatch):
 async def test_remove_entry_preserves_legacy_and_backups(mig_env):
     """Legacy and backup files survive removal."""
     from custom_components.daikin_cycle_ml import async_remove_entry
+
     hass, tmp_path = mig_env
     entry = _make_entry("a")
     db_file = _per_entry(tmp_path, "a")
     db_file.write_bytes(b"db")
-    legacy_file = (
-        _storage(tmp_path) / "daikin_cycle_ml.db.legacy-20260101-120000"
-    )
+    legacy_file = _storage(tmp_path) / "daikin_cycle_ml.db.legacy-20260101-120000"
     legacy_file.write_bytes(b"legacy")
     backup_dir = tmp_path / ".daikin_backups"
     backup_dir.mkdir()

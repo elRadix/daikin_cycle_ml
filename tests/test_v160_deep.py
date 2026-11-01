@@ -7,6 +7,7 @@ Runtime import strategy:
   - `test_all_modules_import_cleanly_in_subprocess` spawns a fresh Python
     process (no PHACC state) to verify real import cleanliness.
 """
+
 from __future__ import annotations
 
 import json
@@ -49,6 +50,7 @@ def _load_json(fn: str):
 # 1. SENSOR_DEFS contract
 # ================================================================
 
+
 def test_contract_all_have_key_name_value_fn():
     for sd in SENSOR_DEFS:
         assert isinstance(sd.get("key"), str) and sd["key"], sd
@@ -70,8 +72,18 @@ def test_contract_keys_unique():
 def test_contract_keys_english_only():
     # Dutch-only words (unambiguous, cannot appear in an English slug).
     # Note: 'week' is intentionally EXCLUDED — identical spelling EN/NL.
-    dutch_only = ("vandaag", "stooklijn", "advies", "koeling", "verwarming",
-                  "seizoen", "maand", "dag", "buiten", "warmte")
+    dutch_only = (
+        "vandaag",
+        "stooklijn",
+        "advies",
+        "koeling",
+        "verwarming",
+        "seizoen",
+        "maand",
+        "dag",
+        "buiten",
+        "warmte",
+    )
     for sd in SENSOR_DEFS:
         for w in dutch_only:
             assert w not in sd["key"], f"Dutch {w!r} in key {sd['key']!r}"
@@ -84,7 +96,9 @@ def test_contract_unit_implies_state_class():
 
 
 def test_contract_count_27():
-    assert len(SENSOR_DEFS) == 50  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop, +boiler_contribution_today_pct
+    assert (
+        len(SENSOR_DEFS) == 50
+    )  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop, +boiler_contribution_today_pct
 
 
 # ================================================================
@@ -92,7 +106,10 @@ def test_contract_count_27():
 # ================================================================
 
 LEGACY_SLUG_ALLOWLIST = {
-    "cop_mean_day", "cop_mean_week", "cop_mean_month", "cop_curve_recent",
+    "cop_mean_day",
+    "cop_mean_week",
+    "cop_mean_month",
+    "cop_curve_recent",
 }
 
 
@@ -109,9 +126,15 @@ def test_slug_parity_all_keys():
 # 3. Translations parity
 # ================================================================
 
-@pytest.mark.parametrize("fn", [
-    "strings.json", "translations/en.json", "translations/nl.json",
-])
+
+@pytest.mark.parametrize(
+    "fn",
+    [
+        "strings.json",
+        "translations/en.json",
+        "translations/nl.json",
+    ],
+)
 def test_all_sensor_defs_in_translations(fn):
     d = _load_json(fn)
     trans = d.get("entity", {}).get("sensor", {})
@@ -119,9 +142,14 @@ def test_all_sensor_defs_in_translations(fn):
     assert not missing, f"missing in {fn}: {missing}"
 
 
-@pytest.mark.parametrize("fn", [
-    "strings.json", "translations/en.json", "translations/nl.json",
-])
+@pytest.mark.parametrize(
+    "fn",
+    [
+        "strings.json",
+        "translations/en.json",
+        "translations/nl.json",
+    ],
+)
 def test_translation_sensor_entries_have_name(fn):
     d = _load_json(fn)
     for key, val in d.get("entity", {}).get("sensor", {}).items():
@@ -197,7 +225,9 @@ def test_all_modules_import_cleanly_in_subprocess():
         [sys.executable, "-c", code],
         cwd=str(REPO),
         env={**os.environ, "PYTHONPATH": str(REPO)},
-        capture_output=True, text=True, timeout=60,
+        capture_output=True,
+        text=True,
+        timeout=60,
     )
     assert result.returncode == 0, (
         f"subprocess import failed (rc={result.returncode})\n"
@@ -209,6 +239,7 @@ def test_all_modules_import_cleanly_in_subprocess():
 # 5. Hypothesis fuzz — pure factories (uses module-level imports)
 # ================================================================
 
+
 @given(
     mode=st.sampled_from(["heating", "dhw", "cooling", "unknown", ""]),
     period=st.sampled_from(["day", "week", "month"]),
@@ -219,12 +250,15 @@ def test_all_modules_import_cleanly_in_subprocess():
         st.integers(-100, 100),
     ),
 )
-@settings(max_examples=50, deadline=None,
-          suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(
+    max_examples=50, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture]
+)
 def test_fuzz_cop_hourly_mode_mean(mode, period, val):
-    snap = SimpleNamespace(**{
-        f"cop_hourly_{period}": {"by_mode": {mode: {"cop_mean": val}}},
-    })
+    snap = SimpleNamespace(
+        **{
+            f"cop_hourly_{period}": {"by_mode": {mode: {"cop_mean": val}}},
+        }
+    )
     fn = _cop_hourly_mode_mean(mode, period)
     fn(snap, MagicMock())  # must not raise
 
@@ -233,8 +267,9 @@ def test_fuzz_cop_hourly_mode_mean(mode, period, val):
     mode=st.sampled_from(["heating", "dhw", "cooling", "unknown"]),
     period=st.sampled_from(["day", "week", "month"]),
 )
-@settings(max_examples=30, deadline=None,
-          suppress_health_check=[HealthCheck.function_scoped_fixture])
+@settings(
+    max_examples=30, deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture]
+)
 def test_fuzz_attrs_cop_hourly_mode(mode, period):
     snap = SimpleNamespace(**{f"cop_hourly_{period}": {}})
     fn = _attrs_cop_hourly_mode(mode, period)
@@ -247,6 +282,7 @@ def test_fuzz_attrs_cop_hourly_mode(mode, period):
 # ================================================================
 # 6. SPF season boundary (uses module-level DaikinCycleMLCoordinator)
 # ================================================================
+
 
 def _mk_spf_coord(opts):
     c = object.__new__(DaikinCycleMLCoordinator)
@@ -308,6 +344,7 @@ async def test_spf_ytd_always_current_year():
 # ================================================================
 # 7. C1b combined — edge filters
 # ================================================================
+
 
 def _mk_combined_coord(rows_today, rows_week=None):
     c = object.__new__(DaikinCycleMLCoordinator)

@@ -1,4 +1,5 @@
 """R306/R307 coverage: _float_list, restore state edge, coordinator wiring."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -29,6 +30,7 @@ def _bare(db=None):
 
 # ---------- _float_list coverage ----------
 
+
 def test_float_list_non_list_returns_empty() -> None:
     assert _float_list(None) == []
     assert _float_list("x") == []
@@ -50,6 +52,7 @@ def test_restore_from_dict_state_not_running() -> None:
 
 
 # ---------- coordinator _persist_detector_state ----------
+
 
 @pytest.mark.asyncio
 async def test_persist_no_db_returns_early() -> None:
@@ -82,6 +85,7 @@ async def test_persist_db_raises_swallowed() -> None:
 
 # ---------- coordinator _restore_detector_state ----------
 
+
 @pytest.mark.asyncio
 async def test_restore_no_db() -> None:
     c = _bare(db=None)
@@ -107,14 +111,17 @@ async def test_restore_idle_payload_returns_false() -> None:
 @pytest.mark.asyncio
 async def test_restore_running_payload_returns_true() -> None:
     import time as _t
+
     now = _t.time()
     db = MagicMock()
-    db.async_get_model_state = AsyncMock(return_value={
-        "state": STATE_RUNNING,
-        "start_ts": now - 60.0,
-        "mode": "heating",
-        "rps_samples": [20.0],
-    })
+    db.async_get_model_state = AsyncMock(
+        return_value={
+            "state": STATE_RUNNING,
+            "start_ts": now - 60.0,
+            "mode": "heating",
+            "rps_samples": [20.0],
+        }
+    )
     c = _bare(db=db)
     assert await c._restore_detector_state() is True
     assert c.detector.state == STATE_RUNNING

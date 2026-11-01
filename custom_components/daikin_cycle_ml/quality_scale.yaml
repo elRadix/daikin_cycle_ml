@@ -5,7 +5,7 @@ rules:
   appropriate-polling:
     status: done
   brands:
-    status: todo # Moet nog naar home-assistant/brands repository
+    status: done # Brand assets included in custom_components/*/brand/
   config-flow-test-coverage:
     status: done
   config-flow:

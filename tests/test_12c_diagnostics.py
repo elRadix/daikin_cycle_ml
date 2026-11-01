@@ -1,4 +1,5 @@
 """Tests for 12c diagnostics extension."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.diagnostics import (
@@ -18,4 +19,3 @@ def test_db_tables_all_five_present():
 
 def test_attrs_sample_cap_positive():
     assert ATTRS_SAMPLE_CAP > 0
-

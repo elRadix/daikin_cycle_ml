@@ -1,4 +1,5 @@
 """v1.10.0 #75 - diagnostics per-entry DB enumeration tests."""
+
 from __future__ import annotations
 
 import sqlite3

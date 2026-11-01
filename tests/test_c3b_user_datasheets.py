@@ -1,4 +1,5 @@
 """C3b — user datasheet Store API (validate, load, save, remove)."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -17,9 +18,7 @@ def _valid_model() -> dict[str, Any]:
         "lwt_min": 25.0,
         "lwt_max": 55.0,
         "nom_cop": 4.6,
-        "points": [
-            {"label": "A7/W35", "t_out": 7.0, "t_lwc": 35.0, "cop": 4.6}
-        ],
+        "points": [{"label": "A7/W35", "t_out": 7.0, "t_lwc": 35.0, "cop": 4.6}],
     }
 
 
@@ -44,16 +43,12 @@ class TestValidateUserPayload:
         assert any("schema_version" in e for e in errs)
 
     def test_models_not_dict(self) -> None:
-        clean, errs = md.validate_user_payload(
-            {"schema_version": 1, "models": []}
-        )
+        clean, errs = md.validate_user_payload({"schema_version": 1, "models": []})
         assert clean == {}
         assert "models" in errs[0]
 
     def test_invalid_model_collects_errors(self) -> None:
-        clean, errs = md.validate_user_payload(
-            _payload({"bad": {"family": "X"}})
-        )
+        clean, errs = md.validate_user_payload(_payload({"bad": {"family": "X"}}))
         assert "bad" not in clean
         assert any("missing" in e for e in errs)
 
@@ -93,15 +88,11 @@ class TestStoreRoundtrip:
 
 class TestRemoveUserModel:
     async def test_remove_existing(self, hass: HomeAssistant) -> None:
-        await md.save_user(
-            hass, "e", {"a": _valid_model(), "b": _valid_model()}
-        )
+        await md.save_user(hass, "e", {"a": _valid_model(), "b": _valid_model()})
         assert await md.remove_user_model(hass, "e", "a") is True
         assert set((await md.load_user(hass, "e")).keys()) == {"b"}
 
-    async def test_remove_missing_returns_false(
-        self, hass: HomeAssistant
-    ) -> None:
+    async def test_remove_missing_returns_false(self, hass: HomeAssistant) -> None:
         await md.save_user(hass, "e", {"a": _valid_model()})
         assert await md.remove_user_model(hass, "e", "z") is False
 
@@ -129,14 +120,12 @@ class TestStoreCorruption:
         with pytest.raises(md.UserDatasheetError, match="models not dict"):
             await md.load_user(hass, "e")
 
+
 class TestStoreLoadFailure:
-    async def test_load_raises_on_store_failure(
-        self, hass: HomeAssistant
-    ) -> None:
+    async def test_load_raises_on_store_failure(self, hass: HomeAssistant) -> None:
         """Cover except branch: Store.async_load raises -> UserDatasheetError."""
         failing = MagicMock()
         failing.async_load = AsyncMock(side_effect=RuntimeError("boom"))
         with patch.object(md, "_store", return_value=failing):
             with pytest.raises(md.UserDatasheetError, match="store load failed"):
                 await md.load_user(hass, "e")
-

@@ -3,6 +3,7 @@
 Covers ALERTS_V2.md sections 4.4 and 4.5.
 Refs #66.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -33,6 +34,7 @@ def _bare(options=None):
 # passes_filters helper
 # ============================================================
 
+
 def test_passes_filters_group_disabled_blocks():
     opts = {"alert_group_cop_stooklijn": False}
     assert passes_filters("cop_low", "warning", opts, now=1e9) is False
@@ -60,6 +62,7 @@ def test_passes_filters_quiet_disabled_allows():
 # 4.4 — standalone emitters respect group + quiet
 # ============================================================
 
+
 def test_maybe_notify_cop_low_group_disabled_blocks_emit():
     c = _bare(options={"alert_group_cop_stooklijn": False})
     asyncio.run(c._maybe_notify_cop_low(1e6, {"cop": 2.0, "samples_today": 10}))
@@ -76,26 +79,41 @@ def test_maybe_notify_cop_low_quiet_hours_blocks_emit(monkeypatch):
 
 def test_maybe_notify_stooklijn_group_disabled_blocks_emit():
     c = _bare(options={"alert_group_cop_stooklijn": False})
-    asyncio.run(c._maybe_notify_stooklijn(1e6, {
-        "state": "lower_lwt", "betrouwbaarheid": 0.85,
-        "besparing_cop_pct": 8.0, "comfort_impact": -0.3,
-    }))
+    asyncio.run(
+        c._maybe_notify_stooklijn(
+            1e6,
+            {
+                "state": "lower_lwt",
+                "betrouwbaarheid": 0.85,
+                "besparing_cop_pct": 8.0,
+                "comfort_impact": -0.3,
+            },
+        )
+    )
     c._emit_alert.assert_not_awaited()
 
 
 def test_maybe_notify_stooklijn_quiet_hours_blocks_emit(monkeypatch):
     monkeypatch.setattr(ne, "_in_quiet_hours", lambda *a, **k: True)
     c = _bare(options={"quiet_hours_enabled": True})
-    asyncio.run(c._maybe_notify_stooklijn(1e6, {
-        "state": "lower_lwt", "betrouwbaarheid": 0.85,
-        "besparing_cop_pct": 8.0, "comfort_impact": -0.3,
-    }))
+    asyncio.run(
+        c._maybe_notify_stooklijn(
+            1e6,
+            {
+                "state": "lower_lwt",
+                "betrouwbaarheid": 0.85,
+                "besparing_cop_pct": 8.0,
+                "comfort_impact": -0.3,
+            },
+        )
+    )
     c._emit_alert.assert_not_awaited()
 
 
 # ============================================================
 # 4.5 — threshold single-source-of-truth
 # ============================================================
+
 
 def test_threshold_constants_defined():
     assert const.COP_LOW_THRESHOLD == 2.5
@@ -120,42 +138,71 @@ def test_cop_low_min_samples_boundary():
 def test_stooklijn_confidence_boundary():
     # Just-below threshold: blocked
     c = _bare()
-    asyncio.run(c._maybe_notify_stooklijn(1e6, {
-        "state": "lower_lwt", "betrouwbaarheid": 0.69,
-        "besparing_cop_pct": 8.0, "comfort_impact": -0.3,
-    }))
+    asyncio.run(
+        c._maybe_notify_stooklijn(
+            1e6,
+            {
+                "state": "lower_lwt",
+                "betrouwbaarheid": 0.69,
+                "besparing_cop_pct": 8.0,
+                "comfort_impact": -0.3,
+            },
+        )
+    )
     c._emit_alert.assert_not_awaited()
 
     # At threshold (>= inclusive): emits
     c2 = _bare()
-    asyncio.run(c2._maybe_notify_stooklijn(1e6, {
-        "state": "lower_lwt", "betrouwbaarheid": 0.7,
-        "besparing_cop_pct": 8.0, "comfort_impact": -0.3,
-    }))
+    asyncio.run(
+        c2._maybe_notify_stooklijn(
+            1e6,
+            {
+                "state": "lower_lwt",
+                "betrouwbaarheid": 0.7,
+                "besparing_cop_pct": 8.0,
+                "comfort_impact": -0.3,
+            },
+        )
+    )
     c2._emit_alert.assert_awaited()
 
 
 def test_stooklijn_savings_boundary():
     # Just-below threshold: blocked
     c = _bare()
-    asyncio.run(c._maybe_notify_stooklijn(1e6, {
-        "state": "lower_lwt", "betrouwbaarheid": 0.85,
-        "besparing_cop_pct": 4.99, "comfort_impact": -0.3,
-    }))
+    asyncio.run(
+        c._maybe_notify_stooklijn(
+            1e6,
+            {
+                "state": "lower_lwt",
+                "betrouwbaarheid": 0.85,
+                "besparing_cop_pct": 4.99,
+                "comfort_impact": -0.3,
+            },
+        )
+    )
     c._emit_alert.assert_not_awaited()
 
     # At threshold (>= inclusive): emits
     c2 = _bare()
-    asyncio.run(c2._maybe_notify_stooklijn(1e6, {
-        "state": "lower_lwt", "betrouwbaarheid": 0.85,
-        "besparing_cop_pct": 5.0, "comfort_impact": -0.3,
-    }))
+    asyncio.run(
+        c2._maybe_notify_stooklijn(
+            1e6,
+            {
+                "state": "lower_lwt",
+                "betrouwbaarheid": 0.85,
+                "besparing_cop_pct": 5.0,
+                "comfort_impact": -0.3,
+            },
+        )
+    )
     c2._emit_alert.assert_awaited()
 
 
 # ============================================================
 # Language propagation to both emitters
 # ============================================================
+
 
 def test_maybe_notify_cop_low_renders_in_dutch():
     c = _bare(options={"notification_language": "nl"})
@@ -166,10 +213,17 @@ def test_maybe_notify_cop_low_renders_in_dutch():
 
 def test_maybe_notify_stooklijn_renders_in_dutch():
     c = _bare(options={"notification_language": "nl"})
-    asyncio.run(c._maybe_notify_stooklijn(1e6, {
-        "state": "lower_lwt", "betrouwbaarheid": 0.85,
-        "besparing_cop_pct": 8.0, "comfort_impact": -0.3,
-    }))
+    asyncio.run(
+        c._maybe_notify_stooklijn(
+            1e6,
+            {
+                "state": "lower_lwt",
+                "betrouwbaarheid": 0.85,
+                "besparing_cop_pct": 8.0,
+                "comfort_impact": -0.3,
+            },
+        )
+    )
     msg = c._emit_alert.await_args.args[0].message
     assert "Stooklijn advies" in msg  # NL-specific (EN renders "Stooklijn advice")
 
@@ -177,6 +231,7 @@ def test_maybe_notify_stooklijn_renders_in_dutch():
 # ============================================================
 # Test-emitter uses shared delta
 # ============================================================
+
 
 def test_test_emitter_uses_test_alert_delta():
     c = _bare()
@@ -188,6 +243,7 @@ def test_test_emitter_uses_test_alert_delta():
 # ============================================================
 # Regression — test-all still emits both (Plan-B gate)
 # ============================================================
+
 
 def test_emit_all_still_emits_both_alert_types():
     c = _bare()

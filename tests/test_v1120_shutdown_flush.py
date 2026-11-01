@@ -1,4 +1,5 @@
 """v1.12.0: shutdown flush + STOP handler tests (issue #104)."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock

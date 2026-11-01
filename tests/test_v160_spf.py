@@ -1,4 +1,5 @@
 """Tests for v1.6.0-C2: SPF sensors + season_start_month."""
+
 from __future__ import annotations
 
 import time
@@ -20,6 +21,7 @@ def _now() -> float:
 
 def _mk_coord(spf_state=None, opts=None, rows=None, raise_on_fetch=False):
     from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
+
     c = object.__new__(DaikinCycleMLCoordinator)
     c.db = MagicMock()
     if raise_on_fetch:
@@ -35,6 +37,7 @@ def _mk_coord(spf_state=None, opts=None, rows=None, raise_on_fetch=False):
 @pytest.mark.asyncio
 async def test_refresh_spf_no_db():
     from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
+
     c = object.__new__(DaikinCycleMLCoordinator)
     c.db = None
     c._spf_state_cache = {"spf_season": 99.0}
@@ -54,7 +57,7 @@ async def test_refresh_spf_empty_rows():
 
 @pytest.mark.asyncio
 async def test_refresh_spf_with_data():
-    rows = [{"ts": _now()-100, "cop": 4.0}, {"ts": _now()-200, "cop": 5.0}]
+    rows = [{"ts": _now() - 100, "cop": 4.0}, {"ts": _now() - 200, "cop": 5.0}]
     c = _mk_coord(rows=rows)
     await c._refresh_spf_state(_now())
     assert c._spf_state_cache["spf_season"] == 4.5
@@ -66,10 +69,10 @@ async def test_refresh_spf_with_data():
 @pytest.mark.asyncio
 async def test_refresh_spf_filters_nonpositive():
     rows = [
-        {"ts": _now()-100, "cop": 4.0},
-        {"ts": _now()-200, "cop": 0.0},
-        {"ts": _now()-300, "cop": -1.0},
-        {"ts": _now()-400, "cop": "nan"},
+        {"ts": _now() - 100, "cop": 4.0},
+        {"ts": _now() - 200, "cop": 0.0},
+        {"ts": _now() - 300, "cop": -1.0},
+        {"ts": _now() - 400, "cop": "nan"},
     ]
     c = _mk_coord(rows=rows)
     await c._refresh_spf_state(_now())
@@ -132,6 +135,7 @@ async def test_refresh_spf_persist_failure():
 @pytest.mark.asyncio
 async def test_maybe_refresh_spf_no_db():
     from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
+
     c = object.__new__(DaikinCycleMLCoordinator)
     c.db = None
     c._spf_state_cache = {}
@@ -179,6 +183,7 @@ def test_sensor_defs_has_spf_keys():
 
 def test_spf_sensors_unit_and_class():
     from homeassistant.components.sensor import SensorStateClass
+
     for sd in SENSOR_DEFS:
         if sd["key"] in ("spf_season", "spf_ytd", "scop_running_365d"):
             assert sd["unit"] == "SPF"
@@ -204,13 +209,18 @@ def test_spf_value_fn_empty():
 
 
 def test_attrs_spf_state_full():
-    s = SimpleNamespace(spf_state={
-        "season_start_month": 10,
-        "spf_season": 4.1, "spf_season_n": 100,
-        "spf_ytd": 3.9, "spf_ytd_n": 500,
-        "scop_365d": 4.0, "scop_365d_n": 1500,
-        "updated_ts": 12345.0,
-    })
+    s = SimpleNamespace(
+        spf_state={
+            "season_start_month": 10,
+            "spf_season": 4.1,
+            "spf_season_n": 100,
+            "spf_ytd": 3.9,
+            "spf_ytd_n": 500,
+            "scop_365d": 4.0,
+            "scop_365d_n": 1500,
+            "updated_ts": 12345.0,
+        }
+    )
     a = _attrs_spf_state(s, MagicMock())
     assert a["season_start_month"] == 10
     assert a["spf_season_n"] == 100
@@ -237,6 +247,7 @@ def test_attrs_spf_state_none():
 def test_translation_in_3_files(key):
     import json
     from pathlib import Path
+
     base = Path(__file__).parent.parent / "custom_components" / "daikin_cycle_ml"
     for fn in ("strings.json", "translations/en.json", "translations/nl.json"):
         data = json.loads((base / fn).read_text())
@@ -247,6 +258,7 @@ def test_translation_in_3_files(key):
 def test_translation_nl_differs_en():
     import json
     from pathlib import Path
+
     base = Path(__file__).parent.parent / "custom_components" / "daikin_cycle_ml"
     en = json.loads((base / "translations/en.json").read_text())
     nl = json.loads((base / "translations/nl.json").read_text())
@@ -257,6 +269,7 @@ def test_translation_nl_differs_en():
 def test_maintenance_translation_has_season_start_month():
     import json
     from pathlib import Path
+
     base = Path(__file__).parent.parent / "custom_components" / "daikin_cycle_ml"
     for fn in ("strings.json", "translations/en.json", "translations/nl.json"):
         data = json.loads((base / fn).read_text())
@@ -283,6 +296,7 @@ def test_runtime_import_package():
 def test_runtime_import_all_modules():
     """Every public module must import without error."""
     import importlib
+
     for mod in (
         "custom_components.daikin_cycle_ml.coordinator",
         "custom_components.daikin_cycle_ml.sensor",
@@ -297,7 +311,10 @@ def test_runtime_import_all_modules():
 
 def test_runtime_sensor_defs_count_and_unique_keys():
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
-    assert len(SENSOR_DEFS) == 50  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop, +boiler_contribution_today_pct
+
+    assert (
+        len(SENSOR_DEFS) == 50
+    )  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop, +boiler_contribution_today_pct
     keys = [s["key"] for s in SENSOR_DEFS]
     assert len(set(keys)) == len(keys), "duplicate SENSOR_DEFS keys"
 
@@ -320,6 +337,7 @@ def test_runtime_spf_scop_slug_match():
 
 def test_runtime_datasnapshot_new_fields():
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+
     s = DataSnapshot()
     assert s.spf_state == {}
     assert s.cop_combined_today == {}
@@ -327,6 +345,7 @@ def test_runtime_datasnapshot_new_fields():
 
 def test_runtime_coordinator_methods_present():
     from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
+
     assert hasattr(DaikinCycleMLCoordinator, "_refresh_spf_state")
     assert hasattr(DaikinCycleMLCoordinator, "_maybe_refresh_spf")
 
@@ -334,6 +353,7 @@ def test_runtime_coordinator_methods_present():
 def test_runtime_translations_parse_all_3():
     import json
     from pathlib import Path
+
     base = Path(__file__).parent.parent / "custom_components" / "daikin_cycle_ml"
     for fn in ("strings.json", "translations/en.json", "translations/nl.json"):
         d = json.loads((base / fn).read_text())
@@ -346,39 +366,90 @@ def test_runtime_translations_parse_all_3():
 
 def test_runtime_optionsflow_season_schema_accepts_int():
     import voluptuous as vol
-    schema = vol.Schema({
-        vol.Required("season_start_month", default=10): vol.All(
-            vol.Coerce(int),
-            vol.In({1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
-                    7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}),
-        ),
-    })
+
+    schema = vol.Schema(
+        {
+            vol.Required("season_start_month", default=10): vol.All(
+                vol.Coerce(int),
+                vol.In(
+                    {
+                        1: "Jan",
+                        2: "Feb",
+                        3: "Mar",
+                        4: "Apr",
+                        5: "May",
+                        6: "Jun",
+                        7: "Jul",
+                        8: "Aug",
+                        9: "Sep",
+                        10: "Oct",
+                        11: "Nov",
+                        12: "Dec",
+                    }
+                ),
+            ),
+        }
+    )
     assert schema({"season_start_month": 10})["season_start_month"] == 10
 
 
 def test_runtime_optionsflow_season_schema_accepts_str():
     """HA frontend serializes dropdown values as strings sometimes."""
     import voluptuous as vol
-    schema = vol.Schema({
-        vol.Required("season_start_month", default=10): vol.All(
-            vol.Coerce(int),
-            vol.In({1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
-                    7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}),
-        ),
-    })
+
+    schema = vol.Schema(
+        {
+            vol.Required("season_start_month", default=10): vol.All(
+                vol.Coerce(int),
+                vol.In(
+                    {
+                        1: "Jan",
+                        2: "Feb",
+                        3: "Mar",
+                        4: "Apr",
+                        5: "May",
+                        6: "Jun",
+                        7: "Jul",
+                        8: "Aug",
+                        9: "Sep",
+                        10: "Oct",
+                        11: "Nov",
+                        12: "Dec",
+                    }
+                ),
+            ),
+        }
+    )
     assert schema({"season_start_month": "10"})["season_start_month"] == 10
 
 
 def test_runtime_optionsflow_season_schema_rejects_out_of_range():
     import pytest as _pytest
     import voluptuous as vol
-    schema = vol.Schema({
-        vol.Required("season_start_month", default=10): vol.All(
-            vol.Coerce(int),
-            vol.In({1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
-                    7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}),
-        ),
-    })
+
+    schema = vol.Schema(
+        {
+            vol.Required("season_start_month", default=10): vol.All(
+                vol.Coerce(int),
+                vol.In(
+                    {
+                        1: "Jan",
+                        2: "Feb",
+                        3: "Mar",
+                        4: "Apr",
+                        5: "May",
+                        6: "Jun",
+                        7: "Jul",
+                        8: "Aug",
+                        9: "Sep",
+                        10: "Oct",
+                        11: "Nov",
+                        12: "Dec",
+                    }
+                ),
+            ),
+        }
+    )
     with _pytest.raises(vol.MultipleInvalid):
         schema({"season_start_month": 13})
     with _pytest.raises(vol.MultipleInvalid):
@@ -388,12 +459,29 @@ def test_runtime_optionsflow_season_schema_rejects_out_of_range():
 def test_runtime_optionsflow_season_schema_rejects_nonnumeric():
     import pytest as _pytest
     import voluptuous as vol
-    schema = vol.Schema({
-        vol.Required("season_start_month", default=10): vol.All(
-            vol.Coerce(int),
-            vol.In({1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "May", 6: "Jun",
-                    7: "Jul", 8: "Aug", 9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec"}),
-        ),
-    })
+
+    schema = vol.Schema(
+        {
+            vol.Required("season_start_month", default=10): vol.All(
+                vol.Coerce(int),
+                vol.In(
+                    {
+                        1: "Jan",
+                        2: "Feb",
+                        3: "Mar",
+                        4: "Apr",
+                        5: "May",
+                        6: "Jun",
+                        7: "Jul",
+                        8: "Aug",
+                        9: "Sep",
+                        10: "Oct",
+                        11: "Nov",
+                        12: "Dec",
+                    }
+                ),
+            ),
+        }
+    )
     with _pytest.raises(vol.MultipleInvalid):
         schema({"season_start_month": "October"})

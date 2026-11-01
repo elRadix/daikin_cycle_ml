@@ -1,4 +1,5 @@
 """Tests for notification_engine (Batch 6b-3a)."""
+
 from __future__ import annotations
 
 import time
@@ -21,6 +22,7 @@ def _ts(y, mo, d, h, mi):
 
 # ---------- parsing ----------
 
+
 def test_parse_hhmm_valid():
     assert _parse_hhmm("22:00", "07:00") == (22, 0)
     assert _parse_hhmm("07:30", "22:00") == (7, 30)
@@ -32,6 +34,7 @@ def test_parse_hhmm_invalid_falls_back():
 
 
 # ---------- quiet hours ----------
+
 
 def test_in_quiet_hours_same_day():
     # 01:00-05:00 window, at 03:00
@@ -61,6 +64,7 @@ def test_in_quiet_hours_equal_bounds_never_quiet():
 
 
 # ---------- evaluate: basic ----------
+
 
 def test_no_trigger_returns_empty():
     assert evaluate_alerts({}, {}, now=1e9) == []
@@ -94,9 +98,7 @@ def test_short_off_single_alert():
 
 def test_pendulum_hourly_and_daily_both_fire():
     # v1.9.0 PR B: hourly and daily are distinct alert types
-    out = evaluate_alerts(
-        {"pendulum_hourly": True, "pendulum_daily": True}, {}, now=1e9
-    )
+    out = evaluate_alerts({"pendulum_hourly": True, "pendulum_daily": True}, {}, now=1e9)
     assert len(out) == 2
     types = sorted(a.alert_type for a in out)
     assert types == ["pendulum_daily", "pendulum_hourly"]
@@ -105,7 +107,8 @@ def test_pendulum_hourly_and_daily_both_fire():
 def test_multiple_distinct_types_emitted():
     out = evaluate_alerts(
         {"pendulum_hourly": True, "short_run": True, "short_off": True},
-        {}, now=1e9,
+        {},
+        now=1e9,
     )
     types = sorted(a.alert_type for a in out)
     assert types == ["pendulum_hourly", "short_off", "short_run"]
@@ -117,6 +120,7 @@ def test_result_is_list_of_alert_specs():
 
 
 # ---------- aggregation ----------
+
 
 def test_aggregation_suppresses_within_window():
     now = 1e9
@@ -143,14 +147,13 @@ def test_aggregation_custom_window():
 def test_aggregation_different_types_independent():
     now = 1e9
     last = {"short_run": now - 60.0}
-    out = evaluate_alerts(
-        {"short_run": True, "short_off": True}, {}, now=now, last_sent=last
-    )
+    out = evaluate_alerts({"short_run": True, "short_off": True}, {}, now=now, last_sent=last)
     types = {a.alert_type for a in out}
     assert types == {"short_off"}
 
 
 # ---------- quiet hours ----------
+
 
 def test_quiet_hours_suppresses_warning():
     now = _ts(2026, 1, 1, 3, 0)  # 03:00
@@ -183,25 +186,24 @@ def test_quiet_hours_disabled_allows_all():
 
 # ---------- persistent flag ----------
 
+
 def test_persistent_default_on():
     out = evaluate_alerts({"short_run": True}, {}, now=1e9)
     assert out[0].persistent is True
 
 
 def test_persistent_disabled_via_options():
-    out = evaluate_alerts(
-        {"short_run": True}, {"persistent_enabled": False}, now=1e9
-    )
+    out = evaluate_alerts({"short_run": True}, {"persistent_enabled": False}, now=1e9)
     assert out[0].persistent is False
 
 
 # ---------- BINARY_ALERT_MAP sanity ----------
 
+
 def test_map_covers_core_trigger_keys():
     keys = set(BINARY_ALERT_MAP)
     # Original 4 triggers must always be present.
-    assert {"pendulum_hourly", "pendulum_daily",
-            "short_run", "short_off"} <= keys
+    assert {"pendulum_hourly", "pendulum_daily", "short_run", "short_off"} <= keys
     # 12c added ML anomaly + setpoint oscillation triggers.
     assert {"ml_anomaly", "setpoint_osc"} <= keys
 

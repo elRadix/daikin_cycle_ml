@@ -1,4 +1,5 @@
 """Family wizard + selector factory tests (v1.13.2)."""
+
 from __future__ import annotations
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -18,10 +19,19 @@ from custom_components.daikin_cycle_ml.const import (
 from homeassistant.data_entry_flow import FlowResultType
 
 _VALID_STATE = {
-    "R1T": 30.0, "R2T": 25.0, "R4T": 40.0, "R5T": 22.0, "R6T": 21.0,
-    "R7T": 15.0, "RPS": 30, "IU_Operation_Mode": "heating",
-    "LWT_setpoint": 35.0, "Flow": 10.0, "BUH_Step1": "OFF",
-    "Defrost_Operation": "OFF", "3way_valve": "OFF",
+    "R1T": 30.0,
+    "R2T": 25.0,
+    "R4T": 40.0,
+    "R5T": 22.0,
+    "R6T": 21.0,
+    "R7T": 15.0,
+    "RPS": 30,
+    "IU_Operation_Mode": "heating",
+    "LWT_setpoint": 35.0,
+    "Flow": 10.0,
+    "BUH_Step1": "OFF",
+    "Defrost_Operation": "OFF",
+    "3way_valve": "OFF",
 }
 
 
@@ -30,9 +40,7 @@ def _fields(schema):
 
 
 async def _start(hass):
-    return await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": "user"}
-    )
+    return await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
 
 
 async def _cfg(hass, fid, payload):
@@ -173,7 +181,8 @@ async def test_legacy_no_model_fallback(hass):
 async def test_legacy_with_model(hass):
     r = await _start(hass)
     r = await _cfg(
-        hass, r["flow_id"],
+        hass,
+        r["flow_id"],
         {"source_sensor": "sensor.nope", "model": MODEL_ERGA08EAV3},
     )
     assert r["step_id"] == "model"

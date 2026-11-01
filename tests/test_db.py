@@ -1,4 +1,5 @@
 """Tests for CycleDB (Batch 6a)."""
+
 from __future__ import annotations
 
 import time
@@ -20,6 +21,7 @@ async def db(tmp_path):
         # R51: aiosqlite worker-thread may outlive close() briefly.
         # Yield to event loop so the thread joins before phcc checks.
         import asyncio as _asyncio
+
         await _asyncio.sleep(0.05)
 
 

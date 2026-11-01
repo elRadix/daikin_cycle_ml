@@ -1,4 +1,5 @@
 """Concurrency tests: startup + post-cycle rollup running at once."""
+
 from __future__ import annotations
 
 import asyncio
@@ -16,10 +17,18 @@ async def _mk_db(tmp_path):
 
 def _sample(ts, mode="heating", cop=5.0):
     return {
-        "ts": ts, "cop": cop, "lwt": 30.0, "outdoor": 7.0,
-        "r1t": 28.0, "r4t": 27.0, "flow_lmin": 15.0,
-        "power_stable": True, "mode": mode, "source": "interval",
-        "boiler_active": 0, "boiler_mode": "",
+        "ts": ts,
+        "cop": cop,
+        "lwt": 30.0,
+        "outdoor": 7.0,
+        "r1t": 28.0,
+        "r4t": 27.0,
+        "flow_lmin": 15.0,
+        "power_stable": True,
+        "mode": mode,
+        "source": "interval",
+        "boiler_active": 0,
+        "boiler_mode": "",
     }
 
 
@@ -45,11 +54,14 @@ async def test_concurrent_insert_and_rollup(tmp_path):
     db = await _mk_db(tmp_path)
     try:
         now = (time.time() // 3600) * 3600 + 1800
+
         async def insert_batch():
             for i in range(5):
                 await db.async_insert_cop_sample(_sample(now - i * 60, "dhw", 4.0))
+
         async def rollup():
             await db.async_rollup_cop_hourly(window_hours=48)
+
         await asyncio.gather(insert_batch(), rollup())
     finally:
         await db.async_close()

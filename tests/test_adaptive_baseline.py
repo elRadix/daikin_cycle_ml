@@ -1,4 +1,5 @@
 """Tests for AdaptiveBaseline (Batch 11a)."""
+
 from __future__ import annotations
 
 import pytest
@@ -57,8 +58,7 @@ def test_ewma_window_shrinks_with_alpha():
 
 
 def test_outlier_skip_when_enough_samples():
-    b = AdaptiveBaseline(1, alpha=0.1, outlier_skip_z=3.0,
-                         min_samples_before_skip=5)
+    b = AdaptiveBaseline(1, alpha=0.1, outlier_skip_z=3.0, min_samples_before_skip=5)
     for i in range(10):
         b.update([float(i)])
     n_before = b.sample_count
@@ -68,8 +68,7 @@ def test_outlier_skip_when_enough_samples():
 
 
 def test_outlier_not_skipped_before_threshold():
-    b = AdaptiveBaseline(1, alpha=0.1, outlier_skip_z=3.0,
-                         min_samples_before_skip=100)
+    b = AdaptiveBaseline(1, alpha=0.1, outlier_skip_z=3.0, min_samples_before_skip=100)
     for i in range(5):
         b.update([float(i)])
     n_before = b.sample_count
@@ -79,8 +78,7 @@ def test_outlier_not_skipped_before_threshold():
 
 
 def test_outlier_skip_disabled_when_zero():
-    b = AdaptiveBaseline(1, alpha=0.1, outlier_skip_z=0.0,
-                         min_samples_before_skip=5)
+    b = AdaptiveBaseline(1, alpha=0.1, outlier_skip_z=0.0, min_samples_before_skip=5)
     for i in range(10):
         b.update([float(i)])
     assert b.update([9999.0]) is True

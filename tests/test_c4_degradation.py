@@ -2,6 +2,7 @@
 
 Marker: C4_DEGRADATION_TESTS_v1
 """
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.engine.cop_degradation import (
@@ -14,19 +15,28 @@ from custom_components.daikin_cycle_ml.engine.cop_degradation import (
 
 
 def _rows(
-    base_day: int, n_days: int, cop: float, outdoor: float = 7.0,
-    n_samples: int = 50, lwt: float = 35.0,
+    base_day: int,
+    n_days: int,
+    cop: float,
+    outdoor: float = 7.0,
+    n_samples: int = 50,
+    lwt: float = 35.0,
 ) -> list[dict]:
     """Generate hourly rows spread over n_days distinct UTC days."""
     return [
-        {"ts_hour": 24 * (base_day + i) + 10,
-         "outdoor_mean": outdoor, "cop_mean": cop,
-         "n_samples": n_samples, "lwt_mean": lwt}
+        {
+            "ts_hour": 24 * (base_day + i) + 10,
+            "outdoor_mean": outdoor,
+            "cop_mean": cop,
+            "n_samples": n_samples,
+            "lwt_mean": lwt,
+        }
         for i in range(n_days)
     ]
 
 
 # --- happy paths ---
+
 
 def test_valid_1bin_critical():
     recent = _rows(20, 8, 3.0)
@@ -78,6 +88,7 @@ def test_valid_3bins_neutral():
 
 # --- invalid paths ---
 
+
 def test_invalid_no_bins():
     r = analyze_degradation([], [], set())
     assert r["valid"] is False
@@ -106,8 +117,13 @@ def test_invalid_samples_below_dynamic_floor():
 def test_invalid_too_few_days():
     # all hours within 1 UTC day
     recent = [
-        {"ts_hour": 24 * 20 + h, "outdoor_mean": 7.0, "cop_mean": 3.0,
-         "n_samples": 100, "lwt_mean": 35.0}
+        {
+            "ts_hour": 24 * 20 + h,
+            "outdoor_mean": 7.0,
+            "cop_mean": 3.0,
+            "n_samples": 100,
+            "lwt_mean": 35.0,
+        }
         for h in range(8)
     ]
     prev = _rows(10, 8, 3.6)
@@ -117,6 +133,7 @@ def test_invalid_too_few_days():
 
 
 # --- exclusion skew ---
+
 
 def test_skew_below_threshold_still_valid():
     recent = _rows(20, 8, 3.0)
@@ -140,6 +157,7 @@ def test_skew_above_threshold_invalid():
 
 
 # --- LWT shift / Optie C ---
+
 
 def test_lwt_shift_critical_downgraded_to_warning():
     recent = _rows(20, 8, 3.0, lwt=35.0)
@@ -181,21 +199,37 @@ def test_no_lwt_shift_no_downgrade():
 
 # --- attr presence ---
 
+
 def test_all_attrs_present():
     recent = _rows(20, 8, 3.0)
     prev = _rows(10, 8, 3.6)
     r = analyze_degradation(recent, prev, set())
     for k in (
-        "mode", "window_days", "week_pct", "week_pct_raw",
-        "severity", "severity_raw", "severity_downgraded",
-        "threshold_pct", "critical_pct",
-        "n_samples_recent", "n_samples_prev",
-        "n_days_recent", "n_days_prev",
-        "n_bins_used", "dynamic_min_samples", "bins_used",
-        "excluded_hours_recent", "excluded_hours_prev", "exclusion_skew",
-        "lwt_mean_recent", "lwt_mean_prev",
-        "lwt_shift_detected", "lwt_shift_c",
-        "valid", "updated_ts",
+        "mode",
+        "window_days",
+        "week_pct",
+        "week_pct_raw",
+        "severity",
+        "severity_raw",
+        "severity_downgraded",
+        "threshold_pct",
+        "critical_pct",
+        "n_samples_recent",
+        "n_samples_prev",
+        "n_days_recent",
+        "n_days_prev",
+        "n_bins_used",
+        "dynamic_min_samples",
+        "bins_used",
+        "excluded_hours_recent",
+        "excluded_hours_prev",
+        "exclusion_skew",
+        "lwt_mean_recent",
+        "lwt_mean_prev",
+        "lwt_shift_detected",
+        "lwt_shift_c",
+        "valid",
+        "updated_ts",
     ):
         assert k in r, k
 
@@ -206,8 +240,7 @@ def test_bins_used_detail_structure():
     r = analyze_degradation(recent, prev, set())
     assert len(r["bins_used"]) == 1
     b = r["bins_used"][0]
-    for k in ("range", "hours_recent", "hours_prev",
-              "cop_recent", "cop_prev", "ratio", "weight"):
+    for k in ("range", "hours_recent", "hours_prev", "cop_recent", "cop_prev", "ratio", "weight"):
         assert k in b, k
 
 

@@ -1,4 +1,5 @@
 """v1.4.4 regression: hydrate marks _day_key."""
+
 from __future__ import annotations
 
 import time
@@ -22,10 +23,12 @@ def test_hydrate_sets_day_key():
 
 def test_hydrate_then_daily_reset_same_day_keeps_counters():
     s = CycleStore()
-    s.hydrate_from_rows([
-        {"start_ts": _today_ts(), "quality_score": 90},
-        {"start_ts": _today_ts(60), "quality_score": 30},
-    ])
+    s.hydrate_from_rows(
+        [
+            {"start_ts": _today_ts(), "quality_score": 90},
+            {"start_ts": _today_ts(60), "quality_score": 30},
+        ]
+    )
     assert s.get("good_cycles_today") == 1
     assert s.get("bad_cycles_today") == 1
     assert s.get("cycles_today") == 2

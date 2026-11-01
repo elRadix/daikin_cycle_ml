@@ -1,4 +1,5 @@
 """Edge-case tests for cop_analyzer (14b-3b)."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
@@ -13,11 +14,11 @@ from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
 
 
 def test_parse_float_dict_returns_none():
-    assert _parse_float({'a': 1}) is None
+    assert _parse_float({"a": 1}) is None
 
 
 def test_parse_float_no_number_returns_none():
-    assert _parse_float('geen cijfer') is None
+    assert _parse_float("geen cijfer") is None
 
 
 def test_parse_bool_int():
@@ -26,14 +27,18 @@ def test_parse_bool_int():
 
 
 def test_parse_global_cop_attrs_cop_none():
-    assert parse_global_cop_attrs({'state': 'unknown'}) is None
+    assert parse_global_cop_attrs({"state": "unknown"}) is None
 
 
 def test_parse_global_cop_attrs_flow_numeric():
-    s = parse_global_cop_attrs({
-        'state': '3.5', 'flow_rate': 12.5,
-        'data_quality': 'Good', 'power_stable': True,
-    })
+    s = parse_global_cop_attrs(
+        {
+            "state": "3.5",
+            "flow_rate": 12.5,
+            "data_quality": "Good",
+            "power_stable": True,
+        }
+    )
     assert s is not None
     assert s.flow_lmin == 12.5
 
@@ -43,13 +48,11 @@ def test_avg_empty():
 
 
 def _valid(cop=3.0, lwt=32.0, outdoor=7.0):
-    return CopSample(cop=cop, lwt=lwt, outdoor=outdoor,
-                     defrost=False, data_quality='Good')
+    return CopSample(cop=cop, lwt=lwt, outdoor=outdoor, defrost=False, data_quality="Good")
 
 
 def _invalid(cop=0.0, outdoor=7.0):
-    return CopSample(cop=cop, lwt=None, outdoor=outdoor,
-                     defrost=False, data_quality='Poor/Idle')
+    return CopSample(cop=cop, lwt=None, outdoor=outdoor, defrost=False, data_quality="Poor/Idle")
 
 
 def test_analyze_skips_invalid_samples():
@@ -62,7 +65,7 @@ def test_analyze_skips_invalid_samples():
 def test_analyze_all_invalid_returns_unknown():
     samples = [_invalid() for _ in range(5)]
     a = analyze_stooklijn(samples)
-    assert a.state == 'unknown'
+    assert a.state == "unknown"
 
 
 def test_analyze_recent_lwt_none_returns():
@@ -89,7 +92,7 @@ def test_analyze_recent_invalid_scans_backwards():
     samples = [_valid() for _ in range(18)]
     samples.append(_invalid())
     a = analyze_stooklijn(samples)
-    assert a.state in ('keep', 'lower_lwt', 'raise_lwt')
+    assert a.state in ("keep", "lower_lwt", "raise_lwt")
 
 
 def test_bucket_summary_extreme_buckets():
@@ -99,7 +102,6 @@ def test_bucket_summary_extreme_buckets():
         _valid(lwt=35.0, outdoor=None),
     ]
     out = bucket_summary(samples)
-    assert '-10-' in out
-    assert '20+' in out
-    assert 'unknown' in out
-
+    assert "-10-" in out
+    assert "20+" in out
+    assert "unknown" in out

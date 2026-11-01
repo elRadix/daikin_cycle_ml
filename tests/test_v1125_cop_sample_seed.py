@@ -1,4 +1,5 @@
 """v1.12.5 #121: seed _last_cop_sample_ts from DB MAX(ts)."""
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

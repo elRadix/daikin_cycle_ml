@@ -1,4 +1,5 @@
 """Tests for startup backfill wiring (v1.7.0, #42)."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock
@@ -29,8 +30,6 @@ async def test_backfill_wiring_no_db():
 
 async def test_backfill_wiring_swallows_exception():
     db = AsyncMock()
-    db.async_backfill_daily_summary = AsyncMock(
-        side_effect=RuntimeError("boom")
-    )
+    db.async_backfill_daily_summary = AsyncMock(side_effect=RuntimeError("boom"))
     c = _Coord(db)
     await c._maybe_backfill_daily_summary()

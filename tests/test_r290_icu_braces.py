@@ -7,6 +7,7 @@ ICU placeholders matching [a-zA-Z_][a-zA-Z0-9_]*.
 - No escaped braces ('{ ' / ' }' variants) - Hassfest rejects them.
 - No double braces ({{ / }}) - frontend rejects them (MALFORMED_ARGUMENT).
 """
+
 import json
 import pathlib
 import re

@@ -1,4 +1,5 @@
 """Tests for services (Batch 6b-1)."""
+
 from __future__ import annotations
 
 import time
@@ -40,6 +41,7 @@ def _coord(store: CycleStore | None = None, db=None):
 
 # ---------- constants ----------
 
+
 def test_service_name_constants():
     assert SERVICE_RESET_COUNTERS == "reset_counters"
     assert SERVICE_EXPORT_CYCLES == "export_cycles"
@@ -48,6 +50,7 @@ def test_service_name_constants():
 
 
 # ---------- schema validation ----------
+
 
 def test_schema_reset_minimal():
     out = SCHEMA_RESET({ATTR_ENTRY_ID: "e1"})
@@ -99,6 +102,7 @@ def test_schema_baseline_default_days():
 
 # ---------- _do_reset_counters ----------
 
+
 def test_do_reset_counters_all():
     st = CycleStore()
     st.increment("a")
@@ -120,6 +124,7 @@ def test_do_reset_counters_subset():
 
 
 # ---------- _do_export_cycles ----------
+
 
 def test_do_export_json_with_data():
     st = CycleStore()
@@ -160,6 +165,7 @@ def test_do_export_empty_csv_no_crash():
 
 # ---------- _do_recompute_baseline ----------
 
+
 async def test_do_recompute_baseline_no_db():
     out = await _do_recompute_baseline(_coord(db=None), 7)
     assert out["computed"] is False
@@ -169,6 +175,7 @@ async def test_do_recompute_baseline_no_db():
 
 # ---------- _do_label_cycle ----------
 
+
 async def test_do_label_cycle_without_db_raises():
     with pytest.raises(HomeAssistantError):
         await _do_label_cycle(_coord(db=None), 1, "x")
@@ -176,8 +183,10 @@ async def test_do_label_cycle_without_db_raises():
 
 async def test_do_label_cycle_with_db():
     db = MagicMock()
+
     async def fake_label(cid, label):
         return True
+
     db.async_label_cycle = fake_label
     out = await _do_label_cycle(_coord(db=db), 42, "good")
     assert out["labeled"] is True

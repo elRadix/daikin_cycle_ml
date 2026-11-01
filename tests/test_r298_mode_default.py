@@ -1,4 +1,5 @@
 """R298: cop_samples.mode DEFAULT 'unknown' (schema + INSERT + migratie)."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -36,7 +37,7 @@ async def test_schema_default_unknown(tmp_path: Path) -> None:
     conn.execute("INSERT INTO cop_samples (ts, cop) VALUES (1.0, 3.0)")
     conn.commit()
     row = conn.execute("SELECT mode FROM cop_samples").fetchone()
-    assert row[0] == 'unknown'
+    assert row[0] == "unknown"
     conn.close()
 
 
@@ -44,14 +45,18 @@ async def test_insert_fallback_explicit_none(tmp_path: Path) -> None:
     p = tmp_path / "fallback.db"
     db = await _open(p)
     try:
-        await db.async_insert_cop_sample({
-            'ts': 1000.0, 'cop': 3.0, 'mode': None,
-        })
+        await db.async_insert_cop_sample(
+            {
+                "ts": 1000.0,
+                "cop": 3.0,
+                "mode": None,
+            }
+        )
     finally:
         await db.async_close()
     conn = sqlite3.connect(str(p))
     row = conn.execute("SELECT mode FROM cop_samples").fetchone()
-    assert row[0] == 'unknown'
+    assert row[0] == "unknown"
     conn.close()
 
 
@@ -75,5 +80,5 @@ async def test_migrate_null_to_unknown_idempotent(tmp_path: Path) -> None:
 
     conn = sqlite3.connect(str(p))
     rows = list(conn.execute("SELECT ts, mode FROM cop_samples ORDER BY ts"))
-    assert rows == [(1.0, 'unknown'), (2.0, 'heating')]
+    assert rows == [(1.0, "unknown"), (2.0, "heating")]
     conn.close()

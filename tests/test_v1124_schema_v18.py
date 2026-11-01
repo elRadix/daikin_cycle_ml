@@ -5,6 +5,7 @@ Covers both paths of async_migrate_schema_to_v18:
 - Upgrade from v16: pre-v18 tables exist -> ALTER branch
 - Idempotency: second call returns 0/0
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -14,8 +15,7 @@ import pytest
 
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
-V18_CYCLES_COLS = {"mode_original", "parent_cycle_id",
-                   "is_dhw_tail", "is_reconstructed"}
+V18_CYCLES_COLS = {"mode_original", "parent_cycle_id", "is_dhw_tail", "is_reconstructed"}
 V18_SAMPLES_COLS = {"mode_original", "is_transition_artifact"}
 V18_INDICES = {"idx_cop_samples_artifact", "idx_cycles_reconstructed"}
 
@@ -65,9 +65,7 @@ async def _get_columns(db: CycleDB, table: str) -> set[str]:
 
 
 async def _get_indices(db: CycleDB) -> set[str]:
-    async with db._require().execute(
-        "SELECT name FROM sqlite_master WHERE type='index'"
-    ) as cur:
+    async with db._require().execute("SELECT name FROM sqlite_master WHERE type='index'") as cur:
         return {r[0] for r in await cur.fetchall()}
 
 
@@ -141,7 +139,8 @@ async def test_direct_call_adds_columns_on_v16_db(tmp_path: Path):
         assert added == {"cycles": 4, "cop_samples": 2}
         # Second call: all exist -> 0/0
         assert await db.async_migrate_schema_to_v18() == {
-            "cycles": 0, "cop_samples": 0,
+            "cycles": 0,
+            "cop_samples": 0,
         }
     finally:
         await db.async_close()

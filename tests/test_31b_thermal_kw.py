@@ -1,4 +1,5 @@
 """Batch 31b tests: water pump guard + thermal_kW + VECTOR_LEN 12."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.const import (
@@ -33,6 +34,7 @@ def _attrs(rps=40.0, lwt=40.0, inlet=35.0, flow=12.0, pump=True):
 
 # ---- water pump guard ----
 
+
 def test_pump_off_blocks_cycle_start():
     det = CycleDetector({})
     det.update(_attrs(pump=False), now=1000.0)
@@ -65,12 +67,12 @@ def test_pump_off_during_running_ignores_sample():
 
 # ---- thermal_kW ----
 
+
 def test_thermal_kw_avg_in_record():
     det = CycleDetector({})
     det.update(_attrs(flow=10.0, lwt=40.0, inlet=35.0), now=1000.0)
     det.update(_attrs(flow=10.0, lwt=40.0, inlet=35.0), now=1500.0)
-    rec = det.update({ATTR_INV_FREQUENCY_RPS: 0.0,
-                      ATTR_WATER_PUMP_OPERATION: True}, now=1800.0)
+    rec = det.update({ATTR_INV_FREQUENCY_RPS: 0.0, ATTR_WATER_PUMP_OPERATION: True}, now=1800.0)
     assert rec is not None
     assert "thermal_kw_avg" in rec
     # 10/60 * 4.18 * 5 = 3.483
@@ -83,13 +85,13 @@ def test_thermal_kw_none_when_no_flow():
     del attrs[ATTR_FLOW_SENSOR]
     det.update(attrs, now=1000.0)
     det.update(attrs, now=1500.0)
-    rec = det.update({ATTR_INV_FREQUENCY_RPS: 0.0,
-                      ATTR_WATER_PUMP_OPERATION: True}, now=1800.0)
+    rec = det.update({ATTR_INV_FREQUENCY_RPS: 0.0, ATTR_WATER_PUMP_OPERATION: True}, now=1800.0)
     assert rec is not None
     assert rec["thermal_kw_avg"] is None
 
 
 # ---- feature vector ----
+
 
 def test_vector_len_is_12():
     assert VECTOR_LEN == 12

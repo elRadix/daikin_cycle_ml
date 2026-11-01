@@ -1,6 +1,24 @@
 # Changelog
 
+## [1.18.0] - 2026-11-01
+
+### Added
+- **Branding:** Added integration icons and logos (`brand/` directory) to satisfy HACS and HA Quality Scale requirements.
+- **Test Hardening:** Enforced strict pytest warnings (`RuntimeWarning`, `PytestUnraisableExceptionWarning`) in `pyproject.toml`.
+- **Quality Scale:** Updated `quality_scale.yaml` to mark `brands` as completed.
+
+### Fixed
+- **Hybrid indicators leak (diagnostics):** `snap.hybrid_mode`, `snap.boiler_efficiency_cop`, and `snap.inv_freq_secondary` are now only populated when `snap.is_hybrid` is True.
+- **Detector boiler-only close guard:** `detector.update()` now receives `boiler_active=False` on non-hybrid installs.
+- **Alert suppression leak:** `_boiler_kwargs_for_alerts()` returns `boiler_active=False` on non-hybrid.
+- **COP sample boiler flag:** `_maybe_collect_cop_sample()` gates boiler flags on `is_hybrid`.
+- **ML baseline co-fire exclusion:** Hybrid co-fire cycles no longer pollute the pure-HP baseline.
+- **Diagnostics boiler consistency:** `boiler_active`, `boiler_heat_active`, `boiler_dhw_active` now return `False` on non-hybrid.
+- **0-byte orphan DB cleanup:** New `_async_cleanup_orphan_dbs()` removes 0-byte databases at setup.
+- **R580 Compliance:** Replaced all `try/except Exception: pass` blocks in the test suite with `contextlib.suppress(Exception)` to prevent silent test failures.
+
 ## [Unreleased]
+
 
 ### Fixed
 - **Hybrid indicators leak (diagnostics):** `snap.hybrid_mode`, `snap.boiler_efficiency_cop`, and `snap.inv_freq_secondary` are now only populated when `snap.is_hybrid` is True (EVLQ family). Previously, non-hybrid installs (EPRA/ERLA/EBLA) leaked raw `"Hybrid Op. Mode"`, `"INV frequency 2 (rps)"`, and `"BE COP"` attributes into the coordinator snapshot if ESPAltherma published them (template drift). Sensors already filtered correctly via `is_hybrid`, but diagnostics exposed the raw values.

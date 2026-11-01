@@ -1,4 +1,5 @@
 """Tests for live daily summary rollup (v1.7.0, #42)."""
+
 from __future__ import annotations
 
 import time
@@ -79,8 +80,7 @@ async def test_process_new_cycle_invokes_rollup(monkeypatch):
     db.async_rollup_day = AsyncMock(return_value=1)
     db.async_daily_summary = AsyncMock(return_value=[])
     c = _Coord(
-        {"daily_summary_live_enabled": True,
-         "action_advice_enabled": False},
+        {"daily_summary_live_enabled": True, "action_advice_enabled": False},
         db,
     )
     c._collect_cycle_averages = AsyncMock(return_value=(None, None, None))
@@ -97,9 +97,7 @@ async def test_process_new_cycle_invokes_rollup(monkeypatch):
         "custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
         lambda *a, **kw: MagicMock(),
     )
-    snap = SimpleNamespace(
-        anomaly=None, advice=None, cluster_id=None, mode="heating"
-    )
+    snap = SimpleNamespace(anomaly=None, advice=None, cluster_id=None, mode="heating")
     record = {"duration_s": 3600, "end_ts": time.time(), "mode": "heating"}
     await c._process_new_cycle(record, snap)
     db.async_rollup_day.assert_awaited_once()

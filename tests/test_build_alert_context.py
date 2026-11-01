@@ -1,4 +1,5 @@
 """Batch 24 tests: _build_alert_context coverage."""
+
 from __future__ import annotations
 
 import time
@@ -32,8 +33,7 @@ def test_smoke_returns_all_keys():
     c = _bare_coord(store=_default_store_mock())
     ctx = c._build_alert_context(DataSnapshot())
     assert isinstance(ctx, dict)
-    for key in ("pendulum", "short_run", "short_off",
-                "ml_anomaly", "setpoint_osc"):
+    for key in ("pendulum", "short_run", "short_off", "ml_anomaly", "setpoint_osc"):
         assert key in ctx, f"missing {key}"
 
 
@@ -143,8 +143,7 @@ def test_anomaly_bad_z_safe():
 
 def test_setpoint_osc_context_uses_history_len():
     c = _bare_coord(
-        options={"setpoint_osc_window_min": 60,
-                 "setpoint_oscillation_threshold": 8},
+        options={"setpoint_osc_window_min": 60, "setpoint_oscillation_threshold": 8},
         store=_default_store_mock(),
     )
     now = time.time()

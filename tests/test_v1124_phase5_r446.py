@@ -11,6 +11,7 @@ Tests cover:
 - thermal_kw_avg is NULL (R5T unavailable in cop_samples)
 - Skeleton integration: stats["cycles_synthesized"]
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -21,7 +22,10 @@ from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
 
 async def _insert_cycle(
-    db: CycleDB, start_ts: float, end_ts: float, mode: str = 'heating',
+    db: CycleDB,
+    start_ts: float,
+    end_ts: float,
+    mode: str = "heating",
 ) -> int:
     conn = db._require()
     cur = await conn.execute(
@@ -36,7 +40,10 @@ async def _insert_cycle(
 
 
 async def _insert_sample(
-    db: CycleDB, ts: float, cop: float = 3.5, mode: str = 'dhw',
+    db: CycleDB,
+    ts: float,
+    cop: float = 3.5,
+    mode: str = "dhw",
     is_transition_artifact: int = 0,
 ) -> int:
     conn = db._require()
@@ -65,9 +72,18 @@ async def _fetch_synth_cycle(db: CycleDB, start_ts: float) -> dict | None:
     await cur.close()
     if row is None:
         return None
-    cols = ("id", "start_ts", "end_ts", "duration_s", "mode",
-            "mode_original", "cop_avg", "cop_sample_count",
-            "thermal_kw_avg", "is_reconstructed")
+    cols = (
+        "id",
+        "start_ts",
+        "end_ts",
+        "duration_s",
+        "mode",
+        "mode_original",
+        "cop_avg",
+        "cop_sample_count",
+        "thermal_kw_avg",
+        "is_reconstructed",
+    )
     return dict(zip(cols, row))
 
 
@@ -90,8 +106,8 @@ async def test_synthesizes_single_orphan_run(db):
     assert cyc is not None
     assert cyc["end_ts"] == pytest.approx(2200.0)
     assert cyc["duration_s"] == 1200
-    assert cyc["mode"] == 'dhw'
-    assert cyc["mode_original"] == 'dhw'
+    assert cyc["mode"] == "dhw"
+    assert cyc["mode_original"] == "dhw"
     assert cyc["is_reconstructed"] == 1
 
 
@@ -117,7 +133,7 @@ async def test_groups_split_by_gap(db):
 
 async def test_skips_run_covered_by_existing_cycle(db):
     """Samples inside existing cycle window -> not orphans -> skipped."""
-    await _insert_cycle(db, 500.0, 2500.0, mode='heating')
+    await _insert_cycle(db, 500.0, 2500.0, mode="heating")
     for ts in (1000.0, 1300.0, 1600.0, 1900.0, 2200.0):
         await _insert_sample(db, ts)
     n = await db._synthesize_orphan_dhw_runs()

@@ -1,4 +1,5 @@
 """Tests for engine.cycle_detector."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.const import (

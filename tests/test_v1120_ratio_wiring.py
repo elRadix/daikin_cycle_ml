@@ -1,4 +1,5 @@
 """v1.12.0: short_cycle_ratio wiring into score_cycle (issue #105)."""
+
 from __future__ import annotations
 
 from unittest.mock import patch
@@ -21,8 +22,7 @@ def _store(short: int, existing: int, off_s: float = 3600.0) -> CycleStore:
 
 def _run(short: int, existing: int) -> float | None:
     s = _store(short=short, existing=existing)
-    with patch("custom_components.daikin_cycle_ml.coordinator.score_cycle",
-               return_value=100) as m:
+    with patch("custom_components.daikin_cycle_ml.coordinator.score_cycle", return_value=100) as m:
         score_and_count(_rec(), {}, s, now=2000.0)
         _, kw = m.call_args
         return kw.get("short_cycle_ratio")

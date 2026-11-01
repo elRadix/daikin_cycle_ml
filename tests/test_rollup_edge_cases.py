@@ -1,4 +1,5 @@
 """Edge case tests for cop_hourly rollup (v1.17.0)."""
+
 from __future__ import annotations
 
 import asyncio
@@ -16,10 +17,18 @@ async def _mk_db(tmp_path, name="edge.db"):
 
 def _sample(ts, mode="heating", cop=5.0, *, boiler_active=0, **overrides):
     row = {
-        "ts": ts, "cop": cop, "lwt": 30.0, "outdoor": 7.0,
-        "r1t": 28.0, "r4t": 27.0, "flow_lmin": 15.0,
-        "power_stable": True, "mode": mode, "source": "interval",
-        "boiler_active": boiler_active, "boiler_mode": "",
+        "ts": ts,
+        "cop": cop,
+        "lwt": 30.0,
+        "outdoor": 7.0,
+        "r1t": 28.0,
+        "r4t": 27.0,
+        "flow_lmin": 15.0,
+        "power_stable": True,
+        "mode": mode,
+        "source": "interval",
+        "boiler_active": boiler_active,
+        "boiler_mode": "",
     }
     row.update(overrides)
     return row
@@ -32,7 +41,9 @@ async def test_rollup_excludes_cofire_samples(tmp_path):
         for i in range(3):
             await db.async_insert_cop_sample(_sample(now - i * 60, "heating", 6.0, boiler_active=0))
         for i in range(2):
-            await db.async_insert_cop_sample(_sample(now - 300 - i * 60, "heating", 3.0, boiler_active=1))
+            await db.async_insert_cop_sample(
+                _sample(now - 300 - i * 60, "heating", 3.0, boiler_active=1)
+            )
         await db.async_rollup_cop_hourly(window_hours=48)
         rows = await db.async_query_cop_hourly(since_ts=now - 3600, mode="heating")
         assert len(rows) == 1
@@ -67,12 +78,22 @@ async def test_rollup_handles_null_lwt_outdoor_flow(tmp_path):
     db = await _mk_db(tmp_path)
     try:
         now = time.time()
-        await db.async_insert_cop_sample({
-            "ts": now - 60, "cop": 5.0, "lwt": None, "outdoor": None,
-            "r1t": None, "r4t": None, "flow_lmin": None,
-            "power_stable": True, "mode": "heating", "source": "interval",
-            "boiler_active": 0, "boiler_mode": "",
-        })
+        await db.async_insert_cop_sample(
+            {
+                "ts": now - 60,
+                "cop": 5.0,
+                "lwt": None,
+                "outdoor": None,
+                "r1t": None,
+                "r4t": None,
+                "flow_lmin": None,
+                "power_stable": True,
+                "mode": "heating",
+                "source": "interval",
+                "boiler_active": 0,
+                "boiler_mode": "",
+            }
+        )
         await db.async_rollup_cop_hourly(window_hours=48)
         rows = await db.async_query_cop_hourly(since_ts=now - 3600)
         assert len(rows) == 1

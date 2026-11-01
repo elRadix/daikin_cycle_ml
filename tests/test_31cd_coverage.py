@@ -1,4 +1,5 @@
 """Batch 31cd coverage boosters: clustering, db cluster methods, helper funcs."""
+
 from __future__ import annotations
 
 import asyncio
@@ -14,6 +15,7 @@ from custom_components.daikin_cycle_ml.storage.db import CycleDB
 # ────────────────────────────────────────────────────────────
 # Clustering module (correct API: kmeans returns ClusteringResult)
 # ────────────────────────────────────────────────────────────
+
 
 def test_kmeans_empty_raises_value_error():
     with pytest.raises(ValueError):
@@ -79,6 +81,7 @@ def test_classify_clusters_accepts_centroids():
 # DB cluster methods
 # ────────────────────────────────────────────────────────────
 
+
 async def test_db_ensure_cluster_column_idempotent(tmp_path):
     db = CycleDB(str(tmp_path / "c.db"))
     await db.async_open()
@@ -100,10 +103,18 @@ async def test_db_update_cycle_cluster(tmp_path):
     try:
         await db.async_ensure_cluster_column()
         row = {
-            "start_ts": 1.0, "end_ts": 100.0, "duration_s": 99.0,
-            "mode": "heating", "dT_max": 5.0, "dT_avg": 3.0,
-            "rps_max": 50, "rps_avg": 35.0, "outdoor_temp": 8.0,
-            "buh_used": 0, "defrost_used": 0, "quality_score": 85,
+            "start_ts": 1.0,
+            "end_ts": 100.0,
+            "duration_s": 99.0,
+            "mode": "heating",
+            "dT_max": 5.0,
+            "dT_avg": 3.0,
+            "rps_max": 50,
+            "rps_avg": 35.0,
+            "outdoor_temp": 8.0,
+            "buh_used": 0,
+            "defrost_used": 0,
+            "quality_score": 85,
         }
         cid = await db.async_insert_cycle(row)
         assert cid is not None
@@ -120,12 +131,22 @@ async def test_db_count_by_cluster(tmp_path):
     try:
         await db.async_ensure_cluster_column()
         for mode in ("heating", "heating", "dhw"):
-            await db.async_insert_cycle({
-                "start_ts": 1.0, "end_ts": 100.0, "duration_s": 99.0,
-                "mode": mode, "dT_max": 5.0, "dT_avg": 3.0,
-                "rps_max": 50, "rps_avg": 35.0, "outdoor_temp": 8.0,
-                "buh_used": 0, "defrost_used": 0, "quality_score": 85,
-            })
+            await db.async_insert_cycle(
+                {
+                    "start_ts": 1.0,
+                    "end_ts": 100.0,
+                    "duration_s": 99.0,
+                    "mode": mode,
+                    "dT_max": 5.0,
+                    "dT_avg": 3.0,
+                    "rps_max": 50,
+                    "rps_avg": 35.0,
+                    "outdoor_temp": 8.0,
+                    "buh_used": 0,
+                    "defrost_used": 0,
+                    "quality_score": 85,
+                }
+            )
         counts = await db.async_count_by_cluster()
         assert isinstance(counts, dict)
     finally:
@@ -136,6 +157,7 @@ async def test_db_count_by_cluster(tmp_path):
 # ────────────────────────────────────────────────────────────
 # Sensor helper functions
 # ────────────────────────────────────────────────────────────
+
 
 def test_avg_empty_and_none():
     assert s_mod._avg([]) is None
@@ -176,15 +198,19 @@ def test_dt_from_attrs_computes():
         ATTR_INLET_WATER_R4T,
         ATTR_LEAVING_WATER_AFTER_BUH,
     )
-    v = s_mod._dt_from_attrs({
-        ATTR_LEAVING_WATER_AFTER_BUH: 40.0,
-        ATTR_INLET_WATER_R4T: 35.0,
-    })
+
+    v = s_mod._dt_from_attrs(
+        {
+            ATTR_LEAVING_WATER_AFTER_BUH: 40.0,
+            ATTR_INLET_WATER_R4T: 35.0,
+        }
+    )
     assert v == 5.0
 
 
 def test_rps_from_attrs():
     from custom_components.daikin_cycle_ml.const import ATTR_INV_FREQUENCY_RPS
+
     assert s_mod._rps_from_attrs({}) is None
     assert s_mod._rps_from_attrs({ATTR_INV_FREQUENCY_RPS: 40}) == 40.0
 
@@ -220,8 +246,7 @@ def test_attrs_current_cycle_idle():
 
 
 def test_attrs_source_health_no_success():
-    s = MagicMock(last_success_ts=0.0, last_sample_ts=0.0,
-                  missing_attrs=[], errors_total=0)
+    s = MagicMock(last_success_ts=0.0, last_sample_ts=0.0, missing_attrs=[], errors_total=0)
     out = s_mod._attrs_source_health(s, MagicMock())
     assert out["is_stale"] is False
     assert out["missing_attrs_count"] == 0
@@ -283,6 +308,7 @@ def test_cluster_label_exception():
 # ────────────────────────────────────────────────────────────
 # Binary sensor helpers
 # ────────────────────────────────────────────────────────────
+
 
 def test_buh_step_zero():
     s = MagicMock(attrs={})

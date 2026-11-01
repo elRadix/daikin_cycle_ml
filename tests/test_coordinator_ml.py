@@ -1,4 +1,5 @@
 """Tests for coordinator ML pipeline (Batch 7c)."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -34,10 +35,13 @@ def _good_record(start_ts=100.0):
         "end_ts": start_ts + 3600,
         "duration_s": 3600,
         "mode": "Heating",
-        "dT_max": 7.5, "dT_avg": 5.2,
-        "rps_max": 60, "rps_avg": 42.5,
+        "dT_max": 7.5,
+        "dT_avg": 5.2,
+        "rps_max": 60,
+        "rps_avg": 42.5,
         "outdoor_temp": 8.0,
-        "buh_used": 0, "defrost_used": 0,
+        "buh_used": 0,
+        "defrost_used": 0,
     }
 
 

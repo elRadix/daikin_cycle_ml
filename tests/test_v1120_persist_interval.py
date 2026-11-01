@@ -1,4 +1,5 @@
 """v1.12.0: persist interval 300s→30s test (issue #101 sub-item 3b)."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock

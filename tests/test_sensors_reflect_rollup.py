@@ -1,4 +1,5 @@
 """Sensor-level tests: does cop_dhw_day actually show data after a cycle?"""
+
 from __future__ import annotations
 
 import asyncio
@@ -16,10 +17,18 @@ async def _mk_db(tmp_path):
 
 def _sample(ts, mode="heating", cop=5.0):
     return {
-        "ts": ts, "cop": cop, "lwt": 30.0, "outdoor": 7.0,
-        "r1t": 28.0, "r4t": 27.0, "flow_lmin": 15.0,
-        "power_stable": True, "mode": mode, "source": "interval",
-        "boiler_active": 0, "boiler_mode": "",
+        "ts": ts,
+        "cop": cop,
+        "lwt": 30.0,
+        "outdoor": 7.0,
+        "r1t": 28.0,
+        "r4t": 27.0,
+        "flow_lmin": 15.0,
+        "power_stable": True,
+        "mode": mode,
+        "source": "interval",
+        "boiler_active": 0,
+        "boiler_mode": "",
     }
 
 

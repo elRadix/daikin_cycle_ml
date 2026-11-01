@@ -15,9 +15,9 @@ def test_v0_6_0_alert_context_formats_real_values():
     c.hass.states.get = MagicMock(return_value=None)
     c.options = {}
     c.entry = MagicMock()
-    c.entry.entry_id = 'test'
+    c.entry.entry_id = "test"
     c.data = MagicMock()
-    c.data.mode = 'heating'
+    c.data.mode = "heating"
     c.data.attributes = {}
     c.store = MagicMock()
     c.store.last_cycle = MagicMock(return_value=None)
@@ -30,10 +30,12 @@ def test_v0_6_0_alert_context_formats_real_values():
     c._last_alert_sent = {}
 
     snap = SimpleNamespace(
-        mode='heating',
-        attributes={'outdoor_temp': 5.5, 'flow_lmin': 12.3},
-        advice=[], anomaly=None, last_record=None,
+        mode="heating",
+        attributes={"outdoor_temp": 5.5, "flow_lmin": 12.3},
+        advice=[],
+        anomaly=None,
+        last_record=None,
     )
     ctx = c._build_alert_context(snap)
-    assert ctx['pendulum']['outdoor'] == '5.5'
-    assert ctx['pendulum']['outdoor'] != '?'
+    assert ctx["pendulum"]["outdoor"] == "5.5"
+    assert ctx["pendulum"]["outdoor"] != "?"

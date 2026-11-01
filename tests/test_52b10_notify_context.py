@@ -1,4 +1,5 @@
 """Batch 52b10: AlertSpec context + notify payload enrichment."""
+
 from __future__ import annotations
 
 import asyncio
@@ -27,18 +28,25 @@ def _mk(options=None):
 
 # --- AlertSpec dataclass ---
 
+
 def test_alertspec_context_default_none():
     spec = AlertSpec(
-        alert_type="t", severity="warning", message="m",
-        notif_id="nid", dedupe_key="dk",
+        alert_type="t",
+        severity="warning",
+        message="m",
+        notif_id="nid",
+        dedupe_key="dk",
     )
     assert spec.context is None
 
 
 def test_alertspec_context_explicit():
     spec = AlertSpec(
-        alert_type="t", severity="warning", message="m",
-        notif_id="nid", dedupe_key="dk",
+        alert_type="t",
+        severity="warning",
+        message="m",
+        notif_id="nid",
+        dedupe_key="dk",
         context={"mode": "heating", "cluster": 0},
     )
     assert spec.context == {"mode": "heating", "cluster": 0}
@@ -46,12 +54,17 @@ def test_alertspec_context_explicit():
 
 # --- _emit_alert context forwarding ---
 
+
 def test_emit_alert_does_not_forward_context_to_notify():
     """v1.9.0 PR B (bug 4.6): payload no longer merges AlertSpec.context."""
     c = _mk(options={"notify_service": "notify.telegram"})
     spec = AlertSpec(
-        alert_type="t", severity="warning", message="hello",
-        notif_id="nid", dedupe_key="dk", persistent=False,
+        alert_type="t",
+        severity="warning",
+        message="hello",
+        notif_id="nid",
+        dedupe_key="dk",
+        persistent=False,
         context={"mode": "heating", "cop": 2.1},
     )
     asyncio.run(c._emit_alert(spec))
@@ -66,8 +79,12 @@ def test_emit_alert_does_not_forward_context_to_notify():
 def test_emit_alert_no_context_still_works():
     c = _mk(options={"notify_service": "notify.telegram"})
     spec = AlertSpec(
-        alert_type="t", severity="warning", message="hello",
-        notif_id="nid", dedupe_key="dk", persistent=False,
+        alert_type="t",
+        severity="warning",
+        message="hello",
+        notif_id="nid",
+        dedupe_key="dk",
+        persistent=False,
     )
     asyncio.run(c._emit_alert(spec))
     calls = c.hass.services.async_call.await_args_list
@@ -79,8 +96,12 @@ def test_emit_alert_no_context_still_works():
 def test_emit_alert_context_none_explicit():
     c = _mk(options={"notify_service": "notify.telegram"})
     spec = AlertSpec(
-        alert_type="t", severity="warning", message="hello",
-        notif_id="nid", dedupe_key="dk", persistent=False,
+        alert_type="t",
+        severity="warning",
+        message="hello",
+        notif_id="nid",
+        dedupe_key="dk",
+        persistent=False,
         context=None,
     )
     asyncio.run(c._emit_alert(spec))
@@ -92,8 +113,12 @@ def test_emit_alert_context_none_explicit():
 def test_emit_alert_persistent_ignores_context():
     c = _mk(options={"notify_service": "notify.telegram"})
     spec = AlertSpec(
-        alert_type="t", severity="warning", message="hello",
-        notif_id="nid", dedupe_key="dk", persistent=True,
+        alert_type="t",
+        severity="warning",
+        message="hello",
+        notif_id="nid",
+        dedupe_key="dk",
+        persistent=True,
         context={"mode": "heating"},
     )
     asyncio.run(c._emit_alert(spec))
@@ -101,4 +126,3 @@ def test_emit_alert_persistent_ignores_context():
     pn_call = [x for x in calls if x.args[0] == "persistent_notification"][0]
     payload = pn_call.args[2]
     assert set(payload.keys()) == {"title", "message", "notification_id"}
-

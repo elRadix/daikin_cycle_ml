@@ -11,6 +11,7 @@ Covers all branches of _classify_and_fix_cycle_shapes and helpers:
 - #133 guard: uses real COUNT(*), not cycles.cop_sample_count
 - Skeleton integration: stats populated from classifier return
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -34,8 +35,7 @@ async def _insert_cycle(
         "(start_ts, end_ts, duration_s, mode, is_transient, "
         "cop_sample_count, is_reconstructed) "
         "VALUES (?, ?, ?, ?, ?, ?, 0)",
-        (start_ts, end_ts, int(end_ts - start_ts), mode, is_transient,
-         cop_sample_count),
+        (start_ts, end_ts, int(end_ts - start_ts), mode, is_transient, cop_sample_count),
     )
     cycle_id = cur.lastrowid
     await cur.close()
@@ -44,7 +44,9 @@ async def _insert_cycle(
 
 
 async def _insert_samples(
-    db: CycleDB, timestamps: list[float], modes: list[str],
+    db: CycleDB,
+    timestamps: list[float],
+    modes: list[str],
     cop_value: float = 3.5,
 ) -> None:
     assert len(timestamps) == len(modes)
@@ -64,13 +66,22 @@ async def _fetch_cycle(db: CycleDB, cycle_id: int) -> dict:
     cur = await conn.execute(
         "SELECT id, start_ts, end_ts, mode, mode_original, "
         "cop_sample_count, is_dhw_tail, is_reconstructed, parent_cycle_id "
-        "FROM cycles WHERE id=?", (cycle_id,),
+        "FROM cycles WHERE id=?",
+        (cycle_id,),
     )
     row = await cur.fetchone()
     await cur.close()
-    cols = ("id", "start_ts", "end_ts", "mode", "mode_original",
-            "cop_sample_count", "is_dhw_tail", "is_reconstructed",
-            "parent_cycle_id")
+    cols = (
+        "id",
+        "start_ts",
+        "end_ts",
+        "mode",
+        "mode_original",
+        "cop_sample_count",
+        "is_dhw_tail",
+        "is_reconstructed",
+        "parent_cycle_id",
+    )
     return dict(zip(cols, row))
 
 
@@ -85,12 +96,15 @@ async def db(tmp_path: Path):
 
 # ---- Shape A: pure relabel ----
 
+
 async def test_shape_a_relabel_pure_dhw(db):
     """Cycle has 3/3 dhw samples -> relabel to 'dhw', save mode_original."""
     cycle_id = await _insert_cycle(db, 1000.0, 2000.0, mode="heating")
     await _insert_samples(
-        db, [1050.0, 1150.0, 1250.0],
-        ["dhw", "dhw", "dhw"], cop_value=4.2,
+        db,
+        [1050.0, 1150.0, 1250.0],
+        ["dhw", "dhw", "dhw"],
+        cop_value=4.2,
     )
     stats = await db._classify_and_fix_cycle_shapes()
     assert stats["shape_a_relabelled"] == 1
@@ -105,6 +119,7 @@ async def test_shape_a_relabel_pure_dhw(db):
 
 # ---- Shape B: split at boundary ----
 
+
 async def test_shape_b_split_mixed_ratio(db):
     """5 heating + 5 dhw (ratio 0.5) -> split into parent + child."""
     cycle_id = await _insert_cycle(db, 1000.0, 2000.0, mode="heating")
@@ -116,7 +131,8 @@ async def test_shape_b_split_mixed_ratio(db):
     await _insert_samples(
         db,
         [1550.0, 1650.0, 1750.0, 1850.0, 1950.0],  # dhw half
-        ["dhw"] * 5, cop_value=4.0,
+        ["dhw"] * 5,
+        cop_value=4.0,
     )
     stats = await db._classify_and_fix_cycle_shapes()
     assert stats["shape_b_split"] == 1
@@ -133,7 +149,8 @@ async def test_shape_b_split_mixed_ratio(db):
     cur = await conn.execute(
         "SELECT id, start_ts, end_ts, mode, mode_original, "
         "parent_cycle_id, is_reconstructed, cop_sample_count "
-        "FROM cycles WHERE parent_cycle_id=?", (cycle_id,),
+        "FROM cycles WHERE parent_cycle_id=?",
+        (cycle_id,),
     )
     child_row = await cur.fetchone()
     await cur.close()
@@ -196,6 +213,7 @@ async def test_shape_b_skips_early_dhw_split(db):
 
 # ---- Shape C: tail mark ----
 
+
 async def test_shape_c_marks_tail_small_ratio(db):
     """1 dhw / 20 heating (ratio 0.05) -> is_dhw_tail=1, no split."""
     cycle_id = await _insert_cycle(db, 1000.0, 3000.0, mode="heating")
@@ -212,13 +230,13 @@ async def test_shape_c_marks_tail_small_ratio(db):
 
 # ---- Skips ----
 
+
 async def test_skips_transient_cycle(db):
     """is_transient=1 excluded from query."""
     await _insert_cycle(db, 1000.0, 2000.0, mode="heating", is_transient=1)
     await _insert_samples(db, [1100.0, 1200.0], ["dhw", "dhw"])
     stats = await db._classify_and_fix_cycle_shapes()
-    assert stats == {"shape_a_relabelled": 0, "shape_b_split": 0,
-                     "shape_c_tail_marked": 0}
+    assert stats == {"shape_a_relabelled": 0, "shape_b_split": 0, "shape_c_tail_marked": 0}
 
 
 async def test_skips_already_dhw_cycle(db):
@@ -226,35 +244,30 @@ async def test_skips_already_dhw_cycle(db):
     await _insert_cycle(db, 1000.0, 2000.0, mode="dhw")
     await _insert_samples(db, [1100.0, 1200.0], ["dhw", "dhw"])
     stats = await db._classify_and_fix_cycle_shapes()
-    assert stats == {"shape_a_relabelled": 0, "shape_b_split": 0,
-                     "shape_c_tail_marked": 0}
+    assert stats == {"shape_a_relabelled": 0, "shape_b_split": 0, "shape_c_tail_marked": 0}
 
 
 async def test_skips_cycle_with_no_samples(db):
     """Total=0 -> skip."""
     await _insert_cycle(db, 1000.0, 2000.0, mode="heating")
     stats = await db._classify_and_fix_cycle_shapes()
-    assert stats == {"shape_a_relabelled": 0, "shape_b_split": 0,
-                     "shape_c_tail_marked": 0}
+    assert stats == {"shape_a_relabelled": 0, "shape_b_split": 0, "shape_c_tail_marked": 0}
 
 
 async def test_skips_all_heating_cycle(db):
     """ratio == 0 -> skip."""
     await _insert_cycle(db, 1000.0, 2000.0, mode="heating")
-    await _insert_samples(db, [1100.0, 1200.0, 1300.0],
-                          ["heating"] * 3)
+    await _insert_samples(db, [1100.0, 1200.0, 1300.0], ["heating"] * 3)
     stats = await db._classify_and_fix_cycle_shapes()
-    assert stats == {"shape_a_relabelled": 0, "shape_b_split": 0,
-                     "shape_c_tail_marked": 0}
+    assert stats == {"shape_a_relabelled": 0, "shape_b_split": 0, "shape_c_tail_marked": 0}
 
 
 # ---- #133 constraint guard ----
 
+
 async def test_uses_real_count_not_stored(db):
     """Stored cop_sample_count=999 but real=3 -> must use 3."""
-    cycle_id = await _insert_cycle(
-        db, 1000.0, 2000.0, mode="heating", cop_sample_count=999
-    )
+    cycle_id = await _insert_cycle(db, 1000.0, 2000.0, mode="heating", cop_sample_count=999)
     await _insert_samples(db, [1100.0, 1200.0, 1300.0], ["dhw"] * 3)
     await db._classify_and_fix_cycle_shapes()
     row = await _fetch_cycle(db, cycle_id)
@@ -262,6 +275,7 @@ async def test_uses_real_count_not_stored(db):
 
 
 # ---- Skeleton integration ----
+
 
 async def test_skeleton_runs_classifier_and_populates_stats(db):
     """async_migrate_to_v18 calls _classify_and_fix_cycle_shapes."""

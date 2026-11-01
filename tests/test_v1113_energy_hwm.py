@@ -1,4 +1,5 @@
 """v1.11.3: monotonic energy accumulators (total_increasing contract)."""
+
 from __future__ import annotations
 
 import asyncio
@@ -24,12 +25,12 @@ def _make_coord() -> DaikinCycleMLCoordinator:
     c._energy_day_key = ""
     c._energy_acc = {
         "heating": {"th": 0.0, "el": 0.0},
-        "dhw":     {"th": 0.0, "el": 0.0},
+        "dhw": {"th": 0.0, "el": 0.0},
         "cooling": {"th": 0.0, "el": 0.0},
     }
     c._energy_hwm = {
         "heating": {"th": 0.0, "el": 0.0},
-        "dhw":     {"th": 0.0, "el": 0.0},
+        "dhw": {"th": 0.0, "el": 0.0},
         "cooling": {"th": 0.0, "el": 0.0},
     }
     return c
@@ -58,8 +59,8 @@ def test_ensure_energy_acc_keeps_existing_hwm():
     c = _make_coord()
     c._energy_hwm = {
         "heating": {"th": 99.0, "el": 5.0},
-        "dhw":     {"th": 0.0,  "el": 0.0},
-        "cooling": {"th": 0.0,  "el": 0.0},
+        "dhw": {"th": 0.0, "el": 0.0},
+        "cooling": {"th": 0.0, "el": 0.0},
     }
     c._ensure_energy_acc()
     assert c._energy_hwm["heating"]["th"] == 99.0
@@ -70,7 +71,7 @@ def test_ensure_energy_acc_lazy_init_when_new():
     c = object.__new__(DaikinCycleMLCoordinator)
     c._energy_acc = {
         "heating": {"th": 0.0, "el": 0.0},
-        "dhw":     {"th": 0.0, "el": 0.0},
+        "dhw": {"th": 0.0, "el": 0.0},
         "cooling": {"th": 0.0, "el": 0.0},
     }
     c._ensure_energy_acc()
@@ -84,21 +85,26 @@ def test_restore_same_day_keeps_higher_memory():
     c._energy_day_key = today
     c._energy_acc = {
         "heating": {"th": 12.45, "el": 2.0},
-        "dhw":     {"th": 0.0,   "el": 0.0},
-        "cooling": {"th": 0.0,   "el": 0.0},
+        "dhw": {"th": 0.0, "el": 0.0},
+        "cooling": {"th": 0.0, "el": 0.0},
     }
     c._energy_hwm = {
         "heating": {"th": 12.45, "el": 2.0},
-        "dhw":     {"th": 0.0,   "el": 0.0},
-        "cooling": {"th": 0.0,   "el": 0.0},
+        "dhw": {"th": 0.0, "el": 0.0},
+        "cooling": {"th": 0.0, "el": 0.0},
     }
     c.db = AsyncMock()
-    c.db.async_get_model_state = AsyncMock(return_value={
-        "day": today,
-        "heating_th_kwh": 12.28, "heating_el_kwh": 1.9,
-        "dhw_th_kwh": 0.0, "dhw_el_kwh": 0.0,
-        "cooling_th_kwh": 0.0, "cooling_el_kwh": 0.0,
-    })
+    c.db.async_get_model_state = AsyncMock(
+        return_value={
+            "day": today,
+            "heating_th_kwh": 12.28,
+            "heating_el_kwh": 1.9,
+            "dhw_th_kwh": 0.0,
+            "dhw_el_kwh": 0.0,
+            "cooling_th_kwh": 0.0,
+            "cooling_el_kwh": 0.0,
+        }
+    )
     ok = asyncio.run(c._restore_energy_acc())
     assert ok is True
     assert c._energy_acc["heating"]["th"] == 12.45
@@ -111,21 +117,26 @@ def test_restore_same_day_raises_mem_to_db_when_db_higher():
     c._energy_day_key = today
     c._energy_acc = {
         "heating": {"th": 1.0, "el": 0.2},
-        "dhw":     {"th": 0.0, "el": 0.0},
+        "dhw": {"th": 0.0, "el": 0.0},
         "cooling": {"th": 0.0, "el": 0.0},
     }
     c._energy_hwm = {
         "heating": {"th": 1.0, "el": 0.2},
-        "dhw":     {"th": 0.0, "el": 0.0},
+        "dhw": {"th": 0.0, "el": 0.0},
         "cooling": {"th": 0.0, "el": 0.0},
     }
     c.db = AsyncMock()
-    c.db.async_get_model_state = AsyncMock(return_value={
-        "day": today,
-        "heating_th_kwh": 5.5, "heating_el_kwh": 1.1,
-        "dhw_th_kwh": 0.0, "dhw_el_kwh": 0.0,
-        "cooling_th_kwh": 0.0, "cooling_el_kwh": 0.0,
-    })
+    c.db.async_get_model_state = AsyncMock(
+        return_value={
+            "day": today,
+            "heating_th_kwh": 5.5,
+            "heating_el_kwh": 1.1,
+            "dhw_th_kwh": 0.0,
+            "dhw_el_kwh": 0.0,
+            "cooling_th_kwh": 0.0,
+            "cooling_el_kwh": 0.0,
+        }
+    )
     ok = asyncio.run(c._restore_energy_acc())
     assert ok is True
     assert c._energy_acc["heating"]["th"] == 5.5
@@ -138,21 +149,26 @@ def test_persist_self_heal_syncs_hwm():
     c._energy_day_key = today
     c._energy_acc = {
         "heating": {"th": 1.0, "el": 0.2},
-        "dhw":     {"th": 0.0, "el": 0.0},
+        "dhw": {"th": 0.0, "el": 0.0},
         "cooling": {"th": 0.0, "el": 0.0},
     }
     c._energy_hwm = {
         "heating": {"th": 1.0, "el": 0.2},
-        "dhw":     {"th": 0.0, "el": 0.0},
+        "dhw": {"th": 0.0, "el": 0.0},
         "cooling": {"th": 0.0, "el": 0.0},
     }
     c.db = AsyncMock()
-    c.db.async_get_model_state = AsyncMock(return_value={
-        "day": today,
-        "heating_th_kwh": 8.0, "heating_el_kwh": 2.0,
-        "dhw_th_kwh": 0.0, "dhw_el_kwh": 0.0,
-        "cooling_th_kwh": 0.0, "cooling_el_kwh": 0.0,
-    })
+    c.db.async_get_model_state = AsyncMock(
+        return_value={
+            "day": today,
+            "heating_th_kwh": 8.0,
+            "heating_el_kwh": 2.0,
+            "dhw_th_kwh": 0.0,
+            "dhw_el_kwh": 0.0,
+            "cooling_th_kwh": 0.0,
+            "cooling_el_kwh": 0.0,
+        }
+    )
     c.db.async_set_model_state = AsyncMock()
     asyncio.run(c._persist_energy_acc())
     assert c._energy_acc["heating"]["th"] == 8.0

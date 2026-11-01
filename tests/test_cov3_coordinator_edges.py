@@ -8,6 +8,7 @@ _db_cycle_stats, _maybe_notify_cop_low.
 Style matches existing tests: DaikinCycleMLCoordinator.__new__ +
 asyncio.run, no HA fixtures, SimpleNamespace args (R153).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -81,9 +82,7 @@ def test_run_stooklijn_analysis_refresh_fails():
 def test_refresh_cop_today_exception_clears_cache():
     c = _mk()
     c.db = MagicMock()
-    c.db.async_fetch_cop_samples = AsyncMock(
-        return_value=[{"ts": 1.0, "cop": 2.0}]
-    )
+    c.db.async_fetch_cop_samples = AsyncMock(return_value=[{"ts": 1.0, "cop": 2.0}])
     c._cop_today_cache = {"stale": True}
     with patch(
         "custom_components.daikin_cycle_ml.coordinator.time.localtime",
@@ -205,9 +204,7 @@ def test_rich_snapshot_store_bare():
 def test_build_alert_context_store_last_cycle_raises():
     c = _mk()
     c.store.last_cycle = MagicMock(side_effect=RuntimeError("boom"))
-    snap = SimpleNamespace(
-        mode="unknown", advice=[], last_record=None, anomaly=None
-    )
+    snap = SimpleNamespace(mode="unknown", advice=[], last_record=None, anomaly=None)
     ctx = c._build_alert_context(snap)
     assert isinstance(ctx, dict)
     assert ctx["short_run"]["mode"] == "unknown"
@@ -216,9 +213,7 @@ def test_build_alert_context_store_last_cycle_raises():
 def test_build_alert_context_off_time_raises():
     c = _mk()
     c.store.off_time_since_last = MagicMock(side_effect=RuntimeError("boom"))
-    snap = SimpleNamespace(
-        mode="heating", advice=[], last_record=None, anomaly=None
-    )
+    snap = SimpleNamespace(mode="heating", advice=[], last_record=None, anomaly=None)
     ctx = c._build_alert_context(snap)
     assert isinstance(ctx, dict)
 
@@ -229,9 +224,7 @@ def test_build_alert_context_top_dim_int_raises():
         mode="heating",
         advice=[],
         last_record=None,
-        anomaly=SimpleNamespace(
-            max_abs_z=3.0, top_dim="not-an-int", severity=None
-        ),
+        anomaly=SimpleNamespace(max_abs_z=3.0, top_dim="not-an-int", severity=None),
     )
     ctx = c._build_alert_context(snap)
     assert ctx["ml_anomaly"]["z_max"] == 3.0
@@ -321,17 +314,9 @@ def test_maybe_notify_cop_low_no_cop():
 
 def test_maybe_notify_cop_low_high_cop_returns():
     c = _mk()
-    asyncio.run(
-        c._maybe_notify_cop_low(
-            time.time(), {"cop": 3.5, "samples_today": 10}
-        )
-    )
+    asyncio.run(c._maybe_notify_cop_low(time.time(), {"cop": 3.5, "samples_today": 10}))
 
 
 def test_maybe_notify_cop_low_low_samples():
     c = _mk()
-    asyncio.run(
-        c._maybe_notify_cop_low(
-            time.time(), {"cop": 1.5, "samples_today": 1}
-        )
-    )
+    asyncio.run(c._maybe_notify_cop_low(time.time(), {"cop": 1.5, "samples_today": 1}))

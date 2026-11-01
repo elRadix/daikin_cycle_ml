@@ -1,4 +1,5 @@
 """Tests for Batch 11c MultiBaseline wiring + persistence + kmeans."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -34,14 +35,18 @@ def _rec(start_ts=100.0, mode="Heating"):
         "end_ts": start_ts + 3600,
         "duration_s": 3600,
         "mode": mode,
-        "dT_max": 7.5, "dT_avg": 5.2,
-        "rps_max": 60, "rps_avg": 42.5,
+        "dT_max": 7.5,
+        "dT_avg": 5.2,
+        "rps_max": 60,
+        "rps_avg": 42.5,
         "outdoor_temp": 8.0,
-        "buh_used": 0, "defrost_used": 0,
+        "buh_used": 0,
+        "defrost_used": 0,
     }
 
 
 # ---------- MultiBaseline wrappers ----------
+
 
 def test_z_scores_returns_zero_list_when_insufficient():
     mb = MultiBaseline(2)
@@ -124,11 +129,10 @@ def test_reset_unknown_mode_noop():
 
 # ---------- Coordinator persistence ----------
 
+
 async def test_setup_baseline_persistence_no_db():
     c = _coord(db=None)
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval"
-    ) as m:
+    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_interval") as m:
         m.return_value = MagicMock()
         await c.async_setup_baseline_persistence()
         assert c._baseline_save_unsub is not None
@@ -139,9 +143,7 @@ async def test_setup_baseline_persistence_empty_state():
     db = MagicMock()
     db.async_get_model_state = AsyncMock(return_value=None)
     c = _coord(db=db)
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval"
-    ) as m:
+    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_interval") as m:
         m.return_value = MagicMock()
         await c.async_setup_baseline_persistence()
         assert c.baseline.total_samples() == 0
@@ -153,9 +155,7 @@ async def test_setup_baseline_persistence_restores_state():
     db = MagicMock()
     db.async_get_model_state = AsyncMock(return_value=saved.to_dict())
     c = _coord(db=db)
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval"
-    ) as m:
+    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_interval") as m:
         m.return_value = MagicMock()
         await c.async_setup_baseline_persistence()
         assert c.baseline.total_samples() == 1
@@ -166,18 +166,14 @@ async def test_setup_baseline_persistence_handles_exception():
     db = MagicMock()
     db.async_get_model_state = AsyncMock(side_effect=RuntimeError("boom"))
     c = _coord(db=db)
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval"
-    ) as m:
+    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_interval") as m:
         m.return_value = MagicMock()
         await c.async_setup_baseline_persistence()
 
 
 async def test_setup_baseline_persistence_idempotent():
     c = _coord(db=None)
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval"
-    ) as m:
+    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_interval") as m:
         m.return_value = MagicMock()
         await c.async_setup_baseline_persistence()
         first = c._baseline_save_unsub
@@ -219,11 +215,10 @@ async def test_baseline_save_callback_swallows_exception():
 
 # ---------- Coordinator kmeans ----------
 
+
 async def test_setup_kmeans_schedules():
     c = _coord()
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator.async_track_time_change"
-    ) as m:
+    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_change") as m:
         m.return_value = MagicMock()
         await c.async_setup_kmeans()
         assert m.call_count == 1
@@ -232,9 +227,7 @@ async def test_setup_kmeans_schedules():
 
 async def test_setup_kmeans_idempotent():
     c = _coord()
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator.async_track_time_change"
-    ) as m:
+    with patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_change") as m:
         m.return_value = MagicMock()
         await c.async_setup_kmeans()
         await c.async_setup_kmeans()
@@ -304,10 +297,12 @@ async def test_kmeans_callback_swallows_exception():
 
 # ---------- Services recompute ----------
 
+
 async def test_recompute_no_db():
     from custom_components.daikin_cycle_ml.services import (
         _do_recompute_baseline,
     )
+
     c = MagicMock()
     c.db = None
     out = await _do_recompute_baseline(c, 7)
@@ -319,6 +314,7 @@ async def test_recompute_no_baseline():
     from custom_components.daikin_cycle_ml.services import (
         _do_recompute_baseline,
     )
+
     c = MagicMock()
     c.db = MagicMock()
     c.baseline = None
@@ -331,6 +327,7 @@ async def test_recompute_fetch_error():
     from custom_components.daikin_cycle_ml.services import (
         _do_recompute_baseline,
     )
+
     db = MagicMock()
     db.async_fetch_cycles = AsyncMock(side_effect=RuntimeError("boom"))
     c = MagicMock()
@@ -345,6 +342,7 @@ async def test_recompute_no_data():
     from custom_components.daikin_cycle_ml.services import (
         _do_recompute_baseline,
     )
+
     db = MagicMock()
     db.async_fetch_cycles = AsyncMock(return_value=[])
     c = MagicMock()
@@ -360,6 +358,7 @@ async def test_recompute_happy():
     from custom_components.daikin_cycle_ml.services import (
         _do_recompute_baseline,
     )
+
     recs = [_rec(100.0 + i * 5000, mode="Heating") for i in range(3)]
     recs += [_rec(50000.0 + i * 5000, mode="DHW") for i in range(2)]
     db = MagicMock()
@@ -379,6 +378,7 @@ async def test_recompute_resets_before_update():
     from custom_components.daikin_cycle_ml.services import (
         _do_recompute_baseline,
     )
+
     recs = [_rec(100.0 + i * 5000) for i in range(3)]
     db = MagicMock()
     db.async_fetch_cycles = AsyncMock(return_value=recs)

@@ -1,4 +1,5 @@
 """v1.15.1 — outdoor-temp fallback for datasheet COP normalization."""
+
 from __future__ import annotations
 
 import sys
@@ -27,23 +28,20 @@ def _resolver() -> DaikinCycleMLCoordinator:
 
 def test_primary_uses_last_record_outdoor_temp():
     c = _resolver()
-    assert c._resolve_outdoor_temp(
-        _snap({"R1T-Outdoor air temp.": 15.3}, {"outdoor_temp": 8.0})
-    ) == 8.0
+    assert (
+        c._resolve_outdoor_temp(_snap({"R1T-Outdoor air temp.": 15.3}, {"outdoor_temp": 8.0}))
+        == 8.0
+    )
 
 
 def test_fallback_uses_snap_attrs_when_last_record_lacks_temp():
     c = _resolver()
-    assert c._resolve_outdoor_temp(
-        _snap({"R1T-Outdoor air temp.": 15.3}, {})
-    ) == 15.3
+    assert c._resolve_outdoor_temp(_snap({"R1T-Outdoor air temp.": 15.3}, {})) == 15.3
 
 
 def test_fallback_handles_none_last_record():
     c = _resolver()
-    assert c._resolve_outdoor_temp(
-        _snap({"R1T-Outdoor air temp.": 5.5}, None)
-    ) == 5.5
+    assert c._resolve_outdoor_temp(_snap({"R1T-Outdoor air temp.": 5.5}, None)) == 5.5
 
 
 def test_returns_none_when_neither_source_has_temp():
@@ -53,9 +51,7 @@ def test_returns_none_when_neither_source_has_temp():
 
 def test_returns_none_when_snap_attrs_is_none():
     c = _resolver()
-    assert c._resolve_outdoor_temp(
-        _snap(None, {"outdoor_temp": 4.0})
-    ) == 4.0
+    assert c._resolve_outdoor_temp(_snap(None, {"outdoor_temp": 4.0})) == 4.0
 
 
 def test_returns_none_when_both_missing():

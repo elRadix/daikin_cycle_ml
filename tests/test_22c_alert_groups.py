@@ -1,4 +1,5 @@
 """Batch 22c tests: per-group alert filtering."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.engine.notification_engine import (

@@ -1,4 +1,5 @@
 """Tests for MultiBaseline (Batch 11a)."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.ml.multi_baseline import (
@@ -91,8 +92,7 @@ def test_alpha_restored_from_dict():
 
 
 def test_outlier_skip_propagates():
-    mb = MultiBaseline(1, alpha=0.1, outlier_skip_z=2.0,
-                       min_samples_before_skip=3)
+    mb = MultiBaseline(1, alpha=0.1, outlier_skip_z=2.0, min_samples_before_skip=3)
     for i in range(5):
         mb.update("Heating", [float(i)])
     n = mb.get("Heating").sample_count

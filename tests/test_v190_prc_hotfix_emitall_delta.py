@@ -5,6 +5,7 @@ for the cop_low demo, not a hardcoded literal.
 
 Refs #66.
 """
+
 from __future__ import annotations
 
 import asyncio

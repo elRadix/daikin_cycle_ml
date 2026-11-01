@@ -1,4 +1,5 @@
 """v1.12.5 #144: reverse split dhw->heating/cooling in _should_split."""
+
 from custom_components.daikin_cycle_ml.engine.cycle_detector import (
     MODE_DEBOUNCE_S,
     STATE_RUNNING,
@@ -95,6 +96,7 @@ def test_reverse_split_not_fired_when_dhw_stays_dhw():
 
 def test_existing_heating_to_dhw_split_valve_on_fires_at_valve_debounce():
     from custom_components.daikin_cycle_ml.engine.cycle_detector import VALVE_DEBOUNCE_S
+
     d = _mk_running("heating")
     t0 = 1000.0
     assert d._should_split(_attrs_dhw_valve_on(), t0) is False
@@ -109,4 +111,3 @@ def test_reverse_split_full_restore_recovery():
     assert d._should_split(_attrs_heating(), t0) is False
     t1 = t0 + MODE_DEBOUNCE_S + 5
     assert d._should_split(_attrs_heating(), t1) is True
-

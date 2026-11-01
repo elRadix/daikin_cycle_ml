@@ -1,4 +1,5 @@
 """Batch 18: options menu + action_advice wiring."""
+
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -15,18 +16,26 @@ from custom_components.daikin_cycle_ml.const import (
 @pytest.fixture(autouse=True)
 def _disable_options_reload(hass):
     """OptionsFlowWithReload triggers reload; skip in unit tests."""
-    with patch.object(
-        hass.config_entries, "async_reload",
-        new=AsyncMock(return_value=True),
-    ), patch.object(
-        hass.config_entries, "async_schedule_reload",
-        new=lambda *a, **k: None,
+    with (
+        patch.object(
+            hass.config_entries,
+            "async_reload",
+            new=AsyncMock(return_value=True),
+        ),
+        patch.object(
+            hass.config_entries,
+            "async_schedule_reload",
+            new=lambda *a, **k: None,
+        ),
     ):
         yield
 
 
 STEPS_FORM = (
-    "device", "pendulum", "quality_ml", "advanced",
+    "device",
+    "pendulum",
+    "quality_ml",
+    "advanced",
 )
 STEPS = STEPS_FORM
 

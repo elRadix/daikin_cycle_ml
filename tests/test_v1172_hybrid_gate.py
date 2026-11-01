@@ -1,4 +1,5 @@
 """v1.17.2: hybrid indicators gated on is_hybrid (diagnostics leak fix)."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -24,9 +25,7 @@ def _bare(model: str = "epra12eav3") -> DaikinCycleMLCoordinator:
     c.store.daily_reset_if_needed = MagicMock(return_value=False)
     c.detector = MagicMock()
     c.detector.state = "running"
-    c.detector.snapshot = MagicMock(
-        return_value={"mode": "heating", "start_ts": 1700000000.0}
-    )
+    c.detector.snapshot = MagicMock(return_value={"mode": "heating", "start_ts": 1700000000.0})
     c.detector.update = MagicMock(return_value=None)
     c.db = None
     c._runtime_day_key = ""

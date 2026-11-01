@@ -5,6 +5,7 @@ Any divergence between schema.sql (authoritative) and the runtime
 CREATE TABLE in db.py async_ensure_cop_samples_table (fallback path)
 is caught here -- no test-time DB instantiation needed.
 """
+
 import ast
 import re
 from pathlib import Path
@@ -61,16 +62,17 @@ def _extract_create_sql_from_async_ensure() -> str | None:
     src = _DB_PATH.read_text()
     tree = ast.parse(src)
     for node in ast.walk(tree):
-        if (isinstance(node, ast.AsyncFunctionDef)
-                and node.name == "async_ensure_cop_samples_table"):
+        if isinstance(node, ast.AsyncFunctionDef) and node.name == "async_ensure_cop_samples_table":
             for sub in ast.walk(node):
-                if (isinstance(sub, ast.Call)
-                        and isinstance(sub.func, ast.Attribute)
-                        and sub.func.attr == "execute"
-                        and sub.args
-                        and isinstance(sub.args[0], ast.Constant)
-                        and isinstance(sub.args[0].value, str)
-                        and "CREATE TABLE IF NOT EXISTS cop_samples" in sub.args[0].value):
+                if (
+                    isinstance(sub, ast.Call)
+                    and isinstance(sub.func, ast.Attribute)
+                    and sub.func.attr == "execute"
+                    and sub.args
+                    and isinstance(sub.args[0], ast.Constant)
+                    and isinstance(sub.args[0].value, str)
+                    and "CREATE TABLE IF NOT EXISTS cop_samples" in sub.args[0].value
+                ):
                     return sub.args[0].value
     return None
 
@@ -104,18 +106,31 @@ def test_async_ensure_create_has_all_schema_columns():
     assert ensure_sql is not None
     cols = _extract_columns_from_create_sql(ensure_sql)
     required = {
-        "id", "ts", "cop", "lwt", "outdoor", "r1t", "r4t", "flow_lmin",
-        "power_stable", "mode", "source", "mode_original",
-        "is_transition_artifact", "boiler_active",
+        "id",
+        "ts",
+        "cop",
+        "lwt",
+        "outdoor",
+        "r1t",
+        "r4t",
+        "flow_lmin",
+        "power_stable",
+        "mode",
+        "source",
+        "mode_original",
+        "is_transition_artifact",
+        "boiler_active",
     }
     missing = required - cols
     assert not missing, f"async_ensure CREATE missing columns: {sorted(missing)}"
+
 
 def test_schema_sql_cycles_has_boiler_split_columns():
     """Regression (M2 v1.15.0): cycles must have heat + dhw sample columns."""
     sql = _SCHEMA_PATH.read_text()
     m = re.search(
-        r"CREATE TABLE IF NOT EXISTS cycles\s*\(([\s\S]*?)\n\);", sql,
+        r"CREATE TABLE IF NOT EXISTS cycles\s*\(([\s\S]*?)\n\);",
+        sql,
     )
     assert m, "cycles CREATE not found in schema.sql"
     cols = _extract_columns_from_create_sql(
@@ -130,7 +145,7 @@ def test_async_insert_cycle_includes_split_columns():
     """Regression: async_insert_cycle INSERT must reference both new columns."""
     db_py = _DB_PATH.read_text()
     m = re.search(
-        r'INSERT OR IGNORE INTO cycles\s*\(([\s\S]*?)\)\s*VALUES',
+        r"INSERT OR IGNORE INTO cycles\s*\(([\s\S]*?)\)\s*VALUES",
         db_py,
     )
     assert m, "INSERT INTO cycles column list not found in db.py"
@@ -138,11 +153,13 @@ def test_async_insert_cycle_includes_split_columns():
     for col in ("boiler_contribution_samples", "boiler_heat_samples", "boiler_dhw_samples"):
         assert col in col_list, f"{col} missing from async_insert_cycle: {col_list}"
 
+
 def test_cop_samples_has_boiler_mode_column():
     """Regression (M2 2b-2): cop_samples must have boiler_mode column."""
     sql = _SCHEMA_PATH.read_text()
     m = re.search(
-        r"CREATE TABLE IF NOT EXISTS cop_samples\s*\(([\s\S]*?)\n\);", sql,
+        r"CREATE TABLE IF NOT EXISTS cop_samples\s*\(([\s\S]*?)\n\);",
+        sql,
     )
     assert m, "cop_samples CREATE not found in schema.sql"
     cols = _extract_columns_from_create_sql(

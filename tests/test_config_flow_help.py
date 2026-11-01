@@ -1,4 +1,5 @@
 """Verify help texts (data_description) are present in strings + translations."""
+
 from __future__ import annotations
 
 import json

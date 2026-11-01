@@ -58,9 +58,7 @@ def test_extract_with_all_extra():
 
 
 def test_extract_first_8_dims_unchanged():
-    v = F.extract_feature_vector(
-        dict(CYCLE_BASE), cop_avg=3.2, lwt_avg=35.0, indoor_temp_avg=21.0
-    )
+    v = F.extract_feature_vector(dict(CYCLE_BASE), cop_avg=3.2, lwt_avg=35.0, indoor_temp_avg=21.0)
     assert v[0] == 600
     assert v[1] == 5.0
     assert v[2] == 3.0

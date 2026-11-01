@@ -1,4 +1,5 @@
 """Tests for v19 thermal_kw_avg rebuild migration (#169)."""
+
 from __future__ import annotations
 
 import json
@@ -92,9 +93,7 @@ async def test_v19_recoverable_recomputes_average(db):
     assert stats["recovered"] == 1
     assert stats["nulled"] == 0
     conn = db._require()
-    cur = await conn.execute(
-        "SELECT thermal_kw_avg FROM cycles WHERE id = ?", (cid,)
-    )
+    cur = await conn.execute("SELECT thermal_kw_avg FROM cycles WHERE id = ?", (cid,))
     row = await cur.fetchone()
     await cur.close()
     assert row["thermal_kw_avg"] is not None
@@ -109,9 +108,7 @@ async def test_v19_sparse_nulls(db):
     assert stats["recovered"] == 0
     assert stats["nulled"] == 1
     conn = db._require()
-    cur = await conn.execute(
-        "SELECT thermal_kw_avg FROM cycles WHERE id = ?", (cid,)
-    )
+    cur = await conn.execute("SELECT thermal_kw_avg FROM cycles WHERE id = ?", (cid,))
     row = await cur.fetchone()
     await cur.close()
     assert row["thermal_kw_avg"] is None
@@ -122,9 +119,7 @@ async def test_v19_no_samples_nulls(db):
     stats = await db.async_migrate_to_v19()
     assert stats["nulled"] == 1
     conn = db._require()
-    cur = await conn.execute(
-        "SELECT thermal_kw_avg FROM cycles WHERE id = ?", (cid,)
-    )
+    cur = await conn.execute("SELECT thermal_kw_avg FROM cycles WHERE id = ?", (cid,))
     row = await cur.fetchone()
     await cur.close()
     assert row["thermal_kw_avg"] is None
@@ -145,9 +140,7 @@ async def test_v19_dhw_uses_flow_dt(db):
     # DHW R486: flow_dt preferred. Same formula as heating (in v19 both
     # use flow_dt because power_w is unavailable in cop_samples).
     for ts in (1100.0, 1200.0, 1300.0):
-        await _insert_sample(
-            db, ts=ts, mode="dhw", flow_lmin=4.0, lwt=50.0, outdoor=10.0
-        )
+        await _insert_sample(db, ts=ts, mode="dhw", flow_lmin=4.0, lwt=50.0, outdoor=10.0)
     stats = await db.async_migrate_to_v19()
     assert stats["recovered"] == 1
 
@@ -161,9 +154,7 @@ async def test_v19_features_v11_overwritten(db):
     assert stats["recovered"] == 1
     assert stats["features_updated"] == 1
     conn = db._require()
-    cur = await conn.execute(
-        "SELECT vector_json FROM features WHERE cycle_id = ?", (cid,)
-    )
+    cur = await conn.execute("SELECT vector_json FROM features WHERE cycle_id = ?", (cid,))
     row = await cur.fetchone()
     await cur.close()
     vec = json.loads(row["vector_json"])
@@ -178,9 +169,7 @@ async def test_v19_features_v11_zeroed_for_nulled(db):
     assert stats["nulled"] == 1
     assert stats["features_updated"] == 1
     conn = db._require()
-    cur = await conn.execute(
-        "SELECT vector_json FROM features WHERE cycle_id = ?", (cid,)
-    )
+    cur = await conn.execute("SELECT vector_json FROM features WHERE cycle_id = ?", (cid,))
     row = await cur.fetchone()
     await cur.close()
     vec = json.loads(row["vector_json"])
@@ -190,10 +179,9 @@ async def test_v19_features_v11_zeroed_for_nulled(db):
 async def test_v19_daily_summary_rebuilt(db):
     # cycle 1: 2026-10-27 in local time
     import time
+
     day_ts = time.mktime((2026, 10, 27, 12, 0, 0, 0, 0, -1))
-    await _insert_cycle(
-        db, start_ts=day_ts, end_ts=day_ts + 600.0, thermal=0.0
-    )
+    await _insert_cycle(db, start_ts=day_ts, end_ts=day_ts + 600.0, thermal=0.0)
     for ts in (day_ts + 100.0, day_ts + 200.0, day_ts + 300.0):
         await _insert_sample(db, ts=ts)
     stats = await db.async_migrate_to_v19()
@@ -270,9 +258,7 @@ async def test_v19_timestamp_localtime_error(db):
     """Lines 1363-1364: time.localtime overflows -> day skipped."""
     # 1e30 is a valid SQLite REAL (NOT NULL ok) but time.localtime()
     # raises OverflowError on it, exercising the except branch.
-    cid = await _insert_cycle(
-        db, start_ts=1e30, end_ts=1e30, thermal=0.0
-    )
+    cid = await _insert_cycle(db, start_ts=1e30, end_ts=1e30, thermal=0.0)
     # no samples in window (1e30 > any sample ts); cycle still processed
     for ts in (1100.0, 1200.0, 1300.0):
         await _insert_sample(db, ts=ts, flow_lmin=5.0)
@@ -285,9 +271,7 @@ async def test_v19_timestamp_localtime_error(db):
 
 async def test_v19_rollup_exception_logged(db, monkeypatch):
     """Line 1407: async_rollup_day raising is caught + logged."""
-    cid = await _insert_cycle(
-        db, start_ts=1000.0, end_ts=2000.0, thermal=0.0
-    )
+    cid = await _insert_cycle(db, start_ts=1000.0, end_ts=2000.0, thermal=0.0)
     for ts in (1100.0, 1200.0, 1300.0):
         await _insert_sample(db, ts=ts, flow_lmin=5.0)
 

@@ -1,4 +1,5 @@
 """v1.15.1 — MAX_CYCLE_DURATION_S must allow long modulating runs (>=24h)."""
+
 from __future__ import annotations
 
 import sys

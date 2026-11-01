@@ -1,4 +1,5 @@
 """Batch 50d -- version contract + Silver IQS compliance."""
+
 from __future__ import annotations
 
 import json
@@ -64,4 +65,4 @@ def test_ruff_clean_no_e501_churn_visible():
     src = _read("pyproject.toml")
     assert "[tool.ruff" in src
     assert "E501" in src
-    assert 'line-length = 100' in src or "line-length = 100" in src
+    assert "line-length = 100" in src or "line-length = 100" in src

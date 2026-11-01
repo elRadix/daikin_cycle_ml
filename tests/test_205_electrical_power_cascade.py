@@ -1,4 +1,5 @@
 """Tests for electrical power cascade (v1.14.0, R507)."""
+
 from unittest.mock import MagicMock
 
 import pytest

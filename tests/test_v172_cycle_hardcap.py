@@ -1,4 +1,5 @@
 """Tests for v1.7.2 L1: MAX_CYCLE_DURATION_S hard cap (R315)."""
+
 from __future__ import annotations
 
 import logging
@@ -30,12 +31,14 @@ def _open_cycle(det: CycleDetector, t0: float = 1000.0) -> None:
 
 # -- Constant -------------------------------------------------------------
 
+
 def test_max_cycle_duration_constant_value() -> None:
     assert MAX_CYCLE_DURATION_S >= 24 * 3600.0
     assert MAX_CYCLE_DURATION_S >= 86400.0
 
 
 # -- Branch: state==RUNNING, start_ts set, over cap -> force close ---------
+
 
 def test_running_over_cap_forces_close() -> None:
     det = CycleDetector()
@@ -79,6 +82,7 @@ def test_hard_cap_resets_state_to_idle() -> None:
 
 # -- Branch: state==RUNNING, start_ts set, at / under cap -> no close ------
 
+
 def test_running_at_exactly_cap_does_not_close() -> None:
     """Boundary: '>' means exactly at cap does NOT force close."""
     det = CycleDetector()
@@ -104,6 +108,7 @@ def test_running_under_cap_does_not_close() -> None:
 
 # -- Branch: state==IDLE (short-circuit on outer if) ----------------------
 
+
 def test_hard_cap_skipped_in_idle() -> None:
     det = CycleDetector()
     assert det.state == STATE_IDLE
@@ -114,6 +119,7 @@ def test_hard_cap_skipped_in_idle() -> None:
 
 
 # -- Branch: state==RUNNING but _start_ts is None (defensive) -------------
+
 
 def test_hard_cap_skips_when_start_ts_missing() -> None:
     """Defensive: RUNNING with _start_ts=None must not crash on cap check."""

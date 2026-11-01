@@ -1,4 +1,5 @@
 """Batch 15: cop_analyzer edge-case coverage."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
@@ -200,91 +201,57 @@ def test_analyze_last_invalid_falls_back():
 
 
 def test_analyze_too_few_samples():
-    samples = [
-        CopSample(cop=3.0, lwt=35.0, outdoor=7.0, data_quality="Good")
-        for _ in range(3)
-    ]
+    samples = [CopSample(cop=3.0, lwt=35.0, outdoor=7.0, data_quality="Good") for _ in range(3)]
     a = analyze_stooklijn(samples)
     assert a.state == "unknown"
     assert a.samples == 3
 
 
 def test_analyze_avg_cop_none():
-    samples = [
-        CopSample(cop=3.0, lwt=None, outdoor=7.0, data_quality="Good")
-        for _ in range(6)
-    ]
+    samples = [CopSample(cop=3.0, lwt=None, outdoor=7.0, data_quality="Good") for _ in range(6)]
     a = analyze_stooklijn(samples)
     assert a.state == "unknown"
 
 
 def test_analyze_recent_lwt_none():
-    samples = [
-        CopSample(cop=3.0, lwt=35.0, outdoor=7.0, data_quality="Good")
-        for _ in range(5)
-    ]
-    samples.append(
-        CopSample(cop=3.0, lwt=None, outdoor=7.0, data_quality="Good")
-    )
+    samples = [CopSample(cop=3.0, lwt=35.0, outdoor=7.0, data_quality="Good") for _ in range(5)]
+    samples.append(CopSample(cop=3.0, lwt=None, outdoor=7.0, data_quality="Good"))
     a = analyze_stooklijn(samples)
     assert a.state == "unknown"
 
 
 def test_analyze_verlaag():
-    samples = [
-        CopSample(cop=3.0, lwt=30.0, outdoor=7.0, data_quality="Good")
-        for _ in range(5)
-    ]
-    samples.append(
-        CopSample(cop=3.5, lwt=35.0, outdoor=7.0, data_quality="Good")
-    )
+    samples = [CopSample(cop=3.0, lwt=30.0, outdoor=7.0, data_quality="Good") for _ in range(5)]
+    samples.append(CopSample(cop=3.5, lwt=35.0, outdoor=7.0, data_quality="Good"))
     a = analyze_stooklijn(samples)
     assert a.state == "lower_lwt"
     assert a.besparing_cop_pct > 0
 
 
 def test_analyze_verhoog():
-    samples = [
-        CopSample(cop=3.0, lwt=35.0, outdoor=7.0, data_quality="Good")
-        for _ in range(5)
-    ]
-    samples.append(
-        CopSample(cop=3.0, lwt=30.0, outdoor=7.0, data_quality="Good")
-    )
+    samples = [CopSample(cop=3.0, lwt=35.0, outdoor=7.0, data_quality="Good") for _ in range(5)]
+    samples.append(CopSample(cop=3.0, lwt=30.0, outdoor=7.0, data_quality="Good"))
     a = analyze_stooklijn(samples)
     assert a.state == "raise_lwt"
 
 
 def test_analyze_behoud():
-    samples = [
-        CopSample(cop=3.0, lwt=32.0, outdoor=7.0, data_quality="Good")
-        for _ in range(6)
-    ]
+    samples = [CopSample(cop=3.0, lwt=32.0, outdoor=7.0, data_quality="Good") for _ in range(6)]
     a = analyze_stooklijn(samples)
     assert a.state == "keep"
 
 
 def test_analyze_comfort_guard():
-    samples = [
-        CopSample(cop=3.0, lwt=30.0, outdoor=7.0, data_quality="Good")
-        for _ in range(5)
-    ]
-    samples.append(
-        CopSample(cop=3.5, lwt=40.0, outdoor=7.0, data_quality="Good")
-    )
+    samples = [CopSample(cop=3.0, lwt=30.0, outdoor=7.0, data_quality="Good") for _ in range(5)]
+    samples.append(CopSample(cop=3.5, lwt=40.0, outdoor=7.0, data_quality="Good"))
     a = analyze_stooklijn(samples, comfort_min=22.0, indoor_avg=21.0)
     assert a.state == "keep"
     assert a.comfort_impact < 0
 
 
 def test_analyze_indoor_avg_set_after_state():
-    samples = [
-        CopSample(cop=3.0, lwt=30.0, outdoor=7.0, data_quality="Good")
-        for _ in range(5)
-    ]
-    samples.append(
-        CopSample(cop=3.5, lwt=35.0, outdoor=7.0, data_quality="Good")
-    )
+    samples = [CopSample(cop=3.0, lwt=30.0, outdoor=7.0, data_quality="Good") for _ in range(5)]
+    samples.append(CopSample(cop=3.5, lwt=35.0, outdoor=7.0, data_quality="Good"))
     a = analyze_stooklijn(samples, comfort_min=10.0, indoor_avg=21.0)
     assert a.state == "lower_lwt"
     assert a.comfort_impact != 0.0
@@ -346,4 +313,3 @@ def test_bucket_summary_sort_order():
     # order should be: -6--4, 6-8, 20+
     assert keys[0] == "-6--4"
     assert keys[-1] == "20+"
-

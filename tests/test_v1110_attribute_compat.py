@@ -15,7 +15,6 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "custom_components" / "daikin_cycle_ml" / "manifest.json"
 
 
-
 def test_v2_input_keeps_legacy_keys():
     v2 = {
         "Leaving water temp. before BUH (R1T)": 28,
@@ -43,10 +42,12 @@ def test_translated_legacy_alias():
 
 
 def test_both_present_each_keeps_own_value():
-    view = build_compat_view({
-        "Inlet water temp. (R4T)": 25.0,
-        "Inlet water temp.(R4T)": 26.0,
-    })
+    view = build_compat_view(
+        {
+            "Inlet water temp. (R4T)": 25.0,
+            "Inlet water temp.(R4T)": 26.0,
+        }
+    )
     assert view["Inlet water temp. (R4T)"] == 25.0
     assert view["Inlet water temp.(R4T)"] == 26.0
 
@@ -66,28 +67,33 @@ def test_unrelated_keys_unchanged():
 
 
 def test_detect_schema():
-    assert detect_schema({
-        "Leaving water temp. before BUH (R1T)": 1,
-        "Leaving water temp. after BUH (R2T)": 2,
-        "Inlet water temp.(R4T)": 3,
-    }) == "espaltherma_v2"
+    assert (
+        detect_schema(
+            {
+                "Leaving water temp. before BUH (R1T)": 1,
+                "Leaving water temp. after BUH (R2T)": 2,
+                "Inlet water temp.(R4T)": 3,
+            }
+        )
+        == "espaltherma_v2"
+    )
     assert detect_schema({"Inlet water temp. (R4T)": 3}) == "espaltherma_v1"
     assert detect_schema({"Foo": 1}) == "unknown"
 
 
 def test_normalize_equivalence():
-    assert normalize_key("Inlet water temp. (R4T)") == normalize_key(
-        "Inlet water temp.(R4T)"
-    )
+    assert normalize_key("Inlet water temp. (R4T)") == normalize_key("Inlet water temp.(R4T)")
     assert normalize_key("3-Way Valve") == normalize_key("3way valve")
 
 
 def test_read_accepts_v2_state():
-    state = SimpleNamespace(attributes={
-        "Inlet water temp.(R4T)": "25.5",
-        "Flow sensor (l/min)": "12.4",
-        "INV frequency (rps)": "42",
-    })
+    state = SimpleNamespace(
+        attributes={
+            "Inlet water temp.(R4T)": "25.5",
+            "Flow sensor (l/min)": "12.4",
+            "INV frequency (rps)": "42",
+        }
+    )
     out = read(state)
     assert out["Inlet water temp.(R4T)"] == 25.5
     assert out["Inlet water temp. (R4T)"] == 25.5
@@ -95,10 +101,12 @@ def test_read_accepts_v2_state():
 
 
 def test_read_still_honors_custom_map():
-    state = SimpleNamespace(attributes={
-        "Inlet water temp. (R4T)": "25.5",
-        "Custom Inlet": "25.5",
-    })
+    state = SimpleNamespace(
+        attributes={
+            "Inlet water temp. (R4T)": "25.5",
+            "Custom Inlet": "25.5",
+        }
+    )
     out = read(state, custom_map={"Inlet water temp.(R4T)": "Custom Inlet"})
     assert out["Inlet water temp.(R4T)"] == 25.5
     assert "Custom Inlet" not in out

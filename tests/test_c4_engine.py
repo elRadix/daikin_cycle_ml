@@ -2,6 +2,7 @@
 
 Marker: C4_ENGINE_TESTS_v1
 """
+
 from __future__ import annotations
 
 import pytest
@@ -24,23 +25,27 @@ from custom_components.daikin_cycle_ml.engine.cop_degradation import (
 
 # --- bin_for_outdoor ---
 
-@pytest.mark.parametrize("t,expected", [
-    (-30.0, None),
-    (-25.0, "very_cold"),
-    (-15.0, "very_cold"),
-    (-10.0, "cold"),
-    (-5.0, "cold"),
-    (0.0, "cool"),
-    (4.9, "cool"),
-    (5.0, "mild"),
-    (7.5, "mild"),
-    (10.0, "warm"),
-    (14.9, "warm"),
-    (15.0, "hot"),
-    (24.9, "hot"),
-    (25.0, None),
-    (30.0, None),
-])
+
+@pytest.mark.parametrize(
+    "t,expected",
+    [
+        (-30.0, None),
+        (-25.0, "very_cold"),
+        (-15.0, "very_cold"),
+        (-10.0, "cold"),
+        (-5.0, "cold"),
+        (0.0, "cool"),
+        (4.9, "cool"),
+        (5.0, "mild"),
+        (7.5, "mild"),
+        (10.0, "warm"),
+        (14.9, "warm"),
+        (15.0, "hot"),
+        (24.9, "hot"),
+        (25.0, None),
+        (30.0, None),
+    ],
+)
 def test_bin_for_outdoor(t, expected):
     assert bin_for_outdoor(t) == expected
 
@@ -50,6 +55,7 @@ def test_bin_for_outdoor_none():
 
 
 # --- weighted_mean ---
+
 
 def test_weighted_mean_uniform():
     assert weighted_mean([1.0, 3.0], [1.0, 1.0]) == 2.0
@@ -76,6 +82,7 @@ def test_weighted_mean_skips_neg_weight():
 
 
 # --- weighted_linear_fit ---
+
 
 def test_fit_perfect_line():
     r = weighted_linear_fit([1.0, 2.0, 3.0], [1.0, 3.0, 5.0], [1.0, 1.0, 1.0])
@@ -118,24 +125,29 @@ def test_fit_zero_weight():
 
 # --- severity_for_pct ---
 
-@pytest.mark.parametrize("pct,expected", [
-    (None, SEVERITY_NONE),
-    (5.0, SEVERITY_NONE),
-    (0.0, SEVERITY_NONE),
-    (-7.99, SEVERITY_NONE),
-    (-8.0, SEVERITY_NONE),
-    (-8.01, SEVERITY_WARNING),
-    (-10.0, SEVERITY_WARNING),
-    (-14.99, SEVERITY_WARNING),
-    (-15.0, SEVERITY_WARNING),
-    (-15.01, SEVERITY_CRITICAL),
-    (-25.0, SEVERITY_CRITICAL),
-])
+
+@pytest.mark.parametrize(
+    "pct,expected",
+    [
+        (None, SEVERITY_NONE),
+        (5.0, SEVERITY_NONE),
+        (0.0, SEVERITY_NONE),
+        (-7.99, SEVERITY_NONE),
+        (-8.0, SEVERITY_NONE),
+        (-8.01, SEVERITY_WARNING),
+        (-10.0, SEVERITY_WARNING),
+        (-14.99, SEVERITY_WARNING),
+        (-15.0, SEVERITY_WARNING),
+        (-15.01, SEVERITY_CRITICAL),
+        (-25.0, SEVERITY_CRITICAL),
+    ],
+)
 def test_severity_for_pct(pct, expected):
     assert severity_for_pct(pct) == expected
 
 
 # --- downgrade_for_lwt ---
+
 
 def test_downgrade_critical_to_warning():
     sev, dg = downgrade_for_lwt(SEVERITY_CRITICAL, True)
@@ -164,14 +176,18 @@ def test_no_downgrade_without_shift():
 
 # --- build_dirty_hours ---
 
+
 def test_dirty_basic():
     cycles = [
-        {"start_ts": 3600 * 100, "end_ts": 3600 * 100 + 1800,
-         "buh_used": 1, "defrost_used": 0},
-        {"start_ts": 3600 * 200, "end_ts": None, "duration_s": 7200,
-         "buh_used": 0, "defrost_used": 1},
-        {"start_ts": 3600 * 300, "end_ts": 3600 * 300 + 600,
-         "buh_used": 0, "defrost_used": 0},
+        {"start_ts": 3600 * 100, "end_ts": 3600 * 100 + 1800, "buh_used": 1, "defrost_used": 0},
+        {
+            "start_ts": 3600 * 200,
+            "end_ts": None,
+            "duration_s": 7200,
+            "buh_used": 0,
+            "defrost_used": 1,
+        },
+        {"start_ts": 3600 * 300, "end_ts": 3600 * 300 + 600, "buh_used": 0, "defrost_used": 0},
     ]
     d = build_dirty_hours(cycles)
     assert 100 in d
@@ -181,20 +197,25 @@ def test_dirty_basic():
 
 
 def test_dirty_end_falls_back_to_start():
-    cycles = [{"start_ts": 3600 * 50, "end_ts": None, "duration_s": None,
-               "buh_used": 1, "defrost_used": 0}]
+    cycles = [
+        {
+            "start_ts": 3600 * 50,
+            "end_ts": None,
+            "duration_s": None,
+            "buh_used": 1,
+            "defrost_used": 0,
+        }
+    ]
     assert build_dirty_hours(cycles) == {50}
 
 
 def test_dirty_no_start():
-    cycles = [{"start_ts": None, "end_ts": 1234,
-               "buh_used": 1, "defrost_used": 0}]
+    cycles = [{"start_ts": None, "end_ts": 1234, "buh_used": 1, "defrost_used": 0}]
     assert build_dirty_hours(cycles) == set()
 
 
 def test_dirty_end_before_start():
-    cycles = [{"start_ts": 3600 * 300, "end_ts": 3600 * 299,
-               "buh_used": 1, "defrost_used": 0}]
+    cycles = [{"start_ts": 3600 * 300, "end_ts": 3600 * 299, "buh_used": 1, "defrost_used": 0}]
     d = build_dirty_hours(cycles)
     assert 299 in d and 300 in d
 
@@ -204,6 +225,7 @@ def test_dirty_empty():
 
 
 # --- filter_dirty_hours ---
+
 
 def test_filter_dirty_basic():
     rows = [{"ts_hour": 100}, {"ts_hour": 200}, {"ts_hour": 999}]
@@ -216,6 +238,7 @@ def test_filter_dirty_empty_set():
 
 
 # --- aggregate_by_bin ---
+
 
 def test_aggregate_basic():
     rows = [
@@ -250,13 +273,13 @@ def test_aggregate_skips_out_of_range():
 
 
 def test_aggregate_lwt_none():
-    rows = [{"outdoor_mean": 7.0, "cop_mean": 3.0,
-             "n_samples": 5, "lwt_mean": None}]
+    rows = [{"outdoor_mean": 7.0, "cop_mean": 3.0, "n_samples": 5, "lwt_mean": None}]
     a = aggregate_by_bin(rows)
     assert a["mild"]["lwt_mean"] is None
 
 
 # --- merge_bins ---
+
 
 def test_merge_basic():
     r = {"mild": {"hours": 10, "cop_mean": 3.2, "n_samples": 50, "lwt_mean": 35.0}}
@@ -300,12 +323,10 @@ def test_merge_order():
 
 
 def test_dirty_invalid_start_ts():
-    cycles = [{"start_ts": "abc", "end_ts": 3600,
-               "buh_used": 1, "defrost_used": 0}]
+    cycles = [{"start_ts": "abc", "end_ts": 3600, "buh_used": 1, "defrost_used": 0}]
     assert build_dirty_hours(cycles) == set()
 
 
 def test_dirty_invalid_end_ts():
-    cycles = [{"start_ts": 3600, "end_ts": "xyz",
-               "buh_used": 1, "defrost_used": 0}]
+    cycles = [{"start_ts": 3600, "end_ts": "xyz", "buh_used": 1, "defrost_used": 0}]
     assert build_dirty_hours(cycles) == set()

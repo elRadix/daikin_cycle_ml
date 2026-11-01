@@ -1,4 +1,5 @@
 """Tests for 12a-2 wiring: coordinator adaptive threshold integration."""
+
 from __future__ import annotations
 
 import inspect
@@ -31,9 +32,6 @@ def test_coordinator_has_load_adaptive():
 
 
 def test_effective_threshold_signature():
-    sig = inspect.signature(
-        cmod.DaikinCycleMLCoordinator._effective_threshold
-    )
+    sig = inspect.signature(cmod.DaikinCycleMLCoordinator._effective_threshold)
     assert "key" in sig.parameters
     assert "default" in sig.parameters
-

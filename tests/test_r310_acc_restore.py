@@ -1,4 +1,5 @@
 """R310: energy/runtime accumulator rehydration on coordinator startup."""
+
 from __future__ import annotations
 
 import time
@@ -37,6 +38,7 @@ def _make_coord() -> DaikinCycleMLCoordinator:
 
 # ---------- _restore_runtime_acc ----------
 
+
 @pytest.mark.asyncio
 async def test_restore_runtime_acc_no_db() -> None:
     assert await _make_coord()._restore_runtime_acc() is False
@@ -54,9 +56,7 @@ async def test_restore_runtime_acc_payload_not_dict() -> None:
 async def test_restore_runtime_acc_wrong_day() -> None:
     c = _make_coord()
     c.db = AsyncMock()
-    c.db.async_get_model_state = AsyncMock(
-        return_value={"day": "2000-01-01"}
-    )
+    c.db.async_get_model_state = AsyncMock(return_value={"day": "2000-01-01"})
     assert await c._restore_runtime_acc() is False
 
 
@@ -88,13 +88,12 @@ async def test_restore_runtime_acc_happy() -> None:
 async def test_restore_runtime_acc_exception() -> None:
     c = _make_coord()
     c.db = AsyncMock()
-    c.db.async_get_model_state = AsyncMock(
-        side_effect=RuntimeError("boom")
-    )
+    c.db.async_get_model_state = AsyncMock(side_effect=RuntimeError("boom"))
     assert await c._restore_runtime_acc() is False
 
 
 # ---------- _restore_energy_acc ----------
+
 
 @pytest.mark.asyncio
 async def test_restore_energy_acc_no_db() -> None:
@@ -113,9 +112,7 @@ async def test_restore_energy_acc_payload_none() -> None:
 async def test_restore_energy_acc_wrong_day() -> None:
     c = _make_coord()
     c.db = AsyncMock()
-    c.db.async_get_model_state = AsyncMock(
-        return_value={"day": "2000-01-01"}
-    )
+    c.db.async_get_model_state = AsyncMock(return_value={"day": "2000-01-01"})
     assert await c._restore_energy_acc() is False
 
 
@@ -148,18 +145,15 @@ async def test_restore_energy_acc_happy() -> None:
 async def test_restore_energy_acc_exception() -> None:
     c = _make_coord()
     c.db = AsyncMock()
-    c.db.async_get_model_state = AsyncMock(
-        side_effect=RuntimeError("boom")
-    )
+    c.db.async_get_model_state = AsyncMock(side_effect=RuntimeError("boom"))
     assert await c._restore_energy_acc() is False
 
 
 # ---------- wiring ----------
 
+
 def test_setup_hook_calls_restores_in_order() -> None:
-    src = Path(
-        "custom_components/daikin_cycle_ml/coordinator.py"
-    ).read_text()
+    src = Path("custom_components/daikin_cycle_ml/coordinator.py").read_text()
     idx_det = src.index("await self._restore_detector_state()")
     idx_rt = src.index("await self._restore_runtime_acc()")
     idx_el = src.index("await self._restore_energy_acc()")

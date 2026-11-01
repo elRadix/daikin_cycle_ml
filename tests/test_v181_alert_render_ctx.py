@@ -1,4 +1,5 @@
 """v1.8.1 — alert ctx population + render sentinel fixes (R331)."""
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -112,6 +113,7 @@ def test_advice_not_bled_across_alerts():
 
 # ---------- SB-3: mode fallback substring branches ----------
 
+
 def _coord_with_snapshot(attrs: dict) -> object:
     from collections import deque
     from unittest.mock import MagicMock
@@ -166,6 +168,7 @@ def test_mode_fallback_no_match_stays_unknown():
 
 
 # ---------- R331-B: setpoint helpers use real constants ----------
+
 
 def test_setpoint_current_reads_lw_setpoint_attr():
     """R331-B: _setpoint_current hits LW setpoint (main)."""

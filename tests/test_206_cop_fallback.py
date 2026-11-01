@@ -1,4 +1,5 @@
 """Tests for internal COP fallback (v1.14.0, R507)."""
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -81,6 +82,7 @@ def test_cop_out_of_range_returns_none():
 
 def test_data_snapshot_fields_present():
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+
     s = DataSnapshot()
     assert hasattr(s, "cop_source")
     assert s.cop_source == "none"
@@ -119,8 +121,10 @@ def test_cop_effective_invalid_rps():
 
 def test_cop_effective_mode_from_data():
     c = _coord(cop_sensor=None, power_sensor=None)
+
     class _D:
         mode = "dhw"
+
     c.data = _D()
     cop, src = c._read_cop_effective(1000.0, BASE_ATTRS)
     assert src.startswith("computed_")

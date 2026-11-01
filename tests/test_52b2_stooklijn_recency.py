@@ -1,4 +1,5 @@
 """Batch 52b2: recency filter + DHW-aware geen_data."""
+
 import time
 
 from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
@@ -11,8 +12,7 @@ from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
 
 def _mk(cop, lwt, out, mode, ts=0.0, n=6):
     return [
-        CopSample(cop=cop, lwt=lwt, outdoor=out, mode=mode, ts=ts,
-                  data_quality="Good")
+        CopSample(cop=cop, lwt=lwt, outdoor=out, mode=mode, ts=ts, data_quality="Good")
         for _ in range(n)
     ]
 
@@ -87,7 +87,5 @@ def test_explicit_now_parameter():
     heating = _mk(4.0, 35.0, 5.0, "heating", ts=old_ts)
     a = analyze_stooklijn(heating, now=2000.0)
     assert a.state != "no_data"
-    a2 = analyze_stooklijn(
-        heating, now=old_ts + STOOKLIJN_RECENT_WINDOW_S + 1
-    )
+    a2 = analyze_stooklijn(heating, now=old_ts + STOOKLIJN_RECENT_WINDOW_S + 1)
     assert a2.state == "no_data"

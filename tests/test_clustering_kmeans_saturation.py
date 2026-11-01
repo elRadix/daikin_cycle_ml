@@ -1,4 +1,5 @@
 """Regression: kmeans inertia saturates on overflow (Audit v44.0 A1)."""
+
 import sys
 
 from custom_components.daikin_cycle_ml.ml.clustering import kmeans

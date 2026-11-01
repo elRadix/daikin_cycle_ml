@@ -1,4 +1,5 @@
 """v1.13.2 #196 hotfix — cop_samples source-driven sampling path."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -47,7 +48,7 @@ async def test_collect_no_cop_sensor_uses_data_cop():
     await c._maybe_collect_cop_sample(99999.0)
     c.db.async_insert_cop_sample.assert_awaited_once()
     row = c.db.async_insert_cop_sample.await_args[0][0]
-    assert row['cop'] == 3.2
+    assert row["cop"] == 3.2
 
 
 async def test_collect_data_cop_invalid_float_skips():
@@ -81,16 +82,16 @@ async def test_collect_source_attrs_good_quality():
     """Full source attrs + valid cop_sensor → data_quality='Good' → insert."""
     snap = DataSnapshot(attrs=_full_attrs())
     c = _make_coord(data=snap)
-    c.hass.states.get = MagicMock(return_value=_state('4.2'))
+    c.hass.states.get = MagicMock(return_value=_state("4.2"))
     await c._maybe_collect_cop_sample(99999.0)
     c.db.async_insert_cop_sample.assert_awaited_once()
     row = c.db.async_insert_cop_sample.await_args[0][0]
-    assert row['cop'] == 4.2
-    assert row['lwt'] == 32.0
-    assert row['outdoor'] == 7.5
-    assert row['flow_lmin'] == 15.5
-    assert row['power_stable'] is True
-    assert row['source'] == 'interval'
+    assert row["cop"] == 4.2
+    assert row["lwt"] == 32.0
+    assert row["outdoor"] == 7.5
+    assert row["flow_lmin"] == 15.5
+    assert row["power_stable"] is True
+    assert row["source"] == "interval"
 
 
 async def test_collect_source_attrs_partial_quality_skips():
@@ -101,7 +102,7 @@ async def test_collect_source_attrs_partial_quality_skips():
     }
     snap = DataSnapshot(attrs=attrs)
     c = _make_coord(data=snap)
-    c.hass.states.get = MagicMock(return_value=_state('4.2'))
+    c.hass.states.get = MagicMock(return_value=_state("4.2"))
     await c._maybe_collect_cop_sample(99999.0)
     c.db.async_insert_cop_sample.assert_not_awaited()
 
@@ -112,7 +113,7 @@ async def test_collect_source_attrs_defrost_on_skips():
     attrs["Defrost Operation"] = "ON"
     snap = DataSnapshot(attrs=attrs)
     c = _make_coord(data=snap)
-    c.hass.states.get = MagicMock(return_value=_state('4.2'))
+    c.hass.states.get = MagicMock(return_value=_state("4.2"))
     await c._maybe_collect_cop_sample(99999.0)
     c.db.async_insert_cop_sample.assert_not_awaited()
 
@@ -126,11 +127,11 @@ async def test_collect_source_attrs_lwt_fallback_to_r1t():
     }
     snap = DataSnapshot(attrs=attrs)
     c = _make_coord(data=snap)
-    c.hass.states.get = MagicMock(return_value=_state('4.2'))
+    c.hass.states.get = MagicMock(return_value=_state("4.2"))
     await c._maybe_collect_cop_sample(99999.0)
     c.db.async_insert_cop_sample.assert_awaited_once()
     row = c.db.async_insert_cop_sample.await_args[0][0]
-    assert row['lwt'] == 30.5
+    assert row["lwt"] == 30.5
 
 
 async def test_collect_source_attrs_missing_outdoor_partial_skip():
@@ -142,7 +143,7 @@ async def test_collect_source_attrs_missing_outdoor_partial_skip():
     }
     snap = DataSnapshot(attrs=attrs)
     c = _make_coord(data=snap)
-    c.hass.states.get = MagicMock(return_value=_state('4.2'))
+    c.hass.states.get = MagicMock(return_value=_state("4.2"))
     await c._maybe_collect_cop_sample(99999.0)
     c.db.async_insert_cop_sample.assert_not_awaited()
 
@@ -155,8 +156,8 @@ async def test_collect_source_attrs_missing_flow_inserts():
     }
     snap = DataSnapshot(attrs=attrs)
     c = _make_coord(data=snap)
-    c.hass.states.get = MagicMock(return_value=_state('4.2'))
+    c.hass.states.get = MagicMock(return_value=_state("4.2"))
     await c._maybe_collect_cop_sample(99999.0)
     c.db.async_insert_cop_sample.assert_awaited_once()
     row = c.db.async_insert_cop_sample.await_args[0][0]
-    assert row['flow_lmin'] is None
+    assert row["flow_lmin"] is None

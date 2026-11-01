@@ -1,4 +1,5 @@
 """v1.13.0 #129 #124: sanity gate for cop_avg / thermal_kw_avg."""
+
 from __future__ import annotations
 
 import pytest
@@ -73,6 +74,7 @@ def test_thermal_above_max_nulls():
 async def test_collect_cycle_averages_return_value_also_gated():
     """R488: gated cop_avg must also NULL the tuple-return, not just record."""
     from custom_components.daikin_cycle_ml import coordinator as _coord
+
     c = object.__new__(_coord.DaikinCycleMLCoordinator)
     c._cycle_lwt_sum = 0.0
     c._cycle_lwt_count = 0
@@ -85,8 +87,10 @@ async def test_collect_cycle_averages_return_value_also_gated():
     c.indoor_temp_entity = None
     c.db = None
     record = {
-        "start_ts": 1.0, "end_ts": 2.0,
-        "duration_s": 600.0, "mode": "heating",
+        "start_ts": 1.0,
+        "end_ts": 2.0,
+        "duration_s": 600.0,
+        "mode": "heating",
     }
     ret_avg, _lwt, _ind = await c._collect_cycle_averages(record)
     assert ret_avg is None

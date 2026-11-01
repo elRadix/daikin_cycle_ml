@@ -1,4 +1,5 @@
 """Batch 32 -- MultiBaseline 11->12 migration logging + marker."""
+
 from __future__ import annotations
 
 import logging
@@ -17,8 +18,7 @@ def test_from_dict_dim_11_sets_marker(caplog):
     assert mb.dim == VECTOR_LEN
     assert mb._migrated_from_dim == 11
     assert any(
-        'obsolete/missing' in rec.message and rec.levelno == logging.INFO
-        for rec in caplog.records
+        "obsolete/missing" in rec.message and rec.levelno == logging.INFO for rec in caplog.records
     )
     assert not any(rec.levelno >= logging.WARNING for rec in caplog.records)
 

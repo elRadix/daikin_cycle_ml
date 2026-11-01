@@ -1,4 +1,5 @@
 """C9: verify all registered services are translated in strings/en/nl."""
+
 from __future__ import annotations
 
 import json
@@ -53,9 +54,7 @@ def test_each_service_has_name_and_description():
             svc = data["services"][key]
             assert svc.get("name"), f"{path}: {key} missing name"
             assert svc.get("description"), f"{path}: {key} missing description"
-            assert isinstance(svc.get("fields"), dict), (
-                f"{path}: {key} fields not a dict"
-            )
+            assert isinstance(svc.get("fields"), dict), f"{path}: {key} fields not a dict"
 
 
 def test_en_and_strings_services_identical():

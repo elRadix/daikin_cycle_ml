@@ -7,6 +7,7 @@ Targets missing lines/branches from branch recon on e7a43e3:
 
 Test-only. No source changes.
 """
+
 from __future__ import annotations
 
 import time
@@ -47,10 +48,12 @@ async def db(tmp_path):
     finally:
         await database.async_close()
         import asyncio as _a
+
         await _a.sleep(0.05)
 
 
 # ---------- store.py missing lines ----------
+
 
 def test_store_daily_reset_removes_today_keys():
     # line 84: pop *_today counters on day change
@@ -76,6 +79,7 @@ def test_store_record_short_run_and_off():
 
 # ---------- db.py integrity check: rows[0][0] != "ok" ----------
 
+
 async def test_integrity_check_not_ok(db):
     # line 132: rows[0][0] != "ok"
     with patch.object(db, "_conn", _FakeConn([("not ok",)])):
@@ -84,22 +88,43 @@ async def test_integrity_check_not_ok(db):
 
 # ---------- db.py migrate_v11: malformed json skip ----------
 
+
 async def test_migrate_v11_skips_malformed_json(db):
     # lines 153-154: json.loads raises -> continue
     # features.cycle_id has FK to cycles.id -> insert real cycles first
     now = time.time()
-    cid_bad = await db.async_insert_cycle({
-        "start_ts": now - 1000, "end_ts": now - 500, "duration_s": 500,
-        "mode": "Heating", "dT_max": 5.0, "dT_avg": 4.0, "rps_max": 50,
-        "rps_avg": 40.0, "outdoor_temp": 8.0, "buh_used": 0,
-        "defrost_used": 0, "quality_score": 70,
-    })
-    cid_ok = await db.async_insert_cycle({
-        "start_ts": now - 400, "end_ts": now - 200, "duration_s": 200,
-        "mode": "Heating", "dT_max": 5.0, "dT_avg": 4.0, "rps_max": 50,
-        "rps_avg": 40.0, "outdoor_temp": 8.0, "buh_used": 0,
-        "defrost_used": 0, "quality_score": 70,
-    })
+    cid_bad = await db.async_insert_cycle(
+        {
+            "start_ts": now - 1000,
+            "end_ts": now - 500,
+            "duration_s": 500,
+            "mode": "Heating",
+            "dT_max": 5.0,
+            "dT_avg": 4.0,
+            "rps_max": 50,
+            "rps_avg": 40.0,
+            "outdoor_temp": 8.0,
+            "buh_used": 0,
+            "defrost_used": 0,
+            "quality_score": 70,
+        }
+    )
+    cid_ok = await db.async_insert_cycle(
+        {
+            "start_ts": now - 400,
+            "end_ts": now - 200,
+            "duration_s": 200,
+            "mode": "Heating",
+            "dT_max": 5.0,
+            "dT_avg": 4.0,
+            "rps_max": 50,
+            "rps_avg": 40.0,
+            "outdoor_temp": 8.0,
+            "buh_used": 0,
+            "defrost_used": 0,
+            "quality_score": 70,
+        }
+    )
     assert cid_bad and cid_ok
     conn = db._require()
     await conn.execute(
@@ -117,6 +142,7 @@ async def test_migrate_v11_skips_malformed_json(db):
 
 # ---------- db.py run_maintenance: non-numeric fields ----------
 
+
 async def test_maintenance_handles_non_numeric_fields(db):
     # branches 296->302, 306->308, 309->311 (isinstance checks)
     conn = db._require()
@@ -125,8 +151,7 @@ async def test_maintenance_handles_non_numeric_fields(db):
         "INSERT INTO cycles (start_ts, end_ts, duration_s, mode, dT_max, dT_avg,"
         " rps_max, rps_avg, outdoor_temp, buh_used, defrost_used,"
         " quality_score) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-        (now - 3600, now - 3000, "bad", "Heating", "bad", 4.0,
-         60, "bad", 8.0, 1, 1, "bad"),
+        (now - 3600, now - 3000, "bad", "Heating", "bad", 4.0, 60, "bad", 8.0, 1, 1, "bad"),
     )
     await conn.commit()
     result = await db.async_run_maintenance(cycle_retention_days=0, vacuum=False)
@@ -135,10 +160,12 @@ async def test_maintenance_handles_non_numeric_fields(db):
 
 # ---------- db.py cop_samples prune exception ----------
 
+
 async def test_maintenance_cop_prune_exception(db):
     # lines 386-387
     with patch.object(
-        type(db), "async_ensure_cop_samples_table",
+        type(db),
+        "async_ensure_cop_samples_table",
         side_effect=RuntimeError("boom"),
     ):
         result = await db.async_run_maintenance(vacuum=False)
@@ -146,6 +173,7 @@ async def test_maintenance_cop_prune_exception(db):
 
 
 # ---------- db.py vacuum paths ----------
+
 
 async def test_vacuum_no_connection_returns_false(db):
     # line 412
@@ -156,11 +184,13 @@ async def test_vacuum_no_connection_returns_false(db):
 async def test_vacuum_exception_returns_false(db):
     # lines 419-421
     import aiosqlite as _ai
+
     with patch.object(_ai, "connect", side_effect=RuntimeError("nope")):
         assert await db.async_vacuum() is False
 
 
 # ---------- db.py daily_summary n==0 branch ----------
+
 
 async def test_daily_summary_zero_cycles(db):
     # lines 457-460: n = 0 -> *_avg = None
@@ -182,6 +212,7 @@ async def test_daily_summary_zero_cycles(db):
 
 
 # ---------- db.py avg_cop_between empty / non-numeric ----------
+
 
 async def test_avg_cop_between_empty(db):
     # line 630: no cops -> None

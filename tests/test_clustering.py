@@ -1,4 +1,5 @@
 """Tests for ml.clustering (Batch 7b)."""
+
 from __future__ import annotations
 
 import pytest
@@ -101,8 +102,13 @@ def test_labels_to_dict_keys():
     r = kmeans(_two_blobs(), k=2)
     d = labels_to_dict(r)
     assert set(d.keys()) == {
-        "k", "n", "iterations", "inertia",
-        "labels", "centroids", "cluster_sizes",
+        "k",
+        "n",
+        "iterations",
+        "inertia",
+        "labels",
+        "centroids",
+        "cluster_sizes",
     }
 
 

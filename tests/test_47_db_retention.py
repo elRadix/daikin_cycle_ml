@@ -1,4 +1,5 @@
 """Batch 47 -- db retention + count/avg helpers."""
+
 from __future__ import annotations
 
 import asyncio
@@ -26,7 +27,7 @@ def test_avg_no_conn():
 def test_count_conn_raises():
     db = _db_no_conn()
     conn = MagicMock()
-    conn.execute = AsyncMock(side_effect=RuntimeError('fail'))
+    conn.execute = AsyncMock(side_effect=RuntimeError("fail"))
     db._conn = conn
     assert asyncio.run(db.async_count_cycles_since(0)) == 0
 
@@ -34,7 +35,7 @@ def test_count_conn_raises():
 def test_avg_conn_raises():
     db = _db_no_conn()
     conn = MagicMock()
-    conn.execute = AsyncMock(side_effect=RuntimeError('fail'))
+    conn.execute = AsyncMock(side_effect=RuntimeError("fail"))
     db._conn = conn
     assert asyncio.run(db.async_avg_duration_since(0)) is None
 
@@ -93,6 +94,7 @@ def test_avg_fetch_returns_empty_tuple():
     conn.execute = AsyncMock(return_value=cur)
     db._conn = conn
     assert asyncio.run(db.async_avg_duration_since(0)) is None
+
 
 # ---------- I1: async_count_alerts_before ----------
 
@@ -168,4 +170,3 @@ def test_cycles_before_row_valid():
     conn.execute = AsyncMock(return_value=cur)
     db._conn = conn
     assert asyncio.run(db.async_count_cycles_before(123.0)) == 999
-

@@ -1,4 +1,5 @@
 """v1.9.1 I9 — energy/runtime accumulator self-healing + restore retry tests."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -34,15 +35,17 @@ def _bare(**overrides):
 async def test_persist_energy_restores_from_db_if_higher():
     """DB has real data, memory is zero — restore from DB, do NOT overwrite."""
     db = MagicMock()
-    db.async_get_model_state = AsyncMock(return_value={
-        "day": "2026-10-05",
-        "heating_th_kwh": 5.0,
-        "heating_el_kwh": 1.5,
-        "dhw_th_kwh": 2.0,
-        "dhw_el_kwh": 0.6,
-        "cooling_th_kwh": 0.0,
-        "cooling_el_kwh": 0.0,
-    })
+    db.async_get_model_state = AsyncMock(
+        return_value={
+            "day": "2026-10-05",
+            "heating_th_kwh": 5.0,
+            "heating_el_kwh": 1.5,
+            "dhw_th_kwh": 2.0,
+            "dhw_el_kwh": 0.6,
+            "cooling_th_kwh": 0.0,
+            "cooling_el_kwh": 0.0,
+        }
+    )
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db, energy_day_key="2026-10-05")
     await c._persist_energy_acc()
@@ -56,13 +59,17 @@ async def test_persist_energy_restores_from_db_if_higher():
 async def test_persist_energy_overwrites_when_mem_higher():
     """Memory > DB → normal persist runs (no restore)."""
     db = MagicMock()
-    db.async_get_model_state = AsyncMock(return_value={
-        "day": "2026-10-05",
-        "heating_th_kwh": 1.0,
-        "heating_el_kwh": 0.3,
-        "dhw_th_kwh": 0.0, "dhw_el_kwh": 0.0,
-        "cooling_th_kwh": 0.0, "cooling_el_kwh": 0.0,
-    })
+    db.async_get_model_state = AsyncMock(
+        return_value={
+            "day": "2026-10-05",
+            "heating_th_kwh": 1.0,
+            "heating_el_kwh": 0.3,
+            "dhw_th_kwh": 0.0,
+            "dhw_el_kwh": 0.0,
+            "cooling_th_kwh": 0.0,
+            "cooling_el_kwh": 0.0,
+        }
+    )
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db, energy_day_key="2026-10-05")
     c._energy_acc["heating"]["th"] = 9.0
@@ -74,10 +81,12 @@ async def test_persist_energy_overwrites_when_mem_higher():
 async def test_persist_energy_ignores_db_day_mismatch():
     """DB has different day → treat as no existing data, normal persist."""
     db = MagicMock()
-    db.async_get_model_state = AsyncMock(return_value={
-        "day": "2026-10-04",
-        "heating_th_kwh": 99.0,
-    })
+    db.async_get_model_state = AsyncMock(
+        return_value={
+            "day": "2026-10-04",
+            "heating_th_kwh": 99.0,
+        }
+    )
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db, energy_day_key="2026-10-05")
     c._energy_acc["heating"]["th"] = 1.0
@@ -88,14 +97,16 @@ async def test_persist_energy_ignores_db_day_mismatch():
 @pytest.mark.asyncio
 async def test_persist_runtime_restores_from_db_if_higher():
     db = MagicMock()
-    db.async_get_model_state = AsyncMock(return_value={
-        "day": "2026-10-05",
-        "buh_step1_s": 60.0,
-        "buh_step2_s": 120.0,
-        "defrost_count": 3,
-        "defrost_duration_s": 300.0,
-        "last_defrost_ts": 999.0,
-    })
+    db.async_get_model_state = AsyncMock(
+        return_value={
+            "day": "2026-10-05",
+            "buh_step1_s": 60.0,
+            "buh_step2_s": 120.0,
+            "defrost_count": 3,
+            "defrost_duration_s": 300.0,
+            "last_defrost_ts": 999.0,
+        }
+    )
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db, runtime_day_key="2026-10-05")
     await c._persist_runtime_acc()
@@ -110,9 +121,7 @@ async def test_restore_energy_logs_payload_not_dict():
     db = MagicMock()
     db.async_get_model_state = AsyncMock(return_value="not a dict")
     c = _bare(db=db)
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator._LOGGER"
-    ) as log:
+    with patch("custom_components.daikin_cycle_ml.coordinator._LOGGER") as log:
         ok = await c._restore_energy_acc()
     assert ok is False
     assert log.warning.called
@@ -121,13 +130,13 @@ async def test_restore_energy_logs_payload_not_dict():
 @pytest.mark.asyncio
 async def test_restore_energy_logs_day_mismatch():
     db = MagicMock()
-    db.async_get_model_state = AsyncMock(return_value={
-        "day": "2026-01-01",
-    })
+    db.async_get_model_state = AsyncMock(
+        return_value={
+            "day": "2026-01-01",
+        }
+    )
     c = _bare(db=db)
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator._LOGGER"
-    ) as log:
+    with patch("custom_components.daikin_cycle_ml.coordinator._LOGGER") as log:
         ok = await c._restore_energy_acc()
     assert ok is False
     assert log.warning.called
@@ -138,9 +147,7 @@ async def test_restore_runtime_logs_payload_not_dict():
     db = MagicMock()
     db.async_get_model_state = AsyncMock(return_value=42)
     c = _bare(db=db)
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator._LOGGER"
-    ) as log:
+    with patch("custom_components.daikin_cycle_ml.coordinator._LOGGER") as log:
         ok = await c._restore_runtime_acc()
     assert ok is False
     assert log.warning.called
@@ -149,13 +156,13 @@ async def test_restore_runtime_logs_payload_not_dict():
 @pytest.mark.asyncio
 async def test_restore_runtime_logs_day_mismatch():
     db = MagicMock()
-    db.async_get_model_state = AsyncMock(return_value={
-        "day": "2026-01-01",
-    })
+    db.async_get_model_state = AsyncMock(
+        return_value={
+            "day": "2026-01-01",
+        }
+    )
     c = _bare(db=db)
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator._LOGGER"
-    ) as log:
+    with patch("custom_components.daikin_cycle_ml.coordinator._LOGGER") as log:
         ok = await c._restore_runtime_acc()
     assert ok is False
     assert log.warning.called
@@ -169,14 +176,16 @@ async def test_persist_runtime_overwrites_when_mem_higher():
     (coordinator.py line 1138 -> 1153).
     """
     db = MagicMock()
-    db.async_get_model_state = AsyncMock(return_value={
-        "day": "2026-10-05",
-        "buh_step1_s": 10.0,
-        "buh_step2_s": 20.0,
-        "defrost_count": 3,
-        "defrost_duration_s": 300.0,
-        "last_defrost_ts": 999.0,
-    })
+    db.async_get_model_state = AsyncMock(
+        return_value={
+            "day": "2026-10-05",
+            "buh_step1_s": 10.0,
+            "buh_step2_s": 20.0,
+            "defrost_count": 3,
+            "defrost_duration_s": 300.0,
+            "last_defrost_ts": 999.0,
+        }
+    )
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db, runtime_day_key="2026-10-05")
     c._buh_step1_s = 999.0

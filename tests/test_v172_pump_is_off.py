@@ -4,6 +4,7 @@ Covers all value shapes that attribute_reader._normalize() may produce,
 and validates that issue #49's root-cause path (string 'OFF' while
 detector is RUNNING) now closes the cycle immediately.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -21,13 +22,19 @@ from custom_components.daikin_cycle_ml.engine.cycle_detector import (
 
 # ── Helper unit tests: parametrised over all off/on/unknown inputs ────────
 
+
 @pytest.mark.parametrize(
     "value",
     [
         False,
-        "OFF", "off", "Off", " OFF ",
-        "FALSE", "false",
-        "NO", "no",
+        "OFF",
+        "off",
+        "Off",
+        " OFF ",
+        "FALSE",
+        "false",
+        "NO",
+        "no",
         "",
     ],
 )
@@ -39,11 +46,21 @@ def test_pump_is_off_recognised_off_forms(value) -> None:
     "value",
     [
         True,
-        "ON", "on", "On",
-        "YES", "TRUE",
-        "1", "0", "maybe",
-        0, 0.0, 1, 1.5, 30.0,      # numerics are unknown, not off
-        ["list"], {"dict": 1},
+        "ON",
+        "on",
+        "On",
+        "YES",
+        "TRUE",
+        "1",
+        "0",
+        "maybe",
+        0,
+        0.0,
+        1,
+        1.5,
+        30.0,  # numerics are unknown, not off
+        ["list"],
+        {"dict": 1},
     ],
 )
 def test_pump_is_off_recognised_on_or_unknown(value) -> None:
@@ -56,6 +73,7 @@ def test_pump_is_off_none_is_unknown_not_off() -> None:
 
 
 # ── Integration: issue #49 scenario closes immediately ───────────────────
+
 
 def _running_attrs(rps: float, pump) -> dict:
     return {

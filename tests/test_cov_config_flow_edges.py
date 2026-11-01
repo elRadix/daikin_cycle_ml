@@ -12,7 +12,9 @@ Mock strategy for _get_coordinator_handle paths:
 
 Test-only. No source changes.
 """
+
 from __future__ import annotations
+import contextlib
 
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, PropertyMock, patch
@@ -25,16 +27,17 @@ from custom_components.daikin_cycle_ml.const import DOMAIN
 
 # ---------- _flatten_notify_choice ----------
 
+
 def test_flatten_active_choice_entity():
-    assert cf._flatten_notify_choice(
-        {"active_choice": "entity", "entity": "notify.x"}
-    ) == "notify.x"
+    assert (
+        cf._flatten_notify_choice({"active_choice": "entity", "entity": "notify.x"}) == "notify.x"
+    )
 
 
 def test_flatten_active_choice_service():
-    assert cf._flatten_notify_choice(
-        {"active_choice": "service", "service": "notify.y"}
-    ) == "notify.y"
+    assert (
+        cf._flatten_notify_choice({"active_choice": "service", "service": "notify.y"}) == "notify.y"
+    )
 
 
 def test_flatten_dict_fallback_entity():
@@ -59,6 +62,7 @@ def test_flatten_none_and_str():
 
 # ---------- fake coordinator ----------
 
+
 class _FakeCoord:
     def __init__(self):
         self.async_emit_test_alert = AsyncMock(return_value="ok-msg")
@@ -69,10 +73,17 @@ class _FakeCoord:
 
 @pytest.fixture(autouse=True)
 def _disable_options_reload(hass):
-    with patch.object(
-        hass.config_entries, "async_reload", new=AsyncMock(return_value=True),
-    ), patch.object(
-        hass.config_entries, "async_schedule_reload", new=lambda *a, **k: None,
+    with (
+        patch.object(
+            hass.config_entries,
+            "async_reload",
+            new=AsyncMock(return_value=True),
+        ),
+        patch.object(
+            hass.config_entries,
+            "async_schedule_reload",
+            new=lambda *a, **k: None,
+        ),
     ):
         yield
 
@@ -92,13 +103,15 @@ async def _make_flow(hass, options=None):
 def _patch_config_entry(flow, fake_entry):
     """Context manager to make flow.config_entry yield fake_entry."""
     return patch.object(
-        type(flow), "config_entry",
+        type(flow),
+        "config_entry",
         new_callable=PropertyMock,
         return_value=fake_entry,
     )
 
 
 # ---------- _get_coordinator_handle fallback paths ----------
+
 
 async def test_get_coord_handle_runtime_data(hass):
     # line 719
@@ -150,6 +163,7 @@ async def test_get_coord_handle_direct_object(hass):
 
 # ---------- async_step_test_notification exception ----------
 
+
 async def test_test_notification_exception(hass):
     # lines 748-750 (via direct-object fallback path, no config_entry dep)
     flow, _entry = await _make_flow(hass)
@@ -167,6 +181,7 @@ async def test_test_notification_exception(hass):
 
 
 # ---------- ConfigFlow direct ----------
+
 
 async def test_config_flow_cycle_prefills_power_sensor(hass):
     # line 287
@@ -191,7 +206,7 @@ async def test_config_flow_notifications_submit_flattens(hass):
     flow = cf.DaikinCycleMLConfigFlow()
     flow.hass = hass
     flow._options = {}
-    try:
+    with contextlib.suppress(Exception):
         await flow.async_step_notifications(
             user_input={
                 "notify_service": {
@@ -200,17 +215,17 @@ async def test_config_flow_notifications_submit_flattens(hass):
                 }
             },
         )
-    except Exception:
-        pass
     assert flow._options.get("notify_service") == "notify.x"
 
 
 # ---------- OptionsFlow notifications form prefill ----------
 
+
 async def test_options_notifications_form_with_current_ns(hass):
     # line 659 -- notifications is now a menu; form lives in delivery sub-step
     flow, _entry = await _make_flow(
-        hass, options={"notify_service": "notify.old"},
+        hass,
+        options={"notify_service": "notify.old"},
     )
     result = await flow.async_step_notifications()
     assert result["type"] == "menu"

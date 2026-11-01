@@ -1,4 +1,5 @@
 """Batch 31cd coverage boosters #2: db, notif engine, services, __init__."""
+
 from __future__ import annotations
 
 import asyncio
@@ -12,6 +13,7 @@ from custom_components.daikin_cycle_ml.storage.db import CycleDB
 # ────────────────────────────────────────────────────────────
 # notification_engine — severity + quiet hours + dedup branches
 # ────────────────────────────────────────────────────────────
+
 
 def test_severity_emoji_lookup():
     # notification_engine exports SEVERITY_EMOJI dict (not individual constants)
@@ -72,8 +74,10 @@ def test_evaluate_alerts_empty_states():
 def test_evaluate_alerts_dedup_short_run():
     last = {"short_run": 1e9 - 60}  # 1 min ago
     out = ne.evaluate_alerts(
-        {"short_run": True}, {"alert_aggregation_minutes": 30},
-        now=1e9, last_sent=last,
+        {"short_run": True},
+        {"alert_aggregation_minutes": 30},
+        now=1e9,
+        last_sent=last,
     )
     assert out == []
 
@@ -87,9 +91,9 @@ def test_evaluate_alerts_all_groups_disabled():
         "alert_group_cop_stooklijn": False,
     }
     out = ne.evaluate_alerts(
-        {"short_run": True, "pendulum_hourly": True, "ml_anomaly": True,
-         "setpoint_osc": True},
-        opts, now=1e9,
+        {"short_run": True, "pendulum_hourly": True, "ml_anomaly": True, "setpoint_osc": True},
+        opts,
+        now=1e9,
     )
     assert out == []
 
@@ -98,6 +102,7 @@ def test_evaluate_alerts_all_groups_disabled():
 # db.py — retention + maintenance paths
 # ────────────────────────────────────────────────────────────
 
+
 async def test_db_run_maintenance_retention(tmp_path):
     db = CycleDB(str(tmp_path / "m.db"))
     await db.async_open()
@@ -105,17 +110,27 @@ async def test_db_run_maintenance_retention(tmp_path):
     try:
         # Insert an old cycle (ts way in past)
         old_ts = 1000.0
-        await db.async_insert_cycle({
-            "start_ts": old_ts, "end_ts": old_ts + 100, "duration_s": 100,
-            "mode": "heating", "dT_max": 5.0, "dT_avg": 3.0,
-            "rps_max": 40, "rps_avg": 30, "outdoor_temp": 7,
-            "buh_used": 0, "defrost_used": 0, "quality_score": 80,
-        })
+        await db.async_insert_cycle(
+            {
+                "start_ts": old_ts,
+                "end_ts": old_ts + 100,
+                "duration_s": 100,
+                "mode": "heating",
+                "dT_max": 5.0,
+                "dT_avg": 3.0,
+                "rps_max": 40,
+                "rps_avg": 30,
+                "outdoor_temp": 7,
+                "buh_used": 0,
+                "defrost_used": 0,
+                "quality_score": 80,
+            }
+        )
         # Run maintenance with 0-day retention → should prune
         try:
-            await db.async_run_maintenance(cycle_retention_days=0,
-                                            alert_retention_days=0,
-                                            vacuum=False)
+            await db.async_run_maintenance(
+                cycle_retention_days=0, alert_retention_days=0, vacuum=False
+            )
         except TypeError:
             # Signature may vary — call with kwargs variants
             pass
@@ -166,18 +181,18 @@ async def test_db_insert_alert(tmp_path):
     try:
         # async_insert_alert may accept different signature
         try:
-            await db.async_insert_alert({
-                "alert_type": "short_run",
-                "severity": "warning",
-                "message": "test",
-                "ts": time.time(),
-                "notif_id": "test_id",
-            })
+            await db.async_insert_alert(
+                {
+                    "alert_type": "short_run",
+                    "severity": "warning",
+                    "message": "test",
+                    "ts": time.time(),
+                    "notif_id": "test_id",
+                }
+            )
         except TypeError:
             try:
-                await db.async_insert_alert(
-                    "short_run", "warning", "test", time.time(), "test_id"
-                )
+                await db.async_insert_alert("short_run", "warning", "test", time.time(), "test_id")
             except TypeError:
                 pytest.skip("alert insert signature unknown")
     finally:
@@ -190,12 +205,22 @@ async def test_db_label_cycle(tmp_path):
     await db.async_open()
     await db.async_initialize()
     try:
-        cid = await db.async_insert_cycle({
-            "start_ts": 1.0, "end_ts": 100.0, "duration_s": 99.0,
-            "mode": "heating", "dT_max": 5.0, "dT_avg": 3.0,
-            "rps_max": 40, "rps_avg": 30, "outdoor_temp": 7,
-            "buh_used": 0, "defrost_used": 0, "quality_score": 80,
-        })
+        cid = await db.async_insert_cycle(
+            {
+                "start_ts": 1.0,
+                "end_ts": 100.0,
+                "duration_s": 99.0,
+                "mode": "heating",
+                "dT_max": 5.0,
+                "dT_avg": 3.0,
+                "rps_max": 40,
+                "rps_avg": 30,
+                "outdoor_temp": 7,
+                "buh_used": 0,
+                "defrost_used": 0,
+                "quality_score": 80,
+            }
+        )
         if cid:
             await db.async_label_cycle(cid, "my-label")
     finally:
@@ -210,15 +235,19 @@ async def test_db_cop_samples(tmp_path):
     try:
         await db.async_ensure_cop_samples_table()
         try:
-            await db.async_insert_cop_sample({
-                "ts": time.time(), "cop": 3.5, "lwt": 35.0,
-                "outdoor": 8.0, "flow_lmin": 12.0, "power_stable": 1,
-            })
+            await db.async_insert_cop_sample(
+                {
+                    "ts": time.time(),
+                    "cop": 3.5,
+                    "lwt": 35.0,
+                    "outdoor": 8.0,
+                    "flow_lmin": 12.0,
+                    "power_stable": 1,
+                }
+            )
         except TypeError:
             try:
-                await db.async_insert_cop_sample(
-                    time.time(), 3.5, 35.0, 8.0, 12.0, True
-                )
+                await db.async_insert_cop_sample(time.time(), 3.5, 35.0, 8.0, 12.0, True)
             except TypeError:
                 pytest.skip("cop sample signature unknown")
         rows = await db.async_fetch_cop_samples(days=1)
@@ -245,8 +274,10 @@ async def test_db_model_state_roundtrip(tmp_path):
 # services.py — service not-found / bad-args paths
 # ────────────────────────────────────────────────────────────
 
+
 def test_services_module_exports():
     from custom_components.daikin_cycle_ml import services as s
+
     assert hasattr(s, "async_register_services")
     assert callable(s.async_register_services)
 
@@ -255,12 +286,14 @@ def test_services_module_exports():
 # __init__.py — setup helpers
 # ────────────────────────────────────────────────────────────
 
+
 def test_init_module_exports():
     from custom_components.daikin_cycle_ml import (
         async_setup,
         async_setup_entry,
         async_unload_entry,
     )
+
     assert callable(async_setup)
     assert callable(async_setup_entry)
     assert callable(async_unload_entry)

@@ -1,4 +1,5 @@
 """Dashboard card integrity: YAML parses, i18n complete."""
+
 from __future__ import annotations
 
 import pathlib

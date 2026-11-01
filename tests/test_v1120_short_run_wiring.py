@@ -1,4 +1,5 @@
 """v1.12.0: record_short_run / record_short_off wiring (issue #105 wiring)."""
+
 from __future__ import annotations
 
 import pytest

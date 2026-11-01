@@ -18,6 +18,7 @@ def _make_entry(hass, entry_id):
     object.__setattr__(entry, "state", ConfigEntryState.SETUP_IN_PROGRESS)
     return entry
 
+
 @pytest.mark.asyncio
 async def test_setup_entry_returns_bool(hass):
     """HA Core 2026+ contract: async_setup_entry MUST return bool."""
@@ -32,6 +33,7 @@ async def test_setup_entry_returns_bool(hass):
         # unload needs it to clean up the 8 timers.
         await async_unload_entry(hass, entry)
 
+
 @pytest.mark.asyncio
 async def test_unload_entry_returns_bool(hass):
     """HA Core 2026+ contract: async_unload_entry MUST return bool."""
@@ -41,6 +43,7 @@ async def test_unload_entry_returns_bool(hass):
     result = await async_unload_entry(hass, entry)
     assert isinstance(result, bool)
     assert result is True
+
 
 @pytest.mark.asyncio
 async def test_remove_entry_never_raises(hass):

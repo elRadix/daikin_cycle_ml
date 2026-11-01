@@ -1,4 +1,5 @@
 """Tests for async_rollup_day (v1.7.0, #42)."""
+
 from __future__ import annotations
 
 import asyncio
@@ -154,11 +155,13 @@ async def test_rollup_day_buh_defrost_counted(db):
 
 # ---------- commit 2: maintenance integration ----------
 
+
 async def test_maintenance_rolls_up_before_prune(db):
     day_ts = time.time() - 100 * 86400.0
     await _insert_cycle(db, end_ts=day_ts, mode="heating")
     await db.async_run_maintenance(
-        cycle_retention_days=90, vacuum=False,
+        cycle_retention_days=90,
+        vacuum=False,
     )
     assert await db.async_count("cycles") == 0
     rows = await db.async_daily_summary(days=365)
@@ -172,7 +175,8 @@ async def test_maintenance_replace_semantics_no_double_count(db):
     day = time.strftime("%Y-%m-%d", time.localtime(day_ts))
     await db.async_rollup_day(day)
     await db.async_run_maintenance(
-        cycle_retention_days=90, vacuum=False,
+        cycle_retention_days=90,
+        vacuum=False,
     )
     rows = await db.async_daily_summary(days=365)
     assert len(rows) == 1
@@ -184,7 +188,8 @@ async def test_maintenance_return_shape_preserved(db):
     await _insert_cycle(db, end_ts=day_ts, mode="heating")
     await _insert_cycle(db, end_ts=day_ts + 60, mode="dhw")
     out = await db.async_run_maintenance(
-        cycle_retention_days=90, vacuum=False,
+        cycle_retention_days=90,
+        vacuum=False,
     )
     assert out["days_rolled_up"] == 2
     assert out["cycles_rolled_up"] == 2
@@ -192,6 +197,7 @@ async def test_maintenance_return_shape_preserved(db):
 
 
 # ---------- commit 3: startup backfill ----------
+
 
 async def test_backfill_populates_from_existing_cycles(db):
     now = time.time()
@@ -221,6 +227,7 @@ async def test_backfill_empty_db(db):
     from custom_components.daikin_cycle_ml.const import (
         DAILY_SUMMARY_BACKFILL_KEY,
     )
+
     flag = await db.async_get_model_state(DAILY_SUMMARY_BACKFILL_KEY)
     assert flag
 
@@ -240,16 +247,20 @@ async def test_backfill_survives_rollup_exception(db):
     from custom_components.daikin_cycle_ml.const import (
         DAILY_SUMMARY_BACKFILL_KEY,
     )
+
     flag = await db.async_get_model_state(DAILY_SUMMARY_BACKFILL_KEY)
     assert flag
 
 
 # ---------- commit 8: coverage of exception handlers ----------
 
+
 async def test_maintenance_rollup_exception_swallowed(db):
     now = time.time()
     await _insert_cycle(
-        db, end_ts=now - 100 * 86400.0, mode="heating",
+        db,
+        end_ts=now - 100 * 86400.0,
+        mode="heating",
     )
     orig = db.async_rollup_day
 
@@ -259,7 +270,8 @@ async def test_maintenance_rollup_exception_swallowed(db):
     db.async_rollup_day = boom  # type: ignore[method-assign]
     try:
         out = await db.async_run_maintenance(
-            cycle_retention_days=90, vacuum=False,
+            cycle_retention_days=90,
+            vacuum=False,
         )
         assert out["cycles_deleted"] >= 1
         assert out["days_rolled_up"] == 0
@@ -307,7 +319,8 @@ async def test_maintenance_multiple_days(db):
     await _insert_cycle(db, end_ts=day_a, mode="heating")
     await _insert_cycle(db, end_ts=day_b, mode="heating")
     out = await db.async_run_maintenance(
-        cycle_retention_days=90, vacuum=False,
+        cycle_retention_days=90,
+        vacuum=False,
     )
     assert out["cycles_deleted"] == 2
     assert out["cycles_rolled_up"] == 2

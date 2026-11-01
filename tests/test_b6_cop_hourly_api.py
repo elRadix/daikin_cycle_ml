@@ -1,4 +1,5 @@
 """B6: cop_hourly REST view + curve sensor. Marker: B6_COP_HOURLY_API_v1"""
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -25,6 +26,7 @@ from custom_components.daikin_cycle_ml.sensor import (
 
 # ---------- _parse_days ----------
 
+
 def test_b6_parse_days_none_default():
     assert _parse_days(None) == COP_HOURLY_API_DEFAULT_DAYS
 
@@ -48,6 +50,7 @@ def test_b6_parse_days_non_int_invalid():
 
 
 # ---------- View construction ----------
+
 
 def _mk_view(entries=None):
     hass = MagicMock()
@@ -141,6 +144,7 @@ async def test_b6_view_mode_blank_becomes_none():
 
 # ---------- Coordinator curve_recent ----------
 
+
 async def test_b6_refresh_curve_db_none():
     obj = MagicMock()
     obj.db = None
@@ -152,14 +156,30 @@ async def test_b6_refresh_curve_db_none():
 async def test_b6_refresh_curve_populates():
     obj = MagicMock()
     obj.db = MagicMock()
-    obj.db.async_query_cop_hourly = AsyncMock(return_value=[
-        {"ts_hour": 100, "mode": "heating", "cop_mean": 3.5,
-         "cop_p50": 3.5, "cop_p90": 4.0, "lwt_mean": 35.0,
-         "outdoor_mean": 5.0, "n_samples": 12},
-        {"ts_hour": 101, "mode": "dhw", "cop_mean": 2.0,
-         "cop_p50": 2.0, "cop_p90": 2.2, "lwt_mean": 52.0,
-         "outdoor_mean": 5.0, "n_samples": 4},
-    ])
+    obj.db.async_query_cop_hourly = AsyncMock(
+        return_value=[
+            {
+                "ts_hour": 100,
+                "mode": "heating",
+                "cop_mean": 3.5,
+                "cop_p50": 3.5,
+                "cop_p90": 4.0,
+                "lwt_mean": 35.0,
+                "outdoor_mean": 5.0,
+                "n_samples": 12,
+            },
+            {
+                "ts_hour": 101,
+                "mode": "dhw",
+                "cop_mean": 2.0,
+                "cop_p50": 2.0,
+                "cop_p90": 2.2,
+                "lwt_mean": 52.0,
+                "outdoor_mean": 5.0,
+                "n_samples": 4,
+            },
+        ]
+    )
     obj._cop_hourly_cache = {}
     await DaikinCycleMLCoordinator._refresh_cop_curve_recent(obj, 1000.0)
     data = obj._cop_hourly_cache["curve_recent"]
@@ -174,9 +194,16 @@ async def test_b6_refresh_curve_caps_points():
     obj = MagicMock()
     obj.db = MagicMock()
     rows = [
-        {"ts_hour": i, "mode": "heating", "cop_mean": 3.0,
-         "cop_p50": 3.0, "cop_p90": 3.5, "lwt_mean": None,
-         "outdoor_mean": None, "n_samples": 1}
+        {
+            "ts_hour": i,
+            "mode": "heating",
+            "cop_mean": 3.0,
+            "cop_p50": 3.0,
+            "cop_p90": 3.5,
+            "lwt_mean": None,
+            "outdoor_mean": None,
+            "n_samples": 1,
+        }
         for i in range(COP_CURVE_RECENT_MAX_POINTS + 20)
     ]
     obj.db.async_query_cop_hourly = AsyncMock(return_value=rows)
@@ -189,11 +216,20 @@ async def test_b6_refresh_curve_caps_points():
 async def test_b6_refresh_curve_null_mode():
     obj = MagicMock()
     obj.db = MagicMock()
-    obj.db.async_query_cop_hourly = AsyncMock(return_value=[
-        {"ts_hour": 1, "mode": None, "cop_mean": 3.0,
-         "cop_p50": 3.0, "cop_p90": 3.5, "lwt_mean": None,
-         "outdoor_mean": None, "n_samples": 1},
-    ])
+    obj.db.async_query_cop_hourly = AsyncMock(
+        return_value=[
+            {
+                "ts_hour": 1,
+                "mode": None,
+                "cop_mean": 3.0,
+                "cop_p50": 3.0,
+                "cop_p90": 3.5,
+                "lwt_mean": None,
+                "outdoor_mean": None,
+                "n_samples": 1,
+            },
+        ]
+    )
     obj._cop_hourly_cache = {}
     await DaikinCycleMLCoordinator._refresh_cop_curve_recent(obj, 1000.0)
     data = obj._cop_hourly_cache["curve_recent"]
@@ -201,6 +237,7 @@ async def test_b6_refresh_curve_null_mode():
 
 
 # ---------- Sensor helpers ----------
+
 
 def test_b6_sensor_def_includes_key():
     keys = [d["key"] for d in SENSOR_DEFS]
@@ -237,16 +274,18 @@ async def test_b6_refresh_curve_isolated_failure():
     obj = MagicMock()
     obj.db = MagicMock()
     obj.db.async_cop_hourly_stats = AsyncMock(
-        return_value={"n_hours": 24, "n_samples": 100,
-                      "cop_mean": 3.5, "cop_p10": 3.0,
-                      "cop_p90": 4.0, "cop_min": 3.0, "cop_max": 4.0}
+        return_value={
+            "n_hours": 24,
+            "n_samples": 100,
+            "cop_mean": 3.5,
+            "cop_p10": 3.0,
+            "cop_p90": 4.0,
+            "cop_min": 3.0,
+            "cop_max": 4.0,
+        }
     )
-    obj.db.async_cop_hourly_by_mode = AsyncMock(
-        return_value={"heating": {"cop_mean": 3.5}}
-    )
-    obj.db.async_query_cop_hourly = AsyncMock(
-        side_effect=RuntimeError("curve boom")
-    )
+    obj.db.async_cop_hourly_by_mode = AsyncMock(return_value={"heating": {"cop_mean": 3.5}})
+    obj.db.async_query_cop_hourly = AsyncMock(side_effect=RuntimeError("curve boom"))
     obj._cop_hourly_cache = {}
     obj._cop_hourly_cache_ts = 0.0
     await DaikinCycleMLCoordinator._maybe_refresh_cop_hourly(obj, 2000.0)

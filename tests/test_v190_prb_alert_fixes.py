@@ -3,6 +3,7 @@
 Covers ALERTS_V2.md sections 4.1, 4.2, 4.2b, 4.3, 4.6, Q2.
 Refs #66.
 """
+
 from __future__ import annotations
 
 import json
@@ -27,24 +28,20 @@ _ROOT = Path(__file__).parent.parent / "custom_components" / "daikin_cycle_ml"
 # 4.1 pendulum_daily alert_type collision
 # ============================================================
 
+
 def test_pendulum_daily_has_distinct_alert_type():
     assert BINARY_ALERT_MAP["pendulum_hourly"][0] == "pendulum_hourly"
     assert BINARY_ALERT_MAP["pendulum_daily"][0] == "pendulum_daily"
 
 
 def test_pendulum_daily_notif_id_distinct():
-    assert (
-        NOTIF_ID_BY_TYPE["pendulum_daily"]
-        != NOTIF_ID_BY_TYPE["pendulum_hourly"]
-    )
+    assert NOTIF_ID_BY_TYPE["pendulum_daily"] != NOTIF_ID_BY_TYPE["pendulum_hourly"]
     assert "daily" in NOTIF_ID_BY_TYPE["pendulum_daily"]
     assert "hourly" in NOTIF_ID_BY_TYPE["pendulum_hourly"]
 
 
 def test_pendulum_daily_fires_when_both_true():
-    out = evaluate_alerts(
-        {"pendulum_hourly": True, "pendulum_daily": True}, {}, now=1e9
-    )
+    out = evaluate_alerts({"pendulum_hourly": True, "pendulum_daily": True}, {}, now=1e9)
     types = sorted(a.alert_type for a in out)
     assert types == ["pendulum_daily", "pendulum_hourly"]
 
@@ -67,23 +64,13 @@ def test_pendulum_group_gate_applies_to_both():
 def test_pendulum_emoji_map_updated():
     assert "pendulum_hourly" in const.ALERT_TYPE_EMOJI
     assert "pendulum_daily" in const.ALERT_TYPE_EMOJI
-    assert (
-        const.ALERT_TYPE_EMOJI["pendulum_hourly"] == const.EMOJI_PENDULUM
-    )
-    assert (
-        const.ALERT_TYPE_EMOJI["pendulum_daily"] == const.EMOJI_PENDULUM
-    )
+    assert const.ALERT_TYPE_EMOJI["pendulum_hourly"] == const.EMOJI_PENDULUM
+    assert const.ALERT_TYPE_EMOJI["pendulum_daily"] == const.EMOJI_PENDULUM
 
 
 def test_pendulum_group_map_updated():
-    assert (
-        const.ALERT_GROUP_MAP["pendulum_hourly"]
-        == const.ALERT_GROUP_PENDULUM
-    )
-    assert (
-        const.ALERT_GROUP_MAP["pendulum_daily"]
-        == const.ALERT_GROUP_PENDULUM
-    )
+    assert const.ALERT_GROUP_MAP["pendulum_hourly"] == const.ALERT_GROUP_PENDULUM
+    assert const.ALERT_GROUP_MAP["pendulum_daily"] == const.ALERT_GROUP_PENDULUM
     assert "pendulum" not in const.ALERT_GROUP_MAP
 
 
@@ -97,33 +84,29 @@ def test_no_bare_notif_id_pendulum_constant():
 # 4.2 / 4.2b trigger/display key mismatch (source-level guards)
 # ============================================================
 
+
 def test_short_off_trigger_uses_short_off_key():
     src = (_ROOT / "coordinator.py").read_text(encoding="utf-8")
     assert (
-        'short_off_th = self._effective_threshold(\n'
-        '            "short_off_threshold_min",'
+        'short_off_th = self._effective_threshold(\n            "short_off_threshold_min",'
     ) in src
     assert (
-        'short_off_th = self._effective_threshold(\n'
-        '            "good_off_threshold_min",'
+        'short_off_th = self._effective_threshold(\n            "good_off_threshold_min",'
     ) not in src
 
 
 def test_pendulum_daily_trigger_uses_pendulum_key():
     src = (_ROOT / "coordinator.py").read_text(encoding="utf-8")
+    assert ('pend_day = self._effective_threshold(\n            "pendulum_cycles_per_day",') in src
     assert (
-        'pend_day = self._effective_threshold(\n'
-        '            "pendulum_cycles_per_day",'
-    ) in src
-    assert (
-        'pend_day = self._effective_threshold(\n'
-        '            "target_cycles_per_day",'
+        'pend_day = self._effective_threshold(\n            "target_cycles_per_day",'
     ) not in src
 
 
 # ============================================================
 # 4.3 ml_anomaly mode overwrite (source-level guard)
 # ============================================================
+
 
 def test_ml_anomaly_mode_overwrite_removed():
     src = (_ROOT / "coordinator.py").read_text(encoding="utf-8")
@@ -133,6 +116,7 @@ def test_ml_anomaly_mode_overwrite_removed():
 # ============================================================
 # 4.6 cop_low payload leak
 # ============================================================
+
 
 @pytest.mark.asyncio
 async def test_emit_alert_no_context_leak():
@@ -174,6 +158,7 @@ async def test_emit_alert_no_context_leak():
 # Q2 send_test_notification extension
 # ============================================================
 
+
 def _mk_hass_with_coord(coord):
     hass = MagicMock()
     entry = MagicMock()
@@ -193,9 +178,7 @@ async def test_send_test_notification_alert_kind_routes():
 
     out = await svc._handle_send_test_notification(hass, call)
 
-    coord.async_emit_test_alert.assert_awaited_once_with(
-        "short_run", ignore_filters=False
-    )
+    coord.async_emit_test_alert.assert_awaited_once_with("short_run", ignore_filters=False)
     assert out["ok"] is True
     assert out["alert_kind"] == "short_run"
     assert out["message"] == "[rendered]"
@@ -216,9 +199,7 @@ async def test_send_test_notification_ignore_filters_flag():
 
     out = await svc._handle_send_test_notification(hass, call)
 
-    coord.async_emit_test_alert.assert_awaited_once_with(
-        "all_alerts", ignore_filters=True
-    )
+    coord.async_emit_test_alert.assert_awaited_once_with("all_alerts", ignore_filters=True)
     assert out["ok"] is True
 
 
@@ -264,6 +245,7 @@ async def test_send_test_notification_backcompat_passthrough(monkeypatch):
 # ============================================================
 # i18n parity for new service fields
 # ============================================================
+
 
 @pytest.mark.parametrize(
     "rel",

@@ -1,4 +1,5 @@
 """Batch 52b6: extra coverage for sensor.py."""
+
 from unittest.mock import MagicMock
 
 from custom_components.daikin_cycle_ml import sensor as s_mod
@@ -34,8 +35,7 @@ def test_attrs_learned_adaptive_raises():
     c = MagicMock()
     c.adaptive = MagicMock()
     c.adaptive.learn_good_off_min = MagicMock(side_effect=RuntimeError("a"))
-    c.adaptive.learn_target_cycles_per_day = MagicMock(
-        side_effect=RuntimeError("b"))
+    c.adaptive.learn_target_cycles_per_day = MagicMock(side_effect=RuntimeError("b"))
     c.options = {}
     out = s_mod._attrs_learned(s, c)
     assert out["good_off_min"] is None

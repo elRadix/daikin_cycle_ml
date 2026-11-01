@@ -1,4 +1,5 @@
 """Tests for cop_hourly rollup orchestration (v1.17.0, Optie A+B)."""
+
 from __future__ import annotations
 
 import time
@@ -36,8 +37,10 @@ def _patch_baseline_deps(c):
         patch.object(c, "_restore_energy_acc", new=AsyncMock()),
         patch.object(c, "_maybe_backfill_daily_summary", new=AsyncMock()),
         patch.object(c, "_load_kmeans_state", new=AsyncMock()),
-        patch("custom_components.daikin_cycle_ml.coordinator.async_track_time_interval",
-              return_value=MagicMock()),
+        patch(
+            "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval",
+            return_value=MagicMock(),
+        ),
     ]
 
 
@@ -102,10 +105,16 @@ async def test_post_cycle_invokes_cop_hourly_rollup_with_48h():
     c._collect_cycle_averages = AsyncMock(return_value=(None, None, None))
     c._assign_cluster = lambda vec: None
     c._refresh_daily_summary_recent = AsyncMock()
-    with patch("custom_components.daikin_cycle_ml.coordinator.extract_feature_vector",
-               lambda *a, **kw: [0.0] * 12), \
-         patch("custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
-               lambda *a, **kw: MagicMock()):
+    with (
+        patch(
+            "custom_components.daikin_cycle_ml.coordinator.extract_feature_vector",
+            lambda *a, **kw: [0.0] * 12,
+        ),
+        patch(
+            "custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
+            lambda *a, **kw: MagicMock(),
+        ),
+    ):
         snap = SimpleNamespace(anomaly=None, advice=None, cluster_id=None, mode="dhw")
         record = {"duration_s": 3600, "end_ts": time.time(), "mode": "dhw"}
         await c._process_new_cycle(record, snap)
@@ -127,10 +136,16 @@ async def test_post_cycle_rollup_swallows_exception():
     c._collect_cycle_averages = AsyncMock(return_value=(None, None, None))
     c._assign_cluster = lambda vec: None
     c._refresh_daily_summary_recent = AsyncMock()
-    with patch("custom_components.daikin_cycle_ml.coordinator.extract_feature_vector",
-               lambda *a, **kw: [0.0] * 12), \
-         patch("custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
-               lambda *a, **kw: MagicMock()):
+    with (
+        patch(
+            "custom_components.daikin_cycle_ml.coordinator.extract_feature_vector",
+            lambda *a, **kw: [0.0] * 12,
+        ),
+        patch(
+            "custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
+            lambda *a, **kw: MagicMock(),
+        ),
+    ):
         snap = SimpleNamespace(anomaly=None, advice=None, cluster_id=None, mode="heating")
         record = {"duration_s": 3600, "end_ts": time.time(), "mode": "heating"}
         await c._process_new_cycle(record, snap)
@@ -155,12 +170,18 @@ async def test_startup_plus_post_cycle_rollups_idempotent():
     c._assign_cluster = lambda vec: None
     c._refresh_daily_summary_recent = AsyncMock()
     patches = _patch_baseline_deps(c)
-    patches.extend([
-        patch("custom_components.daikin_cycle_ml.coordinator.extract_feature_vector",
-              lambda *a, **kw: [0.0] * 12),
-        patch("custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
-              lambda *a, **kw: MagicMock()),
-    ])
+    patches.extend(
+        [
+            patch(
+                "custom_components.daikin_cycle_ml.coordinator.extract_feature_vector",
+                lambda *a, **kw: [0.0] * 12,
+            ),
+            patch(
+                "custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
+                lambda *a, **kw: MagicMock(),
+            ),
+        ]
+    )
     for p in patches:
         p.start()
     try:

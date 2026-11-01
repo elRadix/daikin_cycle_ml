@@ -1,4 +1,5 @@
 """Tests for engine.timer_health (Batch 8d)."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.engine.timer_health import (
@@ -10,6 +11,7 @@ from custom_components.daikin_cycle_ml.engine.timer_health import (
 )
 
 # ---------- clamp_cycle_duration ----------
+
 
 def test_clamp_none_returns_zero():
     assert clamp_cycle_duration(None) == 0
@@ -46,6 +48,7 @@ def test_clamp_zero_max_min_collapses():
 
 # ---------- is_stale ----------
 
+
 def test_is_stale_none_is_true():
     assert is_stale(None) is True
 
@@ -69,6 +72,7 @@ def test_is_stale_at_threshold_returns_false():
 
 
 # ---------- reconcile ----------
+
 
 def test_reconcile_none_returns_none():
     assert reconcile(None, 1000.0) is None

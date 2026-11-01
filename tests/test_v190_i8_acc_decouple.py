@@ -1,4 +1,5 @@
 """I8: energy_acc / runtime_acc day-key decoupling."""
+
 from __future__ import annotations
 
 import time

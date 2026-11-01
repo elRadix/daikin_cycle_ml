@@ -1,4 +1,5 @@
 """B13 dynamic LWT step + setpoint check + comfort dual-loop."""
+
 from __future__ import annotations
 
 import asyncio
@@ -15,27 +16,41 @@ def _mk_settled(n_hist, lwt_hist, lwt_recent, cop=3.0, outdoor=8.0):
     now = time.time()
     samples = [
         CopSample(
-            cop=cop, lwt=lwt_hist, outdoor=outdoor, flow_lmin=10.0,
-            defrost=False, data_quality="Good", power_stable=True,
-            mode="heating", ts=now - (n_hist + 1 - i) * 300,
+            cop=cop,
+            lwt=lwt_hist,
+            outdoor=outdoor,
+            flow_lmin=10.0,
+            defrost=False,
+            data_quality="Good",
+            power_stable=True,
+            mode="heating",
+            ts=now - (n_hist + 1 - i) * 300,
         )
         for i in range(n_hist)
     ]
     samples.append(
         CopSample(
-            cop=cop, lwt=lwt_recent, outdoor=outdoor, flow_lmin=10.0,
-            defrost=False, data_quality="Good", power_stable=True,
-            mode="heating", ts=now - 30,
+            cop=cop,
+            lwt=lwt_recent,
+            outdoor=outdoor,
+            flow_lmin=10.0,
+            defrost=False,
+            data_quality="Good",
+            power_stable=True,
+            mode="heating",
+            ts=now - 30,
         )
     )
     return samples
 
 
-def _call(samples, setpoint_lwt, indoor=20.5, comfort_min=20.0,
-          comfort_max=24.0, rt_setpoint=20.0):
+def _call(samples, setpoint_lwt, indoor=20.5, comfort_min=20.0, comfort_max=24.0, rt_setpoint=20.0):
     return analyze_stooklijn(
-        samples, comfort_min=comfort_min, indoor_avg=indoor,
-        setpoint_lwt=setpoint_lwt, comfort_max=comfort_max,
+        samples,
+        comfort_min=comfort_min,
+        indoor_avg=indoor,
+        setpoint_lwt=setpoint_lwt,
+        comfort_max=comfort_max,
         rt_setpoint=rt_setpoint,
     )
 
@@ -75,8 +90,7 @@ def test_scenario_C_capped_3():
 
 
 def test_scenario_D_comfort_floor():
-    a = _call(_mk_settled(11, 30.0, 40.0), setpoint_lwt=40.0,
-              indoor=19.3, comfort_min=20.0)
+    a = _call(_mk_settled(11, 30.0, 40.0), setpoint_lwt=40.0, indoor=19.3, comfort_min=20.0)
     assert a.state == "keep"
     assert a.reason == "comfort_floor_reached"
 
@@ -97,8 +111,7 @@ def test_scenario_F_tracking_dampening():
 
 
 def test_comfort_ceiling_raise():
-    a = _call(_mk_settled(11, 30.0, 26.0), setpoint_lwt=26.0,
-              indoor=24.5, comfort_max=24.0)
+    a = _call(_mk_settled(11, 30.0, 26.0), setpoint_lwt=26.0, indoor=24.5, comfort_max=24.0)
     assert a.state == "keep"
     assert a.reason == "comfort_ceiling_reached"
 
@@ -106,8 +119,11 @@ def test_comfort_ceiling_raise():
 def test_no_indoor_sensor():
     a = analyze_stooklijn(
         _mk_settled(11, 33.0, 34.6),
-        comfort_min=20.0, indoor_avg=None, setpoint_lwt=35.0,
-        comfort_max=24.0, rt_setpoint=20.0,
+        comfort_min=20.0,
+        indoor_avg=None,
+        setpoint_lwt=35.0,
+        comfort_max=24.0,
+        rt_setpoint=20.0,
     )
     assert a.state == "keep"
     assert a.reason == "no_indoor_sensor"
@@ -178,9 +194,15 @@ def test_all_dhw_no_heating_returns_no_data():
     now = time.time()
     s = [
         CopSample(
-            cop=3.0, lwt=45.0, outdoor=8.0, flow_lmin=10.0,
-            defrost=False, data_quality="Good", power_stable=True,
-            mode="dhw", ts=now - i * 60,
+            cop=3.0,
+            lwt=45.0,
+            outdoor=8.0,
+            flow_lmin=10.0,
+            defrost=False,
+            data_quality="Good",
+            power_stable=True,
+            mode="dhw",
+            ts=now - i * 60,
         )
         for i in range(5)
     ]
@@ -194,6 +216,7 @@ def test_i18n_dicts_symmetric():
         STOOKLIJN_STATE_LABEL_EN,
         STOOKLIJN_STATE_LABEL_NL,
     )
+
     assert set(STOOKLIJN_STATE_LABEL_EN.keys()) == set(STOOKLIJN_STATE_LABEL_NL.keys())
     for k in STOOKLIJN_STATE_LABEL_EN:
         en = STOOKLIJN_STATE_LABEL_EN[k]
@@ -203,6 +226,7 @@ def test_i18n_dicts_symmetric():
 
 def test_state_label_helpers():
     from custom_components.daikin_cycle_ml.sensor import _state_label
+
     assert _state_label("lower_lwt", 2, "en") == "Lower LWT by 2 \u00b0C"
     assert _state_label("lower_lwt", 2, "nl") == "Verlaag LWT met 2 \u00b0C"
     assert _state_label("keep", 0, "en") == "Keep current LWT"
@@ -216,9 +240,8 @@ def test_state_label_helpers():
 def test_state_label_format_exception(monkeypatch):
     from custom_components.daikin_cycle_ml import const as _c
     from custom_components.daikin_cycle_ml.sensor import _state_label
-    monkeypatch.setitem(
-        _c.STOOKLIJN_STATE_LABEL_EN, "_b13_bad", "Value {unknown}"
-    )
+
+    monkeypatch.setitem(_c.STOOKLIJN_STATE_LABEL_EN, "_b13_bad", "Value {unknown}")
     assert _state_label("_b13_bad", 0, "en") == "Value {unknown}"
 
 
@@ -228,10 +251,18 @@ def test_attrs_stooklijn_normal():
     class _C:
         options = {"notification_language": "nl"}
 
-    snap = type("S", (), {"stooklijn_advies": {
-        "state": "lower_lwt", "step_c": 2, "setpoint_lwt": 35.0,
-        "doel_setpoint": 33.0,
-    }})()
+    snap = type(
+        "S",
+        (),
+        {
+            "stooklijn_advies": {
+                "state": "lower_lwt",
+                "step_c": 2,
+                "setpoint_lwt": 35.0,
+                "doel_setpoint": 33.0,
+            }
+        },
+    )()
     out = _attrs_stooklijn(snap, _C())
     assert out["state_label"] == "Verlaag LWT met 2 \u00b0C"
     assert out["step_c"] == 2
@@ -272,8 +303,15 @@ def test_status_report_step_formatting():
     from custom_components.daikin_cycle_ml.engine.status_report import (
         build_stooklijn_report,
     )
-    cache = {"state": "lower_lwt", "step_c": 2, "besparing_cop_pct": 4.0,
-             "comfort_impact": -0.4, "betrouwbaarheid": 0.9, "samples": 12}
+
+    cache = {
+        "state": "lower_lwt",
+        "step_c": 2,
+        "besparing_cop_pct": 4.0,
+        "comfort_impact": -0.4,
+        "betrouwbaarheid": 0.9,
+        "samples": 12,
+    }
     msg = build_stooklijn_report(cache, language="en", emoji_enabled=False)
     assert "Lower LWT by 2" in msg
 
@@ -282,8 +320,8 @@ def test_status_report_legacy_state_still_works():
     from custom_components.daikin_cycle_ml.engine.status_report import (
         build_stooklijn_report,
     )
-    msg = build_stooklijn_report({"state": "verlaag_lwt_2c"},
-                                 language="en", emoji_enabled=False)
+
+    msg = build_stooklijn_report({"state": "verlaag_lwt_2c"}, language="en", emoji_enabled=False)
     assert "Lower LWT by 2" in msg
 
 
@@ -292,9 +330,9 @@ def test_status_report_step_format_exception(monkeypatch):
     from custom_components.daikin_cycle_ml.engine.status_report import (
         build_stooklijn_report,
     )
+
     monkeypatch.setitem(_c.STOOKLIJN_STATE_LABEL_EN, "_b13_bad", "X {unknown}")
-    msg = build_stooklijn_report({"state": "_b13_bad"},
-                                 language="en", emoji_enabled=False)
+    msg = build_stooklijn_report({"state": "_b13_bad"}, language="en", emoji_enabled=False)
     assert "X {unknown}" in msg
 
 
@@ -302,20 +340,22 @@ def test_status_report_step_bad_int():
     from custom_components.daikin_cycle_ml.engine.status_report import (
         build_stooklijn_report,
     )
+
     msg = build_stooklijn_report(
         {"state": "lower_lwt", "step_c": "not_an_int"},
-        language="en", emoji_enabled=False,
+        language="en",
+        emoji_enabled=False,
     )
     assert "Lower LWT by 0" in msg
 
 
-def _mk_coord_b13(attrs=None, indoor_entity=None, indoor_state=None,
-                  cop_rows=None):
+def _mk_coord_b13(attrs=None, indoor_entity=None, indoor_state=None, cop_rows=None):
     from unittest.mock import AsyncMock, MagicMock
 
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
+
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.options = {}
     c._stooklijn_cache = {}
@@ -339,10 +379,18 @@ def _mk_coord_b13(attrs=None, indoor_entity=None, indoor_state=None,
 
 def test_coord_setpoint_and_indoor_extracted():
     from custom_components.daikin_cycle_ml.const import ATTR_LW_SETPOINT
+
     now = time.time()
     rows = [
-        {"cop": 3.0, "lwt": 33.0, "outdoor": 8.0, "flow_lmin": 10.0,
-         "power_stable": True, "mode": "heating", "ts": now - i * 60}
+        {
+            "cop": 3.0,
+            "lwt": 33.0,
+            "outdoor": 8.0,
+            "flow_lmin": 10.0,
+            "power_stable": True,
+            "mode": "heating",
+            "ts": now - i * 60,
+        }
         for i in range(12)
     ]
     c = _mk_coord_b13(
@@ -357,10 +405,18 @@ def test_coord_setpoint_and_indoor_extracted():
 
 def test_coord_indoor_exception_branch():
     from custom_components.daikin_cycle_ml.const import ATTR_LW_SETPOINT
+
     now = time.time()
     rows = [
-        {"cop": 3.0, "lwt": 33.0, "outdoor": 8.0, "flow_lmin": 10.0,
-         "power_stable": True, "mode": "heating", "ts": now - i * 60}
+        {
+            "cop": 3.0,
+            "lwt": 33.0,
+            "outdoor": 8.0,
+            "flow_lmin": 10.0,
+            "power_stable": True,
+            "mode": "heating",
+            "ts": now - i * 60,
+        }
         for i in range(12)
     ]
     c = _mk_coord_b13(
@@ -376,8 +432,15 @@ def test_coord_indoor_exception_branch():
 def test_coord_no_attrs_no_indoor():
     now = time.time()
     rows = [
-        {"cop": 3.0, "lwt": 33.0, "outdoor": 8.0, "flow_lmin": 10.0,
-         "power_stable": True, "mode": "heating", "ts": now - i * 60}
+        {
+            "cop": 3.0,
+            "lwt": 33.0,
+            "outdoor": 8.0,
+            "flow_lmin": 10.0,
+            "power_stable": True,
+            "mode": "heating",
+            "ts": now - i * 60,
+        }
         for i in range(12)
     ]
     c = _mk_coord_b13(attrs=None, cop_rows=rows)
@@ -387,10 +450,18 @@ def test_coord_no_attrs_no_indoor():
 
 def test_coord_setpoint_bad_type():
     from custom_components.daikin_cycle_ml.const import ATTR_LW_SETPOINT
+
     now = time.time()
     rows = [
-        {"cop": 3.0, "lwt": 33.0, "outdoor": 8.0, "flow_lmin": 10.0,
-         "power_stable": True, "mode": "heating", "ts": now - i * 60}
+        {
+            "cop": 3.0,
+            "lwt": 33.0,
+            "outdoor": 8.0,
+            "flow_lmin": 10.0,
+            "power_stable": True,
+            "mode": "heating",
+            "ts": now - i * 60,
+        }
         for i in range(12)
     ]
     c = _mk_coord_b13(
@@ -403,10 +474,18 @@ def test_coord_setpoint_bad_type():
 
 def test_coord_indoor_state_unavailable():
     from custom_components.daikin_cycle_ml.const import ATTR_LW_SETPOINT
+
     now = time.time()
     rows = [
-        {"cop": 3.0, "lwt": 33.0, "outdoor": 8.0, "flow_lmin": 10.0,
-         "power_stable": True, "mode": "heating", "ts": now - i * 60}
+        {
+            "cop": 3.0,
+            "lwt": 33.0,
+            "outdoor": 8.0,
+            "flow_lmin": 10.0,
+            "power_stable": True,
+            "mode": "heating",
+            "ts": now - i * 60,
+        }
         for i in range(12)
     ]
     c = _mk_coord_b13(
@@ -421,10 +500,18 @@ def test_coord_indoor_state_unavailable():
 
 def test_coord_indoor_states_get_none():
     from custom_components.daikin_cycle_ml.const import ATTR_LW_SETPOINT
+
     now = time.time()
     rows = [
-        {"cop": 3.0, "lwt": 33.0, "outdoor": 8.0, "flow_lmin": 10.0,
-         "power_stable": True, "mode": "heating", "ts": now - i * 60}
+        {
+            "cop": 3.0,
+            "lwt": 33.0,
+            "outdoor": 8.0,
+            "flow_lmin": 10.0,
+            "power_stable": True,
+            "mode": "heating",
+            "ts": now - i * 60,
+        }
         for i in range(12)
     ]
     c = _mk_coord_b13(

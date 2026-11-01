@@ -1,4 +1,5 @@
 """v1.9.0 I7 — pre-release cleanup (4.15a, 4.16, 4.17) tests."""
+
 from __future__ import annotations
 
 import inspect
@@ -13,6 +14,7 @@ from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
 # ---------- helpers ----------
 
+
 def _coord() -> DaikinCycleMLCoordinator:
     return object.__new__(DaikinCycleMLCoordinator)
 
@@ -20,8 +22,13 @@ def _coord() -> DaikinCycleMLCoordinator:
 def _snap() -> Any:
     n = SimpleNamespace()
     for f in (
-        "lwt_setpoint", "lwt_actual", "indoor_temp", "flow_lmin", "outdoor_temp",
-        "cop_degradation_week_pct", "cop_trend_30d",
+        "lwt_setpoint",
+        "lwt_actual",
+        "indoor_temp",
+        "flow_lmin",
+        "outdoor_temp",
+        "cop_degradation_week_pct",
+        "cop_trend_30d",
     ):
         setattr(n, f, None)
     return n
@@ -46,6 +53,7 @@ def _coord_for_ctx() -> Any:
 
 
 # ---------- 4.16: defrost duration (DB) ----------
+
 
 @pytest.mark.asyncio
 async def test_defrost_duration_none_when_conn_absent() -> None:
@@ -89,6 +97,7 @@ async def test_defrost_duration_none_on_exception() -> None:
 
 # ---------- 4.16: defrost duration (ctx) ----------
 
+
 def test_defrost_ctx_duration_10min() -> None:
     c = _coord_for_ctx()
     c._defrost_7d_duration_s = 600.0
@@ -104,6 +113,7 @@ def test_defrost_ctx_duration_absent_falls_back_to_zero() -> None:
 
 # ---------- 4.15a: retention defaults ----------
 
+
 def test_db_alert_retention_default_is_90() -> None:
     sig = inspect.signature(CycleDB.async_run_maintenance)
     assert sig.parameters["alert_retention_days"].default == 90
@@ -111,12 +121,14 @@ def test_db_alert_retention_default_is_90() -> None:
 
 def test_coordinator_retention_fallback_uses_const() -> None:
     import custom_components.daikin_cycle_ml.coordinator as co
+
     src = open(co.__file__).read()
     assert "opts.get('alert_retention_days', DEFAULT_ALERT_RETENTION_DAYS)" in src
     assert "opts.get('cycle_retention_days', DEFAULT_CYCLE_RETENTION_DAYS)" in src
 
 
 # ---------- 4.17: energy sigma/z/mean None semantics ----------
+
 
 def _energy_bare(db: Any) -> Any:
     c = _coord()
@@ -163,8 +175,10 @@ async def test_energy_all_corrupt_mean_sigma_z_none() -> None:
 
 # ---------- 4.17: schema + labels ----------
 
+
 def test_energy_schema_has_samples_row() -> None:
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_SCHEMA
+
     fields = [f[1] for f in ALERT_SCHEMA["energy_daily_anomaly"]]
     assert "samples" in fields
     assert len(fields) == 6
@@ -172,5 +186,6 @@ def test_energy_schema_has_samples_row() -> None:
 
 def test_energy_labels_have_samples_both_langs() -> None:
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_LABELS
+
     assert ALERT_LABELS["en"]["samples"] == "Samples"
     assert ALERT_LABELS["nl"]["samples"] == "Monsters"

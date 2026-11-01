@@ -105,9 +105,7 @@ def test_models_in_family_unknown() -> None:
 def test_every_choice_has_known_family() -> None:
     for m in MODEL_CHOICES:
         fam = family_for_model(m)
-        assert fam in (MODEL_BASISPROFIEL, MODEL_CUSTOM) or fam in MODEL_FAMILIES, (
-            f"{m} -> {fam}"
-        )
+        assert fam in (MODEL_BASISPROFIEL, MODEL_CUSTOM) or fam in MODEL_FAMILIES, f"{m} -> {fam}"
 
 
 def test_erga08evh7_present() -> None:
@@ -129,11 +127,14 @@ def test_get_profile_alias_equivalent() -> None:
     assert get_profile(MODEL_ERGA08EVH7) == get_profile(MODEL_ERGA08EAV3)
 
 
-@pytest.mark.parametrize("variant, expected", [
-    ("erg04eav3", MODEL_ERGA04EAV3),
-    ("erg06eav3", MODEL_ERGA06EAV3),
-    ("erg08eav3", MODEL_ERGA08EAV3),
-])
+@pytest.mark.parametrize(
+    "variant, expected",
+    [
+        ("erg04eav3", MODEL_ERGA04EAV3),
+        ("erg06eav3", MODEL_ERGA06EAV3),
+        ("erg08eav3", MODEL_ERGA08EAV3),
+    ],
+)
 def test_erg_aliases(variant: str, expected: str) -> None:
     """Test ESPAltherma ERG (missing A) aliases."""
     assert resolve_model_key(variant) == expected

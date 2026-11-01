@@ -1,4 +1,5 @@
 """COV-9: T1 in-cycle COP integration tests."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -90,10 +91,12 @@ def test_weighted_mean_stdev_negvar_clamped():
 def test_accumulate_cop_tick_weighted():
     c = _bare_coord()
     c.power_sensor = "sensor.power"
-    c.hass.states.get = MagicMock(side_effect=[
-        _state("3.0"),   # cop
-        _state("1500.0", "W"),  # power
-    ])
+    c.hass.states.get = MagicMock(
+        side_effect=[
+            _state("3.0"),  # cop
+            _state("1500.0", "W"),  # power
+        ]
+    )
     c._accumulate_cycle_samples({})
     assert c._cycle_cop_count == 1
     assert c._cycle_cop_w_sum == pytest.approx(3.0 * 1500.0)
@@ -112,10 +115,12 @@ def test_accumulate_cop_tick_unweighted_no_power():
 def test_accumulate_cop_tick_unweighted_zero_power():
     c = _bare_coord()
     c.power_sensor = "sensor.power"
-    c.hass.states.get = MagicMock(side_effect=[
-        _state("3.0"),
-        _state("0.0", "W"),
-    ])
+    c.hass.states.get = MagicMock(
+        side_effect=[
+            _state("3.0"),
+            _state("0.0", "W"),
+        ]
+    )
     c._accumulate_cycle_samples({})
     assert c._cycle_cop_count == 1
     assert c._cycle_cop_weight_sum == pytest.approx(1.0)
@@ -221,18 +226,26 @@ async def test_insert_cycle_with_cop_fields(tmp_path):
     db = CycleDB(str(tmp_path / "t.db"))
     await db.async_open()
     await db.async_initialize()
-    cid = await db.async_insert_cycle({
-        "start_ts": 100.0, "end_ts": 200.0, "duration_s": 100,
-        "mode": "heating", "cop_avg": 3.5, "cop_sample_count": 12,
-        "cop_sample_stdev": 0.3, "cop_confidence": "high",
-    })
+    cid = await db.async_insert_cycle(
+        {
+            "start_ts": 100.0,
+            "end_ts": 200.0,
+            "duration_s": 100,
+            "mode": "heating",
+            "cop_avg": 3.5,
+            "cop_sample_count": 12,
+            "cop_sample_stdev": 0.3,
+            "cop_confidence": "high",
+        }
+    )
     assert cid is not None
     await db.async_close()
     import sqlite3
+
     conn = sqlite3.connect(str(tmp_path / "t.db"))
     row = conn.execute(
-        "SELECT cop_avg, cop_sample_count, cop_sample_stdev, cop_confidence "
-        "FROM cycles WHERE id=?", (cid,)
+        "SELECT cop_avg, cop_sample_count, cop_sample_stdev, cop_confidence FROM cycles WHERE id=?",
+        (cid,),
     ).fetchone()
     assert row == (3.5, 12, 0.3, "high")
     conn.close()
@@ -242,17 +255,22 @@ async def test_insert_cycle_without_cop_fields(tmp_path):
     db = CycleDB(str(tmp_path / "t.db"))
     await db.async_open()
     await db.async_initialize()
-    cid = await db.async_insert_cycle({
-        "start_ts": 100.0, "end_ts": 200.0, "duration_s": 100,
-        "mode": "heating",
-    })
+    cid = await db.async_insert_cycle(
+        {
+            "start_ts": 100.0,
+            "end_ts": 200.0,
+            "duration_s": 100,
+            "mode": "heating",
+        }
+    )
     assert cid is not None
     await db.async_close()
     import sqlite3
+
     conn = sqlite3.connect(str(tmp_path / "t.db"))
     row = conn.execute(
-        "SELECT cop_avg, cop_sample_count, cop_sample_stdev, cop_confidence "
-        "FROM cycles WHERE id=?", (cid,)
+        "SELECT cop_avg, cop_sample_count, cop_sample_stdev, cop_confidence FROM cycles WHERE id=?",
+        (cid,),
     ).fetchone()
     assert row == (None, None, None, None)
     conn.close()

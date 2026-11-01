@@ -24,7 +24,7 @@ def test_feature_len_constants():
 
 @pytest.mark.asyncio
 async def test_migrate_empty_db(tmp_path):
-    db = CycleDB(str(tmp_path / 'test.db'))
+    db = CycleDB(str(tmp_path / "test.db"))
     await db.async_initialize()
     try:
         n = await db.async_migrate_features_to_v11()
@@ -35,14 +35,21 @@ async def test_migrate_empty_db(tmp_path):
 
 @pytest.mark.asyncio
 async def test_migrate_legacy_8dim(tmp_path):
-    db = CycleDB(str(tmp_path / 'test.db'))
+    db = CycleDB(str(tmp_path / "test.db"))
     await db.async_initialize()
     try:
         row = {
-            'start_ts': 100.0, 'end_ts': 200.0, 'duration_s': 100,
-            'mode': 'heating', 'dT_max': 5.0, 'dT_avg': 3.0,
-            'rps_max': 40, 'rps_avg': 30.0, 'outdoor_temp': 7.0,
-            'buh_used': 0, 'defrost_used': 0,
+            "start_ts": 100.0,
+            "end_ts": 200.0,
+            "duration_s": 100,
+            "mode": "heating",
+            "dT_max": 5.0,
+            "dT_avg": 3.0,
+            "rps_max": 40,
+            "rps_avg": 30.0,
+            "outdoor_temp": 7.0,
+            "buh_used": 0,
+            "defrost_used": 0,
         }
         cid = await db.async_insert_cycle(row)
         assert cid is not None
@@ -50,16 +57,14 @@ async def test_migrate_legacy_8dim(tmp_path):
         conn = db._require()
         legacy = json.dumps([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
         await conn.execute(
-            'INSERT OR REPLACE INTO features (cycle_id, vector_json) VALUES (?,?)',
+            "INSERT OR REPLACE INTO features (cycle_id, vector_json) VALUES (?,?)",
             (cid, legacy),
         )
         await conn.commit()
         n = await db.async_migrate_features_to_v11()
         assert n == 1
         # Check gepad
-        async with conn.execute(
-            'SELECT vector_json FROM features WHERE cycle_id=?', (cid,)
-        ) as cur:
+        async with conn.execute("SELECT vector_json FROM features WHERE cycle_id=?", (cid,)) as cur:
             r = await cur.fetchone()
         vec = json.loads(r[0])
         assert len(vec) == 12
@@ -70,20 +75,27 @@ async def test_migrate_legacy_8dim(tmp_path):
 
 @pytest.mark.asyncio
 async def test_migrate_idempotent(tmp_path):
-    db = CycleDB(str(tmp_path / 'test.db'))
+    db = CycleDB(str(tmp_path / "test.db"))
     await db.async_initialize()
     try:
         row = {
-            'start_ts': 100.0, 'end_ts': 200.0, 'duration_s': 100,
-            'mode': 'heating', 'dT_max': 5.0, 'dT_avg': 3.0,
-            'rps_max': 40, 'rps_avg': 30.0, 'outdoor_temp': 7.0,
-            'buh_used': 0, 'defrost_used': 0,
+            "start_ts": 100.0,
+            "end_ts": 200.0,
+            "duration_s": 100,
+            "mode": "heating",
+            "dT_max": 5.0,
+            "dT_avg": 3.0,
+            "rps_max": 40,
+            "rps_avg": 30.0,
+            "outdoor_temp": 7.0,
+            "buh_used": 0,
+            "defrost_used": 0,
         }
         cid = await db.async_insert_cycle(row)
         conn = db._require()
         legacy = json.dumps([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
         await conn.execute(
-            'INSERT OR REPLACE INTO features (cycle_id, vector_json) VALUES (?,?)',
+            "INSERT OR REPLACE INTO features (cycle_id, vector_json) VALUES (?,?)",
             (cid, legacy),
         )
         await conn.commit()
@@ -98,11 +110,11 @@ async def test_migrate_idempotent(tmp_path):
 def test_multibaseline_resets_on_legacy_dim():
     # Simuleer 8-dim legacy state
     legacy_state = {
-        'dim': 8,
-        'alpha': 0.1,
-        'outlier_skip_z': 3.0,
-        'min_samples_before_skip': 5,
-        'baselines': {},
+        "dim": 8,
+        "alpha": 0.1,
+        "outlier_skip_z": 3.0,
+        "min_samples_before_skip": 5,
+        "baselines": {},
     }
     mb = MultiBaseline.from_dict(legacy_state)
     assert mb.dim == 12
@@ -110,11 +122,11 @@ def test_multibaseline_resets_on_legacy_dim():
 
 def test_multibaseline_accepts_current_dim():
     state = {
-        'dim': 11,
-        'alpha': 0.1,
-        'outlier_skip_z': 3.0,
-        'min_samples_before_skip': 5,
-        'baselines': {},
+        "dim": 11,
+        "alpha": 0.1,
+        "outlier_skip_z": 3.0,
+        "min_samples_before_skip": 5,
+        "baselines": {},
     }
     mb = MultiBaseline.from_dict(state)
     assert mb.dim == 12
@@ -129,16 +141,16 @@ def test_dummy_prod_db_migration_path():
     """Verifieer dat de migratie-call in __init__.py staat."""
     init_path = _INTEG / "__init__.py"
     src = init_path.read_text()
-    assert 'async_migrate_features_to_v11' in src
+    assert "async_migrate_features_to_v11" in src
 
 
 def test_multibaseline_source_has_legacy_import():
     mb_path = _INTEG / "ml" / "multi_baseline.py"
     src = mb_path.read_text()
-    assert 'VECTOR_LEN_LEGACY' in src
+    assert "VECTOR_LEN_LEGACY" in src
 
 
 def test_coordinator_has_kmeans_guard():
     co_path = _INTEG / "coordinator.py"
     src = co_path.read_text()
-    assert 'kmeans_state is legacy' in src
+    assert "kmeans_state is legacy" in src

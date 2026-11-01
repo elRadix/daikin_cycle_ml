@@ -3,6 +3,7 @@
 - add_cycle must increment cycles_today (before: never incremented → drift)
 - hydrate_from_rows must restore cycles_total + per-mode (before: reset to 0)
 """
+
 from __future__ import annotations
 
 import datetime as _dt
@@ -15,20 +16,30 @@ def _today_noon_ts() -> float:
 
 
 def _make_row(
-    *, start_ts: float, mode: str = "heating",
+    *,
+    start_ts: float,
+    mode: str = "heating",
     quality_score: int | None = None,
 ) -> dict:
     return {
-        "start_ts": start_ts, "end_ts": start_ts + 60,
-        "duration_s": 60, "mode": mode,
-        "dT_max": 5.0, "dT_avg": 3.0,
-        "rps_max": 30, "rps_avg": 20.0,
+        "start_ts": start_ts,
+        "end_ts": start_ts + 60,
+        "duration_s": 60,
+        "mode": mode,
+        "dT_max": 5.0,
+        "dT_avg": 3.0,
+        "rps_max": 30,
+        "rps_avg": 20.0,
         "outdoor_temp": 10.0,
-        "buh_used": 0, "defrost_used": 0,
+        "buh_used": 0,
+        "defrost_used": 0,
         "quality_score": quality_score,
-        "label": None, "cluster_id": None,
-        "cop_avg": None, "cop_sample_count": None,
-        "cop_sample_stdev": None, "cop_confidence": None,
+        "label": None,
+        "cluster_id": None,
+        "cop_avg": None,
+        "cop_sample_count": None,
+        "cop_sample_stdev": None,
+        "cop_confidence": None,
     }
 
 
@@ -62,10 +73,9 @@ def test_hydrate_restores_cycles_total():
 
 def test_hydrate_restores_per_mode_counters():
     noon = _today_noon_ts()
-    rows = (
-        [_make_row(start_ts=noon - i * 100, mode="heating") for i in range(3)]
-        + [_make_row(start_ts=noon - 1000 - i * 100, mode="dhw") for i in range(2)]
-    )
+    rows = [_make_row(start_ts=noon - i * 100, mode="heating") for i in range(3)] + [
+        _make_row(start_ts=noon - 1000 - i * 100, mode="dhw") for i in range(2)
+    ]
     s = CycleStore()
     s.hydrate_from_rows(rows)
     assert s.get("cycles_heating") == 3

@@ -1,4 +1,5 @@
 """Tests for engine.anomaly_engine (Batch 7b)."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.engine.anomaly_engine import (

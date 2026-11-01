@@ -3,6 +3,7 @@
 DHW samples must not pollute outdoor-temperature buckets. Default
 filter matches analyze_stooklijn: ('heating', 'unknown').
 """
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
@@ -13,8 +14,12 @@ from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
 
 def _s(cop, lwt, outdoor, mode):
     return CopSample(
-        cop=cop, lwt=lwt, outdoor=outdoor, mode=mode,
-        defrost=False, data_quality="Good",
+        cop=cop,
+        lwt=lwt,
+        outdoor=outdoor,
+        mode=mode,
+        defrost=False,
+        data_quality="Good",
     )
 
 
@@ -41,8 +46,11 @@ def test_default_includes_heating_and_unknown():
 
 def test_default_excludes_null_mode():
     s_null = CopSample(
-        cop=5.0, lwt=40.0, outdoor=19.0,
-        defrost=False, data_quality="Good",
+        cop=5.0,
+        lwt=40.0,
+        outdoor=19.0,
+        defrost=False,
+        data_quality="Good",
     )
     s_null.mode = None  # type: ignore[assignment]
     samples = [

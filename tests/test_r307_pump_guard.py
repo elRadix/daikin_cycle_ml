@@ -1,4 +1,5 @@
 """R307: pump-off in RUNNING state is soft, not a hard stop."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.const import (

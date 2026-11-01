@@ -1,4 +1,5 @@
 """Tests for quality_scorer (Batch 6a)."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.engine.quality_scorer import (

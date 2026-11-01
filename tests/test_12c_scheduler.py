@@ -1,4 +1,5 @@
 """Tests for 12c scheduler + options constants."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.const import (
@@ -23,4 +24,3 @@ def test_notify_emoji_default_on():
 
 def test_notif_id_status_format():
     assert NOTIF_ID_STATUS == "daikin_cycle_ml_status"
-

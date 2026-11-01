@@ -1,4 +1,5 @@
 """Tests for v1.6.0-C1b: cop_today heating-only + cop_combined_today."""
+
 from __future__ import annotations
 
 import time
@@ -26,6 +27,7 @@ def _today_start() -> float:
 def _mk_coord(rows_today, rows_week=None):
     """Minimal coordinator stub for _refresh_cop_today."""
     from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
+
     c = object.__new__(DaikinCycleMLCoordinator)
     c.db = MagicMock()
     c.db.async_fetch_cop_samples = AsyncMock(
@@ -85,6 +87,7 @@ async def test_refresh_cop_today_empty_rows():
 @pytest.mark.asyncio
 async def test_refresh_cop_today_db_none():
     from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
+
     c = object.__new__(DaikinCycleMLCoordinator)
     c.db = None
     c._cop_today_cache = {"cop": 99.0}
@@ -96,6 +99,7 @@ async def test_refresh_cop_today_db_none():
 @pytest.mark.asyncio
 async def test_refresh_cop_today_fetch_exception():
     from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
+
     c = object.__new__(DaikinCycleMLCoordinator)
     c.db = MagicMock()
     c.db.async_fetch_cop_samples = AsyncMock(side_effect=RuntimeError("db down"))
@@ -119,6 +123,7 @@ def test_sensor_defs_has_cop_combined_today():
 
 def test_cop_combined_today_unit_and_class():
     from homeassistant.components.sensor import SensorStateClass
+
     for sd in SENSOR_DEFS:
         if sd["key"] == "cop_combined_today":
             assert sd["unit"] == "COP"
@@ -129,10 +134,15 @@ def test_cop_combined_today_unit_and_class():
 
 
 def test_attrs_cop_combined_today_reads_combined():
-    s = SimpleNamespace(cop_combined_today={
-        "cop": 4.1, "samples_today": 12, "cop_min": 3.2,
-        "cop_max": 5.0, "baseline_cop_verlies_pct": 1.5,
-    })
+    s = SimpleNamespace(
+        cop_combined_today={
+            "cop": 4.1,
+            "samples_today": 12,
+            "cop_min": 3.2,
+            "cop_max": 5.0,
+            "baseline_cop_verlies_pct": 1.5,
+        }
+    )
     a = _attrs_cop_combined_today(s, MagicMock())
     assert a["samples_today"] == 12
     assert a["cop_min"] == 3.2
@@ -173,6 +183,7 @@ def test_cop_combined_today_value_fn():
 def test_translation_cop_combined_today_in_all_3_files():
     import json
     from pathlib import Path
+
     base = Path(__file__).parent.parent / "custom_components" / "daikin_cycle_ml"
     for fn in ("strings.json", "translations/en.json", "translations/nl.json"):
         data = json.loads((base / fn).read_text())
@@ -183,12 +194,14 @@ def test_translation_cop_combined_today_in_all_3_files():
 # Runtime smoke (v1.6.0-C1b additions)
 # ============================================================
 
+
 def test_c1b_runtime_import_package():
     from custom_components.daikin_cycle_ml import async_setup_entry  # noqa: F401
 
 
 def test_c1b_runtime_datasnapshot_defaults():
     from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
+
     s = DataSnapshot()
     assert s.cop_today == {}
     assert s.cop_combined_today == {}
@@ -196,6 +209,7 @@ def test_c1b_runtime_datasnapshot_defaults():
 
 def test_c1b_runtime_combined_sensor_present():
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
+
     keys = {sd["key"] for sd in SENSOR_DEFS}
     assert "cop_combined_today" in keys
     assert "cop_today" in keys
@@ -204,6 +218,7 @@ def test_c1b_runtime_combined_sensor_present():
 def test_c1b_runtime_combined_translation_all_3():
     import json
     from pathlib import Path
+
     base = Path(__file__).parent.parent / "custom_components" / "daikin_cycle_ml"
     for fn in ("strings.json", "translations/en.json", "translations/nl.json"):
         d = json.loads((base / fn).read_text())

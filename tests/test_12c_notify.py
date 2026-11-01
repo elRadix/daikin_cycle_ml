@@ -1,4 +1,5 @@
 """Tests for 12c: dynamic notifications + emoji + status builder."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.const import (
@@ -19,7 +20,14 @@ def test_severity_emoji_map_complete():
 
 
 def test_alert_type_emoji_map_covers_core():
-    for k in ("pendulum_hourly", "pendulum_daily", "short_run", "short_off", "ml_anomaly", "setpoint_osc"):
+    for k in (
+        "pendulum_hourly",
+        "pendulum_daily",
+        "short_run",
+        "short_off",
+        "ml_anomaly",
+        "setpoint_osc",
+    ):
         assert k in ALERT_TYPE_EMOJI
         assert ALERT_TYPE_EMOJI[k]
 
@@ -38,23 +46,18 @@ def test_emoji_prefix_present_by_default():
 
 
 def test_emoji_disabled_via_option():
-    out = evaluate_alerts(
-        {"short_run": True}, {"notify_emoji_enabled": False}, now=1e9
-    )
+    out = evaluate_alerts({"short_run": True}, {"notify_emoji_enabled": False}, now=1e9)
     assert not out[0].message.startswith(ALERT_TYPE_EMOJI["short_run"])
 
 
 def test_emoji_disabled_via_kwarg():
-    out = evaluate_alerts(
-        {"short_run": True}, {}, now=1e9, emoji_enabled=False
-    )
+    out = evaluate_alerts({"short_run": True}, {}, now=1e9, emoji_enabled=False)
     assert not out[0].message.startswith(ALERT_TYPE_EMOJI["short_run"])
 
 
 def test_no_context_leaves_placeholder():
     out = evaluate_alerts({"short_run": True}, {}, now=1e9)
-    assert ("{duration_min}" in out[0].message
-            or "Duration" in out[0].message)
+    assert "{duration_min}" in out[0].message or "Duration" in out[0].message
 
 
 def test_ml_anomaly_mapped():
@@ -69,8 +72,14 @@ def test_setpoint_osc_mapped():
 
 
 def test_binary_alert_map_extended():
-    for k in ("pendulum_hourly", "pendulum_daily", "short_run",
-              "short_off", "ml_anomaly", "setpoint_osc"):
+    for k in (
+        "pendulum_hourly",
+        "pendulum_daily",
+        "short_run",
+        "short_off",
+        "ml_anomaly",
+        "setpoint_osc",
+    ):
         assert k in BINARY_ALERT_MAP
 
 
@@ -106,4 +115,3 @@ def test_build_status_message_minimal():
     msg = build_status_message({})
     assert "unknown" in msg
     assert "idle" in msg
-

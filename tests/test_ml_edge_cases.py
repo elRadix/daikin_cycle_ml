@@ -1,4 +1,5 @@
 """ML edge cases: adaptive thresholds, baselines, kmeans, anomaly."""
+
 from __future__ import annotations
 
 import pytest
@@ -93,6 +94,7 @@ def test_welford_baseline_exact():
 
 def test_welford_baseline_needs_min_samples_for_z():
     from custom_components.daikin_cycle_ml.ml.baseline import MIN_SAMPLES_FOR_Z
+
     b = Baseline(dim=1)
     for _ in range(MIN_SAMPLES_FOR_Z - 1):
         b.update([10.0])
@@ -128,6 +130,7 @@ def test_ewma_baseline_nonzero_variance_skips_outlier():
 
 def test_ewma_baseline_alpha_clamped():
     from custom_components.daikin_cycle_ml.ml.baseline import MAX_ALPHA, MIN_ALPHA
+
     b = AdaptiveBaseline(dim=1, alpha=-0.5)
     assert b.alpha == MIN_ALPHA
     b2 = AdaptiveBaseline(dim=1, alpha=99.0)
@@ -203,8 +206,15 @@ def test_nearest_centroid_dim_mismatch_returns_none():
 def test_labels_to_dict_structure():
     r = kmeans([[0.0], [1.0], [10.0], [11.0]], k=2)
     d = labels_to_dict(r)
-    assert set(d.keys()) == {"k", "n", "iterations", "inertia",
-                              "labels", "centroids", "cluster_sizes"}
+    assert set(d.keys()) == {
+        "k",
+        "n",
+        "iterations",
+        "inertia",
+        "labels",
+        "centroids",
+        "cluster_sizes",
+    }
 
 
 def test_multibaseline_isolates_modes():
@@ -226,6 +236,7 @@ def test_multibaseline_unknown_mode_default():
 
 def test_multibaseline_from_dict_migration():
     from custom_components.daikin_cycle_ml.ml.features import VECTOR_LEN, VECTOR_LEN_LEGACY
+
     old = {"dim": VECTOR_LEN_LEGACY, "baselines": {}}
     mb = MultiBaseline.from_dict(old)
     assert mb.dim == VECTOR_LEN

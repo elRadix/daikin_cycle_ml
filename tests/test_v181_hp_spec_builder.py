@@ -1,4 +1,5 @@
 """v1.8.1 -- HP spec JSON builder on Page A (issue #54, commit 2)."""
+
 from __future__ import annotations
 
 import asyncio
@@ -36,6 +37,7 @@ def _spec(**kw):
 
 # ---------- validate_spec -- root + required ----------
 
+
 def test_validate_spec_minimal_ok():
     spec, errs = md.validate_spec(_spec())
     assert errs == []
@@ -43,15 +45,17 @@ def test_validate_spec_minimal_ok():
 
 
 def test_validate_spec_full_with_points_ok():
-    spec, errs = md.validate_spec(_spec(
-        refrigerant="R32",
-        buh_kw=3.0,
-        max_flow_lmin=22.0,
-        noise_db=58.0,
-        bivalent=False,
-        min_modulation_kw=2.0,
-        points=[{"label": "A7/W35", "t_out": 7.0, "t_lwc": 35.0, "cop": 4.6}],
-    ))
+    spec, errs = md.validate_spec(
+        _spec(
+            refrigerant="R32",
+            buh_kw=3.0,
+            max_flow_lmin=22.0,
+            noise_db=58.0,
+            bivalent=False,
+            min_modulation_kw=2.0,
+            points=[{"label": "A7/W35", "t_out": 7.0, "t_lwc": 35.0, "cop": 4.6}],
+        )
+    )
     assert errs == []
 
 
@@ -68,6 +72,7 @@ def test_validate_spec_missing_required():
 
 
 # ---------- validate_spec -- kw / lwt semantics ----------
+
 
 def test_validate_spec_kw_zero_rejected():
     _, errs = md.validate_spec(_spec(kw=0.0))
@@ -111,6 +116,7 @@ def test_validate_spec_lwt_max_bool_skips_range():
 
 # ---------- validate_spec -- optional fields ----------
 
+
 def test_validate_spec_refrigerant_enum_rejected():
     _, errs = md.validate_spec(_spec(refrigerant="R22"))
     assert any("refrigerant" in e for e in errs)
@@ -148,6 +154,7 @@ def test_validate_spec_numeric_optional_bool_rejected():
 
 # ---------- validate_spec -- points ----------
 
+
 def test_validate_spec_points_not_list():
     _, errs = md.validate_spec(_spec(points="nope"))
     assert any("points" in e and "not a list" in e for e in errs)
@@ -159,9 +166,7 @@ def test_validate_spec_point_not_dict():
 
 
 def test_validate_spec_point_missing_key():
-    _, errs = md.validate_spec(
-        _spec(points=[{"label": "A7/W35", "t_out": 7.0, "t_lwc": 35.0}])
-    )
+    _, errs = md.validate_spec(_spec(points=[{"label": "A7/W35", "t_out": 7.0, "t_lwc": 35.0}]))
     assert any("cop" in e for e in errs)
 
 
@@ -181,6 +186,7 @@ def test_validate_spec_point_bool_cop_rejected():
 
 # ---------- config_flow -- model_custom_info spec builder ----------
 
+
 def test_step_info_form_has_placeholders():
     flow = _wizard()
     r = asyncio.run(flow.async_step_model_custom_info())
@@ -194,40 +200,53 @@ def test_step_info_form_has_placeholders():
 
 def test_step_info_empty_routes_none():
     flow = _wizard()
-    r = asyncio.run(flow.async_step_model_custom_info(user_input={
-        "custom_datasheet_json": "",
-    }))
+    r = asyncio.run(
+        flow.async_step_model_custom_info(
+            user_input={
+                "custom_datasheet_json": "",
+            }
+        )
+    )
     assert r["step_id"] == "attribute_mapping"
     assert flow._data["custom_datasheet"] is None
 
 
 def test_step_info_whitespace_routes_none():
     flow = _wizard()
-    r = asyncio.run(flow.async_step_model_custom_info(user_input={
-        "custom_datasheet_json": "   \n  ",
-    }))
+    r = asyncio.run(
+        flow.async_step_model_custom_info(
+            user_input={
+                "custom_datasheet_json": "   \n  ",
+            }
+        )
+    )
     assert r["step_id"] == "attribute_mapping"
     assert flow._data["custom_datasheet"] is None
 
 
 def test_step_info_valid_routes_with_spec():
     flow = _wizard()
-    raw = (
-        '{"family": "Altherma 3 R", "kw": 8.0, '
-        '"lwt_min": 25.0, "lwt_max": 55.0, "nom_cop": 4.6}'
+    raw = '{"family": "Altherma 3 R", "kw": 8.0, "lwt_min": 25.0, "lwt_max": 55.0, "nom_cop": 4.6}'
+    r = asyncio.run(
+        flow.async_step_model_custom_info(
+            user_input={
+                "custom_datasheet_json": raw,
+            }
+        )
     )
-    r = asyncio.run(flow.async_step_model_custom_info(user_input={
-        "custom_datasheet_json": raw,
-    }))
     assert r["step_id"] == "attribute_mapping"
     assert flow._data["custom_datasheet"]["kw"] == 8.0
 
 
 def test_step_info_invalid_json():
     flow = _wizard()
-    r = asyncio.run(flow.async_step_model_custom_info(user_input={
-        "custom_datasheet_json": "{not json",
-    }))
+    r = asyncio.run(
+        flow.async_step_model_custom_info(
+            user_input={
+                "custom_datasheet_json": "{not json",
+            }
+        )
+    )
     assert r["type"] == "form"
     assert r["step_id"] == "model_custom_info"
     assert r["errors"]["custom_datasheet_json"] == "invalid_json"
@@ -235,9 +254,13 @@ def test_step_info_invalid_json():
 
 def test_step_info_invalid_spec():
     flow = _wizard()
-    r = asyncio.run(flow.async_step_model_custom_info(user_input={
-        "custom_datasheet_json": '{"family": "X"}',
-    }))
+    r = asyncio.run(
+        flow.async_step_model_custom_info(
+            user_input={
+                "custom_datasheet_json": '{"family": "X"}',
+            }
+        )
+    )
     assert r["type"] == "form"
     assert r["step_id"] == "model_custom_info"
     assert r["errors"]["custom_datasheet_json"] == "invalid_spec"

@@ -1,4 +1,5 @@
 """Tests for HT profile + HT datasheet curves (#175)."""
+
 from __future__ import annotations
 
 import json
@@ -11,16 +12,24 @@ from custom_components.daikin_cycle_ml.engine.model_profiles import (
 
 DATA_PATH = (
     Path(__file__).parent.parent
-    / "custom_components" / "daikin_cycle_ml" / "data" / "datasheets.json"
+    / "custom_components"
+    / "daikin_cycle_ml"
+    / "data"
+    / "datasheets.json"
 )
 
 HT_MODELS = [
-    "ekhbrd011", "ekhbrd014", "ekhbrd016",
-    "errq011", "errq014", "errq016",
+    "ekhbrd011",
+    "ekhbrd014",
+    "ekhbrd016",
+    "errq011",
+    "errq014",
+    "errq016",
 ]
 
 
 # ---------- Profile tests ----------
+
 
 def test_ht_profiles_use_ht_thresholds():
     for m in HT_MODELS:
@@ -47,6 +56,7 @@ def test_ht_profiles_preserve_base_keys():
 
 
 # ---------- Datasheet tests ----------
+
 
 def _load():
     with DATA_PATH.open() as f:
@@ -80,8 +90,12 @@ def test_ht_datasheets_lwt_range():
 def test_ht_datasheets_nom_cop_unchanged():
     d = _load()
     expected = {
-        "ekhbrd011": 4.2, "ekhbrd014": 3.72, "ekhbrd016": 3.72,
-        "errq011": 4.22, "errq014": 3.94, "errq016": 3.72,
+        "ekhbrd011": 4.2,
+        "ekhbrd014": 3.72,
+        "ekhbrd016": 3.72,
+        "errq011": 4.22,
+        "errq014": 3.94,
+        "errq016": 3.72,
     }
     for m, val in expected.items():
         assert d["models"][m]["nom_cop"] == val, m

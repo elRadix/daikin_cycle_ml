@@ -9,6 +9,7 @@ attrs with default 'unknown' by design; coordinator.py:1461 sets 'Good').
 This test freezes the contract so future construction sites cannot
 silently omit the field.
 """
+
 from __future__ import annotations
 
 import ast
@@ -24,8 +25,10 @@ def _cop_sample_calls():
             if not isinstance(node, ast.Call):
                 continue
             func = node.func
-            name = func.id if isinstance(func, ast.Name) else (
-                func.attr if isinstance(func, ast.Attribute) else None
+            name = (
+                func.id
+                if isinstance(func, ast.Name)
+                else (func.attr if isinstance(func, ast.Attribute) else None)
             )
             if name == "CopSample":
                 yield py, node
@@ -39,6 +42,5 @@ def test_every_cop_sample_construction_sets_data_quality() -> None:
             rel = py.relative_to(ROOT.parent)
             missing.append(f"{rel}:{node.lineno}")
     assert not missing, (
-        "CopSample() without data_quality= (silently drops from "
-        f"bucket_summary): {missing}"
+        f"CopSample() without data_quality= (silently drops from bucket_summary): {missing}"
     )

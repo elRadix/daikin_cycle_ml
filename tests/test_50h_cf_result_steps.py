@@ -1,5 +1,7 @@
 """Batch 50h -- OptionsFlow result-steps coverage."""
+
 from __future__ import annotations
+import contextlib
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -25,19 +27,16 @@ async def test_test_notification_step_submit(hass: HomeAssistant):
     entry.add_to_hass(hass)
     r = await hass.config_entries.options.async_init(entry.entry_id)
     r = await hass.config_entries.options.async_configure(
-        r["flow_id"], user_input={"next_step_id": "test_notification"},
+        r["flow_id"],
+        user_input={"next_step_id": "test_notification"},
     )
     # Submit -> result step (L701-716 doel)
-    try:
+    with contextlib.suppress(Exception):
         r2 = await hass.config_entries.options.async_configure(
             r["flow_id"],
-            user_input={"alert_kind": "status_summary",
-                        "ignore_group_filters": False},
+            user_input={"alert_kind": "status_summary", "ignore_group_filters": False},
         )
-        assert r2["type"] in (FlowResultType.FORM, FlowResultType.MENU,
-                              FlowResultType.CREATE_ENTRY)
-    except Exception:
-        pass
+        assert r2["type"] in (FlowResultType.FORM, FlowResultType.MENU, FlowResultType.CREATE_ENTRY)
 
 
 async def test_test_notification_step_submit_pendulum(hass: HomeAssistant):
@@ -45,18 +44,15 @@ async def test_test_notification_step_submit_pendulum(hass: HomeAssistant):
     entry.add_to_hass(hass)
     r = await hass.config_entries.options.async_init(entry.entry_id)
     r = await hass.config_entries.options.async_configure(
-        r["flow_id"], user_input={"next_step_id": "test_notification"},
+        r["flow_id"],
+        user_input={"next_step_id": "test_notification"},
     )
-    try:
+    with contextlib.suppress(Exception):
         r2 = await hass.config_entries.options.async_configure(
             r["flow_id"],
-            user_input={"alert_kind": "short_run",
-                        "ignore_group_filters": True},
+            user_input={"alert_kind": "short_run", "ignore_group_filters": True},
         )
-        assert r2["type"] in (FlowResultType.FORM, FlowResultType.MENU,
-                              FlowResultType.CREATE_ENTRY)
-    except Exception:
-        pass
+        assert r2["type"] in (FlowResultType.FORM, FlowResultType.MENU, FlowResultType.CREATE_ENTRY)
 
 
 async def test_test_all_notifications_step_submit(hass: HomeAssistant):
@@ -64,16 +60,15 @@ async def test_test_all_notifications_step_submit(hass: HomeAssistant):
     entry.add_to_hass(hass)
     r = await hass.config_entries.options.async_init(entry.entry_id)
     r = await hass.config_entries.options.async_configure(
-        r["flow_id"], user_input={"next_step_id": "test_all_notifications"},
+        r["flow_id"],
+        user_input={"next_step_id": "test_all_notifications"},
     )
-    try:
+    with contextlib.suppress(Exception):
         r2 = await hass.config_entries.options.async_configure(
-            r["flow_id"], user_input={},
+            r["flow_id"],
+            user_input={},
         )
-        assert r2["type"] in (FlowResultType.FORM, FlowResultType.MENU,
-                              FlowResultType.CREATE_ENTRY)
-    except Exception:
-        pass
+        assert r2["type"] in (FlowResultType.FORM, FlowResultType.MENU, FlowResultType.CREATE_ENTRY)
 
 
 async def test_options_device_submit_roundtrip(hass: HomeAssistant):
@@ -81,9 +76,10 @@ async def test_options_device_submit_roundtrip(hass: HomeAssistant):
     entry.add_to_hass(hass)
     r = await hass.config_entries.options.async_init(entry.entry_id)
     r = await hass.config_entries.options.async_configure(
-        r["flow_id"], user_input={"next_step_id": "device"},
+        r["flow_id"],
+        user_input={"next_step_id": "device"},
     )
-    try:
+    with contextlib.suppress(Exception):
         r2 = await hass.config_entries.options.async_configure(
             r["flow_id"],
             user_input={
@@ -95,7 +91,4 @@ async def test_options_device_submit_roundtrip(hass: HomeAssistant):
                 "comfort": {},
             },
         )
-        assert r2["type"] in (FlowResultType.FORM, FlowResultType.MENU,
-                              FlowResultType.CREATE_ENTRY)
-    except Exception:
-        pass
+        assert r2["type"] in (FlowResultType.FORM, FlowResultType.MENU, FlowResultType.CREATE_ENTRY)

@@ -1,4 +1,5 @@
 """B7: export_cop_hourly service. Marker: B7_EXPORT_COP_HOURLY_v1"""
+
 from __future__ import annotations
 
 from typing import Any
@@ -24,18 +25,38 @@ def _mk_coord(db=None):
 
 def _mk_rows():
     return [
-        {"ts_hour": 100, "mode": "heating", "n_samples": 12,
-         "cop_mean": 3.5, "cop_p10": 3.0, "cop_p50": 3.5,
-         "cop_p90": 4.0, "cop_std": 0.1, "lwt_mean": 35.0,
-         "outdoor_mean": 5.0, "outdoor_min": 4.0,
-         "outdoor_max": 6.0, "flow_mean": 15.0,
-         "updated_ts": 1000.0},
-        {"ts_hour": 101, "mode": "dhw", "n_samples": 4,
-         "cop_mean": 2.0, "cop_p10": 1.9, "cop_p50": 2.0,
-         "cop_p90": 2.2, "cop_std": 0.1, "lwt_mean": 52.0,
-         "outdoor_mean": 5.0, "outdoor_min": 4.0,
-         "outdoor_max": 6.0, "flow_mean": 14.0,
-         "updated_ts": 1000.0},
+        {
+            "ts_hour": 100,
+            "mode": "heating",
+            "n_samples": 12,
+            "cop_mean": 3.5,
+            "cop_p10": 3.0,
+            "cop_p50": 3.5,
+            "cop_p90": 4.0,
+            "cop_std": 0.1,
+            "lwt_mean": 35.0,
+            "outdoor_mean": 5.0,
+            "outdoor_min": 4.0,
+            "outdoor_max": 6.0,
+            "flow_mean": 15.0,
+            "updated_ts": 1000.0,
+        },
+        {
+            "ts_hour": 101,
+            "mode": "dhw",
+            "n_samples": 4,
+            "cop_mean": 2.0,
+            "cop_p10": 1.9,
+            "cop_p50": 2.0,
+            "cop_p90": 2.2,
+            "cop_std": 0.1,
+            "lwt_mean": 52.0,
+            "outdoor_mean": 5.0,
+            "outdoor_min": 4.0,
+            "outdoor_max": 6.0,
+            "flow_mean": 14.0,
+            "updated_ts": 1000.0,
+        },
     ]
 
 
@@ -44,10 +65,14 @@ def test_b7_service_constant() -> None:
 
 
 def test_b7_schema_valid() -> None:
-    data = SCHEMA_EXPORT_COP_HOURLY({
-        "entry_id": "abc", "days": 7, "mode": "heating",
-        "format": "csv",
-    })
+    data = SCHEMA_EXPORT_COP_HOURLY(
+        {
+            "entry_id": "abc",
+            "days": 7,
+            "mode": "heating",
+            "format": "csv",
+        }
+    )
     assert data["entry_id"] == "abc"
     assert data["days"] == 7
     assert data["mode"] == "heating"
@@ -125,6 +150,7 @@ async def test_b7_worker_mode_filter() -> None:
 
 async def test_b7_handler_passthrough(monkeypatch):
     from custom_components.daikin_cycle_ml import services as svc
+
     db = MagicMock()
     db.async_query_cop_hourly = AsyncMock(return_value=_mk_rows())
     coord = _mk_coord(db=db)
@@ -132,7 +158,10 @@ async def test_b7_handler_passthrough(monkeypatch):
     hass = MagicMock()
     call = MagicMock()
     call.data = {
-        "entry_id": "e1", "days": 7, "mode": None, "format": "json",
+        "entry_id": "e1",
+        "days": 7,
+        "mode": None,
+        "format": "json",
     }
     out = await _handle_export_cop_hourly(hass, call)
     assert out["count"] == 2
@@ -141,6 +170,7 @@ async def test_b7_handler_passthrough(monkeypatch):
 
 async def test_b7_registration_includes_export_cop_hourly() -> None:
     from custom_components.daikin_cycle_ml import services as svc
+
     hass = MagicMock()
     hass.services = MagicMock()
     hass.services.has_service = MagicMock(return_value=False)

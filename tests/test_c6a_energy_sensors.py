@@ -1,4 +1,5 @@
 """v1.6.0-C6a-1a: energy sensors (electrical + thermal kWh)."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -98,25 +99,17 @@ def test_value_none_snapshot() -> None:
 
 def test_value_missing_mode() -> None:
     assert (
-        s_mod._value_energy_kwh("dhw", "el")(
-            None, _c({"heating": {"th": 1.0, "el": 0.5}})
-        )
-        == 0.0
+        s_mod._value_energy_kwh("dhw", "el")(None, _c({"heating": {"th": 1.0, "el": 0.5}})) == 0.0
     )
 
 
 def test_value_missing_kind() -> None:
-    assert (
-        s_mod._value_energy_kwh("heating", "el")(None, _c({"heating": {"th": 5.0}}))
-        == 0.0
-    )
+    assert s_mod._value_energy_kwh("heating", "el")(None, _c({"heating": {"th": 5.0}})) == 0.0
 
 
 def test_value_rounds_three_decimals() -> None:
     assert (
-        s_mod._value_energy_kwh("heating", "el")(
-            None, _c({"heating": {"th": 0, "el": 3.14159}})
-        )
+        s_mod._value_energy_kwh("heating", "el")(None, _c({"heating": {"th": 0, "el": 3.14159}}))
         == 3.142
     )
 

@@ -1,4 +1,5 @@
 """Tests for engine.attribute_reader."""
+
 from __future__ import annotations
 
 from custom_components.daikin_cycle_ml.const import REQUIRED_ATTRIBUTES
@@ -88,6 +89,7 @@ def test_missing_required_reports_all_missing():
 def test_missing_required_empty_when_complete():
     attrs = dict.fromkeys(REQUIRED_ATTRIBUTES, 0.0)
     assert missing_required(attrs) == []
+
 
 def test_read_preserves_string_mode():
     st = _FakeState({"I/U operation mode": "Heating"})

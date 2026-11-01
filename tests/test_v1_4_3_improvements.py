@@ -1,4 +1,5 @@
 """v1.4.3 regression: setup order backfill before hydrate."""
+
 from __future__ import annotations
 
 import inspect
@@ -16,5 +17,7 @@ def test_setup_entry_backfill_runs_before_hydrate():
     assert idx_hyd != -1, "hydrate call missing"
     assert idx_back < idx_hyd, (
         "backfill must run BEFORE hydrate; found hydrate at "
-        + str(idx_hyd) + " backfill at " + str(idx_back)
+        + str(idx_hyd)
+        + " backfill at "
+        + str(idx_back)
     )

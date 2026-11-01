@@ -1,4 +1,5 @@
 """v1.12.9 (#131 PR-2): coordinator forward-merge hook integration."""
+
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -27,13 +28,17 @@ class _Coord(DaikinCycleMLCoordinator):
 
 def _rec(mode="heating", start=0, end=60, is_transient=0):
     return {
-        "start_ts": start, "end_ts": end,
+        "start_ts": start,
+        "end_ts": end,
         "duration_s": end - start,
         "mode": mode,
-        "dT_max": 5.0, "dT_avg": 3.0,
-        "rps_max": 30, "rps_avg": 20.0,
+        "dT_max": 5.0,
+        "dT_avg": 3.0,
+        "rps_max": 30,
+        "rps_avg": 20.0,
         "outdoor_temp": 10.0,
-        "buh_used": 0, "defrost_used": 0,
+        "buh_used": 0,
+        "defrost_used": 0,
         "is_transient": is_transient,
     }
 
@@ -105,18 +110,14 @@ async def test_new_transient_skips_primitive():
     c.store.add_cycle(_rec(start=0, end=100))
     c.store.add_cycle(_rec(start=110, end=150, is_transient=1))
     snap = _Snap()
-    await c._process_new_cycle(
-        _rec(start=110, end=150, is_transient=1), snap
-    )
+    await c._process_new_cycle(_rec(start=110, end=150, is_transient=1), snap)
     db.async_merge_cycle_forward.assert_not_awaited()
     assert c.store.get("cycles_total") == 2
 
 
 async def test_merge_exception_caught():
     c, db = _make_coord(absorbed=0)
-    db.async_merge_cycle_forward = AsyncMock(
-        side_effect=RuntimeError("db boom")
-    )
+    db.async_merge_cycle_forward = AsyncMock(side_effect=RuntimeError("db boom"))
     c.store.add_cycle(_rec(start=0, end=100))
     c.store.add_cycle(_rec(start=110, end=200))
     snap = _Snap()

@@ -1,4 +1,5 @@
 """v1.6.0-C5 coordinator method coverage: accumulators + persist + tick."""
+
 from __future__ import annotations
 
 import time
@@ -198,9 +199,7 @@ def test_tick_buh_step2_on():
 def test_tick_buh_both_on():
     c = _bare()
     c._last_runtime_tick_ts = 1000.0
-    c._tick_buh_and_defrost(
-        {ATTR_BUH_STEP1: True, ATTR_BUH_STEP2: True}, 1090.0
-    )
+    c._tick_buh_and_defrost({ATTR_BUH_STEP1: True, ATTR_BUH_STEP2: True}, 1090.0)
     assert c._buh_step1_s == 90.0
     assert c._buh_step2_s == 90.0
 
@@ -238,6 +237,7 @@ def test_tick_buh_swallows_exception():
     class Bad:
         def get(self, k):
             raise RuntimeError("x")
+
     c = _bare()
     c._last_runtime_tick_ts = 1000.0
     c._tick_buh_and_defrost(Bad(), 1030.0)
@@ -248,8 +248,11 @@ def test_tick_energy_power_cop_path():
     c._last_energy_tick_ts = 1000.0
     c._energy_acc = _zero_acc()
     c._tick_energy(
-        {ATTR_INV_FREQUENCY_RPS: 50.0}, 1030.0,
-        mode="heating", power_w=2000.0, cop=4.0,
+        {ATTR_INV_FREQUENCY_RPS: 50.0},
+        1030.0,
+        mode="heating",
+        power_w=2000.0,
+        cop=4.0,
     )
     assert c._energy_acc["heating"]["th"] > 0.0
     assert c._energy_acc["heating"]["el"] > 0.0
@@ -260,8 +263,11 @@ def test_tick_energy_rps_cop_fallback():
     c._last_energy_tick_ts = 1000.0
     c._energy_acc = _zero_acc()
     c._tick_energy(
-        {ATTR_INV_FREQUENCY_RPS: 50.0}, 1030.0,
-        mode="heating", power_w=None, cop=3.0,
+        {ATTR_INV_FREQUENCY_RPS: 50.0},
+        1030.0,
+        mode="heating",
+        power_w=None,
+        cop=3.0,
     )
     assert c._energy_acc["heating"]["th"] > 0.0
     assert c._energy_acc["heating"]["el"] > 0.0
@@ -280,8 +286,11 @@ def test_tick_energy_zero_dt_returns():
     c._last_energy_tick_ts = 1000.0
     c._energy_acc = _zero_acc()
     c._tick_energy(
-        {ATTR_INV_FREQUENCY_RPS: 50.0}, 1000.0,
-        mode="heating", power_w=2000.0, cop=4.0,
+        {ATTR_INV_FREQUENCY_RPS: 50.0},
+        1000.0,
+        mode="heating",
+        power_w=2000.0,
+        cop=4.0,
     )
     assert c._energy_acc["heating"]["th"] == 0.0
 
@@ -292,8 +301,11 @@ def test_tick_energy_unknown_mode_skipped():
     c._last_energy_tick_ts = 1000.0
     c._energy_acc = _zero_acc()
     c._tick_energy(
-        {ATTR_INV_FREQUENCY_RPS: 50.0}, 1030.0,
-        mode="foo", power_w=2000.0, cop=4.0,
+        {ATTR_INV_FREQUENCY_RPS: 50.0},
+        1030.0,
+        mode="foo",
+        power_w=2000.0,
+        cop=4.0,
     )
     assert c._energy_acc["heating"]["th"] == 0.0
     assert c._energy_acc["heating"]["el"] == 0.0
@@ -303,10 +315,15 @@ def test_tick_energy_swallows_exception():
     class Bad:
         def get(self, k):
             raise RuntimeError("x")
+
     c = _bare()
     c._last_energy_tick_ts = 1000.0
     c._tick_energy(
-        Bad(), 1030.0, mode="heating", power_w=2000.0, cop=4.0,
+        Bad(),
+        1030.0,
+        mode="heating",
+        power_w=2000.0,
+        cop=4.0,
     )
 
 
@@ -321,6 +338,7 @@ def test_runtime_snapshot_shape():
     assert snap["buh_step1_s"] == 10.0
     assert snap["defrost_count"] == 3.0
     assert snap["last_defrost_ts"] == 999.0
+
 
 def test_tick_defrost_off_without_start_ts():
     """Branch 907->910: off-transition waarbij _defrost_start_ts None is."""
@@ -339,11 +357,15 @@ def test_tick_energy_no_kw_el_via_rps():
     c._last_energy_tick_ts = 1000.0
     c._energy_acc = _zero_acc()
     c._tick_energy(
-        {ATTR_INV_FREQUENCY_RPS: 50.0}, 1030.0,
-        mode="heating", power_w=None, cop=None,
+        {ATTR_INV_FREQUENCY_RPS: 50.0},
+        1030.0,
+        mode="heating",
+        power_w=None,
+        cop=None,
     )
     assert c._energy_acc["heating"]["th"] > 0.0
     assert c._energy_acc["heating"]["el"] == 0.0
+
 
 # ---------- v1.6.0-C6a: _maybe_persist_accumulators ----------
 
@@ -469,6 +491,7 @@ def test_class_defaults_persist_ts_present():
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator as C,
     )
+
     assert C._last_runtime_persist_ts == 0.0
     assert C._last_energy_persist_ts == 0.0
 
@@ -479,17 +502,22 @@ def test_class_defaults_persist_ts_present():
 def test_tick_energy_detector_exception_treated_as_off():
     """R286: detector.state raising is caught; compressor_on defaults False.
     Without BUH the tick must be skipped (no accumulation)."""
+
     class BadDetector:
         @property
         def state(self):
             raise RuntimeError("boom")
+
     c = _bare()
     c.detector = BadDetector()
     c._last_energy_tick_ts = 1000.0
     c._energy_acc = _zero_acc()
     c._tick_energy(
-        {ATTR_INV_FREQUENCY_RPS: 50.0}, 1030.0,
-        mode="heating", power_w=2000.0, cop=4.0,
+        {ATTR_INV_FREQUENCY_RPS: 50.0},
+        1030.0,
+        mode="heating",
+        power_w=2000.0,
+        cop=4.0,
     )
     assert c._energy_acc["heating"]["th"] == 0.0
     assert c._energy_acc["heating"]["el"] == 0.0
@@ -501,8 +529,11 @@ def test_tick_energy_zero_power_and_zero_cop_no_el():
     c._last_energy_tick_ts = 1000.0
     c._energy_acc = _zero_acc()
     c._tick_energy(
-        {ATTR_INV_FREQUENCY_RPS: 50.0}, 1030.0,
-        mode="heating", power_w=0.0, cop=0.0,
+        {ATTR_INV_FREQUENCY_RPS: 50.0},
+        1030.0,
+        mode="heating",
+        power_w=0.0,
+        cop=0.0,
     )
     assert c._energy_acc["heating"]["th"] > 0.0
     assert c._energy_acc["heating"]["el"] == 0.0

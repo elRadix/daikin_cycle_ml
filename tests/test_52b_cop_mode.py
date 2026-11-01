@@ -1,4 +1,5 @@
 """Batch 52b: cop_samples.mode + heating-only stooklijn."""
+
 import asyncio
 import sqlite3
 import time
@@ -15,9 +16,7 @@ from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
 def _mk(cop, lwt, out, mode, n=6):
     return [
-        CopSample(cop=cop, lwt=lwt, outdoor=out, mode=mode,
-                  data_quality="Good")
-        for _ in range(n)
+        CopSample(cop=cop, lwt=lwt, outdoor=out, mode=mode, data_quality="Good") for _ in range(n)
     ]
 
 
@@ -83,10 +82,17 @@ async def test_insert_cop_sample_with_mode(tmp_path):
         await db.async_open()
         await db.async_initialize()
         now = time.time()
-        ok = await db.async_insert_cop_sample({
-            "ts": now, "cop": 3.2, "lwt": 35.0, "outdoor": 5.0,
-            "flow_lmin": 8.0, "power_stable": True, "mode": "heating",
-        })
+        ok = await db.async_insert_cop_sample(
+            {
+                "ts": now,
+                "cop": 3.2,
+                "lwt": 35.0,
+                "outdoor": 5.0,
+                "flow_lmin": 8.0,
+                "power_stable": True,
+                "mode": "heating",
+            }
+        )
         assert ok is True
         rows = await db.async_fetch_cop_samples(days=1)
         assert len(rows) == 1

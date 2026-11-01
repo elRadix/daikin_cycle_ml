@@ -1,4 +1,5 @@
 """Batch 29 tests: semantic end-to-end scenarios."""
+
 from __future__ import annotations
 
 import time
@@ -74,16 +75,20 @@ async def test_scenario_pendulum_hourly_fires_alert():
     st = CycleStore()
     now = time.time()
     for i in range(4):
-        st.add_cycle({
-            "start_ts": now - 3600 + i * 600,
-            "end_ts": now - 3600 + i * 600 + 300,
-            "duration_s": 300,
-            "mode": "heating",
-        })
+        st.add_cycle(
+            {
+                "start_ts": now - 3600 + i * 600,
+                "end_ts": now - 3600 + i * 600 + 300,
+                "duration_s": 300,
+                "mode": "heating",
+            }
+        )
     c = _bare_coord(
-        options={"pendulum_cycles_per_hour": 4,
-                 "short_run_threshold_min": 20,
-                 "notify_emoji_enabled": False},
+        options={
+            "pendulum_cycles_per_hour": 4,
+            "short_run_threshold_min": 20,
+            "notify_emoji_enabled": False,
+        },
         store=st,
     )
     snap = DataSnapshot(state="idle", mode="heating")
@@ -98,12 +103,14 @@ def test_scenario_pendulum_daily_below_target_no_alert():
     st = CycleStore()
     now = time.time()
     for i in range(3):
-        st.add_cycle({
-            "start_ts": now - 7200 + i * 600,
-            "end_ts": now - 7200 + i * 600 + 300,
-            "duration_s": 300,
-            "mode": "heating",
-        })
+        st.add_cycle(
+            {
+                "start_ts": now - 7200 + i * 600,
+                "end_ts": now - 7200 + i * 600 + 300,
+                "duration_s": 300,
+                "mode": "heating",
+            }
+        )
     c = _bare_coord(
         options={"pendulum_cycles_per_day": 40},
         store=st,
@@ -167,9 +174,7 @@ def test_scenario_quiet_hours_wraparound_2300():
     now = time.mktime((2026, 9, 26, 23, 0, 0, 0, 0, -1))
     out = evaluate_alerts(
         {"short_run": True},
-        {"quiet_hours_enabled": True,
-         "quiet_hours_start": "22:00",
-         "quiet_hours_end": "07:00"},
+        {"quiet_hours_enabled": True, "quiet_hours_start": "22:00", "quiet_hours_end": "07:00"},
         now=now,
     )
     assert out == []
@@ -179,9 +184,7 @@ def test_scenario_quiet_hours_wraparound_0300():
     now = time.mktime((2026, 9, 26, 3, 0, 0, 0, 0, -1))
     out = evaluate_alerts(
         {"short_run": True},
-        {"quiet_hours_enabled": True,
-         "quiet_hours_start": "22:00",
-         "quiet_hours_end": "07:00"},
+        {"quiet_hours_enabled": True, "quiet_hours_start": "22:00", "quiet_hours_end": "07:00"},
         now=now,
     )
     assert out == []
@@ -191,9 +194,7 @@ def test_scenario_quiet_hours_0800_allowed():
     now = time.mktime((2026, 9, 26, 8, 0, 0, 0, 0, -1))
     out = evaluate_alerts(
         {"short_run": True},
-        {"quiet_hours_enabled": True,
-         "quiet_hours_start": "22:00",
-         "quiet_hours_end": "07:00"},
+        {"quiet_hours_enabled": True, "quiet_hours_start": "22:00", "quiet_hours_end": "07:00"},
         now=now,
     )
     assert len(out) == 1
@@ -233,15 +234,16 @@ def test_scenario_buh_penalty_in_quality():
 async def test_scenario_short_run_triggers_alert():
     st = CycleStore()
     now = time.time()
-    st.add_cycle({
-        "start_ts": now - 600,
-        "end_ts": now - 300,
-        "duration_s": 300,  # 5 min
-        "mode": "heating",
-    })
+    st.add_cycle(
+        {
+            "start_ts": now - 600,
+            "end_ts": now - 300,
+            "duration_s": 300,  # 5 min
+            "mode": "heating",
+        }
+    )
     c = _bare_coord(
-        options={"short_run_threshold_min": 20,
-                 "notify_emoji_enabled": False},
+        options={"short_run_threshold_min": 20, "notify_emoji_enabled": False},
         store=st,
     )
     snap = DataSnapshot()
@@ -254,15 +256,16 @@ async def test_scenario_long_run_no_alert():
     st = CycleStore()
     now = time.time()
     # Cycle ended 30 min ago (>> short_off threshold of 5 min)
-    st.add_cycle({
-        "start_ts": now - 7200,
-        "end_ts": now - 1800,
-        "duration_s": 3600,  # 60 min
-        "mode": "heating",
-    })
+    st.add_cycle(
+        {
+            "start_ts": now - 7200,
+            "end_ts": now - 1800,
+            "duration_s": 3600,  # 60 min
+            "mode": "heating",
+        }
+    )
     c = _bare_coord(
-        options={"short_run_threshold_min": 20,
-                 "notify_emoji_enabled": False},
+        options={"short_run_threshold_min": 20, "notify_emoji_enabled": False},
         store=st,
     )
     snap = DataSnapshot()
@@ -277,18 +280,19 @@ async def test_scenario_long_run_no_alert():
 def test_scenario_cycles_rollup_math():
     """Verify the daily counters the rollup uses."""
     import datetime as _dt
+
     st = CycleStore()
     # Anchor at local midday to avoid midnight-boundary flake (see #97).
-    now = _dt.datetime.now().replace(
-        hour=12, minute=0, second=0, microsecond=0
-    ).timestamp()
+    now = _dt.datetime.now().replace(hour=12, minute=0, second=0, microsecond=0).timestamp()
     for i in range(5):
-        st.add_cycle({
-            "start_ts": now - 1800 + i * 60,
-            "end_ts": now - 1800 + i * 60 + 300,
-            "duration_s": 300,
-            "mode": "heating",
-        })
+        st.add_cycle(
+            {
+                "start_ts": now - 1800 + i * 60,
+                "end_ts": now - 1800 + i * 60 + 300,
+                "duration_s": 300,
+                "mode": "heating",
+            }
+        )
     cycles = st.cycles_today(now)
     assert len(cycles) == 5
 
@@ -303,6 +307,7 @@ def test_scenario_adaptive_thresholds_shifts():
     from custom_components.daikin_cycle_ml.ml.adaptive_thresholds import (
         AdaptiveThresholds,
     )
+
     at = AdaptiveThresholds()
     sig = inspect.signature(at.observe_cycle)
     params = list(sig.parameters.keys())
@@ -329,11 +334,13 @@ def test_scenario_adaptive_thresholds_shifts():
     # At minimum: no exceptions raised
     assert True
 
+
 # ================================================================
 # Scenario 9: MultiBaseline per-mode separation
 # ================================================================
 def test_scenario_baseline_separates_heating_dhw():
     from custom_components.daikin_cycle_ml.ml.multi_baseline import MultiBaseline
+
     mb = MultiBaseline(dim=11)
     v_heat = [float(x) for x in range(11)]
     v_dhw = [float(x) * 2 for x in range(11)]
@@ -352,16 +359,20 @@ async def test_scenario_dedup_per_alert_type():
     """short_run and short_off are deduped independently."""
     st = CycleStore()
     now = time.time()
-    st.add_cycle({
-        "start_ts": now - 600,
-        "end_ts": now - 300,
-        "duration_s": 300,  # 5 min < 20 = short_run
-    })
+    st.add_cycle(
+        {
+            "start_ts": now - 600,
+            "end_ts": now - 300,
+            "duration_s": 300,  # 5 min < 20 = short_run
+        }
+    )
     st.off_time_since_last = lambda n: 60.0  # type: ignore[assignment]
     c = _bare_coord(
-        options={"short_run_threshold_min": 20,
-                 "short_off_threshold_min": 5,
-                 "notify_emoji_enabled": False},
+        options={
+            "short_run_threshold_min": 20,
+            "short_off_threshold_min": 5,
+            "notify_emoji_enabled": False,
+        },
         store=st,
     )
     await c._async_dispatch_alerts(DataSnapshot())

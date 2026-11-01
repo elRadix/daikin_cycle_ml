@@ -1,4 +1,5 @@
 """v1.8.1 -- attribute_mapping_advanced (Page C, issue #54, commit 4)."""
+
 from __future__ import annotations
 
 import asyncio
@@ -31,17 +32,25 @@ def test_redirect_no_input_shows_advanced_form():
 
 def test_redirect_valid_json_routes_to_attributes():
     flow = _wizard()
-    r = asyncio.run(flow.async_step_model_custom(user_input={
-        "custom_attribute_map": "{\"a\": \"b\"}",
-    }))
+    r = asyncio.run(
+        flow.async_step_model_custom(
+            user_input={
+                "custom_attribute_map": '{"a": "b"}',
+            }
+        )
+    )
     assert r["step_id"] == "attributes"
 
 
 def test_redirect_invalid_json_stays_on_advanced():
     flow = _wizard()
-    r = asyncio.run(flow.async_step_model_custom(user_input={
-        "custom_attribute_map": "not json",
-    }))
+    r = asyncio.run(
+        flow.async_step_model_custom(
+            user_input={
+                "custom_attribute_map": "not json",
+            }
+        )
+    )
     assert r["type"] == "form"
     assert r["step_id"] == "attribute_mapping_advanced"
     assert r["errors"]["custom_attribute_map"] == "invalid_json"

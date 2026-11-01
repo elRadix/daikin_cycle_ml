@@ -1,4 +1,5 @@
 """v1.12.0: model_state retention tests (issue #106)."""
+
 from __future__ import annotations
 
 import time
@@ -14,9 +15,7 @@ async def _open(p: Path) -> CycleDB:
 
 
 def _day_offset(days: int) -> str:
-    return time.strftime(
-        "%Y-%m-%d", time.localtime(time.time() - days * 86400)
-    )
+    return time.strftime("%Y-%m-%d", time.localtime(time.time() - days * 86400))
 
 
 async def test_prune_deletes_old_energy(tmp_path: Path) -> None:
@@ -24,7 +23,8 @@ async def test_prune_deletes_old_energy(tmp_path: Path) -> None:
     try:
         old = _day_offset(500)
         await db.async_set_model_state(
-            f"energy_acc.{old}", {"day": old},
+            f"energy_acc.{old}",
+            {"day": old},
         )
         n = await db.async_prune_model_state(retention_days=400)
         assert n == 1
@@ -38,7 +38,8 @@ async def test_prune_deletes_old_runtime(tmp_path: Path) -> None:
     try:
         old = _day_offset(500)
         await db.async_set_model_state(
-            f"runtime_acc.{old}", {"day": old},
+            f"runtime_acc.{old}",
+            {"day": old},
         )
         n = await db.async_prune_model_state(retention_days=400)
         assert n == 1
@@ -52,19 +53,17 @@ async def test_prune_keeps_recent(tmp_path: Path) -> None:
     try:
         recent = _day_offset(10)
         await db.async_set_model_state(
-            f"energy_acc.{recent}", {"day": recent},
+            f"energy_acc.{recent}",
+            {"day": recent},
         )
         await db.async_set_model_state(
-            f"runtime_acc.{recent}", {"day": recent},
+            f"runtime_acc.{recent}",
+            {"day": recent},
         )
         n = await db.async_prune_model_state(retention_days=400)
         assert n == 0
-        assert await db.async_get_model_state(
-            f"energy_acc.{recent}"
-        ) is not None
-        assert await db.async_get_model_state(
-            f"runtime_acc.{recent}"
-        ) is not None
+        assert await db.async_get_model_state(f"energy_acc.{recent}") is not None
+        assert await db.async_get_model_state(f"runtime_acc.{recent}") is not None
     finally:
         await db.async_close()
 
@@ -99,7 +98,8 @@ async def test_prune_idempotent(tmp_path: Path) -> None:
     try:
         old = _day_offset(500)
         await db.async_set_model_state(
-            f"energy_acc.{old}", {"day": old},
+            f"energy_acc.{old}",
+            {"day": old},
         )
         n1 = await db.async_prune_model_state(retention_days=400)
         n2 = await db.async_prune_model_state(retention_days=400)
@@ -116,7 +116,8 @@ async def test_maintenance_returns_model_state_deleted(
     try:
         old = _day_offset(500)
         await db.async_set_model_state(
-            f"energy_acc.{old}", {"day": old},
+            f"energy_acc.{old}",
+            {"day": old},
         )
         result = await db.async_run_maintenance(
             cycle_retention_days=90,
@@ -134,10 +135,12 @@ async def test_maintenance_returns_model_state_deleted(
 async def test_maintenance_handles_prune_exception(tmp_path: Path) -> None:
     """v1.12.0 (#106): prune raise must not abort maintenance."""
     from unittest.mock import AsyncMock, patch
+
     db = await _open(tmp_path / "db.db")
     try:
         with patch.object(
-            db, "async_prune_model_state",
+            db,
+            "async_prune_model_state",
             AsyncMock(side_effect=RuntimeError("boom")),
         ):
             result = await db.async_run_maintenance(
@@ -150,8 +153,7 @@ async def test_maintenance_handles_prune_exception(tmp_path: Path) -> None:
         # Handler caught the exception; model_state_deleted stays 0
         assert result["model_state_deleted"] == 0
         # Other prune counts still present -> maintenance completed
-        for k in ("cycles_deleted", "features_deleted",
-                  "alerts_deleted", "cop_deleted"):
+        for k in ("cycles_deleted", "features_deleted", "alerts_deleted", "cop_deleted"):
             assert k in result
     finally:
         await db.async_close()

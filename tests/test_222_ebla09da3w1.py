@@ -1,4 +1,5 @@
 """Issue #222: EBLA09DA3W1 (9 kW 3-phase R32 monobloc) datasheet tests."""
+
 from __future__ import annotations
 
 import json
@@ -61,8 +62,12 @@ def test_222_nominal_points():
     raw = json.loads(_DATA.read_text())
     entry = raw["models"]["ebla09da3w1"]
     pts = {p["label"]: p for p in entry["points"]}
-    expected = {"A-7/W35": (-7, 35, 2.81), "A2/W35": (2, 35, 3.79),
-                "A7/W35": (7, 35, 4.91), "A7/W45": (7, 45, 3.71)}
+    expected = {
+        "A-7/W35": (-7, 35, 2.81),
+        "A2/W35": (2, 35, 3.79),
+        "A7/W35": (7, 35, 4.91),
+        "A7/W45": (7, 45, 3.71),
+    }
     for label, (t_out, t_lwc, cop) in expected.items():
         assert label in pts
         assert pts[label]["t_out"] == t_out

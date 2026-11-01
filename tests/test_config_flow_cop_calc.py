@@ -1,4 +1,5 @@
 """Tests for OptionsFlow.async_step_cop_calc (v1.14.0, #206)."""
+
 import asyncio
 from unittest.mock import MagicMock
 

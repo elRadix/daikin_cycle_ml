@@ -1,4 +1,5 @@
 """v1.12.5 #133: _cop_confidence reformulation (4-tier, count-only)."""
+
 from custom_components.daikin_cycle_ml.coordinator import _cop_confidence
 
 
