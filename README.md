@@ -1,16 +1,8 @@
 # Daikin Cycle ML
 
-<table>
-  <tr>
-    <td width="180" valign="middle" align="center">
-      <img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/custom_components/daikin_cycle_ml/brand/icon.png" width="160" alt="Daikin Cycle ML Icon">
-    </td>
-    <td valign="middle">
-      Home Assistant integration that turns your <b>ESPAltherma</b> sensor into a complete heat pump intelligence platform — cycle detection, per-mode COP, seasonal SPF, weather-normalized degradation, runtime + energy accounting, installer-grade curve advice, and 19 ML-powered alerts.
-    </td>
-  </tr>
-</table>
+![Daikin Cycle ML](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/custom_components/daikin_cycle_ml/brand/icon.png)
 
+Home Assistant integration that turns your **ESPAltherma** sensor into a complete heat pump intelligence platform — cycle detection, per-mode COP, seasonal SPF, weather-normalized degradation, runtime + energy accounting, installer-grade curve advice, and 19 ML-powered alerts.
 
 > **Data source:** [ESPAltherma](https://github.com/raomin/ESPAltherma) by [@raomin](https://github.com/raomin) - reads your Daikin Altherma X10A port via ESP32 and exposes the attributes this integration consumes.
 
@@ -18,11 +10,6 @@
 
 [![Version](https://img.shields.io/badge/version-1.14.0-orange.svg)](https://github.com/elRadix/daikin_cycle_ml/releases/latest)
 [![Tests](https://img.shields.io/badge/tests-3729-brightgreen.svg)](#quality)
-[![Coverage](https://img.shields.io/badge/coverage-100.00%25-brightgreen.svg)](#quality)
-[![Ruff](https://img.shields.io/badge/ruff-clean-brightgreen.svg)](https://github.com/astral-sh/ruff)
-[![Pylint](https://img.shields.io/badge/pylint-10.00%2F10-brightgreen.svg)](https://pylint.readthedocs.io/)
-[![mypy](https://img.shields.io/badge/mypy-strict%200%20errors-brightgreen.svg)](https://mypy-lang.org/)
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.9%2B-blue.svg)](https://www.home-assistant.io/)
 [![IQS](https://img.shields.io/badge/IQS-Bronze%20%2B%20Silver%20%2B%20Gold-orange.svg)](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/DEVELOPMENT.md#8-integration-quality-scale)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/elRadix/daikin_cycle_ml/blob/main/LICENSE)
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
