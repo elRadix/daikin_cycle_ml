@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.19.3] - 2026-11-01
+
 ### Fixed
 - **Adaptive data-availability gaps:** three independent gaps made
   `learned_thresholds` partly useless. (1) `observe_cycle()` received
