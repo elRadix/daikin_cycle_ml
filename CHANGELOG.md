@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### Fixed
+- **Adaptive data-availability gaps:** three independent gaps made
+  `learned_thresholds` partly useless. (1) `observe_cycle()` received
+  every closed cycle including `is_transient=1` startup pulses, so p20
+  of `_run_min` was far too low (2 min instead of ~14-15 min of real
+  heating runs). (2) `off_s` was computed in `score_and_count` but never
+  attached to the cycle record, so `_off_min` was always empty and
+  `good_off_min` always `None`. (3) `AdaptiveThresholds.observe_day()`
+  existed but had zero call sites, so `_daily_cycles` was always empty
+  and `target_cycles_per_day` always `None`. Now: transients skipped,
+  `off_s` attached to record, and `observe_day` called from the 03:00
+  maintenance callback using yesterday's `daily_summary.cycles`. (#249)
+
+### Note
+- PR #247 claimed "`good_off_min` attribute populated — no longer `null`
+  at idle". That was incorrect: mode resolution was fixed, but the
+  `_off_min` data bucket was empty regardless of mode. Corrected here.
+
 ## [1.19.2] - 2026-11-01
 
 ### Fixed

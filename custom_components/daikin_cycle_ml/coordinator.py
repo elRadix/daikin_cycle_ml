@@ -318,6 +318,8 @@ def score_and_count(
         off_s = store.off_time_since_last(now)
     except Exception:
         off_s = None
+    if off_s is not None and isinstance(off_s, (int, float)):
+        record["off_s"] = float(off_s)
 
     # v1.12.0 (#105 wiring): record short run / short off events.
     # Pre-v1.12.0 these store methods had zero callers, so
@@ -676,6 +678,23 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self.async_run_maintenance()
         except Exception:
             _LOGGER.exception('Scheduled maintenance failed')
+        # v1.19.3: feed adaptive daily-cycle-count for yesterday
+        try:
+            if self.db is not None:
+                yesterday = time.strftime(
+                    "%Y-%m-%d", time.localtime(time.time() - 86400)
+                )
+                rows = await self.db.async_daily_summary(days=2)
+                total = sum(
+                    int(r.get("cycles", 0) or 0)
+                    for r in rows
+                    if r.get("day") == yesterday
+                )
+                if total > 0:
+                    self.adaptive.observe_day(total)
+                    await self.async_save_adaptive_state()
+        except Exception:
+            _LOGGER.exception('adaptive observe_day failed')
 
     async def async_run_maintenance(
         self,
@@ -2194,16 +2213,17 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 thermal_kw_avg=record.get("thermal_kw_avg") or 0.0,
             )
             mode = record.get("mode") or snap.mode or "unknown"
-            try:
-                self.adaptive.observe_cycle(
-                    mode,
-                    record.get("duration_s"),
-                    record.get("off_s"),
-                )
-            except Exception:
-                _LOGGER.warning(
-                    "adaptive observe_cycle failed", exc_info=True
-                )
+            if not record.get("is_transient"):
+                try:
+                    self.adaptive.observe_cycle(
+                        mode,
+                        record.get("duration_s"),
+                        record.get("off_s"),
+                    )
+                except Exception:
+                    _LOGGER.warning(
+                        "adaptive observe_cycle failed", exc_info=True
+                    )
             per_mode = self.baseline.get(mode)
             if not record.get("is_transient"):
                 # v1.12.0 (#105): skip baseline update on transients
