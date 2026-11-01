@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Fixed
+- **OptionsFlow wiped sensor mappings on every non-sensor step:** saving
+  any step other than "Sensor mapping" (notifications, pendulum, advanced,
+  etc.) reset `power_sensor_entity`, `cop_sensor_entity` and
+  `indoor_temp_sensor` to `None`. `_save()` now takes a keyword-only
+  `sensor_step` flag; only the device step can explicitly clear them.
+  Explicit `None` submissions still clear (user intent preserved). (#244)
+
 ## [1.19.0] - 2026-11-01
 
 ### Added

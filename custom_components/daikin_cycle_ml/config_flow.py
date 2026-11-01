@@ -936,7 +936,12 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             ],
         )
 
-    def _save(self, user_input: dict[str, Any]) -> ConfigFlowResult:
+    def _save(
+        self,
+        user_input: dict[str, Any],
+        *,
+        sensor_step: bool = False,
+    ) -> ConfigFlowResult:
         # Flatten section() input one level: {section: {k: v}} -> {k: v}
         flat: dict[str, Any] = {}
         for k, v in user_input.items():
@@ -944,14 +949,18 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 flat.update(v)
             else:
                 flat[k] = v
-        for _k in ('power_sensor_entity','cop_sensor_entity','indoor_temp_sensor'):
-            flat.setdefault(_k,None)
+        # #244: only the device step can explicitly clear sensor mappings.
+        # Other steps must preserve existing values; the user cannot edit
+        # sensors from notifications/pendulum/advanced.
+        if sensor_step:
+            for _k in ('power_sensor_entity','cop_sensor_entity','indoor_temp_sensor'):
+                flat.setdefault(_k, None)
         merged = {**dict(self.config_entry.options or {}), **flat}
         return self.async_create_entry(data=merged)
 
     async def async_step_device(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
-            return self._save(user_input)
+            return self._save(user_input, sensor_step=True)
         c: dict[str, Any] = dict(self.config_entry.options or {})
         d: dict[str, Any] = dict(self.config_entry.data or {})
         schema = vol.Schema({

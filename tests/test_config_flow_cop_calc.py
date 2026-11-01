@@ -32,7 +32,13 @@ def test_cop_calc_form_renders():
 
 
 def test_cop_calc_submit_calls_save():
-    f = _flow({"existing": "keep"})
+    """cop_calc merges its own fields without touching sensor mappings (#244)."""
+    f = _flow({
+        "existing": "keep",
+        "power_sensor_entity": "sensor.power",
+        "cop_sensor_entity": "sensor.cop",
+        "indoor_temp_sensor": "sensor.indoor",
+    })
     payload = {
         "electrical": {
             "supply_phases": "3",
@@ -46,6 +52,7 @@ def test_cop_calc_submit_calls_save():
     assert merged["supply_phases"] == "3"
     assert merged["buh_step2_kw"] == 6.0
     assert merged["existing"] == "keep"
-    assert merged["power_sensor_entity"] is None
-    assert merged["cop_sensor_entity"] is None
-    assert merged["indoor_temp_sensor"] is None
+    # #244: sensor mappings preserved (was: wiped to None before fix)
+    assert merged["power_sensor_entity"] == "sensor.power"
+    assert merged["cop_sensor_entity"] == "sensor.cop"
+    assert merged["indoor_temp_sensor"] == "sensor.indoor"
