@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.19.1] - 2026-11-01
+
 ### Fixed
 - **OptionsFlow wiped sensor mappings on every non-sensor step:** saving
   any step other than "Sensor mapping" (notifications, pendulum, advanced,
