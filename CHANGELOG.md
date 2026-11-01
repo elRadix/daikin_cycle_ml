@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.19.0] - 2026-11-01
+
 ### Added
 - **HP model in notification subtitle:** All notifications now show the full
   heat-pump model SKU (e.g. `EPRA12EAV3`, `ERLA11DAV3`) as a subtitle line
