@@ -394,7 +394,7 @@ def _attrs_source_health(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[s
 
 def _attrs_learned(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     try:
-        good_off = c.adaptive.learn_good_off_min(s.mode)
+        good_off = c.adaptive.learn_good_off_min(c._resolve_adaptive_mode())
     except Exception:
         good_off = None
     try:
@@ -1213,7 +1213,7 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": UnitOfTime.MINUTES,
         "icon": "mdi:brain",
-        "value_fn": lambda s, c: c.adaptive.learn_short_run_min(s.mode),
+        "value_fn": lambda s, c: c.adaptive.learn_short_run_min(c._resolve_adaptive_mode()),
         "attr_fn": _attrs_learned,
     },
     {

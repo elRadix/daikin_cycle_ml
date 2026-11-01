@@ -3041,12 +3041,38 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         opts = self.options or {}
         if not opts.get("adaptive_thresholds_enabled", False):
             return default
-        mode = getattr(self.data, "mode", None) or "unknown"
+        mode = self._resolve_adaptive_mode()
+        if mode is None:
+            return default
         try:
             learned = self.adaptive.suggest(mode)
         except Exception:
             return default
         return int(learned.get(key, default))
+
+    def _resolve_adaptive_mode(self) -> str | None:
+        """#245: Resolve mode for adaptive threshold lookups.
+
+        Falls back: current mode -> last cycle mode -> dominant adaptive
+        mode. Needed because snap.mode is "unknown" whenever the HP is
+        idle (majority of the time). Prior code passed snap.mode directly
+        to adaptive methods, which then looked up empty dict entries.
+        """
+        data = getattr(self, "data", None)
+        if data is None:
+            return None
+        cur = getattr(data, "mode", None)
+        if isinstance(cur, str) and cur and cur != "unknown":
+            return cur
+        last_record = getattr(data, "last_record", None) or {}
+        last = last_record.get("mode") if isinstance(last_record, dict) else None
+        if isinstance(last, str) and last and last != "unknown":
+            return last
+        try:
+            result = self.adaptive.dominant_mode()
+        except Exception:
+            return None
+        return result if isinstance(result, str) else None
 
     async def async_save_adaptive_state(self) -> bool:
         if self.db is None:

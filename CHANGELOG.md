@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Fixed
+- **`learned_thresholds` sensor permanently `unknown` when HP is idle:**
+  `sensor.daikin_cycle_ml_learned_thresholds` (and its `good_off_min`
+  attribute) always reported `unknown` whenever `snap.mode` was
+  `"unknown"` — i.e. 90-99% of the time. `learn_short_run_min(s.mode)`
+  looked up an always-empty `_run_min["unknown"]`, ignoring the recorded
+  heating/dhw samples. Also affected `_effective_threshold()`, so alerts
+  used hardcoded defaults instead of learned thresholds whenever
+  evaluated while idle. New `_resolve_adaptive_mode()` falls back:
+  current -> last cycle -> dominant adaptive mode. (#245)
+
 ## [1.19.1] - 2026-11-01
 
 ### Fixed

@@ -149,6 +149,17 @@ class AdaptiveThresholds:
         keys = set(self._run_min) | set(self._off_min)
         return sorted(keys)
 
+    def dominant_mode(self) -> str | None:
+        """Return the mode with the most recorded run samples, or None."""
+        counts: dict[str, int] = {
+            m: len(self._run_min.get(m, [])) for m in self.modes()
+        }
+        filtered: dict[str, int] = {m: n for m, n in counts.items() if n > 0}
+        if not filtered:
+            return None
+        best: tuple[str, int] = max(filtered.items(), key=lambda kv: kv[1])
+        return best[0]
+
     def total_samples(self) -> int:
         n = sum(len(v) for v in self._run_min.values())
         n += sum(len(v) for v in self._off_min.values())
