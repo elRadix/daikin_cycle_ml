@@ -500,6 +500,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "source_sensor", SOURCE_SENSOR_ENTITY
         )
         model = entry.data.get("model", MODEL_BASISPROFIEL)
+        # v1.19.0 (#241): uppercase model-SKU voor notificatie-subtitle.
+        _m_norm = str(model).strip().lower()
+        self._full_model_display: str = (
+            "" if _m_norm in {"", "basisprofiel", "custom"} else _m_norm.upper()
+        )
         self.options: dict[str, Any] = {
             **defaults_for(model),
             **dict(entry.options or {}),
@@ -2761,7 +2766,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             float(cop), int(samples),
             language=self.options.get('notification_language', 'en'),
             emoji_enabled=bool(self.options.get('notify_emoji_enabled', True)),
-        )
+         full_model=self._notify_full_model)
         alert = SimpleNamespace(
             persistent=True,
             message=msg,
@@ -2812,7 +2817,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             cache,
             language=self.options.get('notification_language', 'en'),
             emoji_enabled=bool(self.options.get('notify_emoji_enabled', True)),
-        )
+         full_model=self._notify_full_model)
         alert = SimpleNamespace(
             persistent=True,
             message=msg,
@@ -3793,7 +3798,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         emoji = bool(opts.get("notify_emoji_enabled", True))
         lang = opts.get("notification_language", "en")
         msg = build_status_message(
-            snap_dict, emoji_enabled=emoji, language=lang
+            snap_dict, emoji_enabled=emoji, language=lang,
+            full_model=self._notify_full_model,
         )
 
         try:
@@ -4294,7 +4300,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 COP_LOW_THRESHOLD - TEST_ALERT_DELTA, 8,
                 language=opts.get("notification_language", "en"),
                 emoji_enabled=bool(opts.get("notify_emoji_enabled", True)),
-            )
+             full_model=self._notify_full_model)
             spec = AlertSpec(
                 alert_type="cop_low",
                 severity="warning",
@@ -4318,7 +4324,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 fake,
                 language=opts.get("notification_language", "en"),
                 emoji_enabled=bool(opts.get("notify_emoji_enabled", True)),
-            )
+             full_model=self._notify_full_model)
             spec = AlertSpec(
                 alert_type="stooklijn_advies",
                 severity="warning",
@@ -4348,7 +4354,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             context=ctx,
             language=opts.get("notification_language", "en"),
             **self._boiler_kwargs_for_alerts(),
-        )
+         full_model=self._notify_full_model)
         if not alerts:
             return (
                 "[filtered] No alert produced. Use the ignore-filters "
@@ -4396,7 +4402,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             msg = build_rich_alert(
                 bkey, severity, ctx,
                 language=lang, emoji_enabled=emoji,
-            )
+             full_model=self._notify_full_model)
             spec = AlertSpec(
                 alert_type=alert_type,
                 severity=severity,
@@ -4411,7 +4417,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         cop_msg = build_cop_low_report(
             COP_LOW_THRESHOLD - TEST_ALERT_DELTA, 8,
             language=lang, emoji_enabled=emoji,
-        )
+         full_model=self._notify_full_model)
         await self._emit_alert(AlertSpec(
             alert_type="cop_low", severity="warning",
             message=cop_msg,
@@ -4428,7 +4434,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "betrouwbaarheid": 0.75,
             "samples": 42,
         }
-        stook_msg = build_stooklijn_report(fake_stook, language=lang, emoji_enabled=emoji)
+        stook_msg = build_stooklijn_report(fake_stook, language=lang, emoji_enabled=emoji, full_model=self._notify_full_model)
         await self._emit_alert(AlertSpec(
             alert_type="stooklijn_advies", severity="warning",
             message=stook_msg,
@@ -4452,13 +4458,18 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 context=self._build_alert_context(snap),
                 language=self.options.get("notification_language", "en"),
                 **self._boiler_kwargs_for_alerts(),
-            )
+             full_model=self._notify_full_model)
             for alert in alerts:
                 await self._emit_alert(alert)
                 self._last_alert_sent[alert.alert_type] = now
                 self._schedule_alert_save()
         except Exception:
             _LOGGER.exception("Alert dispatch failed")
+
+    @property
+    def _notify_full_model(self) -> str:
+        """Model-SKU for notification subtitle; empty in test-shells."""
+        return getattr(self, "_full_model_display", "")
 
     async def _emit_alert(self, alert: Any) -> None:
         """Deliver a single alert via persistent + notify service."""

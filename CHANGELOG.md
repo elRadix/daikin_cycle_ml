@@ -1,5 +1,23 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **HP model in notification subtitle:** All notifications now show the full
+  heat-pump model SKU (e.g. `EPRA12EAV3`, `ERLA11DAV3`) as a subtitle line
+  beneath the title. Source: `config_entry.data['model']`, uppercased;
+  `basisprofiel`, `custom`, and empty values fall back to the previous
+  timestamp-only line. Backward compatible: `full_model=""` = byte-identical
+  output. (#241)
+
+### Fixed
+- **Per-type alert dedup defaults ignored:** `ALERT_DEDUP_DEFAULTS` was not
+  consulted in `evaluate_alerts`; 15 of 17 alert types fell back to the
+  global `alert_aggregation_minutes` (30 min) instead of their intended
+  window (up to 1440 min for `energy_daily_anomaly`, `cop_vs_datasheet_low`,
+  etc.). Runtime now uses `ALERT_DEDUP_DEFAULTS[alert_type]` as fallback;
+  an explicit `alert_agg_<type>_min` override still takes precedence. (#240)
+
 ## [1.18.0] - 2026-11-01
 
 ### Added
@@ -16,33 +34,6 @@
 - **Diagnostics boiler consistency:** `boiler_active`, `boiler_heat_active`, `boiler_dhw_active` now return `False` on non-hybrid.
 - **0-byte orphan DB cleanup:** New `_async_cleanup_orphan_dbs()` removes 0-byte databases at setup.
 - **R580 Compliance:** Replaced all `try/except Exception: pass` blocks in the test suite with `contextlib.suppress(Exception)` to prevent silent test failures.
-
-## [Unreleased]
-
-
-### Fixed
-- Per-type alert dedup defaults (`ALERT_DEDUP_DEFAULTS`) werden genegeerd
-  in `evaluate_alerts`: 15 van de 17 alert-types vielen terug op globale
-  `alert_aggregation_minutes` (30 min) i.p.v. hun bedoelde venster (tot
-  1440 min voor `energy_daily_anomaly`, `cop_vs_datasheet_low` etc.).
-  Runtime gebruikt nu `ALERT_DEDUP_DEFAULTS[alert_type]` als fallback;
-  expliciete `alert_agg_<type>_min` blijft voorrang houden. (#240)
-
-- **Hybrid indicators leak (diagnostics):** `snap.hybrid_mode`, `snap.boiler_efficiency_cop`, and `snap.inv_freq_secondary` are now only populated when `snap.is_hybrid` is True (EVLQ family). Previously, non-hybrid installs (EPRA/ERLA/EBLA) leaked raw `"Hybrid Op. Mode"`, `"INV frequency 2 (rps)"`, and `"BE COP"` attributes into the coordinator snapshot if ESPAltherma published them (template drift). Sensors already filtered correctly via `is_hybrid`, but diagnostics exposed the raw values.
-- **Detector boiler-only close guard:** `detector.update()` now receives `boiler_active=False` on non-hybrid installs. Prevents premature HP-cycle close if `Boiler Operation Demand` leaks via template drift (R561 guard is hybrid-only by design).
-- **Alert suppression leak:** `_boiler_kwargs_for_alerts()` returns `boiler_active=False` on non-hybrid. Prevents silent suppression of `short_run` / `short_off` / `pendulum_hourly` / `pendulum_daily` alerts on genuine HP cycles.
-- **COP sample boiler flag:** `_maybe_collect_cop_sample()` gates `boiler_active`, `boiler_heat_active`, `boiler_dhw_active` on `is_hybrid`. Non-hybrid samples are never marked as co-fire, so `_refresh_cop_today` and `_maybe_refresh_stooklijn` keep their pure-HP filters intact.
-- **ML baseline co-fire exclusion:** Hybrid co-fire cycles (`boiler_contribution_samples>0`) no longer pollute the pure-HP baseline. Prevents false `ml_anomaly` on hybrid installs where boiler heat skews `thermal_kw_avg` and `dT`.
-- **Diagnostics boiler consistency:** `boiler_active`, `boiler_heat_active`, `boiler_dhw_active` now return `False` on non-hybrid in diagnostics, matching `hybrid_mode=""`.
-- **0-byte orphan DB cleanup:** New `_async_cleanup_orphan_dbs()` removes 0-byte `daikin_cycle_ml_*.db` files at setup (artifacts from pre-v1.10.0 shared-DB migration). Best-effort, never raises.
-
-### Added
-- 2 new test files: `test_v1172_hybrid_gate.py` (2 tests), `test_v1172_orphan_cleanup.py` (2 tests).
-- 1 new test in `test_coordinator_ml.py`: `test_process_new_cycle_skips_baseline_on_cofire` (P1-1 behavior).
-- Extended `test_218_evlq_hybrid.py` with `is_hybrid=True` on the 5 hybrid helper snapshots (6 tests now correctly exercise the gated code path).
-
-### Changed
-- `snap.boiler_active`, `snap.boiler_heat_active`, `snap.boiler_dhw_active` remain functional on all installs (supplementary electric boiler is possible on non-EVLQ units); only their consumption is hybrid-gated.
 
 ## [1.17.1] - 2026-11-01
 

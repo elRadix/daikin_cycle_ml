@@ -104,7 +104,18 @@ def _fmt_int(v: Any) -> str:
         return "\u2014"
 
 
-def build_status_report(snapshot: Mapping[str, Any], *, language: str = "en", emoji_enabled: bool = True) -> str:
+def _subtitle_line(ts: str, full_model: str, emoji_enabled: bool) -> str:
+    """Second line: model (if set) + timestamp. Backward-compat: full_model empty."""
+    if emoji_enabled:
+        if full_model:
+            return "\U0001F3E0 " + full_model + " \u00B7 \U0001F550 " + ts
+        return "\U0001F550 " + ts
+    if full_model:
+        return full_model + " \u00B7 " + ts
+    return ts
+
+
+def build_status_report(snapshot: Mapping[str, Any], *, language: str = "en", emoji_enabled: bool = True, full_model: str = "") -> str:
     """Assemble the rich multi-section status report."""
     if language not in LABELS:
         language = "en"
@@ -118,10 +129,10 @@ def build_status_report(snapshot: Mapping[str, Any], *, language: str = "en", em
     lines = []
     if emoji_enabled:
         lines.append(head_e + " Daikin Cycle ML \u2014 " + header_text)
-        lines.append("\U0001F550 " + ts)
+        lines.append(_subtitle_line(ts, full_model, emoji_enabled))
     else:
         lines.append("Daikin Cycle ML \u2014 " + header_text)
-        lines.append(ts)
+        lines.append(_subtitle_line(ts, full_model, emoji_enabled))
     lines.append(DIV)
 
     state = snapshot.get("state") or "idle"
@@ -209,7 +220,7 @@ def build_status_report(snapshot: Mapping[str, Any], *, language: str = "en", em
     return "\n".join(lines)
 
 
-def build_stooklijn_report(cache: Any, *, language: str = "en", emoji_enabled: bool = True) -> str:
+def build_stooklijn_report(cache: Any, *, language: str = "en", emoji_enabled: bool = True, full_model: str = "") -> str:
     """Bilingual stooklijn advice report."""
     if not isinstance(cache, Mapping):
         cache = {}
@@ -247,9 +258,9 @@ def build_stooklijn_report(cache: Any, *, language: str = "en", emoji_enabled: b
     ts = now.strftime("%Y-%m-%d %H:%M")
     if emoji_enabled:
         lines = ["\U0001F4C9 Daikin Cycle ML \u2014 " + title,
-                 "\U0001F550 " + ts, DIV]
+                 _subtitle_line(ts, full_model, emoji_enabled), DIV]
     else:
-        lines = ["Daikin Cycle ML \u2014 " + title, ts, DIV]
+        lines = ["Daikin Cycle ML \u2014 " + title, _subtitle_line(ts, full_model, emoji_enabled), DIV]
     lbl_state = "Status"
     lbl_besp = "COP-winst" if is_nl else "COP gain"
     lbl_cmf = "Comfort"
@@ -264,7 +275,7 @@ def build_stooklijn_report(cache: Any, *, language: str = "en", emoji_enabled: b
     return "\n".join(lines)
 
 
-def build_cop_low_report(cop: Any, samples: Any, *, language: str = "en", emoji_enabled: bool = True) -> str:
+def build_cop_low_report(cop: Any, samples: Any, *, language: str = "en", emoji_enabled: bool = True, full_model: str = "") -> str:
     """Bilingual low-COP report."""
     is_nl = language == "nl"
     title = "Dag-COP laag" if is_nl else "Day COP low"
@@ -275,9 +286,9 @@ def build_cop_low_report(cop: Any, samples: Any, *, language: str = "en", emoji_
     ts = now.strftime("%Y-%m-%d %H:%M")
     if emoji_enabled:
         lines = ["\U0001F4C9 Daikin Cycle ML \u2014 " + title,
-                 "\U0001F550 " + ts, DIV]
+                 _subtitle_line(ts, full_model, emoji_enabled), DIV]
     else:
-        lines = ["Daikin Cycle ML \u2014 " + title, ts, DIV]
+        lines = ["Daikin Cycle ML \u2014 " + title, _subtitle_line(ts, full_model, emoji_enabled), DIV]
     lines.append(_row("\U0001F4C9", lbl_cop, (f"{float(cop):.2f}"), emojis=emoji_enabled))
     lines.append(_row("\U0001F3AF", lbl_th, f"{COP_LOW_THRESHOLD:.2f}", emojis=emoji_enabled))
     lines.append(_row("\U0001F4E6", lbl_smp, str(int(samples)), emojis=emoji_enabled))
@@ -537,7 +548,7 @@ ALERT_SCHEMA = {
 }
 
 
-def build_rich_alert(alert_type: str, severity: str, context: Mapping[str, Any], *, language: str = "en", emoji_enabled: bool = True) -> str:
+def build_rich_alert(alert_type: str, severity: str, context: Mapping[str, Any], *, language: str = "en", emoji_enabled: bool = True, full_model: str = "") -> str:
     """Build a sectioned rich-alert message for any alert type."""
     if language not in ALERT_LABELS:
         language = "en"
@@ -562,10 +573,10 @@ def build_rich_alert(alert_type: str, severity: str, context: Mapping[str, Any],
     lines = []
     if emoji_enabled:
         lines.append(head_e + " Daikin Cycle ML \u2014 " + title)
-        lines.append("\U0001F550 " + ts)
+        lines.append(_subtitle_line(ts, full_model, emoji_enabled))
     else:
         lines.append("Daikin Cycle ML \u2014 " + title)
-        lines.append(ts)
+        lines.append(_subtitle_line(ts, full_model, emoji_enabled))
     lines.append(DIV)
     rows = ALERT_SCHEMA.get(alert_type) or []
     for emoji, label_key, tpl in rows:

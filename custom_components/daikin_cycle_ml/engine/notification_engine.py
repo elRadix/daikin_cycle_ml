@@ -297,6 +297,7 @@ def evaluate_alerts(
     boiler_active: bool = False,
     hp_running: bool = True,
     boiler_dhw_active: bool = False,
+    full_model: str = "",
 ) -> list[AlertSpec]:
     """Return alerts to dispatch now.
 
@@ -352,6 +353,7 @@ def evaluate_alerts(
         msg = build_rich_alert(
             bkey, severity, ctx or {},
             language=_lang, emoji_enabled=emoji_enabled,
+            full_model=full_model,
         )
         emitted[alert_type] = AlertSpec(
             alert_type=alert_type,
@@ -370,11 +372,13 @@ def build_status_message(
     context: Mapping[str, Any] | None = None,
     emoji_enabled: bool = True,
     language: str | None = None,
+    full_model: str = "",
 ) -> str:
     """Rich sectioned status report (Batch 37)."""
     lang = language or (context.get('language') if context else None) or 'en'
     return build_status_report(
-        snapshot, language=lang, emoji_enabled=bool(emoji_enabled)
+        snapshot, language=lang, emoji_enabled=bool(emoji_enabled),
+        full_model=full_model,
     )
 
 
@@ -382,10 +386,12 @@ def build_stooklijn_message(
     cache: Mapping[str, Any],
     language: str | None = None,
     emoji_enabled: bool = True,
+    full_model: str = "",
 ) -> str:
     """Bilingual stooklijn report (Batch 37)."""
     return build_stooklijn_report(
-        cache, language=(language or 'en'), emoji_enabled=bool(emoji_enabled)
+        cache, language=(language or 'en'), emoji_enabled=bool(emoji_enabled),
+        full_model=full_model,
     )
 
 
@@ -394,10 +400,12 @@ def build_cop_low_message(
     samples: int,
     language: str | None = None,
     emoji_enabled: bool = True,
+    full_model: str = "",
 ) -> str:
     """Bilingual low-COP report (Batch 37)."""
     return build_cop_low_report(
-        cop, samples, language=(language or 'en'), emoji_enabled=bool(emoji_enabled)
+        cop, samples, language=(language or 'en'), emoji_enabled=bool(emoji_enabled),
+        full_model=full_model,
     )
 
 async def async_send_notification(
