@@ -70,13 +70,55 @@ def test_per_alert_override_used_when_set() -> None:
     assert suppressed_old is False
 
 
-def test_per_alert_falls_back_to_global() -> None:
-    """Missing per-type key -> global alert_aggregation_minutes is used."""
-    opts: dict[str, Any] = {"alert_aggregation_minutes": 30}
-    assert "alert_agg_cop_low_min" not in opts
-    agg_min = float(opts.get("alert_aggregation_minutes", 30))
-    win_min = float(opts.get("alert_agg_cop_low_min", agg_min))
-    assert win_min == 30.0
+import pytest
+
+from custom_components.daikin_cycle_ml.engine.notification_engine import (
+    BINARY_ALERT_MAP,
+    evaluate_alerts,
+)
+
+_NOW = 1762008000.0
+
+
+@pytest.mark.parametrize(
+    "alert_type,expected_min",
+    sorted(
+        (k, const.ALERT_DEDUP_DEFAULTS[k])
+        for k in BINARY_ALERT_MAP
+        if k in const.ALERT_DEDUP_DEFAULTS
+    ),
+)
+def test_evaluate_alerts_uses_type_default(
+    alert_type: str, expected_min: int
+) -> None:
+    """R559: ALERT_DEDUP_DEFAULTS[type] as fallback (#240)."""
+    bs = dict.fromkeys(BINARY_ALERT_MAP, False)
+    bs[alert_type] = True
+    last_sent = {alert_type: _NOW - (expected_min - 1) * 60.0}
+    alerts = evaluate_alerts(
+        bs, options={"alert_aggregation_minutes": 30.0},
+        now=_NOW, last_sent=last_sent,
+        context={alert_type: {}},
+    )
+    assert alert_type not in [a.alert_type for a in alerts], (
+        f"{alert_type} should be suppressed within {expected_min}min"
+    )
+
+
+def test_evaluate_alerts_explicit_override_wins() -> None:
+    """Explicit alert_agg_*_min beats ALERT_DEDUP_DEFAULTS."""
+    bs = dict.fromkeys(BINARY_ALERT_MAP, False)
+    bs["energy_daily_anomaly"] = True
+    alerts = evaluate_alerts(
+        bs,
+        options={
+            "alert_agg_energy_daily_anomaly_min": 30,
+            "alert_aggregation_minutes": 30.0,
+        },
+        now=_NOW, last_sent={"energy_daily_anomaly": _NOW - 60 * 60},
+        context={"energy_daily_anomaly": {}},
+    )
+    assert "energy_daily_anomaly" in [a.alert_type for a in alerts]
 
 
 def test_per_alert_invalid_falls_back() -> None:

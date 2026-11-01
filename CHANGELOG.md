@@ -21,6 +21,13 @@
 
 
 ### Fixed
+- Per-type alert dedup defaults (`ALERT_DEDUP_DEFAULTS`) werden genegeerd
+  in `evaluate_alerts`: 15 van de 17 alert-types vielen terug op globale
+  `alert_aggregation_minutes` (30 min) i.p.v. hun bedoelde venster (tot
+  1440 min voor `energy_daily_anomaly`, `cop_vs_datasheet_low` etc.).
+  Runtime gebruikt nu `ALERT_DEDUP_DEFAULTS[alert_type]` als fallback;
+  expliciete `alert_agg_<type>_min` blijft voorrang houden. (#240)
+
 - **Hybrid indicators leak (diagnostics):** `snap.hybrid_mode`, `snap.boiler_efficiency_cop`, and `snap.inv_freq_secondary` are now only populated when `snap.is_hybrid` is True (EVLQ family). Previously, non-hybrid installs (EPRA/ERLA/EBLA) leaked raw `"Hybrid Op. Mode"`, `"INV frequency 2 (rps)"`, and `"BE COP"` attributes into the coordinator snapshot if ESPAltherma published them (template drift). Sensors already filtered correctly via `is_hybrid`, but diagnostics exposed the raw values.
 - **Detector boiler-only close guard:** `detector.update()` now receives `boiler_active=False` on non-hybrid installs. Prevents premature HP-cycle close if `Boiler Operation Demand` leaks via template drift (R561 guard is hybrid-only by design).
 - **Alert suppression leak:** `_boiler_kwargs_for_alerts()` returns `boiler_active=False` on non-hybrid. Prevents silent suppression of `short_run` / `short_off` / `pendulum_hourly` / `pendulum_daily` alerts on genuine HP cycles.

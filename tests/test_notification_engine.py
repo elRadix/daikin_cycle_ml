@@ -136,12 +136,22 @@ def test_aggregation_allows_after_window():
     assert len(out) == 1
 
 
-def test_aggregation_custom_window():
+def test_aggregation_per_type_override():
+    """alert_agg_<type>_min overrides the per-type default (#240)."""
     now = 1e9
     last = {"short_run": now - 120.0}  # 2min ago
-    opts = {"alert_aggregation_minutes": 1}  # 1 min window -> allow
+    opts = {"alert_agg_short_run_min": 1}  # 1 min window -> allow
     out = evaluate_alerts({"short_run": True}, opts, now=now, last_sent=last)
     assert len(out) == 1
+
+
+def test_aggregation_global_fallback_only():
+    """alert_aggregation_minutes is fallback, not override, for known types."""
+    now = 1e9
+    last = {"short_run": now - 120.0}  # 2min ago
+    opts = {"alert_aggregation_minutes": 1}  # ignored, short_run default=30
+    out = evaluate_alerts({"short_run": True}, opts, now=now, last_sent=last)
+    assert len(out) == 0
 
 
 def test_aggregation_different_types_independent():

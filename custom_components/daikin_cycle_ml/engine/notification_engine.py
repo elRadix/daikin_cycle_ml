@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..const import (
+    ALERT_DEDUP_DEFAULTS,
     ALERT_DEDUP_OPTION_PREFIX,
     ALERT_DEDUP_OPTION_SUFFIX,
     ALERT_GROUP_MAP,
@@ -337,7 +338,8 @@ def evaluate_alerts(
         if not passes_filters(alert_type, severity, options, now):
             continue
         _per_key = f"{ALERT_DEDUP_OPTION_PREFIX}{alert_type}{ALERT_DEDUP_OPTION_SUFFIX}"
-        _per_min = _opt_float(options, _per_key, agg_min)
+        _per_type_default = ALERT_DEDUP_DEFAULTS.get(alert_type, agg_min)
+        _per_min = _opt_float(options, _per_key, _per_type_default)
         prev = last_sent.get(alert_type)
         if isinstance(prev, (int, float)) and (now - float(prev)) < _per_min * 60.0:
             _LOGGER.debug(
