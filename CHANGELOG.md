@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.19.2] - 2026-11-01
+
 ### Fixed
 - **`learned_thresholds` sensor permanently `unknown` when HP is idle:**
   `sensor.daikin_cycle_ml_learned_thresholds` (and its `good_off_min`
