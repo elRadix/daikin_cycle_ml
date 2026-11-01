@@ -1,6 +1,16 @@
 # Daikin Cycle ML
 
-Home Assistant integration that turns your ESPAltherma sensor into a **complete heat pump intelligence platform** — cycle detection, per-mode COP, seasonal SPF, weather-normalized degradation, runtime + energy accounting, installer-grade curve advice, and 19 ML-powered alerts.
+<table>
+  <tr>
+    <td width="180" valign="middle" align="center">
+      <img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/custom_components/daikin_cycle_ml/brand/icon.png" width="160" alt="Daikin Cycle ML Icon">
+    </td>
+    <td valign="middle">
+      Home Assistant integration that turns your <b>ESPAltherma</b> sensor into a complete heat pump intelligence platform — cycle detection, per-mode COP, seasonal SPF, weather-normalized degradation, runtime + energy accounting, installer-grade curve advice, and 19 ML-powered alerts.
+    </td>
+  </tr>
+</table>
+
 
 > **Data source:** [ESPAltherma](https://github.com/raomin/ESPAltherma) by [@raomin](https://github.com/raomin) - reads your Daikin Altherma X10A port via ESP32 and exposes the attributes this integration consumes.
 
