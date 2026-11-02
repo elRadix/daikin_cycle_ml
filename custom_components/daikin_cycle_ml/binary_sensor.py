@@ -84,6 +84,9 @@ def _is_short_run(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     # 52b5: skip DHW cycles -- short bursts are normal during DHW
     if str(last.get("mode", "")).strip().lower() == "dhw":
         return False
+    # #246: skip transient pump-only LWT sampling pulses (same class as #245)
+    if last.get("is_transient"):
+        return False
     dur = last.get("duration_s")
     if not isinstance(dur, (int, float)):
         return False

@@ -3617,7 +3617,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
         last = self.store.last_cycle()
         dur = (last or {}).get("duration_s")
-        is_short_run = isinstance(dur, (int, float)) and dur < short_run_th
+        # #246: skip transient pump-only LWT sampling pulses
+        is_short_run = (
+            isinstance(dur, (int, float))
+            and not (last or {}).get("is_transient")
+            and dur < short_run_th
+        )
         # #245: completed gap from last cycle record, not live off-time
         off = (last or {}).get("off_s")
         is_short_off = isinstance(off, (int, float)) and off < short_off_th

@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [1.19.5] - 2026-11-02
+
+### Fixed
+
+- **Alerts:** `short_run` now skips transient pump-only LWT sampling pulses
+  (`is_transient=1`). Previously these 30-120s pulses were treated as real
+  short cycles, firing `short_run` on every transient close. Because the
+  binary state stayed `True` until the next cycle, the dedup window allowed
+  re-firing every 30 min from a single transient cycle — up to 8 notifications
+  over 4 hours. Same class of bug as #245 (`short_off`), now fixed for
+  `short_run`. (#246)
+
 ## [1.19.4] - 2026-11-02
 
 ### Fixed
