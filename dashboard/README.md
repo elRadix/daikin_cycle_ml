@@ -15,6 +15,7 @@ Ready-to-use Lovelace dashboard cards for the **Daikin Cycle ML** integration.
 | [**Simple Card**](cards/simple-card/README.md) | Live phase, hydraulic diagram, COP, quality, alerts, stooklijn advice | <img src="cards/simple-card/showcase.png" width="320" alt="Simple Card preview"> | v1.4.0+ |
 | [**Heating Curve**](cards/heating-curve/README.md) | HP spec-aware visual with COP heatmap, regression & live position | <img src="cards/heating-curve/preview.png" width="320" alt="Heating Curve preview"> | v1.4.0+ |
 | [**Daily Summary**](cards/daily-summary/README.md) | 8-day cycle history: sparklines, dynamic quality line chart, stacked cycles / duration bars, BUH + defrost events | <img src="cards/daily-summary/showcase.png" width="320" alt="Daily Summary preview"> | v1.7.1+ |
+| [**COP & Energie**](cards/cop-energy/README.md) | Radial SPF hero gauge, per-mode COP dials, animated RPS fan, energy cascade. Light/dark themes, EN/NL auto-detect | <img src="cards/cop-energy/showcase.png" width="320" alt="COP & Energie preview"> | v1.19.0+ |
 
 ---
 
