@@ -289,4 +289,105 @@ Complete list of `daikin_cycle_ml` entities used by the card:
 | `sensor.daikin_cycle_ml_hp_specs` | Header model + specs | `state`, `kw`, `family`, `refrigerant` |
 | `sensor.daikin_cycle_ml_spf_season` | SPF hero value | `state` |
 | `sensor.daikin_cycle_ml_spf_ytd` | Year period row | `state`, `spf_ytd_n` |
-| `sensor.daikin_cycle_ml_scop_running_365d` | 365d delta | 
+| `sensor.daikin_cycle_ml_scop_running_365d` | 365d delta | `state` |
+| `sensor.daikin_cycle_ml_cop_mean_day` | 24h period | `state`, `n_samples` |
+| `sensor.daikin_cycle_ml_cop_mean_week` | Week period | `state`, `n_samples` |
+| `sensor.daikin_cycle_ml_cop_mean_month` | Month period | `state`, `n_samples` |
+| `sensor.daikin_cycle_ml_cop_heating_day` | Heating dial | `state` |
+| `sensor.daikin_cycle_ml_cop_dhw_day` | DHW dial | `state` |
+| `sensor.daikin_cycle_ml_cop_cooling_day` | Cooling dial | `state` |
+| `sensor.daikin_cycle_ml_cop_curve_recent` | Polar chart | `points[]` |
+| `sensor.daikin_cycle_ml_cop_vs_datasheet_pct` | Delta row | `state` |
+| `sensor.daikin_cycle_ml_cop_trend_30d` | Delta row | `state` |
+| `sensor.daikin_cycle_ml_cop_degradation_week_pct` | Delta row | `state` |
+| `sensor.daikin_cycle_ml_thermal_power_live` | Live hero + fan | `state`, `input_power_w`, `input_cop`, `input_rps`, `input_dt_k`, `input_flow_lmin` |
+| `sensor.daikin_cycle_ml_electrical_power_estimated` | Elec fallback | `state` |
+| `sensor.daikin_cycle_ml_thermal_energy_heating_today` | Energy cascade | 8 kWh attributes |
+| `sensor.daikin_cycle_ml_cycle_state` | Running/idle | `state` |
+| `sensor.daikin_cycle_ml_current_cycle` | Mode + duration | `state`, `duration_min`, `rps` |
+
+**Missing entities** render as em-dash. Missing `hp_specs` falls back to generic header. Card never fails to render.
+
+---
+
+## Custom entry names
+
+This card assumes the standard `sensor.daikin_cycle_ml_*` prefix. If you have a custom integration entry name, the card will silently fall back to em-dashes for those sensors.
+
+Verify entity availability in Developer Tools, Template:
+
+    {{ states.sensor | selectattr('entity_id', 'search', 'daikin_cycle_ml.*(hp_specs|spf_season|thermal_power_live|thermal_energy_heating_today)$') | map(attribute='entity_id') | list }}
+
+Expected: 4+ entities. All present = card will work.
+
+---
+
+## Troubleshooting
+
+### ButtonCardJSTemplateError
+
+The card wraps all JS in try/catch and shows the actual error message inside the card as `COP card error: <message>`.
+
+Common causes:
+
+- Old button-card (needs v3.5+)
+- Non-numeric state from a fallback entity
+- `hp_specs` unavailable (card should still render — check F12 console)
+
+Reinstall button-card via HACS if persistent. Check browser console (F12) for full stack.
+
+### Fan not spinning
+
+- Expected when standby (`cycle_state = idle`)
+- `current_cycle.attributes.rps = 0` — integration has not published RPS yet
+- Wait 30s after compressor starts; card updates on state change
+
+### Empty SPF gauge
+
+- `spf_season = 0` — no completed cycles this season
+- Wait 24-72h after install for first samples
+
+### Polar chart missing
+
+- `cop_curve_recent` has fewer than 2 points
+- Requires at least 2 hourly heating-mode points with `cop_mean > 0`
+
+### Missing DHW or Cooling rows
+
+- `dhw_th_kwh = 0` — row hidden (no DHW cycles today)
+- `cooling_th_kwh = 0` — row hidden
+- Rows auto-appear when the value becomes > 0
+
+### Screenshot missing
+
+Take a fresh screenshot (~800x600) of the card in your dashboard and save as `showcase.png` in this folder.
+
+---
+
+## Data & limitations
+
+- **Polar chart** uses the last 24 heating-mode points from `cop_curve_recent`. Fewer than 2 points: inner chart skipped (SPF still shown).
+- **Fan speed** clamped to 0.3-2.5 sec per rotation for visual comfort. Extremely fast RPS or 0 RPS: clamped/static fan.
+- **Implicit COP per mode** = `thermal_kwh / electrical_kwh`. Best-effort; may differ slightly from `cop_*_day` sensors.
+- **Standby last mode** derived from `current_cycle.state`. No chip shown if integration returns `idle` before mode is set.
+- **No popups** - the card is fully static SVG/HTML, re-rendered on each HA state update (30s tick or entity change).
+- **Single energy sensor** - all energy values read via `thermal_energy_heating_today` attributes. If unavailable, energy section shows 0.
+- **No persistent state** - theme and language overrides come from `variables`, not localStorage.
+
+---
+
+## Data flow
+
+    hp_specs                            Header
+    cop_curve_recent.points[]           SPF Hero (polar 24h chart)
+    spf_season                          SPF Hero (main value)
+    spf_ytd, scop_365d                  Delta row
+    cop_mean_day/week/month             Period rows (4)
+    cop_heating/dhw/cooling_day         Mode Dials
+    thermal_power_live (input_*)        Live Power (running)
+    cycle_state, current_cycle          Live / Standby toggle
+    thermal_energy_heating_today (kWh)  Energy Today
+
+---
+
+*Part of the [daikin_cycle_ml](../../..) integration.*
