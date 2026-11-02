@@ -69,12 +69,28 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 ---
 
+### ⭐ New: COP & Energie
+
+[<img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/cop-energy/showcase.png" width="480" alt="COP & Energie Card">](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/cop-energy)
+
+**Live COP, energy, and seasonal performance at a glance.** Radial SPF hero gauge, per-mode COP dials, animated RPS-driven fan, and today's energy cascade. Light + dark themes, EN/NL auto-detection — 2 runtime variables.
+
+- **SPF hero gauge** — 3-layer radial with polar 24h chart inside
+- **Mode dials** — Heating, DHW, Cooling side-by-side
+- **Live power view** — animated fan + electrical/thermal split when running
+- **Energy cascade** — daily balance sheet + thermal split + per-mode cards
+- **2 configurable variables** — theme (light/dark/auto) and language (EN/NL/auto)
+
+**[📥 Download YAML](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/cop-energy/cop-energy.yaml)** · **[📖 Full documentation](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/cop-energy)**
+
+---
+
 ### More cards
 
-| Simple Card | Heating Curve | Daily Summary |
-|:---:|:---:|:---:|
-| [![Daikin Cycle ML - Simple Card](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/simple-card/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/simple-card) | [![Daikin Cycle ML - Heating Curve](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/heating-curve/preview.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/heating-curve) | [![Daikin Cycle ML - Daily Summary](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daily-summary) |
-| *One-glance overview* | *LWT vs outdoor* | *8-day cycle history* |
+| Simple Card | Heating Curve | Daily Summary | COP & Energie |
+|:---:|:---:|:---:|:---:|
+| [![Daikin Cycle ML - Simple Card](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/simple-card/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/simple-card) | [![Daikin Cycle ML - Heating Curve](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/heating-curve/preview.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/heating-curve) | [![Daikin Cycle ML - Daily Summary](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daily-summary) | [![Daikin Cycle ML - COP & Energie](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/cop-energy/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/cop-energy) |
+| *One-glance overview* | *LWT vs outdoor* | *8-day cycle history* | *Live COP + SPF gauge* |
 
 *All Lovelace dashboard cards — see [dashboard/](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard) for installation.*
 
