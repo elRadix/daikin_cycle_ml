@@ -68,10 +68,10 @@ def test_short_off_skips_dhw_last():
 
 
 def test_short_off_fires_heating():
+    # #245: _is_short_off reads off_s from the last cycle record
     c = _mk_coord(
         options={"short_off_threshold_min": 5},
-        last_cycle={"duration_s": 1800, "mode": "heating"},
-        off_time=60,
+        last_cycle={"duration_s": 1800, "mode": "heating", "off_s": 60},
     )
     s = _mk_snap(mode="heating")
     assert bs._is_short_off(s, c) is True

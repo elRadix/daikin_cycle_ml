@@ -613,8 +613,8 @@ ALERT_ADVICE = {
             "curve \u2014 the pump is cycling too often."),
         "short_run": ("\u2022 Cycle shorter than threshold: raise minimum "
             "run time or lower the LWT setpoint."),
-        "short_off": ("\u2022 Off-time too short: check heating demand or "
-            "increase minimum off time."),
+        "short_off": ("\u2022 Off-time too short: if false positives, decrease "
+            "short_off_threshold_min; if missing real short cycles, increase it."),
         "ml_anomaly": ("\u2022 Behaviour deviates from learned baseline. "
             "Check recent setpoint / weather / DHW changes."),
         "setpoint_osc": ("\u2022 Lock the LWT setpoint or raise thermostat "
@@ -647,8 +647,8 @@ ALERT_ADVICE = {
             "stooklijn \u2014 de pomp pendelt te vaak."),
         "short_run": ("\u2022 Cyclus korter dan drempel: verhoog "
             "minimumlooptijd of verlaag de LWT-setpoint."),
-        "short_off": ("\u2022 Off-tijd te kort: check warmtevraag of "
-            "verhoog minimum off-tijd."),
+        "short_off": ("\u2022 Off-tijd te kort: bij valse meldingen verlaag "
+            "short_off_threshold_min; bij gemiste korte cycli verhoog het."),
         "ml_anomaly": ("\u2022 Gedrag wijkt af van de geleerde baseline. "
             "Controleer recente setpoint / weer / SWW-wijzigingen."),
         "setpoint_osc": ("\u2022 Vergrendel het LWT-setpoint of verhoog "

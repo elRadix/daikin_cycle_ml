@@ -3618,8 +3618,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         last = self.store.last_cycle()
         dur = (last or {}).get("duration_s")
         is_short_run = isinstance(dur, (int, float)) and dur < short_run_th
-        off = self.store.off_time_since_last(now)
-        is_short_off = off is not None and off < short_off_th
+        # #245: completed gap from last cycle record, not live off-time
+        off = (last or {}).get("off_s")
+        is_short_off = isinstance(off, (int, float)) and off < short_off_th
         is_pend_h = self.store.cycles_in_window(now, 3600) >= pend_hour
         is_pend_d = (
             len(self.store.non_transient_today(now)) >= pend_day

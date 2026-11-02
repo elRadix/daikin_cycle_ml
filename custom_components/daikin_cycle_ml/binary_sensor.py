@@ -97,8 +97,12 @@ def _is_short_off(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
         return False
     if str(getattr(s, "mode", "")).strip().lower() == "dhw":
         return False
-    off = c.store.off_time_since_last(_now())
-    if off is None:
+    # #245: use the completed gap from the cycle record, not the live
+    # off_time_since_last(now). Live off-time resets to ~0 when a cycle
+    # ends, which would fire the alert immediately after EVERY cycle
+    # regardless of the actual gap before it.
+    off = (last or {}).get("off_s")
+    if not isinstance(off, (int, float)):
         return False
     return off < int(c.options.get("short_off_threshold_min", 5)) * 60
 

@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [1.19.4] - 2026-11-02
+
+### Fixed
+
+- **Alerts:** `short_off` now uses the completed gap from the last cycle
+  record (`off_s`) instead of the live `off_time_since_last(now)`.
+  Previously the alert fired immediately after *any* cycle ended, because
+  live off-time resets to ~0 regardless of the actual gap before it. (#245)
+- **Alerts:** corrected backwards advice text for `short_off` — "decrease
+  threshold for false positives" instead of "increase" (which would have
+  caused more alerts). (#245)
+
+### Tests
+
+- 3 new reproduction tests in `test_issue_245_short_off.py` (pre-fix
+  fail, post-fix pass).
+- Updated `test_52b5_dhw_mode_gating.py` mock to include `off_s` in the
+  `last_cycle` record.
+
 ## [1.19.3] - 2026-11-01
 
 ### Fixed
