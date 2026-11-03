@@ -14,7 +14,20 @@ def _mk_coord(
     c.store.last_cycle = MagicMock(return_value=last_cycle)
     c.store.off_time_since_last = MagicMock(return_value=off_time)
     c.store.cycles_in_window = MagicMock(return_value=cycles_hour)
-    c.store.cycles_in_window_mode = MagicMock(return_value=cycles_hour_dhw)
+    # v1.19.6 (FIX A): mode-aware mock. FIX A now calls
+    # cycles_in_window_mode(..., MODE_HEATING) directly. Previously the
+    # mock returned cycles_hour_dhw for ANY mode, masking the mode filter.
+    _HEATING = getattr(bs, "MODE_HEATING", "heating")
+    _DHW = getattr(bs, "MODE_DHW", "dhw")
+
+    def _mode_count(_now, _window, _mode):
+        if _mode == _DHW:
+            return cycles_hour_dhw
+        if _mode == _HEATING:
+            return max(0, cycles_hour - cycles_hour_dhw)
+        return 0
+
+    c.store.cycles_in_window_mode = MagicMock(side_effect=_mode_count)
     c.store.cycles_today = MagicMock(return_value=cycles_today or [])
     return c
 

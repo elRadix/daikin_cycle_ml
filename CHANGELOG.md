@@ -1,5 +1,77 @@
 # Changelog
 
+## [1.19.6] - 2026-11-03
+
+### Fixed
+
+- **Alerts — transient leak in window counters:** `pendulum_hourly`,
+  `pendulum_daily`, `dhw_pendulum` and `high_cycle_rate` now exclude
+  transient pump-only LWT sampling pulses (`is_transient=1`) from their
+  cycle counts. Companion fix to #245 (`short_off`) and #246 (`short_run`),
+  but in the window and daily counters rather than the single-cycle
+  helpers. `store.cycles_in_window` and `store.cycles_in_window_mode`
+  gain `exclude_transient=True` (default); `_is_pendulum_daily` now calls
+  the existing `non_transient_today()` helper (introduced in v1.12.0 but
+  never wired). Confirmed on Prod 1 DB: 4 real false-positive alerts
+  (2026-10-07 17:35, 10-16 09:55, 10-16 10:24, 10-26 12:48) no longer fire.
+
+- **Alerts — mode-strict `pendulum_hourly`:** `_is_pendulum_hourly` now
+  counts `MODE_HEATING` cycles only. Pre-fix formula `all - dhw` treated
+  cooling and defrost as "heating", inflating the count and firing false
+  positives during shoulder seasons.
+
+- **Alerts — future-cycle guard (v1.14.0 parity):**
+  `store.cycles_in_window` and `store.cycles_in_window_mode` now skip
+  records whose `start_ts` is more than 60s in the future, matching the
+  `cycles_today` clock-skew guard added in v1.14.0. Previously HA-reboot +
+  NTP drift, DB-import corruption or multi-device skew could inflate the
+  counts with distant-future timestamps.
+
+- **Alerts — corrupt `is_transient` handling:** all `is_transient`
+  consumers now parse via `store._is_transient_int()`. Non-numeric values
+  (strings `"x"`, `"true"`, …) are treated as non-transient (0) instead
+  of raising `ValueError` (in `cycles_in_window*`) or being silently
+  truthy-skipped (`_is_short_run`, `non_transient_today`). A single
+  corrupt record in the deque could otherwise crash all four cycle
+  sensors after HA reboot, or — worse — silently DISABLE `pendulum_daily`
+  and `short_run` on a corrupted DB-import (false negatives).
+
+- **Alerts — R580 silent fallback removed:** `_is_pendulum_hourly` no
+  longer wraps its store call in `try/except Exception` and defaults
+  `dhw_n = 0`. That fallback INFLATED the count on store failure; errors
+  now propagate to the caller per R580.
+
+- **Alerts — `_is_short_run` numeric transient parse:** switched from
+  `if last.get("is_transient"):` (truthy) to `_is_transient_int()`
+  (numeric). String `"0"` or `"false"` from a corrupt import previously
+  silently disabled `short_run`.
+
+- **Alerts — non-dict `last_cycle()` guard:** `_is_short_run` and
+  `_is_short_off` now guard `isinstance(last, dict)` before `.get()`.
+  Corrupt hydration returning a non-dict no longer raises
+  `AttributeError`.
+
+- **Alerts — Optie B alert message consistency:** `_build_alert_context`
+  uses `non_transient_today` for the `cycles_today` key, matching
+  `_is_pendulum_daily`. Before the fix the trigger counted 30 real cycles
+  but the alert message displayed 40 (30 real + 10 transient), confusing
+  users on transient-heavy days.
+
+### Changed
+
+- **`sensor.cycles_last_hour`:** now reflects only non-transient cycles
+  (was: all cycles). User-visible state change on transient-heavy days
+  (e.g. `5` -> `2`); the new behaviour is correct, because a 30-120s
+  pump-only LWT sampling pulse is not a real cycle.
+- **`store.cycles_in_window` / `store.cycles_in_window_mode`:** new
+  keyword-only parameters `exclude_transient: bool = True` and
+  `exclude_future: bool = True`. Existing call sites unaffected.
+
+### Tests
+
+- +75 new tests across 9 new files (`test_v1196_*.py`), every fix proved
+  red -> green. Full suite: 4158 passed, 4 skipped, 100% coverage.
+
 ## [Unreleased]
 
 ## [1.19.5] - 2026-11-02

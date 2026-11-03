@@ -25,6 +25,7 @@ def _default_store_mock():
     st = MagicMock()
     st.cycles_in_window.return_value = 0
     st.cycles_today.return_value = []
+    st.non_transient_today.return_value = []
     st.off_time_since_last.return_value = None
     return st
 
@@ -46,8 +47,9 @@ def test_cph_filled_from_store():
 
 
 def test_cycles_today_len():
+    """v1.19.6 scope B: ctx key cycles_today sourced from non_transient_today."""
     st = _default_store_mock()
-    st.cycles_today.return_value = [{"id": 1}, {"id": 2}, {"id": 3}]
+    st.non_transient_today.return_value = [{"id": 1}, {"id": 2}, {"id": 3}]
     c = _bare_coord(store=st)
     ctx = c._build_alert_context(DataSnapshot())
     assert ctx["pendulum"]["cycles_today"] == 3

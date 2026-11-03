@@ -13,6 +13,31 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_MAXLEN = 500
 
 
+def _is_transient_int(v: object) -> int:
+    """v1.19.6 FASE 5: safe parse of is_transient flag.
+
+    Cycle records can carry is_transient from DB-imports, oude schema-
+    versies or manual SQL edits. These may be non-numeric strings, and
+    ``int("x")`` raises ValueError. Combined with the R580 fix (no
+    silent-except), one corrupt record would crash cycles_in_window /
+    cycles_in_window_mode / alert dispatch.
+
+    Policy: unknown / unparseable -> treat as non-transient (0). This
+    matches the backward-compat rule used elsewhere (missing key == 0).
+    Booleans and ints keep their existing semantics.
+    """
+    if isinstance(v, bool):
+        return 1 if v else 0
+    if isinstance(v, (int, float)):
+        return int(v)
+    if isinstance(v, str):
+        try:
+            return int(v)
+        except ValueError:
+            return 0
+    return 0
+
+
 @dataclass
 class CycleStore:
     """Bounded deque of cycle records + named counters."""
@@ -162,22 +187,58 @@ class CycleStore:
         self._counters["bad_cycles_today"] = bad
         return len(self._cycles)
 
-    def cycles_in_window(self, now: float, window_s: float) -> int:
+    def cycles_in_window(
+        self,
+        now: float,
+        window_s: float,
+        *,
+        exclude_transient: bool = True,
+        exclude_future: bool = True,
+    ) -> int:
+        """v1.19.6: parity with v1.14.0 cycles_today clock-skew guard.
+
+        Before v1.19.6 this function had no upper bound on start_ts,
+        so records far in the future (HA reboot + NTP drift, DB-import
+        corruption, multi-device skew) inflated the count. cycles_today
+        already skipped start_ts > now+60s since v1.14.0; the window
+        helper was missed. Same bug family as v1.12.0 / #245 / #246.
+        """
         cutoff = float(now) - float(window_s)
+        future_cutoff = float(now) + 60.0
         return sum(
-            1 for c in self._cycles
-            if isinstance(c.get("start_ts"), (int, float)) and c["start_ts"] >= cutoff
+            1
+            for c in self._cycles
+            if isinstance(c.get("start_ts"), (int, float))
+            and c["start_ts"] >= cutoff
+            and (not exclude_future or c["start_ts"] <= future_cutoff)
+            and (not exclude_transient or _is_transient_int(c.get("is_transient")) == 0)
         )
 
     def cycles_in_window_mode(
-        self, now: float, window_s: float, mode: str
+        self,
+        now: float,
+        window_s: float,
+        mode: str,
+        *,
+        exclude_transient: bool = True,
+        exclude_future: bool = True,
     ) -> int:
+        """v1.19.6: parity with v1.14.0 cycles_today clock-skew guard.
+
+        See cycles_in_window for rationale. Same upper-bound fix so that
+        pendulum_hourly / dhw_pendulum / high_cycle_rate are not inflated
+        by distant-future timestamps.
+        """
         cutoff = float(now) - float(window_s)
+        future_cutoff = float(now) + 60.0
         return sum(
-            1 for c in self._cycles
+            1
+            for c in self._cycles
             if isinstance(c.get("start_ts"), (int, float))
             and c["start_ts"] >= cutoff
+            and c["start_ts"] <= future_cutoff
             and c.get("mode") == mode
+            and (not exclude_transient or _is_transient_int(c.get("is_transient")) == 0)
         )
 
     def cycles_today(self, now: float) -> list[dict[str, Any]]:
@@ -199,15 +260,24 @@ class CycleStore:
         return out
 
     def non_transient_today(self, now: float) -> list[dict[str, Any]]:
-        """v1.12.0 (#105): today's cycles excluding startup transients."""
-        return [c for c in self.cycles_today(now) if not c.get("is_transient")]
+        """v1.12.0 (#105): today's cycles excluding startup transients.
+
+        v1.19.6 FASE 5C: numeric parse via _is_transient_int (was truthy
+        check; string "0"/"false"/"x" silently EXCLUDED all records feeding
+        _is_pendulum_daily -> false negatives on corrupt DB-imports).
+        """
+        return [
+            c
+            for c in self.cycles_today(now)
+            if _is_transient_int(c.get("is_transient")) == 0
+        ]
 
     def non_transient_in_window(self, now: float, window_s: float) -> int:
-        """v1.12.0 (#105): cycles in window excluding startup transients."""
-        cutoff = float(now) - float(window_s)
-        return sum(
-            1 for c in self._cycles
-            if isinstance(c.get("start_ts"), (int, float))
-            and c["start_ts"] >= cutoff
-            and not c.get("is_transient")
+        """v1.12.0 (#105): cycles in window excluding startup transients.
+
+        v1.19.6: delegates to cycles_in_window so future-cutoff and
+        transient rules stay in sync (was drifting before).
+        """
+        return self.cycles_in_window(
+            now, window_s, exclude_transient=True, exclude_future=True
         )

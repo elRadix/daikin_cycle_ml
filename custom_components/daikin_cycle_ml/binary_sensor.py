@@ -32,6 +32,7 @@ from .const import (
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
 from .engine.timer_health import is_stale
 from .entity import DaikinCycleMLEntity, async_remove_stale_entities
+from .storage.store import _is_transient_int
 
 PARALLEL_UPDATES = 0  # read-only platform, HA serializes updates
 
@@ -81,11 +82,16 @@ def _is_short_run(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     last = c.store.last_cycle()
     if not last:
         return False
+    # v1.19.6 FASE 5B: last may be corrupt (non-dict) after hydration.
+    if not isinstance(last, dict):
+        return False
     # 52b5: skip DHW cycles -- short bursts are normal during DHW
     if str(last.get("mode", "")).strip().lower() == "dhw":
         return False
     # #246: skip transient pump-only LWT sampling pulses (same class as #245)
-    if last.get("is_transient"):
+    # v1.19.6 FASE 5B: numeric parse (was truthy check; string "0"/"false"
+    # silently disabled short_run -> false negative).
+    if _is_transient_int(last.get("is_transient")):
         return False
     dur = last.get("duration_s")
     if not isinstance(dur, (int, float)):
@@ -95,7 +101,10 @@ def _is_short_run(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
 
 def _is_short_off(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     # 52b5: skip DHW -- off-times during DHW are not meaningful
+    # v1.19.6 FASE 5B: guard against corrupt non-dict last_cycle.
     last = c.store.last_cycle()
+    if last and not isinstance(last, dict):
+        return False
     if last and str(last.get("mode", "")).strip().lower() == "dhw":
         return False
     if str(getattr(s, "mode", "")).strip().lower() == "dhw":
@@ -120,18 +129,28 @@ def _is_source_stale(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
 
 
 def _is_pendulum_hourly(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    """v1.19.6 (scope A): HEATING-only pendulum detection.
+
+    Previous logic (all_non_dhw) counted cooling and defrost as heating,
+    inflating the count and producing false positives during shoulder
+    seasons. Strict mode-counting is also cheaper and removes the
+    silent-except fallback (R580) that turned a failed query into dhw_n=0.
+    """
     threshold = int(c.options.get("pendulum_cycles_per_hour", 4))
-    all_n = c.store.cycles_in_window(_now(), 3600)
-    try:
-        dhw_n = c.store.cycles_in_window_mode(_now(), 3600, MODE_DHW)
-    except Exception:
-        dhw_n = 0
-    return (all_n - dhw_n) >= threshold
+    return c.store.cycles_in_window_mode(_now(), 3600, MODE_HEATING) >= threshold
 
 
 def _is_pendulum_daily(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    """v1.19.6: transient-aware daily pendulum detection.
+
+    Companion fix to #245/#246 (short_off/short_run) and v1.19.6 FIX A
+    (pendulum_hourly). Pre-fix, cycles_today() included pump-only LWT
+    sampling pulses (is_transient=1), inflating the daily count and
+    firing false pendulum_daily alerts. non_transient_today() has existed
+    since v1.12.0 (#105) but was never wired here.
+    """
     threshold = int(c.options.get("pendulum_cycles_per_day", 40))
-    return len(c.store.cycles_today(_now())) >= threshold
+    return len(c.store.non_transient_today(_now())) >= threshold
 
 
 def _is_dhw_pendulum(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:

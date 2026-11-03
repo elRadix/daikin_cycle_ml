@@ -4020,7 +4020,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         with contextlib.suppress(Exception):
             cph = int(self.store.cycles_in_window(now, 3600))
         with contextlib.suppress(Exception):
-            cyc_today = len(self.store.cycles_today(now))
+            # v1.19.6 (scope B): use non_transient_today so the
+            # pendulum_daily alert message matches its trigger count
+            # (_is_pendulum_daily uses non_transient_today since FIX-3).
+            cyc_today = len(self.store.non_transient_today(now))
         _dhw_cph_ctx = 0
         with contextlib.suppress(Exception):
             _dhw_cph_ctx = int(self.store.cycles_in_window_mode(now, 3600, MODE_DHW))
