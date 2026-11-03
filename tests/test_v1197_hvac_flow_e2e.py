@@ -353,7 +353,7 @@ def test_fixture_full_replay_produces_valid_state():
         "cop_degradation", "defrost_excessive", "buh_excessive",
         "source_stale", "missing_attributes", "cop_vs_datasheet_low",
         "db_retention_warning", "kmeans_retrain_stale",
-        "energy_daily_anomaly",
+        "energy_daily_anomaly", "short_cycling_pattern",
     }
     assert set(s.keys()) == expected_keys
     for k, v in s.items():

@@ -66,6 +66,8 @@ from .const import (
     DEFAULT_SETPOINT_OSC_MIN_DELTA,
     DEFAULT_SETPOINT_OSC_THRESHOLD,
     DEFAULT_SETPOINT_OSC_WINDOW_MIN,
+    DEFAULT_SHORT_CYCLING_MIN_CYCLES,
+    DEFAULT_SHORT_CYCLING_WINDOW_MIN,
     DEFAULT_SHORT_OFF_MIN,
     DEFAULT_SHORT_RUN_MIN,
     DEFAULT_STATUS_UPDATE_ENABLED,
@@ -709,6 +711,18 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 ),
             ): _num(1, 120, 1, "min"),
             vol.Required(
+                "short_cycling_window_min",
+                default=self._options.get(
+                    "short_cycling_window_min", DEFAULT_SHORT_CYCLING_WINDOW_MIN
+                ),
+            ): _num(5, 360, 5, "min"),
+            vol.Required(
+                "short_cycling_min_cycles",
+                default=self._options.get(
+                    "short_cycling_min_cycles", DEFAULT_SHORT_CYCLING_MIN_CYCLES
+                ),
+            ): _num(1, 20, 1),
+            vol.Required(
                 "pendulum_cycles_per_day",
                 default=self._options.get(
                     "pendulum_cycles_per_day", DEFAULT_PENDULUM_CPD
@@ -1059,6 +1073,12 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 vol.Required("short_off_threshold_min",
                     default=c.get("short_off_threshold_min", DEFAULT_SHORT_OFF_MIN)
                 ): _num(1, 120, 1, "min"),
+                vol.Required("short_cycling_window_min",
+                    default=c.get("short_cycling_window_min", DEFAULT_SHORT_CYCLING_WINDOW_MIN)
+                ): _num(5, 360, 5, "min"),
+                vol.Required("short_cycling_min_cycles",
+                    default=c.get("short_cycling_min_cycles", DEFAULT_SHORT_CYCLING_MIN_CYCLES)
+                ): _num(1, 20, 1),
             })),
             vol.Required("pendulum"): section(vol.Schema({
                 vol.Required("pendulum_cycles_per_hour",

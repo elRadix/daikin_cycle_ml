@@ -52,7 +52,7 @@
           "indoor_temp_sensor": "Optional sensor for indoor temperature (used for ML feature indoor_temp_avg).",
           "power_sensor_entity": "Optional. Used as fallback when RPS is unavailable or zero. Leave empty to disable."
         },
-        "description": "Thresholds that decide when the compressor counts as ON.\n\n- **Compressor RPS threshold** (default 3): ON when RPS \u2265 this. Increase to ignore brief spikes.\n- **Power sensor** (optional): used as fallback when RPS is unavailable.\n- **Fallback power threshold** (default 200 W): lower = more sensitive.",
+        "description": "Thresholds that decide when the compressor counts as ON.\n\n- **Compressor RPS threshold** (default 3): ON when RPS ≥ this. Increase to ignore brief spikes.\n- **Power sensor** (optional): used as fallback when RPS is unavailable.\n- **Fallback power threshold** (default 200 W): lower = more sensitive.",
         "title": "Cycle detection"
       },
       "diagnose": {
@@ -86,11 +86,11 @@
           "3way valve(On:DHW_Off:Space)": "Your sensor's attribute name for the canonical '3way valve(On:DHW_Off:Space)' field. Leave empty if the canonical name already exists on the sensor.",
           "BUH Step1": "Your sensor's attribute name for the canonical 'BUH Step1' field. Leave empty if the canonical name already exists on the sensor.",
           "BUH Step2": "Your sensor's attribute name for the canonical 'BUH Step2' field. Leave empty if the canonical name already exists on the sensor.",
-          "Boiler DHW Demand": "Sensor attribute name for 'Boiler DHW Demand' (hybrid only \u2014 leave empty if not present).",
-          "Boiler Operation Demand": "Sensor attribute name for 'Boiler Operation Demand' (hybrid only \u2014 leave empty if not present).",
+          "Boiler DHW Demand": "Sensor attribute name for 'Boiler DHW Demand' (hybrid only — leave empty if not present).",
+          "Boiler Operation Demand": "Sensor attribute name for 'Boiler Operation Demand' (hybrid only — leave empty if not present).",
           "Defrost Operation": "Your sensor's attribute name for the canonical 'Defrost Operation' field. Leave empty if the canonical name already exists on the sensor.",
           "Flow sensor (l/min)": "Your sensor's attribute name for the canonical 'Flow sensor (l/min)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Hybrid Op. Mode": "Sensor attribute name for 'Hybrid Op. Mode' (hybrid only \u2014 leave empty if not present).",
+          "Hybrid Op. Mode": "Sensor attribute name for 'Hybrid Op. Mode' (hybrid only — leave empty if not present).",
           "I/U operation mode": "Your sensor's attribute name for the canonical 'I/U operation mode' field. Leave empty if the canonical name already exists on the sensor.",
           "INV frequency (rps)": "Your sensor's attribute name for the canonical 'INV frequency (rps)' field. Leave empty if the canonical name already exists on the sensor.",
           "Inlet water temp.(R4T)": "Your sensor's attribute name for the canonical 'Inlet water temp.(R4T)' field. Leave empty if the canonical name already exists on the sensor.",
@@ -158,7 +158,7 @@
           "status_update_enabled": "Enable periodic status-update notifications (multi-line summary).",
           "status_update_interval_hours": "Hours between status updates (1-168)."
         },
-        "description": "How and when alerts are delivered.\n\n- **Persistent notifications**: sidebar alerts.\n- **Notify service** (optional): e.g. `notify.telegram_rachid`.\n- **Quiet hours**: suppress non-critical alerts during the window (default 22:00\u201307:00).",
+        "description": "How and when alerts are delivered.\n\n- **Persistent notifications**: sidebar alerts.\n- **Notify service** (optional): e.g. `notify.telegram_rachid`.\n- **Quiet hours**: suppress non-critical alerts during the window (default 22:00–07:00).",
         "title": "Notifications"
       },
       "pendulum": {
@@ -190,7 +190,7 @@
           "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min. Below = -30 points.",
           "target_cycles_per_day": "Target cycles per day for efficient operation. Default 8. Used for ratio-based advice."
         },
-        "description": "Thresholds used to score a cycle 0-100. Meeting a threshold avoids a penalty.\n\n- **Good run** (default 45 min): runtime \u2265 this scores full marks. Below: \u221230 points.\n- **Good dT** (default 5.0 K): minimum dT for full marks. Below: \u221220 points.\n- **Good off** (default 20 min): minimum off-time for full marks. Below: \u221220 points.\n- **Target cycles/day** (default 8): efficiency target, used in ratio-based advice.",
+        "description": "Thresholds used to score a cycle 0-100. Meeting a threshold avoids a penalty.\n\n- **Good run** (default 45 min): runtime ≥ this scores full marks. Below: −30 points.\n- **Good dT** (default 5.0 K): minimum dT for full marks. Below: −20 points.\n- **Good off** (default 20 min): minimum off-time for full marks. Below: −20 points.\n- **Target cycles/day** (default 8): efficiency target, used in ratio-based advice.",
         "title": "Quality thresholds"
       },
       "reconfigure": {
@@ -281,6 +281,9 @@
       },
       "source_stale": {
         "name": "Source stale"
+      },
+      "short_cycling_pattern": {
+        "name": "Short cycling pattern"
       }
     },
     "sensor": {
@@ -538,12 +541,12 @@
         "sections": {
           "comfort": {
             "data": {
-              "comfort_max_c": "Maximum indoor temperature (\u00b0C)",
-              "comfort_min_c": "Minimum indoor temperature (\u00b0C)"
+              "comfort_max_c": "Maximum indoor temperature (°C)",
+              "comfort_min_c": "Minimum indoor temperature (°C)"
             },
             "data_description": {
-              "comfort_max_c": "Higher LWT will not be advised above this indoor temperature. Default 24 \u00b0C.",
-              "comfort_min_c": "Lower LWT will not be advised below this indoor temperature. Default 20 \u00b0C."
+              "comfort_max_c": "Higher LWT will not be advised above this indoor temperature. Default 24 °C.",
+              "comfort_min_c": "Lower LWT will not be advised below this indoor temperature. Default 20 °C."
             },
             "name": "Comfort"
           },
@@ -583,7 +586,7 @@
           "notifications": "Notify target, quiet hours, alert groups, language",
           "pendulum": "Pendulum and setpoint-oscillation detection",
           "quality_ml": "Quality scoring thresholds",
-          "test_all_notifications": "One click \u2014 sends one of each alert type (filters bypassed)",
+          "test_all_notifications": "One click — sends one of each alert type (filters bypassed)",
           "test_notification": "Send one sample alert to the notify target"
         },
         "menu_options": {
@@ -660,7 +663,8 @@
           "alert_agg_short_off_min": "Short off window",
           "alert_agg_short_run_min": "Short run window",
           "alert_agg_source_stale_min": "Source stale window",
-          "alert_agg_stooklijn_advies_min": "Heating curve advice window"
+          "alert_agg_stooklijn_advies_min": "Heating curve advice window",
+          "alert_agg_short_cycling_pattern_min": "Short cycling pattern window"
         },
         "data_description": {
           "alert_agg_buh_excessive_min": "Default 1440 min (24 h).",
@@ -681,7 +685,8 @@
           "alert_agg_short_off_min": "Default 30 min.",
           "alert_agg_short_run_min": "Default 30 min.",
           "alert_agg_source_stale_min": "Default 60 min.",
-          "alert_agg_stooklijn_advies_min": "Default 10080 min (7 days)."
+          "alert_agg_stooklijn_advies_min": "Default 10080 min (7 days).",
+          "alert_agg_short_cycling_pattern_min": "Default 60 min."
         },
         "description": "Minimum minutes between consecutive alerts of the same type. Applies to evaluate_alerts-routed alerts and the standalone cop_low and stooklijn_advies emitters.",
         "title": "Alert deduplication windows"
@@ -724,7 +729,7 @@
           "alert_enabled_defrost_excessive": "Fires when 7d defrost count exceeds the threshold.",
           "alert_enabled_dhw_pendulum": "Fires when DHW cycles per hour reach the target.",
           "alert_enabled_energy_daily_anomaly": "Enable energy daily anomaly alert",
-          "alert_enabled_high_cycle_rate": "Fires when cycle rate exceeds 1.5\u00d7 the hourly target.",
+          "alert_enabled_high_cycle_rate": "Fires when cycle rate exceeds 1.5× the hourly target.",
           "alert_enabled_kmeans_retrain_stale": "Enable k-means retrain stale alert",
           "alert_enabled_missing_attributes": "Fires when required source attributes are absent.",
           "alert_enabled_source_stale": "Fires when the source sensor stops updating (critical)."
@@ -793,14 +798,14 @@
           },
           "setpoint": {
             "data": {
-              "setpoint_osc_min_delta": "Minimum setpoint change (\u00b0C)",
+              "setpoint_osc_min_delta": "Minimum setpoint change (°C)",
               "setpoint_osc_window_min": "Setpoint window (min)",
               "setpoint_oscillation_threshold": "Setpoint oscillation threshold"
             },
             "data_description": {
-              "setpoint_osc_min_delta": "Minimum \u00b0C change to count as a setpoint change. Default 0.5 \u2014 filters floating-point noise.",
+              "setpoint_osc_min_delta": "Minimum °C change to count as a setpoint change. Default 0.5 — filters floating-point noise.",
               "setpoint_osc_window_min": "Rolling window in minutes. Default 30.",
-              "setpoint_oscillation_threshold": "Number of setpoint changes in the window before an alert fires. Default 6 \u2014 filters normal thermostat tuning, warns on real oscillation."
+              "setpoint_oscillation_threshold": "Number of setpoint changes in the window before an alert fires. Default 6 — filters normal thermostat tuning, warns on real oscillation."
             },
             "name": "Setpoint oscillation"
           }
@@ -856,7 +861,7 @@
           "alert_kind": "Which alert type to send as a test. Choose 'All alerts' to send every alert type at once.",
           "ignore_group_filters": "Normally alerts are suppressed if their alert group is disabled, during quiet hours, or within the anti-spam (dedup) window. Enable this to send the test alert anyway."
         },
-        "description": "Send **one sample alert** to your configured notify target.\n\n\u2022 **Alert type** \u2014 which alert to simulate (or *All alerts* to send everything)\n\u2022 **Force send** \u2014 bypass alert-group toggles, quiet hours and anti-spam window just for this test\n\nThis uses the current options (notify_service + persistent_enabled) and does not change them.",
+        "description": "Send **one sample alert** to your configured notify target.\n\n• **Alert type** — which alert to simulate (or *All alerts* to send everything)\n• **Force send** — bypass alert-group toggles, quiet hours and anti-spam window just for this test\n\nThis uses the current options (notify_service + persistent_enabled) and does not change them.",
         "title": "Test notification"
       },
       "test_notification_result": {
@@ -877,7 +882,8 @@
         "short_off": "Short off",
         "short_run": "Short run",
         "status_summary": "Daily status summary",
-        "stooklijn_advies": "Stooklijn advice"
+        "stooklijn_advies": "Stooklijn advice",
+        "short_cycling_pattern": "Short cycling pattern (window)"
       }
     }
   },

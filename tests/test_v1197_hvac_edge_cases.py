@@ -580,7 +580,7 @@ def test_fuzz_alert_states_key_set_stable():
         "cop_degradation", "defrost_excessive", "buh_excessive",
         "source_stale", "missing_attributes", "cop_vs_datasheet_low",
         "db_retention_warning", "kmeans_retrain_stale",
-        "energy_daily_anomaly",
+        "energy_daily_anomaly", "short_cycling_pattern",
     }
     rng = random.Random(FUZZ_SEED + 30)
     for _ in range(10):

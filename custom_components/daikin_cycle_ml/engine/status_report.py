@@ -301,6 +301,7 @@ ALERT_TITLES = {
         "pendulum_hourly": "Pendulum detected (hourly)",
         "pendulum_daily":  "Pendulum detected (daily)",
         "short_run":      "Short run detected",
+        "short_cycling_pattern": "Short cycling pattern detected",
         "short_off":      "Short off-time detected",
         "ml_anomaly":     "ML anomaly detected",
         "setpoint_osc":   "LWT-setpoint oscillating",
@@ -322,6 +323,7 @@ ALERT_TITLES = {
         "pendulum_hourly": "Pendelen gedetecteerd (per uur)",
         "pendulum_daily":  "Pendelen gedetecteerd (dagelijks)",
         "short_run":      "Korte run gedetecteerd",
+        "short_cycling_pattern": "Kort-cyclisch patroon gedetecteerd",
         "short_off":      "Korte off-tijd gedetecteerd",
         "ml_anomaly":     "ML-anomalie gedetecteerd",
         "setpoint_osc":   "LWT-setpoint oscilleert",
@@ -545,6 +547,13 @@ ALERT_SCHEMA = {
         ("\U0001F4E6", "samples", "{samples}"),
         ("\U0001F501", "mode", "{mode}"),
     ],
+    "short_cycling_pattern": [
+        ("\U0001F504", "min_cycles", "\u2265 {min_cycles}"),
+        ("\u23F1\uFE0F", "window_min", "{window_min} min"),
+        ("\U0001F3AF", "threshold_min", "{threshold_min} min"),
+        ("\U0001F501", "mode", "{mode}"),
+        ("\U0001F321\uFE0F", "outdoor", "{outdoor} \u00b0C"),
+    ],
 }
 
 
@@ -613,6 +622,8 @@ ALERT_ADVICE = {
             "curve \u2014 the pump is cycling too often."),
         "short_run": ("\u2022 Cycle shorter than threshold: raise minimum "
             "run time or lower the LWT setpoint."),
+        "short_cycling_pattern": ("\u2022 Frequent short runs detected. "
+            "Raise minimum run time or reduce LWT setpoint oscillation."),
         "short_off": ("\u2022 Off-time too short: if false positives, decrease "
             "short_off_threshold_min; if missing real short cycles, increase it."),
         "ml_anomaly": ("\u2022 Behaviour deviates from learned baseline. "
@@ -647,6 +658,8 @@ ALERT_ADVICE = {
             "stooklijn \u2014 de pomp pendelt te vaak."),
         "short_run": ("\u2022 Cyclus korter dan drempel: verhoog "
             "minimumlooptijd of verlaag de LWT-setpoint."),
+        "short_cycling_pattern": ("\u2022 Vaak korte runs gedetecteerd. "
+            "Verhoog minimumlooptijd of verminder LWT-setpoint-oscillatie."),
         "short_off": ("\u2022 Off-tijd te kort: bij valse meldingen verlaag "
             "short_off_threshold_min; bij gemiste korte cycli verhoog het."),
         "ml_anomaly": ("\u2022 Gedrag wijkt af van de geleerde baseline. "

@@ -527,7 +527,8 @@
           "alert_agg_cop_vs_datasheet_low_min": "COP vs datasheet window",
           "alert_agg_db_retention_warning_min": "Database retention warning dedup window",
           "alert_agg_kmeans_retrain_stale_min": "K-means retrain stale dedup window",
-          "alert_agg_energy_daily_anomaly_min": "Energy daily anomaly dedup window"
+          "alert_agg_energy_daily_anomaly_min": "Energy daily anomaly dedup window",
+          "alert_agg_short_cycling_pattern_min": "Short cycling pattern window"
         },
         "data_description": {
           "alert_agg_pendulum_hourly_min": "Default 60 min.",
@@ -548,7 +549,8 @@
           "alert_agg_cop_vs_datasheet_low_min": "Default 1440 min (24 h).",
           "alert_agg_db_retention_warning_min": "Database retention warning dedup window",
           "alert_agg_kmeans_retrain_stale_min": "K-means retrain stale dedup window",
-          "alert_agg_energy_daily_anomaly_min": "Energy daily anomaly dedup window"
+          "alert_agg_energy_daily_anomaly_min": "Energy daily anomaly dedup window",
+          "alert_agg_short_cycling_pattern_min": "Default 60 min."
         }
       },
       "notifications_test_menu": {
@@ -824,6 +826,9 @@
       },
       "boiler_dhw_demand": {
         "name": "Boiler DHW demand"
+      },
+      "short_cycling_pattern": {
+        "name": "Short cycling pattern"
       }
     }
   },
@@ -1093,7 +1098,8 @@
         "setpoint_osc": "Setpoint oscillating",
         "cop_low": "Low day COP",
         "stooklijn_advies": "Stooklijn advice",
-        "all_alerts": "All alerts (test everything)"
+        "all_alerts": "All alerts (test everything)",
+        "short_cycling_pattern": "Short cycling pattern (window)"
       }
     }
   }

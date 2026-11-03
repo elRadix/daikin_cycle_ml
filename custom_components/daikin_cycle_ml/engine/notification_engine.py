@@ -28,6 +28,7 @@ from ..const import (
     NOTIF_ID_SETPOINT_OSC,
     NOTIF_ID_SHORT_OFF,
     NOTIF_ID_SHORT_RUN,
+    NOTIF_ID_SHORT_CYCLING_PATTERN,
     NOTIF_ID_SOURCE_STALE,
     SEVERITY_EMOJI,
 )
@@ -150,12 +151,18 @@ BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
         SEV_INFO,
         "Energy daily anomaly\n{mode} {today_el_kwh} kWh \u00b7 {z_score}\u03c3 (baseline {baseline_el_mean}\u00b1{baseline_el_sigma}){advice}",
     ),
+    "short_cycling_pattern": (
+        "short_cycling_pattern",
+        SEV_WARNING,
+        "Short cycling pattern\n{min_cycles} short runs in {window_min} min (threshold {threshold_min} min each){advice}",
+    ),
 }
 
 NOTIF_ID_BY_TYPE = {
     "pendulum_hourly": NOTIF_ID_PENDULUM_HOURLY,
     "pendulum_daily": NOTIF_ID_PENDULUM_DAILY,
     "short_run": NOTIF_ID_SHORT_RUN,
+    "short_cycling_pattern": NOTIF_ID_SHORT_CYCLING_PATTERN,
     "short_off": NOTIF_ID_SHORT_OFF,
     "ml_anomaly": NOTIF_ID_ML_ANOMALY,
     "setpoint_osc": NOTIF_ID_SETPOINT_OSC,

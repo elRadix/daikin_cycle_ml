@@ -214,6 +214,44 @@ class CycleStore:
             and (not exclude_transient or _is_transient_int(c.get("is_transient")) == 0)
         )
 
+    def count_short_in_window_mode(
+        self, now_ts: float, window_s: float, duration_threshold_s: int, mode: str,
+    ) -> int:
+        """v1.19.7 #11: count non-transient cycles < threshold in window+mode."""
+        cutoff = float(now_ts) - float(window_s)
+        future = float(now_ts) + 60.0
+        return sum(
+            1 for c in self._cycles
+            if isinstance(c.get("start_ts"), (int, float))
+            and c["start_ts"] >= cutoff and c["start_ts"] <= future
+            and c.get("mode") == mode
+            and _is_transient_int(c.get("is_transient")) == 0
+            and isinstance(c.get("duration_s"), (int, float))
+            and float(c["duration_s"]) < duration_threshold_s
+        )
+
+    def short_runs_in_window_mode(
+        self, now_ts: float, window_s: float, duration_threshold_s: int,
+        mode: str, limit: int = 10,
+    ) -> list[dict[str, Any]]:
+        """v1.19.7 #11: recent short runs for diagnostics (newest first)."""
+        cutoff = float(now_ts) - float(window_s)
+        future = float(now_ts) + 60.0
+        rows = [
+            c for c in self._cycles
+            if isinstance(c.get("start_ts"), (int, float))
+            and c["start_ts"] >= cutoff and c["start_ts"] <= future
+            and c.get("mode") == mode
+            and _is_transient_int(c.get("is_transient")) == 0
+            and isinstance(c.get("duration_s"), (int, float))
+            and float(c["duration_s"]) < duration_threshold_s
+        ]
+        rows.sort(key=lambda r: r["start_ts"], reverse=True)
+        return [
+            {"start_ts": r["start_ts"], "duration_s": int(r["duration_s"])}
+            for r in rows[:limit]
+        ]
+
     def cycles_in_window_mode(
         self,
         now: float,

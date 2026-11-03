@@ -3650,6 +3650,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         is_pend_h = (
             self.store.cycles_in_window_mode(now, 3600, MODE_HEATING) >= pend_hour
         )
+        # v1.19.7 #11: short cycling pattern (mirror _is_short_cycling_pattern)
+        _sc_mc = int(self.options.get("short_cycling_min_cycles", 3))
+        _sc_wm = int(self.options.get("short_cycling_window_min", 60))
+        _sc_thr = int(self.options.get("short_run_threshold_min", 20)) * 60
+        _sc_n = 0
+        with contextlib.suppress(TypeError, ValueError, AttributeError):
+            _sc_n = int(self.store.count_short_in_window_mode(
+                now, _sc_wm * 60, _sc_thr, MODE_HEATING))
+        is_short_cycling_pattern = _sc_n >= _sc_mc
         is_pend_d = (
             len(self.store.non_transient_today(now)) >= pend_day
         )
@@ -3704,6 +3713,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         )
         return {
             "short_run": bool(is_short_run),
+            "short_cycling_pattern": bool(is_short_cycling_pattern),
             "short_off": bool(is_short_off),
             "pendulum_hourly": bool(is_pend_h),
             "pendulum_daily": bool(is_pend_d),
@@ -4156,6 +4166,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "lwt_setpoint": _f(lwt_set),
                 "indoor": _f(in_t), "flow": _f(flow),
                 "outdoor": _f(out_t), "advice": advice_text,
+            },
+            "short_cycling_pattern": {
+                "min_cycles": opts.get("short_cycling_min_cycles", 3),
+                "window_min": opts.get("short_cycling_window_min", 60),
+                "threshold_min": opts.get("short_run_threshold_min", 20),
+                "mode": mode_str,
+                "outdoor": _f(out_t),
+                "advice": advice_text,
             },
             "ml_anomaly": {
                 "mode": mode_str, "z_max": None, "top_dim": None,

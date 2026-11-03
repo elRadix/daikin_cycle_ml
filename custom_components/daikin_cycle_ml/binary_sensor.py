@@ -99,6 +99,40 @@ def _is_short_run(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     return float(dur) < int(c.options.get("short_run_threshold_min", 20)) * 60
 
 
+def _is_short_cycling_pattern(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    """v1.19.7 #11: 3+ short runs within window = structural cycling pattern."""
+    try:
+        mc = int(c.options.get("short_cycling_min_cycles", 3))
+        wm = int(c.options.get("short_cycling_window_min", 60))
+        thr = int(c.options.get("short_run_threshold_min", 20)) * 60
+        n = c.store.count_short_in_window_mode(_now(), wm * 60, thr, MODE_HEATING)
+        return int(n) >= mc
+    except (TypeError, ValueError, AttributeError):
+        return False
+
+
+def _short_cycling_pattern_attrs(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any] | None:
+    """v1.19.7 #11: diagnostic attributes for the short_cycling_pattern sensor."""
+    try:
+        wm = int(c.options.get("short_cycling_window_min", 60))
+        mc = int(c.options.get("short_cycling_min_cycles", 3))
+        thr_min = int(c.options.get("short_run_threshold_min", 20))
+        now = _now()
+        n = int(c.store.count_short_in_window_mode(
+            now, wm * 60, thr_min * 60, MODE_HEATING))
+        recent = c.store.short_runs_in_window_mode(
+            now, wm * 60, thr_min * 60, MODE_HEATING, limit=10)
+        return {
+            "window_min": wm,
+            "min_cycles_threshold": mc,
+            "short_run_threshold_min": thr_min,
+            "pattern_count_60min": n,
+            "recent_short_runs": recent,
+        }
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
 def _is_short_off(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     # 52b5: skip DHW -- off-times during DHW are not meaningful
     # v1.19.6 FASE 5B: guard against corrupt non-dict last_cycle.
@@ -284,6 +318,11 @@ BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
      "device_class": BinarySensorDeviceClass.PROBLEM,
      "icon": "mdi:timer-alert-outline",
      "state_fn": _is_short_off},
+    {"key": "short_cycling_pattern", "name": "Short cycling pattern",
+     "device_class": BinarySensorDeviceClass.PROBLEM,
+     "icon": "mdi:repeat-variant",
+     "state_fn": _is_short_cycling_pattern,
+     "attr_fn": _short_cycling_pattern_attrs},
     {"key": "defrost_active", "name": "Defrost active",
      "device_class": BinarySensorDeviceClass.RUNNING,
      "state_fn": lambda s, c: _attr_on(s.attrs, ATTR_DEFROST_OPERATION)},

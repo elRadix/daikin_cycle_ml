@@ -527,7 +527,8 @@
           "alert_agg_cop_vs_datasheet_low_min": "COP-vs-datasheetvenster",
           "alert_agg_db_retention_warning_min": "Database-retentie waarschuwing dedup-venster",
           "alert_agg_kmeans_retrain_stale_min": "K-means hertraining verouderd dedup-venster",
-          "alert_agg_energy_daily_anomaly_min": "Energie-dagelijkse afwijking dedup-venster"
+          "alert_agg_energy_daily_anomaly_min": "Energie-dagelijkse afwijking dedup-venster",
+          "alert_agg_short_cycling_pattern_min": "Kort-cyclisch patroon venster"
         },
         "data_description": {
           "alert_agg_pendulum_hourly_min": "Standaard 60 min.",
@@ -548,7 +549,8 @@
           "alert_agg_cop_vs_datasheet_low_min": "Standaard 1440 min (24 u).",
           "alert_agg_db_retention_warning_min": "Database-retentie waarschuwing dedup-venster",
           "alert_agg_kmeans_retrain_stale_min": "K-means hertraining verouderd dedup-venster",
-          "alert_agg_energy_daily_anomaly_min": "Energie-dagelijkse afwijking dedup-venster"
+          "alert_agg_energy_daily_anomaly_min": "Energie-dagelijkse afwijking dedup-venster",
+          "alert_agg_short_cycling_pattern_min": "Standaard 60 min."
         }
       },
       "notifications_test_menu": {
@@ -824,6 +826,9 @@
       },
       "boiler_dhw_demand": {
         "name": "Boiler DHW demand"
+      },
+      "short_cycling_pattern": {
+        "name": "Kort-cyclisch patroon"
       }
     }
   },
@@ -1093,7 +1098,8 @@
         "setpoint_osc": "Setpoint oscilleert",
         "cop_low": "Lage dag-COP",
         "stooklijn_advies": "Stooklijn-advies",
-        "all_alerts": "Alle meldingen (alles testen)"
+        "all_alerts": "Alle meldingen (alles testen)",
+        "short_cycling_pattern": "Kort-cyclisch patroon (window)"
       }
     }
   }
