@@ -1935,6 +1935,25 @@ class CycleDB:
                 )
         return len(days)
 
+    async def async_migrate_to_v26(self) -> dict[str, Any]:
+        """v1.19.7 #12: null thermal_kw_avg for short cycles (<90s)."""
+        m = await self.async_get_model_state("data_migration_v26_completed")
+        if m and isinstance(m, dict) and m.get("completed"):
+            return {"nulled_short_cycles": 0, "completed": True}
+        conn = self._require()
+        cur = await conn.execute(
+            "UPDATE cycles SET thermal_kw_avg = NULL "
+            "WHERE duration_s < 90 AND thermal_kw_avg IS NOT NULL"
+        )
+        await conn.commit()
+        n = cur.rowcount or 0
+        await cur.close()
+        await self.async_set_model_state(
+            "data_migration_v26_completed",
+            {"completed": True, "nulled_short_cycles": n},
+        )
+        return {"nulled_short_cycles": n, "completed": True}
+
     async def async_migrate_cop_samples_mode_default_v15(self) -> int:
         # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.
         await self.async_ensure_cop_samples_table()

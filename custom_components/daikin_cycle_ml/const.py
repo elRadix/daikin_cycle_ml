@@ -21,6 +21,7 @@ MAX_CYCLE_DURATION_S = 48 * 3600.0
 MIN_SAMPLES_FOR_AVG = 3
 MAX_COP = 11.0
 MAX_THERMAL_KW = 14.0
+MIN_THERMAL_SAMPLES = 3  # v1.19.7 #12
 """Absolute maximum cycle duration before forced close (R315)."""
 ENERGY_DT_WARN_S = 60.0
 ENERGY_PERSIST_INTERVAL_S = 30.0

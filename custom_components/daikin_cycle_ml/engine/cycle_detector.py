@@ -27,6 +27,7 @@ from ..const import (
     OP_MODE_HEATING,
     STATE_IDLE,
     STATE_RUNNING,
+    MIN_THERMAL_SAMPLES,
 )
 from .attribute_compat import build_compat_view
 
@@ -181,12 +182,22 @@ def _is_on(attrs: Mapping[str, Any], key: str) -> bool:
 
 
 
-def _apply_thermal_sanity_gate(thermal_kw_avg: float | None) -> float | None:
+def _apply_thermal_sanity_gate(
+    thermal_kw_avg: float | None,
+    *,
+    n_samples: int | None = None,
+) -> float | None:
     """v1.13.0 #129: NULL thermal_kw_avg on physical impossibilities.
 
     Magnitude gate only -- a single steady-state sample is a valid
     measurement; 0-sample artifacts land in the extreme (>MAX) bucket.
     """
+    if n_samples is not None and n_samples < MIN_THERMAL_SAMPLES:
+        _LOGGER.info(
+            "thermal_kw_avg: n=%d < MIN=%d, nulling",
+            n_samples, MIN_THERMAL_SAMPLES,
+        )
+        return None
     if thermal_kw_avg is not None and thermal_kw_avg > MAX_THERMAL_KW:
         _LOGGER.info(
             "thermal_kw_avg %.2f > MAX_THERMAL_KW %.2f, nulling",
@@ -355,7 +366,8 @@ class CycleDetector:
             "mode": self._mode,
             "thermal_kw_avg": _apply_thermal_sanity_gate(
                 sum(self._thermal_kw_samples) / len(self._thermal_kw_samples)
-                if self._thermal_kw_samples else None
+                if self._thermal_kw_samples else None,
+                n_samples=len(self._thermal_kw_samples),
             ),
             "rps_max": max(self._rps_samples) if self._rps_samples else None,
             "rps_avg": rps_avg,

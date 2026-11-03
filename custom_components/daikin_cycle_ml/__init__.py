@@ -149,6 +149,7 @@ async def _async_setup_database(
             await db.async_migrate_to_v23()
             await db.async_migrate_to_v24()
             await db.async_migrate_to_v25()
+            await db.async_migrate_to_v26()  # v1.19.7 #12
             _LOGGER.info("v19 thermal rebuild: %s", v19)
         except Exception:
             _LOGGER.exception('v19 thermal rebuild migration failed')
