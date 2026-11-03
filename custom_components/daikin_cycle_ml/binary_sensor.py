@@ -105,6 +105,10 @@ def _is_short_off(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     last = c.store.last_cycle()
     if last and not isinstance(last, dict):
         return False
+    # v1.19.7: pump-only LWT pulses are not real off-times. Skip transient
+    # predecessor -- same principle as #246 (short_run) and v1.19.6 (#257).
+    if last and _is_transient_int(last.get("is_transient")):
+        return False
     if last and str(last.get("mode", "")).strip().lower() == "dhw":
         return False
     if str(getattr(s, "mode", "")).strip().lower() == "dhw":

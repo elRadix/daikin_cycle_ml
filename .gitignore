@@ -19,3 +19,8 @@ data/
 .deepseek/
 DEEPSEEK.md
 .planb/
+
+# v1.19.7: Prod DB fixtures (binary, not committed)
+tests/fixtures/*.db
+tests/fixtures/*.db-wal
+tests/fixtures/*.db-shm
