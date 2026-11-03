@@ -120,7 +120,24 @@ def _is_short_off(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     off = (last or {}).get("off_s")
     if not isinstance(off, (int, float)):
         return False
-    return off < int(c.options.get("short_off_threshold_min", 5)) * 60
+    threshold = int(c.options.get("short_off_threshold_min", 5)) * 60
+    if off >= threshold:
+        return False
+    # v1.19.7 fix #10: short_off requires at least one short run in the pair.
+    # A short gap between two long runs (e.g. 264min -> 60s -> 84min) is
+    # normal hysteresis restart, not short-cycling. Short-cycling is
+    # short-run -> short-off -> short-run.
+    cycles = c.store.cycles()
+    if len(cycles) < 2:
+        return True  # no prev cycle to compare, preserve old behavior
+    prev_max_s = int(c.options.get("short_run_threshold_min", 20)) * 60
+    # (last or {}) idiom: mypy can't prove `last` is not None here even
+    # though the off_s check above guarantees it. Behavior identical.
+    last_dur = (last or {}).get("duration_s")
+    prev_dur = cycles[-2].get("duration_s")
+    last_is_short = isinstance(last_dur, (int, float)) and last_dur < prev_max_s
+    prev_is_short = isinstance(prev_dur, (int, float)) and prev_dur < prev_max_s
+    return bool(last_is_short or prev_is_short)
 
 
 def _is_source_stale(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:

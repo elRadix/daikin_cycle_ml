@@ -37,6 +37,8 @@ def test_short_off_alert_binary_states():
     c.store.last_cycle.return_value = {"mode": "heating", "duration_s": 1200, "off_s": 900}
     c.store.off_time_since_last.return_value = 120
     c.store.cycles_in_window.return_value = 0
+    c.store.cycles_in_window_mode.return_value = 0
+    c.store.non_transient_in_window.return_value = 0
     c.store.non_transient_today.return_value = []
     c._alert_binary_states = MethodType(DaikinCycleMLCoordinator._alert_binary_states, c)
 

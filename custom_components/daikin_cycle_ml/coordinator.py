@@ -64,6 +64,7 @@ from .const import (
     MAX_COP,
     MIN_SAMPLES_FOR_AVG,
     MODE_DHW,
+    MODE_HEATING,
     MODEL_BASISPROFIEL,
     OPTION_DAILY_SUMMARY_LIVE_ENABLED,
     SOURCE_SENSOR_ENTITY,
@@ -141,7 +142,7 @@ from .ml.clustering import classify_clusters, nearest_centroid
 from .ml.features import VECTOR_LEN, extract_feature_vector
 from .ml.multi_baseline import MultiBaseline
 from .repairs import async_check_repairs
-from .storage.store import CycleStore
+from .storage.store import CycleStore, _is_transient_int
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -3620,13 +3621,35 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         # #246: skip transient pump-only LWT sampling pulses
         is_short_run = (
             isinstance(dur, (int, float))
-            and not (last or {}).get("is_transient")
+            and not _is_transient_int((last or {}).get("is_transient"))
             and dur < short_run_th
         )
         # #245: completed gap from last cycle record, not live off-time
-        off = (last or {}).get("off_s")
-        is_short_off = isinstance(off, (int, float)) and off < short_off_th
-        is_pend_h = self.store.cycles_in_window(now, 3600) >= pend_hour
+        # v1.19.7: mirror binary_sensor._is_short_off (transient skip)
+        if last and _is_transient_int(last.get("is_transient")):
+            is_short_off = False
+        else:
+            off = (last or {}).get("off_s")
+            if not isinstance(off, (int, float)) or off >= short_off_th:
+                is_short_off = False
+            else:
+                # v1.19.7 fix #10: require at least one short run in the pair
+                _cycles = self.store.cycles()
+                if len(_cycles) < 2:
+                    is_short_off = True
+                else:
+                    _prev_max_s = int(self.options.get("short_run_threshold_min", 20)) * 60
+                    # (last or {}) idiom: mypy can't prove `last` is not None
+                    # here even though the off_s check above guarantees it.
+                    _last_dur = (last or {}).get("duration_s")
+                    _prev_dur = _cycles[-2].get("duration_s")
+                    _last_short = isinstance(_last_dur, (int, float)) and _last_dur < _prev_max_s
+                    _prev_short = isinstance(_prev_dur, (int, float)) and _prev_dur < _prev_max_s
+                    is_short_off = bool(_last_short or _prev_short)
+        # v1.19.6 scope A: HEATING-only (mirror binary_sensor._is_pendulum_hourly)
+        is_pend_h = (
+            self.store.cycles_in_window_mode(now, 3600, MODE_HEATING) >= pend_hour
+        )
         is_pend_d = (
             len(self.store.non_transient_today(now)) >= pend_day
         )
@@ -4518,6 +4541,21 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 await self._emit_alert(alert)
                 self._last_alert_sent[alert.alert_type] = now
                 self._schedule_alert_save()
+                # v1.19.7 fix #14: persist alert to DB (was dead code)
+                _db = getattr(self, "db", None)
+                if _db is not None:
+                    try:
+                        await _db.async_insert_alert(
+                            alert_type=alert.alert_type,
+                            severity=alert.severity,
+                            message=alert.message,
+                            ts=now,
+                        )
+                    except Exception:
+                        _LOGGER.debug(
+                            "alert DB persist failed: %s",
+                            alert.alert_type, exc_info=True,
+                        )
         except Exception:
             _LOGGER.exception("Alert dispatch failed")
 

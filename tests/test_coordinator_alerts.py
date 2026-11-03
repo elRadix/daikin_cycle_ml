@@ -68,7 +68,7 @@ def test_states_pendulum_hourly_true():
     st = CycleStore()
     now = time.time()
     for i in range(4):
-        st.add_cycle({"start_ts": now - i, "duration_s": 30})
+        st.add_cycle({"start_ts": now - i, "duration_s": 30, "mode": "heating"})
     c = _bare_coord(options={"pendulum_cycles_per_hour": 4}, store=st)
     assert c._alert_binary_states(DataSnapshot())["pendulum_hourly"] is True
 

@@ -69,10 +69,19 @@ def test_pump_off_during_running_ignores_sample():
 
 
 def test_thermal_kw_avg_in_record():
+    """Realistic cadence: update every 60s for 10 min = 10 samples.
+
+    v1.19.7 fix #12 requires MIN_THERMAL_SAMPLES samples for thermal_kw_avg.
+    The old body only had 2 update() calls in an 800s cycle -- a test
+    shortcut that hid the reality that a real 800s cycle would have ~26
+    samples. Restoring realistic cadence exercises the same flow_dt path
+    while satisfying the sample floor.
+    """
     det = CycleDetector({})
-    det.update(_attrs(flow=10.0, lwt=40.0, inlet=35.0), now=1000.0)
-    det.update(_attrs(flow=10.0, lwt=40.0, inlet=35.0), now=1500.0)
-    rec = det.update({ATTR_INV_FREQUENCY_RPS: 0.0, ATTR_WATER_PUMP_OPERATION: True}, now=1800.0)
+    # 10 samples at 60s intervals (matches production 30s tick densified)
+    for t in range(1000, 1601, 60):
+        det.update(_attrs(flow=10.0, lwt=40.0, inlet=35.0), now=float(t))
+    rec = det.update({ATTR_INV_FREQUENCY_RPS: 0.0, ATTR_WATER_PUMP_OPERATION: True}, now=1700.0)
     assert rec is not None
     assert "thermal_kw_avg" in rec
     # 10/60 * 4.18 * 5 = 3.483
@@ -80,12 +89,19 @@ def test_thermal_kw_avg_in_record():
 
 
 def test_thermal_kw_none_when_no_flow():
+    """Missing flow sensor: thermal_kw_avg must be None even with enough samples.
+
+    v1.19.7 fix #12 added MIN_THERMAL_SAMPLES=3 floor. Prior body had only
+    2 samples, so post-fix this test would pass via the sample floor, not
+    via the flow-sensor absence -- a false positive. Realistic cadence
+    ensures the no-flow path is actually exercised.
+    """
     det = CycleDetector({})
     attrs = _attrs()
     del attrs[ATTR_FLOW_SENSOR]
-    det.update(attrs, now=1000.0)
-    det.update(attrs, now=1500.0)
-    rec = det.update({ATTR_INV_FREQUENCY_RPS: 0.0, ATTR_WATER_PUMP_OPERATION: True}, now=1800.0)
+    for t in range(1000, 1601, 60):
+        det.update(attrs, now=float(t))
+    rec = det.update({ATTR_INV_FREQUENCY_RPS: 0.0, ATTR_WATER_PUMP_OPERATION: True}, now=1700.0)
     assert rec is not None
     assert rec["thermal_kw_avg"] is None
 

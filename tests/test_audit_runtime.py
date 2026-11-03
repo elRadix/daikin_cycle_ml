@@ -249,6 +249,7 @@ async def test_a34_dispatch_sends_persistent():
     st.last_cycle.return_value = {"duration_s": 300}  # short
     st.off_time_since_last.return_value = None
     st.cycles_in_window.return_value = 0
+    st.cycles_in_window_mode.return_value = 0
     st.cycles_today.return_value = []
     c = _bare(options={"short_run_threshold_min": 20}, store=st)
     snap = DataSnapshot()
@@ -263,6 +264,7 @@ async def test_a34_dedup_within_window():
     st.last_cycle.return_value = {"duration_s": 300}
     st.off_time_since_last.return_value = None
     st.cycles_in_window.return_value = 0
+    st.cycles_in_window_mode.return_value = 0
     st.cycles_today.return_value = []
     c = _bare(options={"short_run_threshold_min": 20, "alert_aggregation_minutes": 30}, store=st)
     snap = DataSnapshot()

@@ -184,7 +184,12 @@ def _mk_store(**overrides: Any) -> MagicMock:
     st = MagicMock()
     st.last_cycle.return_value = {"duration_s": 3600}
     st.off_time_since_last.return_value = 999
+    # v1.19.7: stubs required by _alert_binary_states
+    # pendulum_hourly, dhw_pendulum, high_cycle_rate now call these
     st.cycles_in_window.return_value = 0
+    st.cycles_in_window_mode.return_value = 0
+    st.non_transient_in_window.return_value = 0
+    st.non_transient_today.return_value = []
     st.cycles_today.return_value = []
     for k, v in overrides.items():
         setattr(st, k, v)
