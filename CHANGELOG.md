@@ -74,6 +74,73 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Alerts — 6 consecutive alert-firing bugs fixed (v1.19.7 #1-#10):**
+  `binary_sensor._is_short_off` and `coordinator._alert_binary_states`
+  now share the same transient-skip semantics (issue #1, #3);
+  `short_run` uses numeric `_is_transient_int()` so a corrupt
+  `is_transient="0"` no longer silently disables the alert (#2);
+  `pendulum_hourly` counts `MODE_HEATING`-only in the coordinator path
+  (#4); `short_off` requires the previous or current cycle to be short
+  (#10). Net effect: 31 → 3-5 `short_off` fires on the 39-day Prod-1
+  fixture (73% reduction), no more false alerts after hysteresis
+  restarts.
+- **Alerts — DB table wired (v1.19.7 #14):** `db.async_insert_alert`
+  now called from `_async_dispatch_alerts`. The `alerts` table existed
+  since the initial commit but had zero call sites. Existing rows stay
+  empty on Prods 1/2/3; new alerts land immediately after upgrade.
+- **thermal_kw_avg — sample floor (v1.19.7 #12):**
+  `_apply_thermal_sanity_gate(..., *, n_samples=None)` now NULLs
+  `thermal_kw_avg` when the cycle had fewer than `MIN_THERMAL_SAMPLES`
+  (3) flow samples. Pre-fix, a 30s cycle with 1 sample reported the
+  sample's peak value (33.79 kW observed on Prod 1) — physically
+  impossible but inside `MAX_THERMAL_KW` (14.0) only because that gate
+  is a magnitude check, not a sample-count check. `CycleDetector._close_cycle`
+  passes `n_samples=len(self._thermal_kw_samples)`.
+- **Migration v26 — historic short-cycle NULLs:**
+  `CycleDB.async_migrate_to_v26()` NULLs `thermal_kw_avg` for every
+  cycle with `duration_s < 90`. Idempotent via
+  `data_migration_v26_completed` marker. Wired into `async_setup_entry`
+  after v25. On the 193-cycle Prod-1 fixture: 16 dirty rows NULLed,
+  76 clean rows preserved, second run is a no-op.
+
+### Changed
+
+- **`thermal_kw_avg` is NULL for cycles <90s.** Downstream consumers
+  (`ml/features.py`, `coordinator._build_alert_context`, sensor
+  attributes) already coerce `None → 0.0`. Historic 7d-rollups
+  (`daily_summary`) have no `thermal_kw` column so no rollup shift.
+  `features.vector_json` may carry stale (pre-migration) values for up
+  to one K-means retrain cycle — self-correcting, not user-visible.
+- **`test_31b_thermal_kw.py`:** realistic sample cadence (2 → 10
+  samples over 600s) so the test exercises the flow-sensor path, not
+  the sample-floor path. Discovered during #12 diagnosis.
+
+### Added
+
+- **19 new tests** across two files:
+  - `test_v1197_thermal_kw_min_samples.py` (14): gate behavior + SQL
+    shape via `inspect.getsource`.
+  - `test_v1197_migration_v26_execution.py` (5): real-`CycleDB`
+    execution, idempotency, marker payload, empty-DB, WAL-safe
+    fixture replay (`sqlite3.backup()` per R597).
+- **252 additional tests** on checkpoint 1 (E2E HVAC flow, edge cases,
+  per-target coverage for #1-#14 — see commits `a78a9ab` +
+  `b85244f`).
+
+### Test suite
+
+- v1.19.6 baseline: 4158 passed, 4 skipped.
+- v1.19.7 checkpoint 2: **4429 passed, 4 skipped, 100% coverage**.
+
+### Known Limitations (v1.19.7 WIP)
+
+- `short_cycling_pattern` alert (issue #11) — pending.
+- E2E coverage for services / migrations / datasheets / config flow /
+  notification engine — pending.
+
+
 ## [1.19.5] - 2026-11-02
 
 ### Fixed
