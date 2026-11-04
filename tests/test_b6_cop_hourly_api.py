@@ -288,6 +288,8 @@ async def test_b6_refresh_curve_isolated_failure():
     obj.db.async_query_cop_hourly = AsyncMock(side_effect=RuntimeError("curve boom"))
     obj._cop_hourly_cache = {}
     obj._cop_hourly_cache_ts = 0.0
+    # v1.19.8 #237: partial-mock needs explicit non-hybrid stub
+    obj._is_hybrid_install = MagicMock(return_value=False)
     await DaikinCycleMLCoordinator._maybe_refresh_cop_hourly(obj, 2000.0)
     assert set(obj._cop_hourly_cache) >= {"day", "week", "month"}
     assert obj._cop_hourly_cache_ts == 2000.0

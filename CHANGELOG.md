@@ -10,6 +10,14 @@
   healthy sources where a transient `hass.states.get()` miss triggers at
   age 62.5s while the actual source cadence is 30.1s.
 
+- **Hybrid COP aggregation (issue #237):** `_maybe_refresh_cop_hourly`
+  now bypasses the `cop_hourly` rollup on hybrid (EVLQ) installs and
+  aggregates pure-HP `cop_samples` directly (`include_boiler=False`).
+  The rollup mixed boiler-assisted samples with pure-HP samples in the
+  same (ts_hour, mode) bucket, systematically lowering `cop_mean_*` and
+  `cop_heating_*` / `cop_dhw_*` / `cop_cooling_*` sensor values on
+  co-fire days. Non-hybrid installs: unchanged path, identical results.
+
 ### Fixed
 
 - **`source_stale` false positive (prod-1, 2026-11-04 13:58:57):** alert
@@ -17,6 +25,14 @@
   30.1s with no gap; integration view was 2 beats stale from a single
   missed `hass.states.get()` read -- not an actual source outage.
   Regression tests added in `tests/test_v1198_source_stale_factor.py`.
+
+- **Hybrid COP sensors (issue #237):** `cop_mean_day/week/month`,
+  `cop_heating_*`, `cop_dhw_*`, `cop_cooling_*` sensors and their
+  `by_mode` attributes now show pure-HP COP on hybrid installs,
+  corrected automatically on first refresh after upgrade (recomputed
+  from `cop_samples`, not from the polluted `cop_hourly` rollup).
+  Regression tests added in
+  `tests/test_v1198_hybrid_cop_hourly_filter.py`.
 
 ## [1.19.7] - 2026-11-04
 

@@ -264,6 +264,8 @@ async def test_b5_coord_refresh_populates():
     obj.db.async_cop_hourly_by_mode = AsyncMock(return_value={"heating": {"cop_mean": 3.5}})
     obj._cop_hourly_cache = {}
     obj._cop_hourly_cache_ts = 0.0
+    # v1.19.8 #237: partial-mock needs explicit non-hybrid stub
+    obj._is_hybrid_install = MagicMock(return_value=False)
     await DaikinCycleMLCoordinator._maybe_refresh_cop_hourly(obj, 1000.0)
     assert set(obj._cop_hourly_cache) == {"day", "week", "month"}
     assert obj._cop_hourly_cache["day"]["by_mode"] == {"heating": {"cop_mean": 3.5}}

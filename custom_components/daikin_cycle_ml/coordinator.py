@@ -850,6 +850,51 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         )
         return result
 
+    @staticmethod
+    def _aggregate_cop_rows(
+        rows: list[dict[str, Any]], *, since_ts: float,
+    ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+        """v1.19.8 #237: aggregate pure-HP cop_samples for hybrid."""
+        def _valid(r: Any) -> bool:
+            if not isinstance(r, dict):
+                return False
+            ts = r.get("ts")
+            cop = r.get("cop")
+            if not isinstance(ts, (int, float)) or float(ts) < since_ts:
+                return False
+            return isinstance(cop, (int, float)) and float(cop) > 0.0
+
+        def _stats(subset: list[dict[str, Any]]) -> dict[str, Any]:
+            if not subset:
+                return {
+                    "n_hours": 0, "n_samples": 0,
+                    "cop_mean": None, "cop_p10": None, "cop_p90": None,
+                    "cop_min": None, "cop_max": None,
+                }
+            cops = sorted(float(r["cop"]) for r in subset)
+            n = len(cops)
+            hours = {int(float(r["ts"]) // 3600) for r in subset}
+            def _p(q: float) -> float:
+                return cops[min(int(n * q), n - 1)]
+            return {
+                "n_hours": len(hours),
+                "n_samples": n,
+                "cop_mean": sum(cops) / n,
+                "cop_p10": _p(0.10),
+                "cop_p90": _p(0.90),
+                "cop_min": cops[0],
+                "cop_max": cops[-1],
+            }
+
+        filtered = [r for r in rows if _valid(r)]
+        stats = _stats(filtered)
+        modes = sorted({r["mode"] for r in filtered if r.get("mode")})
+        by_mode = {
+            m: _stats([r for r in filtered if r.get("mode") == m])
+            for m in modes
+        }
+        return stats, by_mode
+
     async def _maybe_refresh_cop_hourly(self, now: float) -> None:
         """Refresh day/week/month cop_hourly caches (throttled 300s)."""
         if self.db is None:
@@ -857,16 +902,27 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if (now - self._cop_hourly_cache_ts) < 300.0:
             return
         try:
+            is_hybrid = self._is_hybrid_install()
             for label, days in (
                 ("day", 1), ("week", 7), ("month", 30),
             ):
                 since = now - float(days) * 86400.0
-                stats = await self.db.async_cop_hourly_stats(
-                    since_ts=since
-                )
-                by_mode = await self.db.async_cop_hourly_by_mode(
-                    since_ts=since
-                )
+                if is_hybrid:
+                    # v1.19.8 #237: cop_hourly rollup mixes boiler+HP
+                    # in same bucket; bypass, aggregate pure-HP only.
+                    rows = await self.db.async_fetch_cop_samples(
+                        days=days, include_boiler=False,
+                    )
+                    stats, by_mode = DaikinCycleMLCoordinator._aggregate_cop_rows(
+                        rows, since_ts=since,
+                    )
+                else:
+                    stats = await self.db.async_cop_hourly_stats(
+                        since_ts=since
+                    )
+                    by_mode = await self.db.async_cop_hourly_by_mode(
+                        since_ts=since
+                    )
                 self._cop_hourly_cache[label] = {
                     **stats,
                     "by_mode": by_mode,
