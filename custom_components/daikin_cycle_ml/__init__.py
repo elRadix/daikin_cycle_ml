@@ -345,23 +345,27 @@ async def async_remove_entry(
 
     Never raises. Log-and-continue on OSError.
     """
-    from .storage.migration import _per_entry_db_path
-
-    db_path = _per_entry_db_path(hass, entry.entry_id)
-    if not db_path.exists():
-        _LOGGER.debug(
-            "per-entry DB %s already absent, nothing to remove", db_path
-        )
-        return
     try:
-        await hass.async_add_executor_job(db_path.unlink)
-    except OSError:
-        _LOGGER.exception(
-            "failed to delete per-entry DB %s on entry removal", db_path
+        from .storage.migration import _per_entry_db_path
+
+        db_path = _per_entry_db_path(hass, entry.entry_id)
+        if not db_path.exists():
+            _LOGGER.debug(
+                "per-entry DB %s already absent, nothing to remove", db_path
+            )
+            return
+        try:
+            await hass.async_add_executor_job(db_path.unlink)
+        except OSError:
+            _LOGGER.exception(
+                "failed to delete per-entry DB %s on entry removal", db_path
+            )
+            return
+        _LOGGER.info(
+            "per-entry DB %s deleted (entry %s removed)",
+            db_path,
+            entry.entry_id,
         )
-        return
-    _LOGGER.info(
-        "per-entry DB %s deleted (entry %s removed)",
-        db_path,
-        entry.entry_id,
-    )
+    finally:
+        # v1.19.8 #236: also clean 0-byte orphans on entry removal.
+        await _async_cleanup_orphan_dbs(hass)
