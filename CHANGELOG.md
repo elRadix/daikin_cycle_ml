@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **`source_stale` threshold 60s -> 120s:** raised `SOURCE_STALE_FACTOR`
+  from 2.0 to 4.0 to tolerate a single missed tick. Reduces false-positive
+  `source_stale` alerts (severity `critical`, bypasses quiet hours) on
+  healthy sources where a transient `hass.states.get()` miss triggers at
+  age 62.5s while the actual source cadence is 30.1s.
+
+### Fixed
+
+- **`source_stale` false positive (prod-1, 2026-11-04 13:58:57):** alert
+  fired at age=62.5s vs threshold=60s. Recorder-proven source cadence was
+  30.1s with no gap; integration view was 2 beats stale from a single
+  missed `hass.states.get()` read -- not an actual source outage.
+  Regression tests added in `tests/test_v1198_source_stale_factor.py`.
+
 ## [1.19.7] - 2026-11-04
 
 ### Fixed

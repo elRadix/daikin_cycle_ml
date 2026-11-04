@@ -39,7 +39,7 @@ PARALLEL_UPDATES = 0  # read-only platform, HA serializes updates
 
 _LOGGER = logging.getLogger(__name__)
 
-SOURCE_STALE_FACTOR = 2.0
+SOURCE_STALE_FACTOR = 4.0  # v1.19.8: tolerate single missed tick (was 2.0=60s, now 4.0=120s)
 
 
 def _now() -> float:
