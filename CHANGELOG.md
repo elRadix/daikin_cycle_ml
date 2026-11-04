@@ -1,5 +1,144 @@
 # Changelog
 
+## [Unreleased]
+
+## [1.19.7] - 2026-11-04
+
+### Fixed
+
+- **Alerts — 6 consecutive alert-firing bugs (#1, #2, #3, #4, #10):**
+  `short_off` now skips transient pump-only LWT sampling pulses and
+  requires at least one short run in the pair (264min -> 60s -> 84min
+  is normal hysteresis restart, not short-cycling). `short_run` uses
+  numeric `_is_transient_int()` so a corrupt `is_transient="0"` no
+  longer silently disables the alert. `pendulum_hourly` counts
+  `MODE_HEATING`-only in the coordinator path. The coordinator dispatch
+  (`_alert_binary_states`) now mirrors `binary_sensor._is_*` semantics
+  exactly — three of these bugs were previously fixed only in the
+  entity layer (drift since v1.12.0). Net effect on the 39-day Prod-1
+  fixture: 31 -> 3-5 `short_off` fires (73% reduction), no more false
+  alerts after hysteresis restarts.
+
+- **Alerts — stale cycle false positives (#259):** a cycle ending more
+  than 1 hour ago is no longer treated as a live short-run or off-time.
+  After a reinstall or DB delete, HA hydrates the last completed cycle
+  from `.storage`; if it had a small `off_s` or short `duration_s`, the
+  corresponding alert fired even though `sensor.cycles_today = 0`.
+  `binary_sensor._is_short_run`, `binary_sensor._is_short_off`, and both
+  blocks in `coordinator._alert_binary_states` now require `end_ts` to
+  be within the last hour. Fresh cycles still fire.
+
+- **Cross-midnight attribution (#260):** `daily_summary` attributed a
+  cross-midnight cycle 100% to its `end_ts` day (a 16h run from Oct 26
+  13:31 -> Oct 27 05:46 counted as 16h on Oct 27, 0h on Oct 26),
+  producing days with 28.81h heating in a 24h day. `async_rollup_day`
+  now uses an overlap query (`start_ts < day_end AND end_ts > day_start`)
+  with pro-rata accumulation of the overlap per cycle.
+  `_rebuild_daily_summary_for_affected_days` also rebuilds source and
+  target days for cross-midnight cycles, and `_maybe_rollup_day`
+  rebuilds `start_day` when it differs from `end_day`.
+
+- **Compressor detection via flow+COP (#261):** `detect_compressor_on`
+  only accepted (RPS > threshold) OR (power_w > threshold). ESPAltherma
+  reports `INV frequency (rps)` as `"Invalid"` during low-modulation
+  segments (common after defrost). With RPS invalid and `power_w=None`,
+  the detector never triggered — a 6h heating run on Nov 2 with 69 COP
+  samples (COP 5-7, flow 17 L/min) recorded zero cycles. Third
+  detection signal added: **flow > 5 AND COP > 1.5**. Guarded against
+  defrost recovery (COP < 1.5) and pump sampling only (flow < 5). On
+  real prod data this captures 68 of 69 missed samples.
+
+- **`thermal_kw_avg` sample floor (#12):** `_apply_thermal_sanity_gate`
+  now accepts an optional `n_samples` parameter and NULLs
+  `thermal_kw_avg` when fewer than `MIN_THERMAL_SAMPLES` (3) flow
+  samples were collected. Pre-fix, a 30s cycle with 1 sample reported
+  the sample's peak as the average (33.79 kW observed on Prod 1 —
+  physically impossible but under the `MAX_THERMAL_KW` magnitude cap).
+
+- **Alerts DB table was dead code (#14):** the `alerts` table existed
+  since the initial commit but had zero call sites —
+  `db.async_insert_alert` was never called. Wired into
+  `_async_dispatch_alerts`. Existing rows stay empty on Prods 1/2/3;
+  new alerts land immediately after upgrade.
+
+- **Migration v26 — historic short-cycle NULLs:**
+  `CycleDB.async_migrate_to_v26()` NULLs `thermal_kw_avg` for every
+  cycle with `duration_s < 90`. Idempotent via
+  `data_migration_v26_completed` marker. Wired into `async_setup_entry`
+  after v25. On the 193-cycle Prod-1 fixture: 16 dirty rows NULLed,
+  76 clean rows preserved.
+
+- **Migration v27 — historical overlap cleanup (#260, #261):**
+  idempotent one-time migration that finds overlapping root cycles
+  produced by the dual-tracker bug during BUH/defrost transitions,
+  shortens the parent to `child.start_ts`, and rebuilds `daily_summary`
+  for every affected day. On Prod-1 fixture: **3 overlapping pairs
+  fixed, 5 days rebuilt**. Second run is a no-op (marker
+  `data_migration_v27_completed`).
+
+### Added
+
+- **`short_cycling_pattern` binary sensor + alert (#11):** new
+  `binary_sensor.daikin_cycle_ml_short_cycling_pattern` fires when
+  3+ short-run cycles occur within a rolling 60-minute window.
+  Distinct from single-cycle `short_run`: catches the structural
+  pendeling pattern that individual cycles miss. **Five diagnostic
+  attributes** on the sensor so dashboards retain context after the
+  state returns to OFF: `window_min`, `min_cycles_threshold`,
+  `short_run_threshold_min`, `pattern_count_60min`,
+  `recent_short_runs` (last 10 short runs with `start_ts` and
+  `duration_s`, newest first). Native notification auto-fires via
+  `_alert_binary_states` — no user automation required. New
+  registrations across 8 parallel layers: `BINARY_ALERT_MAP`,
+  `NOTIF_ID_BY_TYPE`, `ALERT_SCHEMA`, `ALERT_TITLES[en/nl]`,
+  `ALERT_ADVICE[en/nl]`, `ALERT_TYPE_EMOJI`, `ALERT_GROUP_MAP`
+  (`short_cycle`), `ALERT_DEDUP_DEFAULTS` (60 min). **2 new
+  OptionsFlow fields:** `short_cycling_window_min` (5-360, default 60)
+  and `short_cycling_min_cycles` (1-20, default 3). JSON updates in
+  `strings.json`, `translations/en.json`, `translations/nl.json`.
+
+- **+334 new tests across 14 new files:** E2E HVAC flow, edge cases
+  (COP extremes, outdoor -25 to +35C, dT 0-20K, seeded fuzz),
+  config-flow E2E (5 previously-untested wizard steps), dispatch E2E
+  for 3 alerts, migration v27 with fixture replay and resilience,
+  cross-midnight attribution, compressor detection via flow+COP with
+  69-sample real-data replay.
+
+### Changed
+
+- **`short_off` requires 2+ cycles (#259):** a lone cycle with a small
+  stored `off_s` is not a short-cycling pattern. Both layers now
+  require >= 2 cycles in the store.
+- **`thermal_kw_avg` is NULL for cycles <90s** where flow samples were
+  insufficient. Downstream consumers (`ml/features.py`,
+  `coordinator._build_alert_context`, sensor attributes) already coerce
+  `None -> 0.0`. `features.vector_json` may carry stale pre-migration
+  values for up to one K-means retrain cycle — self-correcting.
+- **Historical `daily_summary` days will read lower after v27 runs.**
+  Not a regression — it is the removal of double-counting. A day that
+  used to show 19.4h because it absorbed the incoming half of a
+  cross-midnight cycle now shows 18.3h, because the other 1.1h
+  correctly belongs to the previous day.
+- **`test_31b_thermal_kw.py`:** realistic sample cadence (2 -> 10
+  samples over 600s) so the test exercises the flow-sensor path, not
+  the sample-floor path. Discovered during #12 diagnosis.
+- **R596 gate parses JUnit XML.** Pytest 9.0.3 suppresses the
+  `N passed` summary line on stdout; the test-count check is now
+  source-independent.
+
+### Test suite
+
+- v1.19.6 baseline: 4158 passed, 4 skipped.
+- v1.19.7 final: **4492 passed, 4 skipped, 100% coverage**.
+
+### Known Limitations
+
+- **Historical pre-v1.19.7 low-modulation gaps are not retroactively
+  filled.** The #261 detection fix applies prospectively; COP samples
+  that were not converted to cycles at the time stay as gaps. v27
+  rebuilds attribution, not detection. Retroactive cycle synthesis
+  is tracked as a v1.20.0 investigation.
+
 ## [1.19.6] - 2026-11-03
 
 ### Fixed
@@ -71,113 +210,6 @@
 
 - +75 new tests across 9 new files (`test_v1196_*.py`), every fix proved
   red -> green. Full suite: 4158 passed, 4 skipped, 100% coverage.
-
-## [Unreleased]
-
-### Fixed
-
-- **Stale cycles ignored by `short_run` + `short_off` (issue #259):**
-  a cycle ending more than 1 hour ago is no longer treated as a live
-  short-run or off-time. After a reinstall or DB delete, HA can
-  hydrate the last completed cycle from `.storage` with `duration_s`
-  below the threshold and/or a small `off_s`; the corresponding alert
-  then fired even though `sensor.cycles_today = 0`. `binary_sensor._is_short_run`,
-  `binary_sensor._is_short_off`, and both blocks in
-  `coordinator._alert_binary_states` now require `end_ts` within the
-  last hour. Fresh cycles still fire.
-- **Alerts — 6 consecutive alert-firing bugs fixed (v1.19.7 #1-#10):**
-  `binary_sensor._is_short_off` and `coordinator._alert_binary_states`
-  now share the same transient-skip semantics (issue #1, #3);
-  `short_run` uses numeric `_is_transient_int()` so a corrupt
-  `is_transient="0"` no longer silently disables the alert (#2);
-  `pendulum_hourly` counts `MODE_HEATING`-only in the coordinator path
-  (#4); `short_off` requires the previous or current cycle to be short
-  (#10). Net effect: 31 → 3-5 `short_off` fires on the 39-day Prod-1
-  fixture (73% reduction), no more false alerts after hysteresis
-  restarts.
-- **Alerts — DB table wired (v1.19.7 #14):** `db.async_insert_alert`
-  now called from `_async_dispatch_alerts`. The `alerts` table existed
-  since the initial commit but had zero call sites. Existing rows stay
-  empty on Prods 1/2/3; new alerts land immediately after upgrade.
-- **thermal_kw_avg — sample floor (v1.19.7 #12):**
-  `_apply_thermal_sanity_gate(..., *, n_samples=None)` now NULLs
-  `thermal_kw_avg` when the cycle had fewer than `MIN_THERMAL_SAMPLES`
-  (3) flow samples. Pre-fix, a 30s cycle with 1 sample reported the
-  sample's peak value (33.79 kW observed on Prod 1) — physically
-  impossible but inside `MAX_THERMAL_KW` (14.0) only because that gate
-  is a magnitude check, not a sample-count check. `CycleDetector._close_cycle`
-  passes `n_samples=len(self._thermal_kw_samples)`.
-- **Migration v26 — historic short-cycle NULLs:**
-  `CycleDB.async_migrate_to_v26()` NULLs `thermal_kw_avg` for every
-  cycle with `duration_s < 90`. Idempotent via
-  `data_migration_v26_completed` marker. Wired into `async_setup_entry`
-  after v25. On the 193-cycle Prod-1 fixture: 16 dirty rows NULLed,
-  76 clean rows preserved, second run is a no-op.
-
-### Changed
-
-- **`thermal_kw_avg` is NULL for cycles <90s.** Downstream consumers
-  (`ml/features.py`, `coordinator._build_alert_context`, sensor
-  attributes) already coerce `None → 0.0`. Historic 7d-rollups
-  (`daily_summary`) have no `thermal_kw` column so no rollup shift.
-  `features.vector_json` may carry stale (pre-migration) values for up
-  to one K-means retrain cycle — self-correcting, not user-visible.
-- **`test_31b_thermal_kw.py`:** realistic sample cadence (2 → 10
-  samples over 600s) so the test exercises the flow-sensor path, not
-  the sample-floor path. Discovered during #12 diagnosis.
-
-### Added
-
-- **19 new tests** across two files:
-  - `test_v1197_thermal_kw_min_samples.py` (14): gate behavior + SQL
-    shape via `inspect.getsource`.
-  - `test_v1197_migration_v26_execution.py` (5): real-`CycleDB`
-    execution, idempotency, marker payload, empty-DB, WAL-safe
-    fixture replay (`sqlite3.backup()` per R597).
-- **252 additional tests** on checkpoint 1 (E2E HVAC flow, edge cases,
-  per-target coverage for #1-#14 — see commits `a78a9ab` +
-  `b85244f`).
-
-### Test suite
-
-- v1.19.6 baseline: 4158 passed, 4 skipped.
-- v1.19.7 checkpoint 2: **4429 passed, 4 skipped, 100% coverage**.
-
-### Added — #11 short_cycling_pattern
-
-- **Short-cycling pattern detection:** new binary sensor
-  `binary_sensor.daikin_cycle_ml_short_cycling_pattern` fires when
-  ≥N short-run cycles occur within a rolling window (defaults: 3
-  cycles / 60 min, threshold from `short_run_threshold_min`).
-  Native notification auto-fires via `_alert_binary_states` — no
-  user automation required.
-- **5 diagnostic attributes** on the sensor so dashboards retain
-  context after the state returns to OFF: `window_min`,
-  `min_cycles_threshold`, `short_run_threshold_min`,
-  `pattern_count_60min`, `recent_short_runs` (last 10 short runs
-  with `start_ts` + `duration_s`, newest first). Makes it possible
-  to correlate past patterns with weather or LWT changes.
-- **New registrations** across 8 parallel layers:
-  `BINARY_ALERT_MAP`, `NOTIF_ID_BY_TYPE`, `ALERT_SCHEMA`,
-  `ALERT_TITLES[en/nl]`, `ALERT_ADVICE[en/nl]`, `ALERT_TYPE_EMOJI`,
-  `ALERT_GROUP_MAP` (`short_cycle`), `ALERT_DEDUP_DEFAULTS` (60 min).
-- **2 new OptionsFlow fields:** `short_cycling_window_min` (5-360
-  min, default 60) and `short_cycling_min_cycles` (1-20, default 3).
-  Present in both setup wizard and options flow.
-- **JSON updates:** `alert_kind.options` + `notifications_dedup`
-  entries in all 3 files (strings.json, en.json, nl.json) +
-  `entity.binary_sensor.short_cycling_pattern.name`.
-- **21 new tests** (`test_v1197_short_cycling_pattern.py`) covering
-  count semantics (duration/mode/transient/future filters),
-  pattern detection (positive, negative, custom options, exceptions),
-  attribute shape, and full 10-registry presence.
-
-### Known Limitations (v1.19.7 WIP)
-
-- `short_cycling_pattern` alert (issue #11) — pending.
-- E2E coverage for services / migrations / datasheets / config flow /
-  notification engine — pending.
-
 
 ## [1.19.5] - 2026-11-02
 
