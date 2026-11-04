@@ -13,10 +13,15 @@
 - **Hybrid COP aggregation (issue #237):** `_maybe_refresh_cop_hourly`
   now bypasses the `cop_hourly` rollup on hybrid (EVLQ) installs and
   aggregates pure-HP `cop_samples` directly (`include_boiler=False`).
-  The rollup mixed boiler-assisted samples with pure-HP samples in the
-  same (ts_hour, mode) bucket, systematically lowering `cop_mean_*` and
-  `cop_heating_*` / `cop_dhw_*` / `cop_cooling_*` sensor values on
-  co-fire days. Non-hybrid installs: unchanged path, identical results.
+  The rollup buckets by `(ts_hour, mode)` and has no `boiler_active`
+  dimension, so on co-fire days boiler-assisted samples would be mixed
+  with pure-HP samples in the same bucket, lowering `cop_mean_*` and
+  `cop_heating_*` / `cop_dhw_*` / `cop_cooling_*` sensor values. This
+  is a **latent** issue: on PROD-1 no boiler samples were recorded in
+  the last 7 days (1486 pure-HP samples, 0 co-fire), so current sensor
+  values are unaffected. The fix prevents distortion on future co-fire
+  days (cold snaps, defrost recovery, DHW peaks). Non-hybrid installs:
+  unchanged path, identical results.
 
 ### Fixed
 
@@ -26,12 +31,14 @@
   missed `hass.states.get()` read -- not an actual source outage.
   Regression tests added in `tests/test_v1198_source_stale_factor.py`.
 
-- **Hybrid COP sensors (issue #237):** `cop_mean_day/week/month`,
-  `cop_heating_*`, `cop_dhw_*`, `cop_cooling_*` sensors and their
-  `by_mode` attributes now show pure-HP COP on hybrid installs,
-  corrected automatically on first refresh after upgrade (recomputed
-  from `cop_samples`, not from the polluted `cop_hourly` rollup).
-  Regression tests added in
+- **Hybrid COP sensors (issue #237):** latent bug. On hybrid installs,
+  `cop_mean_day/week/month`, `cop_heating_*`, `cop_dhw_*`,
+  `cop_cooling_*` sensors and their `by_mode` attributes now aggregate
+  from pure-HP `cop_samples` directly instead of the boiler-mixed
+  `cop_hourly` rollup. No user-visible change on installs without
+  co-fire events (verified: PROD-1 has 0 boiler samples in the last
+  7 days). Correction is automatic on first 300s refresh after upgrade
+  if co-fire samples exist. Regression tests added in
   `tests/test_v1198_hybrid_cop_hourly_filter.py`.
 
 ## [1.19.7] - 2026-11-04
