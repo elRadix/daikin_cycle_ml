@@ -137,7 +137,10 @@ def _count_tables_sync(db_path: Path) -> dict[str, int]:
                 row = cur.fetchone()
                 if row is not None:  # pragma: no branch
                     counts[table] = int(row[0])
-            except sqlite3.OperationalError:
+            # v1.19.8: DatabaseError (parent of OperationalError) also
+            # catches "file is not a database" for non-SQLite files
+            # matching the DB filename pattern.
+            except sqlite3.DatabaseError:
                 pass
     finally:
         conn.close()
