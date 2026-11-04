@@ -54,6 +54,60 @@ def test_detect_compressor_on_custom_thresholds():
     assert detect_compressor_on({ATTR_INV_FREQUENCY_RPS: 15}, opts) is True
 
 
+def test_detect_compressor_on_flow_cop_fallback():
+    """v1.19.7 #261: RPS invalid + flow+COP indicates compressor running."""
+    from custom_components.daikin_cycle_ml.const import ATTR_COP, ATTR_FLOW_SENSOR
+    attrs = {
+        ATTR_INV_FREQUENCY_RPS: "Invalid",
+        ATTR_FLOW_SENSOR: 16.5,
+        ATTR_COP: 5.2,
+    }
+    assert detect_compressor_on(attrs) is True
+
+
+def test_detect_compressor_on_flow_cop_low_cop_silent():
+    """Low COP (defrost recovery) + flow is not proof of active heating."""
+    from custom_components.daikin_cycle_ml.const import ATTR_COP, ATTR_FLOW_SENSOR
+    attrs = {
+        ATTR_INV_FREQUENCY_RPS: "Invalid",
+        ATTR_FLOW_SENSOR: 16.5,
+        ATTR_COP: 0.8,
+    }
+    assert detect_compressor_on(attrs) is False
+
+
+def test_detect_compressor_on_flow_cop_no_flow_silent():
+    """No circulation (pump off, flow<5) -> not running."""
+    from custom_components.daikin_cycle_ml.const import ATTR_COP, ATTR_FLOW_SENSOR
+    attrs = {
+        ATTR_INV_FREQUENCY_RPS: "Invalid",
+        ATTR_FLOW_SENSOR: 2.0,
+        ATTR_COP: 5.2,
+    }
+    assert detect_compressor_on(attrs) is False
+
+
+def test_detect_compressor_on_flow_cop_no_cop_silent():
+    """Flow alone (pump sampling) is not proof of heat production."""
+    from custom_components.daikin_cycle_ml.const import ATTR_FLOW_SENSOR
+    attrs = {
+        ATTR_INV_FREQUENCY_RPS: "Invalid",
+        ATTR_FLOW_SENSOR: 16.5,
+    }
+    assert detect_compressor_on(attrs) is False
+
+
+def test_detect_compressor_on_rps_wins_over_flow_cop():
+    """Preservation: RPS path still works even with low flow/COP."""
+    from custom_components.daikin_cycle_ml.const import ATTR_COP, ATTR_FLOW_SENSOR
+    attrs = {
+        ATTR_INV_FREQUENCY_RPS: 30.0,
+        ATTR_FLOW_SENSOR: 0.0,
+        ATTR_COP: 0.5,
+    }
+    assert detect_compressor_on(attrs) is True
+
+
 def test_classify_mode_iu_primary():
     assert classify_mode({ATTR_IU_OPERATION_MODE: OP_MODE_HEATING}) == "heating"
     assert classify_mode({ATTR_IU_OPERATION_MODE: OP_MODE_COOLING}) == "cooling"

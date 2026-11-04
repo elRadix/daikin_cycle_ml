@@ -273,6 +273,7 @@ MODEL_LABELS = {
 }
 
 # --- Core attribute keys (fixed set, not user-selectable) ---
+ATTR_COP = "COP"
 ATTR_INV_FREQUENCY_RPS = "INV frequency (rps)"
 ATTR_INV_FREQUENCY_2_RPS = "INV frequency 2 (rps)"
 ATTR_OPERATION_MODE = "Operation Mode"

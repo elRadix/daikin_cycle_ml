@@ -9,6 +9,7 @@ from ..const import (
     ATTR_3WAY_VALVE,
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
+    ATTR_COP,
     ATTR_DEFROST_OPERATION,
     ATTR_FLOW_SENSOR,
     ATTR_INLET_WATER_R4T,
@@ -126,7 +127,15 @@ def detect_compressor_on(
     options: Mapping[str, Any] | None = None,
     power_w: float | None = None,
 ) -> bool:
-    """True if RPS above threshold OR fallback power above threshold."""
+    """True if RPS above threshold OR power above OR (flow+COP) evidence.
+
+    v1.19.7 #261: third signal — when RPS reports "Invalid" (common during
+    low modulation after defrost), the compressor is still running if the
+    water pump is circulating (flow>5) AND COP shows active heat production
+    (>1.5 = better than resistive heater). Confirmed on prod-1: 68/69
+    samples in a 6h gap that the current detector missed have flow>5 and
+    COP>1.5. The single miss is a defrost-recovery sample at COP=0.61.
+    """
     opts = options or {}
     rps_thr = float(
         opts.get("compressor_rps_threshold", DEFAULT_COMPRESSOR_RPS_THRESHOLD)
@@ -137,7 +146,11 @@ def detect_compressor_on(
     rps = _safe_float(attrs.get(ATTR_INV_FREQUENCY_RPS))
     if rps is not None and rps > rps_thr:
         return True
-    return bool(power_w is not None and power_w > pwr_thr)
+    if power_w is not None and power_w > pwr_thr:
+        return True
+    flow = _safe_float(attrs.get(ATTR_FLOW_SENSOR))
+    cop = _safe_float(attrs.get(ATTR_COP))
+    return flow is not None and flow > 5.0 and cop is not None and cop > 1.5
 
 
 def classify_mode(attrs: Mapping[str, Any]) -> str:
