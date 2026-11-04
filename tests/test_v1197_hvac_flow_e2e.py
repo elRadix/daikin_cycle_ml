@@ -220,8 +220,14 @@ def test_pendulum_dhw_3_fires_dhw_pendulum():
     assert s["pendulum_hourly"] is False  # no heating
 
 
-def test_pendulum_daily_40_real_fires():
-    """40 real cycles today: pendulum_daily fires."""
+def test_pendulum_daily_40_real_fires(freezer):
+    """40 real cycles today: pendulum_daily fires.
+
+    freeze_time avoids a midnight-UTC race: without it, 40 cycles spaced
+    10 min apart (max -6.67h) span two UTC days when the test runs before
+    ~06:40 UTC, leaving <40 "today" and breaking the assertion.
+    """
+    freezer.move_to("2026-11-04 12:00:00")
     store = CycleStore(maxlen=200)
     for i in range(40):
         store.add_cycle(_mk_cycle(
