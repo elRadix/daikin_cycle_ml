@@ -41,6 +41,26 @@
   if co-fire samples exist. Regression tests added in
   `tests/test_v1198_hybrid_cop_hourly_filter.py`.
 
+- **0-byte orphan DB cleanup on removal (issue #236):**
+  `async_remove_entry` now calls `_async_cleanup_orphan_dbs` in a
+  `finally` block. Pre-v1.10.0 orphan `daikin_cycle_ml_*.db` files are
+  cleaned up on integration setup (existing behavior) and now also on
+  permanent entry removal. Non-zero DBs, `.legacy-*` and backup files
+  untouched. WAL-sidecar guard (`.db-wal` > 0 or `.db-shm` present)
+  ensures active databases are never deleted. Adds 3 regression tests
+  in `tests/test_v1198_orphan_cleanup_on_remove.py`.
+
+- **Diagnostics crash on non-SQLite DB files:**
+  `_count_tables_sync` caught `sqlite3.OperationalError` but "file is
+  not a database" raises `sqlite3.DatabaseError` (parent class). A
+  stray 0-byte or corrupt `daikin_cycle_ml_*.db` file matching the
+  filename pattern could crash `async_get_config_entry_diagnostics`.
+  Pre-existing since diagnostics was added; surfaced by the #236
+  cleanup no longer leaving a valid placeholder behind. Change
+  `except OperationalError` -> `except DatabaseError` (still catches
+  all prior cases). Adds 2 regression tests in
+  `tests/test_v1198_diagnostics_db_guard.py`.
+
 ## [1.19.7] - 2026-11-04
 
 ### Fixed

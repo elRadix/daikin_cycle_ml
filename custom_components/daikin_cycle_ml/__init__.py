@@ -221,9 +221,19 @@ async def _async_cleanup_orphan_dbs(hass: HomeAssistant) -> None:
         cleaned: list[str] = []
         for f in storage.glob("daikin_cycle_ml_*.db"):
             try:
-                if f.stat().st_size == 0:
-                    f.unlink()
-                    cleaned.append(f.name)
+                if f.stat().st_size != 0:
+                    continue
+                # v1.19.8: WAL-sidecar guard -- never delete an active DB.
+                # A 0-byte .db with a non-empty .db-wal or any .db-shm
+                # means SQLite is mid-initialization or in active use.
+                wal = f.with_name(f.name + "-wal")
+                if wal.exists() and wal.stat().st_size > 0:
+                    continue
+                shm = f.with_name(f.name + "-shm")
+                if shm.exists():
+                    continue
+                f.unlink()
+                cleaned.append(f.name)
             except OSError:  # pragma: no cover
                 pass
         return cleaned

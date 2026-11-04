@@ -56,3 +56,34 @@ async def test_remove_entry_still_removes_own_db(hass):
     await async_remove_entry(hass, entry)
 
     assert not own_db.exists(), "per-entry DB must still be removed"
+
+
+async def test_cleanup_skips_active_wal(hass):
+    """v1.19.8: 0-byte .db with non-empty .db-wal is NOT deleted."""
+    storage = Path(hass.config.config_dir) / ".storage"
+    storage.mkdir(exist_ok=True)
+    db = storage / "daikin_cycle_ml_activewal.db"
+    db.touch()
+    wal = storage / "daikin_cycle_ml_activewal.db-wal"
+    wal.write_bytes(b"pending transaction data")
+
+    entry = _make_entry(hass, "test_236_wal")
+    await async_remove_entry(hass, entry)
+
+    assert db.exists(), "0-byte .db with active .db-wal must be preserved"
+    assert wal.exists()
+
+
+async def test_cleanup_skips_active_shm(hass):
+    """v1.19.8: 0-byte .db with .db-shm (active connection) is NOT deleted."""
+    storage = Path(hass.config.config_dir) / ".storage"
+    storage.mkdir(exist_ok=True)
+    db = storage / "daikin_cycle_ml_activeshm.db"
+    db.touch()
+    shm = storage / "daikin_cycle_ml_activeshm.db-shm"
+    shm.write_bytes(b"shared memory index")
+
+    entry = _make_entry(hass, "test_236_shm")
+    await async_remove_entry(hass, entry)
+
+    assert db.exists(), "0-byte .db with .db-shm must be preserved"
