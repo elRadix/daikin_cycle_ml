@@ -773,6 +773,9 @@
       },
       "boiler_contribution_today_pct": {
         "name": "Boiler contribution today pct"
+      },
+      "alerts_today": {
+        "name": "Alerts today"
       }
     },
     "binary_sensor": {

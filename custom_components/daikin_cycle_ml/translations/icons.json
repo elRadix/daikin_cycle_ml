@@ -42,6 +42,9 @@
       },
       "hp_specs": {
         "default": "mdi:heat-pump-outline"
+      },
+      "alerts_today": {
+        "default": "mdi:alert-circle-outline"
       }
     },
     "binary_sensor": {

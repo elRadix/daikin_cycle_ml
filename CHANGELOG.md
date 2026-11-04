@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`sensor.alerts_today`:** new sensor exposing today's alert count and
+  full-day alert list. State = total count since local midnight.
+  Attributes: `since` (ISO), `total`, `by_type`, `by_severity`, `alerts[]`
+  (max 30, newest first, each with time/type/severity/message/count),
+  `truncated` (>30 alerts). Cache refresh throttled 60s; dirty-flag
+  forces immediate refresh after each alert fires. Reads from existing
+  `alerts` DB table (no schema change). User-facing surface for the
+  alerts table which was write-only since v1.19.7. Adds 12 regression
+  tests.
+
 ### Changed
 
 - **`source_stale` threshold 60s -> 120s:** raised `SOURCE_STALE_FACTOR`

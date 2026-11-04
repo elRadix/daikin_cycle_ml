@@ -318,6 +318,21 @@ def _attrs_current_cycle(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[s
     }
 
 
+def _attrs_alerts_today(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator,
+) -> dict[str, Any]:
+    """v1.19.8: full alerts list for today."""
+    data = s.alerts_today or {}
+    return {
+        "since": data.get("since"),
+        "total": data.get("total", 0),
+        "by_type": data.get("by_type", {}),
+        "by_severity": data.get("by_severity", {}),
+        "alerts": data.get("alerts", []),
+        "truncated": data.get("truncated", False),
+    }
+
+
 def _attrs_last_cycle(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     r = _last(c)
     dur = _safe_float(r.get("duration_s"))
@@ -1062,6 +1077,13 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "icon": "mdi:star-outline",
         "value_fn": lambda s, c: _last(c).get("quality_score"),
         "attr_fn": _attrs_last_cycle,
+    },
+    {
+        "key": "alerts_today", "name": "Alerts today",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "icon": "mdi:alert-circle-outline",
+        "value_fn": lambda s, c: (s.alerts_today or {}).get("total", 0),
+        "attr_fn": _attrs_alerts_today,
     },
     {
         "key": "cycles_today", "name": "Cycles today",

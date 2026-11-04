@@ -98,7 +98,7 @@ def test_per_mode_have_unit_and_class():
 
 def test_sensor_defs_total_27():
     assert (
-        len(SENSOR_DEFS) == 50
+        len(SENSOR_DEFS) == 51
     )  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop, +boiler_contribution_today_pct
 
 
@@ -147,7 +147,7 @@ def test_c1a_runtime_count_27():
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
 
     assert (
-        len(SENSOR_DEFS) == 50
+        len(SENSOR_DEFS) == 51
     )  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop, +boiler_contribution_today_pct
 
 

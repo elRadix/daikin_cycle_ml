@@ -313,7 +313,7 @@ def test_runtime_sensor_defs_count_and_unique_keys():
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
 
     assert (
-        len(SENSOR_DEFS) == 50
+        len(SENSOR_DEFS) == 51
     )  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop, +boiler_contribution_today_pct
     keys = [s["key"] for s in SENSOR_DEFS]
     assert len(set(keys)) == len(keys), "duplicate SENSOR_DEFS keys"

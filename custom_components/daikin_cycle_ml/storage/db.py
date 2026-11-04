@@ -2943,6 +2943,29 @@ class CycleDB:
             return None
 
 
+    async def async_count_alerts_since(self, since_ts: float) -> int:
+        """Count alerts with ts >= since_ts."""
+        conn = self._require()
+        async with conn.execute(
+            "SELECT COUNT(*) FROM alerts WHERE ts >= ?",
+            (float(since_ts),),
+        ) as cur:
+            row = await cur.fetchone()
+        return int(row[0]) if row else 0
+
+    async def async_fetch_alerts_since(
+        self, since_ts: float, *, limit: int = 30,
+    ) -> list[dict[str, Any]]:
+        """Fetch alerts with ts >= since_ts, newest first."""
+        conn = self._require()
+        async with conn.execute(
+            "SELECT ts, alert_type, severity, message, aggregated_count "
+            "FROM alerts WHERE ts >= ? ORDER BY ts DESC LIMIT ?",
+            (float(since_ts), int(limit)),
+        ) as cur:
+            rows = await cur.fetchall()
+        return [dict(r) for r in rows]
+
     async def async_count_alerts_before(self, cutoff_ts: float) -> int:
         """Count alert rows with ts < cutoff_ts (retention candidates)."""
         if self._conn is None:
