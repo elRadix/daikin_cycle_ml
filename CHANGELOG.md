@@ -134,6 +134,35 @@
 - v1.19.6 baseline: 4158 passed, 4 skipped.
 - v1.19.7 checkpoint 2: **4429 passed, 4 skipped, 100% coverage**.
 
+### Added — #11 short_cycling_pattern
+
+- **Short-cycling pattern detection:** new binary sensor
+  `binary_sensor.daikin_cycle_ml_short_cycling_pattern` fires when
+  ≥N short-run cycles occur within a rolling window (defaults: 3
+  cycles / 60 min, threshold from `short_run_threshold_min`).
+  Native notification auto-fires via `_alert_binary_states` — no
+  user automation required.
+- **5 diagnostic attributes** on the sensor so dashboards retain
+  context after the state returns to OFF: `window_min`,
+  `min_cycles_threshold`, `short_run_threshold_min`,
+  `pattern_count_60min`, `recent_short_runs` (last 10 short runs
+  with `start_ts` + `duration_s`, newest first). Makes it possible
+  to correlate past patterns with weather or LWT changes.
+- **New registrations** across 8 parallel layers:
+  `BINARY_ALERT_MAP`, `NOTIF_ID_BY_TYPE`, `ALERT_SCHEMA`,
+  `ALERT_TITLES[en/nl]`, `ALERT_ADVICE[en/nl]`, `ALERT_TYPE_EMOJI`,
+  `ALERT_GROUP_MAP` (`short_cycle`), `ALERT_DEDUP_DEFAULTS` (60 min).
+- **2 new OptionsFlow fields:** `short_cycling_window_min` (5-360
+  min, default 60) and `short_cycling_min_cycles` (1-20, default 3).
+  Present in both setup wizard and options flow.
+- **JSON updates:** `alert_kind.options` + `notifications_dedup`
+  entries in all 3 files (strings.json, en.json, nl.json) +
+  `entity.binary_sensor.short_cycling_pattern.name`.
+- **21 new tests** (`test_v1197_short_cycling_pattern.py`) covering
+  count semantics (duration/mode/transient/future filters),
+  pattern detection (positive, negative, custom options, exceptions),
+  attribute shape, and full 10-registry presence.
+
 ### Known Limitations (v1.19.7 WIP)
 
 - `short_cycling_pattern` alert (issue #11) — pending.
