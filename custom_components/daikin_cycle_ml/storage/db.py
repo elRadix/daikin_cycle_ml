@@ -1966,6 +1966,73 @@ class CycleDB:
         )
         return {"nulled_short_cycles": n, "completed": True}
 
+
+    async def async_migrate_to_v27(self) -> dict[str, Any]:
+        """v1.19.7 #260/#261: fix overlapping cycle pairs + rebuild summaries.
+
+        Idempotent via data_migration_v27_completed marker.
+        """
+        marker = await self.async_get_model_state(
+            "data_migration_v27_completed"
+        )
+        if marker and isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT a.id, a.start_ts, a.end_ts, b.start_ts "
+            "FROM cycles a "
+            "JOIN cycles b ON b.start_ts > a.start_ts "
+            "  AND b.start_ts < a.end_ts "
+            "WHERE a.end_ts IS NOT NULL "
+            "  AND (a.parent_cycle_id IS NULL OR a.parent_cycle_id = 0) "
+            "  AND (b.parent_cycle_id IS NULL OR b.parent_cycle_id = 0) "
+            "ORDER BY a.start_ts ASC"
+        )
+        try:
+            overlaps = await cur.fetchall()
+        finally:
+            await cur.close()
+
+        fixed = 0
+        affected_days: set[str] = set()
+        for a_id, a_start, a_end, b_start in overlaps:
+            new_dur = int(b_start - a_start)
+            if new_dur <= 0:  # pragma: no cover — query guarantees > 0
+                continue
+            await conn.execute(
+                "UPDATE cycles SET end_ts = ?, duration_s = ? WHERE id = ?",
+                (float(b_start), new_dur, int(a_id)),
+            )
+            fixed += 1
+            for ts in (a_start, a_end, b_start):
+                affected_days.add(
+                    time.strftime("%Y-%m-%d", time.localtime(float(ts)))
+                )
+        await conn.commit()
+
+        for day in affected_days:
+            try:
+                await self.async_rollup_day(day)
+            except Exception:
+                _LOGGER.exception("v27 rollup failed for day=%s", day)
+
+        try:
+            await self._rebuild_daily_summary_for_affected_days()
+        except Exception:
+            _LOGGER.exception("v27 rebuild affected days failed")
+
+        stats = {
+            "overlap_fixed": fixed,
+            "days_rebuilt": len(affected_days),
+            "completed": True,
+        }
+        await self.async_set_model_state(
+            "data_migration_v27_completed", stats
+        )
+        return stats
+
+
     async def async_migrate_cop_samples_mode_default_v15(self) -> int:
         # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.
         await self.async_ensure_cop_samples_table()
