@@ -96,6 +96,12 @@ def _is_short_run(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     dur = last.get("duration_s")
     if not isinstance(dur, (int, float)):
         return False
+    # v1.19.7 #259: a stale cycle (end_ts > 1h ago) is not a live
+    # short-run. Prevents false positives after HA restart when the
+    # store hydrates a cycle from a previous day/session.
+    end_ts = last.get("end_ts")
+    if isinstance(end_ts, (int, float)) and (_now() - end_ts) > 3600.0:
+        return False
     return float(dur) < int(c.options.get("short_run_threshold_min", 20)) * 60
 
 
@@ -153,6 +159,10 @@ def _is_short_off(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
     # regardless of the actual gap before it.
     off = (last or {}).get("off_s")
     if not isinstance(off, (int, float)):
+        return False
+    # v1.19.7 #259: a stale cycle (end_ts > 1h ago) is not a live off-time.
+    end_ts_off = (last or {}).get("end_ts")
+    if isinstance(end_ts_off, (int, float)) and (_now() - end_ts_off) > 3600.0:
         return False
     threshold = int(c.options.get("short_off_threshold_min", 5)) * 60
     if off >= threshold:

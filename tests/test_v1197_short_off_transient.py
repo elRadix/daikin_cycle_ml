@@ -31,7 +31,10 @@ def _mk_snap(mode="heating"):
     return type("S", (), {"mode": mode})()
 
 
-def _mk_cycle(*, dur=60, mode="heating", is_transient=0, off_s=None, ts=1000.0):
+def _mk_cycle(*, dur=60, mode="heating", is_transient=0, off_s=None, ts=None):
+    if ts is None:
+        # v1.19.7 #259: realistic recent timestamp (end_ts = now-100).
+        ts = time.time() - dur - 100
     r = {
         "start_ts": ts,
         "end_ts": ts + dur,

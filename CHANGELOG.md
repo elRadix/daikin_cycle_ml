@@ -76,6 +76,15 @@
 
 ### Fixed
 
+- **Stale cycles ignored by `short_run` + `short_off` (issue #259):**
+  a cycle ending more than 1 hour ago is no longer treated as a live
+  short-run or off-time. After a reinstall or DB delete, HA can
+  hydrate the last completed cycle from `.storage` with `duration_s`
+  below the threshold and/or a small `off_s`; the corresponding alert
+  then fired even though `sensor.cycles_today = 0`. `binary_sensor._is_short_run`,
+  `binary_sensor._is_short_off`, and both blocks in
+  `coordinator._alert_binary_states` now require `end_ts` within the
+  last hour. Fresh cycles still fire.
 - **Alerts — 6 consecutive alert-firing bugs fixed (v1.19.7 #1-#10):**
   `binary_sensor._is_short_off` and `coordinator._alert_binary_states`
   now share the same transient-skip semantics (issue #1, #3);

@@ -8,6 +8,8 @@ unknown values -> non-transient.
 
 from __future__ import annotations
 
+import time
+
 from custom_components.daikin_cycle_ml.binary_sensor import _is_short_run
 from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
 from custom_components.daikin_cycle_ml.storage.store import CycleStore
@@ -28,9 +30,15 @@ def _snap(mode="heating"):
 
 
 def _last(**overrides):
-    """Short cycle (5 min) so it's below threshold (20 min)."""
+    """Short cycle (5 min, end_ts 100s ago) so it's below threshold (20 min).
+
+    v1.19.7 #259: timestamps must be recent (not 1970); the freshness
+    guard blocks stale cycles. This helper's intent is to test
+    is_transient parsing, not freshness.
+    """
+    now = time.time()
     base = {
-        "start_ts": 1000, "end_ts": 1300, "duration_s": 300,
+        "start_ts": now - 400, "end_ts": now - 100, "duration_s": 300,
         "mode": "heating", "dT_max": 5.0, "rps_max": 30,
         "is_transient": 0,
     }

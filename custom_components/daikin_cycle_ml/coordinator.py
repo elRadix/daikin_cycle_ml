@@ -3619,9 +3619,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         last = self.store.last_cycle()
         dur = (last or {}).get("duration_s")
         # #246: skip transient pump-only LWT sampling pulses
+        # v1.19.7 #259: a stale cycle (end_ts > 1h ago) is not a live short-run
+        _run_stale = False
+        _run_end_ts = (last or {}).get("end_ts")
+        if isinstance(_run_end_ts, (int, float)) and (now - _run_end_ts) > 3600.0:
+            _run_stale = True
         is_short_run = (
             isinstance(dur, (int, float))
             and not _is_transient_int((last or {}).get("is_transient"))
+            and not _run_stale
             and dur < short_run_th
         )
         # #245: completed gap from last cycle record, not live off-time
@@ -3630,7 +3636,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             is_short_off = False
         else:
             off = (last or {}).get("off_s")
-            if not isinstance(off, (int, float)) or off >= short_off_th:
+            _off_stale = False
+            _off_end_ts = (last or {}).get("end_ts")
+            if isinstance(_off_end_ts, (int, float)) and (now - _off_end_ts) > 3600.0:
+                _off_stale = True
+            if _off_stale or not isinstance(off, (int, float)) or off >= short_off_th:
                 is_short_off = False
             else:
                 # v1.19.7 fix #10: require at least one short run in the pair
