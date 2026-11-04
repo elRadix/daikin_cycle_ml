@@ -2267,10 +2267,19 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not isinstance(end_ts, (int, float)):
             return
         try:
-            day = time.strftime(
+            end_day = time.strftime(
                 "%Y-%m-%d", time.localtime(float(end_ts))
             )
-            await self.db.async_rollup_day(day)
+            await self.db.async_rollup_day(end_day)
+            # v1.19.7 #260: cross-midnight — rollup start_day too so the
+            # pro-rata attribution applies to both source and target day.
+            start_ts = record.get("start_ts")
+            if isinstance(start_ts, (int, float)):
+                start_day = time.strftime(
+                    "%Y-%m-%d", time.localtime(float(start_ts))
+                )
+                if start_day != end_day:
+                    await self.db.async_rollup_day(start_day)
         except Exception:
             _LOGGER.exception("live daily rollup failed")
             return
