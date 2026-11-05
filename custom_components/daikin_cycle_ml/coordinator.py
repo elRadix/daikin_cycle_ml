@@ -570,6 +570,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         )
         self._last_cop_sample_ts: float = 0.0
         self._cop_sample_seed_done: bool = False
+        # v1.19.9 #122/#127-Q3: settle window tracking.
+        # _last_mode_change_ts = last non-unknown mode transition.
+        # 0.0 = bootstrap (allow samples immediately on cold start).
+        self._last_mode_change_ts: float = 0.0
+        self._last_observed_mode: str = ""
         self._stooklijn_cache: dict[str, Any] = {}
         self._stooklijn_cache_ts: float = 0.0
         self._cop_today_cache: dict[str, Any] = {}
@@ -1586,6 +1591,19 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 await self._process_new_cycle(record, snap)
             snap.state = self.detector.state
             snap.mode = self.detector.snapshot().get("mode", "unknown")
+            # v1.19.9 #122: track mode transitions for SETTLE_S gate.
+            # Only non-unknown -> different-non-unknown counts (idle is
+            # pause, not a mode switch). First observed mode also counts
+            # (bootstrap cycle start).
+            _new_mode = snap.mode
+            if (
+                isinstance(_new_mode, str)
+                and _new_mode
+                and _new_mode != "unknown"
+                and _new_mode != self._last_observed_mode
+            ):
+                self._last_mode_change_ts = now
+                self._last_observed_mode = _new_mode
             snap.cycle_start_ts = float(
                 self.detector.snapshot().get("start_ts") or 0.0
             )
@@ -3048,6 +3066,34 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         interval = 300.0
         if (now - self._last_cop_sample_ts) < interval:
             return
+        # v1.19.9 #122/#127-Q3: settle window after mode transition.
+        # Daikin compressor needs ~300s to reach steady-state after
+        # switching between heating and dhw. Samples within that window
+        # are transition artifacts (RFI #127 Q4 sample id=148 had
+        # cop=19.5 immediately post-mode-switch).
+        # R601: defensive access -- partial mocks in older tests don't
+        # set _last_mode_change_ts; treat missing/non-numeric as 0.0
+        # (bootstrap, allow sample).
+        _last_mc_raw = getattr(self, "_last_mode_change_ts", 0.0)
+        _last_mc: float = (
+            float(_last_mc_raw)
+            if isinstance(_last_mc_raw, (int, float))
+            and not isinstance(_last_mc_raw, bool)
+            else 0.0
+        )
+        if _last_mc > 0.0:
+            _opts = getattr(self, "options", None) or {}
+            _settle_s = float(
+                _opts.get("cop_settle_time_s", 300.0) or 300.0
+            )
+            _age = now - _last_mc
+            if _age < _settle_s:
+                _LOGGER.debug(
+                    "v1.19.9 #122: cop sample blocked by settle window "
+                    "(age=%.0fs < %.0fs)",
+                    _age, _settle_s,
+                )
+                return
         # v1.13.2 #196: source-driven COP sampling.
         # Old path read attrs from cop_sensor (a numeric template sensor
         # with no synthetic keys). Result: data_quality always 'unknown',

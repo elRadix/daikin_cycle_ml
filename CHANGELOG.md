@@ -4,6 +4,22 @@
 
 ### Added
 
+- **SETTLE_S gate (#122, RFI #127 Q3):** COP samples taken within 300s
+  of a mode transition (heating <-> DHW) are now blocked. Real prod-1
+  evidence: RFI #127 Q4 sample id=148 had cop=19.5 immediately post
+  mode-switch -- well above Carnot ceiling. The 300s window matches
+  Daikin compressor ramp-time per RFI answer. Configurable via new
+  `cop_settle_time_s` option (default 300). Tracking: new
+  `_last_mode_change_ts` + `_last_observed_mode` fields updated on
+  every non-unknown mode transition in `_async_update_data`.
+
+- **dT >= 1.5K gate (#123, RFI #127 Q3):** `dt_from_attrs` now
+  rejects delta-T values below 1.5K in both the primary (R1T-R4T)
+  and fallback (R2T-R4T) paths. Pre-fix threshold was 0.5K; ESPAltherma
+  sensors have +/-0.3K tolerance, so below 1.5K the relative error on
+  COP calculation is >= 20%. Real prod-1 measurements: many samples at
+  dT=0.5-1.4K were being included with unreliable COP.
+
 - **3-tier Carnot COP classifier wired (#123, RFI #127 Q1):** every COP
   sample now classified as `accept` (<= ceiling * 1.05), `flag`
   (suspicious, stored with `is_transition_artifact=1`), or `reject`

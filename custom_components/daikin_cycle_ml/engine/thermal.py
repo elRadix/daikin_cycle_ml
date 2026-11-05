@@ -49,13 +49,20 @@ def dt_from_attrs(attrs: dict[str, Any]) -> float | None:
     r4t = safe_float(attrs.get(ATTR_INLET_WATER_R4T))
     if r1t is not None and r4t is not None:
         delta = abs(r1t - r4t)
-        if delta < 0.5:
+        # v1.19.9 #123/#127-Q3: ESPAltherma sensors have +/-0.3K
+        # tolerance; below 1.5K delta-T the relative error makes COP
+        # unreliable (>=20%). Was 0.5K pre-RFI answer.
+        if delta < 1.5:
             return None
         return round(delta, 2)
     a = safe_float(attrs.get(ATTR_LEAVING_WATER_AFTER_BUH))
     if a is None or r4t is None:
         return None
-    return round(abs(a - r4t), 2)
+    # v1.19.9 #123: apply same dT>=1.5K gate to fallback path.
+    delta = abs(a - r4t)
+    if delta < 1.5:
+        return None
+    return round(delta, 2)
 
 
 def rps_from_attrs(attrs: dict[str, Any]) -> float | None:
