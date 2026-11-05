@@ -41,3 +41,13 @@ def _disable_options_reload(hass):
         ),
     ):
         yield
+
+@pytest.fixture
+def patched_compat(monkeypatch):
+    """v1.19.9 R647: shared fixture for build_compat_view patching."""
+    import custom_components.daikin_cycle_ml.coordinator as coord_mod
+    def _fake_build_compat(a):
+        if isinstance(a, dict):
+            return a.get("__test_attrs__", a)
+        return {}
+    monkeypatch.setattr(coord_mod, "build_compat_view", _fake_build_compat)

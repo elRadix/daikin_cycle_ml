@@ -216,17 +216,6 @@ async def test_accept_class_inserts_unflagged(tmp_path, monkeypatch):
 # ============================================================
 
 
-@pytest.fixture
-def patched_compat(monkeypatch):
-    """Route build_compat_view to read c.data.attrs['__test_attrs__']."""
-    import custom_components.daikin_cycle_ml.coordinator as coord_mod
-    def _fake_build_compat(a):
-        if isinstance(a, dict):
-            return a.get("__test_attrs__", a)
-        return {}
-    monkeypatch.setattr(coord_mod, "build_compat_view", _fake_build_compat)
-
-
 def _mk_gate_coord(db, *, cop, lwt, outdoor, mode="heating", defrost=False):
     c = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)
     c.db = db

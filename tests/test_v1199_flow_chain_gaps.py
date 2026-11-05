@@ -21,13 +21,10 @@ from unittest.mock import MagicMock
 import pytest
 
 from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator,
-)
+    DaikinCycleMLCoordinator)
 from tests.test_rollup_concurrency import _mk_db
 from tests.test_v1199_cop_gate_wire import (  # noqa: F401
-    _mk_gate_coord,
-    patched_compat,
-)
+    _mk_gate_coord)
 
 
 # ============================================================
@@ -78,8 +75,7 @@ async def test_gap1_cold_start_real_attrs_to_db(tmp_path):
             is_hybrid=False,
             boiler_heat_active=False,
             boiler_dhw_active=False,
-            cop=None,
-        )
+            cop=None)
         c._resolve_cop_sample_mode = lambda: "heating"
 
         # Real build_compat_view (no patched_compat)
@@ -244,4 +240,31 @@ def test_track_mode_transition_same_mode_no_change():
     c._track_mode_transition(SimpleNamespace(mode="heating"), now=2000.0)
     assert c._last_mode_change_ts == 1000.0  # niet bijgewerkt
     assert c._last_observed_mode == "heating"
+
+# ============================================================
+# R643: _as_opt_float defensive branches (coordinator lines 3256/3259)
+# ============================================================
+
+def test_as_opt_float_defensive():
+    """R643: defensive cast rejects bool/str/None, passes real numeric."""
+    from custom_components.daikin_cycle_ml.coordinator import _as_opt_float
+
+    # Reject bools (isinstance int would accept these as 1.0/0.0 silently)
+    assert _as_opt_float(True) is None
+    assert _as_opt_float(False) is None
+
+    # Reject strings
+    assert _as_opt_float("5.0") is None
+    assert _as_opt_float("") is None
+
+    # Reject None / other types
+    assert _as_opt_float(None) is None
+    assert _as_opt_float([1]) is None
+    assert _as_opt_float({}) is None
+
+    # Pass numeric
+    assert _as_opt_float(5) == 5.0
+    assert _as_opt_float(5.5) == 5.5
+    assert _as_opt_float(0) == 0.0
+    assert _as_opt_float(-5.0) == -5.0
 

@@ -449,6 +449,21 @@ def _compute_daily_summary_recent(
     }
 
 
+def _as_opt_float(v: object) -> float | None:
+    """v1.19.9 R643: defensive cast to float|None.
+
+    Used by the classifier wire. Rejects bool (which isinstance-int would
+    accept as 1.0/0.0 silently) and non-numeric types. Returns None for
+    anything that isn't a real int/float, so caller can safely pass
+    classifier and let it decide not_applicable.
+    """
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    return None
+
+
 class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     """Reads the source sensor every UPDATE_INTERVAL_SECONDS."""
 
@@ -3250,11 +3265,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         # accept: normal operation -> store with flag=0.
         # not_applicable: cooling / missing data / lwt<=outdoor -> store as-is.
         from .engine.physics import classify_cop_sample
+
         _cls = classify_cop_sample(
             mode=str(_mode),
-            lwt=row.get('lwt'),
-            outdoor=row.get('outdoor'),
-            cop=row.get('cop'),
+            lwt=_as_opt_float(row.get('lwt')),
+            outdoor=_as_opt_float(row.get('outdoor')),
+            cop=_as_opt_float(row.get('cop')),
         )
         if _cls == 'reject':
             _LOGGER.warning(

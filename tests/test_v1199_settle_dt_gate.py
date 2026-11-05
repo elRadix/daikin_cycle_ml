@@ -18,9 +18,7 @@ import pytest
 
 from tests.test_rollup_concurrency import _mk_db
 from tests.test_v1199_cop_gate_wire import (  # noqa: F401
-    _mk_gate_coord,
-    patched_compat,
-)
+    _mk_gate_coord)
 
 
 # ============================================================
@@ -126,8 +124,7 @@ def test_dt_gate_fallback_below_1_5_rejected():
     """R634: fallback path (no R1T, using R2T) also >= 1.5 enforced."""
     from custom_components.daikin_cycle_ml.const import (
         ATTR_INLET_WATER_R4T,
-        ATTR_LEAVING_WATER_AFTER_BUH,
-    )
+        ATTR_LEAVING_WATER_AFTER_BUH)
     from custom_components.daikin_cycle_ml.engine.thermal import dt_from_attrs
     v = dt_from_attrs({
         ATTR_LEAVING_WATER_AFTER_BUH: 25.0,

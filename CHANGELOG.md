@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### Added
+
+- **v28 migration — historical re-classification (Bug #10 fix, #123):**
+  After v1.19.9 per-insert classifier is active for new samples, this
+  migration re-classifies all existing `cop_samples` with the new
+  0.65 Carnot factor (was 0.55) and 1.5x reject threshold. Retroactively
+  fixes impossible samples that entered between pre-v1.19.9 migrations.
+
+  Effect on prod-1 2026-11-05 snapshot (5295 heating+dhw samples):
+    unflagged=50  (0.55 was too strict, samples restored to aggregates)
+    flagged=22    (0.65 catches more, now correctly marked)
+    rejected=1    (real 154.7% Carnot sample gets marker)
+
+  Net: -27 false flags. COP averages become more accurate. Idempotent
+  via `data_migration_v28_completed` marker. Runs once at first HA
+  restart after upgrade, after v27 migration completes.
+
 ### Fixed
 
 - **3 alert-types missing group mapping (real prod gap, 2026-11-05):**

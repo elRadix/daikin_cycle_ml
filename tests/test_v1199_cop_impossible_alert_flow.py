@@ -27,16 +27,12 @@ from unittest.mock import MagicMock
 import pytest
 
 from custom_components.daikin_cycle_ml.engine.notification_engine import (
-    BINARY_ALERT_MAP,
-)
+    BINARY_ALERT_MAP)
 from custom_components.daikin_cycle_ml.engine.status_report import (
-    build_rich_alert,
-)
+    build_rich_alert)
 from tests.test_rollup_concurrency import _mk_db
 from tests.test_v1199_cop_gate_wire import (  # noqa: F401
-    _mk_gate_coord,
-    patched_compat,
-)
+    _mk_gate_coord)
 
 
 @pytest.mark.asyncio
@@ -92,8 +88,7 @@ async def test_full_reject_chain_produces_alert_and_message(
             anomaly=None,
             cop_degradation_week_pct=None,
             cop_vs_datasheet_pct=None,
-            missing_attrs=[],
-        )
+            missing_attrs=[])
         binary_states = c._alert_binary_states(snap)
         assert binary_states["cop_physically_impossible"] is True, (
             "binary_state must be True after reject"
@@ -130,8 +125,7 @@ async def test_full_reject_chain_produces_alert_and_message(
             alert_ctx,
             language="en",
             emoji_enabled=True,
-            full_model="EPRA12EAV3",
-        )
+            full_model="EPRA12EAV3")
         # Message moet count en advies bevatten
         assert "1" in msg, f"message should mention count=1: {msg!r}"
         assert "impossible" in msg.lower() or "Physically" in msg, (
@@ -190,8 +184,7 @@ async def test_full_accept_chain_produces_no_alert(tmp_path, patched_compat):
             anomaly=None,
             cop_degradation_week_pct=None,
             cop_vs_datasheet_pct=None,
-            missing_attrs=[],
-        )
+            missing_attrs=[])
         binary_states = c._alert_binary_states(snap)
         assert binary_states["cop_physically_impossible"] is False
 

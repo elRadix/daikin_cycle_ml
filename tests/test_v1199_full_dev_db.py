@@ -158,10 +158,14 @@ async def test_full_db_classifier_distribution(tmp_path):
         accept = flag = reject = not_applicable = 0
         for r in rows:
             k = classify_cop_sample(r[3], r[1], r[2], r[0])
-            if k == "accept": accept += 1
-            elif k == "flag": flag += 1
-            elif k == "reject": reject += 1
-            else: not_applicable += 1
+            if k == "accept":
+                accept += 1
+            elif k == "flag":
+                flag += 1
+            elif k == "reject":
+                reject += 1
+            else:
+                not_applicable += 1
 
         total = accept + flag + reject + not_applicable
         print(f"Distribution: accept={accept} ({100*accept/total:.1f}%), "
@@ -211,7 +215,8 @@ async def test_full_db_v28_dry_run(tmp_path):
         would_reject = 0
         for r in rows:
             _id, cop, lwt, outdoor, mode, was_flagged = r
-            th = lwt + 273.15; tc = outdoor + 273.15
+            th = lwt + 273.15
+            tc = outdoor + 273.15
             carnot = th / (th - tc)
             old_thr = carnot * 0.55
             new_cls = classify_cop_sample(mode, lwt, outdoor, cop)

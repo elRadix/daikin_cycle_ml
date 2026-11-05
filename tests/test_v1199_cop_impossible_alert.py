@@ -24,13 +24,10 @@ from unittest.mock import MagicMock
 import pytest
 
 from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator,
-)
+    DaikinCycleMLCoordinator)
 from tests.test_rollup_concurrency import _mk_db
 from tests.test_v1199_cop_gate_wire import (  # noqa: F401
-    _mk_gate_coord,
-    patched_compat,
-)
+    _mk_gate_coord)
 
 
 # ============================================================
@@ -116,8 +113,7 @@ def test_binary_states_returns_key():
         anomaly=None,
         cop_degradation_week_pct=None,
         cop_vs_datasheet_pct=None,
-        missing_attrs=[],
-    )
+        missing_attrs=[])
     result = c._alert_binary_states(snap)
     assert "cop_physically_impossible" in result
     assert result["cop_physically_impossible"] is False
@@ -143,8 +139,7 @@ def test_alert_registered_in_notification_engine():
     """R634: BINARY_ALERT_MAP + NOTIF_ID_BY_TYPE present."""
     from custom_components.daikin_cycle_ml.engine.notification_engine import (
         BINARY_ALERT_MAP,
-        NOTIF_ID_BY_TYPE,
-    )
+        NOTIF_ID_BY_TYPE)
     assert "cop_physically_impossible" in BINARY_ALERT_MAP
     assert "cop_physically_impossible" in NOTIF_ID_BY_TYPE
 
@@ -154,8 +149,7 @@ def test_alert_titles_and_schema_present():
     from custom_components.daikin_cycle_ml.engine.status_report import (
         ALERT_ADVICE,
         ALERT_SCHEMA,
-        ALERT_TITLES,
-    )
+        ALERT_TITLES)
     assert "cop_physically_impossible" in ALERT_TITLES["en"]
     assert "cop_physically_impossible" in ALERT_TITLES["nl"]
     assert "cop_physically_impossible" in ALERT_SCHEMA

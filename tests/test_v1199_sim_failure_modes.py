@@ -23,17 +23,13 @@ from unittest.mock import MagicMock
 import pytest
 
 from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator,
-)
+    DaikinCycleMLCoordinator)
 from custom_components.daikin_cycle_ml.engine.physics import (
-    classify_cop_sample,
-)
+    classify_cop_sample)
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
 from tests.test_rollup_concurrency import _mk_db
 from tests.test_v1199_cop_gate_wire import (  # noqa: F401
-    _mk_gate_coord,
-    patched_compat,
-)
+    _mk_gate_coord)
 
 
 # ============================================================
@@ -43,8 +39,7 @@ from tests.test_v1199_cop_gate_wire import (  # noqa: F401
 def test_failure_source_outage_detects_stale():
     """Bron >120s stil -> source_stale trigger correct."""
     from custom_components.daikin_cycle_ml.binary_sensor import (
-        _is_source_stale,
-    )
+        _is_source_stale)
     from datetime import datetime, timezone
 
     now = time.time()
@@ -62,8 +57,7 @@ def test_failure_source_outage_detects_stale():
 def test_failure_source_outage_recovery():
     """Bron terug na outage -> alert valt weg."""
     from custom_components.daikin_cycle_ml.binary_sensor import (
-        _is_source_stale,
-    )
+        _is_source_stale)
     from datetime import datetime, timezone
 
     now = time.time()
@@ -159,8 +153,7 @@ async def test_failure_sensor_degradation_noisy(tmp_path, patched_compat):
                                       -0.1, 0]):
             c = _mk_gate_coord(
                 db, cop=5.0 + offset * 0.5,
-                lwt=30.0 + offset, outdoor=10.0 + offset,
-            )
+                lwt=30.0 + offset, outdoor=10.0 + offset)
             c._last_cop_sample_ts = 0.0
             await c._maybe_collect_cop_sample(time.time() + i)
 
@@ -220,8 +213,7 @@ async def test_failure_reboot_state_preserved(tmp_path):
 def test_failure_defrost_parse_variants():
     """Defrost met alle varianten ('ON', 'on', True, 1) werkt."""
     from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
-        parse_global_cop_attrs,
-    )
+        parse_global_cop_attrs)
     for raw in ["ON", "on", True, 1]:
         s = parse_global_cop_attrs({
             "state": "5.0", "defrost_operation": raw,

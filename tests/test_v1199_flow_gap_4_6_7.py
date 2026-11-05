@@ -9,16 +9,12 @@ from unittest.mock import MagicMock
 import pytest
 
 from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator,
-)
+    DaikinCycleMLCoordinator)
 from custom_components.daikin_cycle_ml.engine.notification_engine import (
-    evaluate_alerts,
-)
+    evaluate_alerts)
 from tests.test_rollup_concurrency import _mk_db
 from tests.test_v1199_cop_gate_wire import (  # noqa: F401
-    _mk_gate_coord,
-    patched_compat,
-)
+    _mk_gate_coord)
 
 
 # GAP 4: alert dedup over time (1440 min window)

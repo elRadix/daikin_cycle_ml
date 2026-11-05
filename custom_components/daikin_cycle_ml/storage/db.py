@@ -2032,6 +2032,90 @@ class CycleDB:
         )
         return stats
 
+    async def async_migrate_to_v28(self) -> dict[str, Any]:
+        """v1.19.9 #123: re-classify historical cop_samples (0.65 factor).
+
+        Pre-v1.19.9 ran _flag_carnot_artifacts (0.55 Carnot factor) only
+        during migrations. Impossible samples between migrations stayed
+        unmarked. v1.19.9 introduced per-insert classification (0.65
+        factor, 1.5x Carnot reject). This migration reclassifies all
+        historical samples:
+
+          accept + was_flagged -> unflag (0.55 was too strict)
+          flag   + not flagged -> flag (0.65 catches more)
+          reject + not flagged -> flag + count rejected (audit trail)
+          unchanged cases -> no-op
+
+        Idempotent via data_migration_v28_completed marker.
+        """
+        marker = await self.async_get_model_state(
+            "data_migration_v28_completed"
+        )
+        if marker and isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+
+        from ..engine.physics import classify_cop_sample
+
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT id, cop, lwt, outdoor, mode, is_transition_artifact "
+            "FROM cop_samples "
+            "WHERE mode IN ('heating', 'dhw') "
+            "  AND lwt IS NOT NULL AND outdoor IS NOT NULL"
+        )
+        try:
+            rows = await cur.fetchall()
+        finally:
+            await cur.close()
+
+        scanned = 0
+        unflagged = 0
+        flagged = 0
+        rejected = 0
+
+        for r in rows:
+            scanned += 1
+            sample_id, cop, lwt, outdoor, mode, was_flagged = r
+            cls = classify_cop_sample(mode, lwt, outdoor, cop)
+            if cls == "not_applicable":
+                continue
+
+            new_flag = 1 if cls in ("flag", "reject") else 0
+            old_flag = int(was_flagged or 0)
+            if new_flag == old_flag:
+                continue
+
+            await conn.execute(
+                "UPDATE cop_samples SET is_transition_artifact = ? "
+                "WHERE id = ?",
+                (new_flag, sample_id),
+            )
+            if new_flag == 1:
+                if cls == "reject":
+                    rejected += 1
+                else:
+                    flagged += 1
+            else:
+                unflagged += 1
+
+        await conn.commit()
+
+        stats = {
+            "scanned": scanned,
+            "unflagged": unflagged,
+            "flagged": flagged,
+            "rejected": rejected,
+            "completed": True,
+        }
+        await self.async_set_model_state(
+            "data_migration_v28_completed", stats
+        )
+        _LOGGER.info(
+            "v28 migration: scanned=%d unflagged=%d flagged=%d rejected=%d",
+            scanned, unflagged, flagged, rejected,
+        )
+        return stats
+
 
     async def async_migrate_cop_samples_mode_default_v15(self) -> int:
         # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.
