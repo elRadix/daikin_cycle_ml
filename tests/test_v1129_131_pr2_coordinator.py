@@ -74,7 +74,7 @@ async def test_simple_merge_absorbed_1():
     db.async_merge_cycle_forward.assert_awaited_once_with(999)
     db.async_insert_features.assert_not_called()
     db.async_update_cycle_cluster.assert_not_called()
-    db.async_rollup_day.assert_not_called()
+    db.async_rollup_day.assert_awaited_once()
 
 
 async def test_bridge_merge_absorbed_2():
@@ -90,7 +90,7 @@ async def test_bridge_merge_absorbed_2():
     assert c.store.last_cycle()["end_ts"] == 600
     assert c.store.last_cycle()["is_transient"] == 0
     db.async_insert_features.assert_not_called()
-    db.async_rollup_day.assert_not_called()
+    db.async_rollup_day.assert_awaited_once()
 
 
 async def test_no_merge_absorbed_0():

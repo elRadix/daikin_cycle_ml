@@ -258,6 +258,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.exception("user datasheet store load failed")
         raise_datasheet_load_failed(hass, entry.entry_id, str(err))
     await _async_setup_database(hass, coordinator, entry)
+    # v1.19.8 #262: heal stale daily_summary from pre-fix merge bug.
+    # Runs on every startup (7 rollup queries, ~<100ms, idempotent).
+    if coordinator.db is not None:  # pragma: no branch - set by _async_setup_database
+        try:
+            _n = await coordinator.db.async_backfill_daily_summary_recent(
+                days=7
+            )
+            _LOGGER.info(
+                "daily-summary backfill: %d days re-rolled", _n
+            )
+        except Exception:
+            _LOGGER.exception("daily-summary backfill at startup failed")
     await _async_backfill_quality(coordinator)
     await _async_hydrate_store(coordinator)
     try:

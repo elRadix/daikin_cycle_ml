@@ -2285,6 +2285,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                         "cycle %s forward-merged (%d deleted, %d rolled back)",
                         cid, absorbed, rolled,
                     )
+                    # v1.19.8 #262: forward-merge extends the keeper's
+                    # end_ts and duration_s. Must re-rollup daily_summary
+                    # BEFORE the early return -- pre-fix this skipped
+                    # _maybe_rollup_day, leaving daily_summary frozen on
+                    # the pre-merge snapshot. Real prod 2026-11-05: upd
+                    # 00:59:30 stale, max=11.7h vs actual 17.84h.
+                    if self.db is not None:  # pragma: no branch - cid implies db
+                        await self._maybe_rollup_day(record)
                     return
             except Exception:
                 _LOGGER.warning(

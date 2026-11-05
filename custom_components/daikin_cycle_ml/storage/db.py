@@ -2153,12 +2153,17 @@ class CycleDB:
         # window intersects [start_ts, end_ts). Pre-fix used `end_ts
         # within day`, attributing cross-midnight cycles fully to the
         # end-day (e.g. 16h run counted 100% on Oct 27).
+        # v1.19.8 #262: include open cycles (end_ts IS NULL) so a
+        # long run is visible in daily_summary BEFORE it closes.
+        # cap_ts = min(now, day_end) bounds pro-rata so past days
+        # do not accrue runtime beyond their own day boundary.
+        cap_ts = min(time.time(), end_ts)
         sql = (
             "SELECT start_ts, end_ts, duration_s, mode, dT_max, rps_avg, "
             "quality_score, buh_used, defrost_used FROM cycles "
-            "WHERE end_ts IS NOT NULL AND start_ts < ? AND end_ts > ?"
+            "WHERE start_ts < ? AND COALESCE(end_ts, ?) > ?"
         )
-        params: list[Any] = [end_ts, start_ts]
+        params: list[Any] = [end_ts, cap_ts, start_ts]
         if modes:
             sql += " AND COALESCE(mode,'unknown') IN ("
             sql += ",".join("?" * len(modes)) + ")"
@@ -2184,8 +2189,10 @@ class CycleDB:
             # (they describe the run, not the day-slice).
             c_start = r["start_ts"]
             c_end = r["end_ts"]
-            # v1.19.7 #260: query guarantees end_ts IS NOT NULL and the
-            # schema enforces start_ts NOT NULL, so both are always numeric.
+            # v1.19.8 #262: open cycles have end_ts=NULL; use cap_ts so
+            # they contribute pro-rata runtime up to (now OR day_end).
+            if c_end is None:
+                c_end = cap_ts
             ov_start = max(float(c_start), start_ts)
             ov_end = min(float(c_end), end_ts)
             a["total_duration_s"] += int(max(0.0, ov_end - ov_start))
@@ -2236,6 +2243,7 @@ class CycleDB:
         await conn.commit()
         return len(agg)
 
+
     async def async_backfill_daily_summary(self) -> int:
         """One-time backfill: populate daily_summary from existing cycles.
 
@@ -2275,6 +2283,35 @@ class CycleDB:
         except Exception:
             _LOGGER.exception("backfill flag persist failed")
         return written
+
+
+    async def async_backfill_daily_summary_recent(self, days: int = 7) -> int:
+        """v1.19.8 #262: re-roll last N local days on every startup.
+
+        Unlike async_backfill_daily_summary (which is one-time and
+        guarded by a persistent marker), this runs on every setup to
+        heal any daily_summary rows that diverged from underlying
+        cycles due to the pre-v1.19.8 forward-merge early-return bug
+        (coordinator._process_new_cycle skipped _maybe_rollup_day).
+
+        Also catches any future aggregate drift: cheap (<=7 rollup
+        queries), idempotent, safe to call on every startup.
+
+        Returns the number of days successfully re-rolled.
+        """
+        rebuilt = 0
+        now = time.time()
+        for offset in range(int(days)):
+            day_ts = now - offset * 86400
+            day = time.strftime("%Y-%m-%d", time.localtime(day_ts))
+            try:
+                await self.async_rollup_day(day)
+                rebuilt += 1
+            except Exception:  # pragma: no cover - defensive
+                _LOGGER.exception(
+                    "recent backfill failed for day=%s", day
+                )
+        return rebuilt
 
     async def async_prune_model_state(
         self, *, retention_days: int = 400,

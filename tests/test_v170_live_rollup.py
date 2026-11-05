@@ -101,3 +101,63 @@ async def test_process_new_cycle_invokes_rollup(monkeypatch):
     record = {"duration_s": 3600, "end_ts": time.time(), "mode": "heating"}
     await c._process_new_cycle(record, snap)
     db.async_rollup_day.assert_awaited_once()
+
+
+
+async def test_merged_cycle_triggers_daily_rollup(monkeypatch):
+    """v1.19.8 #262: forward-merge extends keeper's end_ts; the early-return
+    in _process_new_cycle must still fire _maybe_rollup_day to refresh
+    daily_summary.
+
+    Real prod 2026-11-05: cycle 280 extended 11.7h -> 17.84h via repeated
+    forward-merges. daily_summary frozen at upd=00:59:30 while actual
+    cycle ends 07:03:38. Users saw 0.98h heating instead of 7.06h.
+    """
+    db = AsyncMock()
+    db.async_insert_cycle = AsyncMock(return_value=1)
+    db.async_insert_features = AsyncMock()
+    db.async_merge_cycle_forward = AsyncMock(return_value=1)
+    db.async_update_cycle_cluster = AsyncMock()
+    db.async_rollup_day = AsyncMock(return_value=1)
+    db.async_daily_summary = AsyncMock(return_value=[])
+
+    c = _Coord(
+        {"daily_summary_live_enabled": True, "action_advice_enabled": False},
+        db,
+    )
+    c._collect_cycle_averages = AsyncMock(return_value=(None, None, None))
+    c.store = MagicMock()
+    c.store.rollback_last_cycles = MagicMock(return_value=1)
+    c._refresh_daily_summary_recent = AsyncMock()
+    c._assign_cluster = lambda vec: None
+    c.baseline = MagicMock()
+    c.baseline.get.return_value.update = MagicMock()
+    c.adaptive = MagicMock()
+    c.adaptive.observe_cycle = MagicMock()
+
+    spy = AsyncMock()
+    c._maybe_rollup_day = spy
+
+    monkeypatch.setattr(
+        "custom_components.daikin_cycle_ml.coordinator.extract_feature_vector",
+        lambda *a, **kw: [0.0] * 12,
+    )
+    monkeypatch.setattr(
+        "custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
+        lambda *a, **kw: MagicMock(),
+    )
+
+    snap = SimpleNamespace(
+        anomaly=None, advice=None, cluster_id=None, mode="heating"
+    )
+    now = time.time()
+    record = {
+        "duration_s": 30,
+        "start_ts": now - 30,
+        "end_ts": now,
+        "mode": "heating",
+    }
+    await c._process_new_cycle(record, snap)
+
+    db.async_merge_cycle_forward.assert_awaited_once_with(1)
+    spy.assert_called_once()
