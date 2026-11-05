@@ -82,9 +82,15 @@ def test_cooling_mode_uses_power_cop_first() -> None:
 
 
 def test_physics_ceiling_carnot_reasonable() -> None:
+    """v1.19.9 #123: factor raised 0.55 -> 0.65 per RFI #127 Q1 answer.
+
+    DHW lwt=42.3 outdoor=10.0: Carnot = 9.77, ceiling = 9.77 * 0.65 = 6.35.
+    Pre-fix factor 0.55 gave 5.37 (passed old range 4.0-6.0). New factor
+    0.65 reflects the Daikin-expert-confirmed derating value.
+    """
     ceiling = get_physical_cop_ceiling("dhw", lwt=42.3, outdoor=10.0)
     assert ceiling is not None
-    assert 4.0 < ceiling < 6.0
+    assert 5.5 < ceiling < 7.0
 
 
 def test_physics_ceiling_lwt_le_outdoor_returns_none() -> None:
