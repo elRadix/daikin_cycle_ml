@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.19.8] - 2026-11-05
+
 ### Added
 
 - **`sensor.alerts_today`:** new sensor exposing today's alert count and
@@ -13,6 +15,16 @@
   `alerts` DB table (no schema change). User-facing surface for the
   alerts table which was write-only since v1.19.7. Adds 12 regression
   tests.
+
+- **`async_backfill_daily_summary_recent(days=7)`:** startup heal for
+  `daily_summary`. Runs on every `async_setup_entry` (idempotent,
+  <=7 rollup queries, <100ms). Repairs rows left stale by the pre-fix
+  forward-merge bug and any future aggregate drift. Wired in
+  `__init__.py` right after `_async_setup_database`. On first restart
+  after upgrade, last 7 days are re-rolled automatically -- no manual
+  SQL, no data loss. Adds 3 regression tests plus 1 real-prod snapshot
+  test (`test_snapshot_heals_after_backfill`, skips in CI when the
+  fixture is absent).
 
 ### Changed
 
@@ -72,6 +84,26 @@
   `except OperationalError` -> `except DatabaseError` (still catches
   all prior cases). Adds 2 regression tests in
   `tests/test_v1198_diagnostics_db_guard.py`.
+
+- **`daily_summary` stale after forward-merge (real prod 2026-11-05):**
+  `_process_new_cycle` called `async_merge_cycle_forward()` and then
+  early-returned when a merge absorbed transient cycles. That return
+  was *before* `_maybe_rollup_day()`, so `daily_summary` was never
+  re-rolled after a merge. On real prod-1: cycle id=280 was extended
+  from 11.7h to 17.84h via ~15 forward-merges. `daily_summary[Nov 5]`
+  froze at `upd=00:59:30` with `total=0.98h` while the actual runtime
+  was `7.06h`. Every dashboard aggregate (`sensor.daily_summary_recent`,
+  `sensor.cycles_today`, `sensor.avg_duration_7d`) showed stale values
+  for hours. Fix: `await self._maybe_rollup_day(record)` before the
+  early return. Adds structural guard test that inspects the source.
+
+- **Open cycles invisible in `daily_summary`:** `async_rollup_day`
+  used `WHERE end_ts IS NOT NULL`, so a currently-running cycle (up to
+  8+ hours on mild weather) contributed nothing to today's summary.
+  Sensors showed "0 heating" while the compressor was running. Fix:
+  `COALESCE(end_ts, cap_ts)` where `cap_ts = min(now, day_end)`.
+  Open cycles contribute pro-rata runtime to today, but never accrue
+  past their own day boundary. Adds 2 regression tests.
 
 ## [1.19.7] - 2026-11-04
 
