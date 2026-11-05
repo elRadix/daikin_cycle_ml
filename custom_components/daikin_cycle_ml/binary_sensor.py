@@ -185,12 +185,35 @@ def _is_short_off(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
 
 
 def _is_source_stale(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
-    if s.last_success_ts <= 0:
+    # v1.19.9: normalize last_success_ts -- coordinator delegates to
+    # this function for the alert path, and partial mocks or pre-tick
+    # snaps can carry None or non-numeric values. Coerce safely.
+    try:
+        _last_ok = float(getattr(s, "last_success_ts", 0.0) or 0.0)
+    except (TypeError, ValueError):
+        _last_ok = 0.0
+    if _last_ok <= 0:
         return False
-    return is_stale(
-        s.last_success_ts, _now(),
-        SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS,
-    )
+    thr = SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS
+    # v1.19.9: check the SOURCE entity last_updated, not our own tick.
+    # Pre-fix a slow tick (ML pipeline / rollup / datasheet refresh)
+    # made this fire critical alerts even though the source was
+    # updating every 22-33s. Real prod 2026-11-05: alerts at 09:15,
+    # 10:16, 11:18 (61-62 min apart) with healthy source throughout.
+    hass = getattr(c, "hass", None)
+    src_entity = getattr(c, "source_entity", None)
+    if hass is not None and src_entity:
+        st = hass.states.get(src_entity)
+        if st is not None:
+            # v1.19.9: isinstance gate -- MagicMock/None/broken state
+            # falls through to tick-based fallback instead of raising
+            # TypeError on `MagicMock > float` comparisons.
+            from datetime import datetime as _dt
+            lu = getattr(st, "last_updated", None)
+            if isinstance(lu, _dt):
+                return (_now() - lu.timestamp()) > thr
+    # Fallback: no hass handle (unit test) or source missing -> tick.
+    return is_stale(_last_ok, _now(), thr)
 
 
 def _is_pendulum_hourly(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:

@@ -3832,9 +3832,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         ))
         _buh_7d_ratio = float(getattr(self, "_buh_7d_ratio", 0.0) or 0.0)
         is_buh_excessive = _buh_7d_ratio > _buh_thr
-        _last_ok = float(getattr(snap, "last_success_ts", 0.0) or 0.0)
-        _stale_thr = SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS
-        is_source_stale = _last_ok > 0 and (now - _last_ok) > _stale_thr
+        # v1.19.9: single source of truth -- delegate to
+        # binary_sensor._is_source_stale so this path and the
+        # binary_sensor entity agree. Pre-fix both had duplicate
+        # tick-based logic that false-fired critical alerts on slow
+        # ticks (real prod 2026-11-05 hourly pattern).
+        from .binary_sensor import _is_source_stale as _is_src_stale_fn
+        is_source_stale = bool(_is_src_stale_fn(snap, self))
+        _ = SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS  # keep import used
         is_missing_attributes = len(getattr(snap, "missing_attrs", []) or []) > 0
         # PR F: P2 alert triggers (v1.9.0)
         _dhw_cph = 0

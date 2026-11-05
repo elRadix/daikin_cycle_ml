@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **`source_stale` false positives (hourly pattern, real prod 2026-11-05):**
+  `_is_source_stale` and `_alert_binary_states` measured `last_success_ts`
+  (coordinator tick) rather than the source entity `last_updated`. A slow
+  tick (ML pipeline, rollup, datasheet refresh) made both paths fire a
+  `critical` alert at 120s even though the source was updating every
+  22-33s. Prod-1 evidence: alerts at 09:15, 10:16, 11:18 (61-62 min apart)
+  with healthy source throughout. Because `source_stale` bypasses quiet
+  hours, this hit every user with 1 alert/hour at night. Fix: check
+  `hass.states.get(source_entity).last_updated` with isinstance-guard,
+  fall back to tick-based only for unit tests / missing entity / malformed
+  state. `_alert_binary_states` now delegates to `_is_source_stale` — one
+  source of truth, no drift. Adds 7 regression tests (RED before fix).
+
 ## [1.19.8] - 2026-11-05
 
 ### Added
