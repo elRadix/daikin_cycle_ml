@@ -66,6 +66,14 @@ def classify_cop_sample(
     the sensors have +/-0.3K tolerance and legitimate high-COP events
     (defrost recovery, mild-weather low-lift heating) can reach ~90%
     of Carnot for brief periods.
+
+    Float-precision note (R640): for extremely close lwt and outdoor
+    values (< ~5e-14 apart), the +273.15 offset in the th/tc calculation
+    can make th == tc due to IEEE 754 rounding, returning not_applicable
+    even when lwt > outdoor. This is conservative (safe) behavior.
+    Real sensor data has 0.1 C resolution and never hits this case;
+    the dT >= 1.5K gate upstream already prevents such samples from
+    reaching this function. Documented here for future maintainers.
     """
     if mode not in ("heating", "dhw"):
         return "not_applicable"

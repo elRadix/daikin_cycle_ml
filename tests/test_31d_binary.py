@@ -9,7 +9,7 @@ from custom_components.daikin_cycle_ml import binary_sensor as bs_mod
 
 def test_binary_defs_has_17():
     keys = [spec["key"] for spec in bs_mod.BINARY_SENSOR_DEFS]
-    assert len(keys) == 18  # v1.15.0 #218: +boiler_operation_demand, +boiler_dhw_demand
+    assert len(keys) == 19  # v1.19.9 #123: +cop_physically_impossible
     assert set(keys) == {
         "compressor_running",
         "pendulum_hourly",
@@ -23,6 +23,7 @@ def test_binary_defs_has_17():
         "heating_active",
         "cooling_active",
         "source_stale",
+        "cop_physically_impossible",
         "missing_attrs",
         "setpoint_oscillating",
         "dhw_pendulum",

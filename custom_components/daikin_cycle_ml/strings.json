@@ -284,6 +284,9 @@
       },
       "short_cycling_pattern": {
         "name": "Short cycling pattern"
+      },
+      "cop_physically_impossible": {
+        "name": "COP physically impossible"
       }
     },
     "sensor": {
@@ -667,7 +670,8 @@
           "alert_agg_short_run_min": "Short run window",
           "alert_agg_source_stale_min": "Source stale window",
           "alert_agg_stooklijn_advies_min": "Heating curve advice window",
-          "alert_agg_short_cycling_pattern_min": "Short cycling pattern window"
+          "alert_agg_short_cycling_pattern_min": "Short cycling pattern window",
+          "alert_agg_cop_physically_impossible_min": "Physically impossible COP window"
         },
         "data_description": {
           "alert_agg_buh_excessive_min": "Default 1440 min (24 h).",
@@ -689,7 +693,8 @@
           "alert_agg_short_run_min": "Default 30 min.",
           "alert_agg_source_stale_min": "Default 60 min.",
           "alert_agg_stooklijn_advies_min": "Default 10080 min (7 days).",
-          "alert_agg_short_cycling_pattern_min": "Default 60 min."
+          "alert_agg_short_cycling_pattern_min": "Default 60 min.",
+          "alert_agg_cop_physically_impossible_min": "Default 1440 min."
         },
         "description": "Minimum minutes between consecutive alerts of the same type. Applies to evaluate_alerts-routed alerts and the standalone cop_low and stooklijn_advies emitters.",
         "title": "Alert deduplication windows"

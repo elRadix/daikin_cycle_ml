@@ -30,6 +30,7 @@ from ..const import (
     NOTIF_ID_SHORT_RUN,
     NOTIF_ID_SHORT_CYCLING_PATTERN,
     NOTIF_ID_SOURCE_STALE,
+    NOTIF_ID_COP_PHYSICALLY_IMPOSSIBLE,
     SEVERITY_EMOJI,
 )
 from .status_report import (
@@ -116,6 +117,11 @@ BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
         SEV_CRITICAL,
         "Source sensor stale\nNo update for {age_s} s (threshold {threshold_s} s){advice}",
     ),
+    "cop_physically_impossible": (
+        "cop_physically_impossible",
+        SEV_WARNING,
+        "Physically impossible COP detected\n{count} sample(s) rejected today{advice}",
+    ),
     "missing_attributes": (
         "missing_attributes",
         SEV_WARNING,
@@ -170,6 +176,7 @@ NOTIF_ID_BY_TYPE = {
     "defrost_excessive": NOTIF_ID_DEFROST_EXCESSIVE,
     "buh_excessive": NOTIF_ID_BUH_EXCESSIVE,
     "source_stale": NOTIF_ID_SOURCE_STALE,
+    "cop_physically_impossible": NOTIF_ID_COP_PHYSICALLY_IMPOSSIBLE,
     "missing_attributes": NOTIF_ID_MISSING_ATTRIBUTES,
     "dhw_pendulum": NOTIF_ID_DHW_PENDULUM,
     "high_cycle_rate": NOTIF_ID_HIGH_CYCLE_RATE,

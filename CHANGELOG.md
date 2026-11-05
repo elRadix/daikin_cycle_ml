@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **3 alert-types missing group mapping (real prod gap, 2026-11-05):**
+  `db_retention_warning`, `energy_daily_anomaly`, and
+  `kmeans_retrain_stale` were present in `BINARY_ALERT_MAP` and fired
+  correctly, but were absent from `ALERT_GROUP_MAP`. Effect: their
+  notifications had no group, so UI sorting, grouping-with-related-
+  alerts, and dedup-grouping were silently broken for these 3 types.
+  Discovered by `test_alert_storm_grouping` (R645 simulation test).
+  Pre-existing since the alerts were introduced; fix is 3 entries in
+  `const.py`.
+
+- **Pre-v1.19.9 no per-insert classification (Bug #10, 2026-11-05):**
+  Historical snapshot analysis found 1 real physically-impossible
+  sample in prod-1 DB (`ts=1793613753 mode=dhw cop=19.29 lwt=34.8
+  out=10.1`, 154.7% of Carnot) with `is_transition_artifact=0`.
+  Root cause: pre-v1.19.9 `_flag_carnot_artifacts` only ran during
+  migrations (v25, v27), not on every insert. Any impossible sample
+  between migrations stayed unmarked. v1.19.9 fix: classifier runs
+  per-insert. v28 migration (phase 5) will retroactively re-flag
+  historical impossible samples.
+
 ### Added
 
 - **SETTLE_S gate (#122, RFI #127 Q3):** COP samples taken within 300s

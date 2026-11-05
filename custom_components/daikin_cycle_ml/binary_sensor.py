@@ -376,6 +376,12 @@ BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
     {"key": "source_stale", "name": "Source stale",
      "device_class": BinarySensorDeviceClass.PROBLEM,
      "state_fn": _is_source_stale},
+    {"key": "cop_physically_impossible",
+     "name": "COP physically impossible",
+     "device_class": BinarySensorDeviceClass.PROBLEM,
+     "state_fn": lambda s, c: int(
+         getattr(c, "_cop_rejected_today_count", 0) or 0
+     ) > 0},
     {"key": "missing_attrs", "name": "Missing attributes",
      "device_class": BinarySensorDeviceClass.PROBLEM,
      "state_fn": lambda s, c: len(s.missing_attrs) > 0},

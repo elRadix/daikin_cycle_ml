@@ -311,6 +311,7 @@ ALERT_TITLES = {
         "defrost_excessive": "Defrost excessive",
         "buh_excessive": "Backup heater excessive",
         "source_stale": "Source sensor stale",
+        "cop_physically_impossible": "Physically impossible COP",
         "missing_attributes": "Missing attributes",
         "dhw_pendulum": "DHW pendulum detected",
         "high_cycle_rate": "High cycle rate",
@@ -333,6 +334,7 @@ ALERT_TITLES = {
         "defrost_excessive": "Overmatig ontdooien",
         "buh_excessive": "Backup heater overmatig",
         "source_stale": "Bronsensor verouderd",
+        "cop_physically_impossible": "Fysiek onmogelijke COP",
         "missing_attributes": "Ontbrekende attributen",
         "dhw_pendulum": "SWW-pendelen gedetecteerd",
         "high_cycle_rate": "Hoge cyclusfrequentie",
@@ -501,6 +503,9 @@ ALERT_SCHEMA = {
         ("\U0001F517", "source_sensor", "{source_sensor}"),
         ("\U0001F501", "mode", "{mode}"),
     ],
+    "cop_physically_impossible": [
+        ("\U0001F9EA", "count", "{count}"),
+    ],
     "missing_attributes": [
         ("\u2753", "missing_count", "{missing_count}"),
         ("\U0001F4CB", "missing_list", "{missing_list}"),
@@ -638,6 +643,9 @@ ALERT_ADVICE = {
             "sizing, outdoor temperature, and defrost performance."),
         "source_stale": ("\u2022 Source sensor stopped updating. Check ESPAltherma "
             "connection and MQTT / ESPHome link."),
+        "cop_physically_impossible": (
+            "\u2022 COP above physical maximum (1.5x Carnot). Check "
+            "sensor calibration or firmware."),
         "missing_attributes": ("\u2022 Source is missing required attributes. "
             "Check ESPAltherma template / register mapping."),
         "dhw_pendulum": ("\u2022 DHW is cycling too often. Check DHW tank "
@@ -674,6 +682,9 @@ ALERT_ADVICE = {
             "WP-capaciteit, buitentemperatuur en ontdooigedrag."),
         "source_stale": ("\u2022 Bronsensor werkt niet meer bij. Controleer "
             "ESPAltherma-verbinding en MQTT / ESPHome-koppeling."),
+        "cop_physically_impossible": (
+            "\u2022 COP boven fysisch maximum (1.5x Carnot). Controleer "
+            "sensorkalibratie of firmware."),
         "missing_attributes": ("\u2022 Bron mist vereiste attributen. "
             "Controleer ESPAltherma-template / registermapping."),
         "dhw_pendulum": ("\u2022 SWW pendelt te vaak. Controleer "

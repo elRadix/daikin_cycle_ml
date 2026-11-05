@@ -235,8 +235,8 @@ def test_translation_keys_parity(fname):
     st = data["options"]["step"]
     assert len(st["notifications_enabled"]["data"]) == 11
     assert len(st["notifications_enabled"]["data_description"]) == 11
-    assert len(st["notifications_dedup"]["data"]) == 20
-    assert len(st["notifications_dedup"]["data_description"]) == 20
+    assert len(st["notifications_dedup"]["data"]) == 21
+    assert len(st["notifications_dedup"]["data_description"]) == 21
 
 
 # --- labels present in both languages ---
@@ -253,22 +253,22 @@ def test_new_label_keys_present(lang):
 
 
 def test_schema_total():
-    assert len(ALERT_SCHEMA) == 18
+    assert len(ALERT_SCHEMA) == 19
 
 
 def test_binary_alert_map_total():
-    assert len(BINARY_ALERT_MAP) == 18
+    assert len(BINARY_ALERT_MAP) == 19
 
 
 def test_notif_id_by_type_total():
-    assert len(NOTIF_ID_BY_TYPE) == 18
+    assert len(NOTIF_ID_BY_TYPE) == 19
 
 
 def test_alert_titles_totals():
-    assert len(ALERT_TITLES["en"]) == 20
-    assert len(ALERT_TITLES["nl"]) == 20
+    assert len(ALERT_TITLES["en"]) == 21
+    assert len(ALERT_TITLES["nl"]) == 21
 
 
 def test_alert_advice_totals():
-    assert len(ALERT_ADVICE["en"]) == 18
-    assert len(ALERT_ADVICE["nl"]) == 18
+    assert len(ALERT_ADVICE["en"]) == 19
+    assert len(ALERT_ADVICE["nl"]) == 19

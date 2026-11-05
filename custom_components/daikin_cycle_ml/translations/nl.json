@@ -528,7 +528,8 @@
           "alert_agg_db_retention_warning_min": "Database-retentie waarschuwing dedup-venster",
           "alert_agg_kmeans_retrain_stale_min": "K-means hertraining verouderd dedup-venster",
           "alert_agg_energy_daily_anomaly_min": "Energie-dagelijkse afwijking dedup-venster",
-          "alert_agg_short_cycling_pattern_min": "Kort-cyclisch patroon venster"
+          "alert_agg_short_cycling_pattern_min": "Kort-cyclisch patroon venster",
+          "alert_agg_cop_physically_impossible_min": "Fysiek onmogelijke COP-venster"
         },
         "data_description": {
           "alert_agg_pendulum_hourly_min": "Standaard 60 min.",
@@ -550,7 +551,8 @@
           "alert_agg_db_retention_warning_min": "Database-retentie waarschuwing dedup-venster",
           "alert_agg_kmeans_retrain_stale_min": "K-means hertraining verouderd dedup-venster",
           "alert_agg_energy_daily_anomaly_min": "Energie-dagelijkse afwijking dedup-venster",
-          "alert_agg_short_cycling_pattern_min": "Standaard 60 min."
+          "alert_agg_short_cycling_pattern_min": "Standaard 60 min.",
+          "alert_agg_cop_physically_impossible_min": "Standaard 1440 min."
         }
       },
       "notifications_test_menu": {
@@ -832,6 +834,9 @@
       },
       "short_cycling_pattern": {
         "name": "Kort-cyclisch patroon"
+      },
+      "cop_physically_impossible": {
+        "name": "COP fysiek onmogelijk"
       }
     }
   },

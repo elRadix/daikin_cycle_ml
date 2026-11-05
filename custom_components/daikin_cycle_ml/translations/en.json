@@ -528,7 +528,8 @@
           "alert_agg_db_retention_warning_min": "Database retention warning dedup window",
           "alert_agg_kmeans_retrain_stale_min": "K-means retrain stale dedup window",
           "alert_agg_energy_daily_anomaly_min": "Energy daily anomaly dedup window",
-          "alert_agg_short_cycling_pattern_min": "Short cycling pattern window"
+          "alert_agg_short_cycling_pattern_min": "Short cycling pattern window",
+          "alert_agg_cop_physically_impossible_min": "Physically impossible COP window"
         },
         "data_description": {
           "alert_agg_pendulum_hourly_min": "Default 60 min.",
@@ -550,7 +551,8 @@
           "alert_agg_db_retention_warning_min": "Database retention warning dedup window",
           "alert_agg_kmeans_retrain_stale_min": "K-means retrain stale dedup window",
           "alert_agg_energy_daily_anomaly_min": "Energy daily anomaly dedup window",
-          "alert_agg_short_cycling_pattern_min": "Default 60 min."
+          "alert_agg_short_cycling_pattern_min": "Default 60 min.",
+          "alert_agg_cop_physically_impossible_min": "Default 1440 min."
         }
       },
       "notifications_test_menu": {
@@ -832,6 +834,9 @@
       },
       "short_cycling_pattern": {
         "name": "Short cycling pattern"
+      },
+      "cop_physically_impossible": {
+        "name": "COP physically impossible"
       }
     }
   },

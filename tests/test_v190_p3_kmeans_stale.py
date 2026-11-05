@@ -400,7 +400,7 @@ def test_i18n_notifications_dedup_has_kmeans_key():
         d = json.loads(path.read_text(encoding="utf-8"))
         nd = d["options"]["step"]["notifications_dedup"]["data"]
         assert "alert_agg_kmeans_retrain_stale_min" in nd, f"missing in {fname}"
-        assert len(nd) == 20, f"{fname} has {len(nd)}, expected 20"
+        assert len(nd) == 21, f"{fname} has {len(nd)}, expected 21"
 
 
 def test_config_flow_notifications_enabled_has_kmeans_field():

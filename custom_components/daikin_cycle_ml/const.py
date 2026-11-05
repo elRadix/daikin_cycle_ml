@@ -360,6 +360,7 @@ NOTIF_ID_COP_DEGRADATION = f"{DOMAIN}_cop_degradation"
 NOTIF_ID_DEFROST_EXCESSIVE = f"{DOMAIN}_defrost_excessive"
 NOTIF_ID_BUH_EXCESSIVE = f"{DOMAIN}_buh_excessive"
 NOTIF_ID_SOURCE_STALE = f"{DOMAIN}_source_stale"
+NOTIF_ID_COP_PHYSICALLY_IMPOSSIBLE = f"{DOMAIN}_cop_physically_impossible"
 NOTIF_ID_MISSING_ATTRIBUTES = f"{DOMAIN}_missing_attributes"
 NOTIF_ID_DHW_PENDULUM = f"{DOMAIN}_dhw_pendulum"
 NOTIF_ID_HIGH_CYCLE_RATE = f"{DOMAIN}_high_cycle_rate"
@@ -410,6 +411,7 @@ ALERT_TYPE_EMOJI = {
     "defrost_excessive": "\u2744\uFE0F",
     "buh_excessive": "\U0001F525",
     "source_stale": "\U0001F4E1",
+    "cop_physically_impossible": "\U0001F9EA",
     "missing_attributes": "\u2753",
     "cop_low": "\U0001F4C9",
     "stooklijn_advies": "\U0001F4C9",
@@ -544,6 +546,12 @@ ALERT_GROUP_MAP = {
     "defrost_excessive": ALERT_GROUP_COMPONENT_HEALTH,
     "buh_excessive": ALERT_GROUP_COMPONENT_HEALTH,
     "source_stale": ALERT_GROUP_DATA_QUALITY,
+    "cop_physically_impossible": ALERT_GROUP_DATA_QUALITY,
+    # v1.19.9 #645: 3 pre-existing alerts had BINARY_ALERT_MAP entry
+    # but no group mapping -- caught by alert_storm_grouping fuzz test.
+    "db_retention_warning": ALERT_GROUP_COMPONENT_HEALTH,
+    "energy_daily_anomaly": ALERT_GROUP_ML,
+    "kmeans_retrain_stale": ALERT_GROUP_ML,
     "missing_attributes": ALERT_GROUP_DATA_QUALITY,
     "dhw_pendulum": ALERT_GROUP_PENDULUM,
     "high_cycle_rate": ALERT_GROUP_SHORT_CYCLE,
@@ -659,6 +667,7 @@ ALERT_DEDUP_DEFAULTS: dict[str, int] = {
     "defrost_excessive": 1440,
     "buh_excessive": 1440,
     "source_stale": 60,
+    "cop_physically_impossible": 1440,
     "missing_attributes": 60,
     "dhw_pendulum": 60,
     "high_cycle_rate": 60,
