@@ -2760,11 +2760,15 @@ class CycleDB:
         try:
             await self.async_ensure_cop_samples_table()
             conn = self._require()
+            # v1.19.9 #123: accept is_transition_artifact from caller
+            # (3-tier classifier flags suspect samples but keeps them
+            # in DB for audit; default 0 preserves legacy behavior).
             await conn.execute(
                 "INSERT INTO cop_samples "
                 "(ts, cop, lwt, outdoor, r1t, r4t, flow_lmin, "
-                "power_stable, mode, source, boiler_active, boiler_mode) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "power_stable, mode, source, boiler_active, boiler_mode, "
+                "is_transition_artifact) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     float(sample["ts"]),
                     float(sample["cop"]),
@@ -2778,6 +2782,7 @@ class CycleDB:
                     sample.get("source", "interval"),
                     _safe_bool_int(sample.get("boiler_active")),
                     _safe_boiler_mode(sample.get("boiler_mode")),
+                    int(sample.get("is_transition_artifact", 0) or 0),
                 ),
             )
             await conn.commit()

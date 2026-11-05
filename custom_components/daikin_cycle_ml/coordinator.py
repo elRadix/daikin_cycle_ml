@@ -3184,6 +3184,28 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             'boiler_active': 1 if _ba else 0,
             'boiler_mode': _boiler_mode,
         }
+        # v1.19.9 #123: 3-tier Carnot classifier (RFI #127 Q1, factor 0.65).
+        # reject: physically impossible -> do not store.
+        # flag:   suspect -> store with is_transition_artifact=1.
+        # accept: normal operation -> store with flag=0.
+        # not_applicable: cooling / missing data / lwt<=outdoor -> store as-is.
+        from .engine.physics import classify_cop_sample
+        _cls = classify_cop_sample(
+            mode=str(_mode),
+            lwt=row.get('lwt'),
+            outdoor=row.get('outdoor'),
+            cop=row.get('cop'),
+        )
+        if _cls == 'reject':
+            _LOGGER.warning(
+                "v1.19.9 #123: rejected physically impossible COP=%s "
+                "(lwt=%s, outdoor=%s, mode=%s)",
+                row.get('cop'), row.get('lwt'), row.get('outdoor'),
+                str(_mode),
+            )
+            return
+        if _cls == 'flag':
+            row['is_transition_artifact'] = 1
         ok = await self.db.async_insert_cop_sample(row)
         if ok:
             self._last_cop_sample_ts = now

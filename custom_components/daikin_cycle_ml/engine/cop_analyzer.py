@@ -1,6 +1,8 @@
 """Batch 14a: COP / stooklijn analysis from global_cop attributes."""
 from __future__ import annotations
 
+import math
+
 import re
 import time
 from dataclasses import dataclass
@@ -19,37 +21,75 @@ STOOKLIJN_RECENT_WINDOW_S = 48 * 3600
 
 
 def _parse_float(value: Any) -> float | None:
-    if value is None:
-        return None
-    if isinstance(value, bool):
+    """v1.19.9 #635: robust float parser.
+
+    Hybrid strategy:
+      1. int/float direct (bool rejected to avoid phantom 1.0/0.0)
+      2. string: strip, reject invalid/unknown/unavailable keywords
+      3. EU decimal pre-process ("1,5" -> "1.5")
+      4. try float(s) -- handles scientific notation ("5.0e2")
+      5. fall back to _NUM_RE.search(s) -- handles suffixes ("5.0 kW")
+
+    Rejects: NaN, inf (would poison aggregates), ambiguous commas
+    ("1,5,0", "1,500" with 3-digit tail -> cannot disambiguate).
+    """
+    if value is None or isinstance(value, bool):
         return None
     if isinstance(value, (int, float)):
-        return float(value)
-    if not isinstance(value, str):
+        f = float(value)
+    elif isinstance(value, str):
+        s = value.strip()
+        if not s:
+            return None
+        low = s.lower()
+        if "invalid" in low or "unknown" in low or "unavailable" in low:
+            return None
+        # EU decimal: exactly one comma, no dot; only if tail is
+        # 1-2 digits (decimal fraction) or leading 0 (0,5)
+        # v1.19.9 #637: pre-fix had `if len(parts) == 2: ... else:
+        # return None` but count(",")==1 guarantees split(",") yields
+        # exactly 2 parts -- the else was dead code (never reached,
+        # never coverable). Removed.
+        if s.count(",") == 1 and "." not in s:
+            int_part, frac_part = s.lstrip("-").split(",")
+            if frac_part and (
+                len(frac_part) <= 2 or int_part in ("0", "")
+            ):
+                s = s.replace(",", ".")
+            else:
+                return None
+        elif "," in s:
+            return None
+        # Try direct float first (scientific notation)
+        try:
+            f = float(s)
+        except ValueError:
+            # Fallback: extract first number (suffix support)
+            m = _NUM_RE.search(s)
+            if not m:
+                return None
+            try:
+                f = float(m.group(0))
+            except ValueError:  # pragma: no cover
+                return None
+    else:
         return None
-    s = value.strip()
-    if not s:
+    if math.isnan(f) or math.isinf(f):
         return None
-    low = s.lower()
-    if 'invalid' in low or 'unknown' in low or 'unavailable' in low:
-        return None
-    m = _NUM_RE.search(s)
-    if not m:
-        return None
-    try:
-        return float(m.group(0))
-    except ValueError:  # pragma: no cover
-        return None  # pragma: no cover
-
-
+    return f
 def _parse_bool(value: Any) -> bool:
+    """v1.19.9 #635: robust bool parser.
+
+    Pre-fix only accepted 'ON' string literals; rejected TRUE, yes, 1,
+    and other common variants silently (returning False).
+    """
     if isinstance(value, bool):
         return value
+    if isinstance(value, (int, float)):
+        return value != 0
     if isinstance(value, str):
-        return value.strip().upper() == 'ON'
-    return bool(value)
-
-
+        return value.strip().upper() in ("ON", "TRUE", "YES", "1")
+    return False
 T_REF_STOOKLIJN: float = 20.0
 
 
@@ -138,9 +178,11 @@ def parse_global_cop_attrs(attrs: dict[str, Any] | None) -> CopSample | None:
         outdoor=_parse_float(attrs.get('outdoor_temperature')),
         flow_lmin=flow,
         buh=_parse_bool(attrs.get('backup_heater_active')),
-        defrost=(
-            str(attrs.get('defrost_operation', 'OFF')).strip().upper() == 'ON'
-        ),
+        # v1.19.9 #635: pre-fix only 'ON' string matched; bool True,
+        # int 1, and lowercase variants silently became False, letting
+        # defrost samples pass the classifier as valid. Use _parse_bool
+        # which accepts all variants (same helper as power_stable).
+        defrost=_parse_bool(attrs.get('defrost_operation')),
         power_stable=_parse_bool(attrs.get('power_stable')),
         data_quality=str(attrs.get('data_quality', 'unknown')),
     )
