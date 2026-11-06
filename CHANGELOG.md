@@ -4,15 +4,64 @@
 
 ### Added
 
-- **ESPAltherma v2.0 beta support:** Added compatibility aliases for the new upstream definitions (SHA `714ad016`).
-  - Mapped new diagnostic sensors: `R3T (suction 1)`, `R6T (subcool hex gas)`, `SV (hot gas)`, and `Auxiliary sensor (R6T)`.
+- **ESPAltherma `Stats: Heat output (kW)` consumption** (#273): The
+  integration now consumes the ESP32's pre-calculated thermal output when
+  available. This eliminates the ~6% COP drift caused by the R1T-vs-R2T
+  Δt choice between integration and ESPAltherma, verified against prod-1
+  data 2026-11-06 (integration COP 6.41 vs ESP32 COP 6.74).
+
+  Accuracy cascade (best available source wins):
+    1. User's own COP sensor (bypass — gold standard)
+    2. Power meter + ESP32 heat output
+    3. Power meter + integration heat (R1T)
+    4. ESP32 heat + ESP32 electrical
+    5. Integration heat + inverter estimate (legacy)
+
+- **ESPAltherma v2.0 beta support** (#267): Added compatibility aliases
+  for new upstream definitions (pinned to SHA `714ad016`).
+  - Mapped new diagnostic sensors: `R3T (suction 1)`, `R6T (subcool hex
+    gas)`, `SV (hot gas)`, `Auxiliary sensor (R6T)`, and `Heat exchanger
+    liquid temp.`.
+  - Added `V2_STATS_KEY_TYPO` for the upstream `Electricalinput` typo
+    (defensive — protects users who upgrade to the buggy beta).
   - Mapped new `I/U` and `O/U` prefixed attributes used by the HT models.
-- **Daily model compatibility check:** The `model-compat.yml` CI workflow now runs daily instead of weekly to detect upstream attribute drift within 24 hours.
+
+- **Daily model compatibility check**: The `model-compat.yml` CI workflow
+  now runs daily at 06:00 UTC instead of weekly (Monday-only). Detects
+  upstream attribute drift within 24 hours.
+
+- **34 new tests** (100% coverage on `_read_cop_effective` lines 1490-1550):
+  - Matrix (R641): 5 user-config combos + 1 invalid heat output
+  - Red-phase (R594): 9 boundary / parse / full-chain tests
+  - Fuzz (R640): 300 hypothesis cases on heat output parsing
+  - Branch (R643): 17 targeted tests for lines 1494, 1506-1507,
+    1522-1523, 1542
 
 ### Changed
 
-- Updated `docs/MODEL_ATTRIBUTES.json` to pin upstream ESPAltherma `beta` at SHA `714ad016`.
-- Updated `test_model_compat.py` canonical count to reflect the 5 new v2.0 aliases.
+- **`model-compat.yml` cron**: `0 6 * * 1` (Monday) → `0 6 * * *` (daily).
+- `docs/MODEL_ATTRIBUTES.json` pinned to upstream ESPAltherma beta
+  SHA `714ad016` (regenerated with 422 labels, 40 models).
+- `test_model_compat.py` `EXPECTED_CANONICAL_COUNT`: 11 → 16 to reflect
+  the 5 new v2.0 alias groups.
+
+### Fixed
+
+- **CHANGELOG format compliance** (#268): `[1.19.9]` had duplicate
+  `### Added` and `### Fixed` sections, breaking Keep a Changelog 1.1.0
+  parsers. Reformatted and enforced category ordering across the last
+  5 releases.
+
+- **NaN/Inf slip-through in COP calculation** (#273): `float('nan')`
+  doesn't raise, and `nan <= 0` / `nan > MAX_COP` are both `False`, so
+  physically impossible COPs would pass guards and reach the database.
+  Found by hypothesis fuzz (200 cases). Now rejected at ESP32 parse
+  time AND at final COP computation via `math.isnan` / `math.isinf`.
+
+- **Round-to-zero COP corruption** (#273): `round(cop, 4)` on tiny
+  positive values (e.g. `5.77e-10`) returns `0.0`, a nonsensical value
+  for the DB. Now rejected via `cop_r <= 0` guard, keeping only
+  meaningfully positive COP samples in `cop_samples`.
 
 ## [1.19.9] - 2026-11-06
 ### Added
