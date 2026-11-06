@@ -136,3 +136,40 @@ async def test_v28_flag_and_reject_synthetic(tmp_path):
     finally:
         await db.async_close()
         await asyncio.sleep(0.3)
+
+@pytest.mark.asyncio
+async def test_v28_not_applicable_branch_synthetic(tmp_path):
+    """R643: v28 skips not_applicable samples (covers db.py line 2081).
+
+    A sample with lwt <= outdoor classifies as not_applicable; the
+    `if cls == "not_applicable": continue` guard must fire. Prod-1
+    has no such samples, so this synthetic case is required for CI
+    coverage of the v28 loop's skip branch.
+    """
+    db = await _mk_db_local(tmp_path)
+    try:
+        # lwt == outdoor -> th == tc -> classifier returns not_applicable
+        await db.async_insert_cop_sample({
+            "ts": 1793608800.0, "cop": 5.0,
+            "lwt": 30.0, "outdoor": 30.0,
+            "mode": "heating", "source": "interval",
+            "power_stable": True,
+        })
+        # Second sample valid (accept) so migration scans something
+        await db.async_insert_cop_sample({
+            "ts": 1793608801.0, "cop": 5.0,
+            "lwt": 30.0, "outdoor": 10.0,
+            "mode": "heating", "source": "interval",
+            "power_stable": True,
+        })
+
+        stats = await db.async_migrate_to_v28()
+        assert stats["scanned"] == 2, f"scanned={stats['scanned']}"
+        # not_applicable + accept -> no UPDATEs
+        assert stats["unflagged"] == 0
+        assert stats["flagged"] == 0
+        assert stats["rejected"] == 0
+    finally:
+        await db.async_close()
+        await asyncio.sleep(0.3)
+
