@@ -130,7 +130,7 @@ _FULL_COVERAGE_MODELS: list[str] = [m for m in _HEATING_MODELS if m not in PARTI
 # ── Structure invariants ────────────────────────────────────────────────────
 
 EXPECTED_MODEL_COUNT = 40
-EXPECTED_CANONICAL_COUNT = 11
+EXPECTED_CANONICAL_COUNT = 16
 
 
 def test_expected_model_count():
