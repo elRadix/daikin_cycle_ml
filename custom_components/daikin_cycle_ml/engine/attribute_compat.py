@@ -56,7 +56,14 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
     "Operation Mode": ("Betriebsart", "Mode de fonctionnement"),
     "Thermostat ON/OFF": ("Thermostat EIN/AUS",),
     "Defrost Operation": ("Abtauung",),
+
+    "R6T (subcool hex gas)": ("20-4 (subcool hex gas?)",),
+    "R3T (suction 1)": ("20-8 (suction 1?)",),
+    "Heat exchanger liquid temp.": ("20-18 (liquid 2?)",),
+    "Auxiliary sensor (R6T) - Room / Outdoor": ("Ext. indoor ambient sensor (R6T)", "Ext. outdoor ambient sensor (R6T)"),
+    "SV (hot gas)": ("SV (hot gas)",),
 }
+
 
 _WS = re.compile(r"\s+")
 _PAREN_OPEN = re.compile(r"\s+\(")
