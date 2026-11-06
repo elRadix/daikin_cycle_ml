@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.19.10] - 2026-11-06
+
 ### Added
 
 - **ESPAltherma `Stats: Heat output (kW)` consumption** (#273): The
@@ -44,6 +46,14 @@
   SHA `714ad016` (regenerated with 422 labels, 40 models).
 - `test_model_compat.py` `EXPECTED_CANONICAL_COUNT`: 11 → 16 to reflect
   the 5 new v2.0 alias groups.
+
+- **Production snapshot replay validated** (#273, #275): All fixes were
+  verified against real prod-1 data captured 2026-11-06 (5,719 cop_samples,
+  210 cycles). 9-phase deep testing passed: DB health check (schema,
+  retention, orphans, data quality, growth, migrations), v28 migration
+  idempotency, defrost transition simulation, full 85-attribute payload,
+  alert E2E, KMeans retrain on real features, multi-day replay (Nov 3-6),
+  200 fuzz cases on real value ranges, and full 10-tick coordinator E2E.
 
 ### Fixed
 
