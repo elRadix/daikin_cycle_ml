@@ -1489,6 +1489,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return sensor_cop, "cop_sensor"
         if not attrs:
             return None, "none"
+        # R272: defrost invalidates thermal measurement (compressor short-cycles,
+        # R2T/R4T oscillate). Return None so caller skips energy accumulation.
+        # User's COP sensor (checked above) still wins if configured.
+        _defrost = attrs.get(ATTR_DEFROST_OPERATION)
+        if _defrost is True or (
+            isinstance(_defrost, str) and _defrost.strip().upper() == "ON"
+        ):
+            return None, "defrost_active"
         power_w, power_src = self._compute_electrical_power(now, attrs)
         if power_w is None or power_w <= 0:
             return None, "no_power"
@@ -1500,6 +1508,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         _tsrc = ""
 
         if raw_heat is not None:
+            # R272: explicit "unknown"/"unavailable" → do not fall back to V1
+            # (ESP32 is telling us it cannot compute thermal right now, e.g.
+            # during mode transition or defrost edge). Distinct from
+            # "invalid_data" which still falls back to V1.
+            if isinstance(raw_heat, str) and raw_heat.strip().lower() in (
+                "unknown", "unavailable"
+            ):
+                return None, "heat_unknown"
             try:
                 thermal_kw = float(raw_heat)
                 if math.isnan(thermal_kw) or math.isinf(thermal_kw):

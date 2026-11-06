@@ -63,6 +63,25 @@
   for the DB. Now rejected via `cop_r <= 0` guard, keeping only
   meaningfully positive COP samples in `cop_samples`.
 
+- **Defrost pollutes COP computation** (#272): `_read_cop_effective`
+  computed COP during defrost (compressor short-cycles, R2T/R4T
+  oscillate). This fed `snap.cop`, energy accumulators, and live
+  sensor attributes with meaningless values. Now returns
+  `(None, "defrost_active")` when `Defrost Operation` is `ON`/`True`.
+  User's own COP sensor is still authoritative (checked before the gate).
+
+- **`unknown`/`unavailable` heat output fell back to V1** (#272):
+  When ESPAltherma reported `Stats: Heat output (kW)` as `unknown` or
+  `unavailable`, the integration fell back to the V1 Δt calculation
+  with stale flow/R1T/R4T, producing a bogus COP. Now returns
+  `(None, "heat_unknown")`. Distinct from `invalid_data` (parse error)
+  which continues to fall back to V1 correctly.
+
+  Note: DB `cop_samples` inserts were already gated via
+  `_collect_source_attrs` (existing test `test_collect_source_attrs_defrost_on_skips`).
+  This fix closes the live-value leak (`snap.cop`, energy accumulators,
+  live sensor attributes).
+
 ## [1.19.9] - 2026-11-06
 ### Added
 - **v28 migration — historical re-classification (Bug #10 fix, #123):**
