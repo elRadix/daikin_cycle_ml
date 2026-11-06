@@ -15,7 +15,7 @@ on:
       - 'custom_components/daikin_cycle_ml/data/datasheets.json'
       - '.github/workflows/model-compat.yml'
   schedule:
-    - cron: "0 6 * * 1"
+    - cron: "0 6 * * *"  # Daily at 06:00 UTC
   workflow_dispatch:
 
 jobs:
