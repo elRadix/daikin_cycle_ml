@@ -43,8 +43,15 @@ def test_detect_compressor_on_rps_below_threshold_no_power():
     assert detect_compressor_on({ATTR_INV_FREQUENCY_RPS: 0}) is False
 
 
+# R278/R636: pre-fix this test used rps=0 as "no signal" proxy. But rps=0
+# is authoritative firmware "compressor OFF" (per ESPAltherma). Power
+# fallback only applies when rps is MISSING (None / non-numeric /
+# "Invalid"). Fixed by omitting the rps key (or setting None).
+# Real-world evidence: prod-1 ids 182/279 (2026-11-06) were phantom
+# 30s cycles from power spikes on rps=0.
 def test_detect_compressor_on_power_fallback():
-    assert detect_compressor_on({ATTR_INV_FREQUENCY_RPS: 0}, power_w=500.0) is True
+    assert detect_compressor_on({}, power_w=500.0) is True
+    assert detect_compressor_on({ATTR_INV_FREQUENCY_RPS: None}, power_w=500.0) is True
     assert detect_compressor_on({ATTR_INV_FREQUENCY_RPS: 0}, power_w=50.0) is False
 
 

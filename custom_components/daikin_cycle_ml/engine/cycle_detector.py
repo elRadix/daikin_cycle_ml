@@ -144,8 +144,21 @@ def detect_compressor_on(
         opts.get("fallback_power_threshold_w", DEFAULT_FALLBACK_POWER_THRESHOLD_W)
     )
     rps = _safe_float(attrs.get(ATTR_INV_FREQUENCY_RPS))
-    if rps is not None and rps > rps_thr:
-        return True
+    # v1.19.11 #278: rps explicitly present AND under-threshold = firmware
+    # says "compressor OFF". Do not fall back to power alone in that case
+    # (momentary pump/electronics spikes >200W would open phantom 30s
+    # cycles -- prod-1 ids 182/279, 2026-11-06). Only flow>5 AND cop>1.5
+    # can override an explicit rps<=threshold. When rps is MISSING (None
+    # / non-numeric / "Invalid"), power fallback (v1.19.7 #261) still applies.
+    if rps is not None:
+        if rps > rps_thr:
+            return True
+        flow = _safe_float(attrs.get(ATTR_FLOW_SENSOR))
+        cop = _safe_float(attrs.get(ATTR_COP))
+        return (
+            flow is not None and flow > 5.0
+            and cop is not None and cop > 1.5
+        )
     if power_w is not None and power_w > pwr_thr:
         return True
     flow = _safe_float(attrs.get(ATTR_FLOW_SENSOR))

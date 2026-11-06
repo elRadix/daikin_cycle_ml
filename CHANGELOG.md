@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Phantom cycles on power spike with rps=0 (#278):** `detect_compressor_on` opened a cycle when `power_w > 200W` alone, even though ESPAltherma explicitly reported `INV frequency (rps) = 0` (firmware stating compressor OFF). Momentary pump/electronics spikes created phantom 30-second cycles. Real prod-1 evidence 2026-11-06: ids 182 (Oct 26) and 279 (Nov 4) both 29s, rps=0, zero cop_samples.
+  Fix: when rps is present and under threshold, only flow>5 AND cop>1.5 can override. When rps is MISSING (None / non-numeric / "Invalid"), power fallback (v1.19.7 #261) still applies. Preserves all prior detector semantics.
+
 ## [1.19.10] - 2026-11-06
 
 ### Added
