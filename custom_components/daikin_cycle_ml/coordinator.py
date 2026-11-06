@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import math
 import time
 from collections import deque
 from dataclasses import dataclass, field
@@ -1491,39 +1492,64 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         power_w, power_src = self._compute_electrical_power(now, attrs)
         if power_w is None or power_w <= 0:
             return None, "no_power"
-        from .engine.attribute_compat import build_compat_view
-        from .engine.thermal import compute_thermal_power_live, dt_from_attrs
-        compat = build_compat_view(attrs)
-        dt_k = dt_from_attrs(compat)
-        if dt_k is None or dt_k <= 0:
-            return None, "no_dt"
-        try:
-            flow_lmin = float(compat.get("Flow sensor (l/min)") or 0)
-        except (TypeError, ValueError):
-            flow_lmin = 0.0
-        try:
-            rps = float(compat.get("INV frequency (rps)") or 0)
-        except (TypeError, ValueError):
-            rps = 0.0
-        mode = "heating"
-        data_obj = getattr(self, "data", None)
-        dm = getattr(data_obj, "mode", None) if data_obj else None
-        if dm:
-            mode = str(dm)
-        thermal_kw, _tsrc = compute_thermal_power_live(
-            power_w=None, cop=None,
-            flow_lmin=flow_lmin if flow_lmin > 0 else None,
-            dt_k=dt_k,
-            rps=rps if rps > 0 else None,
-            mode=mode,
-        )
+
+        from .const import V2_STATS_HEAT_KEY
+        raw_heat = attrs.get(V2_STATS_HEAT_KEY)
+
+        thermal_kw = None
+        _tsrc = ""
+
+        if raw_heat is not None:
+            try:
+                thermal_kw = float(raw_heat)
+                if math.isnan(thermal_kw) or math.isinf(thermal_kw):
+                    thermal_kw = None
+                    _tsrc = ""
+                else:
+                    _tsrc = "espaltherma_heat_output"
+            except (TypeError, ValueError):
+                pass
+
+        if thermal_kw is None or thermal_kw <= 0:
+            from .engine.attribute_compat import build_compat_view
+            from .engine.thermal import compute_thermal_power_live, dt_from_attrs
+            compat = build_compat_view(attrs)
+            dt_k = dt_from_attrs(compat)
+            if dt_k is None or dt_k <= 0:
+                return None, "no_dt"
+            try:
+                flow_lmin = float(compat.get("Flow sensor (l/min)") or 0)
+            except (TypeError, ValueError):
+                flow_lmin = 0.0
+            try:
+                rps = float(compat.get("INV frequency (rps)") or 0)
+            except (TypeError, ValueError):
+                rps = 0.0
+            mode = "heating"
+            data_obj = getattr(self, "data", None)
+            dm = getattr(data_obj, "mode", None) if data_obj else None
+            if dm:
+                mode = str(dm)
+            thermal_kw, _tsrc = compute_thermal_power_live(
+                power_w=None, cop=None,
+                flow_lmin=flow_lmin if flow_lmin > 0 else None,
+                dt_k=dt_k,
+                rps=rps if rps > 0 else None,
+                mode=mode,
+            )
+
         if thermal_kw is None or thermal_kw <= 0:
             return None, "no_thermal"
+
         from .const import MAX_COP
         cop = thermal_kw * 1000.0 / power_w
-        if cop <= 0 or cop > MAX_COP:
+        if math.isnan(cop) or math.isinf(cop) or cop <= 0 or cop > MAX_COP:
             return None, "cop_out_of_range"
-        return round(cop, 4), f"computed_{power_src}"
+        cop_r = round(cop, 4)
+        if cop_r <= 0:
+            # Tiny positive cop rounds to 0.0 -- reject (R643)
+            return None, "cop_out_of_range"
+        return cop_r, f"computed_{power_src}"
 
     async def _async_update_data(self) -> DataSnapshot:
         now = time.time()

@@ -692,6 +692,7 @@ BUH_STEP2_KW_DEFAULT = 3.0
 ELECTRICAL_OFFSET_W_V1 = 100.0
 VOLTAGE_NOMINAL_V = 230.0
 V2_STATS_KEY = "Stats: Electrical input estimated (kW)"
+V2_STATS_HEAT_KEY = "Stats: Heat output (kW)"
 # ESPAltherma v2.0 beta introduced a typo in the upstream source code.
 # We check both the correct spelling and the typo to ensure compatibility.
 V2_STATS_KEY_TYPO = "Stats: Electricalinput estimated (kW)"
