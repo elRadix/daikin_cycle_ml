@@ -1382,8 +1382,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         """v1.14.0: ESPAltherma 2.0 'Stats:' section detection."""
         if not attrs:
             return False
-        from .const import V2_STATS_KEY
-        return V2_STATS_KEY in attrs
+        from .const import V2_STATS_KEY, V2_STATS_KEY_TYPO
+        return V2_STATS_KEY in attrs or V2_STATS_KEY_TYPO in attrs
 
     def _v2_stats_active(
         self, now: float, attrs: dict[str, Any] | None
@@ -1427,11 +1427,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     def _power_from_v2_stats(
         self, now: float, attrs: dict[str, Any] | None
     ) -> float | None:
-        from .const import V2_STATS_KEY
+        from .const import V2_STATS_KEY, V2_STATS_KEY_TYPO
         if not attrs or not self._v2_stats_active(now, attrs):
             return None
         try:
             v = attrs.get(V2_STATS_KEY)
+            if v is None:
+                v = attrs.get(V2_STATS_KEY_TYPO)
             if v is None:
                 return None
             pw = float(v) * 1000.0
