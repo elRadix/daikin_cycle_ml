@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.19.9] - 2026-11-06
+
 ### Added
 
 - **v28 migration — historical re-classification (Bug #10 fix, #123):**
