@@ -44,6 +44,13 @@
   SHA `714ad016` (regenerated with 422 labels, 40 models).
 - `test_model_compat.py` `EXPECTED_CANONICAL_COUNT`: 11 → 16 to reflect
   the 5 new v2.0 alias groups.
+- **Cosmetic dead-code cleanup in `_resolve_mode`** (#271): removed the
+  literal string `'ATTR_IU_OPERATION_MODE'` from a fallback tuple — it
+  never matched any attribute (verified by grep across prod payloads,
+  docs, and fixtures; by R637 invariant test; and by full mode-related
+  regression suite). The first two tuple entries
+  (`'I/U operation mode'` and `'iu_operation_mode'`) already covered
+  all ESPAltherma v1/v2 payloads. No functional change.
 
 ### Fixed
 

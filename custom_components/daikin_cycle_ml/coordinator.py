@@ -3086,8 +3086,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if attrs:
             # 52b7b: direct I/U lookup -- classify_mode gates on
             # compressor state and returns 'unknown' during DHW-off.
-            for key in ('I/U operation mode', 'iu_operation_mode',
-                        'ATTR_IU_OPERATION_MODE'):
+            for key in ('I/U operation mode', 'iu_operation_mode'):
                 iu = attrs.get(key)
                 if isinstance(iu, str):
                     n = iu.strip().lower()
