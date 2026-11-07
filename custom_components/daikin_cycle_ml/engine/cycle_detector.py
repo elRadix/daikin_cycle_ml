@@ -23,12 +23,12 @@ from ..const import (
     DEFAULT_FALLBACK_POWER_THRESHOLD_W,
     MAX_CYCLE_DURATION_S,
     MAX_THERMAL_KW,
+    MIN_THERMAL_SAMPLES,
     OP_MODE_COOLING,
     OP_MODE_DHW,
     OP_MODE_HEATING,
     STATE_IDLE,
     STATE_RUNNING,
-    MIN_THERMAL_SAMPLES,
 )
 from .attribute_compat import build_compat_view
 

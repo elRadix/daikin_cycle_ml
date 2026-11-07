@@ -326,6 +326,63 @@ REQUIRED_ATTRIBUTES = [
     a for a in CORE_ATTRIBUTES if a not in OPTIONAL_ATTRIBUTES
 ]
 
+# --- v1.20.0 #281: consumed attributes (runtime transparency contract) ---
+# CONSUMED_ATTRIBUTES is the operational contract between the attribute
+# reader (monolithic) / v2 resolver (individual) and every downstream
+# consumer: cycle detection, COP calculation, thermal power, DHW
+# classification, stooklijn advice, hybrid analytics, comfort analysis.
+#
+# REQUIRED_ATTRIBUTES (12) is the STRICT repair-triggering subset.
+# CONSUMED_ATTRIBUTES (22) is a SUPERSET of REQUIRED, so any required
+# label is automatically also a consumed label. Missing consumed labels
+# are surfaced via resolver.missing_consumed, coordinator INFO logs,
+# binary_sensor.missing_attrs attributes, and diagnostics — never hidden.
+#
+# Missing consumed-but-not-required labels do NOT trigger a repair issue
+# (a non-DHW model has no R5T; a non-BUH model has no BUH Step1/2 — both
+# are legitimately absent, not a misconfiguration).
+CONSUMED_ATTRIBUTES: list[str] = list(CORE_ATTRIBUTES) + [
+    ATTR_INV_FREQUENCY_2_RPS,
+    ATTR_COP,
+    ATTR_DHW_TANK_TEMP,
+    ATTR_INDOOR_AMBIENT_R1T,
+    ATTR_TARGET_COND_TEMP,
+    ATTR_BOILER_OPERATION_DEMAND,
+    ATTR_BOILER_DHW_DEMAND,
+    ATTR_HYBRID_OP_MODE,
+    ATTR_BE_COP,
+]
+# (invariants validated at end of module via _validate_attribute_sets)
+
+# Downstream feature impact per consumed label. Used by coordinator logs,
+# binary_sensor attributes, and diagnostics so the user can see EXACTLY
+# which capability is inactive when a label is missing.
+CONSUMED_ATTRIBUTE_FEATURES: dict[str, str] = {
+    ATTR_OPERATION_MODE: "mode_classification",
+    ATTR_IU_OPERATION_MODE: "mode_classification",
+    ATTR_3WAY_VALVE: "dhw_detection",
+    ATTR_DEFROST_OPERATION: "defrost_tracking",
+    ATTR_LEAVING_WATER_AFTER_BUH: "thermal_power",
+    ATTR_INLET_WATER_R4T: "thermal_power",
+    ATTR_OUTDOOR_AIR_R1T: "thermal_power",
+    ATTR_FLOW_SENSOR: "thermal_power",
+    ATTR_WATER_PUMP_OPERATION: "cycle_detection",
+    ATTR_BUH_STEP1: "buh_detection",
+    ATTR_BUH_STEP2: "buh_detection",
+    ATTR_LW_SETPOINT: "setpoint_tracking",
+    ATTR_INV_FREQUENCY_RPS: "cycle_detection",
+    ATTR_INV_FREQUENCY_2_RPS: "cascade_detection",
+    ATTR_COP: "cop_calculation",
+    ATTR_DHW_TANK_TEMP: "dhw_classification",
+    ATTR_INDOOR_AMBIENT_R1T: "comfort_analysis",
+    ATTR_TARGET_COND_TEMP: "heating_curve_advice",
+    ATTR_BOILER_OPERATION_DEMAND: "hybrid_analytics",
+    ATTR_BOILER_DHW_DEMAND: "hybrid_analytics",
+    ATTR_HYBRID_OP_MODE: "hybrid_classification",
+    ATTR_BE_COP: "hybrid_efficiency",
+}
+# (invariants validated at end of module via _validate_features_mapping)
+
 # --- Config-flow attribute-mode ---
 ATTRIBUTE_MODE_AUTO = "auto"
 ATTRIBUTE_MODE_MANUAL = "manual"
@@ -645,6 +702,18 @@ DAILY_SUMMARY_BACKFILL_KEY = "daily_summary_backfilled_v1_7_0"
 # v1.7.0: live daily summary rollup toggle
 OPTION_DAILY_SUMMARY_LIVE_ENABLED = "daily_summary_live_enabled"
 
+# --- ESPAltherma v2 source type (#281) ---
+SOURCE_TYPE_MONOLITHIC = "monolithic"
+SOURCE_TYPE_INDIVIDUAL = "individual"
+SOURCE_TYPE_AUTO = "auto"
+SOURCE_TYPE_DEFAULT = SOURCE_TYPE_MONOLITHIC
+
+CONF_SOURCE_TYPE = "source_type"
+CONF_INDIVIDUAL_PREFIX = "individual_prefix"
+CONF_INDIVIDUAL_MAP = "individual_map"
+
+DEFAULT_INDIVIDUAL_PREFIX = "sensor.espaltherma_"
+
 # v1.7.0: default for the live daily summary rollup toggle
 DEFAULT_DAILY_SUMMARY_LIVE_ENABLED = True
 
@@ -752,3 +821,37 @@ def models_in_family(family: str) -> list[str]:
     if family in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
         return [family]
     return [m for m in MODEL_CHOICES if family_for_model(m) == family]
+
+
+# --- v1.20.0 #281 attribute-set invariants ---
+# Kept as callable functions (not just inline ifs) so the guard logic is
+# reachable in tests: monkeypatch the module-level constants, call the
+# validator directly, expect RuntimeError. Enforces the transparency
+# contract at import time without hiding behaviour behind # pragma.
+
+
+def _validate_attribute_sets() -> None:
+    """REQUIRED ⊆ CONSUMED ⊆ unique. Fails loud on drift."""
+    if len(CONSUMED_ATTRIBUTES) != len(set(CONSUMED_ATTRIBUTES)):
+        raise RuntimeError(
+            "CONSUMED_ATTRIBUTES has duplicates: " + repr(CONSUMED_ATTRIBUTES)
+        )
+    if not set(REQUIRED_ATTRIBUTES).issubset(set(CONSUMED_ATTRIBUTES)):
+        raise RuntimeError(
+            "REQUIRED_ATTRIBUTES must be a subset of CONSUMED_ATTRIBUTES; "
+            "missing: " + repr(set(REQUIRED_ATTRIBUTES) - set(CONSUMED_ATTRIBUTES))
+        )
+
+
+def _validate_features_mapping() -> None:
+    """CONSUMED_ATTRIBUTE_FEATURES covers exactly CONSUMED_ATTRIBUTES."""
+    if set(CONSUMED_ATTRIBUTE_FEATURES.keys()) != set(CONSUMED_ATTRIBUTES):
+        raise RuntimeError(
+            "CONSUMED_ATTRIBUTE_FEATURES must map every CONSUMED_ATTRIBUTE. "
+            "Missing: " + repr(set(CONSUMED_ATTRIBUTES) - set(CONSUMED_ATTRIBUTE_FEATURES.keys())) +
+            ". Extra: " + repr(set(CONSUMED_ATTRIBUTE_FEATURES) - set(CONSUMED_ATTRIBUTES)) + "."
+        )
+
+
+_validate_attribute_sets()
+_validate_features_mapping()

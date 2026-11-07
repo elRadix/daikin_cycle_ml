@@ -13,7 +13,10 @@ _LOGGER = logging.getLogger(__name__)
 
 _TEMPLATE_RE = re.compile(r"^\{.*\}$")
 _PLACEHOLDER_RE = re.compile(r"^Conv \d+ not avail\.$")
-_NULL_STRINGS = {"", "---", "unknown", "unavailable", "none", "nan", "null"}
+_NULL_STRINGS = {
+    "", "---", "unknown", "unavailable", "none", "nan", "null",
+    "inf", "infinity", "-inf", "+inf",  # v1.20.0 #281 GAP-3
+}
 _TRUE_STRINGS = {"on", "true", "yes", "1"}
 _FALSE_STRINGS = {"off", "false", "no", "0"}
 

@@ -205,13 +205,29 @@
       },
       "user": {
         "title": "Daikin Cycle ML - kies modelfamilie",
-        "description": "Kies de modelfamilie van je Daikin Altherma unit. De familie is de prefix van de modelcode van de buitenunit (bijv. ERGA, EPRA, EKHBRD). Op het volgende scherm kies je het exacte model.\n\n- **Basic profile**: veilige standaardwaarden als je je exacte model niet weet.\n- **Custom**: lever je eigen attribuut-mapping aan.",
+        "description": "Kies de modelfamilie van je Daikin Altherma unit. De familie is de prefix van de modelcode van de buitenunit (bijv. ERGA, EPRA, EKHBRD). Op het volgende scherm kies je het exacte model.\n\n- **Basic profile**: veilige standaardwaarden als je je exacte model niet weet.\n- **Custom**: lever je eigen attribuut-mapping aan.\n\n**Detected:** monolithic entity = {mono_found}, ESPAltherma v2 entities = {v2_count}.\n**Suggested source type:** `{suggestion}`.",
         "data": {
-          "family": "Modelfamilie"
+          "family": "Modelfamilie",
+          "source_type": "ESPAltherma source type"
         },
         "data_description": {
-          "family": "Prefix van de modelcode van de buitenunit. Voorbeeld: ERGA, EPRA, EKHBRD."
+          "family": "Prefix van de modelcode van de buitenunit. Voorbeeld: ERGA, EPRA, EKHBRD.",
+          "source_type": "How ESPAltherma publishes data to Home Assistant. Choose Monolithic if you use the classic single sensor entity, or Individual if you use ESPAltherma v2 beta (many separate entities). Auto detects at runtime."
         }
+      },
+      "individual_prefix": {
+        "title": "ESPAltherma v2 entity prefix",
+        "description": "Enter the entity_id prefix under which ESPAltherma v2 publishes its individual sensors. Default: `sensor.espaltherma_`.",
+        "data": {
+          "individual_prefix": "Entity prefix"
+        },
+        "data_description": {
+          "individual_prefix": "Prefix including the domain, e.g. `sensor.espaltherma_`."
+        }
+      },
+      "individual_review": {
+        "title": "Review ESPAltherma v2 attributes",
+        "description": "Matched **{matched}/{total}** required attributes. Discovered entities: {discovered}.{missing_block}{collision_block}\n\nContinue to select your Daikin model. You can adjust the mapping later via the integration options."
       }
     },
     "error": {
@@ -876,6 +892,10 @@
     "legacy_db_multi_entry": {
       "title": "Oude DB-data toegewezen aan één entry",
       "description": "De historische Daikin Cycle ML-database is aangemaakt vóór v1.10.0 en bevat data van meerdere config entries. Deze is toegewezen aan {assigned_title} (oudste entry). Oud bestand bewaard op: {legacy_path}. Aantal entries: {n_entries}. Is de toewijzing onjuist, gebruik dan de service daikin_cycle_ml.assign_legacy_db. Om te archiveren (opnieuw beginnen), gebruik daikin_cycle_ml.archive_legacy_db. Voor CSV-export gebruik daikin_cycle_ml.export_legacy_db."
+    },
+    "espaltherma_v2_missing_attrs": {
+      "title": "ESPAltherma v2 sensors missing",
+      "description": "{count} required sensor(s) are not published by ESPAltherma v2: {labels}. Enable them in the ESPAltherma v2 web UI (Settings → Definitions), then restart ESPAltherma."
     }
   },
   "services": {
@@ -1108,6 +1128,13 @@
         "stooklijn_advies": "Stooklijn-advies",
         "all_alerts": "Alle meldingen (alles testen)",
         "short_cycling_pattern": "Kort-cyclisch patroon (window)"
+      }
+    },
+    "source_type": {
+      "options": {
+        "monolithic": "Monolithic entity (ESPAltherma v1, sensor.althermasensors)",
+        "individual": "Individual entities (ESPAltherma v2 beta, sensor.espaltherma_*)",
+        "auto": "Auto-detect (recommended for new installs)"
       }
     }
   }
