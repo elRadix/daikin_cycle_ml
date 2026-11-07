@@ -282,6 +282,43 @@ async def test_switch_logs_warning(monkeypatch, caplog) -> None:
     )
 
 
+
+@pytest.mark.asyncio
+async def test_no_log_on_same_choice(monkeypatch, caplog) -> None:
+    """Line 1665->1675: same choice as previous tick -> NO log, NO state change.
+
+    Production scenario: two consecutive ticks with identical coverage.
+    The coordinator runs every 30s; if mono/v2 coverage hasn't changed,
+    we should NOT spam logs. Idempotency per tick.
+
+    This covers the else-branch (chosen == _auto_last_chosen) that the
+    other 12 tests never hit because _auto_last_chosen starts as ''.
+    """
+    c = _bare()
+    _set_mono_state(c, present=True)
+    _set_resolve(monkeypatch)
+    _set_read(monkeypatch)
+    # Simulate: previous tick already chose individual (v2 wins on tie)
+    c._auto_last_chosen = "individual"
+    c._tick_energy = MagicMock(side_effect=_Reached())
+    with caplog.at_level(logging.INFO, logger=_COORD_MOD):
+        with pytest.raises(_Reached):
+            await c._async_update_data()
+    # No "source auto" log at all (no choice, no switch)
+    source_logs = [
+        r for r in caplog.records if "source auto" in r.getMessage()
+    ]
+    assert not source_logs, (
+        f"expected NO log on same choice, got: "
+        f"{[r.getMessage() for r in source_logs]}"
+    )
+    # State unchanged
+    assert c._auto_last_chosen == "individual"
+    # _source_resolution still updated (transparency is per-tick)
+    assert c._source_resolution["chosen"] == "individual"
+
+
+
 # ---------- Q4: diagnostics exposure ----------
 
 
