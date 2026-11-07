@@ -2,10 +2,6 @@
 
 ## [Unreleased]
 
----
-
-## [1.20.0] - 2026-11-07
-
 ### Added
 
 - **ESPAltherma v2 beta native support** (#281): the integration now
