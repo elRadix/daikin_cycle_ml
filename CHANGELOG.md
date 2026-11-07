@@ -2,8 +2,87 @@
 
 ## [Unreleased]
 
+---
+
+## [1.20.0] - 2026-11-07
+
+### Added
+
+- **ESPAltherma v2 beta native support** (#281): the integration now
+  accepts ESPAltherma v2 beta's individual entity model
+  (`sensor.espaltherma_*`) alongside the classic monolithic entity
+  (`sensor.althermasensors`). Config flow offers **Monolithic entity**,
+  **Individual entities**, or **Auto-detect**.
+- **`engine/espaltherma_v2/` package** (~328 lines): exact `makeJsonKey`
+  C++ replica (`slug.py`), prefix discovery (`discovery.py`), and v2
+  entities → canonical attrs resolver (`resolver.py`) backed by
+  `docs/MODEL_ATTRIBUTES.json` (422 labels across 40 models, SHA 714ad016).
+- **`source_type` selector in setup wizard** (monolithic / individual /
+  auto) with discovery preview: shows `mono_found`, `v2_count`, and a
+  suggested source type.
+- **`individual_prefix` + `individual_review` wizard steps**: prompt and
+  confirm the ESPAltherma v2 entity prefix (`sensor.espaltherma_` by
+  default) with matched/missing/collisions reporting.
+- **`source_type` + `individual_prefix` in OptionsFlow device step**:
+  switch sources without re-adding the integration. Historical DB is
+  preserved.
+- **`espaltherma_v2_missing_attrs` repair**: actionable repair listing
+  exactly which required v2 sensors aren't published. Includes a hint to
+  enable them in the ESPAltherma v2 web UI. Non-blocking (the integration
+  keeps running with the missing attributes).
+- **Coverage-based AUTO coexistence** (`_resolve_auto_source`): when both
+  sources are present, picks the source with more required attributes
+  matched. Per user decision: v2 wins on tie (native ESPAltherma
+  alignment); freeze when both empty (preserve GAP-4 stale alert). Logs
+  INFO on first choice, WARNING on switch. Exposed via new
+  `source_resolution` key in HA Diagnostics.
+- **`CONSUMED_ATTRIBUTES` transparency contract** (22 labels): full
+  operational contract for downstream consumers. Superset of
+  `REQUIRED_ATTRIBUTES` (12). Every unresolved consumed label lands in
+  the new `missing_consumed` field on `ResolveResult` — required-missing
+  labels appear in both lists (never hidden).
+- **`CONSUMED_ATTRIBUTE_FEATURES` mapping**: each consumed label mapped
+  to its downstream feature (cycle_detection, cop_calculation,
+  dhw_classification, ...). Foundation for future per-feature diagnostic
+  exposure.
+
+### Changed
+
+- **Config-flow wizard now has 19 steps** (was 17) — adds
+  `individual_prefix` and `individual_review`.
+- **Entry title** shows `(v2 sensor.espaltherma_)` or `(auto)` instead
+  of empty `()` in individual/auto modes.
+- **`_normalize()` filters `inf` / `infinity` / `-inf` / `+inf` as null**
+  (defensive hardening against custom sensors reporting infinite values).
+- **Legacy `missing_attrs` repair suppressed** in individual mode
+  (v2-specific repair takes over — no duplicate issue).
+
 ### Fixed
 
+- **P1: `resolve_attrs` limited to 12 labels** (#281): the v2 resolver
+  iterated only `REQUIRED_ATTRIBUTES` (repair-trigger set), so 10
+  downstream-consumed labels were silently dropped in individual mode.
+  Cycle detection (INV frequency), COP calculation, DHW classification
+  (R5T), stooklijn advice (Target Cond. Temp.), hybrid analytics (boiler
+  attrs + hybrid mode + BE COP), and comfort analysis (indoor ambient)
+  were inactive for v2 users. Now iterates `CONSUMED_ATTRIBUTES` (22).
+- **P1: AUTO mode froze when mono missing** (#281): `mono_cov` defaulted
+  to 12 (missing=[] when no entity), incorrectly beating a partial v2
+  source. Now `mono_cov=0` when the entity is absent.
+- **P3: `cop_source` was a dead variable** (pre-existing since
+  v1.19.10 #273): `_read_cop_effective` assigned `_tsrc =
+  "espaltherma_heat_output"` when v2 heat output drove the COP but never
+  returned it. `snap.cop_source` was always `"computed_*"`. Users with
+  ESPAltherma v2 heat output now see the correct source in HA
+  Diagnostics (`coordinator.cop_source`).
+- **Silent discovery failure** (R580): `except Exception: pass` when
+  probing v2 entities in the wizard swallowed all errors. Now logs
+  WARNING with exception type + message so HA logs reveal broken
+  discovery instead of showing `v2_count=0` silently.
+- **Silent options-save failure** (R580): `_LOGGER.debug` when
+  `config_entries.async_update_entry` failed hid the fact that a
+  source_type change was NOT persisted. Now logs WARNING with
+  "change NOT persisted".
 - **Defrost counter stays at zero on non-BUH models** (#280): a freeze
   gate paused the BUH/defrost tick whenever any required attribute
   (including `BUH Step1`/`BUH Step2` on units without a backup heater)
@@ -24,6 +103,47 @@
   `_is_on` only matched the string `"ON"`, but `read()` normalizes to
   Python `bool`. BUH Step1/Step2 bool `True` now counted; also accepts
   int and additional truthy strings.
+
+### Test suite
+
+- **51 new E2E tests** across 5 suites:
+  - **HA lifecycle** (12): `async_setup_entry` / unload / re-setup for
+    both source types, DB creation, multi-tick, source dispatch, GAP-4.
+  - **Source flap recovery** (12): mono/v2 outage patterns, `source_stale`
+    timing + recovery, AUTO cross-source switching.
+  - **HA restart with open cycle** (8): cycle detector state persistence,
+    BUH/defrost counter round-trip, cycle closes correctly post-restart,
+    no double-count.
+  - **Services E2E** (7): production `_resolve_coordinator` path (not
+    legacy `hass.data` lookup), R580 fail-loud on unknown entry /
+    missing coordinator.
+  - **ML on v2 attrs** (11): 12-dim feature vector, AdaptiveThresholds,
+    Baseline anomaly detection, kmeans clustering.
+- **19 v2 test files** (~6500 lines total): per-attribute matrix (93),
+  discovery (468), resolver, config flow, coordinator dispatch, repairs,
+  coexistence, counters, prod-DB simulation.
+- **100% coverage** maintained on all modules.
+- **Prod DB simulation** (`_prod1_live_20261107_221330.db`, 6023 samples,
+  215 cycles): hourly/daily rollup determinism, v28 migration idempotent,
+  AUTO coexistence with real coverage, DB integrity.
+- **HA 2026+ compliance** verified: DeviceInfo kwargs, no
+  OptionsFlow-reload deprecations, all flow results have `step_id`,
+  no advanced mode / via_device / modbus.get_hub.
+
+### Known limitations
+
+- **Coexistence merge** (combine both sources simultaneously) not
+  implemented — coverage-based pick only. Planned for v1.21.0 as
+  advanced option.
+- **Binary_sensor v2 entities** — only `sensor.espaltherma_*` supported,
+  not `binary_sensor.espaltherma_*`. Planned for v1.21.0.
+- **Per-model `not_applicable`** — a consumed label that is legitimately
+  absent on a specific model (e.g. certain variants without step-2 BUH,
+  or DHW-less models without R5T) still shows as missing in the repair
+  issue. Planned for v1.21.0 to distinguish misconfiguration from
+  legitimately-absent per model.
+- **Custom-map UI in repair dialog** — currently requires Options →
+  Advanced → Custom Attribute Map. Planned for v1.21.0.
 
 
 ## [1.19.10] - 2026-11-06
