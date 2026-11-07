@@ -47,6 +47,24 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
         "BE_COP",
         "BECOP",
     ),
+    # v1.20.0 #281: Model-specific variant labels observed in upstream
+    # ESPAltherma .h files (SHA 714ad016). Adding as aliases lets the same
+    # canonical attribute resolve across all models that publish them.
+    "Leaving water temp. after BUH (R2T)": (
+        "Outlet Water BUH Temp. (R2T)",
+        "[HPSU] Tvbh inflow Temp after Buffer/BUH (R2T)",
+        "Leaving water temp. before BUH (R1T)",
+    ),
+    "Inlet water temp.(R4T)": (
+        "Inlet water temp. (water heat exchanger)",
+        "[HPSU] Tr return Temp (R4T)",
+    ),
+    "Outdoor air temp.(R1T)": (
+        "R1T-Outdoor air temp.",
+        "Outdoor air temp. (R1T)",
+        "Outdoor air temp.(C)",
+        "Outdoor air temp.",
+    ),
     "Refrig. Temp. liquid side (R3T)": (
         "Refrig. Temp. liquid side(R3T)",
     ),
