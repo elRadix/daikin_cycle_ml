@@ -27,17 +27,23 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
         "D(C)",
         "Outlet Water Temp.",
         "Outlet Water BUH Temp. (R2T)",
+        # v1.20.0 #281: ECH2O variants publish "after buffer/BUH" name
+        "[HPSU] Tvbh inflow Temp after Buffer/BUH (R2T)",
     ),
     "Inlet water temp.(R4T)": (
         "Inlet water temp. (R4T)",
         "Inlet water temp.(C)",
         "[HPSU] Tr return Temp (R4T)",
         "Inlet temperature(R4T)",
+        # v1.20.0 #281: EPSK publishes inlet via "water heat exchanger"
+        "Inlet water temp. (water heat exchanger)",
     ),
     "Outdoor air temp.(R1T)": (
         "R1T-Outdoor air temp.",
         "Outdoor air temp. (R1T)",
         "Outdoor air temp.(C)",
+        # v1.20.0 #281: Hybrid model publishes without "(R1T)" suffix
+        "Outdoor air temp.",
     ),
     # v1.20.0 #281: ESPAltherma publishes "BE_COP" (underscore) on some
     # firmware, which make_json_key slugifies to "becop". Our canonical
@@ -46,24 +52,6 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
     "BE COP": (
         "BE_COP",
         "BECOP",
-    ),
-    # v1.20.0 #281: Model-specific variant labels observed in upstream
-    # ESPAltherma .h files (SHA 714ad016). Adding as aliases lets the same
-    # canonical attribute resolve across all models that publish them.
-    "Leaving water temp. after BUH (R2T)": (
-        "Outlet Water BUH Temp. (R2T)",
-        "[HPSU] Tvbh inflow Temp after Buffer/BUH (R2T)",
-        "Leaving water temp. before BUH (R1T)",
-    ),
-    "Inlet water temp.(R4T)": (
-        "Inlet water temp. (water heat exchanger)",
-        "[HPSU] Tr return Temp (R4T)",
-    ),
-    "Outdoor air temp.(R1T)": (
-        "R1T-Outdoor air temp.",
-        "Outdoor air temp. (R1T)",
-        "Outdoor air temp.(C)",
-        "Outdoor air temp.",
     ),
     "Refrig. Temp. liquid side (R3T)": (
         "Refrig. Temp. liquid side(R3T)",

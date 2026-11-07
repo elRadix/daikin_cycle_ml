@@ -79,13 +79,13 @@ def build_slug_index(
     # Pass 2: alternate domains (sensor <-> binary_sensor) — do not override
     for alt_prefix in _alternate_prefixes(prefix):
         alt_domain = alt_prefix.split(".", 1)[0]
-        for state in hass.states.async_all(alt_domain):
-            eid: str = state.entity_id
-            if not eid.startswith(alt_prefix):
+        for alt_state in hass.states.async_all(alt_domain):
+            alt_eid = alt_state.entity_id
+            if not alt_eid.startswith(alt_prefix):
                 continue
-            slug = eid[len(alt_prefix):]
-            if slug and slug not in index:
-                index[slug] = eid
+            alt_slug = alt_eid[len(alt_prefix):]
+            if alt_slug and alt_slug not in index:
+                index[alt_slug] = alt_eid
 
     return index
 

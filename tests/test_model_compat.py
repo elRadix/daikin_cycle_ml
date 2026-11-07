@@ -59,18 +59,12 @@ NON_HEATING_MODELS: frozenset[str] = frozenset(
 # Any change here must be justified by a re-analysis of the upstream
 # .h files; silently widening this dict hides regressions.
 PARTIAL_MODELS: dict[str, list[str]] = {
-    # Header of the file: "the indoor unit's inlet (R4T) is not on the wire".
-    "Altherma 4(EPSK-EPSKS EPBX-EPSX-EPVX-EPVZ series 04-14kW).h": [
-        "Inlet water temp.(R4T)",
-    ],
-    # ECH2O variants: water heat exchanger sits in the outdoor unit,
-    # no BUH-only "after BUH (R2T)" sensor on the wire.
-    "Altherma(EPRA D ETSH-X 16P30-50 D series 14-16kW-ECH2O).h": [
-        "Leaving water temp. after BUH (R2T)",
-    ],
-    "Altherma(ERGA D EHSH-X P30-50 D series 04-08kW-ECH2O).h": [
-        "Leaving water temp. after BUH (R2T)",
-    ],
+    # v1.20.0 #281: EPSK and ECH2O models moved to FULL_COVERAGE after
+    # ALIAS_GROUPS expansion:
+    #   - EPSK: R4T resolves via "Inlet water temp. (water heat exchanger)"
+    #   - ECH2O: R2T resolves via "[HPSU] Tvbh inflow Temp after Buffer/BUH (R2T)"
+    # Non-required consumed labels (INV freq 2, indoor ambient) still miss
+    # on these models, but all 12 REQUIRED resolve.
     # HT (high-temperature) EKHBRD series uses a distinct protocol; most
     # standard labels are not published. The integration reports
     # missing_attributes repair instead of failing.
@@ -114,12 +108,10 @@ PARTIAL_MODELS: dict[str, list[str]] = {
         "BUH Step2",
         "LW setpoint (main)",
     ],
-    # Hybrid: uses "Outlet Water BUH Temp. (R2T)" (covered by alias) but
-    # still lacks the "Outdoor air temp.(R1T)" canonical spelling — upstream
-    # only publishes "Outdoor air temp." without the "(R1T)" suffix.
-    "Altherma(Hybrid).h": [
-        "Outdoor air temp.(R1T)",
-    ],
+    # v1.20.0 #281: Hybrid moved to FULL_COVERAGE after ALIAS_GROUPS
+    # expansion. Both "Outlet Water BUH Temp. (R2T)" and "Outdoor air temp."
+    # now alias to their canonical forms. Non-required consumed labels
+    # (Indoor ambient) still miss, but all 12 REQUIRED resolve.
 }
 
 _HEATING_MODELS: list[str] = [m for m in _DATA["models"] if m not in NON_HEATING_MODELS]
@@ -130,7 +122,9 @@ _FULL_COVERAGE_MODELS: list[str] = [m for m in _HEATING_MODELS if m not in PARTI
 # ── Structure invariants ────────────────────────────────────────────────────
 
 EXPECTED_MODEL_COUNT = 40
-EXPECTED_CANONICAL_COUNT = 16
+# 16 original canonical labels + v1.20.0 #281 "BE COP" (ESPAltherma publishes
+# BE_COP on some firmware — added as new canonical with alias group).
+EXPECTED_CANONICAL_COUNT = 17
 
 
 def test_expected_model_count():
