@@ -389,3 +389,104 @@ def test_resolve_missing_required_also_in_missing_consumed() -> None:
     assert set(result.missing_required) == expected
     assert set(result.missing_consumed) == expected
     assert set(result.missing_required).issubset(set(result.missing_consumed))
+
+
+# ---------- v1.20.0 #281 coverage: defensive guards + JSON edge cases ----------
+# R643: guards are real contracts. Test them, don't # pragma away.
+
+
+def test_read_entity_state_returns_none_when_entity_absent() -> None:
+    """Line 86: state is None -> None (defensive, unreachable via resolve_attrs
+    because index.get would have returned None first)."""
+    from custom_components.daikin_cycle_ml.engine.espaltherma_v2.resolver import (
+        _read_entity_state,
+    )
+    hass = _make_hass({})  # empty: .get returns None
+    assert _read_entity_state(hass, "sensor.nonexistent") is None
+
+
+def test_read_entity_state_returns_none_when_raw_state_is_none() -> None:
+    """Line 89: state.state is None -> None."""
+    from custom_components.daikin_cycle_ml.engine.espaltherma_v2.resolver import (
+        _read_entity_state,
+    )
+    from unittest.mock import MagicMock
+    hass = MagicMock()
+    s = MagicMock()
+    s.state = None
+    hass.states.get = MagicMock(return_value=s)
+    assert _read_entity_state(hass, "sensor.x") is None
+
+
+def test_collision_loop_skips_empty_slug_label(monkeypatch) -> None:
+    """Line 123: a REQUIRED label whose make_json_key() is empty is skipped
+    in the collision loop, and (because it is also in CONSUMED) reported as
+    missing in both lists. Proves the guard for future upstream drift.
+
+    Note: monkeypatch BOTH sets so the consumed-loop also sees the
+    placeholder — otherwise only the collision-loop branch is exercised.
+    """
+    from custom_components.daikin_cycle_ml.engine.espaltherma_v2 import resolver
+    monkeypatch.setattr(resolver, "REQUIRED_ATTRIBUTES", ["", "Operation Mode"])
+    monkeypatch.setattr(
+        resolver, "CONSUMED_ATTRIBUTES", ["", "Operation Mode"],
+    )
+    hass = _make_hass({})  # no entities -> all missing
+    result = resolver.resolve_attrs(hass, prefix=DEFAULT_PREFIX)
+    assert isinstance(result, ResolveResult)
+    assert "" in result.missing_required
+    assert "" in result.missing_consumed
+    assert "Operation Mode" in result.missing_required
+
+
+def test_resolve_consumed_with_empty_slug_label(monkeypatch) -> None:
+    """Line 142 -> 149: empty slug in CONSUMED_ATTRIBUTES goes straight to
+    missing_consumed (no attempted lookup, no crash)."""
+    from custom_components.daikin_cycle_ml.engine.espaltherma_v2 import resolver
+    monkeypatch.setattr(resolver, "CONSUMED_ATTRIBUTES", ["????"])
+    monkeypatch.setattr(resolver, "REQUIRED_ATTRIBUTES", [])  # avoid set mismatch
+    hass = _make_hass({})
+    result = resolver.resolve_attrs(hass, prefix=DEFAULT_PREFIX)
+    assert "????" in result.missing_consumed
+    assert result.missing_required == []
+
+
+def test_load_model_attributes_missing_file(tmp_path) -> None:
+    """Line 183-184: missing file -> {}."""
+    result = load_model_attributes(tmp_path / "does-not-exist.json")
+    assert result == {}
+
+
+def test_load_model_attributes_valid_json_not_dict(tmp_path) -> None:
+    """Line 186: JSON parses but top level is not a dict -> {}."""
+    p = tmp_path / "x.json"
+    p.write_text("[]")
+    result = load_model_attributes(p)
+    assert result == {}
+
+
+def test_load_model_attributes_labels_not_dict(tmp_path) -> None:
+    """Line 189: 'labels' key exists but is not a dict -> {}."""
+    p = tmp_path / "x.json"
+    p.write_text('{"labels": []}')
+    result = load_model_attributes(p)
+    assert result == {}
+
+
+def test_load_model_attributes_filters_invalid_entries(tmp_path) -> None:
+    """Line 192 -> 191: non-list models value -> entry skipped.
+
+    JSON keys are always strings (JSON spec), so the `isinstance(models, list)`
+    side of the AND exercises the False branch (regel 192 -> 191) when
+    models is a string like "not-a-list".
+    """
+    import json as _json
+    p = tmp_path / "x.json"
+    p.write_text(_json.dumps({
+        "labels": {
+            "Valid": ["ModelA.h", "ModelB.h"],
+            "BadModels": "not-a-list",
+        }
+    }))
+    result = load_model_attributes(p)
+    assert result == {"Valid": ["ModelA.h", "ModelB.h"]}

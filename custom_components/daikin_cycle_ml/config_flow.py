@@ -353,7 +353,16 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 build_slug_index as _v2_idx,
             )
             _v2_count = len(_v2_idx(self.hass))
-        except Exception:
+        except Exception as _disc_exc:  # R580: log loud, never silent
+            # Discovery must never brick the config flow. But per R580 we
+            # must NOT hide the failure: a broken discovery means the user
+            # sees v2_count=0 and could wrongly pick "monolithic". Log at
+            # WARNING so HA logs reveal the cause.
+            _LOGGER.warning(
+                "ESPAltherma v2 discovery failed (%s: %s); user form "
+                "will show v2_count=0",
+                type(_disc_exc).__name__, _disc_exc,
+            )
             _v2_count = 0
         _suggest = "monolithic" if _mono_found == "yes" else (
             "individual" if _v2_count > 0 else "auto"
@@ -1169,11 +1178,16 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                     self.hass.config_entries.async_update_entry(
                         self.config_entry, data={**_cur, **_changed}
                     )
-            except (ValueError, AttributeError):
-                # Not in a fully-initialized context (e.g. unit test);
-                # entry data remains untouched.
-                _LOGGER.debug(
-                    "source_type update skipped: context unavailable"
+            except (ValueError, AttributeError) as _save_exc:  # R580
+                # If the config entry cannot be read, the change was NOT
+                # persisted and the coordinator will keep using previous
+                # source_type / individual_prefix. R580: log at WARNING,
+                # not debug, so the user sees the silent failure in HA logs.
+                _LOGGER.warning(
+                    "source_type update failed (%s: %s) -- change NOT "
+                    "persisted to entry.data; coordinator will keep "
+                    "using previous values",
+                    type(_save_exc).__name__, _save_exc,
                 )
         # #244: only the device step can explicitly clear sensor mappings.
         # Other steps must preserve existing values; the user cannot edit

@@ -283,3 +283,268 @@ async def test_full_chain_individual_creates_entry() -> None:
     assert (
         result["data"].get(CONF_INDIVIDUAL_PREFIX) == "sensor.espaltherma_"
     )
+
+
+# ---------- v1.20.0 #281 coverage: exception paths + branch coverage ----------
+
+
+@pytest.mark.asyncio
+async def test_user_step_survives_discovery_import_error(monkeypatch) -> None:
+    """Lines 356-357: build_slug_index raises -> v2_count falls back to 0,
+    form still rendered (defensive; prevents a broken integration from
+    bricking the whole config flow)."""
+    from custom_components.daikin_cycle_ml.engine.espaltherma_v2 import (
+        discovery,
+    )
+    def boom(*args, **kwargs):
+        raise RuntimeError("simulated discovery failure")
+    monkeypatch.setattr(discovery, "build_slug_index", boom)
+    flow = _fresh_flow()
+    result = await flow.async_step_user()
+    assert result["step_id"] == "user"
+    assert result["description_placeholders"]["v2_count"] == "0"
+
+
+@pytest.mark.asyncio
+async def test_individual_review_shows_collisions(monkeypatch) -> None:
+    """Line 411: non-empty collisions -> collision_block populated."""
+    from custom_components.daikin_cycle_ml import config_flow as cf
+    fake = MagicMock()
+    fake.missing_required = []
+    fake.collisions = ["fin_temp"]
+    fake.discovered_count = 12
+    monkeypatch.setattr(
+        cf, "resolve_attrs", lambda hass, prefix: fake,
+    )
+    flow = _fresh_flow()
+    flow._data[CONF_INDIVIDUAL_PREFIX] = DEFAULT_INDIVIDUAL_PREFIX
+    result = await flow.async_step_individual_review()
+    ph = result["description_placeholders"]
+    assert "fin_temp" in ph["collision_block"]
+    assert ph["matched"] == ph["total"] == "12"
+
+
+@pytest.mark.asyncio
+async def test_model_step_custom_model_individual_goes_to_custom_info() -> None:
+    """Line 448: MODEL_CUSTOM in individual flow -> custom_info step."""
+    from custom_components.daikin_cycle_ml.const import (
+        MODEL_CUSTOM,
+    )
+    flow = _fresh_flow()
+    flow._data[CONF_SOURCE_TYPE] = SOURCE_TYPE_INDIVIDUAL
+    result = await flow.async_step_model({"model": MODEL_CUSTOM})
+    assert result["step_id"] == "model_custom_info"
+
+
+
+# ---------- v1.20.0 #281 R693-compliant OptionsFlow helpers ----------
+
+def _fresh_options_flow(entry):
+    """R693-compliant OptionsFlow construction.
+
+    HA OptionsFlow.config_entry is a read-only property that calls
+    `hass.config_entries.async_get_known_entry(self._config_entry_id)`.
+    Setting `flow.config_entry = entry` raises AttributeError (no setter).
+    Mock the lookup instead. See R693.
+
+    Also mocks async_get_entry (older HA versions) so both APIs work.
+    """
+    from custom_components.daikin_cycle_ml.config_flow import (
+        DaikinCycleMLOptionsFlow,
+    )
+    flow = DaikinCycleMLOptionsFlow()
+    flow.hass = MagicMock()
+    flow.hass.config_entries = MagicMock()
+    flow.hass.config_entries.async_update_entry = MagicMock()
+    flow.hass.config_entries.async_get_known_entry = MagicMock(return_value=entry)
+    flow.hass.config_entries.async_get_entry = MagicMock(return_value=entry)
+    flow.handler = entry.entry_id
+    flow.context = {"entry_id": entry.entry_id}
+    return flow
+
+
+def _await_if_coroutine(result):
+    """`_save` is sync `def` returning async_create_entry's coroutine.
+    Return the coroutine so callers can `await _await_if_coroutine(...)`.
+    """
+    return result
+
+
+class _BrokenDataEntry:
+    """ConfigEntry whose .data access raises (simulates uninitialized)."""
+
+    def __init__(self, entry_id: str) -> None:
+        self.entry_id = entry_id
+        self.options: dict = {}
+
+    @property
+    def data(self):
+        raise ValueError("config entry data not initialized")
+
+
+# ---------- reconfigure_basic: setdefault branches (lines 1039-1043) ----------
+
+
+@pytest.mark.asyncio
+async def test_reconfigure_basic_switch_to_auto_skips_prefix_default(
+    monkeypatch,
+) -> None:
+    """Line 1039: switch to AUTO enters the individual-branch
+    (_skip_source_probe=True) but AUTO != INDIVIDUAL, so setdefault is
+    NOT executed.
+    """
+    flow = _fresh_flow()
+    entry = MagicMock()
+    entry.data = {CONF_SOURCE_TYPE: SOURCE_TYPE_MONOLITHIC}
+    entry.entry_id = "test-entry"
+    flow._get_reconfigure_entry = MagicMock(return_value=entry)
+    captured: dict = {}
+
+    def fake_abort(entry_arg, data_updates=None, reason=None):
+        captured["data_updates"] = dict(data_updates or {})
+        return {"type": "abort", "reason": reason}
+
+    monkeypatch.setattr(flow, "async_update_and_abort", fake_abort)
+    await flow.async_step_reconfigure_basic({
+        CONF_SOURCE_TYPE: SOURCE_TYPE_AUTO,
+    })
+    updates = captured["data_updates"]
+    assert updates.get(CONF_SOURCE_TYPE) == SOURCE_TYPE_AUTO
+    # AUTO != INDIVIDUAL, so setdefault was NOT executed
+    assert CONF_INDIVIDUAL_PREFIX not in updates
+
+
+@pytest.mark.asyncio
+async def test_reconfigure_basic_switch_to_individual_sets_prefix_default(
+    monkeypatch,
+) -> None:
+    """Companion: switch to INDIVIDUAL enters the same branch AND fires
+    setdefault at line 1039-1042 with the default prefix.
+    """
+    flow = _fresh_flow()
+    entry = MagicMock()
+    entry.data = {CONF_SOURCE_TYPE: SOURCE_TYPE_MONOLITHIC}
+    entry.entry_id = "test-entry"
+    flow._get_reconfigure_entry = MagicMock(return_value=entry)
+    captured: dict = {}
+
+    def fake_abort(entry_arg, data_updates=None, reason=None):
+        captured["data_updates"] = dict(data_updates or {})
+        return {"type": "abort", "reason": reason}
+
+    monkeypatch.setattr(flow, "async_update_and_abort", fake_abort)
+    await flow.async_step_reconfigure_basic({
+        CONF_SOURCE_TYPE: SOURCE_TYPE_INDIVIDUAL,
+    })
+    updates = captured["data_updates"]
+    assert updates.get(CONF_SOURCE_TYPE) == SOURCE_TYPE_INDIVIDUAL
+    assert updates.get(CONF_INDIVIDUAL_PREFIX) == DEFAULT_INDIVIDUAL_PREFIX
+
+
+# ---------- options _save source_type routing (lines 1162-1171) ----------
+
+
+@pytest.mark.asyncio
+async def test_options_device_step_updates_source_type() -> None:
+    """Lines 1162-1171: source_type change persists to entry.data
+    (not options) via config_entries.async_update_entry.
+    """
+    entry = MagicMock()
+    entry.data = {CONF_SOURCE_TYPE: SOURCE_TYPE_MONOLITHIC}
+    entry.options = {}
+    entry.entry_id = "test-entry"
+    flow = _fresh_options_flow(entry)
+    result = flow._save({
+        "source_type": {CONF_SOURCE_TYPE: SOURCE_TYPE_INDIVIDUAL},
+    })
+    # _save is sync but returns coroutine (async_create_entry)
+    if hasattr(result, "__await__"):
+        result = await result
+    flow.hass.config_entries.async_update_entry.assert_called_once()
+    call_kwargs = flow.hass.config_entries.async_update_entry.call_args
+    args, kwargs = call_kwargs
+    updated = kwargs.get("data")
+    if updated is None and len(args) > 1:
+        updated = args[1]
+    assert updated is not None
+    assert updated.get(CONF_SOURCE_TYPE) == SOURCE_TYPE_INDIVIDUAL
+
+
+# ---------- options _save failure path (lines 1172-1177) ----------
+
+
+@pytest.mark.asyncio
+async def test_options_save_warns_on_config_entry_failure(caplog) -> None:
+    """Lines 1172-1177 + R580: config_entry.data access raises -> WARNING
+    logged (not debug), change NOT persisted, _save still completes.
+    """
+    import logging
+
+    entry = _BrokenDataEntry("test-entry")
+    flow = _fresh_options_flow(entry)
+    with caplog.at_level(logging.WARNING):
+        result = flow._save({
+            "source_type": {CONF_SOURCE_TYPE: SOURCE_TYPE_INDIVIDUAL},
+        })
+        if hasattr(result, "__await__"):
+            result = await result
+    # Warning was logged
+    warns = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("source_type update failed" in r.getMessage() for r in warns), (
+        f"R580: expected warning about source_type update failure; "
+        f"got: {[r.getMessage() for r in warns]}"
+    )
+    # Change was NOT persisted
+    flow.hass.config_entries.async_update_entry.assert_not_called()
+    # _save still returned something usable (create_entry result)
+    assert isinstance(result, dict)
+
+
+# ---------- R580 fix #1: discovery warning (not silent) ----------
+
+
+@pytest.mark.asyncio
+async def test_user_step_warns_when_discovery_raises(
+    monkeypatch, caplog,
+) -> None:
+    """R580: discovery failure logs WARNING (visible in HA logs), not silent.
+    User form still shows v2_count=0 (doesn't brick the flow).
+    """
+    import logging
+
+    from custom_components.daikin_cycle_ml.engine.espaltherma_v2 import (
+        discovery,
+    )
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("simulated discovery failure")
+
+    monkeypatch.setattr(discovery, "build_slug_index", boom)
+    flow = _fresh_flow()
+    with caplog.at_level(logging.WARNING):
+        result = await flow.async_step_user()
+    warns = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert any(
+        "ESPAltherma v2 discovery failed" in r.getMessage() for r in warns
+    ), f"R580: expected discovery warning; got: {[r.getMessage() for r in warns]}"
+    assert result["description_placeholders"]["v2_count"] == "0"
+
+
+@pytest.mark.asyncio
+async def test_options_save_skips_update_when_source_type_unchanged() -> None:
+    """Line 1177->1195: source_type submitted == current -> _changed empty
+    -> async_update_entry NOT called, no warning. User intentionally resubmits
+    the current value (e.g. from any options step that shares _save)."""
+    entry = MagicMock()
+    entry.data = {CONF_SOURCE_TYPE: SOURCE_TYPE_MONOLITHIC}
+    entry.options = {}
+    entry.entry_id = "test-entry"
+    flow = _fresh_options_flow(entry)
+    # Same source_type as current data -> no change
+    result = flow._save({
+        "source_type": {CONF_SOURCE_TYPE: SOURCE_TYPE_MONOLITHIC},
+    })
+    if hasattr(result, "__await__"):
+        result = await result
+    # No update because nothing changed
+    flow.hass.config_entries.async_update_entry.assert_not_called()
