@@ -126,11 +126,13 @@ def _resolve_result(
     attrs: dict[str, object],
     missing: list[str] | None = None,
     discovered: int = 12,
+    missing_consumed: list[str] | None = None,
 ) -> MagicMock:
     m = MagicMock()
     m.attrs = attrs
     m.missing_required = missing if missing is not None else []
     m.collisions = []
+    m.missing_consumed = missing_consumed if missing_consumed is not None else []
     m.discovered_count = discovered
     return m
 

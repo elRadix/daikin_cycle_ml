@@ -20,6 +20,17 @@ from custom_components.daikin_cycle_ml.const import (
     ATTR_OPERATION_MODE,
     ATTR_OUTDOOR_AIR_R1T,
     ATTR_WATER_PUMP_OPERATION,
+    ATTR_BE_COP,
+    ATTR_BOILER_DHW_DEMAND,
+    ATTR_BOILER_OPERATION_DEMAND,
+    ATTR_COP,
+    ATTR_DHW_TANK_TEMP,
+    ATTR_HYBRID_OP_MODE,
+    ATTR_INDOOR_AMBIENT_R1T,
+    ATTR_INV_FREQUENCY_2_RPS,
+    ATTR_INV_FREQUENCY_RPS,
+    ATTR_TARGET_COND_TEMP,
+    CONSUMED_ATTRIBUTES,
     REQUIRED_ATTRIBUTES,
 )
 from custom_components.daikin_cycle_ml.engine.espaltherma_v2.resolver import (
@@ -81,6 +92,24 @@ def _full_payload() -> dict[str, str]:
         f"{DEFAULT_PREFIX}{make_json_key(ATTR_BUH_STEP2)}": "OFF",
         f"{DEFAULT_PREFIX}{make_json_key(ATTR_LW_SETPOINT)}": "40.0",
     }
+
+
+def _full_payload_22() -> dict[str, str]:
+    """Every CONSUMED_ATTRIBUTE mapped to a plausible v2 entity state."""
+    payload = _full_payload()
+    payload.update({
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_COP)}": "4.5",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_INV_FREQUENCY_RPS)}": "35",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_INV_FREQUENCY_2_RPS)}": "15",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_DHW_TANK_TEMP)}": "55.0",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_INDOOR_AMBIENT_R1T)}": "21.5",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_TARGET_COND_TEMP)}": "38.0",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_BOILER_OPERATION_DEMAND)}": "OFF",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_BOILER_DHW_DEMAND)}": "OFF",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_HYBRID_OP_MODE)}": "H/P only",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_BE_COP)}": "1.2",
+    })
+    return payload
 
 
 # ---------- happy path ----------
@@ -316,3 +345,47 @@ def test_resolve_fuzz_never_raises(values: dict[str, str]) -> None:
     result = resolve_attrs(hass)
     assert isinstance(result, ResolveResult)
     assert set(result.missing_required) <= set(REQUIRED_ATTRIBUTES)
+
+
+
+# ---------- v1.20.0 #281: consumed attributes transparency contract ----------
+
+
+def test_resolve_returns_all_consumed_when_all_22_present() -> None:
+    """All 22 CONSUMED_ATTRIBUTES resolved -> both missing lists empty."""
+    hass = _make_hass(_full_payload_22())
+    result = resolve_attrs(hass)
+    assert len(result.attrs) == len(CONSUMED_ATTRIBUTES)
+    assert set(result.attrs.keys()) == set(CONSUMED_ATTRIBUTES)
+    assert result.missing_required == []
+    assert result.missing_consumed == []
+    assert result.discovered_count == len(CONSUMED_ATTRIBUTES)
+
+
+def test_resolve_extra_consumed_missing_not_in_required() -> None:
+    """Required-only payload: 10 extra consumed labels go in missing_consumed
+    but NOT in missing_required (no repair noise for legit-absent labels)."""
+    hass = _make_hass(_full_payload())
+    result = resolve_attrs(hass)
+    extra_labels = set(CONSUMED_ATTRIBUTES) - set(REQUIRED_ATTRIBUTES)
+    assert result.missing_required == []
+    assert set(result.missing_consumed) == extra_labels
+    assert len(result.missing_consumed) == 10
+
+
+def test_resolve_missing_required_also_in_missing_consumed() -> None:
+    """Transparency contract: required-missing labels appear in BOTH lists.
+
+    Never hidden in only one — user-facing repair uses missing_required,
+    but diagnostics/logs/binary_sensor use missing_consumed which is a
+    strict superset.
+    """
+    payload = _full_payload_22()
+    del payload[f"{DEFAULT_PREFIX}{make_json_key(ATTR_BUH_STEP1)}"]
+    del payload[f"{DEFAULT_PREFIX}{make_json_key(ATTR_BUH_STEP2)}"]
+    hass = _make_hass(payload)
+    result = resolve_attrs(hass)
+    expected = {ATTR_BUH_STEP1, ATTR_BUH_STEP2}
+    assert set(result.missing_required) == expected
+    assert set(result.missing_consumed) == expected
+    assert set(result.missing_required).issubset(set(result.missing_consumed))

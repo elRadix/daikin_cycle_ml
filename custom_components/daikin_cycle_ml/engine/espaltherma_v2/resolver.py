@@ -20,6 +20,17 @@ Future work (follow-up issue): wire ``labels_for_model`` into a
 model→.h bridge backed by ``docs/MODEL_ATTRIBUTES.json`` and
 ``engine/model_datasheets.py``, so ``resolve_attrs`` accepts a ``model``
 hint and reports ``not_applicable`` separately from ``missing``.
+
+Attribute layers
+----------------
+``REQUIRED_ATTRIBUTES`` (12) is the strict subset used for the user-facing
+"missing sensors" repair issue. ``CONSUMED_ATTRIBUTES`` (22) is the
+runtime operational contract: every canonical label any downstream
+consumer reads (cycle detection, COP, thermal power, stooklijn, hybrid
+analytics, comfort analysis). A label missing from the consumed set is
+surfaced via ``missing_consumed`` on the result, via
+``CONSUMED_ATTRIBUTE_FEATURES`` in the coordinator's binary sensors and
+diagnostics, and via an INFO log on transition — never hidden.
 """
 from __future__ import annotations
 
@@ -31,7 +42,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from ...const import REQUIRED_ATTRIBUTES
+from ...const import CONSUMED_ATTRIBUTES, REQUIRED_ATTRIBUTES
 from ..attribute_reader import _normalize  # reuse tested normalization
 from .discovery import build_slug_index
 from .slug import DEFAULT_PREFIX, make_json_key
@@ -47,6 +58,15 @@ class ResolveResult:
 
     attrs: canonical label -> normalized value for every resolved entity.
     missing_required: REQUIRED_ATTRIBUTES labels without a matching entity.
+        Drives the user-facing "missing sensors" repair issue.
+    missing_consumed: CONSUMED_ATTRIBUTES (22) labels that could not be
+        resolved from any discovered entity. SUPERSET of missing_required:
+        any label in missing_required is also in missing_consumed. Non-
+        required consumed-missing labels are NOT reported as a repair
+        issue (a non-DHW model has no R5T; a non-BUH model has no BUH
+        Step1/2 — legitimately absent). Surfaced via coordinator INFO
+        logs, binary_sensor.missing_attrs attributes, and diagnostics.
+        Never hidden, never silently degraded.
     collisions: slugs matched by >1 entity_id (case-only typos in upstream;
         still resolvable, but surfaced for diagnostics).
     discovered_count: total v2 entities found under the prefix.
@@ -56,6 +76,7 @@ class ResolveResult:
     missing_required: list[str] = field(default_factory=list)
     collisions: list[str] = field(default_factory=list)
     discovered_count: int = 0
+    missing_consumed: list[str] = field(default_factory=list)
 
 
 def _read_entity_state(hass: HomeAssistant, entity_id: str) -> Any:
@@ -113,27 +134,34 @@ def resolve_attrs(
 
     attrs: dict[str, Any] = {}
     missing: list[str] = []
-    for label in REQUIRED_ATTRIBUTES:
+    missing_consumed: list[str] = []
+    _required_set = frozenset(REQUIRED_ATTRIBUTES)
+    for label in CONSUMED_ATTRIBUTES:
         slug = overrides.get(label) or make_json_key(label)
-        if not slug:
-            missing.append(label)
-            continue
-        entity_id = index.get(slug)
-        if entity_id is None:
-            missing.append(label)
-            continue
-        value = _read_entity_state(hass, entity_id)
-        if value is None:
-            # Present but unusable (unknown/unavailable/placeholder string).
-            missing.append(label)
-            continue
-        attrs[label] = value
+        resolved = False
+        if slug:
+            entity_id = index.get(slug)
+            if entity_id is not None:
+                value = _read_entity_state(hass, entity_id)
+                if value is not None:
+                    attrs[label] = value
+                    resolved = True
+        if not resolved:
+            # v1.20.0 #281 transparency: every unresolved consumed label
+            # goes into missing_consumed (for logs / diagnostics / binary
+            # sensor attributes). REQUIRED labels additionally go into
+            # missing_required to trigger the user-facing repair issue.
+            # Required-missing labels appear in BOTH lists — never hidden.
+            if label in _required_set:
+                missing.append(label)
+            missing_consumed.append(label)
 
     return ResolveResult(
         attrs=attrs,
         missing_required=missing,
         collisions=collisions,
         discovered_count=len(index),
+        missing_consumed=missing_consumed,
     )
 
 
