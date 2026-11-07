@@ -10,7 +10,7 @@ FAIL=0
 LOG=/tmp/ci-local-pytest.log
 
 echo "[ci-local] 1/4 pytest (full suite, 100% cov)"
-pytest -q --no-header > "$LOG" 2>&1
+pytest -q --no-header --junit-xml=/tmp/ci-local-pytest.xml > "$LOG" 2>&1
 PYTEST_RC=$?
 grep -E '[0-9]+ (passed|failed|skipped)' "$LOG" | tail -1 || true
 if [[ $PYTEST_RC -ne 0 ]]; then
@@ -20,6 +20,14 @@ fi
 if ! grep -q 'Required test coverage of 100% reached' "$LOG"; then
     echo "[ci-local] FAIL coverage 100% gate not met"
     FAIL=1
+fi
+if [[ -f /tmp/ci-local-pytest.xml ]]; then
+    echo "[ci-local] 1b/4 duration report (R656)"
+    # Non-blocking in local gate (CI is normative per R651).
+    # Exit 1 (regression) is informational; regression check doesn't flip FAIL.
+    python3 scripts/duration_report.py /tmp/ci-local-pytest.xml --top 10 \
+        --baseline tests/duration_baseline.json --tolerance-pct 50 \
+        || echo "[ci-local] NOTE: duration regression vs baseline (non-blocking)"
 fi
 
 echo "[ci-local] 2/4 ruff (CI-parity)"

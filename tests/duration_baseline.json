@@ -1,0 +1,7 @@
+{
+  "baseline_ts": null,
+  "total_s": 0,
+  "count": 0,
+  "tolerance_pct": 50,
+  "note": "Filled by a clean full-suite run. Regenerate via: pytest tests/ -o addopts=\"\" --junit-xml=/tmp/full.xml && python3 scripts/duration_report.py /tmp/full.xml --json-out /tmp/summary.json. Then update this file with summary.total_s and summary.count. See scripts/duration_report.py for rationale (R656)."
+}
