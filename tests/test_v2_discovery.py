@@ -407,3 +407,87 @@ def test_no_unexpected_collisions_beyond_allowlist() -> None:
             f"collision set changed for {slug!r}: "
             f"expected {expected_set}, got {actual_set}"
         )
+
+
+# ============================================================
+# v1.20.0 #281: alternate prefix + collision coverage
+# ============================================================
+
+
+def test_alternate_prefixes_from_binary_sensor() -> None:
+    """binary_sensor. prefix -> alternate is sensor. (line 47-48)."""
+    from custom_components.daikin_cycle_ml.engine.espaltherma_v2.discovery import (
+        _alternate_prefixes,
+    )
+    result = _alternate_prefixes("binary_sensor.espaltherma_")
+    assert result == ["sensor.espaltherma_"]
+
+
+def test_alternate_prefixes_from_sensor() -> None:
+    """sensor. prefix -> alternate is binary_sensor."""
+    from custom_components.daikin_cycle_ml.engine.espaltherma_v2.discovery import (
+        _alternate_prefixes,
+    )
+    result = _alternate_prefixes("sensor.espaltherma_")
+    assert result == ["binary_sensor.espaltherma_"]
+
+
+def test_alternate_prefixes_other_domain_empty() -> None:
+    """Non-sensor/binary_sensor domain -> [] (line 47-48 else)."""
+    from custom_components.daikin_cycle_ml.engine.espaltherma_v2.discovery import (
+        _alternate_prefixes,
+    )
+    assert _alternate_prefixes("switch.foo_") == []
+    assert _alternate_prefixes("no_dot_prefix") == []
+
+
+def test_build_slug_index_skips_non_matching_alt_prefix() -> None:
+    """Alternate domain has entities but none match alt_prefix -> skip (line 85)."""
+    from unittest.mock import MagicMock
+
+    from custom_components.daikin_cycle_ml.engine.espaltherma_v2.discovery import (
+        build_slug_index,
+    )
+    hass = MagicMock()
+
+    def _fake_async_all(domain):
+        if domain == "sensor":
+            s = MagicMock()
+            s.entity_id = "sensor.espaltherma_operation_mode"
+            return [s]
+        if domain == "binary_sensor":
+            # Present but does not match binary_sensor.espaltherma_ prefix
+            s = MagicMock()
+            s.entity_id = "binary_sensor.other_domain_entity"
+            return [s]
+        return []
+
+    hass.states.async_all = MagicMock(side_effect=_fake_async_all)
+    index = build_slug_index(hass)
+    assert "operation_mode" in index
+    assert len(index) == 1
+
+
+def test_build_slug_index_collision_primary_wins() -> None:
+    """Same slug in both domains -> primary pass wins (branch 87->82)."""
+    from unittest.mock import MagicMock
+
+    from custom_components.daikin_cycle_ml.engine.espaltherma_v2.discovery import (
+        build_slug_index,
+    )
+    hass = MagicMock()
+
+    def _fake_async_all(domain):
+        s = MagicMock()
+        if domain == "sensor":
+            s.entity_id = "sensor.espaltherma_foo_bar"
+            return [s]
+        if domain == "binary_sensor":
+            s.entity_id = "binary_sensor.espaltherma_foo_bar"  # same slug!
+            return [s]
+        return []
+
+    hass.states.async_all = MagicMock(side_effect=_fake_async_all)
+    index = build_slug_index(hass, prefix="sensor.espaltherma_")
+    # Sensor pass wins — collision does not overwrite
+    assert index["foo_bar"] == "sensor.espaltherma_foo_bar"
