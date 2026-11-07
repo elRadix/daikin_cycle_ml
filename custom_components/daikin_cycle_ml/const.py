@@ -352,15 +352,7 @@ CONSUMED_ATTRIBUTES: list[str] = list(CORE_ATTRIBUTES) + [
     ATTR_HYBRID_OP_MODE,
     ATTR_BE_COP,
 ]
-if len(CONSUMED_ATTRIBUTES) != len(set(CONSUMED_ATTRIBUTES)):
-    raise RuntimeError(
-        "CONSUMED_ATTRIBUTES has duplicates: " + repr(CONSUMED_ATTRIBUTES)
-    )
-if not set(REQUIRED_ATTRIBUTES).issubset(set(CONSUMED_ATTRIBUTES)):
-    raise RuntimeError(
-        "REQUIRED_ATTRIBUTES must be a subset of CONSUMED_ATTRIBUTES; "
-        "missing: " + repr(set(REQUIRED_ATTRIBUTES) - set(CONSUMED_ATTRIBUTES))
-    )
+# (invariants validated at end of module via _validate_attribute_sets)
 
 # Downstream feature impact per consumed label. Used by coordinator logs,
 # binary_sensor attributes, and diagnostics so the user can see EXACTLY
@@ -389,12 +381,7 @@ CONSUMED_ATTRIBUTE_FEATURES: dict[str, str] = {
     ATTR_HYBRID_OP_MODE: "hybrid_classification",
     ATTR_BE_COP: "hybrid_efficiency",
 }
-if set(CONSUMED_ATTRIBUTE_FEATURES.keys()) != set(CONSUMED_ATTRIBUTES):
-    raise RuntimeError(
-        "CONSUMED_ATTRIBUTE_FEATURES must map every CONSUMED_ATTRIBUTE. "
-        "Missing: " + repr(set(CONSUMED_ATTRIBUTES) - set(CONSUMED_ATTRIBUTE_FEATURES.keys())) +
-        ". Extra: " + repr(set(CONSUMED_ATTRIBUTE_FEATURES) - set(CONSUMED_ATTRIBUTES)) + "."
-    )
+# (invariants validated at end of module via _validate_features_mapping)
 
 # --- Config-flow attribute-mode ---
 ATTRIBUTE_MODE_AUTO = "auto"
@@ -834,3 +821,37 @@ def models_in_family(family: str) -> list[str]:
     if family in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
         return [family]
     return [m for m in MODEL_CHOICES if family_for_model(m) == family]
+
+
+# --- v1.20.0 #281 attribute-set invariants ---
+# Kept as callable functions (not just inline ifs) so the guard logic is
+# reachable in tests: monkeypatch the module-level constants, call the
+# validator directly, expect RuntimeError. Enforces the transparency
+# contract at import time without hiding behaviour behind # pragma.
+
+
+def _validate_attribute_sets() -> None:
+    """REQUIRED ⊆ CONSUMED ⊆ unique. Fails loud on drift."""
+    if len(CONSUMED_ATTRIBUTES) != len(set(CONSUMED_ATTRIBUTES)):
+        raise RuntimeError(
+            "CONSUMED_ATTRIBUTES has duplicates: " + repr(CONSUMED_ATTRIBUTES)
+        )
+    if not set(REQUIRED_ATTRIBUTES).issubset(set(CONSUMED_ATTRIBUTES)):
+        raise RuntimeError(
+            "REQUIRED_ATTRIBUTES must be a subset of CONSUMED_ATTRIBUTES; "
+            "missing: " + repr(set(REQUIRED_ATTRIBUTES) - set(CONSUMED_ATTRIBUTES))
+        )
+
+
+def _validate_features_mapping() -> None:
+    """CONSUMED_ATTRIBUTE_FEATURES covers exactly CONSUMED_ATTRIBUTES."""
+    if set(CONSUMED_ATTRIBUTE_FEATURES.keys()) != set(CONSUMED_ATTRIBUTES):
+        raise RuntimeError(
+            "CONSUMED_ATTRIBUTE_FEATURES must map every CONSUMED_ATTRIBUTE. "
+            "Missing: " + repr(set(CONSUMED_ATTRIBUTES) - set(CONSUMED_ATTRIBUTE_FEATURES.keys())) +
+            ". Extra: " + repr(set(CONSUMED_ATTRIBUTE_FEATURES) - set(CONSUMED_ATTRIBUTES)) + "."
+        )
+
+
+_validate_attribute_sets()
+_validate_features_mapping()
