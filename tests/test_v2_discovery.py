@@ -138,16 +138,34 @@ def test_only_prefix_entity_skipped() -> None:
 
 
 def test_other_domains_not_queried() -> None:
-    """Only sensor domain is scanned (binary_sensor lives in another pass)."""
+    """Both sensor and binary_sensor are scanned (v1.20.0 binary_sensor support).
+
+    The `_alternate_prefixes` helper derives `binary_sensor.espaltherma_`
+    from `sensor.espaltherma_`, so a binary_sensor-only install IS discovered.
+    Prior to v1.20.0 this test asserted the old behavior (sensor-only).
+    """
     hass = MagicMock()
-    binary_state = _make_state("binary_sensor.espaltherma_defrost_active")
-    hass.states.async_all = MagicMock(
-        side_effect=lambda d: [binary_state] if d == "binary_sensor" else []
-    )
-    assert build_slug_index(hass) == {}
-    # Verify only DEFAULT_DOMAIN was requested
+    binary_state = _make_state("binary_sensor.espaltherma_defrost_operation")
+    sensor_state = _make_state("sensor.espaltherma_operation_mode")
+
+    def _fake_async_all(domain):
+        if domain == "sensor":
+            return [sensor_state]
+        if domain == "binary_sensor":
+            return [binary_state]
+        return []
+
+    hass.states.async_all = MagicMock(side_effect=_fake_async_all)
+    index = build_slug_index(hass)
+    # Both domains contribute
+    assert "operation_mode" in index
+    assert "defrost_operation" in index
+    assert index["operation_mode"] == "sensor.espaltherma_operation_mode"
+    assert index["defrost_operation"] == "binary_sensor.espaltherma_defrost_operation"
+    # Both domains were queried
     calls = [c.args[0] for c in hass.states.async_all.call_args_list]
-    assert all(c == DEFAULT_DOMAIN for c in calls)
+    assert "sensor" in calls
+    assert "binary_sensor" in calls
 
 
 # ---------- discover_entity_ids ----------

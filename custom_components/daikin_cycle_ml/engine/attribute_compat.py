@@ -39,6 +39,14 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
         "Outdoor air temp. (R1T)",
         "Outdoor air temp.(C)",
     ),
+    # v1.20.0 #281: ESPAltherma publishes "BE_COP" (underscore) on some
+    # firmware, which make_json_key slugifies to "becop". Our canonical
+    # constant uses "BE COP" (space) -> "be_cop". Alias group makes both
+    # variants resolve.
+    "BE COP": (
+        "BE_COP",
+        "BECOP",
+    ),
     "Refrig. Temp. liquid side (R3T)": (
         "Refrig. Temp. liquid side(R3T)",
     ),

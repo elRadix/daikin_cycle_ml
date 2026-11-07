@@ -94,8 +94,8 @@ def _full_payload() -> dict[str, str]:
     }
 
 
-def _full_payload_22() -> dict[str, str]:
-    """Every CONSUMED_ATTRIBUTE mapped to a plausible v2 entity state."""
+def _full_payload_25() -> dict[str, str]:
+    """Every CONSUMED_ATTRIBUTE (25) mapped to a plausible v2 entity state."""
     payload = _full_payload()
     payload.update({
         f"{DEFAULT_PREFIX}{make_json_key(ATTR_COP)}": "4.5",
@@ -108,6 +108,10 @@ def _full_payload_22() -> dict[str, str]:
         f"{DEFAULT_PREFIX}{make_json_key(ATTR_BOILER_DHW_DEMAND)}": "OFF",
         f"{DEFAULT_PREFIX}{make_json_key(ATTR_HYBRID_OP_MODE)}": "H/P only",
         f"{DEFAULT_PREFIX}{make_json_key(ATTR_BE_COP)}": "1.2",
+        # v1.20.0 #281: ESPAltherma Stats power-ups (v2 native alignment)
+        f"{DEFAULT_PREFIX}stats_heat_output_kw": "4.5",
+        f"{DEFAULT_PREFIX}stats_electrical_input_estimated_kw": "0.81",
+        f"{DEFAULT_PREFIX}stats_electricalinput_estimated_kw": "0.81",
     })
     return payload
 
@@ -351,9 +355,9 @@ def test_resolve_fuzz_never_raises(values: dict[str, str]) -> None:
 # ---------- v1.20.0 #281: consumed attributes transparency contract ----------
 
 
-def test_resolve_returns_all_consumed_when_all_22_present() -> None:
+def test_resolve_returns_all_consumed_when_all_25_present() -> None:
     """All 22 CONSUMED_ATTRIBUTES resolved -> both missing lists empty."""
-    hass = _make_hass(_full_payload_22())
+    hass = _make_hass(_full_payload_25())
     result = resolve_attrs(hass)
     assert len(result.attrs) == len(CONSUMED_ATTRIBUTES)
     assert set(result.attrs.keys()) == set(CONSUMED_ATTRIBUTES)
@@ -370,7 +374,7 @@ def test_resolve_extra_consumed_missing_not_in_required() -> None:
     extra_labels = set(CONSUMED_ATTRIBUTES) - set(REQUIRED_ATTRIBUTES)
     assert result.missing_required == []
     assert set(result.missing_consumed) == extra_labels
-    assert len(result.missing_consumed) == 10
+    assert len(result.missing_consumed) == 13  # 25 consumed - 12 required
 
 
 def test_resolve_missing_required_also_in_missing_consumed() -> None:
@@ -380,7 +384,7 @@ def test_resolve_missing_required_also_in_missing_consumed() -> None:
     but diagnostics/logs/binary_sensor use missing_consumed which is a
     strict superset.
     """
-    payload = _full_payload_22()
+    payload = _full_payload_25()
     del payload[f"{DEFAULT_PREFIX}{make_json_key(ATTR_BUH_STEP1)}"]
     del payload[f"{DEFAULT_PREFIX}{make_json_key(ATTR_BUH_STEP2)}"]
     hass = _make_hass(payload)

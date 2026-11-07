@@ -341,6 +341,19 @@ REQUIRED_ATTRIBUTES = [
 # Missing consumed-but-not-required labels do NOT trigger a repair issue
 # (a non-DHW model has no R5T; a non-BUH model has no BUH Step1/2 — both
 # are legitimately absent, not a misconfiguration).
+# v1.20.0 #281: ESPAltherma Stats synthetic labels (optional power-ups).
+# Published by ESPAltherma as both monolithic attributes and v2 entities
+# (sensor.espaltherma_stats_*). Used by the COP cascade to align with
+# ESPAltherma's on-device computation. When missing (older firmware),
+# COP falls back to the computed path. Surfaced via missing_consumed
+# (transparency) but NOT via repair (no noise for users whose firmware
+# doesn't publish Stats).
+V2_STATS_CONSUMED_LABELS: list[str] = [
+    "Stats: Heat output (kW)",                # V2_STATS_HEAT_KEY
+    "Stats: Electrical input estimated (kW)", # V2_STATS_KEY
+    "Stats: Electricalinput estimated (kW)",  # V2_STATS_KEY_TYPO (firmware typo)
+]
+
 CONSUMED_ATTRIBUTES: list[str] = list(CORE_ATTRIBUTES) + [
     ATTR_INV_FREQUENCY_2_RPS,
     ATTR_COP,
@@ -351,6 +364,7 @@ CONSUMED_ATTRIBUTES: list[str] = list(CORE_ATTRIBUTES) + [
     ATTR_BOILER_DHW_DEMAND,
     ATTR_HYBRID_OP_MODE,
     ATTR_BE_COP,
+    *V2_STATS_CONSUMED_LABELS,
 ]
 # (invariants validated at end of module via _validate_attribute_sets)
 
@@ -380,6 +394,10 @@ CONSUMED_ATTRIBUTE_FEATURES: dict[str, str] = {
     ATTR_BOILER_DHW_DEMAND: "hybrid_analytics",
     ATTR_HYBRID_OP_MODE: "hybrid_classification",
     ATTR_BE_COP: "hybrid_efficiency",
+    # v1.20.0 #281: ESPAltherma Stats power-ups (see V2_STATS_CONSUMED_LABELS)
+    "Stats: Heat output (kW)": "cop_calculation_v2_stats",
+    "Stats: Electrical input estimated (kW)": "electrical_power_v2_stats",
+    "Stats: Electricalinput estimated (kW)": "electrical_power_v2_stats",
 }
 # (invariants validated at end of module via _validate_features_mapping)
 

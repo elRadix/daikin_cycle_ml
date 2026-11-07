@@ -43,6 +43,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from ...const import CONSUMED_ATTRIBUTES, REQUIRED_ATTRIBUTES
+from ..attribute_compat import ALIAS_GROUPS  # v1.20.0: alias-aware lookup
 from ..attribute_reader import _normalize  # reuse tested normalization
 from .discovery import build_slug_index
 from .slug import DEFAULT_PREFIX, make_json_key
@@ -77,6 +78,26 @@ class ResolveResult:
     collisions: list[str] = field(default_factory=list)
     discovered_count: int = 0
     missing_consumed: list[str] = field(default_factory=list)
+
+
+def _slug_variants(label: str) -> list[str]:
+    """Return slug variants for a canonical label, including aliases.
+
+    ESPAltherma publishes the same concept under different labels across
+    model families. E.g. `Outdoor air temp.(R1T)` is published as
+    `R1T-Outdoor air temp.` on 34 models (EPRA12EAV3 included). The
+    monolithic reader handles this via `build_compat_view` + ALIAS_GROUPS;
+    v2 resolver must do the same to reach full parity.
+
+    Order: canonical first, then aliases. Callers use the first match.
+    """
+    slugs = [make_json_key(label)]
+    if label in ALIAS_GROUPS:
+        for alias in ALIAS_GROUPS[label]:
+            s = make_json_key(alias)
+            if s and s not in slugs:
+                slugs.append(s)
+    return slugs
 
 
 def _read_entity_state(hass: HomeAssistant, entity_id: str) -> Any:
@@ -137,15 +158,24 @@ def resolve_attrs(
     missing_consumed: list[str] = []
     _required_set = frozenset(REQUIRED_ATTRIBUTES)
     for label in CONSUMED_ATTRIBUTES:
-        slug = overrides.get(label) or make_json_key(label)
+        # Alias-aware: try canonical slug first, then every alias in
+        # ALIAS_GROUPS. Custom_map override still wins over all variants.
         resolved = False
-        if slug:
+        _override_slug = overrides.get(label)
+        if _override_slug:
+            candidate_slugs = [_override_slug]
+        else:
+            candidate_slugs = _slug_variants(label)
+        for slug in candidate_slugs:
+            if not slug:
+                continue
             entity_id = index.get(slug)
             if entity_id is not None:
                 value = _read_entity_state(hass, entity_id)
                 if value is not None:
                     attrs[label] = value
                     resolved = True
+                    break
         if not resolved:
             # v1.20.0 #281 transparency: every unresolved consumed label
             # goes into missing_consumed (for logs / diagnostics / binary

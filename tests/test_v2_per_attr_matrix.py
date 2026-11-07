@@ -68,9 +68,13 @@ SENSOR_MATRIX: list[tuple[str, str, float | bool | str]] = [
     (ATTR_BOILER_DHW_DEMAND, "OFF", False),
     (ATTR_HYBRID_OP_MODE, "H/P only", "H/P only"),
     (ATTR_BE_COP, "1.2", 1.2),
+    # v1.20.0 #281: ESPAltherma Stats synthetic labels (v2 power-ups)
+    ("Stats: Heat output (kW)", "4.5", 4.5),
+    ("Stats: Electrical input estimated (kW)", "0.81", 0.81),
+    ("Stats: Electricalinput estimated (kW)", "0.81", 0.81),
 ]
 
-assert len(SENSOR_MATRIX) == 22, f"expected 22, got {len(SENSOR_MATRIX)}"
+assert len(SENSOR_MATRIX) == 25, f"expected 25, got {len(SENSOR_MATRIX)}"
 
 # _normalize edge cases
 NORMALIZE_EDGES: list[tuple[object, object]] = [
