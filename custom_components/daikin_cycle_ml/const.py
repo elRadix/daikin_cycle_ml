@@ -645,6 +645,18 @@ DAILY_SUMMARY_BACKFILL_KEY = "daily_summary_backfilled_v1_7_0"
 # v1.7.0: live daily summary rollup toggle
 OPTION_DAILY_SUMMARY_LIVE_ENABLED = "daily_summary_live_enabled"
 
+# --- ESPAltherma v2 source type (#281) ---
+SOURCE_TYPE_MONOLITHIC = "monolithic"
+SOURCE_TYPE_INDIVIDUAL = "individual"
+SOURCE_TYPE_AUTO = "auto"
+SOURCE_TYPE_DEFAULT = SOURCE_TYPE_MONOLITHIC
+
+CONF_SOURCE_TYPE = "source_type"
+CONF_INDIVIDUAL_PREFIX = "individual_prefix"
+CONF_INDIVIDUAL_MAP = "individual_map"
+
+DEFAULT_INDIVIDUAL_PREFIX = "sensor.espaltherma_"
+
 # v1.7.0: default for the live daily summary rollup toggle
 DEFAULT_DAILY_SUMMARY_LIVE_ENABLED = True
 

@@ -23,6 +23,7 @@ ISSUE_DATASHEET_IMPORT_INVALID = "datasheet_import_invalid"
 ISSUE_DATASHEET_SCHEMA_UNKNOWN = "datasheet_schema_unknown"
 ISSUE_DATASHEET_LOAD_FAILED = "datasheet_load_failed"
 ISSUE_LEGACY_DB_MULTI_ENTRY = "legacy_db_multi_entry"
+ISSUE_V2_MISSING_ATTRS = "espaltherma_v2_missing_attrs"
 
 
 async def async_check_repairs(
@@ -34,8 +35,9 @@ async def async_check_repairs(
     """Create/delete repair issues based on snapshot health."""
     try:
         _check_stale(hass, entry_id, snap)
-        _check_missing_attrs(hass, entry_id, snap)
+        _check_missing_attrs(hass, entry_id, snap, coordinator)
         if coordinator is not None:
+            _check_v2_missing_attrs(hass, entry_id, snap, coordinator)
             _check_db_corrupt(hass, entry_id, coordinator)
             _check_notify_failed(hass, entry_id, coordinator)
             _check_migration_failed(hass, entry_id, coordinator)
@@ -61,8 +63,16 @@ def _check_stale(hass: HomeAssistant, entry_id: str, snap: Any) -> None:
         ir.async_delete_issue(hass, DOMAIN, issue_id)
 
 
-def _check_missing_attrs(hass: HomeAssistant, entry_id: str, snap: Any) -> None:
+def _check_missing_attrs(
+    hass: HomeAssistant, entry_id: str, snap: Any, coord: Any = None
+) -> None:
     issue_id = f"{ISSUE_MISSING_ATTRS}_{entry_id}"
+    # v1.20.0 #281 GAP-2: suppress duplicate in individual mode
+    # (the v2-specific repair already covers it with more detail).
+    _src_type = getattr(coord, "source_type", "monolithic") if coord else "monolithic"
+    if _src_type == "individual":
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
     missing = list(getattr(snap, "missing_attrs", []) or [])
     if missing:
         ir.async_create_issue(
@@ -76,6 +86,33 @@ def _check_missing_attrs(hass: HomeAssistant, entry_id: str, snap: Any) -> None:
         )
     else:
         ir.async_delete_issue(hass, DOMAIN, issue_id)
+
+
+def _check_v2_missing_attrs(
+    hass: HomeAssistant, entry_id: str, snap: Any, coord: Any
+) -> None:
+    """#281: ESPAltherma v2 partial-missing repair (individual mode only)."""
+    issue_id = f"{ISSUE_V2_MISSING_ATTRS}_{entry_id}"
+    if getattr(coord, "source_type", "monolithic") != "individual":
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
+    missing = list(getattr(snap, "missing_attrs", []) or [])
+    if not missing:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
+    labels = ", ".join(missing[:8])
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=ISSUE_V2_MISSING_ATTRS,
+        translation_placeholders={
+            "count": str(len(missing)),
+            "labels": labels,
+        },
+    )
 
 
 def _check_db_corrupt(hass: HomeAssistant, entry_id: str, coord: Any) -> None:

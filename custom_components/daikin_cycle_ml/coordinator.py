@@ -36,6 +36,8 @@ from .const import (
     ATTR_OUTDOOR_AIR_R1T,
     ATTR_TARGET_COND_TEMP,
     BUH_7D_RATIO_THRESHOLD_DEFAULT,
+    CONF_INDIVIDUAL_PREFIX,
+    CONF_SOURCE_TYPE,
     COP_CURVE_RECENT_HOURS,
     COP_CURVE_RECENT_MAX_POINTS,
     COP_LOW_MIN_SAMPLES,
@@ -47,6 +49,7 @@ from .const import (
     DEFAULT_COMFORT_MIN_C,
     DEFAULT_CYCLE_RETENTION_DAYS,
     DEFAULT_DHW_PENDULUM_CPH,
+    DEFAULT_INDIVIDUAL_PREFIX,
     DEFAULT_MODEL_STATE_RETENTION_DAYS,
     DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
     DEGRADATION_BASELINE_DAYS,
@@ -69,6 +72,9 @@ from .const import (
     MODEL_BASISPROFIEL,
     OPTION_DAILY_SUMMARY_LIVE_ENABLED,
     SOURCE_SENSOR_ENTITY,
+    SOURCE_TYPE_AUTO,
+    SOURCE_TYPE_INDIVIDUAL,
+    SOURCE_TYPE_MONOLITHIC,
     STOOKLIJN_MIN_CONFIDENCE,
     STOOKLIJN_MIN_SAVINGS_PCT,
     TEST_ALERT_DELTA,
@@ -88,6 +94,7 @@ from .engine.cop_degradation import (
     build_dirty_hours,
 )
 from .engine.cycle_detector import CycleDetector
+from .engine.espaltherma_v2.resolver import resolve_attrs
 from .engine.model_datasheets import (
     UserDatasheetError,
 )
@@ -516,10 +523,22 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     # in the _async_update_data except handler.
     _errors_total: int = 0
 
+    # v1.20.0 (#281): source-type dispatch. Class-level defaults so
+    # partial test fixtures (object.__new__ without __init__) still
+    # work without AttributeError on _async_update_data.
+    source_type: str = SOURCE_TYPE_MONOLITHIC
+    individual_prefix: str = DEFAULT_INDIVIDUAL_PREFIX
+
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.entry = entry
         self.source_entity: str = entry.data.get(
             "source_sensor", SOURCE_SENSOR_ENTITY
+        )
+        self.source_type = entry.data.get(
+            CONF_SOURCE_TYPE, SOURCE_TYPE_MONOLITHIC
+        )
+        self.individual_prefix = entry.data.get(
+            CONF_INDIVIDUAL_PREFIX, DEFAULT_INDIVIDUAL_PREFIX
         )
         model = entry.data.get("model", MODEL_BASISPROFIEL)
         # v1.19.0 (#241): uppercase model-SKU voor notificatie-subtitle.
@@ -1591,34 +1610,64 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._restore_runtime_acc()
         self._maybe_reset_daily_accumulators(now)
         try:
-            state = self.hass.states.get(self.source_entity)
-            if state is None:
-                return snap
-            custom_map = (
-                self.options.get("custom_attribute_map")
-                or self.entry.data.get("custom_attribute_map")
-                or self.entry.data.get("attribute_map")
+            state: Any = None
+            attrs: dict[str, Any] = {}
+
+            _monolithic_available = False
+            if self.source_type in (SOURCE_TYPE_MONOLITHIC, SOURCE_TYPE_AUTO):
+                state = self.hass.states.get(self.source_entity)
+                _monolithic_available = state is not None
+
+            _use_individual = self.source_type == SOURCE_TYPE_INDIVIDUAL or (
+                self.source_type == SOURCE_TYPE_AUTO
+                and not _monolithic_available
             )
-            attrs = read(state, custom_map=custom_map)
-            snap.attrs = attrs
-            snap.missing_attrs = missing_required(attrs)
-            snap.last_success_ts = now
-            if snap.missing_attrs:
-                # v1.12.1 (#109): freeze detector when source
-                # publishes partial attrs. Post-restart ESPAltherma
-                # may not be ready; advancing detector with empty
-                # rps force-closes the running cycle -> phantom
-                # ~60s off-gap -> short_off alert. last_success_ts
-                # is intentionally NOT frozen so source_stale still
-                # tracks real sensor liveness.
+
+            if _use_individual:
+                # v1.20.0 #281: ESPAltherma v2 individual entities.
+                result = resolve_attrs(self.hass, prefix=self.individual_prefix)
+                attrs = dict(result.attrs)
+                snap.attrs = attrs
+                snap.missing_attrs = list(result.missing_required)
+                # v1.20.0 #281 GAP-4: only bump last_success_ts when the
+                # prefix actually resolves at least one entity. Otherwise
+                # source_stale never fires for broken v2 installs.
+                if result.discovered_count > 0:
+                    snap.last_success_ts = now
+                # Freeze only on total outage (0 attrs). Partial missing
+                # (e.g. BUH Step1/Step2 on non-BUH models) proceeds so
+                # the cycle detector keeps working — per-label repairs
+                # surface missing items without blocking detection.
+                _should_freeze = len(attrs) == 0
+            else:
+                if state is None:
+                    return snap
+                custom_map = (
+                    self.options.get("custom_attribute_map")
+                    or self.entry.data.get("custom_attribute_map")
+                    or self.entry.data.get("attribute_map")
+                )
+                attrs = read(state, custom_map=custom_map)
+                snap.attrs = attrs
+                snap.missing_attrs = missing_required(attrs)
+                snap.last_success_ts = now
+                _should_freeze = bool(snap.missing_attrs)
+
+            if _should_freeze:
+                # v1.12.1 (#109): freeze detector when source publishes
+                # partial attrs. Post-restart ESPAltherma may not be ready;
+                # advancing detector with empty rps treats the compressor
+                # as off and force-closes the running cycle -> phantom
+                # ~60s off-gap -> short_off alert. last_success_ts is
+                # intentionally NOT frozen so source_stale still tracks
+                # real sensor liveness.
                 _frozen = self.detector.snapshot()
                 snap.state = self.detector.state
                 snap.mode = _frozen.get("mode", "unknown")
                 snap.cycle_start_ts = float(_frozen.get("start_ts") or 0.0)
-                # v1.20.0 #280: tick tolerates partial attrs (guards None
-                # internally). Must run during freeze so non-BUH models and
-                # partial v2 attrs keep incrementing defrost/BUH counters.
-                # Detector itself remains frozen (#109 phantom protection).
+                # v1.20.0 #280: tick tolerates partial attrs. Runs during
+                # freeze so non-BUH models and partial v2 attrs keep
+                # incrementing defrost/BUH counters.
                 self._tick_buh_and_defrost(attrs, now)
                 return snap
             self._track_setpoint(attrs)

@@ -1,0 +1,318 @@
+"""Tests for ESPAltherma v2 attribute resolver (issue #281, R684 + R640)."""
+from __future__ import annotations
+
+from unittest.mock import MagicMock
+
+import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
+from custom_components.daikin_cycle_ml.const import (
+    ATTR_3WAY_VALVE,
+    ATTR_BUH_STEP1,
+    ATTR_BUH_STEP2,
+    ATTR_DEFROST_OPERATION,
+    ATTR_FLOW_SENSOR,
+    ATTR_INLET_WATER_R4T,
+    ATTR_IU_OPERATION_MODE,
+    ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_LW_SETPOINT,
+    ATTR_OPERATION_MODE,
+    ATTR_OUTDOOR_AIR_R1T,
+    ATTR_WATER_PUMP_OPERATION,
+    REQUIRED_ATTRIBUTES,
+)
+from custom_components.daikin_cycle_ml.engine.espaltherma_v2.resolver import (
+    ResolveResult,
+    labels_for_model,
+    load_model_attributes,
+    models_for_label,
+    resolve_attrs,
+)
+from custom_components.daikin_cycle_ml.engine.espaltherma_v2.slug import (
+    DEFAULT_PREFIX,
+    make_json_key,
+)
+
+# ---------- helpers ----------
+
+
+def _make_state(entity_id: str, value: str) -> MagicMock:
+    s = MagicMock()
+    s.entity_id = entity_id
+    s.state = value
+    return s
+
+
+def _make_hass(states: dict[str, str]) -> MagicMock:
+    """Build a fake hass.states from {entity_id: raw_string_value}."""
+    hass = MagicMock()
+    all_states = [_make_state(eid, val) for eid, val in states.items()]
+
+    def async_all(domain: str) -> list[MagicMock]:
+        if domain != "sensor":
+            return []
+        return [s for s in all_states if s.entity_id.startswith("sensor.")]
+
+    def get(eid: str) -> MagicMock | None:
+        for s in all_states:
+            if s.entity_id == eid:
+                return s
+        return None
+
+    hass.states.async_all = MagicMock(side_effect=async_all)
+    hass.states.get = MagicMock(side_effect=get)
+    return hass
+
+
+def _full_payload() -> dict[str, str]:
+    """Every REQUIRED_ATTRIBUTE mapped to a plausible v2 entity state."""
+    return {
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_OPERATION_MODE)}": "Heating",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_IU_OPERATION_MODE)}": "Heating",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_3WAY_VALVE)}": "Off:Space",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_DEFROST_OPERATION)}": "OFF",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_LEAVING_WATER_AFTER_BUH)}": "35.0",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_INLET_WATER_R4T)}": "30.0",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_OUTDOOR_AIR_R1T)}": "8.5",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_FLOW_SENSOR)}": "15.2",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_WATER_PUMP_OPERATION)}": "ON",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_BUH_STEP1)}": "OFF",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_BUH_STEP2)}": "OFF",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_LW_SETPOINT)}": "40.0",
+    }
+
+
+# ---------- happy path ----------
+
+
+def test_resolve_all_required_present() -> None:
+    hass = _make_hass(_full_payload())
+    result = resolve_attrs(hass)
+    assert isinstance(result, ResolveResult)
+    assert set(result.attrs.keys()) == set(REQUIRED_ATTRIBUTES)
+    assert result.missing_required == []
+    assert result.discovered_count == len(REQUIRED_ATTRIBUTES)
+
+
+def test_resolve_normalizes_bool_strings() -> None:
+    hass = _make_hass(_full_payload())
+    result = resolve_attrs(hass)
+    assert result.attrs[ATTR_DEFROST_OPERATION] is False
+    assert result.attrs[ATTR_WATER_PUMP_OPERATION] is True
+    assert result.attrs[ATTR_BUH_STEP1] is False
+
+
+def test_resolve_normalizes_floats() -> None:
+    hass = _make_hass(_full_payload())
+    result = resolve_attrs(hass)
+    assert result.attrs[ATTR_LEAVING_WATER_AFTER_BUH] == pytest.approx(35.0)
+    assert result.attrs[ATTR_INLET_WATER_R4T] == pytest.approx(30.0)
+    assert result.attrs[ATTR_OUTDOOR_AIR_R1T] == pytest.approx(8.5)
+    assert result.attrs[ATTR_FLOW_SENSOR] == pytest.approx(15.2)
+    assert result.attrs[ATTR_LW_SETPOINT] == pytest.approx(40.0)
+
+
+# ---------- missing attributes ----------
+
+
+@pytest.mark.parametrize(
+    "missing_label",
+    [
+        ATTR_OPERATION_MODE,
+        ATTR_DEFROST_OPERATION,
+        ATTR_FLOW_SENSOR,
+        ATTR_BUH_STEP1,
+        ATTR_LW_SETPOINT,
+    ],
+)
+def test_resolve_single_missing(missing_label: str) -> None:
+    payload = _full_payload()
+    del payload[f"{DEFAULT_PREFIX}{make_json_key(missing_label)}"]
+    hass = _make_hass(payload)
+    result = resolve_attrs(hass)
+    assert missing_label in result.missing_required
+    assert missing_label not in result.attrs
+    assert len(result.missing_required) == 1
+
+
+def test_resolve_empty_hass() -> None:
+    hass = _make_hass({})
+    result = resolve_attrs(hass)
+    assert result.attrs == {}
+    assert set(result.missing_required) == set(REQUIRED_ATTRIBUTES)
+    assert result.discovered_count == 0
+
+
+def test_resolve_unknown_state_counts_as_missing() -> None:
+    payload = _full_payload()
+    payload[f"{DEFAULT_PREFIX}{make_json_key(ATTR_OPERATION_MODE)}"] = "unknown"
+    hass = _make_hass(payload)
+    result = resolve_attrs(hass)
+    assert ATTR_OPERATION_MODE in result.missing_required
+
+
+def test_resolve_unavailable_state_counts_as_missing() -> None:
+    payload = _full_payload()
+    payload[f"{DEFAULT_PREFIX}{make_json_key(ATTR_DEFROST_OPERATION)}"] = "unavailable"
+    hass = _make_hass(payload)
+    result = resolve_attrs(hass)
+    assert ATTR_DEFROST_OPERATION in result.missing_required
+
+
+# ---------- custom_map (user override) ----------
+
+
+def test_resolve_custom_map_override() -> None:
+    """User override maps a canonical label to an arbitrary target label.
+
+    Uses a proper label ("Custom Operation Mode") so make_json_key
+    produces "custom_operation_mode" — matching the entity we add.
+    Avoids underscore-in-slug confusion from make_json_key dropping "_".
+    """
+    payload = _full_payload()
+    del payload[f"{DEFAULT_PREFIX}{make_json_key(ATTR_OPERATION_MODE)}"]
+    payload[f"{DEFAULT_PREFIX}custom_operation_mode"] = "Cooling"
+    hass = _make_hass(payload)
+    result = resolve_attrs(
+        hass, custom_map={ATTR_OPERATION_MODE: "Custom Operation Mode"}
+    )
+    assert result.attrs[ATTR_OPERATION_MODE] == "Cooling"
+    assert ATTR_OPERATION_MODE not in result.missing_required
+
+
+def test_resolve_custom_map_with_raw_label() -> None:
+    """custom_map can pass a raw label; make_json_key is applied internally."""
+    payload = _full_payload()
+    del payload[f"{DEFAULT_PREFIX}{make_json_key(ATTR_OPERATION_MODE)}"]
+    payload[f"{DEFAULT_PREFIX}weird_mode_name"] = "Heating"
+    hass = _make_hass(payload)
+    result = resolve_attrs(
+        hass, custom_map={ATTR_OPERATION_MODE: "Weird Mode Name"}
+    )
+    assert result.attrs[ATTR_OPERATION_MODE] == "Heating"
+
+
+# ---------- collisions + placeholders ----------
+
+
+def test_resolve_collisions_do_not_block_resolution() -> None:
+    """Case-only variants still resolve via the same slug."""
+    hass = _make_hass(_full_payload())
+    result = resolve_attrs(hass)
+    # No collisions among REQUIRED (they're all unique slugs)
+    assert result.collisions == []
+
+
+def test_resolve_skips_placeholder_labels() -> None:
+    """Placeholder '????' produces empty slug -> never becomes a required miss."""
+    # No sensor with empty slug exists in HA; resolver must not IndexError.
+    hass = _make_hass(_full_payload())
+    result = resolve_attrs(hass)
+    # No crash, all required present
+    assert set(result.attrs.keys()) == set(REQUIRED_ATTRIBUTES)
+
+
+def test_resolve_ignores_extra_entities() -> None:
+    payload = _full_payload()
+    payload[f"{DEFAULT_PREFIX}some_extra_field"] = "42.0"
+    payload["sensor.weather"] = "sunny"
+    hass = _make_hass(payload)
+    result = resolve_attrs(hass)
+    assert "some_extra_field" not in str(result.attrs.keys())
+    assert set(result.attrs.keys()) == set(REQUIRED_ATTRIBUTES)
+
+
+# ---------- prefix handling ----------
+
+
+def test_resolve_custom_prefix() -> None:
+    payload = {
+        "sensor.custom_operation_mode": "Heating",
+        "sensor.custom_defrost_operation": "ON",
+    }
+    hass = _make_hass(payload)
+    result = resolve_attrs(hass, prefix="sensor.custom_")
+    # Only 2 of 12 required present
+    assert len(result.attrs) == 2
+    assert ATTR_OPERATION_MODE in result.attrs
+    assert ATTR_DEFROST_OPERATION in result.attrs
+    assert len(result.missing_required) == len(REQUIRED_ATTRIBUTES) - 2
+
+
+# ---------- model bridge helpers ----------
+
+
+def _skip_if_no_model_attrs() -> None:
+    if not load_model_attributes():
+        pytest.skip("docs/MODEL_ATTRIBUTES.json not available")
+
+
+def test_load_model_attributes_returns_dict() -> None:
+    _skip_if_no_model_attrs()
+    mapping = load_model_attributes()
+    assert isinstance(mapping, dict)
+    assert len(mapping) >= 100
+    # Every value must be a list of strings
+    for label, models in mapping.items():
+        assert isinstance(label, str)
+        assert isinstance(models, list)
+        assert all(isinstance(m, str) for m in models)
+
+
+def test_labels_for_model_narrows_correctly() -> None:
+    _skip_if_no_model_attrs()
+    mapping = load_model_attributes()
+    any_model = next(iter(mapping.values()))[0]
+    labels = labels_for_model(any_model)
+    assert labels, f"no labels found for {any_model!r}"
+    # Every returned label must list any_model
+    for lb in labels:
+        assert any_model in mapping[lb]
+
+
+def test_models_for_label_is_inverse() -> None:
+    _skip_if_no_model_attrs()
+    mapping = load_model_attributes()
+    label = next(iter(mapping))
+    models = models_for_label(label)
+    assert models == sorted(mapping[label])
+
+
+def test_model_bridge_known_operation_mode() -> None:
+    """Operation Mode should be published by every model that has any label."""
+    _skip_if_no_model_attrs()
+    models = models_for_label("Operation Mode")
+    assert len(models) >= 20, (
+        f"Operation Mode should exist on most models, got {len(models)}"
+    )
+
+
+def test_model_bridge_unknown_returns_empty() -> None:
+    _skip_if_no_model_attrs()
+    assert labels_for_model("NotAModel.h") == []
+    assert models_for_label("Nonexistent Label") == []
+
+
+# ---------- R640 fuzz: arbitrary state values must not crash ----------
+
+
+@given(
+    values=st.dictionaries(
+        keys=st.text(min_size=1, max_size=20),
+        values=st.text(min_size=0, max_size=20),
+        max_size=15,
+    )
+)
+@settings(max_examples=200, deadline=None)
+def test_resolve_fuzz_never_raises(values: dict[str, str]) -> None:
+    """R676: 200 random prefix payloads -> never crash; missing is a subset."""
+    payload = {
+        f"{DEFAULT_PREFIX}{k}": v
+        for k, v in values.items()
+        if k and k.replace("_", "").isalnum()
+    }
+    hass = _make_hass(payload)
+    result = resolve_attrs(hass)
+    assert isinstance(result, ResolveResult)
+    assert set(result.missing_required) <= set(REQUIRED_ATTRIBUTES)

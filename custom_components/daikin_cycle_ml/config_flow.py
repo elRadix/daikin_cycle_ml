@@ -15,6 +15,7 @@ from homeassistant.config_entries import (
 )
 
 from .const import DEFAULT_DAILY_SUMMARY_LIVE_ENABLED
+from .engine.espaltherma_v2.resolver import resolve_attrs
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import (
@@ -38,6 +39,8 @@ from .const import (
     ALERT_DEDUP_DEFAULTS,
     ATTRIBUTE_MODE_AUTO,
     ATTRIBUTE_MODE_MANUAL,
+    CONF_INDIVIDUAL_PREFIX,
+    CONF_SOURCE_TYPE,
     DEFAULT_ACTION_ADVICE_ENABLED,
     DEFAULT_ADAPTIVE_MIN_SAMPLES,
     DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED,
@@ -52,6 +55,7 @@ from .const import (
     DEFAULT_GOOD_DT_K,
     DEFAULT_GOOD_OFF_MIN,
     DEFAULT_GOOD_RUN_MIN,
+    DEFAULT_INDIVIDUAL_PREFIX,
     DEFAULT_NOTIFICATION_LANGUAGE,
     DEFAULT_NOTIFY_EMOJI_ENABLED,
     DEFAULT_NOTIFY_SERVICE,
@@ -87,6 +91,9 @@ from .const import (
     OPTIONAL_ATTRIBUTES,
     REQUIRED_ATTRIBUTES,
     SOURCE_SENSOR_ENTITY,
+    SOURCE_TYPE_AUTO,
+    SOURCE_TYPE_INDIVIDUAL,
+    SOURCE_TYPE_MONOLITHIC,
     family_for_model,
     models_in_family,
 )
@@ -305,6 +312,10 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             self._selected_model = legacy_model
             return await self.async_step_model(user_input)
         if user_input is not None:
+            source_type = user_input.get(
+                CONF_SOURCE_TYPE, SOURCE_TYPE_MONOLITHIC
+            )
+            self._data[CONF_SOURCE_TYPE] = source_type
             fam = user_input["family"]
             self._selected_family = fam
             if fam in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
@@ -316,19 +327,126 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 else:
                     fam_models = models_in_family(fam)
                     self._selected_model = fam_models[0] if fam_models else MODEL_BASISPROFIEL
+            if source_type == SOURCE_TYPE_INDIVIDUAL:
+                return await self.async_step_individual_prefix()
             return await self.async_step_model()
         current_model = self._data.get("model", "")
         current_family = family_for_model(current_model) if current_model else MODEL_BASISPROFIEL
         schema = vol.Schema({
             vol.Optional("family", default=current_family): _FAMILY_SELECTOR,
+            vol.Optional(
+                "source_type", default=SOURCE_TYPE_MONOLITHIC
+            ): vol.In(
+                [
+                    SOURCE_TYPE_MONOLITHIC,
+                    SOURCE_TYPE_INDIVIDUAL,
+                    SOURCE_TYPE_AUTO,
+                ]
+            ),
         }, extra=vol.ALLOW_EXTRA)
-        return self.async_show_form(step_id="user", data_schema=schema)
+        # v1.20.0 #281 GAP-7: show what ESPAltherma sources are detected.
+        _mono = self.hass.states.get(SOURCE_SENSOR_ENTITY)
+        _mono_found = "yes" if _mono is not None else "no"
+        _v2_count = 0
+        try:
+            from .engine.espaltherma_v2.discovery import (
+                build_slug_index as _v2_idx,
+            )
+            _v2_count = len(_v2_idx(self.hass))
+        except Exception:
+            _v2_count = 0
+        _suggest = "monolithic" if _mono_found == "yes" else (
+            "individual" if _v2_count > 0 else "auto"
+        )
+        return self.async_show_form(
+            step_id="user",
+            data_schema=schema,
+            description_placeholders={
+                "mono_found": _mono_found,
+                "v2_count": str(_v2_count),
+                "suggestion": _suggest,
+            },
+        )
+
+    async def async_step_individual_prefix(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """#281: prompt for ESPAltherma v2 entity prefix."""
+        if user_input is not None:
+            prefix = (
+                user_input.get(CONF_INDIVIDUAL_PREFIX)
+                or DEFAULT_INDIVIDUAL_PREFIX
+            )
+            self._data[CONF_INDIVIDUAL_PREFIX] = prefix
+            return await self.async_step_individual_review()
+        current = self._data.get(
+            CONF_INDIVIDUAL_PREFIX, DEFAULT_INDIVIDUAL_PREFIX
+        )
+        schema = vol.Schema({
+            vol.Optional("individual_prefix", default=current): str,
+        }, extra=vol.ALLOW_EXTRA)
+        return self.async_show_form(
+            step_id="individual_prefix", data_schema=schema
+        )
+
+    async def async_step_individual_review(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """#281: review matched/missing entities, then continue to model."""
+        if user_input is not None:
+            return await self.async_step_model()
+        prefix = self._data.get(
+            CONF_INDIVIDUAL_PREFIX, DEFAULT_INDIVIDUAL_PREFIX
+        )
+        result = resolve_attrs(self.hass, prefix=prefix)
+        total = len(REQUIRED_ATTRIBUTES)
+        matched = total - len(result.missing_required)
+        missing_block = ""
+        if result.missing_required:
+            missing_block = "\n\n**Missing:** " + ", ".join(
+                f"`{m}`" for m in result.missing_required
+            )
+        collision_block = ""
+        if result.collisions:
+            collision_block = "\n\n**Collisions:** " + ", ".join(
+                f"`{s}`" for s in result.collisions
+            )
+        return self.async_show_form(
+            step_id="individual_review",
+            data_schema=vol.Schema({}, extra=vol.ALLOW_EXTRA),
+            description_placeholders={
+                "matched": str(matched),
+                "total": str(total),
+                "discovered": str(result.discovered_count),
+                "missing_block": missing_block,
+                "collision_block": collision_block,
+            },
+        )
 
     async def async_step_model(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None and "model" not in user_input:
             user_input["model"] = self._selected_model or MODEL_BASISPROFIEL
         errors: dict[str, str] = {}
         missing_list: list[str] = []
+        # v1.20.0 (#281): skip monolithic probe for individual mode AND
+        # auto mode when no monolithic entity exists (GAP-1).
+        _st = self._data.get(CONF_SOURCE_TYPE, SOURCE_TYPE_MONOLITHIC)
+        _is_individual = _st == SOURCE_TYPE_INDIVIDUAL
+        if not _is_individual and _st == SOURCE_TYPE_AUTO:
+            # Runtime check: does the monolithic source exist?
+            _mono_eid = (
+                (user_input or {}).get("source_sensor")
+                or SOURCE_SENSOR_ENTITY
+            )
+            if self.hass.states.get(_mono_eid) is None:
+                _is_individual = True
+                self._data[CONF_SOURCE_TYPE] = SOURCE_TYPE_INDIVIDUAL
+        if user_input is not None and _is_individual:
+            self._data.update(user_input)
+            self._data["attribute_mode"] = ATTRIBUTE_MODE_AUTO
+            if user_input["model"] == MODEL_CUSTOM:
+                return await self.async_step_model_custom_info()
+            return await self.async_step_attributes()
         if user_input is not None:
             entity_id = user_input["source_sensor"]
             state = self.hass.states.get(entity_id)
@@ -396,10 +514,24 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_diagnose(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Show smart-import diagnostic report (issue #51, Laag 4+5)."""
-        source_id = self._data.get("source_sensor", SOURCE_SENSOR_ENTITY)
-        state = self.hass.states.get(source_id) if source_id else None
-        available = set(self._data.get("_smart_available") or [])
-        attrs: dict[str, Any] = dict(state.attributes) if state is not None else {}
+        _is_individual = (
+            self._data.get(CONF_SOURCE_TYPE) == SOURCE_TYPE_INDIVIDUAL
+        )
+        if _is_individual:
+            # v1.20.0 (#281): resolve via v2 individual entities.
+            _prefix = self._data.get(
+                CONF_INDIVIDUAL_PREFIX, DEFAULT_INDIVIDUAL_PREFIX
+            )
+            _res = resolve_attrs(self.hass, prefix=_prefix)
+            attrs: dict[str, Any] = dict(_res.attrs)
+            available = set(attrs.keys())
+        else:
+            source_id = self._data.get(
+                "source_sensor", SOURCE_SENSOR_ENTITY
+            )
+            state = self.hass.states.get(source_id) if source_id else None
+            available = set(self._data.get("_smart_available") or [])
+            attrs = dict(state.attributes) if state is not None else {}
         report = build_diagnostic(
             canonicals=tuple(REQUIRED_ATTRIBUTES),
             available=available,
@@ -596,27 +728,44 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             return await self.async_step_cycle()
 
-        source_id = (
-            self._data.get("source_sensor")
-            or self._options.get("source_sensor")
+        _is_individual = (
+            self._data.get(CONF_SOURCE_TYPE) == SOURCE_TYPE_INDIVIDUAL
         )
-        cmap = self._data.get("custom_attribute_map") or {}
-        state = self.hass.states.get(source_id) if source_id else None
         model = self._data.get("model") or MODEL_BASISPROFIEL
-        expected = expected_attributes(model)
 
         present: list[str] = []
         missing: list[str] = []
-        if state is None:
-            missing = list(expected)
-        else:
-            compat_attrs = build_compat_view(state.attributes)
-            normalized = {cmap.get(k, k): v for k, v in compat_attrs.items()}
+        if _is_individual:
+            # v1.20.0 (#281): resolver guarantees the canonical REQUIRED set.
+            _prefix = self._data.get(
+                CONF_INDIVIDUAL_PREFIX, DEFAULT_INDIVIDUAL_PREFIX
+            )
+            _res = resolve_attrs(self.hass, prefix=_prefix)
+            normalized = dict(_res.attrs)
+            expected = list(REQUIRED_ATTRIBUTES)
             for key in expected:
                 if normalized.get(key) is None:
                     missing.append(key)
                 else:
                     present.append(key)
+        else:
+            source_id = (
+                self._data.get("source_sensor")
+                or self._options.get("source_sensor")
+            )
+            cmap = self._data.get("custom_attribute_map") or {}
+            state = self.hass.states.get(source_id) if source_id else None
+            expected = expected_attributes(model)
+            if state is None:
+                missing = list(expected)
+            else:
+                compat_attrs = build_compat_view(state.attributes)
+                normalized = {cmap.get(k, k): v for k, v in compat_attrs.items()}
+                for key in expected:
+                    if normalized.get(key) is None:
+                        missing.append(key)
+                    else:
+                        present.append(key)
 
         # Hybrid (EVLQ) hint — issue #218 (Block 3B)
         hybrid_hint = ""
@@ -828,7 +977,17 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                     reason="reconfigure_successful",
                 )
             model = self._data.get("model", "")
-            source = self._data.get("source_sensor", "")
+            # v1.20.0 #281 GAP-5: title must signal source mode
+            _st = self._data.get(CONF_SOURCE_TYPE, SOURCE_TYPE_MONOLITHIC)
+            if _st == SOURCE_TYPE_INDIVIDUAL:
+                _prefix = self._data.get(
+                    CONF_INDIVIDUAL_PREFIX, DEFAULT_INDIVIDUAL_PREFIX
+                )
+                source = f"v2 {_prefix}"
+            elif _st == SOURCE_TYPE_AUTO:
+                source = "auto"
+            else:
+                source = self._data.get("source_sensor", "")
             return self.async_create_entry(
                 title=f"{NAME} - {model} ({source})",
                 data=self._data,
@@ -856,6 +1015,36 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         entry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
+        # v1.20.0 #281 GAP-6: skip source_sensor probe when not monolithic.
+        _cur_st = dict(entry.data or {}).get(
+            CONF_SOURCE_TYPE, SOURCE_TYPE_MONOLITHIC
+        )
+        _new_st = (
+            (user_input or {}).get(CONF_SOURCE_TYPE, _cur_st)
+            if user_input is not None
+            else _cur_st
+        )
+        _skip_source_probe = _new_st in (
+            SOURCE_TYPE_INDIVIDUAL, SOURCE_TYPE_AUTO
+        )
+        if user_input is not None and _skip_source_probe:
+            # individual / auto: no source_sensor validation required.
+            merged: dict[str, Any] = dict(entry.data or {})
+            merged.update({
+                k: v for k, v in dict(user_input).items()
+                if k != "source_sensor"
+            })
+            merged[CONF_SOURCE_TYPE] = _new_st
+            # Preserve individual_prefix default when switching to individual.
+            if _new_st == SOURCE_TYPE_INDIVIDUAL:
+                merged.setdefault(
+                    CONF_INDIVIDUAL_PREFIX, DEFAULT_INDIVIDUAL_PREFIX
+                )
+            return self.async_update_and_abort(
+                entry,
+                data_updates=merged,
+                reason="reconfigure_successful",
+            )
         if user_input is not None:
             entity_id = user_input["source_sensor"]
             state = self.hass.states.get(entity_id)
@@ -963,6 +1152,29 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 flat.update(v)
             else:
                 flat[k] = v
+        # v1.20.0 #281 GAP-6: source_type + individual_prefix belong to
+        # entry.data (not options) so the coordinator dispatch picks them up.
+        _data_keys = {CONF_SOURCE_TYPE, CONF_INDIVIDUAL_PREFIX}
+        _source_updates = {k: v for k, v in flat.items() if k in _data_keys}
+        for _k in _data_keys:
+            flat.pop(_k, None)
+        if _source_updates:
+            try:
+                _cur = dict(self.config_entry.data or {})
+                _changed = {
+                    k: v for k, v in _source_updates.items()
+                    if _cur.get(k) != v
+                }
+                if _changed:
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry, data={**_cur, **_changed}
+                    )
+            except (ValueError, AttributeError):
+                # Not in a fully-initialized context (e.g. unit test);
+                # entry data remains untouched.
+                _LOGGER.debug(
+                    "source_type update skipped: context unavailable"
+                )
         # #244: only the device step can explicitly clear sensor mappings.
         # Other steps must preserve existing values; the user cannot edit
         # sensors from notifications/pendulum/advanced.
@@ -978,6 +1190,26 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         c: dict[str, Any] = dict(self.config_entry.options or {})
         d: dict[str, Any] = dict(self.config_entry.data or {})
         schema = vol.Schema({
+            vol.Optional("source_type"): section(vol.Schema({
+                vol.Required(
+                    "source_type",
+                    default=d.get(
+                        CONF_SOURCE_TYPE, SOURCE_TYPE_MONOLITHIC
+                    ),
+                ): vol.In(
+                    [
+                        SOURCE_TYPE_MONOLITHIC,
+                        SOURCE_TYPE_INDIVIDUAL,
+                        SOURCE_TYPE_AUTO,
+                    ]
+                ),
+                vol.Optional(
+                    "individual_prefix",
+                    default=d.get(
+                        CONF_INDIVIDUAL_PREFIX, DEFAULT_INDIVIDUAL_PREFIX
+                    ),
+                ): str,
+            })),
             vol.Required("sensors"): section(vol.Schema({
                 vol.Optional(
                     "power_sensor_entity",
