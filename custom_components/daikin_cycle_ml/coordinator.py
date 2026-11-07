@@ -1609,7 +1609,19 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if cop_r <= 0:
             # Tiny positive cop rounds to 0.0 -- reject (R643)
             return None, "cop_out_of_range"
-        return cop_r, f"computed_{power_src}"
+        # v1.20.0 #281: return explicit source tag when v2 heat output was
+        # used (pre-existing bug: _tsrc was assigned but never returned, so
+        # snap.cop_source always showed "computed_*" even when the ESP32
+        # pre-calculated heat output was the actual source).
+        # Backward-compatible: only promote the v2-specific tag; all other
+        # paths keep the existing "computed_<power_src>" format (2 existing
+        # tests still expect that format for V1 fallback).
+        _src = (
+            "espaltherma_heat_output"
+            if _tsrc == "espaltherma_heat_output"
+            else f"computed_{power_src}"
+        )
+        return cop_r, _src
 
     def _resolve_auto_source(self) -> _AutoSourceChoice:
         """Coverage-based AUTO source resolution (#281 T8b).

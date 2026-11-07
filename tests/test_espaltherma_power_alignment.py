@@ -63,13 +63,13 @@ def _mk_coord(
         ("own_cop", "sensor.my_cop", "sensor.power", REAL_ATTRS, "cop_sensor", REAL_COP_SENSOR),
 
         # 2. Power Meter + ESP v2 Heat (uses Shelly + 5.45 kW)
-        ("meter_esp_v2", None, "sensor.power", REAL_ATTRS, "computed_power_meter", round(5.45 * 1000 / REAL_POWER_W, 4)),
+        ("meter_esp_v2", None, "sensor.power", REAL_ATTRS, "espaltherma_heat_output", round(5.45 * 1000 / REAL_POWER_W, 4)),
 
         # 3. Power Meter + ESP v1 Fallback (no Stats)
         ("meter_esp_v1", None, "sensor.power", {k: v for k, v in REAL_ATTRS.items() if not k.startswith("Stats:")}, "computed_power_meter", 6.9595),
 
         # 4. No Meter + ESP v2 (uses ESP32 Heat / ESP32 Elec)
-        ("no_meter_esp_v2", None, None, REAL_ATTRS, "computed_espaltherma_v2_stats", round(5.45 / 0.81, 4)),
+        ("no_meter_esp_v2", None, None, REAL_ATTRS, "espaltherma_heat_output", round(5.45 / 0.81, 4)),
 
         # 5. No Meter + ESP v1 Fallback (uses Integration Heat / Inverter Elec)
         ("no_meter_esp_v1", None, None, {k: v for k, v in REAL_ATTRS.items() if not k.startswith("Stats:")}, "computed_inverter_estimated_v1", 6.8689),

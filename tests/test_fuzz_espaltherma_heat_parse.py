@@ -111,4 +111,5 @@ def test_fuzz_heat_output_positive_matches_expected_esp32_path(raw: float) -> No
             assert abs(cop - expected) < 0.0001, (
                 f"raw={raw}: expected {expected}, got {cop} (abs diff {abs(cop-expected):.2e})"
             )
-            assert src == "computed_power_meter"
+            # v1.20.0 #281: v2 heat pad -> tag reflects ESP32 thermal source.
+            assert src == "espaltherma_heat_output"

@@ -99,7 +99,7 @@ class TestMissingBranches:
         cop, src = coord._read_cop_effective(now=0.0, attrs=attrs)
         assert cop is not None
         assert cop > 0
-        assert src == "computed_power_meter"
+        assert src == "espaltherma_heat_output"
         # Verify the value is a 4-decimal rounded float
         assert cop == round(cop, 4)
 
@@ -145,11 +145,19 @@ class TestExplicitEdgeCases:
         assert math.isfinite(cop)
 
     def test_positive_esp32_heat_uses_esp32_path(self) -> None:
-        """Cover line 1507 (else: _tsrc = 'espaltherma_heat_output')."""
+        """When v2 heat output drives COP, source tag must say so (v1.20.0).
+
+        Pre-v1.20.0 this returned "computed_power_meter" — the _tsrc var
+        was assigned "espaltherma_heat_output" but never returned. The
+        test asserted the bug. Fixed to expect the actual source.
+        """
         attrs = dict(FULL_ATTRS, **{"Stats: Heat output (kW)": "4.5"})
         coord = _mk_coord()
         cop, src = coord._read_cop_effective(now=0.0, attrs=attrs)
-        assert src == "computed_power_meter"
+        assert src == "espaltherma_heat_output", (
+            f"v2 heat output used but source tag wrong: {src!r}; "
+            f"_tsrc should propagate to snap.cop_source"
+        )
         assert cop is not None
         # 4.5 kW / 0.8 kW = 5.625
         assert abs(cop - 5.625) < 0.001

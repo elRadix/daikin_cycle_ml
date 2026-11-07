@@ -227,6 +227,8 @@ async def async_get_config_entry_diagnostics(
             "errors": getattr(snap, "errors", 0),
             "errors_total": getattr(snap, "errors_total", 0),
             "attrs_sample": attrs_sample,
+            # v1.20.0 #281: COP source transparency (was dead; now surfaced)
+            "cop_source": str(getattr(snap, "cop_source", "none")),
             # Hybrid (EVLQ) — issue #218
             # v1.17.2: boiler_* only meaningful on hybrid installs
             "boiler_active": (
