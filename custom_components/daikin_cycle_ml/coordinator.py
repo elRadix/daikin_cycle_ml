@@ -487,6 +487,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _defrost_start_ts: float | None = None
     _defrost_count_today: int = 0
     _defrost_duration_s: float = 0.0
+    _defrost_prior_s: float | None = None  # v1.20.0 #280
     _last_defrost_ts: float = 0.0
     _last_runtime_tick_ts: float = 0.0
     _energy_day_key: str = ""
@@ -623,6 +624,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._defrost_start_ts: float | None = None
         self._defrost_count_today: int = 0
         self._defrost_duration_s: float = 0.0
+        self._defrost_prior_s: float | None = None  # v1.20.0 #280
         self._last_defrost_ts: float = 0.0
         self._last_runtime_tick_ts: float = 0.0
         # ---------- v1.6.0-C6a: energy accumulators ----------
@@ -1476,9 +1478,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
     @staticmethod
     def _is_on(v: Any) -> bool:
+        """v1.20.0 #280: read() normalizes to bool; accept bool/int/str."""
         if v is None:
             return False
-        return str(v).strip().upper() == "ON"
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, (int, float)):
+            return v != 0
+        return str(v).strip().upper() in ("ON", "TRUE", "1")
 
     def _read_cop_effective(
         self, now: float, attrs: dict[str, Any] | None
@@ -1608,6 +1615,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 snap.state = self.detector.state
                 snap.mode = _frozen.get("mode", "unknown")
                 snap.cycle_start_ts = float(_frozen.get("start_ts") or 0.0)
+                # v1.20.0 #280: tick tolerates partial attrs (guards None
+                # internally). Must run during freeze so non-BUH models and
+                # partial v2 attrs keep incrementing defrost/BUH counters.
+                # Detector itself remains frozen (#109 phantom protection).
+                self._tick_buh_and_defrost(attrs, now)
                 return snap
             self._track_setpoint(attrs)
             snap.power_w = self._read_power_w()
@@ -1737,13 +1749,17 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     @property
     def runtime_snapshot(self) -> dict[str, float]:
         """Read-only snapshot of runtime/BUH/defrost accumulators (R216)."""
-        return {
+        payload: dict[str, Any] = {
             "buh_step1_s": self._buh_step1_s,
             "buh_step2_s": self._buh_step2_s,
             "defrost_count": float(self._defrost_count_today),
             "defrost_duration_s": self._defrost_duration_s,
             "last_defrost_ts": self._last_defrost_ts,
+            "defrost_start_ts": self._defrost_start_ts,  # v1.20.0 #280
+            "prev_defrost": self._prev_defrost,  # v1.20.0 #280
+            "defrost_prior_s": self._defrost_prior_s,  # v1.20.0 #280
         }
+        return payload
 
     @property
     def energy_snapshot(self) -> dict[str, dict[str, float]]:
@@ -1807,6 +1823,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._defrost_start_ts = None
             self._defrost_count_today = 0
             self._defrost_duration_s = 0.0
+            self._defrost_prior_s = None  # v1.20.0 #280
         if self._energy_day_key != day:
             self._energy_day_key = day
             self._energy_acc = {
@@ -1969,6 +1986,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._last_defrost_ts = float(
                 payload.get("last_defrost_ts", 0.0)
             )
+            self._defrost_start_ts = payload.get("defrost_start_ts")  # v1.20.0 #280
+            self._prev_defrost = bool(payload.get("prev_defrost", False))  # v1.20.0 #280
+            self._defrost_prior_s = payload.get("defrost_prior_s")  # v1.20.0 #280
             self._runtime_day_key = today
             _LOGGER.info(
                 "runtime_acc restored: day=%s buh_s1=%.1f buh_s2=%.1f defrost_n=%d",
@@ -2103,23 +2123,36 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 self._buh_step1_s += dt_s
             if s2 is True:
                 self._buh_step2_s += dt_s
-            defrost_on = attrs.get(ATTR_DEFROST_OPERATION) is True
+            defrost_raw = attrs.get(ATTR_DEFROST_OPERATION)
+            if defrost_raw is None:
+                # v1.20.0 #280: partial attrs. Preserve last known state;
+                # do not falsely close an in-flight defrost.
+                return
+            defrost_on = defrost_raw is True
+            prior = self._defrost_prior_s
             if defrost_on and not self._prev_defrost:
                 self._defrost_count_today += 1
+                self._defrost_prior_s = self._defrost_duration_s
                 self._defrost_start_ts = now
                 self._last_defrost_ts = now
             elif not defrost_on and self._prev_defrost:
                 if self._defrost_start_ts is not None:
                     dur = max(0.0, now - self._defrost_start_ts)
-                    self._defrost_duration_s += dur
+                    if prior is not None:
+                        self._defrost_duration_s = prior + dur
+                    else:
+                        self._defrost_duration_s += dur
                 self._defrost_start_ts = None
+                self._defrost_prior_s = None
             elif defrost_on and self._defrost_start_ts is not None:
                 # Running tally while defrost continues (live view).
                 dur = max(0.0, now - self._defrost_start_ts)
-                # Not accumulated twice: value is recomputed not summed.
-                self._defrost_duration_s = max(
-                    self._defrost_duration_s, dur
-                )
+                if prior is not None:
+                    self._defrost_duration_s = prior + dur
+                else:
+                    self._defrost_duration_s = max(
+                        self._defrost_duration_s, dur
+                    )
             self._prev_defrost = defrost_on
         except Exception:
             _LOGGER.exception("BUH/defrost tick failed")

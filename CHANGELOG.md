@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Defrost counter stays at zero on non-BUH models** (#280): a freeze
+  gate paused the BUH/defrost tick whenever any required attribute
+  (including `BUH Step1`/`BUH Step2` on units without a backup heater)
+  was missing. The tick now runs during freeze — detector remains
+  frozen per #109 phantom protection, but counters increment.
+- **Defrost duration double-counted on OFF transition** (#280): a
+  running tally during defrost was added again on OFF, inflating
+  totals by ~tick_count×interval per defrost. Now computed from
+  `prior + elapsed` once.
+- **Multi-defrost running tally showed max instead of sum** (#280):
+  with two defrosts in a day, the live display during defrost #2
+  overwrote defrost #1's contribution. Now correctly `prior + current`.
+- **Defrost count double-counted after HA restart mid-defrost** (#280):
+  `_defrost_start_ts` and `_prev_defrost` were not persisted, so the
+  next ON tick after restart incremented count again. Both now round-trip
+  through `_persist_runtime_acc`/`_restore_runtime_acc`.
+- **BUH electrical power ignored when attrs arrive as bool** (#280):
+  `_is_on` only matched the string `"ON"`, but `read()` normalizes to
+  Python `bool`. BUH Step1/Step2 bool `True` now counted; also accepts
+  int and additional truthy strings.
+
+
 ## [1.19.10] - 2026-11-06
 
 ### Added
