@@ -245,6 +245,7 @@ async def async_get_config_entry_diagnostics(
             "boiler_efficiency_cop": getattr(snap, "boiler_efficiency_cop", None),
             "inv_freq_secondary": getattr(snap, "inv_freq_secondary", None),
         },
+        "source_resolution": dict(getattr(coord, "_source_resolution", {}) or {}),
         "store": {
             "cycle_count": store.count(),
             "counters": counters,

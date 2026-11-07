@@ -492,10 +492,10 @@ async def test_gap6_options_device_has_source_type() -> None:
 
 
 @pytest.mark.asyncio
-async def test_coexistence_auto_picks_monolithic_when_both_full(
+async def test_coexistence_auto_picks_individual_when_both_full(
     monkeypatch,
 ) -> None:
-    """Both present + both full -> prefer monolithic (existing behaviour)."""
+    """Both present + both full -> prefer individual (v2 wins on tie, #281)."""
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
@@ -553,8 +553,9 @@ async def test_coexistence_auto_picks_monolithic_when_both_full(
         _fake_resolve,
     )
     await c._async_update_data()
-    # Mono full present -> must NOT use resolver
-    assert not resolve_calls, (
-        f"co-existence: auto with both full must prefer monolithic, "
+    # v2 wins on tie per #281 decision -> resolver MUST be called
+    assert resolve_calls, (
+        "co-existence: auto with both full must prefer individual (v2 wins on tie), "
         f"resolve_attrs called {len(resolve_calls)}x"
     )
+

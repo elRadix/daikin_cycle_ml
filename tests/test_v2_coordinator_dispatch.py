@@ -119,6 +119,8 @@ def _bare(
     c._track_mode_transition = MagicMock()
     c._refresh_alerts_today = AsyncMock(return_value=None)
     c._is_hybrid_install = MagicMock(return_value=False)
+    c._auto_last_chosen = ""
+    c._source_resolution = {}
     return c
 
 
@@ -226,17 +228,34 @@ async def test_individual_full_outage_freezes(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_auto_prefers_monolithic_when_available(monkeypatch) -> None:
-    """Regression: monolithic entity exists -> use it, never call resolve_attrs."""
+async def test_auto_picks_monolithic_when_higher_coverage(monkeypatch) -> None:
+    """v1.20.0 #281 T8b: mono (12/12) vs v2 (5/12) -> mono wins on coverage.
+
+    T8b decision: coverage-based. Mono has HIGHER coverage than v2
+    here, so mono wins (not just "mono exists").
+    """
     c = _bare(source_type=SOURCE_TYPE_AUTO)
     state = MagicMock()
     state.attributes = {"op": "Heating"}
     c.hass.states.get = MagicMock(return_value=state)
 
-    def fail_resolve(*a, **kw):
-        raise AssertionError("resolve_attrs must not be called")
+    from types import SimpleNamespace
+    def fake_resolve(hass, prefix=DEFAULT_INDIVIDUAL_PREFIX, custom_map=None):
+        # v2 has only 5 of 12 required -> lower coverage than mono (12)
+        return SimpleNamespace(
+            attrs={"Operation Mode": "Heating", "COP": 4.5},
+            missing_required=[
+                "I/U operation mode", "3way valve(On:DHW_Off:Space)",
+                "Defrost Operation", "Leaving water temp. after BUH (R2T)",
+                "Inlet water temp.(R4T)", "Outdoor air temp.(R1T)",
+                "Flow sensor (l/min)",
+            ],
+            collisions=[],
+            discovered_count=2,
+            missing_consumed=[],
+        )
 
-    monkeypatch.setattr(f"{_COORD_MOD}.resolve_attrs", fail_resolve)
+    monkeypatch.setattr(f"{_COORD_MOD}.resolve_attrs", fake_resolve)
     monkeypatch.setattr(
         f"{_COORD_MOD}.read", lambda *a, **kw: _full_attrs()
     )
@@ -244,7 +263,12 @@ async def test_auto_prefers_monolithic_when_available(monkeypatch) -> None:
     c._tick_energy = MagicMock(side_effect=_Reached())
     with pytest.raises(_Reached):
         await c._async_update_data()
-    c.detector.update.assert_called_once()
+    # Mono wins because coverage 12/12 > 5/12
+    assert c._source_resolution.get("chosen") == "monolithic"
+    assert c._source_resolution.get("mono_coverage") == 12
+    assert c._source_resolution.get("v2_coverage") == 5
+
+
 
 
 @pytest.mark.asyncio

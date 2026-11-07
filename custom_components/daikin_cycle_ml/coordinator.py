@@ -71,6 +71,7 @@ from .const import (
     MODE_HEATING,
     MODEL_BASISPROFIEL,
     OPTION_DAILY_SUMMARY_LIVE_ENABLED,
+    REQUIRED_ATTRIBUTES,
     SOURCE_SENSOR_ENTITY,
     SOURCE_TYPE_AUTO,
     SOURCE_TYPE_INDIVIDUAL,
@@ -472,6 +473,21 @@ def _as_opt_float(v: object) -> float | None:
     return None
 
 
+@dataclass
+class _AutoSourceChoice:
+    """Resolved AUTO source (v1.20.0 #281 T8b). Internal only."""
+    chosen: str  # "monolithic" or "individual"
+    mono_state: Any
+    mono_attrs: dict[str, Any]
+    mono_missing: list[str]
+    ind_attrs: dict[str, Any]
+    ind_missing: list[str]
+    ind_discovered: int
+    mono_cov: int
+    ind_cov: int
+    reason: str
+
+
 class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     """Reads the source sensor every UPDATE_INTERVAL_SECONDS."""
 
@@ -610,6 +626,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         # _last_mode_change_ts = last non-unknown mode transition.
         # 0.0 = bootstrap (allow samples immediately on cold start).
         self._last_mode_change_ts: float = 0.0
+        self._auto_last_chosen: str = ""
+        self._source_resolution: dict[str, Any] = {}
         self._last_observed_mode: str = ""
         # v1.19.9 #123: daily reject-tracking for cop_physically_impossible.
         self._cop_rejected_today_count: int = 0
@@ -1593,6 +1611,83 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return None, "cop_out_of_range"
         return cop_r, f"computed_{power_src}"
 
+    def _resolve_auto_source(self) -> _AutoSourceChoice:
+        """Coverage-based AUTO source resolution (#281 T8b).
+
+        Q1 (user): v2 wins on tie.
+        Q2 (user): freeze when both empty (preserve GAP-4 stale alert).
+        Q3 (user): INFO on first choice, WARNING on switch.
+        Q4 (user): populate _source_resolution for diagnostics.
+        """
+        mono_state = self.hass.states.get(self.source_entity)
+        mono_attrs: dict[str, Any] = {}
+        mono_missing: list[str] = []
+        if mono_state is not None:
+            cmap = (
+                self.options.get("custom_attribute_map")
+                or self.entry.data.get("custom_attribute_map")
+                or self.entry.data.get("attribute_map")
+            )
+            mono_attrs = read(mono_state, custom_map=cmap)
+            mono_missing = missing_required(mono_attrs)
+            mono_cov = len(REQUIRED_ATTRIBUTES) - len(mono_missing)
+        else:
+            # v1.20.0 #281 T8b fix: non-existent monolithic entity means
+            # 0 coverage, NOT full coverage. Without this, mono_cov would
+            # default to 12 (missing=[]), incorrectly beating a partial
+            # v2 source and freezing the coordinator in AUTO mode.
+            mono_cov = 0
+
+        ind = resolve_attrs(self.hass, prefix=self.individual_prefix)
+        ind_attrs = dict(ind.attrs)
+        ind_missing = list(ind.missing_required)
+        ind_cov = len(REQUIRED_ATTRIBUTES) - len(ind_missing)
+
+        if mono_cov == 0 and ind_cov == 0:
+            chosen = "monolithic"
+            reason = (
+                f"both empty (mono {mono_cov}/{len(REQUIRED_ATTRIBUTES)}, "
+                f"v2 {ind_cov}/{len(REQUIRED_ATTRIBUTES)}); freeze"
+            )
+        elif ind_cov >= mono_cov:
+            chosen = "individual"
+            reason = (
+                f"v2 {ind_cov}/{len(REQUIRED_ATTRIBUTES)} >= "
+                f"mono {mono_cov}/{len(REQUIRED_ATTRIBUTES)}"
+            )
+        else:
+            chosen = "monolithic"
+            reason = (
+                f"mono {mono_cov}/{len(REQUIRED_ATTRIBUTES)} > "
+                f"v2 {ind_cov}/{len(REQUIRED_ATTRIBUTES)}"
+            )
+
+        if chosen != self._auto_last_chosen:
+            if self._auto_last_chosen:
+                _LOGGER.warning(
+                    "source auto: switched %s -> %s (%s)",
+                    self._auto_last_chosen, chosen, reason,
+                )
+            else:
+                _LOGGER.info("source auto: chose %s (%s)", chosen, reason)
+            self._auto_last_chosen = chosen
+
+        self._source_resolution = {
+            "mode": "auto",
+            "mono_coverage": mono_cov,
+            "v2_coverage": ind_cov,
+            "required_total": len(REQUIRED_ATTRIBUTES),
+            "chosen": chosen,
+            "reason": reason,
+        }
+
+        return _AutoSourceChoice(
+            chosen=chosen, mono_state=mono_state, mono_attrs=mono_attrs,
+            mono_missing=mono_missing, ind_attrs=ind_attrs,
+            ind_missing=ind_missing, ind_discovered=ind.discovered_count,
+            mono_cov=mono_cov, ind_cov=ind_cov, reason=reason,
+        )
+
     async def _async_update_data(self) -> DataSnapshot:
         now = time.time()
         snap = DataSnapshot(last_sample_ts=now)
@@ -1613,33 +1708,35 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             state: Any = None
             attrs: dict[str, Any] = {}
 
-            _monolithic_available = False
-            if self.source_type in (SOURCE_TYPE_MONOLITHIC, SOURCE_TYPE_AUTO):
-                state = self.hass.states.get(self.source_entity)
-                _monolithic_available = state is not None
-
-            _use_individual = self.source_type == SOURCE_TYPE_INDIVIDUAL or (
-                self.source_type == SOURCE_TYPE_AUTO
-                and not _monolithic_available
-            )
-
-            if _use_individual:
+            if self.source_type == SOURCE_TYPE_AUTO:
+                # v1.20.0 #281 T8b: coverage-based AUTO selection.
+                choice = self._resolve_auto_source()
+                if choice.chosen == "individual":
+                    attrs = choice.ind_attrs
+                    snap.attrs = attrs
+                    snap.missing_attrs = list(choice.ind_missing)
+                    if choice.ind_discovered > 0:
+                        snap.last_success_ts = now
+                    _should_freeze = len(attrs) == 0
+                else:
+                    if choice.mono_state is None:
+                        return snap
+                    attrs = choice.mono_attrs
+                    snap.attrs = attrs
+                    snap.missing_attrs = list(choice.mono_missing)
+                    snap.last_success_ts = now
+                    _should_freeze = bool(snap.missing_attrs)
+            elif self.source_type == SOURCE_TYPE_INDIVIDUAL:
                 # v1.20.0 #281: ESPAltherma v2 individual entities.
                 result = resolve_attrs(self.hass, prefix=self.individual_prefix)
                 attrs = dict(result.attrs)
                 snap.attrs = attrs
                 snap.missing_attrs = list(result.missing_required)
-                # v1.20.0 #281 GAP-4: only bump last_success_ts when the
-                # prefix actually resolves at least one entity. Otherwise
-                # source_stale never fires for broken v2 installs.
                 if result.discovered_count > 0:
                     snap.last_success_ts = now
-                # Freeze only on total outage (0 attrs). Partial missing
-                # (e.g. BUH Step1/Step2 on non-BUH models) proceeds so
-                # the cycle detector keeps working — per-label repairs
-                # surface missing items without blocking detection.
                 _should_freeze = len(attrs) == 0
-            else:
+            else:  # SOURCE_TYPE_MONOLITHIC
+                state = self.hass.states.get(self.source_entity)
                 if state is None:
                     return snap
                 custom_map = (
