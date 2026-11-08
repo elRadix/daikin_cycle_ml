@@ -2,6 +2,62 @@
 
 ## [Unreleased]
 
+### Added
+
+- **`cycles.dhw_tank_temp REAL` column (#289)**: new column in the
+  `cycles` table, populated for DHW cycle records with the R5T tank
+  temperature at close time. Idempotent ALTER guard in
+  `async_initialize` for existing DBs (pre-v30 installs). Historical
+  cycles stay `NULL`. Fresh installs get it from `schema.sql`.
+- **`daily_summary.transient_count INTEGER NOT NULL DEFAULT 0` column
+  (#292)**: new column tracking is_transient=1 LWT-sampling pulses
+  per (day, mode). Idempotent ALTER guard in `async_initialize` for
+  existing DBs (pre-v29 installs). Fresh installs get it from
+  `schema.sql`.
+- **`buh_penalty_legionella_waived` option (#289)**: new option
+  (default: enabled) that controls whether the BUH quality penalty is
+  waived during legionella runs. Wired into both the OptionsFlow
+  `quality_ml` step and the setup wizard's `quality` step, with
+  translations in strings.json, en.json, and nl.json.
+- **`_async_options_updated` options reload listener (#286)**: new
+  listener registered in `async_setup_entry` via
+  `entry.add_update_listener`. Triggers `config_entries.async_reload`
+  when the user saves OptionsFlow changes, rebuilding the coordinator
+  with fresh `entry.options`.
+- **`_wire_dhw_tank_temp` coordinator helper (#289)**: extracts DHW
+  tank temperature from attrs for DHW cycle records only. Handles
+  missing sensors and disconnected R5T probes (<-20°C → None) via
+  existing `dhw_tank_temp_from_attrs` helper.
+- **`async_migrate_to_v29` migration (#292)**: rebuilds all
+  `daily_summary` rows from the `cycles` table with the fixed
+  R709/R710 semantics. Idempotent via
+  `data_migration_v29_completed` marker. Runs automatically on startup
+  after v28.
+
+### Changed
+
+- **`async_rollup_day` cross-midnight attribution (#292, R709)**:
+  `cycles`, `quality_sum`, `duration_min/max`, `buh_count`,
+  `defrost_count`, `dt_max_sum`, and `rps_sum` are now attributed to
+  the **START day only** for cross-midnight cycles. `total_duration_s`
+  keeps the v1.19.7 #260 pro-rata overlap (preserves cross-midnight
+  split). Pre-fix, a cycle starting on day D and ending on D+1 was
+  attributed to BOTH days, producing +1 cycle per cross-midnight day
+  (7 mismatches on prod-3, 3 on prod-2 over Nov 1-8) and multi-day
+  `duration_max` on single-day rows (e.g. 84397s = 23.4h on Nov 5
+  while the cycle extended into Nov 6).
+- **`async_rollup_day` transient exclusion (#292, R710)**:
+  `is_transient=1` LWT-sampling pulses (29-30s) are no longer included
+  in any user-facing metric. Pre-fix, `duration_min` was 29s on every
+  day and `quality_sum` was dragged downward by transient score=10/30
+  samples. Transients are now tracked in `transient_count` only.
+- **`score_cycle` legionella BUH waiver (#289)**: the BUH penalty
+  (−10 points) is now waived when `mode == "dhw"` AND
+  `dhw_tank_temp >= 60.0`. Heating cycles and DHW below 60°C keep the
+  penalty. Rationale: DHW cycles at tank temp >= 60°C cannot complete
+  without BUH assistance; penalizing them false-flags a normal
+  maintenance operation.
+
 ### Fixed
 
 - **Backfill respects user options (#284)**: `_async_backfill_quality`
@@ -13,35 +69,6 @@
   of user config (45/4.0) — visible in `quality_today`, `last_cycle`,
   `daily_summary_recent.quality_avg`. One-line fix: pass
   `getattr(coordinator, "options", None)` to `score_cycle`.
-- **daily_summary cross-midnight double-count (R709, #292)**: cycles
-  starting on day D and ending on D+1 were attributed to BOTH days for
-  `cycles`, `quality_sum`, `duration_min/max`, `buh_count`,
-  `defrost_count`, `dt_max_sum`, and `rps_sum`. Produced +1 cycle per
-  cross-midnight day (7 mismatches on prod-3, 3 on prod-2 over Nov 1-8)
-  and multi-day `duration_max` on single-day rows (e.g. 84397s = 23.4h
-  on Nov 5 while the cycle extended into Nov 6). Root cause: no start-day
-  guard in the rollup aggregation. Fix: cycles count, quality,
-  duration_min/max, buh/defrost, dt/rps sums now attributed to the START
-  day only. `total_duration_s` keeps the v1.19.7 #260 pro-rata overlap
-  (preserves cross-midnight split).
-- **daily_summary transient inclusion (R710, #292)**: `is_transient=1`
-  LWT-sampling pulses (29-30s) were included in every user-facing
-  metric, so `duration_min` was 29s on every day and `quality_sum`
-  dragged downward by transient score=10/30 samples. Fix: transients
-  tracked in new `transient_count` column, excluded from all user
-  metrics.
-- **v29 migration (#292)**: rebuilds all `daily_summary` rows from the
-  `cycles` table with the fixed R709/R710 semantics. Idempotent via
-  `data_migration_v29_completed` marker. Runs automatically on startup
-  after v28.
-- **Schema v29 (#292)**: new `transient_count INTEGER NOT NULL DEFAULT 0`
-  column on `daily_summary`, with idempotent ALTER guard in
-  `async_initialize` for existing DBs.
-- **Snapshot/snapshot-heal tests (#292)**: `test_v1198_snapshot_heal.py`,
-  `test_v1199_full_dev_db.py`, and `test_v1199_snapshot_replay.py` now
-  call `async_initialize()` on fixture-loaded DBs to match production
-  ordering (previously only `async_open()`, missing v29 ALTER guard).
-  No semantic changes to those tests.
 - **Stale options after OptionsFlow save (#286)**: `coordinator.options`
   is a snapshot taken at setup and never refreshed. When a user changed
   `good_run_threshold_min` / `good_dt_threshold_k` via OptionsFlow,
@@ -53,23 +80,12 @@
   `config_entries.async_reload`, which rebuilds the coordinator with
   fresh options and refreshes every dependent threshold (detector,
   alerts, scoring, notify).
-- **BUH penalty during unavoidable legionella runs (#289)**: every
-  `buh_used` cycle lost 10 quality points regardless of context. DHW
-  cycles at tank temp >= 60°C cannot complete without BUH assistance;
-  penalizing them false-flags a normal maintenance operation.
-  Fix: `score_cycle` waives the BUH penalty when `mode == "dhw"` AND
-  `dhw_tank_temp >= 60.0`. Heating cycles and DHW below 60°C remain
-  penalized. User-controllable via new option
-  `buh_penalty_legionella_waived` (default: enabled), wired into both
-  the OptionsFlow quality step and the setup wizard.
-- **Schema v30 (#289)**: new `cycles.dhw_tank_temp REAL` column, with
-  idempotent ALTER guard for existing DBs. Historical cycles stay
-  `NULL` (fall back to previous penalty behaviour). Fresh installs get
-  it from schema.sql.
-- **`_wire_dhw_tank_temp` helper (#289)**: extracts DHW tank temp from
-  attrs for DHW cycle records only. Handles missing sensors and
-  disconnected R5T probes (<-20°C → None) via existing
-  `dhw_tank_temp_from_attrs` helper.
+- **Snapshot/snapshot-heal tests use production ordering (#292)**:
+  `test_v1198_snapshot_heal.py`, `test_v1199_full_dev_db.py`, and
+  `test_v1199_snapshot_replay.py` now call `async_initialize()` on
+  fixture-loaded DBs to match production ordering (previously only
+  `async_open()`, missing v29 ALTER guard). No semantic changes to
+  those tests.
 
 ### Tests
 
