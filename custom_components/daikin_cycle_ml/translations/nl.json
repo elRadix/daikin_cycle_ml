@@ -631,6 +631,14 @@
             }
           }
         }
+      },
+      "quality": {
+        "data": {
+          "buh_penalty_legionella_waived": "BUH-straf kwijtschelden tijdens legionella-runs"
+        },
+        "data_description": {
+          "buh_penalty_legionella_waived": "Wanneer de SWW-tank 60°C of hoger bereikt, is de backupverwarmer vereist om de run af te ronden. Schakel dit uit om de -10 kwaliteitsstraf te behouden, ook voor onvermijdelijke legionella-runs."
+        }
       }
     }
   },

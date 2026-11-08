@@ -924,6 +924,16 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                     "target_cycles_per_day", DEFAULT_TARGET_CYCLES_PER_DAY
                 ),
             ): _num(1, 100, 1),
+            # v1.20.1 #289: legionella BUH exemption toggle. Optional
+            # so pre-v1.20.1 installs (no key in options) keep the new
+            # default (waived=True). Users who want strict tracking
+            # (still penalize legionella BUH) can disable.
+            vol.Optional(
+                "buh_penalty_legionella_waived",
+                default=self._options.get(
+                    "buh_penalty_legionella_waived", True
+                ),
+            ): bool,
         })
         return self.async_show_form(step_id="quality", data_schema=schema)
 
@@ -1373,6 +1383,10 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 vol.Required("target_cycles_per_day",
                     default=c.get("target_cycles_per_day", DEFAULT_TARGET_CYCLES_PER_DAY)
                 ): _num(1, 100, 1),
+                # v1.20.1 #289: legionella BUH waiver (UI wiring)
+                vol.Optional("buh_penalty_legionella_waived",
+                    default=c.get("buh_penalty_legionella_waived", True)
+                ): bool,
             })),
             vol.Required("adaptive"): section(vol.Schema({
                 vol.Required("adaptive_thresholds_enabled",

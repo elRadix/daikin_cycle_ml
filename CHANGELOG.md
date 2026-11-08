@@ -21,8 +21,9 @@
   penalizing them false-flags a normal maintenance operation.
   Fix: `score_cycle` waives the BUH penalty when
   `mode == "dhw"` AND `dhw_tank_temp >= 60.0`. Heating cycles and DHW
-  below 60°C remain penalized. User can disable via option
-  `buh_penalty_legionella_waived` (default: enabled).
+  below 60°C remain penalized. User-controllable via new option
+  `buh_penalty_legionella_waived` (default: enabled), wired into the
+  OptionsFlow quality step for both new installs and upgrades.
 - **Schema v30**: new `cycles.dhw_tank_temp REAL` column, with idempotent
   ALTER guard for existing DBs. Historical cycles stay `NULL` (fall back
   to previous penalty behaviour). Fresh installs get it from schema.sql.

@@ -631,6 +631,14 @@
             }
           }
         }
+      },
+      "quality": {
+        "data": {
+          "buh_penalty_legionella_waived": "Waive BUH penalty during legionella runs"
+        },
+        "data_description": {
+          "buh_penalty_legionella_waived": "When the DHW tank reaches 60°C or higher, the backup heater is required to complete the run. Disable this to keep the -10 quality penalty even for unavoidable legionella runs."
+        }
       }
     }
   },
