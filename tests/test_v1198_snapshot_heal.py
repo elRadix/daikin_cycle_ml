@@ -37,6 +37,7 @@ async def test_snapshot_heals_after_backfill(tmp_path):
 
     db = CycleDB(str(work))
     await db.async_open()
+    await db.async_initialize()
     try:
         rows_before = await db.async_daily_summary(days=7)
         by = {(r["day"], r["mode"]): r for r in rows_before}

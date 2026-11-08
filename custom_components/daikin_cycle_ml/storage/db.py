@@ -159,6 +159,17 @@ class CycleDB:
             await conn.execute(
                 "ALTER TABLE cycles ADD COLUMN thermal_kw_avg REAL"
             )
+        # v1.20.1 #292: R710 transient_count column for daily_summary.
+        # Idempotent via PRAGMA guard. Fresh installs get it from
+        # schema.sql (CREATE TABLE IF NOT EXISTS handles new DBs).
+        cursor_ds = await conn.execute("PRAGMA table_info(daily_summary)")
+        ds_cols = {row[1] for row in await cursor_ds.fetchall()}
+        await cursor_ds.close()
+        if "transient_count" not in ds_cols:
+            await conn.execute(
+                "ALTER TABLE daily_summary ADD COLUMN "
+                "transient_count INTEGER NOT NULL DEFAULT 0"
+            )
 
         # v1.12.4 (v18): DHW backfill columns + indices.
         # Idempotent via PRAGMA table_info guard; fresh installs
@@ -2117,6 +2128,47 @@ class CycleDB:
         return stats
 
 
+    async def async_migrate_to_v29(self) -> dict[str, Any]:
+        """v1.20.1 #292: rebuild daily_summary with R709+R710 semantics."""
+        marker_state = await self.async_get_model_state(
+            "data_migration_v29_completed"
+        )
+        if marker_state and isinstance(marker_state, dict) \
+                and marker_state.get("completed"):
+            return {"skipped": 1}
+
+        conn = self._require()
+        await conn.execute("DELETE FROM daily_summary")
+        await conn.commit()
+
+        cur = await conn.execute(
+            "SELECT DISTINCT date(start_ts,'unixepoch','localtime') "
+            "FROM cycles WHERE start_ts IS NOT NULL"
+        )
+        try:
+            rows = await cur.fetchall()
+        finally:
+            await cur.close()
+
+        days_rebuilt = 0
+        for r in rows:
+            day = r[0]
+            if not day:
+                continue
+            try:
+                await self.async_rollup_day(day)
+                days_rebuilt += 1
+            except Exception:  # pragma: no cover - defensive
+                _LOGGER.exception("v29 rebuild failed for day=%s", day)
+
+        stats = {"days_rebuilt": days_rebuilt, "completed": True}
+        await self.async_set_model_state(
+            "data_migration_v29_completed", stats
+        )
+        _LOGGER.info("v29 migration: days_rebuilt=%d", days_rebuilt)
+        return stats
+
+
     async def async_migrate_cop_samples_mode_default_v15(self) -> int:
         # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.
         await self.async_ensure_cop_samples_table()
@@ -2244,7 +2296,7 @@ class CycleDB:
         cap_ts = min(time.time(), end_ts)
         sql = (
             "SELECT start_ts, end_ts, duration_s, mode, dT_max, rps_avg, "
-            "quality_score, buh_used, defrost_used FROM cycles "
+            "quality_score, buh_used, defrost_used, is_transient FROM cycles "
             "WHERE start_ts < ? AND COALESCE(end_ts, ?) > ?"
         )
         params: list[Any] = [end_ts, cap_ts, start_ts]
@@ -2264,22 +2316,30 @@ class CycleDB:
                 "duration_min": None, "duration_max": None,
                 "quality_sum": 0, "dt_max_sum": 0.0, "rps_sum": 0.0,
                 "buh_count": 0, "defrost_count": 0,
+                "transient_count": 0,
             })
-            a["cycles"] += 1
-            dur = r["duration_s"]
-            # v1.19.7 #260: pro-rata attribution. Cross-midnight cycle
-            # contributes only its overlap with this day to
-            # total_duration_s. duration_min/max stay full-cycle stats
-            # (they describe the run, not the day-slice).
+            is_transient = int(r["is_transient"] or 0)
+            starts_on_day = start_ts <= float(r["start_ts"]) < end_ts
+            # R710: transient LWT-sampling pulses are tracked separately
+            # and never contribute to user-facing metrics.
+            if is_transient == 1:
+                if starts_on_day:
+                    a["transient_count"] += 1
+                continue
+            # v1.19.7 #260: pro-rata attribution for non-transient cycles.
             c_start = r["start_ts"]
             c_end = r["end_ts"]
-            # v1.19.8 #262: open cycles have end_ts=NULL; use cap_ts so
-            # they contribute pro-rata runtime up to (now OR day_end).
             if c_end is None:
                 c_end = cap_ts
             ov_start = max(float(c_start), start_ts)
             ov_end = min(float(c_end), end_ts)
             a["total_duration_s"] += int(max(0.0, ov_end - ov_start))
+            # R709: cycle count, quality, duration_min/max, buh/defrost,
+            # dt/rps sums attributed to START day only.
+            if not starts_on_day:
+                continue
+            a["cycles"] += 1
+            dur = r["duration_s"]
             if isinstance(dur, (int, float)):
                 if a["duration_min"] is None or dur < a["duration_min"]:
                     a["duration_min"] = int(dur)
@@ -2304,8 +2364,8 @@ class CycleDB:
                 """INSERT INTO daily_summary
                    (day, mode, cycles, total_duration_s, duration_min,
                     duration_max, quality_sum, dt_max_sum, rps_sum,
-                    buh_count, defrost_count, updated_ts)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                    buh_count, defrost_count, transient_count, updated_ts)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                    ON CONFLICT(day, mode) DO UPDATE SET
                      cycles = excluded.cycles,
                      total_duration_s = excluded.total_duration_s,
@@ -2316,12 +2376,14 @@ class CycleDB:
                      rps_sum = excluded.rps_sum,
                      buh_count = excluded.buh_count,
                      defrost_count = excluded.defrost_count,
+                     transient_count = excluded.transient_count,
                      updated_ts = excluded.updated_ts""",
                 (
                     day, mode, a["cycles"], a["total_duration_s"],
                     a["duration_min"], a["duration_max"],
                     a["quality_sum"], a["dt_max_sum"], a["rps_sum"],
-                    a["buh_count"], a["defrost_count"], now,
+                    a["buh_count"], a["defrost_count"],
+                    a["transient_count"], now,
                 ),
             )
         await conn.commit()

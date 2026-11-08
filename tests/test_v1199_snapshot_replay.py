@@ -41,6 +41,7 @@ async def _load_snapshot(tmp_path):
     shutil.copy(FIXTURE, work)
     db = CycleDB(str(work))
     await db.async_open()
+    await db.async_initialize()
     return db
 
 

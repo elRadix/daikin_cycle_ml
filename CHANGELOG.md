@@ -4,6 +4,44 @@
 
 ### Fixed
 
+- **daily_summary cross-midnight double-count (R709, #292)**: cycles
+  starting on day D and ending on D+1 were attributed to BOTH days for
+  `cycles`, `quality_sum`, `duration_min/max`, `buh_count`,
+  `defrost_count`, `dt_max_sum`, and `rps_sum`. This produced +1 cycle
+  per cross-midnight day (7 mismatches on prod-3, 3 on prod-2 over
+  Nov 1-8) and multi-day `duration_max` on single-day rows (e.g. 84397s
+  = 23.4h on Nov 5 while the cycle extended into Nov 6). Root cause: no
+  start-day guard in the rollup aggregation. Fix: cycles count, quality,
+  duration_min/max, buh/defrost, dt/rps sums are now attributed to the
+  START day only. `total_duration_s` keeps the v1.19.7 #260 pro-rata
+  overlap (preserves cross-midnight split).
+- **daily_summary transient inclusion (R710, #292)**: `is_transient=1`
+  LWT-sampling pulses (29-30s) were included in every user-facing
+  metric, so `duration_min` was 29s on every day and `quality_sum`
+  dragged downward by transient score=10/30 samples. Fix: transients
+  tracked in new `transient_count` column, excluded from all user
+  metrics.
+- **v29 migration** (#292): rebuilds all `daily_summary` rows from the
+  `cycles` table with the fixed semantics. Idempotent via
+  `data_migration_v29_completed` marker. Runs automatically on startup
+  after v28.
+- **Schema v29**: new `transient_count INTEGER NOT NULL DEFAULT 0`
+  column on `daily_summary`, with idempotent ALTER guard in
+  `async_initialize` for existing DBs.
+- **Snapshot/snapshot-heal tests** call `async_initialize()` on
+  fixture-loaded DBs to match production ordering (previously only
+  `async_open()`, missing v29 ALTER). No semantic changes to those
+  tests.
+
+### Tests
+
+- `tests/test_v1201_daily_rollup_r709_r710.py` (13 tests): reproduce
+  prod evidence for R709 start-day attribution, R710 transient
+  exclusion, v29 migration idempotency, v29 empty DB, v29 ALTER on
+  pre-v29 schema, transient spanning midnight, NULL date guard,
+  v1.19.7 #260 pro-rata regression.
+- Full suite: 100% coverage, all green.
+
 - **Backfill uses user options** (#XXX): `_async_backfill_quality` previously
   called `score_cycle(record, None)`, forcing default thresholds (45/5.0)
   regardless of user's `good_run_threshold_min` / `good_dt_threshold_k`.

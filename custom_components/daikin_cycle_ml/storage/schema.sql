@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS daily_summary (
     rps_sum REAL NOT NULL DEFAULT 0,
     buh_count INTEGER NOT NULL DEFAULT 0,
     defrost_count INTEGER NOT NULL DEFAULT 0,
+    transient_count INTEGER NOT NULL DEFAULT 0,
     updated_ts REAL NOT NULL,
     PRIMARY KEY (day, mode)
 );
