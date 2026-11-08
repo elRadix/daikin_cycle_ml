@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [1.21.0] - 2026-11-08
+
 ### Added
 
 - **`cycles.dhw_tank_temp REAL` column (#289)**: new column in the
