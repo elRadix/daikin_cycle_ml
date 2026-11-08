@@ -195,7 +195,7 @@ async def _async_backfill_quality(
         return 0
 
     def _scorer(rec: dict[str, Any]) -> int:
-        return _score_cycle(rec, None)
+        return _score_cycle(rec, getattr(coordinator, "options", None))
 
     try:
         result = await coordinator.db.async_backfill_quality_scores(_scorer)

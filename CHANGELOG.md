@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Backfill uses user options** (#XXX): `_async_backfill_quality` previously
+  called `score_cycle(record, None)`, forcing default thresholds (45/5.0)
+  regardless of user's `good_run_threshold_min` / `good_dt_threshold_k`.
+  Cycles re-scored via backfill (post-v1.4.2, on integration setup) therefore
+  report incorrect quality. Prod evidence: cycles id=278, 303 scored with
+  defaults (45/5.0) instead of user config (45/4.0) — visible in `quality_today`,
+  `last_cycle`, `daily_summary_recent.quality_avg`. One-line fix: pass
+  `coordinator.options` to `score_cycle`.
+- **Reproduce-first tests for cycle-321 quality drift** (#XXX): added
+  `tests/test_v1201_score_drift.py` (5 tests) confirming (a) cycle-321 record
+  scores 100 with user options and 50 with stale (60/5.0) options, (b)
+  `score_cycle` honors options vs defaults, (c) `_async_backfill_quality` must
+  pass user options — reproducer for the backfill bug above.
+- **Sequence-based detector guards** (#XXX): added
+  `tests/test_v1201_detector_stuck.py` (3 tests) covering reopen after single
+  transient close, after transient cascade, and via rps-only attrs. All pass —
+  confirms CycleDetector state machine is correct in isolation; prod stuck-IDLE
+  bug (11h48m gap 2026-11-07 20:25 -> 2026-11-08 08:13) is coordinator-level,
+  not state-machine.
+
+
 ## [1.20.0] - 2026-11-07
 
 
