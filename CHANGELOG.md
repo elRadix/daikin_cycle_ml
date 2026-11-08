@@ -4,6 +4,55 @@
 
 ### Fixed
 
+- **Stale options after OptionsFlow save (#286)**: `coordinator.options`
+  is a snapshot taken at setup and never refreshed. When a user changed
+  `good_run_threshold_min` / `good_dt_threshold_k` via OptionsFlow,
+  `entry.options` updated but the running coordinator kept scoring with
+  old values until restart. Cycle-321 evidence: a stale `60/5.0`
+  fingerprint (never present in any current config) scored the cycle
+  at 50 while configured `45/4.0` would score 100. Fix: standard HA
+  pattern — `entry.add_update_listener(_async_options_updated)` triggers
+  `config_entries.async_reload`, which rebuilds the coordinator with
+  fresh options and refreshes every dependent threshold (detector,
+  alerts, scoring, notify).
+- **BUH penalty during unavoidable legionella runs (#289)**: every
+  `buh_used` cycle lost 10 quality points regardless of context. DHW
+  cycles at tank temp >= 60°C cannot complete without BUH assistance;
+  penalizing them false-flags a normal maintenance operation.
+  Fix: `score_cycle` waives the BUH penalty when
+  `mode == "dhw"` AND `dhw_tank_temp >= 60.0`. Heating cycles and DHW
+  below 60°C remain penalized. User can disable via option
+  `buh_penalty_legionella_waived` (default: enabled).
+- **Schema v30**: new `cycles.dhw_tank_temp REAL` column, with idempotent
+  ALTER guard for existing DBs. Historical cycles stay `NULL` (fall back
+  to previous penalty behaviour). Fresh installs get it from schema.sql.
+- **`_wire_dhw_tank_temp` helper** in coordinator: extracts DHW tank
+  temp from attrs for DHW cycle records only. Handles missing sensors
+  and disconnected R5T probes (<-20°C → None) via existing
+  `dhw_tank_temp_from_attrs` helper.
+
+### Tests
+
+- `tests/test_v1201_options_reload.py` (3 tests): reload listener
+  registration, `_async_options_updated` behaviour, structural AST check
+  that `async_setup_entry` wires the listener.
+- `tests/test_v1201_buh_legionella.py` (16 tests):
+  - 3 RED→GREEN legionella behaviour (skip at 60/65°C, skip at exact
+    boundary)
+  - 4 regression guards (heating, DHW below 60, missing temp, no-tank)
+  - 4 `_wire_dhw_tank_temp` helper coverage (populate, missing,
+    heating ignored, disconnected probe)
+  - 2 hypothesis fuzz (250 + 200 cases): penalty invariants and
+    never-negative score
+  - 3 schema / v30 / coordinator wiring
+
+### Not in scope
+
+Historical recompute of pre-fix scores is out of scope: `score_cycle`
+uses two runtime-only inputs (`off_time_s`, `short_cycle_ratio`) that
+are not persisted. Existing scores are preserved as-is (R715 audit
+trail). Only future cycles benefit from the fix.
+
 - **daily_summary cross-midnight double-count (R709, #292)**: cycles
   starting on day D and ending on D+1 were attributed to BOTH days for
   `cycles`, `quality_sum`, `duration_min/max`, `buh_count`,

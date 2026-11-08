@@ -170,6 +170,12 @@ class CycleDB:
                 "ALTER TABLE daily_summary ADD COLUMN "
                 "transient_count INTEGER NOT NULL DEFAULT 0"
             )
+        # v1.20.1 #289: dhw_tank_temp column for legionella BUH
+        # exemption. Historical cycles stay NULL (fallback to penalty).
+        if "dhw_tank_temp" not in existing_cols:
+            await conn.execute(
+                "ALTER TABLE cycles ADD COLUMN dhw_tank_temp REAL"
+            )
 
         # v1.12.4 (v18): DHW backfill columns + indices.
         # Idempotent via PRAGMA table_info guard; fresh installs

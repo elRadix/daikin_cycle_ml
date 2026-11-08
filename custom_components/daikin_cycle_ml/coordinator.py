@@ -133,6 +133,7 @@ from .engine.thermal import (
 )
 from .engine.thermal import compute_thermal_power_live as _compute_thermal_power_live
 from .engine.thermal import dt_from_attrs as _dt_from_attrs
+from .engine.thermal import dhw_tank_temp_from_attrs as _dhw_tank_temp_from_attrs
 from .engine.thermal import flow_from_attrs as _flow_from_attrs
 from .engine.thermal import (
     hybrid_mode_from_attrs as _hybrid_mode_from_attrs,
@@ -313,6 +314,23 @@ def _classify_transient(record: dict[str, Any]) -> bool:
         ):
             return True
     return False
+
+
+def _wire_dhw_tank_temp(
+    record: dict[str, Any], attrs: dict[str, Any],
+) -> None:
+    """#289: attach DHW tank temp to DHW cycle records.
+
+    Only DHW cycles have a tank. `dhw_tank_temp_from_attrs` returns
+    None for missing sensors or disconnected probes (< -20°C). The
+    captured temp drives the legionella BUH-penalty exemption in
+    score_cycle (waived when mode=='dhw' AND temp >= 60.0).
+    """
+    if record.get("mode") != "dhw":
+        return
+    tank = _dhw_tank_temp_from_attrs(attrs)
+    if tank is not None:
+        record["dhw_tank_temp"] = float(tank)
 
 
 def score_and_count(
@@ -1818,6 +1836,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             if record is not None:
                 # v1.12.0 (#105): classify transient before scoring/insert
                 record["is_transient"] = int(_classify_transient(record))
+                # v1.20.1 #289: capture DHW tank temp for legionella
+                # BUH exemption (see _wire_dhw_tank_temp docstring).
+                _wire_dhw_tank_temp(record, attrs)
                 score_and_count(record, self.options, self.store, now)
                 self.store.add_cycle(record)
                 snap.last_record = record

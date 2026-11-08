@@ -249,10 +249,27 @@ async def _async_cleanup_orphan_dbs(hass: HomeAssistant) -> None:
     except Exception:  # pragma: no cover
         _LOGGER.debug("Orphan DB cleanup failed", exc_info=True)
 
+async def _async_options_updated(
+    hass: HomeAssistant, entry: ConfigEntry,
+) -> None:
+    """#286: reload coordinator when user changes options.
+
+    Without this listener, `coordinator.options` (a snapshot at setup)
+    drifts from `entry.options` after OptionsFlow saves. Cycle-321
+    evidence: a stale 60/5.0 fingerprint scored a cycle at 50 while
+    the configured 45/4.0 would have scored 100. Reload rebuilds the
+    coordinator with fresh options and all dependent thresholds.
+    """
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Daikin Cycle ML from a config entry."""
     await _async_cleanup_orphan_dbs(hass)
     coordinator = DaikinCycleMLCoordinator(hass, entry)
+    entry.async_on_unload(
+        entry.add_update_listener(_async_options_updated)
+    )
     try:
         await coordinator.async_reload_user_datasheets()
         clear_datasheet_load_failed(hass, entry.entry_id)

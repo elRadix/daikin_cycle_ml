@@ -58,6 +58,15 @@ def score_cycle(
         score -= PENALTY_HIGH_RATIO
 
     if record.get("buh_used"):
-        score -= PENALTY_BUH
+        # #289: legionella exemption. DHW tank >= 60°C requires BUH
+        # assistance; penalizing it false-flags a normal maintenance run.
+        waived = (
+            _opt(options, "buh_penalty_legionella_waived", 1.0) > 0
+            and record.get("mode") == "dhw"
+            and isinstance(record.get("dhw_tank_temp"), (int, float))
+            and record["dhw_tank_temp"] >= 60.0
+        )
+        if not waived:
+            score -= PENALTY_BUH
 
     return max(0, int(score))
