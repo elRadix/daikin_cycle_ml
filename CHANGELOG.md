@@ -4,6 +4,44 @@
 
 ### Fixed
 
+- **Backfill respects user options (#284)**: `_async_backfill_quality`
+  previously called `score_cycle(record, None)`, forcing default
+  thresholds (45/5.0) regardless of user's `good_run_threshold_min` /
+  `good_dt_threshold_k`. Cycles re-scored via backfill (post-v1.4.2,
+  on integration setup) therefore reported incorrect quality. Prod
+  evidence: cycles id=278, 303 scored with defaults (45/5.0) instead
+  of user config (45/4.0) — visible in `quality_today`, `last_cycle`,
+  `daily_summary_recent.quality_avg`. One-line fix: pass
+  `getattr(coordinator, "options", None)` to `score_cycle`.
+- **daily_summary cross-midnight double-count (R709, #292)**: cycles
+  starting on day D and ending on D+1 were attributed to BOTH days for
+  `cycles`, `quality_sum`, `duration_min/max`, `buh_count`,
+  `defrost_count`, `dt_max_sum`, and `rps_sum`. Produced +1 cycle per
+  cross-midnight day (7 mismatches on prod-3, 3 on prod-2 over Nov 1-8)
+  and multi-day `duration_max` on single-day rows (e.g. 84397s = 23.4h
+  on Nov 5 while the cycle extended into Nov 6). Root cause: no start-day
+  guard in the rollup aggregation. Fix: cycles count, quality,
+  duration_min/max, buh/defrost, dt/rps sums now attributed to the START
+  day only. `total_duration_s` keeps the v1.19.7 #260 pro-rata overlap
+  (preserves cross-midnight split).
+- **daily_summary transient inclusion (R710, #292)**: `is_transient=1`
+  LWT-sampling pulses (29-30s) were included in every user-facing
+  metric, so `duration_min` was 29s on every day and `quality_sum`
+  dragged downward by transient score=10/30 samples. Fix: transients
+  tracked in new `transient_count` column, excluded from all user
+  metrics.
+- **v29 migration (#292)**: rebuilds all `daily_summary` rows from the
+  `cycles` table with the fixed R709/R710 semantics. Idempotent via
+  `data_migration_v29_completed` marker. Runs automatically on startup
+  after v28.
+- **Schema v29 (#292)**: new `transient_count INTEGER NOT NULL DEFAULT 0`
+  column on `daily_summary`, with idempotent ALTER guard in
+  `async_initialize` for existing DBs.
+- **Snapshot/snapshot-heal tests (#292)**: `test_v1198_snapshot_heal.py`,
+  `test_v1199_full_dev_db.py`, and `test_v1199_snapshot_replay.py` now
+  call `async_initialize()` on fixture-loaded DBs to match production
+  ordering (previously only `async_open()`, missing v29 ALTER guard).
+  No semantic changes to those tests.
 - **Stale options after OptionsFlow save (#286)**: `coordinator.options`
   is a snapshot taken at setup and never refreshed. When a user changed
   `good_run_threshold_min` / `good_dt_threshold_k` via OptionsFlow,
@@ -19,98 +57,73 @@
   `buh_used` cycle lost 10 quality points regardless of context. DHW
   cycles at tank temp >= 60°C cannot complete without BUH assistance;
   penalizing them false-flags a normal maintenance operation.
-  Fix: `score_cycle` waives the BUH penalty when
-  `mode == "dhw"` AND `dhw_tank_temp >= 60.0`. Heating cycles and DHW
-  below 60°C remain penalized. User-controllable via new option
-  `buh_penalty_legionella_waived` (default: enabled), wired into the
-  OptionsFlow quality step for both new installs and upgrades.
-- **Schema v30**: new `cycles.dhw_tank_temp REAL` column, with idempotent
-  ALTER guard for existing DBs. Historical cycles stay `NULL` (fall back
-  to previous penalty behaviour). Fresh installs get it from schema.sql.
-- **`_wire_dhw_tank_temp` helper** in coordinator: extracts DHW tank
-  temp from attrs for DHW cycle records only. Handles missing sensors
-  and disconnected R5T probes (<-20°C → None) via existing
+  Fix: `score_cycle` waives the BUH penalty when `mode == "dhw"` AND
+  `dhw_tank_temp >= 60.0`. Heating cycles and DHW below 60°C remain
+  penalized. User-controllable via new option
+  `buh_penalty_legionella_waived` (default: enabled), wired into both
+  the OptionsFlow quality step and the setup wizard.
+- **Schema v30 (#289)**: new `cycles.dhw_tank_temp REAL` column, with
+  idempotent ALTER guard for existing DBs. Historical cycles stay
+  `NULL` (fall back to previous penalty behaviour). Fresh installs get
+  it from schema.sql.
+- **`_wire_dhw_tank_temp` helper (#289)**: extracts DHW tank temp from
+  attrs for DHW cycle records only. Handles missing sensors and
+  disconnected R5T probes (<-20°C → None) via existing
   `dhw_tank_temp_from_attrs` helper.
 
 ### Tests
 
-- `tests/test_v1201_options_reload.py` (3 tests): reload listener
-  registration, `_async_options_updated` behaviour, structural AST check
-  that `async_setup_entry` wires the listener.
-- `tests/test_v1201_buh_legionella.py` (16 tests):
-  - 3 RED→GREEN legionella behaviour (skip at 60/65°C, skip at exact
-    boundary)
+- **Backfill reproducer (#284)**: `tests/test_v1201_score_drift.py`
+  (5 tests) confirms (a) cycle-321 record scores 100 with user options
+  and 50 with stale (60/5.0) options, (b) `score_cycle` honors options
+  vs defaults, (c) `_async_backfill_quality` must pass user options —
+  reproducer for the backfill bug above.
+- **Detector sequence guards (#285)**: `tests/test_v1201_detector_stuck.py`
+  (3 tests) covering reopen after single transient close, after transient
+  cascade, and via rps-only attrs. All pass — confirms CycleDetector
+  state machine is correct in isolation; prod stuck-IDLE bug (11h48m
+  gap 2026-11-07 20:25 → 2026-11-08 08:13) is coordinator-level, not
+  state-machine.
+- **daily_summary R709/R710 (#292)**:
+  `tests/test_v1201_daily_rollup_r709_r710.py` (13 tests) reproduces
+  prod evidence for R709 start-day attribution, R710 transient exclusion,
+  v29 migration idempotency, v29 empty DB, v29 ALTER on pre-v29 schema,
+  transient spanning midnight, NULL date guard, v1.19.7 #260 pro-rata
+  regression.
+- **Options reload listener (#286)**: `tests/test_v1201_options_reload.py`
+  (3 tests): reload listener registration, `_async_options_updated`
+  behaviour, structural AST check that `async_setup_entry` wires it.
+- **Legionella BUH exemption (#289)**:
+  `tests/test_v1201_buh_legionella.py` (13 tests):
+  - 3 legionella behaviour (skip at 60/65°C, skip at exact boundary)
   - 4 regression guards (heating, DHW below 60, missing temp, no-tank)
-  - 4 `_wire_dhw_tank_temp` helper coverage (populate, missing,
-    heating ignored, disconnected probe)
+  - 4 `_wire_dhw_tank_temp` helper coverage (populate, missing, heating
+    ignored, disconnected probe)
   - 2 hypothesis fuzz (250 + 200 cases): penalty invariants and
     never-negative score
-  - 3 schema / v30 / coordinator wiring
+- **Waiver UI wiring (#289)**: `tests/test_v1201_options_reload.py`
+  (3 additional tests): quality_ml section contains waiver field,
+  `_save` persists `waiver=False` to `async_create_entry.data`,
+  wizard quality step contains waiver field.
+- **Remove 4 stale xfails (#287)**: 4 tests previously marked
+  `xfail(strict=False)` in PR #284 were not caused by CI Python
+  3.13.17 → 3.13.18 drift. Root cause was a hardcoded date
+  (`c._runtime_day_key = "2026-11-07"`) in `_mk_coord_with_db`. On
+  2026-11-08 the calendar rolled over; `_restore_runtime_acc` computes
+  today's date dynamically → mismatch → `payload not dict (NoneType)`.
+  Fix: dynamic `strftime("%Y-%m-%d")` in the helper, and in
+  `test_restore_runtime_acc_handles_start_ts`. Tests now run (30
+  passed, was 29 passed + 1 xpassed), no xfail markers remain in the
+  codebase. Production code was correct all along (R636, R708).
 
 ### Not in scope
 
-Historical recompute of pre-fix scores is out of scope: `score_cycle`
-uses two runtime-only inputs (`off_time_s`, `short_cycle_ratio`) that
-are not persisted. Existing scores are preserved as-is (R715 audit
-trail). Only future cycles benefit from the fix.
-
-- **daily_summary cross-midnight double-count (R709, #292)**: cycles
-  starting on day D and ending on D+1 were attributed to BOTH days for
-  `cycles`, `quality_sum`, `duration_min/max`, `buh_count`,
-  `defrost_count`, `dt_max_sum`, and `rps_sum`. This produced +1 cycle
-  per cross-midnight day (7 mismatches on prod-3, 3 on prod-2 over
-  Nov 1-8) and multi-day `duration_max` on single-day rows (e.g. 84397s
-  = 23.4h on Nov 5 while the cycle extended into Nov 6). Root cause: no
-  start-day guard in the rollup aggregation. Fix: cycles count, quality,
-  duration_min/max, buh/defrost, dt/rps sums are now attributed to the
-  START day only. `total_duration_s` keeps the v1.19.7 #260 pro-rata
-  overlap (preserves cross-midnight split).
-- **daily_summary transient inclusion (R710, #292)**: `is_transient=1`
-  LWT-sampling pulses (29-30s) were included in every user-facing
-  metric, so `duration_min` was 29s on every day and `quality_sum`
-  dragged downward by transient score=10/30 samples. Fix: transients
-  tracked in new `transient_count` column, excluded from all user
-  metrics.
-- **v29 migration** (#292): rebuilds all `daily_summary` rows from the
-  `cycles` table with the fixed semantics. Idempotent via
-  `data_migration_v29_completed` marker. Runs automatically on startup
-  after v28.
-- **Schema v29**: new `transient_count INTEGER NOT NULL DEFAULT 0`
-  column on `daily_summary`, with idempotent ALTER guard in
-  `async_initialize` for existing DBs.
-- **Snapshot/snapshot-heal tests** call `async_initialize()` on
-  fixture-loaded DBs to match production ordering (previously only
-  `async_open()`, missing v29 ALTER). No semantic changes to those
-  tests.
-
-### Tests
-
-- `tests/test_v1201_daily_rollup_r709_r710.py` (13 tests): reproduce
-  prod evidence for R709 start-day attribution, R710 transient
-  exclusion, v29 migration idempotency, v29 empty DB, v29 ALTER on
-  pre-v29 schema, transient spanning midnight, NULL date guard,
-  v1.19.7 #260 pro-rata regression.
-- Full suite: 100% coverage, all green.
-
-- **Backfill uses user options** (#XXX): `_async_backfill_quality` previously
-  called `score_cycle(record, None)`, forcing default thresholds (45/5.0)
-  regardless of user's `good_run_threshold_min` / `good_dt_threshold_k`.
-  Cycles re-scored via backfill (post-v1.4.2, on integration setup) therefore
-  report incorrect quality. Prod evidence: cycles id=278, 303 scored with
-  defaults (45/5.0) instead of user config (45/4.0) — visible in `quality_today`,
-  `last_cycle`, `daily_summary_recent.quality_avg`. One-line fix: pass
-  `coordinator.options` to `score_cycle`.
-- **Reproduce-first tests for cycle-321 quality drift** (#XXX): added
-  `tests/test_v1201_score_drift.py` (5 tests) confirming (a) cycle-321 record
-  scores 100 with user options and 50 with stale (60/5.0) options, (b)
-  `score_cycle` honors options vs defaults, (c) `_async_backfill_quality` must
-  pass user options — reproducer for the backfill bug above.
-- **Sequence-based detector guards** (#XXX): added
-  `tests/test_v1201_detector_stuck.py` (3 tests) covering reopen after single
-  transient close, after transient cascade, and via rps-only attrs. All pass —
-  confirms CycleDetector state machine is correct in isolation; prod stuck-IDLE
-  bug (11h48m gap 2026-11-07 20:25 -> 2026-11-08 08:13) is coordinator-level,
-  not state-machine.
+Historical recompute of pre-fix quality scores is out of scope:
+`score_cycle` uses two runtime-only inputs (`off_time_s`,
+`short_cycle_ratio`) that are not persisted in the DB. Existing scores
+are preserved as-is (R715 audit trail). Only future cycles benefit from
+the backfill fix (#284), the legionella exemption (#289), and the
+stale-options fix (#286).
 
 
 ## [1.20.0] - 2026-11-07
