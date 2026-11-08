@@ -16,18 +16,26 @@ from __future__ import annotations
 
 import asyncio
 import time
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from custom_components.daikin_cycle_ml.const import (
-    ATTR_BUH_STEP1, ATTR_BUH_STEP2, ATTR_COP, ATTR_DEFROST_OPERATION,
-    ATTR_FLOW_SENSOR, ATTR_INLET_WATER_R4T,
-    ATTR_IU_OPERATION_MODE, ATTR_LEAVING_WATER_AFTER_BUH,
-    ATTR_LW_SETPOINT, ATTR_OPERATION_MODE, ATTR_OUTDOOR_AIR_R1T,
-    ATTR_WATER_PUMP_OPERATION, ATTR_3WAY_VALVE,
-    CONF_SOURCE_TYPE, DEFAULT_INDIVIDUAL_PREFIX,
+    ATTR_3WAY_VALVE,
+    ATTR_BUH_STEP1,
+    ATTR_BUH_STEP2,
+    ATTR_COP,
+    ATTR_DEFROST_OPERATION,
+    ATTR_FLOW_SENSOR,
+    ATTR_INLET_WATER_R4T,
+    ATTR_IU_OPERATION_MODE,
+    ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_LW_SETPOINT,
+    ATTR_OPERATION_MODE,
+    ATTR_OUTDOOR_AIR_R1T,
+    ATTR_WATER_PUMP_OPERATION,
+    CONF_SOURCE_TYPE,
+    DEFAULT_INDIVIDUAL_PREFIX,
     SOURCE_TYPE_MONOLITHIC,
 )
 from custom_components.daikin_cycle_ml.coordinator import (
@@ -117,8 +125,12 @@ async def _mk_coord_with_db(db, source_type=SOURCE_TYPE_MONOLITHIC):
     })
     c.detector.restore_from_dict = MagicMock(return_value=None)
     c.db = db
-    c._runtime_day_key = "2026-11-07"
-    c._energy_day_key = "2026-11-07"
+    # Dynamic date: _restore_runtime_acc uses today's date via
+    # time.strftime(%Y-%m-%d), so _persist_runtime_acc must write to
+    # the same key. Hardcoded "2026-11-07" broke on 2026-11-08 (#287).
+    _today = time.strftime("%Y-%m-%d", time.localtime(time.time()))
+    c._runtime_day_key = _today
+    c._energy_day_key = _today
     c._track_setpoint = MagicMock()
     c._read_power_w = MagicMock(return_value=1500.0)
     c._read_cop = MagicMock(return_value=None)
@@ -213,7 +225,6 @@ async def test_detector_state_persisted_via_direct_call(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason='pre-existing CI failure on clean main 8bb970a since 2026-11-08 (Python 3.13.17->3.13.18 / dep drift); tracking issue pending', strict=False)  # R747-xfail-depdrift
 async def test_runtime_accumulators_persisted(tmp_path) -> None:
     """_persist_runtime_acc writes runtime_acc.<day> to model_state."""
     from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator as C
@@ -281,7 +292,6 @@ async def test_new_coord_restores_detector_state(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason='pre-existing CI failure on clean main 8bb970a since 2026-11-08 (Python 3.13.17->3.13.18 / dep drift); tracking issue pending', strict=False)  # R747-xfail-depdrift
 async def test_restore_runtime_acc_roundtrip(tmp_path) -> None:
     """Persist counters -> new coord -> restore -> same values.
 
@@ -433,7 +443,6 @@ async def test_post_restart_first_tick_ok(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason='pre-existing CI failure on clean main 8bb970a since 2026-11-08 (Python 3.13.17->3.13.18 / dep drift); tracking issue pending', strict=False)  # R747-xfail-depdrift
 async def test_full_restart_simulation(tmp_path) -> None:
     """Simulate full HA restart: coord1 ticks -> persist -> coord2 restores.
 

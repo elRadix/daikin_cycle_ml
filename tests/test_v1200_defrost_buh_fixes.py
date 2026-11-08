@@ -159,17 +159,19 @@ def test_defrost_running_tally_prior_plus_current():
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason='pre-existing CI failure on clean main 8bb970a since 2026-11-08 (Python 3.13.17->3.13.18 / dep drift); tracking issue pending', strict=False)  # R747-xfail-depdrift
 async def test_restore_runtime_acc_handles_start_ts(monkeypatch):
     """R634: restart mid-defrost must restore _defrost_start_ts if present.
 
     Without this, _prev_defrost=False after restart, next ON tick counts again.
     """
+    import time as _time
+
+    today = _time.strftime("%Y-%m-%d", _time.localtime(_time.time()))
     c = _bare()
     c.db = MagicMock()
     c.db.async_get_model_state = AsyncMock(
         return_value={
-            "day": "2026-11-07",
+            "day": today,  # dynamic — matches _restore_runtime_acc's today
             "buh_step1_s": 0.0,
             "buh_step2_s": 0.0,
             "defrost_count": 1,
@@ -179,7 +181,6 @@ async def test_restore_runtime_acc_handles_start_ts(monkeypatch):
             "prev_defrost": True,
         }
     )
-    c._runtime_day_key = "2026-11-07"
     await c._restore_runtime_acc()
     assert c._defrost_start_ts == 500.0
     assert c._prev_defrost is True
