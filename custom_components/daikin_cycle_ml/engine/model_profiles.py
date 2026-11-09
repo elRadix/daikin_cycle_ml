@@ -56,6 +56,7 @@ from ..const import (
     MODEL_EPRA11EAV3,
     MODEL_EPRA12EAV3,
     MODEL_EPRA14EAV3,
+    MODEL_EPRA14DAW17,
     MODEL_EPRA16EAV3,
     MODEL_EPRA18EAV3,
     MODEL_EPSK06AW1,
@@ -126,6 +127,8 @@ MODEL_PROFILES: dict[str, dict[str, Any]] = {
     MODEL_EPRA11EAV3: {**_BASE},
     MODEL_EPRA12EAV3: {**_BASE, "pendulum_cycles_per_day": 35},
     MODEL_EPRA14EAV3: {**_BASE},
+    # R32 hydrosplit: do not inherit the older EKHBRD/ERRQ cascade profile.
+    MODEL_EPRA14DAW17: {**_BASE},
     MODEL_EPRA16EAV3: {**_BASE},
     MODEL_ERLA04DAV3: {**_BASE},
     MODEL_ERLA06DAV3: {**_BASE},

@@ -475,6 +475,40 @@ For `nom_cop only` models the alert uses A7/W35 as reference regardless of outdo
 
 ## Changing your model
 
+### EPRA14DAW17 with ETBH16EF9W7 (Altherma 3 H HT)
+
+Select **EPRA → EPRA14DAW17**. This R32 hydrosplit is a distinct model,
+not an alias of EPRA14EAV3 or the older R410A EKHBRD/ERRQ HT cascade.
+Its operational attributes are already covered by the EPRA D/D7
+ETV16-ETB16-ETVZ16 E/E7 definition and existing ESPAltherma v2 aliases.
+Cycle detection keeps the standard EPRA defaults; no unverified HT
+cycle-time or delta-T overrides are introduced.
+
+The bundled specification uses the exact ETBH16EF9W7 / EPRA14DAW17
+column of [Daikin's specification table](https://www.daikin.eu/en_us/products/product.table.html/ETBH16E9W7---EPRA14-18DW7.html):
+
+- A7/W35 nominal heating capacity **5.90 kW**, electrical input **1.23 kW**,
+  and COP **4.79** (EN 14511, outdoor DB/WB 7/6°C, leaving water 35°C,
+  water delta-T 5 K).
+- Average-climate SCOP **4.71 at W35** and **3.57 at W55**. These seasonal
+  values are metadata, not additional instantaneous COP curve points.
+
+`kw` and the point's `hc` store the published **nominal A7/W35** capacity,
+not the `14` in the model code, nor a maximum output at another condition.
+The heating setpoint envelope is 15–70°C according to the main-zone
+setpoint-range section of the [installer guide, 4P644736-1D](https://www.daikin.eu/content/dam/document-library/Installer-reference-guide/heat/air-to-water-heat-pump-high-temperature/epra14-18dw7/EPRA014-018D%28V.W%29.EPRA14-18D%28V.W%297.ETBH16E%286V.9W%29%287%29.ETBX16E%286V.9W%29%287%29_Installer%20reference%20guide_4PEN644736-1D_English.pdf).
+The upper limit is emitter-dependent: underfloor/fancoil configurations
+are capped at 55°C. This metadata changes no installed controller limit.
+
+**Coverage is one reference point only.** Normalized COP comparisons use
+the existing Carnot approximation; they are not a manufacturer-tested
+full outdoor-temperature/LWT map or proof of a fault. No W55 COP, cold-
+weather COP, or refrigerant charge is inferred. A measured power sensor
+remains preferable to an inverter-current estimate; set supply phases and
+backup-heater stages to the actual installation when using that fallback.
+An ETBH indoor model alone is not an alias because it can be paired with
+several outdoor units. No existing entry is migrated automatically.
+
 Your model code is **config entry data** (setup-time configuration), not
 a runtime option. Changing it is a reconfiguration, not an options
 change — this follows Home Assistant's

@@ -103,7 +103,8 @@ def test_222_scop_by_climate():
 
 def test_222_meta_sources_recorded():
     meta = json.loads(_DATA.read_text())["_meta"]
-    assert len(meta["sources"]) == 4
+    # Additional model profiles can contribute their own provenance links.
+    assert len(meta["sources"]) >= 4
     for tag in ("daikin.eu", "keymark", "daikin.at", "ncm-pcdb"):
         assert any(tag in s for s in meta["sources"]), f"missing {tag}"
     assert "climate_zone_note" in meta

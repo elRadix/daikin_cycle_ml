@@ -97,6 +97,7 @@ MODEL_EPRA06EAV3 = "epra06eav3"
 MODEL_EPRA10EAV3 = "epra10eav3"
 MODEL_EPRA11EAV3 = "epra11eav3"
 MODEL_EPRA14EAV3 = "epra14eav3"
+MODEL_EPRA14DAW17 = "epra14daw17"
 MODEL_EPRA16EAV3 = "epra16eav3"
 MODEL_ERLA04DAV3 = "erla04dav3"
 MODEL_ERLA06DAV3 = "erla06dav3"
@@ -161,6 +162,7 @@ MODEL_CHOICES = [
     MODEL_EPRA11EAV3,
     MODEL_EPRA12EAV3,
     MODEL_EPRA14EAV3,
+    MODEL_EPRA14DAW17,
     MODEL_EPRA16EAV3,
     MODEL_ERLA04DAV3,
     MODEL_ERLA06DAV3,
@@ -221,6 +223,7 @@ MODEL_LABELS = {
     MODEL_EPRA11EAV3: "Daikin Altherma 3 H MT - EPRA11EAV3",
     MODEL_EPRA12EAV3: "Daikin Altherma 3 H MT - EPRA12EAV3",
     MODEL_EPRA14EAV3: "Daikin Altherma 3 H MT - EPRA14EAV3",
+    MODEL_EPRA14DAW17: "Daikin Altherma 3 H HT - EPRA14DAW17",
     MODEL_EPRA16EAV3: "Daikin Altherma 3 H MT - EPRA16EAV3",
     MODEL_ERLA04DAV3: "Daikin Altherma 3 R - ERLA04DAV3",
     MODEL_ERLA06DAV3: "Daikin Altherma 3 R - ERLA06DAV3",
@@ -792,7 +795,7 @@ V2_STATS_HYSTERESIS_S = 300.0
 # === v1.13.2 model families + aliases ===
 
 MODEL_FAMILIES: dict[str, str] = {
-    "epra": "Altherma 3 H MT",
+    "epra": "Altherma 3 H MT / HT",
     "erla": "Altherma 3 R",
     "erga": "Altherma 3 R Split",
     "epga": "Altherma 3 H",

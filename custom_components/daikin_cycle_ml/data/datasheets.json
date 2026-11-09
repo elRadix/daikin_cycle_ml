@@ -7,6 +7,7 @@
     "generated": "2026-10-30T00:00:00Z",
     "sources": [
       "https://www.daikin.eu/en_us/products/product.table.html/EBLA09-14D3W1.html",
+      "https://www.daikin.eu/en_us/products/product.table.html/ETBH16E9W7---EPRA14-18DW7.html",
       "https://www.heatpumpkeymark.com/en/?cHash=17c32cfa7a65284c633783773878cf0f",
       "https://www.daikin.at/content/dam/DACE-AT/document-library/catalogues/heat/Daikin_Katalog_Heizung_2025.pdf",
       "https://www.ncm-pcdb.org.uk/sap/pcdbdetails.jsp?pid=31&id=107746&type=362&mid=020045"
@@ -24,6 +25,26 @@
     "outdoor_max_c": 35
   },
   "models": {
+    "epra14daw17": {
+      "family": "Hydrosplit HT",
+      "kw": 5.9,
+      "lwt_min": 15,
+      "lwt_max": 70,
+      "nom_cop": 4.79,
+      "scop_w35": 4.71,
+      "scop_w55": 3.57,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.79,
+          "hc": 5.9
+        }
+      ]
+    },
     "epra04eav3": {
       "family": "Monoblock",
       "kw": 4,
