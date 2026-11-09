@@ -5,7 +5,7 @@
         "title": "Aangepaste attribuutkoppeling",
         "description": "Optionele JSON-koppeling van standaardsleutels naar jouw attribuutnamen. Geef een JSON-object op; zie de README voor een voorbeeld. Laat leeg om de defaults te gebruiken.",
         "data": {
-          "custom_attribute_map": "Custom attribute map (JSON)"
+          "custom_attribute_map": "Aangepaste attribuutkoppeling (JSON)"
         },
         "data_description": {
           "custom_attribute_map": "JSON-object dat standaardsleutels aan attribuutnamen koppelt. Zie de documentatie voor het exacte formaat."
@@ -27,34 +27,34 @@
       },
       "cycle": {
         "title": "Cyclusdetectie",
-        "description": "Thresholds that decide when the compressor counts as ON.\n\n- **Compressor RPS threshold** (default 3): ON when RPS ≥ this. Increase to ignore brief spikes.\n- **Power sensor** (optional): used as fallback when RPS is unavailable.\n- **Fallback power threshold** (default 200 W): lower = more sensitive.",
+        "description": "Drempels die bepalen wanneer de compressor als AAN telt.\n\n- **Compressor RPS-drempel** (standaard 3): AAN wanneer RPS ≥ deze waarde. Verhoog om korte pieken te negeren.\n- **Vermogenssensor** (optioneel): gebruikt als fallback wanneer RPS niet beschikbaar is.\n- **Fallback-vermogensdrempel** (standaard 200 W): lager = gevoeliger.",
         "data": {
-          "compressor_rps_threshold": "Compressor RPS threshold",
-          "power_sensor_entity": "Power sensor (optional fallback)",
-          "fallback_power_threshold_w": "Fallback power threshold",
+          "compressor_rps_threshold": "Compressor RPS-drempel",
+          "power_sensor_entity": "Vermogenssensor (optionele fallback)",
+          "fallback_power_threshold_w": "Fallback-vermogensdrempel",
           "indoor_temp_sensor": "Binnentemperatuur-sensor"
         },
         "data_description": {
-          "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3. Increase to ignore brief spikes.",
-          "power_sensor_entity": "Optional. Used as fallback when RPS is unavailable or zero. Leave empty to disable.",
-          "fallback_power_threshold_w": "Power threshold (W) for the fallback sensor. Default 200. Lower = more sensitive.",
+          "compressor_rps_threshold": "Compressor AAN wanneer RPS ≥ deze waarde. Standaard 3. Verhoog om korte pieken te negeren.",
+          "power_sensor_entity": "Optioneel. Wordt gebruikt als fallback wanneer RPS niet beschikbaar of nul is. Laat leeg om uit te schakelen.",
+          "fallback_power_threshold_w": "Vermogensdrempel (W) voor de fallbacksensor. Standaard 200. Lager = gevoeliger.",
           "indoor_temp_sensor": "Optionele sensor voor binnentemperatuur (gebruikt voor ML-feature indoor_temp_avg)."
         }
       },
       "pendulum": {
         "title": "Pendel-drempels",
         "data": {
-          "short_run_threshold_min": "Short run threshold",
-          "short_off_threshold_min": "Short off threshold",
-          "pendulum_cycles_per_day": "Pendulum cycles per day",
-          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour"
+          "short_run_threshold_min": "Korte-rundrempel",
+          "short_off_threshold_min": "Korte-uit-tijddrempel",
+          "pendulum_cycles_per_day": "Pendelcycli per dag",
+          "dhw_pendulum_cycles_per_hour": "DHW-cycli per uur"
         },
-        "description": "Values below mark a cycle as 'short' (pendelen). Lower = stricter, more alerts.\n\n- **Short run** (default 20 min): cycles shorter than this are flagged.\n- **Short off** (default 5 min): off-times shorter than this are flagged.\n- **Pendulum cycles/day** (default 35-40): daily count that triggers an alert.\n- **DHW cycles/hour** (default 3): DHW-specific pendulum trigger.",
+        "description": "Waarden hieronder markeren een cyclus als 'kort' (pendelen). Lager = strenger, meer waarschuwingen.\n\n- **Korte run** (standaard 20 min): cycli korter dan deze waarde worden gemarkeerd.\n- **Korte uit-tijd** (standaard 5 min): uit-tijden korter dan deze waarde worden gemarkeerd.\n- **Pendelcycli/dag** (standaard 35-40): dagelijks aantal dat een waarschuwing activeert.\n- **DHW-cycli/uur** (standaard 3): DHW-specifieke pendeltrigger.",
         "data_description": {
-          "short_run_threshold_min": "Cycles shorter than this are 'short runs'. Default 20 min. Lower = stricter.",
-          "short_off_threshold_min": "Off-times shorter than this are 'short offs'. Default 5 min. Lower = stricter.",
-          "pendulum_cycles_per_day": "Daily cycle count that triggers a pendulum alert. Default 35-40. Lower = more alerts.",
-          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour that trigger a DHW pendulum alert. Default 3."
+          "short_run_threshold_min": "Cycli korter dan deze waarde zijn 'korte runs'. Standaard 20 min. Lager = strenger.",
+          "short_off_threshold_min": "Uit-tijden korter dan deze waarde zijn 'korte uit-tijden'. Standaard 5 min. Lager = strenger.",
+          "pendulum_cycles_per_day": "Dagelijks aantal cycli dat een pendelwaarschuwing activeert. Standaard 35-40. Lager = meer waarschuwingen.",
+          "dhw_pendulum_cycles_per_hour": "DHW-cycli per uur die een DHW-pendelwaarschuwing activeren. Standaard 3."
         }
       },
       "quality": {
@@ -183,7 +183,7 @@
         "title": "Geavanceerde attribuutkoppeling",
         "description": "Plak een JSON-object dat canonieke sleutels koppelt aan uw ESPAltherma-attribuutnamen. Laat leeg om de profiel-defaults te gebruiken.",
         "data": {
-          "custom_attribute_map": "Custom attribute map (JSON)"
+          "custom_attribute_map": "Aangepaste attribuutkoppeling (JSON)"
         },
         "data_description": {
           "custom_attribute_map": "JSON-object dat standaardsleutels aan attribuutnamen koppelt. Zie de documentatie voor het exacte formaat."
@@ -191,16 +191,16 @@
       },
       "model": {
         "title": "Daikin Cycle ML installatie",
-        "description": "Choose the ESPAltherma source sensor, your heat-pump model, and how required attributes are mapped.\n\n- **Source sensor**: must expose the 12 required ESPAltherma attributes. Typical: `sensor.althermasensors`.\n- **Model**: determines default thresholds.\n- **Attribute mode**: Automatic uses canonical names. Manual lets you map each attribute yourself.",
+        "description": "Kies de ESPAltherma-bronsensor, je warmtepomp-model en hoe vereiste attributen worden gekoppeld.\n\n- **Bronsensor**: moet de 12 vereiste ESPAltherma-attributen leveren. Meestal: `sensor.althermasensors`.\n- **Model**: bepaalt de standaarddrempels.\n- **Attribuutmodus**: Automatisch gebruikt canonieke namen. Handmatig laat je elk attribuut zelf koppelen.",
         "data": {
-          "source_sensor": "Source sensor",
-          "model": "Heat-pump model",
-          "attribute_mode": "Attribute mode"
+          "source_sensor": "Bronsensor",
+          "model": "Warmtepomp-model",
+          "attribute_mode": "Attribuutmodus"
         },
         "data_description": {
-          "source_sensor": "ESPAltherma sensor that exposes the 12 required heat-pump attributes. Typical: sensor.althermasensors.",
-          "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map.",
-          "attribute_mode": "Automatic uses the canonical ESPAltherma attribute names. Manual lets you map each required attribute to your own sensor's name."
+          "source_sensor": "ESPAltherma-sensor die de 12 vereiste warmtepompattributen levert. Meestal: sensor.althermasensors.",
+          "model": "Je Daikin-model. Bepaalt de standaarddrempels. Kies 'Custom' om je eigen attribuutkoppeling op te geven.",
+          "attribute_mode": "Automatisch gebruikt de canonieke ESPAltherma-attribuutnamen. Handmatig laat je elk vereist attribuut koppelen aan de naam op je eigen sensor."
         }
       },
       "user": {
@@ -208,26 +208,26 @@
         "description": "Kies de modelfamilie van je Daikin Altherma unit. De familie is de prefix van de modelcode van de buitenunit (bijv. ERGA, EPRA, EKHBRD). Op het volgende scherm kies je het exacte model.\n\n- **Basic profile**: veilige standaardwaarden als je je exacte model niet weet.\n- **Custom**: lever je eigen attribuut-mapping aan.\n\n**Detected:** monolithic entity = {mono_found}, ESPAltherma v2 entities = {v2_count}.\n**Suggested source type:** `{suggestion}`.",
         "data": {
           "family": "Modelfamilie",
-          "source_type": "ESPAltherma source type"
+          "source_type": "ESPAltherma-brontype"
         },
         "data_description": {
           "family": "Prefix van de modelcode van de buitenunit. Voorbeeld: ERGA, EPRA, EKHBRD.",
-          "source_type": "How ESPAltherma publishes data to Home Assistant. Choose Monolithic if you use the classic single sensor entity, or Individual if you use ESPAltherma v2 beta (many separate entities). Auto detects at runtime."
+          "source_type": "Hoe ESPAltherma gegevens naar Home Assistant publiceert. Kies Monolithic als je de klassieke enkele sensorentiteit gebruikt, of Individual als je ESPAltherma v2 bèta gebruikt (veel afzonderlijke entiteiten). Auto detecteert tijdens runtime."
         }
       },
       "individual_prefix": {
-        "title": "ESPAltherma v2 entity prefix",
-        "description": "Enter the entity_id prefix under which ESPAltherma v2 publishes its individual sensors. Default: `sensor.espaltherma_`.",
+        "title": "ESPAltherma v2 entiteit-voorvoegsel",
+        "description": "Voer het entity_id-voorvoegsel in waaronder ESPAltherma v2 zijn afzonderlijke sensoren publiceert. Standaard: `sensor.espaltherma_`.",
         "data": {
-          "individual_prefix": "Entity prefix"
+          "individual_prefix": "Entiteit-voorvoegsel"
         },
         "data_description": {
-          "individual_prefix": "Prefix including the domain, e.g. `sensor.espaltherma_`."
+          "individual_prefix": "Voorvoegsel inclusief het domein, bijv. `sensor.espaltherma_`."
         }
       },
       "individual_review": {
-        "title": "Review ESPAltherma v2 attributes",
-        "description": "Matched **{matched}/{total}** required attributes. Discovered entities: {discovered}.{missing_block}{collision_block}\n\nContinue to select your Daikin model. You can adjust the mapping later via the integration options."
+        "title": "ESPAltherma v2-attributen controleren",
+        "description": "**{matched}/{total}** vereiste attributen gekoppeld. Gevonden entiteiten: {discovered}.{missing_block}{collision_block}\n\nGa verder om je Daikin-model te kiezen. Je kunt de koppeling later aanpassen via de integratie-opties."
       }
     },
     "error": {
