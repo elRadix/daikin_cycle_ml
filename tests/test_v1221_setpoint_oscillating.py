@@ -16,7 +16,7 @@ def test_setpoint_oscillating_idle_clears_history() -> None:
     """Alert must not fire when compressor is idle, and history must be cleared."""
     coord = _make_coord("idle")
     result = coord._compute_setpoint_oscillating()
-    
+
     assert result is False
     assert len(coord._setpoint_history) == 0
 
@@ -25,6 +25,6 @@ def test_setpoint_oscillating_heating_still_works() -> None:
     """Normal heating behavior must remain intact (direction reversal triggers)."""
     coord = _make_coord("heating")
     result = coord._compute_setpoint_oscillating()
-    
+
     assert result is True
     assert len(coord._setpoint_history) == 4

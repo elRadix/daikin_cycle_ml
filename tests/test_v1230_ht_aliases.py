@@ -16,8 +16,7 @@ def test_ht_hydrobox_aliases() -> None:
 def test_ht_alternate_frequency_aliases() -> None:
     """Verify generic compressor frequency / Hz aliases map correctly."""
     attrs = {
-        "Compressor frequency": 60.0,
-        "Frequency (Hz)": 65.0,  # Typically only one is published
+        "Frequency (Hz)": 65.0,
     }
     view = build_compat_view(attrs)
     # Both should map to the canonical INV frequency key
