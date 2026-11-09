@@ -3750,6 +3750,16 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     def _compute_setpoint_oscillating(self) -> bool:
         """Return True if setpoint changes in window exceed threshold."""
         from .const import DEFAULT_SETPOINT_OSC_THRESHOLD
+
+        # v1.22.1: Guard against false positives when compressor is off (idle).
+        # The weather-dependent curve adjusts the LWT setpoint even when
+        # there is no heating demand. This is not oscillation.
+        detector = getattr(self, "detector", None)
+        if detector is not None and getattr(detector, "state", None) == "idle":
+            if self._setpoint_history:
+                self._setpoint_history.clear()
+            return False
+
         try:
             th = int(self.options.get(
                 "setpoint_oscillation_threshold",

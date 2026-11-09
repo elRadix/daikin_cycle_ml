@@ -20,6 +20,8 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
         "Vorlauf vor BUH (R1T)",
         "[HPSU] Tv inflow Temp (R1T)",
         "Outlet Water Heat Exch. Temp. (R1T)",
+        "[Hydrobox] Leaving water temp. (R1T)",
+        "[Hydrobox] LWT",
     ),
     "Leaving water temp. after BUH (R2T)": (
         "Leaving water temp.(R2T)",
@@ -37,6 +39,7 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
         "Inlet temperature(R4T)",
         # v1.20.0 #281: EPSK publishes inlet via "water heat exchanger"
         "Inlet water temp. (water heat exchanger)",
+        "[Hydrobox] Inlet water temp. (R4T)",
     ),
     "Outdoor air temp.(R1T)": (
         "R1T-Outdoor air temp.",
@@ -66,6 +69,9 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
     ),
     "INV frequency (rps)": (
         "INV frequency(rps)",
+        "[Hydrobox] Compressor frequency",
+        "Compressor frequency",
+        "Frequency (Hz)",
     ),
     "Operation Mode": ("Betriebsart", "Mode de fonctionnement"),
     "Thermostat ON/OFF": ("Thermostat EIN/AUS",),
