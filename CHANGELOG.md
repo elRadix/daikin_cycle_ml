@@ -5,6 +5,9 @@
 ### Documentation
 - Clarify that `duration_min` and `duration_max` in `DATABASE.md` are stored in **seconds**.
 
+### Added
+- HT attribute aliases for `[Hydrobox]` LWT, R4T, and compressor frequency signals (#189).
+
 ### Fixed
 - Prevent `setpoint_oscillating` alert from firing when the compressor is in `idle` state.
   Weather-dependent curve adjustments (0.5 °C steps) are no longer counted as oscillation when there is no heating demand.
