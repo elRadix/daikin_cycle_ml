@@ -17,13 +17,15 @@ identical for every file; only the filename scoping changed.
 
 ### File layout
 
-    /config/.storage/
-        daikin_cycle_ml_<entry_id>.db   per-entry live DB (v1.10.0+)
-        daikin_cycle_ml.db              legacy shared DB (pre-v1.10.0)
-        daikin_cycle_ml.db.legacy-<ts>  archived copy (archive_legacy_db)
-        .daikin_cycle_ml_v1100_migrated migration marker
-    /config/.daikin_backups/
-        daikin_cycle_ml.db.backup-<ts>  pre-migration backup
+```text
+/config/.storage/
+    daikin_cycle_ml_<entry_id>.db   per-entry live DB (v1.10.0+)
+    daikin_cycle_ml.db              legacy shared DB (pre-v1.10.0)
+    daikin_cycle_ml.db.legacy-<ts>  archived copy (archive_legacy_db)
+    .daikin_cycle_ml_v1100_migrated migration marker
+/config/.daikin_backups/
+    daikin_cycle_ml.db.backup-<ts>  pre-migration backup
+```
 
 ### How migration works
 
