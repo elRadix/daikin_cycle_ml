@@ -28,3 +28,18 @@ def test_setpoint_oscillating_heating_still_works() -> None:
 
     assert result is True
     assert len(coord._setpoint_history) == 4
+
+
+def test_setpoint_oscillating_no_detector() -> None:
+    """Ensure missing detector (partial mock) does not crash."""
+    coord = _make_coord("heating")
+    del coord.detector  # Remove to simulate uninitialized
+    # Should fall back to evaluating history (True in this case)
+    assert coord._compute_setpoint_oscillating() is True
+
+
+def test_setpoint_oscillating_idle_empty_history() -> None:
+    """Ensure idle state with empty history returns False safely."""
+    coord = _make_coord("idle")
+    coord._setpoint_history.clear()
+    assert coord._compute_setpoint_oscillating() is False

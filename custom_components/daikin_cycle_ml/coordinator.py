@@ -3754,7 +3754,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         # v1.22.1: Guard against false positives when compressor is off (idle).
         # The weather-dependent curve adjusts the LWT setpoint even when
         # there is no heating demand. This is not oscillation.
-        if self.detector.state == "idle":
+        detector = getattr(self, "detector", None)
+        if detector is not None and getattr(detector, "state", None) == "idle":
             if self._setpoint_history:
                 self._setpoint_history.clear()
             return False
