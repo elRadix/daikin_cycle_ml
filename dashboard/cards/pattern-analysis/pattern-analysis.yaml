@@ -1,0 +1,1223 @@
+type: custom:stack-in-card
+variables:
+  lang_override: ''
+  default_tab: 'dist'
+  default_window: 7
+  chart_height: 280
+  show_hints: true
+card_mod:
+  style: |
+    ha-card {
+      border: 3px solid var(--primary-color, #1976D2);
+      border-radius: 16px;
+      background: var(--ha-card-background, #F5FAFE);
+      background: linear-gradient(180deg,
+        color-mix(in srgb, var(--ha-card-background, #F5FAFE) 92%, var(--primary-color, #1976D2)) 0%,
+        color-mix(in srgb, var(--ha-card-background, #F5FAFE) 88%, var(--primary-color, #1976D2)) 50%,
+        color-mix(in srgb, var(--ha-card-background, #F5FAFE) 84%, var(--primary-color, #1976D2)) 100%);
+      box-shadow: 0 10px 28px color-mix(in srgb, var(--primary-color, #1976D2) 20%, transparent);
+      overflow: visible;
+    }
+cards:
+  - type: custom:mushroom-template-card
+    primary: >-
+      🎯 DAIKIN CYCLE ML — PATTERN ANALYSIS{{ ' · ' +
+      (state_attr('sensor.daikin_cycle_ml_hp_specs','model')|string|upper) if
+      state_attr('sensor.daikin_cycle_ml_hp_specs','model') else '' }}
+    secondary: >-
+      {% set l = state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') or 'en' -%}
+      {% if l == 'nl' %}Verdeling · cycles vs duration · COP-efficiëntie{% else %}Distribution · cycles vs duration · COP efficiency{% endif %}
+    icon: mdi:chart-scatter-plot
+    icon_color: blue
+    multiline_secondary: true
+    card_mod:
+      style: >
+        ha-card {
+          background: linear-gradient(135deg,
+            color-mix(in srgb, var(--ha-card-background, #fff) 85%, var(--primary-color, #1976D2)) 0%,
+            color-mix(in srgb, var(--ha-card-background, #fff) 70%, var(--primary-color, #1976D2)) 100%) !important;
+          box-shadow: none;
+          border-bottom: 3px solid var(--primary-color, #1976D2);
+          border-radius: 0;
+          padding: 12px 16px;
+        }
+
+        .primary { color: var(--primary-text-color, #0D47A1) !important;
+        font-weight: 900 !important; font-size: 1.05em !important;
+        text-transform: uppercase; letter-spacing: 0.8px; }
+
+        .secondary { color: var(--primary-color, #1565C0) !important; font-size:
+        0.88em !important; font-weight: 800 !important; }
+  - type: custom:button-card
+    show_name: false
+    show_icon: false
+    triggers_update: all
+    tap_action:
+      action: javascript
+      javascript: |
+        [[[
+          try {
+            const card = this;
+            const root = card.shadowRoot || card.getRootNode?.() || card;
+            const chart = root.querySelector('.pa-chart');
+            if (!chart) return;
+            const openPop = chart.querySelector('.pa-popup');
+            if (openPop) {
+              const hovered = Array.from(root.querySelectorAll(':hover, :active'));
+              for (const el of hovered) {
+                if (el.closest && el.closest('.pa-popup')) {
+                  if (chart.__paTimer) { clearTimeout(chart.__paTimer); chart.__paTimer = null; }
+                  openPop.classList.add('pa-popup-out');
+                  setTimeout(() => { if (openPop.parentNode) openPop.parentNode.removeChild(openPop); }, 200);
+                  return;
+                }
+              }
+            }
+            let candidates = Array.from(root.querySelectorAll(':hover, :active')).reverse();
+            if (!candidates.length) candidates = Array.from(root.querySelectorAll('[data-pa-action]')).reverse();
+            for (const el of candidates) {
+              if (!el || !el.dataset) continue;
+              const action = el.dataset.paAction;
+              if (!action) continue;
+              if (action === 'tab') {
+                const arg = el.dataset.paArg;
+                window.__paTab = arg;
+                chart.setAttribute('data-tab', arg);
+                chart.querySelectorAll('.pa-tab').forEach(t => t.classList.toggle('pa-tab-active', t.dataset.paArg === arg));
+                return;
+              }
+              if (action === 'win') {
+                const arg = el.dataset.paArg;
+                window.__paWin = arg;
+                chart.setAttribute('data-win', arg);
+                chart.querySelectorAll('.pa-win-btn').forEach(b => b.classList.toggle('pa-active', b.dataset.paArg === arg));
+                chart.querySelectorAll('.pa-view').forEach(v => v.classList.toggle('pa-view-active', v.dataset.win === arg));
+                return;
+              }
+              if (action === 'popup') { window.__paPopup(el); return; }
+              if (action === 'close-popup') {
+                const popup = el.closest('.pa-popup') || el;
+                if (popup && popup.parentNode) {
+                  if (chart.__paTimer) { clearTimeout(chart.__paTimer); chart.__paTimer = null; }
+                  popup.classList.add('pa-popup-out');
+                  setTimeout(() => { if (popup.parentNode) popup.parentNode.removeChild(popup); }, 200);
+                }
+                return;
+              }
+            }
+          } catch(e) { console.warn('[PA]', e); }
+        ]]]
+    hold_action:
+      action: none
+    double_tap_action:
+      action: none
+    styles:
+      card:
+        - background: none
+        - box-shadow: none
+        - border: none
+        - padding: 6px 6px 2px 6px
+        - overflow: visible
+      grid:
+        - grid-template-areas: '"content"'
+        - grid-template-columns: 1fr
+      custom_fields:
+        content:
+          - width: 100%
+          - pointer-events: auto
+    custom_fields:
+      content: |
+        [[[
+          try {
+            var card = this;
+            card.__paRegistry = card.__paRegistry || {};
+            card.__paSeq = 0;
+            
+            var CFG = (typeof variables !== 'undefined' && variables) ? variables : {};
+            var cfgTab = String(CFG.default_tab || 'dist');
+            var cfgWin = parseInt(CFG.default_window, 10) || 7;
+            var cfgShowHints = CFG.show_hints !== false;
+            var cfgLangOvr = String(CFG.lang_override || '').toLowerCase();
+
+            var REGISTRY = {
+              daily_summary: ['daily_summary_recent','recent_dagoverzicht'],
+              hp_specs: ['hp_specs','wp_specs'],
+              cycle_state: ['cycle_state','cyclus_status'],
+              compressor_starts: ['compressor_starts_today','compressorstarts_vandaag'],
+              runtime_buh: ['runtime_buh_today','buh_bedrijfstijd_vandaag'],
+              defrost_count: ['defrost_count_today','ontdooiingen_vandaag'],
+              defrost_duration: ['defrost_duration_today','ontdooiingsduur_vandaag'],
+              duty_cycle: ['duty_cycle_today','duty_cycle_vandaag'],
+              cop_today: ['cop_today','cop_vandaag'],
+              cop_heating_day: ['cop_heating_day','cop_verwarming_dag'],
+              cop_heating_week: ['cop_heating_week','cop_verwarming_week'],
+              cop_heating_month: ['cop_heating_month','cop_verwarming_maand'],
+              cop_dhw_day: ['cop_dhw_day','cop_dhw_dag'],
+              cop_dhw_week: ['cop_dhw_week','cop_dhw_week'],
+              cop_dhw_month: ['cop_dhw_month','cop_dhw_maand'],
+              cop_cooling_day: ['cop_cooling_day','cop_koeling_dag'],
+              cop_cooling_week: ['cop_cooling_week','cop_koeling_week'],
+              cop_cooling_month: ['cop_cooling_month','cop_koeling_maand'],
+              spf_season: ['spf_season','spf_seizoen'],
+              cop_degradation_week: ['cop_degradation_week_pct','cop_degradatie_week_pct'],
+              learned_thresholds: ['learned_thresholds','geleerde_drempels'],
+              cop_curve_recent: ['cop_curve_recent'],
+              cop_vs_datasheet_pct: ['cop_vs_datasheet_pct']
+            };
+
+            var resolveEntity = function(role){
+              var names = REGISTRY[role];
+              if(!names) return null;
+              var all = Object.keys(states).filter(function(e){ return e.indexOf('sensor.') === 0; });
+              var preferred = all.filter(function(e){ return e.indexOf('daikin_cycle_ml') !== -1; });
+              var i, j;
+              for(i=0; i<preferred.length; i++){
+                for(j=0; j<names.length; j++){
+                  if (preferred[i].endsWith('_'+names[j])) return preferred[i];
+                }
+              }
+              for(i=0; i<all.length; i++){
+                for(j=0; j<names.length; j++){
+                  if (all[i].endsWith('_'+names[j])) return all[i];
+                }
+              }
+              return null;
+            };
+
+            var SUMMARY = resolveEntity('daily_summary');
+            var STATE = resolveEntity('cycle_state');
+            var HP_SPECS = resolveEntity('hp_specs');
+            var TODAY_ISO = new Date().toISOString().slice(0,10);
+
+            if (!SUMMARY) {
+              return '<div style="padding:16px;color:#C62828;font-weight:800;">⚠️ Daikin Cycle ML entities niet gevonden.<br>Controleer of de integratie draait.<br>Gezocht: sensor.*_daily_summary_recent / *_recent_dagoverzicht + *cycle_state / *cyclus_status</div>';
+            }
+
+            var hasV = function(v){ return v!==null && v!==undefined && v!=='' && String(v)!=='None' && String(v)!=='unknown' && String(v)!=='unavailable'; };
+            var hasN = function(v){ if (!hasV(v)) return false; var f = parseFloat(v); return isFinite(f); };
+            var vI = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Math.round(parseFloat(v)).toString(); };
+            var attr = function(id,n,d){ try{ if(!id)return d; var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
+            var getState = function(eid){ try { var st = states[eid]; if (!st) return null; var v = parseFloat(st.state); return isFinite(v) ? v : null; } catch(e){ return null; } };
+            var weekday = function(iso){ if(!iso) return ''; try{ var d = new Date(iso + 'T12:00:00'); return ['zo','ma','di','wo','do','vr','za'][d.getDay()]; }catch(e){ return ''; } };
+            var fmtDay = function(iso){ if(!iso) return '—'; var p=String(iso).split('-'); return p.length>=3 ? p[2]+'/'+p[1] : iso; };
+            var fmtMin = function(m){
+              if(!hasV(m)||!isFinite(Number(m))) return '—';
+              m = Number(m);
+              if(m < 60) return Math.round(m)+'m';
+              var h = Math.floor(m/60); var mm = Math.round(m - h*60);
+              return mm === 0 ? h+'u' : h+'u'+String(mm).padStart(2,'0');
+            };
+            var fmt1 = function(v){ return hasN(v) ? Number(v).toFixed(1).replace('.',',') : '—'; };
+            var pct  = function(v){ return hasN(v) ? (Number(v)>0?'+':'') + Number(v).toFixed(1).replace('.',',') + '%' : '—'; };
+            var arrow = function(v){ return !hasN(v) ? '' : (Number(v)>0?'▲':Number(v)<0?'▼':'●'); };
+
+            /* THEME */
+            var DARK = !!(hass && hass.themes && hass.themes.darkMode);
+            var TH = {
+              dark: DARK,
+              bg: DARK ? 'var(--card-background-color, #1C1C1E)' : 'var(--card-background-color, #FFFFFF)',
+              bg2: DARK ? 'var(--secondary-background-color, #2C2C2E)' : 'var(--secondary-background-color, #F5FAFE)',
+              text: DARK ? 'var(--primary-text-color, #E5E5EA)' : 'var(--primary-text-color, #0D47A1)',
+              sub: DARK ? 'var(--secondary-text-color, #AEAEB2)' : 'var(--secondary-text-color, #546E7A)',
+              accent: DARK ? 'var(--primary-color, #64B5F6)' : 'var(--primary-color, #1976D2)',
+              accent2: DARK ? '#90CAF9' : '#0D47A1',
+              border: DARK ? 'rgba(255,255,255,0.14)' : 'rgba(13,71,161,0.12)',
+              grid: DARK ? 'rgba(255,255,255,0.07)' : 'rgba(13,71,161,0.08)',
+              green: DARK ? '#66BB6A' : '#2E7D32',
+              orange: DARK ? '#FFA726' : '#E65100',
+              red: DARK ? '#EF5350' : '#C62828',
+              blue: DARK ? '#42A5F5' : '#1976D2',
+              purple: DARK ? '#BA68C8' : '#6A1B9A',
+              buh: DARK ? '#FFA726' : '#E65100',
+              defrost: DARK ? '#42A5F5' : '#1976D2'
+            };
+            var TXT_HALO = DARK
+              ? 'paint-order="stroke fill" stroke="#000" stroke-width="2.5" stroke-opacity="0.65" stroke-linejoin="round"'
+              : 'paint-order="stroke fill" stroke="white" stroke-width="2.5" stroke-opacity="0.9" stroke-linejoin="round"';
+
+            var qColor = function(q){ return (q===null||q===undefined) ? TH.sub : (q>=70?TH.green:q>=40?TH.orange:TH.red); };
+            var durCol = function(m){ return m<20?TH.red:m<60?TH.orange:m<180?TH.green:TH.blue; };
+            var MODE_COL = { heating: TH.red, dhw: TH.blue, cooling: '#42A5F5' };
+            var MODE_ICON = { heating: '🔥', dhw: '🚿', cooling: '🧊' };
+
+            var T = function(x, y, text, o){
+              o = o || {};
+              return '<text x="'+x+'" y="'+y+'"'
+                + (o.a ? ' text-anchor="'+o.a+'"' : '')
+                + ' font-family="ui-monospace,monospace"'
+                + ' font-size="'+(o.s||10)+'"'
+                + ' font-weight="'+(o.w||800)+'"'
+                + ' fill="'+(o.f||TH.text)+'"'
+                + (o.halo ? ' '+TXT_HALO : '')
+                + (o.attr ? ' '+o.attr : '')
+                + '>'+text+'</text>';
+            };
+
+            if (!window.__paRegistry) window.__paRegistry = {};
+            if (!window.__paRegSeq) window.__paRegSeq = 0;
+            if (window.__paRegSeq > 900) { window.__paRegistry = {}; window.__paRegSeq = 0; }
+            var popAttr = function(payload){
+              window.__paRegSeq++;
+              var id = 'p' + window.__paRegSeq;
+              window.__paRegistry[id] = payload;
+              return 'data-pa-action="popup" data-pa-pid="'+id+'"';
+            };
+
+            if (!window.__paPopup) {
+              window.__paPopup = function(el){
+                try {
+                  var chart = el.closest('.pa-chart'); if(!chart) return;
+                  var host = chart.querySelector('.pa-popup-host'); if(!host) return;
+                  var pid = el.getAttribute('data-pa-pid'); if(!pid) return;
+                  var payload = window.__paRegistry[pid]; if(!payload) return;
+                  var now = Date.now();
+                  if (chart.__paLastTap && (now - chart.__paLastTap) < 180) return;
+                  chart.__paLastTap = now;
+                  var oldPops = host.querySelectorAll('.pa-popup');
+                  for (var i=0; i<oldPops.length; i++) if(oldPops[i].parentNode) oldPops[i].parentNode.removeChild(oldPops[i]);
+                  if (chart.__paTimer) { clearTimeout(chart.__paTimer); chart.__paTimer = null; }
+                  var pop = document.createElement('div');
+                  pop.className = 'pa-popup'; pop.setAttribute('data-pa-action','close-popup');
+                  var html = '<div class="pa-popup-hd"><span class="pa-popup-ttl">' + payload.title + '</span><span class="pa-popup-x">✕</span></div>';
+                  if (payload.items) for (var j=0; j<payload.items.length; j++) {
+                    var it = payload.items[j];
+                    if (it.t === 'sep') { html += '<div class="pa-popup-sep"></div>'; continue; }
+                    if (it.t === 'hl') { html += '<div class="pa-popup-hl"><span class="pa-popup-hl-k">'+it.k+'</span><span class="pa-popup-hl-v" style="color:'+(it.c||TH.accent)+'">'+it.v+'</span></div>'; continue; }
+                    html += '<div class="pa-popup-row"><span class="pa-popup-k">'+it.k+'</span><span class="pa-popup-v" style="color:'+(it.c||TH.text)+'">'+it.v+'</span></div>';
+                  }
+                  if (payload.modes && payload.modes.length) {
+                    html += '<div class="pa-popup-sep"></div><div class="pa-popup-modes">';
+                    for (var mi=0; mi<payload.modes.length; mi++) {
+                      var md = payload.modes[mi];
+                      html += '<div class="pa-popup-mode"><span class="pa-popup-mode-ic">'+md.icon+'</span><span class="pa-popup-mode-c">'+md.cycles+'×</span><span class="pa-popup-mode-d">'+md.dur+'</span><span class="pa-popup-mode-q" style="color:'+(md.qc||TH.sub)+'">Q'+md.q+'</span></div>';
+                    }
+                    html += '</div>';
+                  }
+                  html += '<div class="pa-popup-bar"></div>';
+                  pop.innerHTML = html;
+                  pop.style.visibility='hidden'; pop.style.left='0px'; pop.style.top='0px';
+                  host.appendChild(pop);
+                  var chartRect = chart.getBoundingClientRect();
+                  var rect; try { rect = el.getBoundingClientRect(); } catch(e){ rect = null; }
+                  var pw = pop.offsetWidth || 250, ph = pop.offsetHeight || 200;
+                  var ex=0, ey=40, ew=100, eh=20;
+                  if (rect && rect.width > 0) { ex = rect.left - chartRect.left; ey = rect.top - chartRect.top; ew = rect.width; eh = rect.height; } else { ex = chartRect.width/2 - 50; }
+                  var GAP = 12, MARGIN = 6;
+                  var left = ex + ew/2 - pw/2;
+                  if (left < MARGIN) left = MARGIN;
+                  if (left + pw > chartRect.width - MARGIN) left = chartRect.width - pw - MARGIN;
+                  var placeAbove = (ey - GAP - ph) >= MARGIN;
+                  var top;
+                  if (placeAbove) { top = ey - GAP; pop.classList.add('popup-above'); }
+                  else { var belowTop = ey + eh + GAP; top = (belowTop+ph <= chartRect.height-MARGIN) ? belowTop : (MARGIN+4); pop.classList.add('popup-below'); }
+                  pop.style.left = left+'px'; pop.style.top = top+'px'; pop.style.visibility='visible';
+                  pop.addEventListener('click', function(ev){
+                    ev.stopImmediatePropagation(); ev.stopPropagation(); ev.preventDefault();
+                    if (chart.__paTimer) { clearTimeout(chart.__paTimer); chart.__paTimer = null; }
+                    pop.classList.add('pa-popup-out');
+                    setTimeout(function(){ if (pop.parentNode) pop.parentNode.removeChild(pop); }, 200);
+                  }, true);
+                  chart.__paTimer = setTimeout(function(){
+                    if (pop && pop.parentNode) { pop.classList.add('pa-popup-out'); setTimeout(function(){ if (pop.parentNode) pop.parentNode.removeChild(pop); }, 250); }
+                    chart.__paTimer = null;
+                  }, 5000);
+                } catch(e){ console.warn('[PA popup]', e); }
+              };
+            }
+
+            var cfgLang = String(attr(STATE,'configured_language','en')).toLowerCase();
+            var haLang = (typeof hass !== 'undefined' && hass && hass.language) ? String(hass.language).toLowerCase() : '';
+            var LANG = 'en';
+            if (cfgLangOvr === 'nl' || cfgLangOvr === 'en') { LANG = cfgLangOvr; }
+            else if (haLang.indexOf('nl') === 0) { LANG = 'nl'; }
+            else if (cfgLang === 'nl') { LANG = 'nl'; }
+
+            var I18N = {
+              hdr_dist: {nl:'📊 Verdeling cyclus-duur', en:'📊 Cycle duration distribution'},
+              hdr_scatter: {nl:'🎯 Cycles vs Duur', en:'🎯 Cycles vs Duration'},
+              hdr_cop: {nl:'🎯 COP Efficiëntie', en:'🎯 COP Efficiency'},
+              cnt_perday: {nl:'per dag', en:'per day'},
+              tab_dist: {nl:'📊 VERDELING', en:'📊 DISTRIBUTION'},
+              tab_scatter: {nl:'🎯 SCATTER', en:'🎯 SCATTER'},
+              tab_cop: {nl:'🎯 COP', en:'🎯 COP'},
+              axis_x_cyc: {nl:'CYCLES PER DAG', en:'CYCLES PER DAY'},
+              axis_y_dur: {nl:'GEM. DUUR', en:'AVG DURATION'},
+              r_cycles: {nl:'Cycli', en:'Cycles'},
+              r_avgdur: {nl:'Ø duur', en:'Ø duration'},
+              r_maxdur: {nl:'Langste', en:'Longest'},
+              r_totaldur: {nl:'Totale duur', en:'Total runtime'},
+              r_quality: {nl:'Kwaliteit', en:'Quality'},
+              r_buh: {nl:'⚡ BUH', en:'⚡ BUH'},
+              r_defrost: {nl:'❄ Defrost', en:'❄ Defrost'},
+              r_days: {nl:'Dagen', en:'Days'},
+              r_share: {nl:'Aandeel', en:'Share'},
+              r_samples: {nl:'Samples', en:'Samples'},
+              note_dist: {nl:'💡 Tik op een balk voor details — buckets op basis van gemiddelde cyclusduur per modus', en:'💡 Tap a bar for details — buckets by avg cycle duration per mode'},
+              note_scatter: {nl:'💡 Tik op een punt voor details — X: cycli/dag · Y: gem. duur · kleur: kwaliteit', en:'💡 Tap a dot for details — X: cycles/day · Y: avg duration · color: quality'},
+              note_cop: {nl:'💡 COP = efficiëntie · ~ref = benaderde datasheet-vergelijking (A7/W35) · duur/cycli-trends per dag', en:'💡 COP = efficiency · ~ref = approximate datasheet comparison (A7/W35) · duration/cycle trends per day'},
+              cop_today: {nl:'COP VANDAAG', en:'COP TODAY'},
+              cop_vs_ds: {nl:'VS DATASHEET', en:'VS DATASHEET'},
+              spf_season: {nl:'SPF SEIZOEN', en:'SPF SEASON'},
+              week_trend: {nl:'WEEKTREND', en:'WEEK TREND'},
+              buh_impact: {nl:'⚡ BUH', en:'⚡ BUH'},
+              defrost_n: {nl:'❄ DEFROST', en:'❄ DEFROST'},
+              no_cop_data: {nl:'Geen COP-data', en:'No COP data'}
+            };
+            var t = function(k){ var e=I18N[k]; if(!e) return k; return e[LANG] || e.en || e.nl; };
+
+            var rawDays = attr(SUMMARY, 'days', []);
+            if(!Array.isArray(rawDays)) rawDays = [];
+            var rdDurMin = function(rd){ return hasN(rd.dur_min) ? parseFloat(rd.dur_min) : (hasN(rd.total_duration_s) ? parseFloat(rd.total_duration_s)/60 : 0); };
+            var rdDurMax = function(rd){ return hasN(rd.dur_max) ? parseFloat(rd.dur_max) : (hasN(rd.duration_max) ? parseFloat(rd.duration_max)/60 : 0); };
+            var rdDurAvg = function(rd){
+              if (hasN(rd.dur_min_avg)) return parseFloat(rd.dur_min_avg);
+              if (hasN(rd.duration_avg)) return parseFloat(rd.duration_avg)/60;
+              if (hasN(rd.dur_min) && rd.cycles > 0) return parseFloat(rd.dur_min)/rd.cycles;
+              if (hasN(rd.total_duration_s) && rd.cycles > 0) return parseFloat(rd.total_duration_s)/60/rd.cycles;
+              return 0;
+            };
+            var rdBuh = function(rd){ return hasN(rd.buh) ? parseFloat(rd.buh) : (hasN(rd.buh_count) ? parseFloat(rd.buh_count) : 0); };
+            var rdDefrost = function(rd){ return hasN(rd.defrost) ? parseFloat(rd.defrost) : (hasN(rd.defrost_count) ? parseFloat(rd.defrost_count) : 0); };
+
+            var byDate = {};
+            for(var ri=0; ri<rawDays.length; ri++){
+              var rd = rawDays[ri];
+              if(!rd.day) continue;
+              if(!byDate[rd.day]){
+                byDate[rd.day] = {day: rd.day, cycles:0, dur_total_min:0, dur_max_min:0, quality_sum:0, quality_weight:0, buh:0, defrost:0, transient:0,
+                  modes: {heating:{cycles:0,dur_total_min:0,dur_max_min:0,dt:null,rps:null,quality:null,buh:0,defrost:0},
+                          dhw:{cycles:0,dur_total_min:0,dur_max_min:0,dt:null,rps:null,quality:null,buh:0,defrost:0},
+                          cooling:{cycles:0,dur_total_min:0,dur_max_min:0,dt:null,rps:null,quality:null,buh:0,defrost:0}}};
+              }
+              var e = byDate[rd.day];
+              var cycN = rd.cycles || 0;
+              var dMin = rdDurMin(rd), dMax = rdDurMax(rd), buhV = rdBuh(rd), defrV = rdDefrost(rd);
+              var qaV = hasN(rd.quality_avg) ? parseFloat(rd.quality_avg) : null;
+              var dtV = hasN(rd.dt_max_avg) ? parseFloat(rd.dt_max_avg) : null;
+              var rpsV = hasN(rd.rps_avg) ? parseFloat(rd.rps_avg) : null;
+              e.cycles += cycN; e.dur_total_min += dMin;
+              if (dMax > e.dur_max_min) e.dur_max_min = dMax;
+              e.buh += buhV; e.defrost += defrV; e.transient += (rd.transient_count||0);
+              if (qaV !== null) { e.quality_sum += qaV*Math.max(1,cycN); e.quality_weight += Math.max(1,cycN); }
+              var mkey = rd.mode || 'unknown';
+              if(e.modes[mkey]){
+                var mm = e.modes[mkey];
+                mm.cycles += cycN; mm.dur_total_min += dMin;
+                if (dMax > mm.dur_max_min) mm.dur_max_min = dMax;
+                if (dtV !== null) mm.dt = dtV;
+                if (rpsV !== null) mm.rps = rpsV;
+                if (qaV !== null) mm.quality = qaV;
+                mm.buh += buhV; mm.defrost += defrV;
+              }
+            }
+            var daysAll = Object.keys(byDate).map(function(k){
+              var e = byDate[k];
+              e.quality_avg = e.quality_weight > 0 ? e.quality_sum / e.quality_weight : null;
+              e.dur_avg = e.cycles > 0 ? e.dur_total_min / e.cycles : 0;
+              Object.keys(e.modes).forEach(function(mk){
+                var mm = e.modes[mk];
+                mm.avg_min = mm.cycles > 0 ? mm.dur_total_min / mm.cycles : 0;
+                mm.total_min = mm.dur_total_min;
+                mm.dur = mm.total_min; mm.avg = mm.avg_min;
+              });
+              return e;
+            }).sort(function(a,b){ return a.day < b.day ? -1 : 1; });
+
+            var activeWin = String(window.__paWin || cfgWin);
+            var activeTab = String(window.__paTab || cfgTab);
+
+            var buildModeChips = function(entry){
+              var arr = [];
+              ['heating','dhw','cooling'].forEach(function(mk){
+                var mm = entry.modes[mk];
+                if (!mm || mm.cycles <= 0) return;
+                arr.push({icon:MODE_ICON[mk], cycles:mm.cycles, dur:fmtMin(mm.total_min), q:mm.quality===null?'—':vI(mm.quality), qc:qColor(mm.quality)});
+              });
+              return arr;
+            };
+
+            /* DIST */
+            var buildDistContent = function(sub, wkey){
+              var windowSet = {}; sub.forEach(function(d){ windowSet[d.day]=true; });
+              var dist = [
+                {label:'PENDEL', sub:'<20m', col:TH.red, bg:DARK?'rgba(239,83,80,0.10)':'#FFEBEE', n:0, durSum:0, days:{}},
+                {label:'KORT', sub:'20-60m', col:TH.orange, bg:DARK?'rgba(255,167,38,0.10)':'#FFF3E0', n:0, durSum:0, days:{}},
+                {label:'GOED', sub:'60-180m', col:TH.green, bg:DARK?'rgba(102,187,106,0.10)':'#E8F5E9', n:0, durSum:0, days:{}},
+                {label:'LANG', sub:'>180m', col:TH.blue, bg:DARK?'rgba(66,165,245,0.10)':'#E3F2FD', n:0, durSum:0, days:{}}
+              ];
+              rawDays.forEach(function(rd){
+                if(!rd.day || !windowSet[rd.day] || !rd.cycles || rd.cycles <= 0) return;
+                var avg = rdDurAvg(rd);
+                if(!isFinite(avg) || avg <= 0) return;
+                var idx = avg<20?0:avg<60?1:avg<180?2:3;
+                dist[idx].n += rd.cycles;
+                dist[idx].durSum += rdDurMin(rd);
+                dist[idx].days[rd.day] = (dist[idx].days[rd.day]||0) + rd.cycles;
+              });
+              var totCycles = dist.reduce(function(a,o){ return a+o.n; }, 0);
+              var distMax = Math.max(1, dist[0].n, dist[1].n, dist[2].n, dist[3].n);
+              var domIdx = 0, domN = -1;
+              for(var i=0; i<4; i++){ if(dist[i].n > domN){ domN = dist[i].n; domIdx = i; } }
+              var dW=460, dH=260, dPadL=42, dPadR=12, dPadT=22, dPadB=100;
+              var dPlotW = dW-dPadL-dPadR, dPlotH = dH-dPadT-dPadB;
+              var dSlotW = dPlotW/4, dBarW = dSlotW*0.62;
+              var dY = function(v){ return dPadT + dPlotH - (v/distMax)*dPlotH; };
+              var gid = function(n){ return n+'_'+wkey; };
+              var s = '<defs>';
+              ['red','org','grn','blu'].forEach(function(k, idx){
+                var c = [TH.red,TH.orange,TH.green,TH.blue][idx];
+                s += '<linearGradient id="'+gid('pg-'+k)+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+c+'"/><stop offset="100%" stop-color="'+c+'" stop-opacity="0.65"/></linearGradient>';
+              });
+              s += '<filter id="'+gid('pg-glow')+'" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+              s += '</defs>';
+              for(var yi=0; yi<=4; yi++){
+                var yv = Math.round(distMax*yi/4), yy = dY(yv);
+                s += '<line x1="'+dPadL+'" y1="'+yy+'" x2="'+(dPadL+dPlotW)+'" y2="'+yy+'" stroke="'+TH.grid+'" stroke-width="1"/>';
+                s += T(dPadL-6, yy+4, yv, {a:'end'});
+              }
+              for(var di=0; di<4; di++){
+                var o = dist[di];
+                var cx = dPadL + di*dSlotW + dSlotW/2;
+                var bH = (o.n/distMax)*dPlotH;
+                var byTop = dPadT + dPlotH - bH;
+                var isDom = (di === domIdx && o.n > 0);
+                var dayList = Object.keys(o.days).sort();
+                var sharePct = totCycles > 0 ? Math.round(o.n/totCycles*100) : 0;
+                var items = [
+                  {t:'hl', k:t('r_cycles'), v:String(o.n), c:o.col},
+                  {t:'sep'},
+                  {t:'kv', k:t('r_days'), v:String(dayList.length), c:TH.sub},
+                  {t:'kv', k:t('r_share'), v:sharePct+'%', c:o.col},
+                  {t:'kv', k:t('r_avgdur'), v:(o.n>0?fmtMin(Math.round(o.durSum/o.n)):'—'), c:o.col},
+                  {t:'kv', k:t('r_totaldur'), v:(o.n>0?fmtMin(Math.round(o.durSum)):'—'), c:TH.text}
+                ];
+                if (dayList.length > 0) { items.push({t:'sep'}); for (var dii=0; dii<dayList.length; dii++){ items.push({t:'kv', k:weekday(dayList[dii])+' '+fmtDay(dayList[dii]), v:o.days[dayList[dii]]+'×', c:o.col}); } }
+                var pattr = popAttr({title: o.label+' '+o.sub, items: items, modes: []});
+                s += '<rect x="'+(cx-dBarW/2)+'" y="'+dPadT+'" width="'+dBarW+'" height="'+dPlotH+'" rx="8" fill="'+o.bg+'" opacity="0.5"/>';
+                if(o.n > 0){
+                  var gradRef = 'url(#'+gid('pg-'+(di===0?'red':di===1?'org':di===2?'grn':'blu'))+')';
+                  var filt = isDom ? ' filter="url(#'+gid('pg-glow')+')"' : '';
+                  s += '<g '+pattr+' style="cursor:pointer;">';
+                  s += '<rect x="'+(cx-dBarW/2)+'" y="'+byTop+'" width="'+dBarW+'" height="'+bH+'" rx="8" fill="'+gradRef+'"'+filt+' pointer-events="all"/>';
+                  s += '<rect x="'+(cx-dBarW/2)+'" y="'+dPadT+'" width="'+dBarW+'" height="'+dPlotH+'" fill="transparent" pointer-events="all"/>';
+                  s += '</g>';
+                  s += T(cx, byTop-9, o.n, {a:'middle', s:18, w:900, f:o.col, halo:1});
+                  if(isDom) s += '<text x="'+(cx+dBarW/2+3)+'" y="'+(byTop-9)+'" font-size="13" pointer-events="none">👑</text>';
+                } else {
+                  s += T(cx, dPadT+dPlotH/2+6, '0', {a:'middle', s:14, w:900, f:o.col, attr:'opacity="0.3"', halo:1});
+                }
+                var labelY = dPadT + dPlotH + 18;
+                s += T(cx, labelY, o.label, {a:'middle', s:11, w:900, f:o.col, attr:'letter-spacing="0.5"', halo:1});
+                s += T(cx, labelY+14, o.sub, {a:'middle', s:9, w:800, f:TH.sub, halo:1});
+                s += T(cx, labelY+30, Math.round(o.n/Math.max(1,totCycles)*100)+'%', {a:'middle', s:10, w:900, f:o.col, halo:1});
+                if(o.n>0) s += T(cx, labelY+44, 'Ø '+fmtMin(Math.round(o.durSum/o.n)), {a:'middle', s:9.5, w:900, f:o.col, halo:1});
+              }
+              s += '<line x1="'+dPadL+'" y1="'+(dPadT+dPlotH)+'" x2="'+(dPadL+dPlotW)+'" y2="'+(dPadT+dPlotH)+'" stroke="'+TH.text+'" stroke-width="1.5"/>';
+              s += '<line x1="'+dPadL+'" y1="'+dPadT+'" x2="'+dPadL+'" y2="'+(dPadT+dPlotH)+'" stroke="'+TH.text+'" stroke-width="1.5"/>';
+              return s;
+            };
+
+            /* SCATTER */
+            var buildScatterContent = function(sub, wkey){
+              var scW=460, scH=350, scPadL=58, scPadR=16, scPadT=26, scPadB=54;
+              var scPlotW = scW-scPadL-scPadR, scPlotH = scH-scPadT-scPadB;
+              var scXMax = Math.max(6, Math.max.apply(null, sub.map(function(d){ return d.cycles; })) + 1);
+              var scYMaxRaw = Math.max.apply(null, sub.map(function(d){ return d.dur_avg; }));
+              var scYMax = Math.max(60, Math.ceil(scYMaxRaw/60)*60);
+              var scX = function(v){ return scPadL + (v/scXMax)*scPlotW; };
+              var scY = function(v){ return scPadT + scPlotH - (v/scYMax)*scPlotH; };
+              var xHalf = Math.min(scXMax-0.5, 5);
+              var gid = function(n){ return n+'_'+wkey; };
+              var subTotalCycles = sub.reduce(function(a,d){ return a+d.cycles; }, 0);
+              var pts = [];
+              for(var si=0; si<sub.length; si++){
+                if(sub[si].cycles === 0) continue;
+                pts.push({idx:si, x:scX(sub[si].cycles), y:scY(sub[si].dur_avg),
+                  r: 5 + Math.min(4, sub[si].cycles*0.8),
+                  d: sub[si],
+                  isLatest: si === sub.length-1,
+                  isToday: sub[si].day === TODAY_ISO});
+              }
+              var placedLabels = [];
+              var tryPlace = function(x, y, r){
+                var cands = [y-r-7, y+r+13, y-r-20, y+r+26];
+                for (var ci=0; ci<cands.length; ci++){
+                  var cy = cands[ci];
+                  var collides = false;
+                  for (var pi=0; pi<placedLabels.length; pi++){
+                    if (Math.abs(placedLabels[pi].x - x) < 32 && Math.abs(placedLabels[pi].y - cy) < 11) { collides = true; break; }
+                  }
+                  if (!collides) { placedLabels.push({x:x, y:cy}); return cy; }
+                }
+                return null;
+              };
+              var s = '<defs>';
+              s += '<linearGradient id="'+gid('ps-pen')+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+TH.red+'" stop-opacity="0.14"/><stop offset="100%" stop-color="'+TH.red+'" stop-opacity="0.24"/></linearGradient>';
+              s += '<linearGradient id="'+gid('ps-mix')+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+TH.orange+'" stop-opacity="0.06"/><stop offset="100%" stop-color="'+TH.orange+'" stop-opacity="0.16"/></linearGradient>';
+              s += '<linearGradient id="'+gid('ps-ide')+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+TH.green+'" stop-opacity="0.22"/><stop offset="100%" stop-color="'+TH.green+'" stop-opacity="0.08"/></linearGradient>';
+              s += '<linearGradient id="'+gid('ps-too')+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+TH.red+'" stop-opacity="0.08"/><stop offset="100%" stop-color="'+TH.red+'" stop-opacity="0.20"/></linearGradient>';
+              s += '<filter id="'+gid('ps-glow')+'" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>';
+              s += '</defs>';
+              var qx = scX(xHalf), qyG = scY(60), qyS = scY(20);
+              s += '<rect x="'+scPadL+'" y="'+qyS+'" width="'+(qx-scPadL)+'" height="'+(scPadT+scPlotH-qyS)+'" fill="url(#'+gid('ps-pen')+')"/>';
+              s += '<rect x="'+scPadL+'" y="'+qyG+'" width="'+(qx-scPadL)+'" height="'+(qyS-qyG)+'" fill="url(#'+gid('ps-mix')+')"/>';
+              s += '<rect x="'+qx+'" y="'+scPadT+'" width="'+(scPadL+scPlotW-qx)+'" height="'+(qyG-scPadT)+'" fill="url(#'+gid('ps-ide')+')"/>';
+              s += '<rect x="'+qx+'" y="'+qyS+'" width="'+(scPadL+scPlotW-qx)+'" height="'+(scPadT+scPlotH-qyS)+'" fill="url(#'+gid('ps-too')+')"/>';
+              for(var gy=0; gy<=4; gy++){
+                var gyv = scYMax*gy/4, gyy = scY(gyv);
+                s += '<line x1="'+scPadL+'" y1="'+gyy+'" x2="'+(scPadL+scPlotW)+'" y2="'+gyy+'" stroke="'+TH.grid+'" stroke-width="1"/>';
+                s += T(scPadL-8, gyy+4, Math.round(gyv)+'m', {a:'end'});
+              }
+              for(var gx=0; gx<=4; gx++){
+                var gxv = scXMax*gx/4;
+                s += T(scX(gxv), scPadT+scPlotH+18, Math.round(gxv), {a:'middle'});
+              }
+              s += '<line x1="'+scPadL+'" y1="'+qyG+'" x2="'+(scPadL+scPlotW)+'" y2="'+qyG+'" stroke="'+TH.green+'" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.5"/>';
+              s += '<line x1="'+qx+'" y1="'+scPadT+'" x2="'+qx+'" y2="'+(scPadT+scPlotH)+'" stroke="'+TH.green+'" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.5"/>';
+              for(var pj=0; pj<pts.length; pj++){
+                var p = pts[pj], dS = p.d;
+                var sc2 = qColor(dS.quality_avg);
+                var sharePct = subTotalCycles>0 ? Math.round(dS.cycles/subTotalCycles*100) : 0;
+                var items = [
+                  {t:'hl', k:t('r_quality'), v:(dS.quality_avg===null?'—':vI(dS.quality_avg)+'%'), c:sc2},
+                  {t:'sep'},
+                  {t:'kv', k:t('r_cycles'), v:String(dS.cycles), c:TH.text},
+                  {t:'kv', k:t('r_share'), v:sharePct+'%', c:TH.sub},
+                  {t:'kv', k:t('r_avgdur'), v:fmtMin(dS.dur_avg), c:TH.text},
+                  {t:'kv', k:t('r_maxdur'), v:fmtMin(dS.dur_max_min), c:TH.text},
+                  {t:'kv', k:t('r_totaldur'), v:fmtMin(dS.dur_total_min), c:TH.text},
+                  {t:'sep'},
+                  {t:'kv', k:t('r_buh'), v:String(dS.buh||0), c:(dS.buh>0?TH.buh:TH.sub)},
+                  {t:'kv', k:t('r_defrost'), v:String(dS.defrost||0), c:(dS.defrost>0?TH.defrost:TH.sub)}
+                ];
+                var pattr = popAttr({title: weekday(dS.day)+' '+fmtDay(dS.day), items: items, modes: buildModeChips(dS)});
+                s += '<g '+pattr+' style="cursor:pointer;">';
+                s += '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(p.r+4)+'" fill="transparent"/>';
+                if (p.isLatest || p.isToday){
+                  s += '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(p.r+2)+'" fill="'+sc2+'" opacity="0.5"><animate attributeName="r" values="'+(p.r+2)+';'+(p.r+16)+';'+(p.r+2)+'" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0;0.5" dur="2.4s" repeatCount="indefinite"/></circle>';
+                }
+                s += '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(p.r+4)+'" fill="'+sc2+'" opacity="0.12"/>';
+                s += '<circle cx="'+p.x+'" cy="'+p.y+'" r="'+p.r+'" fill="'+sc2+'" stroke="'+TH.bg+'" stroke-width="'+(p.isLatest?3:2.2)+'"'+(p.isLatest?' filter="url(#'+gid('ps-glow')+')"':'')+'/>';
+                s += '</g>';
+                var lblY = tryPlace(p.x, p.y, p.r);
+                if (lblY !== null){
+                  s += T(p.x, lblY, weekday(dS.day), {a:'middle', s:p.isLatest?10:9, w:900, f:TH.text, halo:1});
+                  var durLblY = lblY < p.y ? lblY - 12 : lblY + 12;
+                  s += T(p.x, durLblY, fmtMin(dS.dur_avg), {a:'middle', s:p.isLatest?8:7, w:800, f:TH.sub, halo:1});
+                }
+              }
+              s += '<line x1="'+scPadL+'" y1="'+(scPadT+scPlotH)+'" x2="'+(scPadL+scPlotW)+'" y2="'+(scPadT+scPlotH)+'" stroke="'+TH.text+'" stroke-width="1.5"/>';
+              s += '<line x1="'+scPadL+'" y1="'+scPadT+'" x2="'+scPadL+'" y2="'+(scPadT+scPlotH)+'" stroke="'+TH.text+'" stroke-width="1.5"/>';
+              s += T(scPadL+scPlotW/2, scH-8, t('axis_x_cyc'), {a:'middle', s:11, w:900, attr:'letter-spacing="0.5"'});
+              s += T(10, scPadT+scPlotH/2, t('axis_y_dur'), {a:'middle', s:11, w:900, attr:'transform="rotate(-90 10 '+(scPadT+scPlotH/2)+')"'});
+              return s;
+            };
+
+            /* COP */
+            var buildCopContent = function(sub, wkey){
+              var W = 460, H = 460, P = 12;
+              var CW = (W - P*3) / 2;
+              var gid = function(n){ return n+'_'+wkey; };
+              
+              var secTitle = function(y, txt) { return T(P, y, txt, {s:9, w:900, f:TH.sub, attr:'letter-spacing="0.5"'}); };
+
+              var modeData = {};
+              ['heating','dhw','cooling'].forEach(function(mk){
+                var day = getState(resolveEntity('cop_'+mk+'_day'));
+                var week = getState(resolveEntity('cop_'+mk+'_week'));
+                var month = getState(resolveEntity('cop_'+mk+'_month'));
+                var dayAttr = states[resolveEntity('cop_'+mk+'_day')] ? states[resolveEntity('cop_'+mk+'_day')].attributes : null;
+                var stats = (dayAttr && dayAttr.by_mode && dayAttr.by_mode[mk]) ? dayAttr.by_mode[mk] : null;
+                modeData[mk] = {day:day, week:week, month:month, stats:stats};
+              });
+              var copComb = getState(resolveEntity('cop_today'));
+              var copTodayAttrs = states[resolveEntity('cop_today')] ? states[resolveEntity('cop_today')].attributes : null;
+              var copToday = getState(resolveEntity('cop_today'));
+              if (copToday === null && copComb !== null) copToday = copComb;
+              var copMin = (copTodayAttrs && hasN(copTodayAttrs.cop_min)) ? parseFloat(copTodayAttrs.cop_min) : null;
+              var copMax = (copTodayAttrs && hasN(copTodayAttrs.cop_max)) ? parseFloat(copTodayAttrs.cop_max) : null;
+              var copSamples = (copTodayAttrs && hasN(copTodayAttrs.samples_today)) ? parseInt(copTodayAttrs.samples_today) : null;
+              var spf = getState(resolveEntity('spf_season'));
+              var degr = getState(resolveEntity('cop_degradation_week'));
+              var buhRt = getState(resolveEntity('runtime_buh'));
+              var defrCnt = getState(resolveEntity('defrost_count'));
+
+              var dsSensor = getState(resolveEntity('cop_vs_datasheet_pct'));
+              var hpSpecs = states[HP_SPECS] ? states[HP_SPECS].attributes : null;
+              var dsRef = null;
+              if (hpSpecs && Array.isArray(hpSpecs.points)) {
+                for (var pi=0; pi<hpSpecs.points.length; pi++) {
+                  var pt = hpSpecs.points[pi];
+                  if (pt && pt.label === 'A7/W35' && hasN(pt.cop)) { dsRef = parseFloat(pt.cop); break; }
+                }
+              }
+              var dsVal = null, dsApprox = false, dsMeasured = null;
+              if (dsSensor !== null) {
+                dsVal = dsSensor;
+                dsMeasured = hasN(modeData.heating.day) ? modeData.heating.day : copToday;
+              } else {
+                dsMeasured = hasN(modeData.heating.day) ? modeData.heating.day : copToday;
+                if (dsRef !== null && hasN(dsMeasured)) {
+                  dsVal = ((dsMeasured - dsRef) / dsRef) * 100;
+                  dsApprox = true;
+                }
+              }
+
+              var learnedAttrs = states[resolveEntity('learned_thresholds')] ? states[resolveEntity('learned_thresholds')].attributes : null;
+              var targetCycles = (learnedAttrs && hasN(learnedAttrs.target_cycles_per_day)) ? parseFloat(learnedAttrs.target_cycles_per_day) : 6;
+              var targetDur = 45;
+
+              var curveAttrs = attr(resolveEntity('cop_curve_recent'), 'points', null);
+              var curve = null;
+              if (Array.isArray(curveAttrs)) {
+                var tmp = [];
+                for (var ci=0; ci<curveAttrs.length; ci++) {
+                  var cp = curveAttrs[ci];
+                  if (!cp || typeof cp !== 'object') continue;
+                  var cv = hasN(cp.cop_mean) ? parseFloat(cp.cop_mean) : (hasN(cp.cop_p50) ? parseFloat(cp.cop_p50) : null);
+                  if (cv !== null && cv > 0) tmp.push({cop: cv, mode: cp.mode, ts: cp.ts});
+                }
+                if (tmp.length >= 2) curve = tmp;
+              }
+
+              var s = '<defs><linearGradient id="'+gid('copg')+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+TH.accent+'" stop-opacity="0.30"/><stop offset="100%" stop-color="'+TH.accent+'" stop-opacity="0"/></linearGradient></defs>';
+
+              s += secTitle(10, 'COP PERFORMANCE');
+              s += secTitle(110, 'MODE BREAKDOWN');
+              s += secTitle(232, 'DURATION & CYCLES TREND');
+              s += secTitle(364, 'SYSTEM HEALTH');
+
+              /* ROW 1: Header */
+              var copHeaderItems = [
+                {t:'hl', k:'COP', v:fmt1(copToday), c:TH.accent2},
+                {t:'sep'}
+              ];
+              if (copMin !== null) copHeaderItems.push({t:'kv', k:'Min', v:fmt1(copMin), c:TH.red});
+              if (copMax !== null) copHeaderItems.push({t:'kv', k:'Max', v:fmt1(copMax), c:TH.green});
+              if (copSamples !== null) copHeaderItems.push({t:'kv', k:t('r_samples'), v:String(copSamples), c:TH.sub});
+              if (curve) copHeaderItems.push({t:'kv', k:'48h', v:curve.length+'h', c:TH.sub});
+              var headerPop = popAttr({title: t('cop_today'), items: copHeaderItems});
+              s += '<g '+headerPop+' style="cursor:pointer;">';
+              s += T(P, 26, t('cop_today'), {s:9, w:900, f:TH.sub});
+              s += T(P, 60, fmt1(copToday), {s:32, w:900, f:TH.accent2, halo:1});
+              s += '<rect x="'+P+'" y="14" width="120" height="52" fill="transparent"/>';
+              s += '</g>';
+              if (copSamples !== null) {
+                s += T(P+72, 60, copSamples+'s', {s:8, w:800, f:TH.sub});
+              }
+
+              if (curve && curve.length >= 2) {
+                var spkX = P+108, spkY = 36, spkW = 100, spkH = 20;
+                var spkCops = curve.map(function(c){ return c.cop; });
+                var spkMin = Math.min.apply(null, spkCops);
+                var spkMax = Math.max.apply(null, spkCops);
+                var spkRng = Math.max(0.1, spkMax - spkMin);
+                var spkPath = '';
+                for (var spi=0; spi<curve.length; spi++){
+                  var spx = spkX + (spi/(curve.length-1))*spkW;
+                  var spy = spkY + spkH - ((curve[spi].cop - spkMin)/spkRng)*spkH;
+                  spkPath += (spi===0?'M':' L') + spx.toFixed(1) + ',' + spy.toFixed(1);
+                }
+                var curveItems = [
+                  {t:'hl', k:t('r_samples'), v:String(curve.length), c:TH.accent},
+                  {t:'sep'},
+                  {t:'kv', k:'Min', v:fmt1(spkMin), c:TH.red},
+                  {t:'kv', k:'Max', v:fmt1(spkMax), c:TH.green},
+                  {t:'kv', k:'Last', v:fmt1(curve[curve.length-1].cop), c:TH.accent2}
+                ];
+                var sparkPop = popAttr({title:'48h COP', items:curveItems});
+                s += '<g '+sparkPop+' style="cursor:pointer;">';
+                s += '<path d="'+spkPath+'" fill="none" stroke="'+TH.accent+'" stroke-width="1.6" stroke-linecap="round" opacity="0.85"/>';
+                var lastY = spkY + spkH - ((curve[curve.length-1].cop - spkMin)/spkRng)*spkH;
+                s += '<circle cx="'+(spkX+spkW).toFixed(1)+'" cy="'+lastY.toFixed(1)+'" r="2.5" fill="'+TH.accent+'" stroke="'+TH.bg+'" stroke-width="1.5"/>';
+                s += '<rect x="'+spkX+'" y="'+spkY+'" width="'+spkW+'" height="'+spkH+'" fill="transparent"/>';
+                s += '</g>';
+              }
+              
+              if (copMin !== null && copMax !== null && copMax > copMin) {
+                var bandX = P+108, bandY = 60, bandW = 100, bandH = 4;
+                var bandPos = bandX + ((copToday - copMin)/(copMax-copMin))*bandW;
+                s += '<rect x="'+bandX+'" y="'+bandY+'" width="'+bandW+'" height="'+bandH+'" rx="2" fill="'+TH.grid+'"/>';
+                s += '<circle cx="'+Math.max(bandX, Math.min(bandX+bandW, bandPos)).toFixed(1)+'" cy="'+(bandY+bandH/2)+'" r="3" fill="'+TH.accent+'" stroke="'+TH.bg+'" stroke-width="1.5"/>';
+              }
+
+              var dsX = W - P - 96;
+              var dsItems = [
+                {t:'hl', k:t('cop_vs_ds'), v:(dsApprox?'~':'')+pct(dsVal), c:(dsVal===null?TH.sub:(dsVal>=0?TH.green:TH.red))},
+                {t:'sep'},
+                {t:'kv', k:'Formula', v:'(Measured - Ref) / Ref', c:TH.sub},
+                {t:'kv', k:'Measured', v:fmt1(dsMeasured), c:TH.text},
+                {t:'kv', k:'Ref A7/W35', v:fmt1(dsRef), c:TH.sub},
+                {t:'kv', k:'Delta', v:(dsVal>=0?'+':'')+fmt1(dsMeasured-dsRef), c:TH.text}
+              ];
+              var dsPop = popAttr({title:t('cop_vs_ds'), items:dsItems});
+              s += '<g '+dsPop+' style="cursor:pointer;">';
+              s += '<rect x="'+dsX+'" y="14" width="96" height="50" rx="8" fill="'+(dsVal===null?'rgba(128,128,128,0.08)':(dsVal>=0?'rgba(46,125,50,0.10)':'rgba(198,40,40,0.10)'))+'"/>';
+              s += T(dsX+48, 27, t('cop_vs_ds'), {a:'middle', s:7.5, w:900, f:TH.sub});
+              s += T(dsX+48, 47, (dsApprox?'~':'')+pct(dsVal), {a:'middle', s:16, w:900, f:(dsVal===null?TH.sub:(dsVal>=0?TH.green:TH.red)), halo:1});
+              if (dsApprox && dsRef !== null) {
+                s += T(dsX+48, 59, 'ref '+fmt1(dsRef)+' (A7/W35)', {a:'middle', s:6, w:800, f:TH.sub});
+              } else if (dsVal !== null) {
+                s += T(dsX+48, 59, arrow(dsVal), {a:'middle', s:9, w:900, f:(dsVal>=0?TH.green:TH.red)});
+              }
+              s += '</g>';
+
+              /* ROW 2: Trend */
+              var tY = 72, tH = 80, tPadL = 28, tPadR = 8, tPadT = 4, tPadB = 14;
+              var tPlotW = W - tPadL - tPadR, tPlotH = tH - tPadT - tPadB;
+              var allVals = [modeData.heating.day, modeData.heating.week, modeData.heating.month,
+                             modeData.dhw.day, modeData.dhw.week, modeData.dhw.month,
+                             modeData.cooling.day, modeData.cooling.week, modeData.cooling.month].filter(hasN);
+              if (allVals.length > 0) {
+                var tMin = Math.max(0, Math.min.apply(null, allVals) - 0.3);
+                var tMax = Math.max.apply(null, allVals) + 0.3;
+                var tRng = Math.max(0.5, tMax - tMin);
+                var hX = [tPadL+40, tPadL+tPlotW/2, tPadL+tPlotW-30];
+                var hy = function(v){ return tY + tPadT + tPlotH - ((v-tMin)/tRng)*tPlotH; };
+                for (var gy=0; gy<=2; gy++) {
+                  var gv2 = tMin + (tRng*gy/2);
+                  var gyy2 = hy(gv2);
+                  s += '<line x1="'+tPadL+'" y1="'+gyy2+'" x2="'+(tPadL+tPlotW)+'" y2="'+gyy2+'" stroke="'+TH.grid+'" stroke-width="0.8"/>';
+                  s += T(tPadL-3, gyy2+3, gv2.toFixed(1), {a:'end', s:7, w:800, f:TH.sub});
+                }
+                ['heating','dhw','cooling'].forEach(function(mk){
+                  var md = modeData[mk];
+                  var vals = [md.day, md.week, md.month];
+                  var valid = [];
+                  for (var pi2=0; pi2<3; pi2++) if (hasN(vals[pi2])) valid.push(pi2);
+                  if (valid.length === 0) return;
+                  if (valid.length >= 2) {
+                    var mp = '';
+                    for (var pv=0; pv<valid.length; pv++){ var idx=valid[pv]; mp += (pv===0?'M':' L')+hX[idx].toFixed(1)+','+hy(vals[idx]).toFixed(1); }
+                    s += '<path d="'+mp+'" fill="none" stroke="'+MODE_COL[mk]+'" stroke-width="2" stroke-linecap="round" opacity="0.9"/>';
+                  }
+                  for (var pv2=0; pv2<3; pv2++) {
+                    if (!hasN(vals[pv2])) continue;
+                    var statsi = modeData[mk].stats;
+                    var dotItems = [
+                      {t:'hl', k:MODE_ICON[mk]+' '+mk, v:fmt1(vals[pv2]), c:MODE_COL[mk]},
+                      {t:'sep'},
+                      {t:'kv', k:['Day','Week','Month'][pv2], v:fmt1(vals[pv2]), c:MODE_COL[mk]}
+                    ];
+                    if (statsi) {
+                      if (hasN(statsi.n_samples)) dotItems.push({t:'kv', k:t('r_samples'), v:String(statsi.n_samples), c:TH.sub});
+                      if (hasN(statsi.cop_min) && hasN(statsi.cop_max)) dotItems.push({t:'kv', k:'Range', v:fmt1(statsi.cop_min)+'–'+fmt1(statsi.cop_max), c:TH.text});
+                    }
+                    var dotPop = popAttr({title:MODE_ICON[mk]+' '+mk, items:dotItems});
+                    s += '<g '+dotPop+' style="cursor:pointer;">';
+                    s += '<circle cx="'+hX[pv2].toFixed(1)+'" cy="'+hy(vals[pv2]).toFixed(1)+'" r="8" fill="transparent"/>';
+                    s += '<circle cx="'+hX[pv2].toFixed(1)+'" cy="'+hy(vals[pv2]).toFixed(1)+'" r="3" fill="'+MODE_COL[mk]+'" stroke="'+TH.bg+'" stroke-width="1.5"/>';
+                    s += '</g>';
+                  }
+                });
+                s += T(hX[0], tY+tH-2, (LANG==='nl'?'dag':'day'), {a:'middle', s:7, w:800, f:TH.sub});
+                s += T(hX[1], tY+tH-2, (LANG==='nl'?'week':'week'), {a:'middle', s:7, w:800, f:TH.sub});
+                s += T(hX[2], tY+tH-2, (LANG==='nl'?'maand':'month'), {a:'middle', s:7, w:800, f:TH.sub});
+              } else {
+                s += T(W/2, tY+tH/2, t('no_cop_data'), {a:'middle', s:9, w:900, f:TH.sub});
+              }
+
+              /* ROW 3: Mode cards */
+              var mY = 122, cardH = 48;
+              ['heating','dhw','cooling'].forEach(function(mk, i){
+                var mc = modeData[mk];
+                var cx2 = P + (i%2) * (CW + P);
+                var cy2 = mY + Math.floor(i/2) * (cardH + 4);
+                var cardItems = [
+                  {t:'hl', k:MODE_ICON[mk]+' '+mk, v:fmt1(mc.day), c:MODE_COL[mk]},
+                  {t:'sep'},
+                  {t:'kv', k:'Day', v:fmt1(mc.day), c:MODE_COL[mk]},
+                  {t:'kv', k:'Week', v:fmt1(mc.week), c:MODE_COL[mk]},
+                  {t:'kv', k:'Month', v:fmt1(mc.month), c:MODE_COL[mk]}
+                ];
+                if (mc.stats) {
+                  cardItems.push({t:'sep'});
+                  if (hasN(mc.stats.n_samples)) cardItems.push({t:'kv', k:t('r_samples'), v:String(mc.stats.n_samples), c:TH.sub});
+                  if (hasN(mc.stats.cop_min) && hasN(mc.stats.cop_max)) cardItems.push({t:'kv', k:'Range', v:fmt1(mc.stats.cop_min)+'–'+fmt1(mc.stats.cop_max), c:TH.text});
+                  if (hasN(mc.stats.cop_p10) && hasN(mc.stats.cop_p90)) cardItems.push({t:'kv', k:'p10–p90', v:fmt1(mc.stats.cop_p10)+'–'+fmt1(mc.stats.cop_p90), c:TH.text});
+                }
+                var cardPop = popAttr({title:MODE_ICON[mk]+' '+mk.toUpperCase(), items:cardItems});
+                var dim = !hasN(mc.day);
+                s += '<g '+cardPop+' style="cursor:pointer;">';
+                s += '<rect x="'+cx2+'" y="'+cy2+'" width="'+CW+'" height="'+cardH+'" rx="8" fill="'+TH.bg2+'" stroke="'+TH.border+'" stroke-width="1" opacity="'+(dim?0.5:1)+'"/>';
+                s += '<text x="'+(cx2+6)+'" y="'+(cy2+14)+'" font-size="10">'+MODE_ICON[mk]+'</text>';
+                s += T(cx2+22, cy2+13, mk.toUpperCase().slice(0,4), {s:7, w:900, f:TH.sub});
+                if (hasN(mc.day) && hasN(mc.month) && mc.month !== 0) {
+                  var trdPct = ((mc.day - mc.month) / mc.month * 100);
+                  var trdCol = trdPct > 2 ? TH.green : trdPct < -2 ? TH.red : TH.sub;
+                  var trdIcon = trdPct > 2 ? '▲' : trdPct < -2 ? '▼' : '●';
+                  s += T(cx2+CW-6, cy2+13, trdIcon+' '+Math.abs(trdPct).toFixed(0)+'%', {a:'end', s:7, w:900, f:trdCol});
+                }
+                s += T(cx2+6, cy2+34, fmt1(mc.day), {s:16, w:900, f:(hasN(mc.day)?MODE_COL[mk]:TH.sub), halo:1});
+                if (hasN(mc.day) && hasN(mc.week) && hasN(mc.month)) {
+                  var msX = cx2 + CW*0.45, msY = cy2 + 20, msW = CW*0.5, msH = 16;
+                  var msVals = [mc.month, mc.week, mc.day];
+                  var msMin = Math.min.apply(null, msVals), msMax = Math.max.apply(null, msVals);
+                  var msRng = Math.max(0.05, msMax - msMin);
+                  var msPath = '';
+                  for (var mi2=0; mi2<3; mi2++) {
+                    var mx = msX + (mi2/2)*msW;
+                    var my = msY + msH - ((msVals[mi2]-msMin)/msRng)*msH;
+                    msPath += (mi2===0?'M':' L') + mx.toFixed(1) + ',' + my.toFixed(1);
+                  }
+                  s += '<path d="'+msPath+'" fill="none" stroke="'+MODE_COL[mk]+'" stroke-width="1.5" stroke-linecap="round" opacity="0.85"/>';
+                  for (var mi3=0; mi3<3; mi3++) {
+                    var mx3 = msX + (mi3/2)*msW;
+                    var my3 = msY + msH - ((msVals[mi3]-msMin)/msRng)*msH;
+                    s += '<circle cx="'+mx3.toFixed(1)+'" cy="'+my3.toFixed(1)+'" r="1.5" fill="'+MODE_COL[mk]+'"/>';
+                  }
+                }
+                s += '</g>';
+              });
+              var cxComb = P + (CW + P);
+              var cyComb = mY + cardH + 4;
+              var combItems = [
+                {t:'hl', k:'⚡ COMBINED', v:fmt1(copComb), c:TH.accent},
+                {t:'sep'},
+                {t:'kv', k:'heating', v:fmt1(modeData.heating.day), c:TH.red},
+                {t:'kv', k:'dhw', v:fmt1(modeData.dhw.day), c:TH.blue}
+              ];
+              var combPop = popAttr({title:'⚡ Combined COP', items:combItems});
+              s += '<g '+combPop+' style="cursor:pointer;">';
+              s += '<rect x="'+cxComb+'" y="'+cyComb+'" width="'+CW+'" height="'+cardH+'" rx="8" fill="'+TH.bg2+'" stroke="'+TH.border+'" stroke-width="1"/>';
+              s += '<text x="'+(cxComb+6)+'" y="'+(cyComb+14)+'" font-size="10">⚡</text>';
+              s += T(cxComb+22, cyComb+13, 'COMB', {s:7, w:900, f:TH.sub});
+              s += T(cxComb+6, cyComb+34, fmt1(copComb), {s:16, w:900, f:TH.accent, halo:1});
+              s += '</g>';
+
+              /* ROW 4: Combined Chart */
+              var cY = 244, cH = 120;
+              var cPadL = 22, cPadR = 22, cPadT = 12, cPadB = 14;
+              var cPlotW = W - cPadL - cPadR, cPlotH = cH - cPadT - cPadB;
+              var durVals = sub.map(function(d){ return d.dur_avg || 0; });
+              var cntVals = sub.map(function(d){ return d.cycles || 0; });
+              var durMaxActual = Math.max.apply(null, durVals.concat([targetDur*1.2, 60]));
+              var durYMax = Math.ceil(durMaxActual / 60) * 60;
+              var cntMaxActual = Math.max.apply(null, cntVals.concat([targetCycles*1.5, 4]));
+              var cntYMax = Math.ceil(cntMaxActual * 1.2);
+              var slotW = cPlotW / sub.length;
+              var barW = Math.max(2, Math.min(slotW*0.55, 12));
+              var durY = function(v){ return cY + cPadT + cPlotH - (v/durYMax)*cPlotH; };
+              var cntY = function(v){ return cY + cPadT + cPlotH - (v/cntYMax)*cPlotH; };
+              var slotCx = function(i){ return cPadL + (i+0.5)*slotW; };
+              
+              var gridParts = '';
+              for (var g=0; g<=2; g++){
+                var gyc = cY + cPadT + cPlotH - (g/2)*cPlotH;
+                var dval = Math.round((g/2)*durYMax);
+                var cval = Math.round((g/2)*cntYMax);
+                gridParts += '<line x1="'+cPadL+'" y1="'+gyc+'" x2="'+(cPadL+cPlotW)+'" y2="'+gyc+'" stroke="'+TH.grid+'" stroke-width="0.8"/>';
+                gridParts += T(cPadL-3, gyc+3, dval, {a:'end', s:6.5, w:800, f:TH.text});
+                gridParts += T(cPadL+cPlotW+3, gyc+3, cval, {s:6.5, w:800, f:TH.purple});
+              }
+              var tgtParts = '';
+              if (targetDur > 0 && targetDur <= durYMax) {
+                var tdY = durY(targetDur);
+                tgtParts += '<line x1="'+cPadL+'" y1="'+tdY+'" x2="'+(cPadL+cPlotW)+'" y2="'+tdY+'" stroke="'+TH.green+'" stroke-width="1" stroke-dasharray="3,2" opacity="0.5"/>';
+              }
+              if (targetCycles > 0 && targetCycles <= cntYMax) {
+                var tcY = cntY(targetCycles);
+                tgtParts += '<line x1="'+cPadL+'" y1="'+tcY+'" x2="'+(cPadL+cPlotW)+'" y2="'+tcY+'" stroke="'+TH.purple+'" stroke-width="1" stroke-dasharray="3,2" opacity="0.5"/>';
+              }
+              var barsParts = '', linePath = '', dotsParts = '';
+              var latestIdx = sub.length - 1;
+              for (var i2=0; i2<sub.length; i2++){
+                var d = sub[i2];
+                var bxc = slotCx(i2);
+                var bh = (durVals[i2] / durYMax) * cPlotH;
+                var by = cY + cPadT + cPlotH - bh;
+                var bcol = durCol(durVals[i2]);
+                var isToday2 = d.day === TODAY_ISO;
+                
+                var q = d.quality_avg;
+                var isGood = (hasN(q) && q >= 70) || (!hasN(q) && d.cycles <= targetCycles && durVals[i2] >= targetDur);
+                var isBad = (hasN(q) && q < 40) || (!hasN(q) && (d.cycles > targetCycles * 1.5 || durVals[i2] < 20));
+                var badge = isBad ? '⚠️' : (isGood ? '👑' : '');
+
+                var barItems = [
+                  {t:'hl', k:t('r_avgdur'), v:fmtMin(d.dur_avg), c:bcol},
+                  {t:'sep'},
+                  {t:'kv', k:t('r_cycles'), v:String(d.cycles), c:TH.purple},
+                  {t:'kv', k:t('r_totaldur'), v:fmtMin(d.dur_total_min), c:TH.text},
+                  {t:'kv', k:t('r_maxdur'), v:fmtMin(d.dur_max_min), c:TH.text},
+                  {t:'sep'},
+                  {t:'kv', k:t('r_quality'), v:(q===null?'—':vI(q)+'%'), c:qColor(q)},
+                  {t:'kv', k:t('r_buh'), v:String(d.buh||0), c:d.buh>0?TH.buh:TH.sub},
+                  {t:'kv', k:t('r_defrost'), v:String(d.defrost||0), c:d.defrost>0?TH.defrost:TH.sub}
+                ];
+                var barPop = popAttr({title:weekday(d.day)+' '+fmtDay(d.day), items:barItems, modes:buildModeChips(d)});
+                barsParts += '<g '+barPop+' style="cursor:pointer;">';
+                if (bh > 0.5) {
+                  barsParts += '<rect x="'+(bxc-barW/2).toFixed(1)+'" y="'+by.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+Math.max(1,bh).toFixed(1)+'" rx="2" fill="'+bcol+'" opacity="'+(isToday2?1:0.85)+'"/>';
+                  if (isToday2) {
+                    barsParts += '<rect x="'+(bxc-barW/2).toFixed(1)+'" y="'+by.toFixed(1)+'" width="'+barW.toFixed(1)+'" height="'+Math.max(1,bh).toFixed(1)+'" rx="2" fill="'+bcol+'"><animate attributeName="opacity" values="1;0.55;1" dur="2.5s" repeatCount="indefinite"/></rect>';
+                  }
+                }
+                if (badge) barsParts += '<text x="'+bxc.toFixed(1)+'" y="'+(by-6).toFixed(1)+'" text-anchor="middle" font-size="10" pointer-events="none">'+badge+'</text>';
+                barsParts += '<rect x="'+(bxc-slotW/2).toFixed(1)+'" y="'+(cY+cPadT)+'" width="'+slotW.toFixed(1)+'" height="'+cPlotH+'" fill="transparent" pointer-events="all"/>';
+                barsParts += '</g>';
+                var ly = cntY(cntVals[i2]);
+                linePath += (i2===0?'M':' L') + bxc.toFixed(1) + ',' + ly.toFixed(1);
+                dotsParts += '<circle cx="'+bxc.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="'+(isToday2?3.5:2.5)+'" fill="'+TH.purple+'" stroke="'+TH.bg+'" stroke-width="1.5"/>';
+                if (isToday2) {
+                  dotsParts += '<circle cx="'+bxc.toFixed(1)+'" cy="'+ly.toFixed(1)+'" r="3.5" fill="'+TH.purple+'"><animate attributeName="r" values="3.5;9;3.5" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.7;0;0.7" dur="2s" repeatCount="indefinite"/></circle>';
+                }
+              }
+              
+              s += T(cPadL, cY+cPadT-3, 'm', {s:6.5, w:900, f:TH.text});
+              s += T(cPadL+cPlotW, cY+cPadT-3, (LANG==='nl'?'cycli':'cycles'), {a:'end', s:6.5, w:900, f:TH.purple});
+              s += gridParts + tgtParts + barsParts;
+              if (sub.length >= 2) {
+                s += '<path d="'+linePath+'" fill="none" stroke="'+TH.purple+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>';
+              }
+              s += dotsParts;
+              s += '<line x1="'+cPadL+'" y1="'+(cY+cPadT+cPlotH)+'" x2="'+(cPadL+cPlotW)+'" y2="'+(cY+cPadT+cPlotH)+'" stroke="'+TH.text+'" stroke-width="0.6" opacity="0.4"/>';
+              
+              var labelStep = Math.max(1, Math.ceil(sub.length/7));
+              for (var i3=0; i3<sub.length; i3+=labelStep){
+                s += T(slotCx(i3).toFixed(1), cY+cPadT+cPlotH+10, weekday(sub[i3].day), {a:'middle', s:6.5, w:800, f:TH.sub});
+              }
+              
+              var legY = cY+cH-2;
+              s += '<rect x="'+cPadL+'" y="'+(legY-6)+'" width="8" height="6" rx="1" fill="'+TH.green+'"/>';
+              s += T(cPadL+11, legY-1, (LANG==='nl'?'duur':'duration'), {s:6.5, w:800, f:TH.sub});
+              s += '<circle cx="'+(cPadL+70)+'" cy="'+(legY-3)+'" r="2.5" fill="'+TH.purple+'"/>';
+              s += T(cPadL+76, legY-1, (LANG==='nl'?'cycli':'cycles'), {s:6.5, w:800, f:TH.sub});
+
+              /* ROW 5: Strip */
+              var sY = 376, stripH = 40;
+              var stripDefs = [
+                {lbl:t('spf_season'), val:spf, txt:(hasN(spf)?fmt1(spf):'—'), col:TH.purple,
+                  items:[{t:'hl', k:t('spf_season'), v:(hasN(spf)?fmt1(spf):'—'), c:TH.purple},{t:'sep'},{t:'kv',k:'Target',v:'≥3.5',c:TH.sub}]},
+                {lbl:t('week_trend'), val:degr, txt:(hasN(degr)?(degr>0?'+':'')+degr.toFixed(1).replace('.',',')+'%':'—'), col:(degr===null?TH.sub:(degr>=0?TH.green:TH.orange)),
+                  items:[{t:'hl', k:t('week_trend'), v:(hasN(degr)?(degr>0?'+':'')+degr.toFixed(1)+'%':'—'), c:(degr===null?TH.sub:(degr>=0?TH.green:TH.orange))},{t:'sep'},{t:'kv',k:'Threshold',v:'-8%',c:TH.sub},{t:'kv',k:'Critical',v:'-15%',c:TH.sub}]},
+                {lbl:t('buh_impact'), val:buhRt, txt:(hasN(buhRt)?fmtMin(buhRt/60):'—'), col:TH.buh,
+                  items:[{t:'hl', k:t('buh_impact'), v:(hasN(buhRt)?fmtMin(buhRt/60):'—'), c:TH.buh},{t:'sep'},{t:'kv',k:'Seconds',v:(hasN(buhRt)?String(Math.round(buhRt)):'—'),c:TH.text}]},
+                {lbl:t('defrost_n'), val:defrCnt, txt:(hasN(defrCnt)?Math.round(defrCnt)+'×':'—'), col:TH.defrost,
+                  items:[{t:'hl', k:t('defrost_n'), v:(hasN(defrCnt)?Math.round(defrCnt)+'×':'—'), c:TH.defrost},{t:'sep'},{t:'kv',k:'Last 7d',v:'—',c:TH.sub}]}
+              ];
+              var sw = (W - P*2 - 3*3) / 4;
+              for (var j=0; j<4; j++) {
+                var st = stripDefs[j];
+                var sx = P + j*(sw+3);
+                var stripPop = popAttr({title:st.lbl, items:st.items});
+                s += '<g '+stripPop+' style="cursor:pointer;">';
+                s += '<rect x="'+sx+'" y="'+sY+'" width="'+sw+'" height="'+stripH+'" rx="6" fill="'+TH.bg2+'" stroke="'+TH.border+'" stroke-width="0.6"/>';
+                s += T(sx+sw/2, sY+11, st.lbl, {a:'middle', s:6.5, w:900, f:TH.sub});
+                s += T(sx+sw/2, sY+28, st.txt, {a:'middle', s:12, w:900, f:st.col, halo:1});
+                s += '</g>';
+              }
+
+              /* ROW 6: Insight */
+              var insight = null;
+              if (hasN(modeData.heating.day) && dsRef !== null && modeData.heating.day < dsRef * 0.85) {
+                insight = {bad:true, text:(LANG==='nl'?'COP heating '+fmt1(modeData.heating.day)+' onder datasheet':'COP heating '+fmt1(modeData.heating.day)+' below datasheet'),
+                  items:[{t:'hl', k:'Heating COP', v:fmt1(modeData.heating.day), c:TH.red},{t:'kv',k:'Ref',v:fmt1(dsRef),c:TH.sub}]};
+              } else if (hasN(degr) && degr < -8) {
+                insight = {bad:true, text:(LANG==='nl'?'COP daalt '+degr.toFixed(1)+'% week':'COP dropping '+degr.toFixed(1)+'% week'),
+                  items:[{t:'hl', k:'Week trend', v:degr.toFixed(1)+'%', c:TH.red},{t:'kv',k:'Threshold',v:'-8%',c:TH.sub}]};
+              } else if (cntVals.some(function(v){ return v > targetCycles * 1.5; })) {
+                insight = {bad:true, text:(LANG==='nl'?'Te veel cycli (target '+targetCycles+')':'Too many cycles (target '+targetCycles+')'),
+                  items:[{t:'hl', k:'Peak cycles', v:String(Math.max.apply(null, cntVals)), c:TH.red},{t:'kv',k:'Target',v:String(targetCycles),c:TH.sub}]};
+              } else if (hasN(spf) && spf >= 3.5) {
+                insight = {bad:false, text:(LANG==='nl'?'SPF '+fmt1(spf)+' ruim boven doel':'SPF '+fmt1(spf)+' well above target'),
+                  items:[{t:'hl', k:'SPF', v:fmt1(spf), c:TH.green},{t:'kv',k:'Target',v:'≥3.5',c:TH.sub}]};
+              } else if (hasN(copToday) && dsRef !== null && copToday > dsRef) {
+                insight = {bad:false, text:(LANG==='nl'?'COP boven datasheet referentie':'COP above datasheet reference'),
+                  items:[{t:'hl', k:'COP', v:fmt1(copToday), c:TH.green},{t:'kv',k:'Ref',v:fmt1(dsRef),c:TH.sub}]};
+              } else {
+                insight = {bad:false, text:(LANG==='nl'?'Systeem presteert normaal':'System performing normally'),
+                  items:[{t:'hl', k:'COP', v:fmt1(copToday), c:TH.green}]};
+              }
+              var insPop = popAttr({title:(insight.bad?'⚠️ ':'✅ ')+insight.text, items:insight.items});
+              s += '<g '+insPop+' style="cursor:pointer;">';
+              s += '<rect x="'+P+'" y="426" width="'+(W-P*2)+'" height="20" rx="6" fill="'+(insight.bad?'rgba(198,40,40,0.10)':'rgba(46,125,50,0.10)')+'"/>';
+              s += T(P+8, 439, (insight.bad?'⚠️ ':'✅ ')+insight.text, {s:8, w:900, f:(insight.bad?TH.red:TH.green)});
+              s += '</g>';
+
+              return s;
+            };
+
+            /* BUILD WIN VIEW */
+            var buildWinView = function(winSize){
+              var sub = daysAll.slice(-winSize);
+              var wkey = 'w'+winSize;
+              var cls = String(winSize)===activeWin ? ' pa-view-active' : '';
+              if(sub.length === 0){
+                return '<div class="pa-view'+cls+'" data-win="'+winSize+'"><div class="pa-empty">⏳ '+(LANG==='nl'?'Geen data':'No data')+'</div></div>';
+              }
+              var wTotCycles = sub.reduce(function(a,d){ return a + d.cycles; }, 0);
+              var wAvgQ = (function(){ var q = sub.filter(function(d){ return d.quality_avg !== null; }); return q.length>0 ? q.reduce(function(a,d){ return a+d.quality_avg; },0)/q.length : null; })();
+              var wAvgDur = (function(){ var tot=0, cnt=0; sub.forEach(function(d){ tot += d.dur_total_min; cnt += d.cycles; }); return cnt>0 ? tot/cnt : 0; })();
+              var half = Math.floor(sub.length/2);
+              var _avgQ = function(arr){ var q = arr.filter(function(d){ return d.quality_avg !== null; }); return q.length>0 ? q.reduce(function(a,d){ return a+d.quality_avg; },0)/q.length : null; };
+              var qF = _avgQ(sub.slice(0, half)), qS = _avgQ(sub.slice(half));
+              var trendD = (qF !== null && qS !== null) ? (qS - qF) : null;
+              var windowSet = {}; sub.forEach(function(d){ windowSet[d.day] = true; });
+              var distCounts = [0,0,0,0];
+              rawDays.forEach(function(rd){
+                if(!rd.day || !windowSet[rd.day] || !rd.cycles || rd.cycles <= 0) return;
+                var avg = rdDurAvg(rd);
+                if(!isFinite(avg) || avg <= 0) return;
+                var idx = avg<20?0:avg<60?1:avg<180?2:3;
+                distCounts[idx] += rd.cycles;
+              });
+              var insightIcon='📊', insightText=(LANG==='nl'?'Onvoldoende data':'Insufficient data'), insightCol=TH.sub, insightBg='rgba(128,128,128,0.08)';
+              if(distCounts[0] >= 3 && distCounts[0] >= distCounts[2]){
+                insightIcon='🚨'; insightText=distCounts[0]+(LANG==='nl'?' cycli in PENDEL zone':' cycles in PENDULUM zone');
+                insightCol=TH.red; insightBg='rgba(198,40,40,0.10)';
+              } else if(distCounts[2] >= 3 && distCounts[0] <= 1){
+                insightIcon='✅'; insightText=distCounts[2]+(LANG==='nl'?' cycli in IDEAAL zone':' cycles in IDEAL zone');
+                insightCol=TH.green; insightBg='rgba(46,125,50,0.10)';
+              } else if(wAvgQ !== null && wAvgQ >= 70){
+                insightIcon='⭐'; insightText=(LANG==='nl'?'Gemiddelde kwaliteit ':'Average quality ')+vI(wAvgQ)+'%';
+                insightCol=TH.green; insightBg='rgba(46,125,50,0.08)';
+              } else if(wAvgQ !== null && wAvgQ < 40){
+                insightIcon='⚠️'; insightText=(LANG==='nl'?'Gemiddelde kwaliteit laag (':'Average quality low (')+vI(wAvgQ)+'%)';
+                insightCol=TH.red; insightBg='rgba(198,40,40,0.08)';
+              } else if(trendD !== null && trendD > 5){
+                insightIcon='📈'; insightText=(LANG==='nl'?'Kwaliteit stijgt (+':'Quality rising (+')+vI(trendD)+'%)';
+                insightCol=TH.green; insightBg='rgba(46,125,50,0.08)';
+              } else if(trendD !== null && trendD < -5){
+                insightIcon='📉'; insightText=(LANG==='nl'?'Kwaliteit daalt (':'Quality dropping (')+vI(trendD)+'%)';
+                insightCol=TH.orange; insightBg='rgba(230,81,0,0.08)';
+              } else if(wTotCycles > 0){
+                insightIcon='🎯'; insightText=wTotCycles+(LANG==='nl'?' cycli over ':' cycles over ')+sub.length+'d · Ø '+fmtMin(wAvgDur);
+                insightCol=TH.text; insightBg='rgba(21,101,192,0.08)';
+              }
+              var copHdrVal = getState(resolveEntity('cop_today'));
+              var hd = function(tab, title, right){ return '<div class="pa-hdr" data-tab-hdr="'+tab+'"><span>'+title+'</span><span class="pa-hdr-right">'+right+' · '+sub.length+'d</span></div>'; };
+              var hdrs = hd('dist', t('hdr_dist'), wTotCycles+'× · Ø '+fmtMin(wAvgDur))
+                       + hd('scatter', t('hdr_scatter'), t('cnt_perday'))
+                       + hd('cop', t('hdr_cop'), 'COP '+fmt1(copHdrVal));
+              return '<div class="pa-view'+cls+'" data-win="'+winSize+'">'
+                + hdrs
+                + '<div class="pa-insight" style="background:'+insightBg+';border-left-color:'+insightCol+';">'
+                + '<span class="pa-insight-icon">'+insightIcon+'</span>'
+                + '<span class="pa-insight-text" style="color:'+insightCol+';">'+insightText+'</span>'
+                + '</div>'
+                + '<svg class="pa-svg pa-svg-dist" viewBox="0 0 460 260" preserveAspectRatio="xMidYMid meet">'+buildDistContent(sub, wkey)+'</svg>'
+                + '<svg class="pa-svg pa-svg-scatter" viewBox="0 0 460 350" preserveAspectRatio="xMidYMid meet">'+buildScatterContent(sub, wkey)+'</svg>'
+                + '<svg class="pa-svg pa-svg-cop" viewBox="0 0 460 460" preserveAspectRatio="xMidYMid meet">'+buildCopContent(sub, wkey)+'</svg>'
+                + '</div>';
+            };
+
+            var chip = function(color, bg, label){
+              return '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:9px;background:'+bg+';border:1px solid '+color+'55;font-size:0.68em;font-weight:900;color:'+color+';white-space:nowrap;line-height:1.2;"><span style="width:6px;height:6px;border-radius:50%;background:'+color+';flex-shrink:0;"></span>'+label+'</span>';
+            };
+            var legendDist = '<div class="pa-legend" data-tab-leg="dist">'
+              + chip(TH.red, DARK?'rgba(239,83,80,0.10)':'#FFEBEE', (LANG==='nl'?'PENDEL <20m':'PENDULUM <20m'))
+              + chip(TH.orange, DARK?'rgba(255,167,38,0.10)':'#FFF3E0', 'SHORT 20-60m')
+              + chip(TH.green, DARK?'rgba(102,187,106,0.10)':'#E8F5E9', 'GOOD 60-180m')
+              + chip(TH.blue, DARK?'rgba(66,165,245,0.10)':'#E3F2FD', 'LONG >180m')
+              + '</div>';
+            var legendScatter = '<div class="pa-legend" data-tab-leg="scatter">'
+              + chip(TH.red, DARK?'rgba(239,83,80,0.10)':'#FFEBEE', '🚨 pendel')
+              + chip(TH.orange, DARK?'rgba(255,167,38,0.10)':'#FFF3E0', '⚠️ mixed')
+              + chip(TH.green, DARK?'rgba(102,187,106,0.10)':'#E8F5E9', '✅ ideaal')
+              + '</div>';
+            var tabDefs = [{id:'dist', label:t('tab_dist')}, {id:'scatter', label:t('tab_scatter')}, {id:'cop', label:t('tab_cop')}];
+            var tabBar = '<div class="pa-tabbar">';
+            for(var ti=0; ti<tabDefs.length; ti++){
+              var td = tabDefs[ti];
+              var act = (td.id === activeTab) ? ' pa-tab-active' : '';
+              tabBar += '<div class="pa-tab'+act+'" data-pa-action="tab" data-pa-arg="'+td.id+'">'+td.label+'</div>';
+            }
+            tabBar += '</div>';
+            var winGroup = '<div class="pa-win-group">';
+            [7,15,30].forEach(function(w){
+              var act = (String(w) === activeWin) ? ' pa-active' : '';
+              winGroup += '<div class="pa-win-btn'+act+'" data-pa-action="win" data-pa-arg="'+w+'">'+w+'d</div>';
+            });
+            winGroup += '</div>';
+            var actions = '<div class="pa-actions">' + winGroup + '</div>';
+            var notes = '<div class="pa-notes">'
+              + '<div class="pa-note" data-tab-note="dist">'+t('note_dist')+'</div>'
+              + '<div class="pa-note" data-tab-note="scatter">'+t('note_scatter')+'</div>'
+              + '<div class="pa-note" data-tab-note="cop">'+t('note_cop')+'</div>'
+              + '</div>';
+            var css = '<style>'
+              + '.pa-chart{position:relative;touch-action:manipulation;font-family:ui-monospace,monospace;animation:pa-fade .4s ease-out;}'
+              + '@keyframes pa-fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}'
+              + '@keyframes pa-popInAbove{from{opacity:0;transform:translateY(-100%) scale(.94)}to{opacity:1;transform:translateY(-100%) scale(1)}}'
+              + '@keyframes pa-popInBelow{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}'
+              + '@keyframes pa-popOut{from{opacity:1}to{opacity:0}}'
+              + '@keyframes pa-popBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}'
+              + '.pa-tabbar{display:flex;gap:5px;padding:6px 8px 4px 8px;}'
+              + '.pa-tab{flex:1 1 0;min-width:0;padding:11px 6px;border-radius:11px;border:2.5px solid '+TH.accent+';background:'+TH.bg+';color:'+TH.accent+';font-family:inherit;font-size:0.68em;font-weight:900;text-transform:uppercase;letter-spacing:0.4px;cursor:pointer;transition:all .18s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;min-height:40px;display:flex;align-items:center;justify-content:center;}'
+              + '.pa-tab:active{transform:scale(.96);}'
+              + '.pa-tab.pa-tab-active{background:'+TH.accent+';color:#fff;box-shadow:0 3px 12px rgba(25,118,210,.45);}'
+              + '.pa-actions{display:flex;gap:6px;justify-content:flex-start;align-items:center;padding:2px 8px 4px 8px;}'
+              + '.pa-win-group{display:flex;gap:3px;background:'+(DARK?'rgba(100,181,246,0.12)':'rgba(25,118,210,0.08)')+';border-radius:11px;padding:3px;}'
+              + '.pa-win-btn{padding:8px 12px;border-radius:8px;background:transparent;color:'+TH.accent+';font-family:inherit;font-size:0.72em;font-weight:900;cursor:pointer;transition:all .18s;user-select:none;letter-spacing:0.3px;min-width:44px;text-align:center;}'
+              + '.pa-win-btn:active{transform:scale(.94);}'
+              + '.pa-win-btn.pa-active{background:'+TH.accent+';color:#fff;box-shadow:0 2px 8px rgba(25,118,210,.35);}'
+              + '.pa-hdr{display:none;padding:4px 12px 6px 12px;font-family:ui-monospace,monospace;font-size:0.72em;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;color:'+TH.text+';justify-content:space-between;align-items:center;gap:6px;}'
+              + '.pa-hdr .pa-hdr-right{color:'+TH.accent+';}'
+              + '.pa-legend{display:none;flex-wrap:wrap;gap:4px;align-items:center;padding:8px 12px 4px 12px;}'
+              + '.pa-chart[data-tab="dist"] .pa-hdr[data-tab-hdr="dist"]{display:flex;}'
+              + '.pa-chart[data-tab="scatter"] .pa-hdr[data-tab-hdr="scatter"]{display:flex;}'
+              + '.pa-chart[data-tab="cop"] .pa-hdr[data-tab-hdr="cop"]{display:flex;}'
+              + '.pa-chart[data-tab="dist"] .pa-legend[data-tab-leg="dist"]{display:flex;}'
+              + '.pa-chart[data-tab="scatter"] .pa-legend[data-tab-leg="scatter"]{display:flex;}'
+              + '.pa-view{display:none;}'
+              + '.pa-chart[data-win="7"] .pa-view[data-win="7"]{display:block;}'
+              + '.pa-chart[data-win="15"] .pa-view[data-win="15"]{display:block;}'
+              + '.pa-chart[data-win="30"] .pa-view[data-win="30"]{display:block;}'
+              + '.pa-svg{display:none;width:100%;height:auto;}'
+              + '.pa-chart[data-tab="dist"] .pa-svg-dist{display:block;}'
+              + '.pa-chart[data-tab="scatter"] .pa-svg-scatter{display:block;}'
+              + '.pa-chart[data-tab="cop"] .pa-svg-cop{display:block;}'
+              + '.pa-insight{background:'+TH.bg2+';border-left:4px solid '+TH.accent+';border-radius:8px;padding:8px 12px;margin:4px 10px 8px 10px;display:flex;align-items:center;gap:10px;box-sizing:border-box;}'
+              + '.pa-insight-icon{font-size:1.3em;line-height:1;flex-shrink:0;}'
+              + '.pa-insight-text{font-family:ui-monospace,monospace;font-size:0.72em;font-weight:900;line-height:1.35;}'
+              + '.pa-empty{padding:32px;text-align:center;color:'+TH.sub+';font-weight:900;font-size:0.85em;}'
+              + '.pa-notes{display:block;padding:4px 12px 10px 12px;width:100%;box-sizing:border-box;}'
+              + '.pa-note{display:none;font-size:0.65em;line-height:1.45;font-weight:700;color:'+TH.sub+';background:'+(DARK?'rgba(100,181,246,0.06)':'rgba(25,118,210,0.04)')+';border-radius:8px;padding:7px 10px;font-family:ui-monospace,monospace;white-space:normal;word-break:break-word;}'
+              + '.pa-chart[data-tab="dist"] .pa-note[data-tab-note="dist"]{display:block;}'
+              + '.pa-chart[data-tab="scatter"] .pa-note[data-tab-note="scatter"]{display:block;}'
+              + '.pa-chart[data-tab="cop"] .pa-note[data-tab-note="cop"]{display:block;}'
+              + '.pa-hit{cursor:pointer;}'
+              + '.pa-hit:hover{filter:brightness(1.08);}'
+              + '.pa-popup-host{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:visible;z-index:200;}'
+              + '.pa-popup{position:absolute;width:250px;max-width:92%;background:'+TH.bg+';border:2.5px solid '+TH.accent+';border-radius:12px;padding:0;box-shadow:0 14px 34px '+(DARK?'rgba(0,0,0,0.55)':'rgba(25,118,210,0.35)')+',0 2px 6px rgba(0,0,0,0.12);pointer-events:auto;z-index:201;overflow:hidden;cursor:pointer;}'
+              + '.pa-popup.popup-above{animation:pa-popInAbove .18s ease-out forwards;transform:translateY(-100%);}'
+              + '.pa-popup.popup-below{animation:pa-popInBelow .18s ease-out forwards;}'
+              + '.pa-popup.pa-popup-out{animation:pa-popOut .22s ease-in forwards;}'
+              + '.pa-popup-hd{background:linear-gradient(135deg,'+TH.accent+','+TH.accent2+');color:white;padding:8px 12px;font-weight:900;font-size:0.82em;letter-spacing:0.4px;display:flex;justify-content:space-between;align-items:center;gap:6px;}'
+              + '.pa-popup-ttl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}'
+              + '.pa-popup-x{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.25);display:inline-flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}'
+              + '.pa-popup-hl{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:0.82em;font-weight:900;background:'+(DARK?'rgba(100,181,246,0.10)':'rgba(25,118,210,0.06)')+';}'
+              + '.pa-popup-hl-k{color:'+TH.sub+';}'
+              + '.pa-popup-hl-v{font-family:ui-monospace,monospace;font-size:1.35em;font-weight:900;line-height:1;}'
+              + '.pa-popup-row{display:flex;justify-content:space-between;align-items:center;padding:4px 12px;font-size:0.74em;font-weight:800;}'
+              + '.pa-popup-row+.pa-popup-row{border-top:1px dashed '+(DARK?'rgba(255,255,255,0.10)':'rgba(25,118,210,0.08)')+';}'
+              + '.pa-popup-sep{height:2px;background:'+(DARK?'rgba(255,255,255,0.14)':'rgba(25,118,210,0.14)')+';margin:2px 0;}'
+              + '.pa-popup-k{color:'+TH.sub+';}'
+              + '.pa-popup-v{font-family:ui-monospace,monospace;font-weight:900;font-size:1.05em;}'
+              + '.pa-popup-modes{display:flex;flex-wrap:wrap;gap:4px;padding:6px 12px;background:'+(DARK?'rgba(100,181,246,0.06)':'rgba(25,118,210,0.03)')+';}'
+              + '.pa-popup-mode{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:6px;background:'+(DARK?'rgba(100,181,246,0.12)':'rgba(25,118,210,0.08)')+';color:'+TH.text+';font-size:0.72em;font-weight:800;}'
+              + '.pa-popup-mode-ic{font-size:1.05em;}'
+              + '.pa-popup-mode-c{font-weight:900;}'
+              + '.pa-popup-mode-d{color:'+TH.sub+';}'
+              + '.pa-popup-mode-q{font-weight:900;}'
+              + '.pa-popup-bar{height:3px;background:'+TH.accent+';width:100%;transform-origin:left center;animation:pa-popBar 5s linear forwards;}'
+              + '</style>';
+
+            var r = '<div class="pa-chart" data-tab="'+activeTab+'" data-win="'+activeWin+'" style="width:100%;box-sizing:border-box;position:relative;">';
+            r += css;
+            r += tabBar;
+            r += actions;
+            r += buildWinView(7);
+            r += buildWinView(15);
+            r += buildWinView(30);
+            r += '<div class="pa-legends">' + legendDist + legendScatter + '</div>';
+            r += notes;
+            r += '<div class="pa-popup-host"></div>';
+            r += '<div style="height:4px;"></div>';
+            r += '</div>';
+            return r;
+          } catch(e) {
+            return '<div style="padding:16px;color:#C62828;font-family:monospace;font-weight:800;font-size:0.75em;">⚠️ Pattern error: ' + (e && e.message ? e.message : e) + '</div>';
+          }
+        ]]]
