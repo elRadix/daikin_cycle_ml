@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.22.0] - 2026-11-09
+
+### Added
+- Support for **EPRA14DAW17** (Daikin Altherma 3 H HT Hydrosplit) with R32, 5.9 kW heating capacity, and 70°C max LWT (#301). *(Special thanks to @nickveenhof for their first external contribution!)*
+- Safe `_BASE` model profile for the new HT model to prevent inheriting legacy R410A cycle behavior.
+- Regression tests for EPRA14DAW17 datasheet integrity and model resolution.
+
 ## [Unreleased]
 
 _Nothing yet._
