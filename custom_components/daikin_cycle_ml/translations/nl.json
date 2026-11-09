@@ -902,8 +902,8 @@
       "description": "De historische Daikin Cycle ML-database is aangemaakt vóór v1.10.0 en bevat data van meerdere config entries. Deze is toegewezen aan {assigned_title} (oudste entry). Oud bestand bewaard op: {legacy_path}. Aantal entries: {n_entries}. Is de toewijzing onjuist, gebruik dan de service daikin_cycle_ml.assign_legacy_db. Om te archiveren (opnieuw beginnen), gebruik daikin_cycle_ml.archive_legacy_db. Voor CSV-export gebruik daikin_cycle_ml.export_legacy_db."
     },
     "espaltherma_v2_missing_attrs": {
-      "title": "ESPAltherma v2 sensors missing",
-      "description": "{count} required sensor(s) are not published by ESPAltherma v2: {labels}. Enable them in the ESPAltherma v2 web UI (Settings → Definitions), then restart ESPAltherma."
+      "title": "ESPAltherma v2-sensoren ontbreken",
+      "description": "{count} vereiste sensor(en) worden niet gepubliceerd door ESPAltherma v2: {labels}. Schakel ze in via de ESPAltherma v2 web-UI (Instellingen → Definities) en herstart ESPAltherma."
     }
   },
   "services": {
@@ -912,8 +912,8 @@
       "description": "Reset dagelijkse tellers (alles of een subset).",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "counters": {
           "name": "Tellers",
@@ -926,8 +926,8 @@
       "description": "Exporteer gecachte cycli als JSON of CSV.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "days": {
           "name": "Dagen",
@@ -944,8 +944,8 @@
       "description": "Voeg een gebruikerslabel toe aan een opgeslagen cyclus (ML-training).",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "cycle_id": {
           "name": "Cyclus ID",
@@ -962,8 +962,8 @@
       "description": "Herbereken de ML-baseline (uitgesteld naar Batch 7).",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "days": {
           "name": "Dagen",
@@ -976,8 +976,8 @@
       "description": "Aggregeer en ruim oude cycli/alerts op, optioneel VACUUM.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "cycle_retention_days": {
           "name": "Cyclus-retentie (dagen)",
@@ -998,8 +998,8 @@
       "description": "Exporteer geaggregeerde COP-per-uur rijen als JSON of CSV.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "days": {
           "name": "Dagen",
@@ -1020,7 +1020,7 @@
       "description": "Stuur een testbericht via het geconfigureerde notify-target.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
+          "name": "Configuratie-item",
           "description": "Config entry ID. Weglaten als slechts 1 Daikin-entry geladen is."
         },
         "message": {
@@ -1046,8 +1046,8 @@
       "description": "Importeer of overschrijf door gebruiker aangeleverde Daikin datasheet-specs.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "payload": {
           "name": "Payload",
@@ -1064,8 +1064,8 @@
       "description": "Verwijder een door gebruiker aangeleverde datasheet-override voor een specifiek model.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "model_key": {
           "name": "Model-key",
@@ -1078,8 +1078,8 @@
       "description": "Start een k-means hertraining op de laatste N dagen cycli en meld het resultaat.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "days": {
           "name": "Dagen",
@@ -1140,9 +1140,9 @@
     },
     "source_type": {
       "options": {
-        "monolithic": "Monolithic entity (ESPAltherma v1, sensor.althermasensors)",
-        "individual": "Individual entities (ESPAltherma v2 beta, sensor.espaltherma_*)",
-        "auto": "Auto-detect (recommended for new installs)"
+        "monolithic": "Monolithische entiteit (ESPAltherma v1, sensor.althermasensors)",
+        "individual": "Individuele entiteiten (ESPAltherma v2 bèta, sensor.espaltherma_*)",
+        "auto": "Automatisch detecteren (aanbevolen voor nieuwe installaties)"
       }
     }
   }
