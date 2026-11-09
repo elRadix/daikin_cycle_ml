@@ -2,14 +2,14 @@
 
 ## [Unreleased]
 
-### Documentation
-- Clarify that `duration_min` and `duration_max` in `DATABASE.md` are stored in **seconds**.
-
 ### Added
 - HT attribute aliases for `[Hydrobox]` LWT, R4T, and compressor frequency signals (#189).
 
+### Changed
+- Clarify that `duration_min` and `duration_max` in `DATABASE.md` are stored in **seconds** (#235).
+
 ### Fixed
-- Prevent `setpoint_oscillating` alert from firing when the compressor is in `idle` state.
+- Prevent `setpoint_oscillating` alert from firing when the compressor is in `idle` state (#299).
   Weather-dependent curve adjustments (0.5 °C steps) are no longer counted as oscillation when there is no heating demand.
 - Clear setpoint history upon entering `idle` state to prevent stale data from leaking into the next heating cycle.
 
@@ -19,10 +19,6 @@
 - Support for **EPRA14DAW17** (Daikin Altherma 3 H HT Hydrosplit) with R32, 5.9 kW heating capacity, and 70°C max LWT (#301). *(Special thanks to @nickveenhof for their first external contribution!)*
 - Safe `_BASE` model profile for the new HT model to prevent inheriting legacy R410A cycle behavior.
 - Regression tests for EPRA14DAW17 datasheet integrity and model resolution.
-
-## [Unreleased]
-
-_Nothing yet._
 
 ## [1.21.0] - 2026-11-08
 
