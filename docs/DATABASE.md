@@ -315,8 +315,8 @@ CREATE TABLE daily_summary (
     mode             TEXT,
     cycles           INTEGER DEFAULT 0,
     total_duration_s INTEGER DEFAULT 0,
-    duration_min     INTEGER,
-    duration_max     INTEGER,
+    duration_min     INTEGER, -- seconds
+    duration_max     INTEGER, -- seconds
     quality_sum      INTEGER DEFAULT 0,
     dt_max_sum       REAL DEFAULT 0,
     rps_sum          REAL DEFAULT 0,
@@ -333,7 +333,7 @@ CREATE TABLE daily_summary (
 | `mode` | `heating` / `cooling` / `dhw` / `unknown` |
 | `cycles` | Cycle count for that day+mode |
 | `total_duration_s` | Total compressor runtime |
-| `duration_min` / `duration_max` | Shortest / longest cycle |
+| `duration_min` / `duration_max` | Shortest / longest cycle (seconds) |
 | `quality_sum` | Sum of quality scores (average = quality_sum / cycles) |
 | `dt_max_sum` | Sum of dT_max (average = dt_max_sum / cycles) |
 | `rps_sum` | Sum of rps_avg |
@@ -1035,7 +1035,7 @@ CREATE TABLE cop_hourly (
 CREATE TABLE daily_summary (
     day TEXT NOT NULL, mode TEXT NOT NULL,
     cycles INTEGER DEFAULT 0, total_duration_s INTEGER DEFAULT 0,
-    duration_min INTEGER, duration_max INTEGER,
+    duration_min INTEGER, duration_max INTEGER, -- seconds
     quality_sum INTEGER DEFAULT 0, dt_max_sum REAL DEFAULT 0, rps_sum REAL DEFAULT 0,
     buh_count INTEGER DEFAULT 0, defrost_count INTEGER DEFAULT 0,
     updated_ts REAL NOT NULL,
