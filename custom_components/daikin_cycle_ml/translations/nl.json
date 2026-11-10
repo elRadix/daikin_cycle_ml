@@ -5,7 +5,7 @@
         "title": "Aangepaste attribuutkoppeling",
         "description": "Optionele JSON-koppeling van standaardsleutels naar jouw attribuutnamen. Geef een JSON-object op; zie de README voor een voorbeeld. Laat leeg om de defaults te gebruiken.",
         "data": {
-          "custom_attribute_map": "Custom attribute map (JSON)"
+          "custom_attribute_map": "Aangepaste attribuutkoppeling (JSON)"
         },
         "data_description": {
           "custom_attribute_map": "JSON-object dat standaardsleutels aan attribuutnamen koppelt. Zie de documentatie voor het exacte formaat."
@@ -27,71 +27,71 @@
       },
       "cycle": {
         "title": "Cyclusdetectie",
-        "description": "Thresholds that decide when the compressor counts as ON.\n\n- **Compressor RPS threshold** (default 3): ON when RPS ≥ this. Increase to ignore brief spikes.\n- **Power sensor** (optional): used as fallback when RPS is unavailable.\n- **Fallback power threshold** (default 200 W): lower = more sensitive.",
+        "description": "Drempels die bepalen wanneer de compressor als AAN telt.\n\n- **Compressor RPS-drempel** (standaard 3): AAN wanneer RPS ≥ deze waarde. Verhoog om korte pieken te negeren.\n- **Vermogenssensor** (optioneel): gebruikt als fallback wanneer RPS niet beschikbaar is.\n- **Fallback-vermogensdrempel** (standaard 200 W): lager = gevoeliger.",
         "data": {
-          "compressor_rps_threshold": "Compressor RPS threshold",
-          "power_sensor_entity": "Power sensor (optional fallback)",
-          "fallback_power_threshold_w": "Fallback power threshold",
+          "compressor_rps_threshold": "Compressor RPS-drempel",
+          "power_sensor_entity": "Vermogenssensor (optionele fallback)",
+          "fallback_power_threshold_w": "Fallback-vermogensdrempel",
           "indoor_temp_sensor": "Binnentemperatuur-sensor"
         },
         "data_description": {
-          "compressor_rps_threshold": "Compressor ON when RPS >= this value. Default 3. Increase to ignore brief spikes.",
-          "power_sensor_entity": "Optional. Used as fallback when RPS is unavailable or zero. Leave empty to disable.",
-          "fallback_power_threshold_w": "Power threshold (W) for the fallback sensor. Default 200. Lower = more sensitive.",
+          "compressor_rps_threshold": "Compressor AAN wanneer RPS ≥ deze waarde. Standaard 3. Verhoog om korte pieken te negeren.",
+          "power_sensor_entity": "Optioneel. Wordt gebruikt als fallback wanneer RPS niet beschikbaar of nul is. Laat leeg om uit te schakelen.",
+          "fallback_power_threshold_w": "Vermogensdrempel (W) voor de fallbacksensor. Standaard 200. Lager = gevoeliger.",
           "indoor_temp_sensor": "Optionele sensor voor binnentemperatuur (gebruikt voor ML-feature indoor_temp_avg)."
         }
       },
       "pendulum": {
         "title": "Pendel-drempels",
         "data": {
-          "short_run_threshold_min": "Short run threshold",
-          "short_off_threshold_min": "Short off threshold",
-          "pendulum_cycles_per_day": "Pendulum cycles per day",
-          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour"
+          "short_run_threshold_min": "Korte-rundrempel",
+          "short_off_threshold_min": "Korte-uit-tijddrempel",
+          "pendulum_cycles_per_day": "Pendelcycli per dag",
+          "dhw_pendulum_cycles_per_hour": "DHW-cycli per uur"
         },
-        "description": "Values below mark a cycle as 'short' (pendelen). Lower = stricter, more alerts.\n\n- **Short run** (default 20 min): cycles shorter than this are flagged.\n- **Short off** (default 5 min): off-times shorter than this are flagged.\n- **Pendulum cycles/day** (default 35-40): daily count that triggers an alert.\n- **DHW cycles/hour** (default 3): DHW-specific pendulum trigger.",
+        "description": "Waarden hieronder markeren een cyclus als 'kort' (pendelen). Lager = strenger, meer waarschuwingen.\n\n- **Korte run** (standaard 20 min): cycli korter dan deze waarde worden gemarkeerd.\n- **Korte uit-tijd** (standaard 5 min): uit-tijden korter dan deze waarde worden gemarkeerd.\n- **Pendelcycli/dag** (standaard 35-40): dagelijks aantal dat een waarschuwing activeert.\n- **DHW-cycli/uur** (standaard 3): DHW-specifieke pendeltrigger.",
         "data_description": {
-          "short_run_threshold_min": "Cycles shorter than this are 'short runs'. Default 20 min. Lower = stricter.",
-          "short_off_threshold_min": "Off-times shorter than this are 'short offs'. Default 5 min. Lower = stricter.",
-          "pendulum_cycles_per_day": "Daily cycle count that triggers a pendulum alert. Default 35-40. Lower = more alerts.",
-          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour that trigger a DHW pendulum alert. Default 3."
+          "short_run_threshold_min": "Cycli korter dan deze waarde zijn 'korte runs'. Standaard 20 min. Lager = strenger.",
+          "short_off_threshold_min": "Uit-tijden korter dan deze waarde zijn 'korte uit-tijden'. Standaard 5 min. Lager = strenger.",
+          "pendulum_cycles_per_day": "Dagelijks aantal cycli dat een pendelwaarschuwing activeert. Standaard 35-40. Lager = meer waarschuwingen.",
+          "dhw_pendulum_cycles_per_hour": "DHW-cycli per uur die een DHW-pendelwaarschuwing activeren. Standaard 3."
         }
       },
       "quality": {
         "title": "Kwaliteitsdrempels",
         "data": {
-          "good_run_threshold_min": "Good run threshold",
-          "good_dt_threshold_k": "Good dT threshold",
-          "good_off_threshold_min": "Good off threshold",
-          "target_cycles_per_day": "Target cycles per day"
+          "good_run_threshold_min": "Goede rundrempel",
+          "good_dt_threshold_k": "Goede dT-drempel",
+          "good_off_threshold_min": "Goede uit-tijddrempel",
+          "target_cycles_per_day": "Doelcycli per dag"
         },
-        "description": "Thresholds used to score a cycle 0-100. Meeting a threshold avoids a penalty.\n\n- **Good run** (default 45 min): runtime ≥ this scores full marks. Below: −30 points.\n- **Good dT** (default 5.0 K): minimum dT for full marks. Below: −20 points.\n- **Good off** (default 20 min): minimum off-time for full marks. Below: −20 points.\n- **Target cycles/day** (default 8): efficiency target, used in ratio-based advice.",
+        "description": "Drempels om een cyclus te scoren op 0-100. Het halen van een drempel voorkomt een strafpunt.\n\n- **Goede run** (standaard 45 min): looptijd ≥ deze waarde scoort volle punten. Lager: -30 punten.\n- **Goede dT** (standaard 5,0 K): minimale dT voor volle punten. Lager: -20 punten.\n- **Goede uit-tijd** (standaard 20 min): minimale uit-tijd voor volle punten. Lager: -20 punten.\n- **Doelcycli/dag** (standaard 8): efficiëntiedoel, gebruikt in ratio-gebaseerd advies.",
         "data_description": {
-          "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min. Below = -30 points.",
-          "good_dt_threshold_k": "Minimum dT (K) for full marks. Default 5.0 K. Below = -20 points.",
-          "good_off_threshold_min": "Minimum off-time for full marks. Default 20 min. Below = -20 points.",
-          "target_cycles_per_day": "Target cycles per day for efficient operation. Default 8. Used for ratio-based advice."
+          "good_run_threshold_min": "Looptijd op of boven deze waarde scoort volle punten. Standaard 45 min. Lager = -30 punten.",
+          "good_dt_threshold_k": "Minimale dT (K) voor volle punten. Standaard 5,0 K. Lager = -20 punten.",
+          "good_off_threshold_min": "Minimale uit-tijd voor volle punten. Standaard 20 min. Lager = -20 punten.",
+          "target_cycles_per_day": "Doelaantal cycli per dag voor efficiënt bedrijf. Standaard 8. Gebruikt voor ratio-gebaseerd advies."
         }
       },
       "notifications": {
         "title": "Meldingen",
         "data": {
-          "persistent_enabled": "Persistent notifications",
-          "status_update_enabled": "Periodic status updates",
-          "status_update_interval_hours": "Status interval (hours)",
-          "notify_emoji_enabled": "Emoji in notifications",
-          "notify_service": "Notify target",
-          "quiet_hours_enabled": "Quiet hours",
-          "quiet_hours_start": "Quiet hours start",
-          "quiet_hours_end": "Quiet hours end"
+          "persistent_enabled": "Persistente meldingen",
+          "status_update_enabled": "Periodieke statusupdates",
+          "status_update_interval_hours": "Statusinterval (uren)",
+          "notify_emoji_enabled": "Emoji in meldingen",
+          "notify_service": "Melding-doel",
+          "quiet_hours_enabled": "Stille uren",
+          "quiet_hours_start": "Start stille uren",
+          "quiet_hours_end": "Einde stille uren"
         },
-        "description": "How and when alerts are delivered.\n\n- **Persistent notifications**: sidebar alerts.\n- **Notify service** (optional): e.g. `notify.telegram_rachid`.\n- **Quiet hours**: suppress non-critical alerts during the window (default 22:00–07:00).",
+        "description": "Hoe en wanneer waarschuwingen worden afgeleverd.\n\n- **Persistente meldingen**: waarschuwingen in de zijbalk.\n- **Notify-service** (optioneel): bijv. `notify.telegram_rachid`.\n- **Stille uren**: onderdruk niet-kritieke waarschuwingen tijdens het venster (standaard 22:00-07:00).",
         "data_description": {
-          "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
-          "notify_service": "Pick a notify entity (recommended) or a legacy notify service. Leave empty to disable push notifications.",
-          "quiet_hours_enabled": "Suppress non-critical alerts during the quiet window.",
-          "quiet_hours_start": "Start of quiet hours, HH:MM (24h). Default 22:00.",
-          "quiet_hours_end": "End of quiet hours, HH:MM (24h). Default 07:00.",
+          "persistent_enabled": "Toon waarschuwingen als persistente meldingen in de zijbalk.",
+          "notify_service": "Kies een notify-entiteit (aanbevolen) of een legacy notify-service. Laat leeg om pushmeldingen uit te schakelen.",
+          "quiet_hours_enabled": "Onderdruk niet-kritieke waarschuwingen tijdens het stille venster.",
+          "quiet_hours_start": "Start stille uren, HH:MM (24u). Standaard 22:00.",
+          "quiet_hours_end": "Einde stille uren, HH:MM (24u). Standaard 07:00.",
           "status_update_enabled": "Periodieke status-update meldingen inschakelen (meerregelige samenvatting).",
           "status_update_interval_hours": "Uren tussen status-updates (1-168).",
           "notify_emoji_enabled": "Meldingen voorzien van een status/ernst-emoji."
@@ -99,35 +99,35 @@
       },
       "finalize": {
         "title": "Bevestigen",
-        "description": "Model: {model}. Source: {source}. Submit to create the entry."
+        "description": "Model: {model}. Bron: {source}. Verzend om het item aan te maken."
       },
       "reconfigure": {
         "title": "Daikin Cycle ML opnieuw configureren",
-        "description": "Choose how much to change.\n\n- **Quick**: only source and model.\n- **Full wizard**: all settings with current values prefilled.",
+        "description": "Kies hoeveel je wilt wijzigen.\n\n- **Snel**: alleen bron en model.\n- **Volledige wizard**: alle instellingen met huidige waarden vooraf ingevuld.",
         "menu_options": {
-          "reconfigure_basic": "Source sensor and model only (quick)",
-          "reconfigure_full": "Full wizard (all settings)"
+          "reconfigure_basic": "Alleen bronsensor en model (snel)",
+          "reconfigure_full": "Volledige wizard (alle instellingen)"
         }
       },
       "reconfigure_basic": {
         "title": "Bronsensor en model",
-        "description": "Change the source sensor or heat-pump model. Other settings stay untouched.",
+        "description": "Wijzig de bronsensor of het warmtepomp-model. Andere instellingen blijven ongewijzigd.",
         "data": {
-          "source_sensor": "Source sensor",
-          "model": "Heat-pump model"
+          "source_sensor": "Bronsensor",
+          "model": "Warmtepomp-model"
         },
         "data_description": {
-          "source_sensor": "ESPAltherma sensor that exposes the 13 required heat-pump attributes. Typical: sensor.althermasensors.",
-          "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map."
+          "source_sensor": "ESPAltherma-sensor die de 13 vereiste warmtepompattributen levert. Meestal: sensor.althermasensors.",
+          "model": "Je Daikin-model. Bepaalt de standaarddrempels. Kies 'Custom' om je eigen attribuutkoppeling op te geven."
         }
       },
       "reconfigure_full": {
         "title": "Volledige wizard",
-        "description": "Rerun the full wizard. All current values are prefilled as defaults."
+        "description": "Voer de volledige wizard opnieuw uit. Alle huidige waarden zijn vooraf ingevuld als standaardwaarden."
       },
       "map_attributes": {
-        "title": "Map required attributes",
-        "description": "Map each canonical attribute to the matching attribute name on your sensor. Leave a field empty if the canonical name already exists on your sensor.\n\nSensor exposes **{available_count}** attributes.\n\nSample of available keys:\n{available_list}\n\nUnmatched: {bad_list}",
+        "title": "Vereiste attributen koppelen",
+        "description": "Koppel elk canoniek attribuut aan de bijbehorende attribuutnaam op je sensor. Laat een veld leeg als de canonieke naam al op je sensor bestaat.\n\nSensor levert **{available_count}** attributen.\n\nVoorbeeld van beschikbare sleutels:\n{available_list}\n\nNiet-gekoppeld: {bad_list}",
         "data": {
           "INV frequency (rps)": "INV frequency (rps)",
           "Operation Mode": "Operation Mode",
@@ -147,22 +147,22 @@
           "Hybrid Op. Mode": "Hybrid Op. Mode"
         },
         "data_description": {
-          "INV frequency (rps)": "Your sensor's attribute name for the canonical 'INV frequency (rps)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Operation Mode": "Your sensor's attribute name for the canonical 'Operation Mode' field. Leave empty if the canonical name already exists on the sensor.",
-          "I/U operation mode": "Your sensor's attribute name for the canonical 'I/U operation mode' field. Leave empty if the canonical name already exists on the sensor.",
-          "3way valve(On:DHW_Off:Space)": "Your sensor's attribute name for the canonical '3way valve(On:DHW_Off:Space)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Defrost Operation": "Your sensor's attribute name for the canonical 'Defrost Operation' field. Leave empty if the canonical name already exists on the sensor.",
-          "Leaving water temp. after BUH (R2T)": "Your sensor's attribute name for the canonical 'Leaving water temp. after BUH (R2T)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Inlet water temp.(R4T)": "Your sensor's attribute name for the canonical 'Inlet water temp.(R4T)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Outdoor air temp.(R1T)": "Your sensor's attribute name for the canonical 'Outdoor air temp.(R1T)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Flow sensor (l/min)": "Your sensor's attribute name for the canonical 'Flow sensor (l/min)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Water pump operation": "Your sensor's attribute name for the canonical 'Water pump operation' field. Leave empty if the canonical name already exists on the sensor.",
-          "BUH Step1": "Your sensor's attribute name for the canonical 'BUH Step1' field. Leave empty if the canonical name already exists on the sensor.",
-          "BUH Step2": "Your sensor's attribute name for the canonical 'BUH Step2' field. Leave empty if the canonical name already exists on the sensor.",
-          "LW setpoint (main)": "Your sensor's attribute name for the canonical 'LW setpoint (main)' field. Leave empty if the canonical name already exists on the sensor.",
-          "Boiler Operation Demand": "Sensor attribute name for 'Boiler Operation Demand' (hybrid only — leave empty if not present).",
-          "Boiler DHW Demand": "Sensor attribute name for 'Boiler DHW Demand' (hybrid only — leave empty if not present).",
-          "Hybrid Op. Mode": "Sensor attribute name for 'Hybrid Op. Mode' (hybrid only — leave empty if not present)."
+          "INV frequency (rps)": "De attribuutnaam op je sensor voor het canonieke 'INV frequency (rps)'-veld. Laat leeg als de canonieke naam al op de sensor bestaat.",
+          "Operation Mode": "De attribuutnaam op je sensor voor het canonieke 'Operation Mode'-veld. Laat leeg als de canonieke naam al op de sensor bestaat.",
+          "I/U operation mode": "De attribuutnaam op je sensor voor het canonieke 'I/U operation mode'-veld. Laat leeg als de canonieke naam al op de sensor bestaat.",
+          "3way valve(On:DHW_Off:Space)": "De attribuutnaam op je sensor voor het canonieke '3way valve(On:DHW_Off:Space)'-veld. Laat leeg als de canonieke naam al op de sensor bestaat.",
+          "Defrost Operation": "De attribuutnaam op je sensor voor het canonieke 'Defrost Operation'-veld. Laat leeg als de canonieke naam al op de sensor bestaat.",
+          "Leaving water temp. after BUH (R2T)": "De attribuutnaam op je sensor voor het canonieke 'Leaving water temp. after BUH (R2T)'-veld. Laat leeg als de canonieke naam al op de sensor bestaat.",
+          "Inlet water temp.(R4T)": "De attribuutnaam op je sensor voor het canonieke 'Inlet water temp.(R4T)'-veld. Laat leeg als de canonieke naam al op de sensor bestaat.",
+          "Outdoor air temp.(R1T)": "De attribuutnaam op je sensor voor het canonieke 'Outdoor air temp.(R1T)'-veld. Laat leeg als de canonieke naam al op de sensor bestaat.",
+          "Flow sensor (l/min)": "De attribuutnaam op je sensor voor het canonieke 'Flow sensor (l/min)'-veld. Laat leeg als de canonieke naam al op de sensor bestaat.",
+          "Water pump operation": "De attribuutnaam op je sensor voor het canonieke 'Water pump operation'-veld. Laat leeg als de canonieke naam al op de sensor bestaat.",
+          "BUH Step1": "De attribuutnaam op je sensor voor het canonieke 'BUH Step1'-veld. Laat leeg als de canonieke naam al op de sensor bestaat.",
+          "BUH Step2": "De attribuutnaam op je sensor voor het canonieke 'BUH Step2'-veld. Laat leeg als de canonieke naam al op de sensor bestaat.",
+          "LW setpoint (main)": "De attribuutnaam op je sensor voor het canonieke 'LW setpoint (main)'-veld. Laat leeg als de canonieke naam al op de sensor bestaat.",
+          "Boiler Operation Demand": "Sensor-attribuutnaam voor 'Boiler Operation Demand' (alleen hybride - laat leeg als niet aanwezig).",
+          "Boiler DHW Demand": "Sensor-attribuutnaam voor 'Boiler DHW Demand' (alleen hybride - laat leeg als niet aanwezig).",
+          "Hybrid Op. Mode": "Sensor-attribuutnaam voor 'Hybrid Op. Mode' (alleen hybride - laat leeg als niet aanwezig)."
         }
       },
       "diagnose": {
@@ -183,7 +183,7 @@
         "title": "Geavanceerde attribuutkoppeling",
         "description": "Plak een JSON-object dat canonieke sleutels koppelt aan uw ESPAltherma-attribuutnamen. Laat leeg om de profiel-defaults te gebruiken.",
         "data": {
-          "custom_attribute_map": "Custom attribute map (JSON)"
+          "custom_attribute_map": "Aangepaste attribuutkoppeling (JSON)"
         },
         "data_description": {
           "custom_attribute_map": "JSON-object dat standaardsleutels aan attribuutnamen koppelt. Zie de documentatie voor het exacte formaat."
@@ -191,16 +191,16 @@
       },
       "model": {
         "title": "Daikin Cycle ML installatie",
-        "description": "Choose the ESPAltherma source sensor, your heat-pump model, and how required attributes are mapped.\n\n- **Source sensor**: must expose the 12 required ESPAltherma attributes. Typical: `sensor.althermasensors`.\n- **Model**: determines default thresholds.\n- **Attribute mode**: Automatic uses canonical names. Manual lets you map each attribute yourself.",
+        "description": "Kies de ESPAltherma-bronsensor, je warmtepomp-model en hoe vereiste attributen worden gekoppeld.\n\n- **Bronsensor**: moet de 12 vereiste ESPAltherma-attributen leveren. Meestal: `sensor.althermasensors`.\n- **Model**: bepaalt de standaarddrempels.\n- **Attribuutmodus**: Automatisch gebruikt canonieke namen. Handmatig laat je elk attribuut zelf koppelen.",
         "data": {
-          "source_sensor": "Source sensor",
-          "model": "Heat-pump model",
-          "attribute_mode": "Attribute mode"
+          "source_sensor": "Bronsensor",
+          "model": "Warmtepomp-model",
+          "attribute_mode": "Attribuutmodus"
         },
         "data_description": {
-          "source_sensor": "ESPAltherma sensor that exposes the 12 required heat-pump attributes. Typical: sensor.althermasensors.",
-          "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map.",
-          "attribute_mode": "Automatic uses the canonical ESPAltherma attribute names. Manual lets you map each required attribute to your own sensor's name."
+          "source_sensor": "ESPAltherma-sensor die de 12 vereiste warmtepompattributen levert. Meestal: sensor.althermasensors.",
+          "model": "Je Daikin-model. Bepaalt de standaarddrempels. Kies 'Custom' om je eigen attribuutkoppeling op te geven.",
+          "attribute_mode": "Automatisch gebruikt de canonieke ESPAltherma-attribuutnamen. Handmatig laat je elk vereist attribuut koppelen aan de naam op je eigen sensor."
         }
       },
       "user": {
@@ -208,41 +208,41 @@
         "description": "Kies de modelfamilie van je Daikin Altherma unit. De familie is de prefix van de modelcode van de buitenunit (bijv. ERGA, EPRA, EKHBRD). Op het volgende scherm kies je het exacte model.\n\n- **Basic profile**: veilige standaardwaarden als je je exacte model niet weet.\n- **Custom**: lever je eigen attribuut-mapping aan.\n\n**Detected:** monolithic entity = {mono_found}, ESPAltherma v2 entities = {v2_count}.\n**Suggested source type:** `{suggestion}`.",
         "data": {
           "family": "Modelfamilie",
-          "source_type": "ESPAltherma source type"
+          "source_type": "ESPAltherma-brontype"
         },
         "data_description": {
           "family": "Prefix van de modelcode van de buitenunit. Voorbeeld: ERGA, EPRA, EKHBRD.",
-          "source_type": "How ESPAltherma publishes data to Home Assistant. Choose Monolithic if you use the classic single sensor entity, or Individual if you use ESPAltherma v2 beta (many separate entities). Auto detects at runtime."
+          "source_type": "Hoe ESPAltherma gegevens naar Home Assistant publiceert. Kies Monolithic als je de klassieke enkele sensorentiteit gebruikt, of Individual als je ESPAltherma v2 bèta gebruikt (veel afzonderlijke entiteiten). Auto detecteert tijdens runtime."
         }
       },
       "individual_prefix": {
-        "title": "ESPAltherma v2 entity prefix",
-        "description": "Enter the entity_id prefix under which ESPAltherma v2 publishes its individual sensors. Default: `sensor.espaltherma_`.",
+        "title": "ESPAltherma v2 entiteit-voorvoegsel",
+        "description": "Voer het entity_id-voorvoegsel in waaronder ESPAltherma v2 zijn afzonderlijke sensoren publiceert. Standaard: `sensor.espaltherma_`.",
         "data": {
-          "individual_prefix": "Entity prefix"
+          "individual_prefix": "Entiteit-voorvoegsel"
         },
         "data_description": {
-          "individual_prefix": "Prefix including the domain, e.g. `sensor.espaltherma_`."
+          "individual_prefix": "Voorvoegsel inclusief het domein, bijv. `sensor.espaltherma_`."
         }
       },
       "individual_review": {
-        "title": "Review ESPAltherma v2 attributes",
-        "description": "Matched **{matched}/{total}** required attributes. Discovered entities: {discovered}.{missing_block}{collision_block}\n\nContinue to select your Daikin model. You can adjust the mapping later via the integration options."
+        "title": "ESPAltherma v2-attributen controleren",
+        "description": "**{matched}/{total}** vereiste attributen gekoppeld. Gevonden entiteiten: {discovered}.{missing_block}{collision_block}\n\nGa verder om je Daikin-model te kiezen. Je kunt de koppeling later aanpassen via de integratie-opties."
       }
     },
     "error": {
       "entity_not_found": "Sensor niet gevonden",
-      "missing_attributes": "Sensor is missing one or more required ESPAltherma attributes. See the description for the exact list, or switch Attribute mode to Manual.",
+      "missing_attributes": "Sensor mist een of meer vereiste ESPAltherma-attributen. Zie de beschrijving voor de exacte lijst, of schakel Attribuutmodus naar Handmatig.",
       "invalid_json": "Ongeldige JSON",
-      "attribute_not_found": "One or more mapped attribute names were not found on the source sensor.",
-      "required_attrs_unmapped": "One or more required attributes have no mapping and no canonical match on the sensor.",
+      "attribute_not_found": "Een of meer gekoppelde attribuutnamen zijn niet gevonden op de bronsensor.",
+      "required_attrs_unmapped": "Een of meer vereiste attributen hebben geen koppeling en geen canonieke match op de sensor.",
       "source_offline": "ESPAltherma sensor is momenteel niet beschikbaar. Wacht 30-60s tot deze weer online is en probeer opnieuw.",
       "source_empty": "ESPAltherma sensor heeft nog geen data. Wacht op de volgende update en probeer opnieuw."
     },
     "abort": {
       "already_configured": "Al geconfigureerd",
       "reconfigure_successful": "Herconfiguratie geslaagd",
-      "reconfigure_hybrid_change": "Reconfiguration successful. Note: this changed the model between hybrid (EVLQ) and non-hybrid. Existing cycle history is preserved unchanged. New cycles will use the updated boiler-cycle detection."
+      "reconfigure_hybrid_change": "Herconfiguratie geslaagd. Let op: dit wijzigde het model tussen hybride (EVLQ) en niet-hybride. Bestaande cyclusgeschiedenis blijft ongewijzigd bewaard. Nieuwe cycli gebruiken de bijgewerkte boiler-cyclusdetectie."
     }
   },
   "options": {
@@ -902,8 +902,8 @@
       "description": "De historische Daikin Cycle ML-database is aangemaakt vóór v1.10.0 en bevat data van meerdere config entries. Deze is toegewezen aan {assigned_title} (oudste entry). Oud bestand bewaard op: {legacy_path}. Aantal entries: {n_entries}. Is de toewijzing onjuist, gebruik dan de service daikin_cycle_ml.assign_legacy_db. Om te archiveren (opnieuw beginnen), gebruik daikin_cycle_ml.archive_legacy_db. Voor CSV-export gebruik daikin_cycle_ml.export_legacy_db."
     },
     "espaltherma_v2_missing_attrs": {
-      "title": "ESPAltherma v2 sensors missing",
-      "description": "{count} required sensor(s) are not published by ESPAltherma v2: {labels}. Enable them in the ESPAltherma v2 web UI (Settings → Definitions), then restart ESPAltherma."
+      "title": "ESPAltherma v2-sensoren ontbreken",
+      "description": "{count} vereiste sensor(en) worden niet gepubliceerd door ESPAltherma v2: {labels}. Schakel ze in via de ESPAltherma v2 web-UI (Instellingen → Definities) en herstart ESPAltherma."
     }
   },
   "services": {
@@ -912,8 +912,8 @@
       "description": "Reset dagelijkse tellers (alles of een subset).",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "counters": {
           "name": "Tellers",
@@ -926,8 +926,8 @@
       "description": "Exporteer gecachte cycli als JSON of CSV.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "days": {
           "name": "Dagen",
@@ -944,8 +944,8 @@
       "description": "Voeg een gebruikerslabel toe aan een opgeslagen cyclus (ML-training).",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "cycle_id": {
           "name": "Cyclus ID",
@@ -962,8 +962,8 @@
       "description": "Herbereken de ML-baseline (uitgesteld naar Batch 7).",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "days": {
           "name": "Dagen",
@@ -976,8 +976,8 @@
       "description": "Aggregeer en ruim oude cycli/alerts op, optioneel VACUUM.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "cycle_retention_days": {
           "name": "Cyclus-retentie (dagen)",
@@ -998,8 +998,8 @@
       "description": "Exporteer geaggregeerde COP-per-uur rijen als JSON of CSV.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "days": {
           "name": "Dagen",
@@ -1020,7 +1020,7 @@
       "description": "Stuur een testbericht via het geconfigureerde notify-target.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
+          "name": "Configuratie-item",
           "description": "Config entry ID. Weglaten als slechts 1 Daikin-entry geladen is."
         },
         "message": {
@@ -1046,8 +1046,8 @@
       "description": "Importeer of overschrijf door gebruiker aangeleverde Daikin datasheet-specs.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "payload": {
           "name": "Payload",
@@ -1064,8 +1064,8 @@
       "description": "Verwijder een door gebruiker aangeleverde datasheet-override voor een specifiek model.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "model_key": {
           "name": "Model-key",
@@ -1078,8 +1078,8 @@
       "description": "Start een k-means hertraining op de laatste N dagen cycli en meld het resultaat.",
       "fields": {
         "entry_id": {
-          "name": "Config entry",
-          "description": "Config entry ID."
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID."
         },
         "days": {
           "name": "Dagen",
@@ -1140,9 +1140,9 @@
     },
     "source_type": {
       "options": {
-        "monolithic": "Monolithic entity (ESPAltherma v1, sensor.althermasensors)",
-        "individual": "Individual entities (ESPAltherma v2 beta, sensor.espaltherma_*)",
-        "auto": "Auto-detect (recommended for new installs)"
+        "monolithic": "Monolithische entiteit (ESPAltherma v1, sensor.althermasensors)",
+        "individual": "Individuele entiteiten (ESPAltherma v2 bèta, sensor.espaltherma_*)",
+        "auto": "Automatisch detecteren (aanbevolen voor nieuwe installaties)"
       }
     }
   }
