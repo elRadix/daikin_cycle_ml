@@ -238,10 +238,17 @@ class CycleDB:
     async def async_backfill_quality_scores(self, scorer: Any) -> int:
         # v1.4.2: backfill NULL quality_score.
         conn = self._require()
+        # Issue #313: include `quality_score = 0` so legacy cycles written
+        # by pre-HACS code get re-scored on the next startup. Additive and
+        # idempotent: once re-scored, the WHERE clause no longer matches.
+        # `dhw_tank_temp` is required by the #289 legionella BUH waiver in
+        # score_cycle; omitting it silently applied -10 to legitimate
+        # legionella runs (buh_used=1, tank>=60).
         cur = await conn.execute(
             "SELECT id, start_ts, end_ts, duration_s, mode, dT_max, "
             "dT_avg, rps_max, rps_avg, outdoor_temp, buh_used, "
-            "defrost_used FROM cycles WHERE quality_score IS NULL"
+            "defrost_used, dhw_tank_temp FROM cycles "
+            "WHERE quality_score IS NULL OR quality_score = 0"
         )
         rows = await cur.fetchall()
         await cur.close()
@@ -250,7 +257,7 @@ class CycleDB:
         cols = (
             "id", "start_ts", "end_ts", "duration_s", "mode",
             "dT_max", "dT_avg", "rps_max", "rps_avg", "outdoor_temp",
-            "buh_used", "defrost_used",
+            "buh_used", "defrost_used", "dhw_tank_temp",
         )
         updates = 0
         for r in rows:
@@ -299,8 +306,9 @@ class CycleDB:
                 cop_avg, cop_sample_count, cop_sample_stdev,
                 cop_confidence, thermal_kw_avg, is_transient,
                 boiler_contribution_samples,
-                boiler_heat_samples, boiler_dhw_samples)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                boiler_heat_samples, boiler_dhw_samples,
+                dhw_tank_temp)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 record.get("start_ts"),
                 record.get("end_ts"),
@@ -324,6 +332,7 @@ class CycleDB:
                 int(record.get("boiler_contribution_samples", 0) or 0),
                 int(record.get("boiler_heat_samples", 0) or 0),
                 int(record.get("boiler_dhw_samples", 0) or 0),
+                record.get("dhw_tank_temp"),
             ),
         )
         try:
