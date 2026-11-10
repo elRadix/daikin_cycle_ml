@@ -174,11 +174,15 @@ def test_compressor_rps_exactly_at_threshold_off():
     )
 
 
-def test_is_on_requires_literal_true():
-    """_is_on uses identity — 1, 'on', truthy are NOT True."""
+def test_is_on_tolerant_of_non_bool_on_payloads():
+    """#308: ESPAltherma v2 sends str/int; tolerant_on accepts them."""
     assert _is_on({ATTR_BUH_STEP1: True}, ATTR_BUH_STEP1) is True
-    assert _is_on({ATTR_BUH_STEP1: 1}, ATTR_BUH_STEP1) is False
-    assert _is_on({ATTR_BUH_STEP1: "on"}, ATTR_BUH_STEP1) is False
+    assert _is_on({ATTR_BUH_STEP1: 1}, ATTR_BUH_STEP1) is True
+    assert _is_on({ATTR_BUH_STEP1: "on"}, ATTR_BUH_STEP1) is True
+    assert _is_on({ATTR_BUH_STEP1: "1"}, ATTR_BUH_STEP1) is True
+    assert _is_on({ATTR_BUH_STEP1: False}, ATTR_BUH_STEP1) is False
+    assert _is_on({ATTR_BUH_STEP1: 0}, ATTR_BUH_STEP1) is False
+    assert _is_on({ATTR_BUH_STEP1: "off"}, ATTR_BUH_STEP1) is False
     assert _is_on({}, ATTR_BUH_STEP2) is False
 
 

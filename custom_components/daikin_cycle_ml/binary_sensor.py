@@ -28,6 +28,7 @@ from .const import (
     MODE_DHW,
     MODE_HEATING,
     UPDATE_INTERVAL_SECONDS,
+    tolerant_on,
 )
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
 from .engine.timer_health import is_stale
@@ -47,12 +48,8 @@ def _now() -> float:
 
 
 def _attr_on(attrs: dict[str, Any], key: str) -> bool:
-    v = attrs.get(key)
-    if isinstance(v, bool):
-        return v
-    if isinstance(v, str):
-        return v.strip().upper() == "ON"
-    return False
+    """#308: delegate to tolerant_on."""
+    return tolerant_on(attrs.get(key))
 
 
 def _attr_is_mode(attrs: dict[str, Any], key: str, mode_lower: str) -> bool:

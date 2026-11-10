@@ -342,10 +342,13 @@ def test_buh_attrs_returns_step():
 
 
 def test_attr_on_string_forms():
+    # #308: tolerant_on accepts str/int/bool payloads uniformly.
     assert bs_mod._attr_on({"x": "ON"}, "x") is True
     assert bs_mod._attr_on({"x": "on"}, "x") is True
     assert bs_mod._attr_on({"x": "OFF"}, "x") is False
-    assert bs_mod._attr_on({"x": 1}, "x") is False
+    assert bs_mod._attr_on({"x": 1}, "x") is True
+    assert bs_mod._attr_on({"x": "1"}, "x") is True
+    assert bs_mod._attr_on({"x": 0}, "x") is False
     assert bs_mod._attr_on({}, "x") is False
 
 

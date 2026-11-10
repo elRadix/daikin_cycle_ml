@@ -84,6 +84,7 @@ from .const import (
     TRANSIENT_NEAR_MAX_DURATION_S,
     TRANSIENT_NEAR_MIN_RPS,
     UPDATE_INTERVAL_SECONDS,
+    tolerant_on,
 )
 from .engine.action_engine import generate_advice
 from .engine.anomaly_engine import evaluate as evaluate_anomaly
@@ -1565,14 +1566,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
     @staticmethod
     def _is_on(v: Any) -> bool:
-        """v1.20.0 #280: read() normalizes to bool; accept bool/int/str."""
-        if v is None:
-            return False
-        if isinstance(v, bool):
-            return v
-        if isinstance(v, (int, float)):
-            return v != 0
-        return str(v).strip().upper() in ("ON", "TRUE", "1")
+        """v1.20.0 #280 + #308: delegate to tolerant_on."""
+        return tolerant_on(v)
 
     def _read_cop_effective(
         self, now: float, attrs: dict[str, Any] | None
@@ -1586,10 +1581,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         # R272: defrost invalidates thermal measurement (compressor short-cycles,
         # R2T/R4T oscillate). Return None so caller skips energy accumulation.
         # User's COP sensor (checked above) still wins if configured.
-        _defrost = attrs.get(ATTR_DEFROST_OPERATION)
-        if _defrost is True or (
-            isinstance(_defrost, str) and _defrost.strip().upper() == "ON"
-        ):
+        if tolerant_on(attrs.get(ATTR_DEFROST_OPERATION)):
             return None, "defrost_active"
         power_w, power_src = self._compute_electrical_power(now, attrs)
         if power_w is None or power_w <= 0:
@@ -2332,16 +2324,16 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 return
             s1 = attrs.get(ATTR_BUH_STEP1)
             s2 = attrs.get(ATTR_BUH_STEP2)
-            if s1 is True:
+            if tolerant_on(s1):
                 self._buh_step1_s += dt_s
-            if s2 is True:
+            if tolerant_on(s2):
                 self._buh_step2_s += dt_s
             defrost_raw = attrs.get(ATTR_DEFROST_OPERATION)
             if defrost_raw is None:
                 # v1.20.0 #280: partial attrs. Preserve last known state;
                 # do not falsely close an in-flight defrost.
                 return
-            defrost_on = defrost_raw is True
+            defrost_on = tolerant_on(defrost_raw)
             prior = self._defrost_prior_s
             if defrost_on and not self._prev_defrost:
                 self._defrost_count_today += 1
