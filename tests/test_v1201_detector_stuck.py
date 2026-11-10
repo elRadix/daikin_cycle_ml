@@ -12,12 +12,10 @@ Evidence: R634 - prod-1 DB gap 2026-11-07 20:25:52 -> 2026-11-08 08:13:30
 """
 from __future__ import annotations
 
-import pytest
-
 from custom_components.daikin_cycle_ml.engine.cycle_detector import (
-    CycleDetector,
     STATE_IDLE,
     STATE_RUNNING,
+    CycleDetector,
 )
 
 

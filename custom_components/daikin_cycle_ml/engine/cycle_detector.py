@@ -479,15 +479,24 @@ class CycleDetector:
 
         pump = attrs.get(ATTR_WATER_PUMP_OPERATION)
 
-        # R307: IDLE + pump=OFF -> no active cycle to protect, skip entirely.
-        if _pump_is_off(pump) and self._state == STATE_IDLE:
-            return None
-
         if self._start_ts is not None and now < self._start_ts:
             _LOGGER.debug("Clock skew detected (now < start_ts), ignoring sample")
             return None
 
         on = detect_compressor_on(attrs, self._options, power_w)
+
+        # R307 + R772 (#285): IDLE + pump=OFF is only a skip when the
+        # compressor is not running. Two cases legitimately report
+        # pump=OFF while the compressor is still working:
+        #   1. DHW tank warmup — 3-way valve diverts the pump, but the
+        #      compressor keeps producing heat.
+        #   2. ESPAltherma template drift — pump sensor value stale
+        #      while RPS/flow/COP evidence says compressor is on.
+        # The old unconditional early-return left the detector stuck
+        # IDLE for hours (prod-1 evidence: 708min gap, 68 samples with
+        # flow=17+ and cop=6+, RPS=26). Issue #285.
+        if _pump_is_off(pump) and self._state == STATE_IDLE and not on:
+            return None
 
         # R561 (issue #218): boiler-only operation is NOT an HP cycle.
         # When the hybrid gas boiler is producing heat and the HP compressor

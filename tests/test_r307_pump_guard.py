@@ -34,10 +34,16 @@ def test_idle_pump_off_rps_zero_still_skips() -> None:
     assert d.state == STATE_IDLE
 
 
-def test_idle_pump_off_rps_high_still_skips() -> None:
+def test_idle_pump_off_rps_high_opens_cycle() -> None:
+    """R772 (#285): pump=OFF + IDLE + RPS>threshold must open a cycle.
+
+    Previously skipped unconditionally, causing an 11h48m IDLE stuck
+    cycle on prod-1 (2026-11-07 20:25 → 2026-11-08 08:13) while the
+    compressor ran continuously at RPS=26, flow=17, COP=6.
+    """
     d = CycleDetector()
     assert d.update(_attrs(False, 20.0), now=1000.0) is None
-    assert d.state == STATE_IDLE
+    assert d.state == STATE_RUNNING
 
 
 def test_running_pump_off_with_compressor_keeps_running() -> None:
