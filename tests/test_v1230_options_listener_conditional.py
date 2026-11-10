@@ -31,40 +31,51 @@ def test_needs_manual_reload_is_module_constant():
 
 
 def test_setup_entry_listener_is_conditional():
-    """#311: structural — add_update_listener inside `if NEEDS_MANUAL_RELOAD`."""
+    """#311: async_setup_entry delegates to _maybe_register_options_listener."""
     src = Path(
         "custom_components/daikin_cycle_ml/__init__.py"
     ).read_text()
     tree = ast.parse(src)
     lines = src.splitlines()
-    found_guard = False
-    found_listener_inside = False
+
+    # a) async_setup_entry calls the helper
+    setup_calls_helper = False
     for node in ast.walk(tree):
         if (
             isinstance(node, ast.AsyncFunctionDef)
             and node.name == "async_setup_entry"
         ):
-            for child in ast.walk(node):
-                if not isinstance(child, ast.If):
-                    continue
-                if_test = ast.unparse(child.test)
-                if "NEEDS_MANUAL_RELOAD" not in if_test:
-                    continue
-                found_guard = True
-                body_txt = "\n".join(
-                    lines[child.lineno - 1:child.end_lineno]
-                )
-                if (
-                    "add_update_listener" in body_txt
-                    and "_async_options_updated" in body_txt
-                ):
-                    found_listener_inside = True
+            body = "\n".join(lines[node.lineno - 1:node.end_lineno])
+            if "_maybe_register_options_listener(entry)" in body:
+                setup_calls_helper = True
             break
-    assert found_guard, (
-        "async_setup_entry has no `if NEEDS_MANUAL_RELOAD` guard"
+
+    # b) helper guards on NEEDS_MANUAL_RELOAD and wires listener
+    helper_has_guard = False
+    helper_has_listener = False
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.FunctionDef)
+            and node.name == "_maybe_register_options_listener"
+        ):
+            body = "\n".join(lines[node.lineno - 1:node.end_lineno])
+            if "NEEDS_MANUAL_RELOAD" in body:
+                helper_has_guard = True
+            if (
+                "add_update_listener" in body
+                and "_async_options_updated" in body
+            ):
+                helper_has_listener = True
+            break
+
+    assert setup_calls_helper, (
+        "async_setup_entry does not call _maybe_register_options_listener"
     )
-    assert found_listener_inside, (
-        "add_update_listener is not inside the NEEDS_MANUAL_RELOAD guard"
+    assert helper_has_guard, (
+        "helper does not guard on NEEDS_MANUAL_RELOAD"
+    )
+    assert helper_has_listener, (
+        "helper does not wire add_update_listener(_async_options_updated)"
     )
 
 
@@ -75,7 +86,8 @@ def test_async_options_updated_still_exported():
 
 def test_helper_skips_when_needs_manual_reload_false(monkeypatch):
     """#311: helper no-ops when OptionsFlowWithReload is active."""
-    from custom_components.daikin_cycle_ml import __init__ as init_mod
+    import importlib
+    init_mod = importlib.import_module("custom_components.daikin_cycle_ml")
     monkeypatch.setattr(init_mod, "NEEDS_MANUAL_RELOAD", False)
 
     class _Entry:
@@ -96,7 +108,8 @@ def test_helper_skips_when_needs_manual_reload_false(monkeypatch):
 
 def test_helper_registers_when_needs_manual_reload_true(monkeypatch):
     """#311: helper wires listener when fallback OptionsFlow is active."""
-    from custom_components.daikin_cycle_ml import __init__ as init_mod
+    import importlib
+    init_mod = importlib.import_module("custom_components.daikin_cycle_ml")
     monkeypatch.setattr(init_mod, "NEEDS_MANUAL_RELOAD", True)
 
     class _Entry:
