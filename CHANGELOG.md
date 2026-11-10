@@ -20,6 +20,8 @@
   Prod-1 evidence: 11h48m IDLE gap with 68 `cop_samples` all showing `flow > 5` and `COP > 1.5` at `RPS = 26`.
 - Startup backfill now re-scores historical cycles with `quality_score=0` (pre-HACS legacy) and correctly applies the #289 legionella BUH waiver to historical DHW cycles (#313).
   Prod-1 evidence: cycles #263 and #261 corrected from stale 0 to 70 and 40 respectively.
+- Live `daily_summary` refresh now runs every 15 minutes while a cycle is open (#323).
+  The #262 SQL already supported open cycles, but `async_rollup_day` was only called on cycle close, so a 20-hour heating cycle left `daily_summary` stale until it ended. Prod evidence (issue #316): `updated_ts` frozen at the previous cycle's close time.
 
 ## [1.22.0] - 2026-11-09
 
