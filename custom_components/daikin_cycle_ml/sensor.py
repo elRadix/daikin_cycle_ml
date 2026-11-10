@@ -378,6 +378,22 @@ def _attrs_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]
     }
 
 
+def _compute_quality_today(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> float | None:
+    """Average of closed cycle scores + live score for open cycle (#316)."""
+    cycles = c.store.cycles_today(_now())
+    closed = [
+        cy.get("quality_score") for cy in cycles
+        if cy.get("quality_score") is not None
+    ]
+    live = getattr(s, "quality_live", None)
+    scores = list(closed)
+    if live is not None:
+        scores.append(live)
+    return _avg(scores)
+
+
 def _attrs_quality_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     good = c.store.get("good_cycles_today", 0)
     bad = c.store.get("bad_cycles_today", 0)
@@ -385,6 +401,9 @@ def _attrs_quality_today(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[s
         "good_cycles": good,
         "bad_cycles": bad,
         "good_ratio_pct": _ratio(good, good + bad),
+        "live_score": getattr(s, "quality_live", None),
+        "is_cycle_open": getattr(c.detector, "state", "idle") == "running",
+        "live_cycle_duration_s": getattr(s, "quality_live_duration_s", None),
     }
 
 
@@ -1097,9 +1116,7 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "score",
         "icon": "mdi:star-outline",
-        "value_fn": lambda s, c: _avg(
-            [cy.get("quality_score") for cy in c.store.cycles_today(_now())]
-        ),
+        "value_fn": _compute_quality_today,
         "attr_fn": _attrs_quality_today,
     },
     {

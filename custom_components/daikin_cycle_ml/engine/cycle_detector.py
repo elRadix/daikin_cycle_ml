@@ -254,6 +254,46 @@ class CycleDetector:
             "defrost_used": self._defrost_used,
         }
 
+    def partial_record(self, now: float) -> dict[str, Any]:
+        """Return a scoreable record for the in-progress cycle (#316).
+
+        Empty dict when IDLE. Does not mutate state; safe to call on
+        every tick. Used by the live-quality refresh so quality_today
+        shows a running score during long cycles instead of 0% until
+        the close.
+        """
+        if self._state != STATE_RUNNING or self._start_ts is None:
+            return {}
+        start = self._start_ts
+        duration = max(0, int(now - start))
+        rps_avg = (
+            sum(self._rps_samples) / len(self._rps_samples)
+            if self._rps_samples else None
+        )
+        dt_avg = (
+            sum(self._dt_samples) / len(self._dt_samples)
+            if self._dt_samples else None
+        )
+        outdoor = self._outdoor_samples[-1] if self._outdoor_samples else None
+        return {
+            "start_ts": start,
+            "end_ts": now,
+            "duration_s": duration,
+            "mode": self._mode,
+            "thermal_kw_avg": _apply_thermal_sanity_gate(
+                sum(self._thermal_kw_samples) / len(self._thermal_kw_samples)
+                if self._thermal_kw_samples else None,
+                n_samples=len(self._thermal_kw_samples),
+            ),
+            "rps_max": max(self._rps_samples) if self._rps_samples else None,
+            "rps_avg": rps_avg,
+            "dT_max": max(self._dt_samples) if self._dt_samples else None,
+            "dT_avg": dt_avg,
+            "outdoor_temp": outdoor,
+            "buh_used": self._buh_used,
+            "defrost_used": self._defrost_used,
+        }
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize RUNNING state. IDLE serializes to empty dict."""
         if self._state != STATE_RUNNING:
