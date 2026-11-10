@@ -45,10 +45,7 @@ cards:
       s.entity_id.endswith('_wp_specs')) %}{% set ns.specs = s.entity_id %}{%
       endif %}{% if ns.state == '' and (s.entity_id.endswith('_cycle_state') or
       s.entity_id.endswith('_cyclus_status')) %}{% set ns.state = s.entity_id
-      %}{% endif %}{% endfor %}{% set l = 'nl' if hass.language and
-      hass.language.startswith('nl') else ('en' if hass.language and
-      hass.language.startswith('en') else (state_attr(ns.state,
-      'configured_language') or 'en')) -%}{% set f = state_attr(ns.specs,
+      %}{% endif %}{% endfor %}{% set l = state_attr(ns.state, 'configured_language') or 'en' -%}{% set f = state_attr(ns.specs,
       'family') or '—' -%}{% set k = state_attr(ns.specs, 'kw') or '—' -%}{{ f
       }} · {{ k }} kW · {% if l == 'nl' %}Cycli · duur · kwaliteit · events{%
       else %}Cycles · duration · quality · events{% endif %}

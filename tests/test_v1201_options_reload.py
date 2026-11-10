@@ -56,28 +56,45 @@ def test_options_updated_function_exists():
 
 
 def test_setup_entry_registers_options_listener():
-    """Structural: async_setup_entry wires entry.add_update_listener."""
+    """Structural: async_setup_entry wires listener via the helper.
+
+    #311: the listener is now registered through
+    _maybe_register_options_listener() so the conditional can be tested
+    independently of HA's OptionsFlowWithReload behaviour.
+    """
     src = Path(
         "custom_components/daikin_cycle_ml/__init__.py"
     ).read_text()
     tree = ast.parse(src)
     lines = src.splitlines()
-    found = False
+
+    setup_calls_helper = False
+    helper_registers = False
     for node in ast.walk(tree):
         if (
             isinstance(node, ast.AsyncFunctionDef)
             and node.name == "async_setup_entry"
         ):
             body = "\n".join(lines[node.lineno - 1 : node.end_lineno])
+            if "_maybe_register_options_listener(entry)" in body:
+                setup_calls_helper = True
+        if (
+            isinstance(node, ast.FunctionDef)
+            and node.name == "_maybe_register_options_listener"
+        ):
+            body = "\n".join(lines[node.lineno - 1 : node.end_lineno])
             if (
                 "add_update_listener" in body
                 and "_async_options_updated" in body
             ):
-                found = True
-            break
-    assert found, (
-        "async_setup_entry does not register _async_options_updated "
-        "via entry.add_update_listener"
+                helper_registers = True
+
+    assert setup_calls_helper, (
+        "async_setup_entry does not call _maybe_register_options_listener"
+    )
+    assert helper_registers, (
+        "_maybe_register_options_listener does not register "
+        "_async_options_updated via entry.add_update_listener"
     )
 
 

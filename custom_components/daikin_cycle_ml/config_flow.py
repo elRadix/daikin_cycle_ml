@@ -17,19 +17,30 @@ from homeassistant.config_entries import (
 from .const import DEFAULT_DAILY_SUMMARY_LIVE_ENABLED
 from .engine.espaltherma_v2.resolver import resolve_attrs
 
+# #311: HA 2026.11.1+ raises ValueError in async_finish_flow when
+# OptionsFlowWithReload is combined with an entry-level update_listener.
+# OptionsFlowWithReload already triggers async_reload on save, so the
+# manual listener is redundant on that code path. Keep it only for the
+# older OptionsFlow fallback (required to preserve #286 drift-fix).
+#
+# The flag is set inside the import guard so all module-level imports
+# stay at the top of the file (ruff E402).
 if TYPE_CHECKING:
     from homeassistant.config_entries import (
         OptionsFlowWithReload as _OPTIONS_FLOW_BASE,
     )
+    NEEDS_MANUAL_RELOAD: bool = False
 else:
     try:
         from homeassistant.config_entries import (
             OptionsFlowWithReload as _OPTIONS_FLOW_BASE,
         )
+        NEEDS_MANUAL_RELOAD = False
     except ImportError:  # pragma: no cover
         from homeassistant.config_entries import (
             OptionsFlow as _OPTIONS_FLOW_BASE,
         )
+        NEEDS_MANUAL_RELOAD = True
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import section
@@ -1239,13 +1250,23 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                     "power_sensor_entity",
                     description={"suggested_value": c.get("power_sensor_entity")},
                 ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor")
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        # #311: prevent feedback loops when user picks
+                        # the integration's own derived sensor.
+                        exclude_entities=["sensor.daikin_cycle_ml_*"],
+                    )
                 ),
                 vol.Optional(
                     "cop_sensor_entity",
                     description={"suggested_value": c.get("cop_sensor_entity")},
                 ): selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor")
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
+                        # #311: prevent feedback loops when user picks
+                        # the integration's own derived sensor.
+                        exclude_entities=["sensor.daikin_cycle_ml_*"],
+                    )
                 ),
                 vol.Optional(
                     "indoor_temp_sensor",
