@@ -108,12 +108,30 @@ def test_running_string_pump_off_closes_cycle(pump_off_form) -> None:
     assert det.state == STATE_IDLE
 
 
-def test_idle_string_pump_off_skips() -> None:
-    """IDLE + pump='OFF' must skip entirely (no cycle open)."""
+def test_idle_string_pump_off_with_compressor_on_opens_cycle() -> None:
+    """R772 (#285): IDLE + pump='OFF' + compressor ON must open a cycle.
+
+    Real-world DHW tank warmup: 3-way valve diverts pump to tank while
+    compressor continues at RPS=30. Previously skipped unconditionally
+    by the R307 early-return, causing detector to stay IDLE for hours.
+    """
     det = CycleDetector()
     assert det.state == STATE_IDLE
     result = det.update(
         _running_attrs(rps=30.0, pump="OFF"),
+        now=1000.0,
+        power_w=None,
+    )
+    assert result is None
+    assert det.state == STATE_RUNNING
+
+
+def test_idle_string_pump_off_with_compressor_off_still_skips() -> None:
+    """R307 guard: IDLE + pump='OFF' + compressor OFF must still skip."""
+    det = CycleDetector()
+    assert det.state == STATE_IDLE
+    result = det.update(
+        _running_attrs(rps=0.0, pump="OFF"),
         now=1000.0,
         power_w=None,
     )

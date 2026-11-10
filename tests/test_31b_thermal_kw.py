@@ -35,10 +35,29 @@ def _attrs(rps=40.0, lwt=40.0, inlet=35.0, flow=12.0, pump=True):
 # ---- water pump guard ----
 
 
-def test_pump_off_blocks_cycle_start():
+def test_pump_off_with_compressor_off_blocks_cycle_start():
+    """R307 guard: pump=OFF + compressor OFF must not open a cycle.
+
+    R772 (#285): previously this test used rps=40 (compressor ON) and
+    passed only because the pump=OFF early-return ran BEFORE
+    detect_compressor_on(). Now that the check is `pump=OFF AND not on`,
+    we must set the compressor explicitly off (rps=0, flow=0).
+    """
     det = CycleDetector({})
-    det.update(_attrs(pump=False), now=1000.0)
+    det.update(_attrs(rps=0.0, flow=0.0, pump=False), now=1000.0)
     assert det.snapshot()["state"] == "idle"
+
+
+def test_pump_off_with_compressor_on_opens_cycle():
+    """R772 (#285): pump=OFF + compressor ON must open a cycle.
+
+    Real-world: DHW tank warmup (3-way valve diverts pump) or
+    ESPAltherma template drift (stale pump attribute while compressor
+    still runs at RPS>threshold).
+    """
+    det = CycleDetector({})
+    det.update(_attrs(pump=False), now=1000.0)  # rps=40 default → ON
+    assert det.snapshot()["state"] == "running"
 
 
 def test_pump_missing_allows_cycle_start():
