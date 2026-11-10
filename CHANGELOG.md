@@ -15,6 +15,8 @@
 - Cycle detector no longer stuck in `IDLE` when `Water pump operation` reports `OFF` while the compressor is still running (#285).
   Two real-world cases: DHW tank warmup (3-way valve diverts the circulation pump) and ESPAltherma template drift (stale pump attribute).
   Prod-1 evidence: 11h48m IDLE gap with 68 `cop_samples` all showing `flow > 5` and `COP > 1.5` at `RPS = 26`.
+- Startup backfill now re-scores historical cycles with `quality_score=0` (pre-HACS legacy) and correctly applies the #289 legionella BUH waiver to historical DHW cycles (#313).
+  Prod-1 evidence: cycles #263 and #261 corrected from stale 0 to 70 and 40 respectively.
 
 ## [1.22.0] - 2026-11-09
 
