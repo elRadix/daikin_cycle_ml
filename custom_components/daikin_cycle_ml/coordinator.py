@@ -132,8 +132,8 @@ from .engine.thermal import (
     boiler_heat_active_from_attrs as _boiler_heat_active_from_attrs,
 )
 from .engine.thermal import compute_thermal_power_live as _compute_thermal_power_live
-from .engine.thermal import dt_from_attrs as _dt_from_attrs
 from .engine.thermal import dhw_tank_temp_from_attrs as _dhw_tank_temp_from_attrs
+from .engine.thermal import dt_from_attrs as _dt_from_attrs
 from .engine.thermal import flow_from_attrs as _flow_from_attrs
 from .engine.thermal import (
     hybrid_mode_from_attrs as _hybrid_mode_from_attrs,
@@ -210,6 +210,8 @@ class DataSnapshot:
     is_hybrid: bool = False
     boiler_efficiency_cop: float | None = None
     inv_freq_secondary: float | None = None
+    quality_live: int | None = None
+    quality_live_duration_s: float | None = None
 
 
 # --- FEAT-2: live thermal power helpers ---
@@ -533,6 +535,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _last_runtime_tick_ts: float = 0.0
     _energy_day_key: str = ""
     _last_energy_tick_ts: float = 0.0
+    _last_quality_live_ts: float = 0.0
     _cop_hourly_cache: dict[str, dict[str, Any]] = {}
     _cop_hourly_cache_ts: float = 0.0
     _cop_degradation_cache: dict[str, Any] = {}
@@ -981,6 +984,35 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             for m in modes
         }
         return stats, by_mode
+
+    async def _maybe_refresh_quality_live(
+        self, now: float, snap: DataSnapshot
+    ) -> None:
+        """Issue #316: 5-min throttled live quality for open cycle.
+
+        Calls detector.partial_record(now) + score_cycle and stores the
+        result on the snapshot. When IDLE both fields stay None so the
+        sensor falls back to closed-cycle average only.
+        """
+        if getattr(self.detector, "state", "idle") != "running":
+            snap.quality_live = None
+            snap.quality_live_duration_s = None
+            return
+        if (now - self._last_quality_live_ts) < 300.0:
+            return
+        self._last_quality_live_ts = now
+        try:
+            rec = self.detector.partial_record(now)
+            if not rec:
+                snap.quality_live = None
+                snap.quality_live_duration_s = None
+                return
+            snap.quality_live = score_cycle(rec, self.options)
+            snap.quality_live_duration_s = float(rec.get("duration_s") or 0)
+        except Exception:
+            _LOGGER.warning("live quality refresh failed", exc_info=True)
+            snap.quality_live = None
+            snap.quality_live_duration_s = None
 
     async def _maybe_refresh_cop_hourly(self, now: float) -> None:
         """Refresh day/week/month cop_hourly caches (throttled 300s)."""
@@ -1863,6 +1895,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._maybe_refresh_stooklijn(now)
             await self._maybe_refresh_cop_hourly(now)
             await self._maybe_refresh_cop_degradation(now)
+            await self._maybe_refresh_quality_live(now, snap)
             await self._refresh_alerts_today(now)
             await self._maybe_refresh_spf(now)
             snap.cop_today = self._cop_today_heating_cache
