@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.22.1] - 2026-11-11
+
 ### Added
 - HT attribute aliases for `[Hydrobox]` LWT, R4T, and compressor frequency signals (#189).
 - Live quality score for the in-progress cycle, refreshed every 5 minutes and folded into `quality_today` (#320).
