@@ -4,6 +4,9 @@
 
 ### Added
 - HT attribute aliases for `[Hydrobox]` LWT, R4T, and compressor frequency signals (#189).
+- Live quality score for the in-progress cycle, refreshed every 5 minutes and folded into `quality_today` (#316).
+  Long continuously-modulating cycles (prod-1 evidence: 22.5h, 19.9h, 21.8h) now show a running score instead of `0%` until close.
+  New attributes on `sensor.daikin_cycle_ml_quality_today`: `live_score`, `is_cycle_open`, `live_cycle_duration_s`.
 
 ### Changed
 - Clarify that `duration_min` and `duration_max` in `DATABASE.md` are stored in **seconds** (#235).
