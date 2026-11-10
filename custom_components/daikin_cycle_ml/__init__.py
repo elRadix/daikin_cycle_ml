@@ -264,19 +264,28 @@ async def _async_options_updated(
     await hass.config_entries.async_reload(entry.entry_id)
 
 
+def _maybe_register_options_listener(
+    entry: ConfigEntry,
+) -> None:
+    """#311: register update_listener only when OptionsFlow fallback is active.
+
+    OptionsFlowWithReload (HA >= 2024.x) auto-reloads on save, so the
+    manual listener is redundant and on HA 2026.11.1+ actually raises
+    ValueError in async_finish_flow. The listener is preserved for the
+    older OptionsFlow fallback to fix #286 (stale coordinator.options).
+    """
+    if not NEEDS_MANUAL_RELOAD:
+        return
+    entry.async_on_unload(
+        entry.add_update_listener(_async_options_updated)
+    )
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Daikin Cycle ML from a config entry."""
     await _async_cleanup_orphan_dbs(hass)
     coordinator = DaikinCycleMLCoordinator(hass, entry)
-    # #311: HA 2026.11.1+ rejects OptionsFlowWithReload +
-    # entry-level update_listener with ValueError. OptionsFlowWithReload
-    # already triggers async_reload on save, so the manual listener is
-    # redundant on that code path. Keep it only for the older
-    # OptionsFlow fallback (#286 drift-fix).
-    if NEEDS_MANUAL_RELOAD:
-        entry.async_on_unload(
-            entry.add_update_listener(_async_options_updated)
-        )
+    _maybe_register_options_listener(entry)
     try:
         await coordinator.async_reload_user_datasheets()
         clear_datasheet_load_failed(hass, entry.entry_id)

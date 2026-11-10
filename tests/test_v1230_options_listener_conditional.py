@@ -72,3 +72,45 @@ def test_async_options_updated_still_exported():
     """#286 stays functional for the fallback path."""
     from custom_components.daikin_cycle_ml import _async_options_updated
     assert callable(_async_options_updated)
+
+def test_helper_skips_when_needs_manual_reload_false(monkeypatch):
+    """#311: helper no-ops when OptionsFlowWithReload is active."""
+    from custom_components.daikin_cycle_ml import __init__ as init_mod
+    monkeypatch.setattr(init_mod, "NEEDS_MANUAL_RELOAD", False)
+
+    class _Entry:
+        def __init__(self):
+            self.listener_added = False
+            self.unload_added = False
+        def add_update_listener(self, cb):
+            self.listener_added = True
+            return cb
+        def async_on_unload(self, cb):
+            self.unload_added = True
+
+    entry = _Entry()
+    init_mod._maybe_register_options_listener(entry)
+    assert entry.listener_added is False
+    assert entry.unload_added is False
+
+
+def test_helper_registers_when_needs_manual_reload_true(monkeypatch):
+    """#311: helper wires listener when fallback OptionsFlow is active."""
+    from custom_components.daikin_cycle_ml import __init__ as init_mod
+    monkeypatch.setattr(init_mod, "NEEDS_MANUAL_RELOAD", True)
+
+    class _Entry:
+        def __init__(self):
+            self.listener_added = False
+            self.unload_added = False
+        def add_update_listener(self, cb):
+            self.listener_added = True
+            return ("listener", cb)
+        def async_on_unload(self, cb):
+            self.unload_added = True
+            assert cb == ("listener", init_mod._async_options_updated)
+
+    entry = _Entry()
+    init_mod._maybe_register_options_listener(entry)
+    assert entry.listener_added is True
+    assert entry.unload_added is True
