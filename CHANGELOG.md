@@ -12,6 +12,9 @@
 - Prevent `setpoint_oscillating` alert from firing when the compressor is in `idle` state (#299).
   Weather-dependent curve adjustments (0.5 °C steps) are no longer counted as oscillation when there is no heating demand.
 - Clear setpoint history upon entering `idle` state to prevent stale data from leaking into the next heating cycle.
+- Cycle detector no longer stuck in `IDLE` when `Water pump operation` reports `OFF` while the compressor is still running (#285).
+  Two real-world cases: DHW tank warmup (3-way valve diverts the circulation pump) and ESPAltherma template drift (stale pump attribute).
+  Prod-1 evidence: 11h48m IDLE gap with 68 `cop_samples` all showing `flow > 5` and `COP > 1.5` at `RPS = 26`.
 
 ## [1.22.0] - 2026-11-09
 
