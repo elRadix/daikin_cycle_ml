@@ -12,6 +12,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
 from .api import CopHourlyView
+from .config_flow import NEEDS_MANUAL_RELOAD
 from .const import DB_FILENAME as DB_FILENAME
 from .const import DB_FILENAME_TEMPLATE as DB_FILENAME_TEMPLATE
 from .const import DOMAIN as DOMAIN
@@ -267,9 +268,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Daikin Cycle ML from a config entry."""
     await _async_cleanup_orphan_dbs(hass)
     coordinator = DaikinCycleMLCoordinator(hass, entry)
-    entry.async_on_unload(
-        entry.add_update_listener(_async_options_updated)
-    )
+    # #311: HA 2026.11.1+ rejects OptionsFlowWithReload +
+    # entry-level update_listener with ValueError. OptionsFlowWithReload
+    # already triggers async_reload on save, so the manual listener is
+    # redundant on that code path. Keep it only for the older
+    # OptionsFlow fallback (#286 drift-fix).
+    if NEEDS_MANUAL_RELOAD:
+        entry.async_on_unload(
+            entry.add_update_listener(_async_options_updated)
+        )
     try:
         await coordinator.async_reload_user_datasheets()
         clear_datasheet_load_failed(hass, entry.entry_id)

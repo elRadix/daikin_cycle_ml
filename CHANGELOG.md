@@ -22,6 +22,12 @@
   Prod-1 evidence: cycles #263 and #261 corrected from stale 0 to 70 and 40 respectively.
 - Live `daily_summary` refresh now runs every 15 minutes while a cycle is open (#323).
   The #262 SQL already supported open cycles, but `async_rollup_day` was only called on cycle close, so a 20-hour heating cycle left `daily_summary` stale until it ended. Prod evidence (issue #316): `updated_ts` frozen at the previous cycle's close time.
+- Options flow saves no longer raise `ValueError: Config entry update listeners should not be used with OptionsFlowWithReload` on HA 2026.11.1+ (#311).
+  The manual reload listener is now conditional: skipped when the flow base is `OptionsFlowWithReload` (Core reloads automatically), kept for the older `OptionsFlow` fallback to preserve #286.
+- `power_sensor_entity` and `cop_sensor_entity` selectors now exclude the integration's own `sensor.daikin_cycle_ml_*` entities (#311).
+  Prevents feedback loops where a user points `cop_sensor_entity` at `sensor.daikin_cycle_ml_cop_today`, pinning all COP samples to a constant.
+- `daily-summary-tabbed` card no longer references `hass.language` from Jinja, fixing `UndefinedError: 'hass' is undefined` on HA 2026.11.1+ (#322).
+  Language detection now falls back to `state_attr('sensor.*_cycle_state', 'configured_language')`.
 
 ## [1.22.0] - 2026-11-09
 
