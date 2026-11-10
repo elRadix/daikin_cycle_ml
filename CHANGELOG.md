@@ -12,6 +12,8 @@
 - Clarify that `duration_min` and `duration_max` in `DATABASE.md` are stored in **seconds** (#235).
 
 ### Fixed
+- Defrost counter no longer stays at 0 on ESPAltherma v2 setups (#308).
+  All defrost / BUH on-detection now routes through a single tolerant `const.tolerant_on()` helper. Prod-1 evidence: `defrost_count_today` worked 2026-11-06, dropped to 0 after v1.20.0 (#281).
 - Prevent `setpoint_oscillating` alert from firing when the compressor is in `idle` state (#299).
   Weather-dependent curve adjustments (0.5 °C steps) are no longer counted as oscillation when there is no heating demand.
 - Clear setpoint history upon entering `idle` state to prevent stale data from leaking into the next heating cycle.

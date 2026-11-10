@@ -1,6 +1,8 @@
 """Constants for the Daikin Cycle ML integration."""
 from __future__ import annotations
 
+from typing import Any
+
 DOMAIN = "daikin_cycle_ml"
 NAME = "Daikin Cycle ML"
 VERSION = "1.22.0"
@@ -876,3 +878,27 @@ def _validate_features_mapping() -> None:
 
 _validate_attribute_sets()
 _validate_features_mapping()
+
+# --- #308: tolerant "is-on" helper --------------------------------------
+# ESPAltherma v1 reports bool; v2 (#281) reports str or int.
+# Every defrost / BUH / COP-during-defrost path must interpret these the same.
+
+_ON_STRINGS = frozenset({"on", "true", "1", "yes", "open", "active"})
+
+
+def tolerant_on(raw: Any) -> bool:
+    """#308: interpret a raw attribute value as on/off.
+
+    Accepts bool, int, float and string payloads so defrost and BUH
+    detection keep working across ESPAltherma v1 (bool) and v2 (str/int).
+    """
+    if raw is None:
+        return False
+    if isinstance(raw, bool):
+        return raw
+    if isinstance(raw, (int, float)):
+        return raw != 0
+    if isinstance(raw, str):
+        return raw.strip().lower() in _ON_STRINGS
+    return False
+

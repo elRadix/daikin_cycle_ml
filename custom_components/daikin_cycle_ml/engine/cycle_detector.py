@@ -29,6 +29,7 @@ from ..const import (
     OP_MODE_HEATING,
     STATE_IDLE,
     STATE_RUNNING,
+    tolerant_on,
 )
 from .attribute_compat import build_compat_view
 
@@ -190,7 +191,8 @@ def _compute_dt(attrs: Mapping[str, Any]) -> float | None:
 
 
 def _is_on(attrs: Mapping[str, Any], key: str) -> bool:
-    return attrs.get(key) is True
+    """#308: delegate to tolerant_on."""
+    return tolerant_on(attrs.get(key))
 
 
 
