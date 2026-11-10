@@ -1896,6 +1896,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._maybe_refresh_cop_hourly(now)
             await self._maybe_refresh_cop_degradation(now)
             await self._maybe_refresh_quality_live(now, snap)
+            await self._maybe_rollup_today_live(time.time())
             await self._refresh_alerts_today(now)
             await self._maybe_refresh_spf(now)
             snap.cop_today = self._cop_today_heating_cache
@@ -2727,6 +2728,49 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _LOGGER.exception("live daily rollup failed")
             return
         await self._refresh_daily_summary_recent()
+
+    async def _maybe_rollup_today_live(
+        self, now: float
+    ) -> None:
+        """R782: refresh today's daily_summary while a cycle is still open.
+
+        #262 added open-cycle SQL support (end_ts IS NULL) to
+        async_rollup_day, but the only caller was _maybe_rollup_day
+        (cycle close). An open 20-hour heating cycle therefore left
+        daily_summary stale for its entire duration.
+
+        Prod evidence (issue #316, ed-vanleeuwen 2026-11-10):
+        daily_summary(2026-11-10, heating).updated_ts stayed frozen at
+        17:00 (last cycle close) while a 5851s heating cycle ran. The
+        18:00 tick called _refresh_7d_rollups (caches only), not
+        async_rollup_day, so the row stayed stale all night.
+
+        Throttled to once per 15 min. Only fires while a cycle is
+        open, so idle periods cost nothing.
+        """
+        if not (self.options or {}).get(
+            OPTION_DAILY_SUMMARY_LIVE_ENABLED, True
+        ):
+            return
+        db = getattr(self, "db", None)
+        if db is None:
+            return
+        det = getattr(self, "detector", None)
+        if det is None or getattr(det, "state", None) != "running":
+            return
+        last = getattr(self, "_last_rollup_today_ts", 0.0)
+        if now - last < 900.0:
+            return
+        self._last_rollup_today_ts = now
+        try:
+            today = time.strftime("%Y-%m-%d", time.localtime(now))
+            await db.async_rollup_day(today)
+        except Exception:
+            _LOGGER.exception("live daily rollup failed")
+            return
+        refresh = getattr(self, "_refresh_daily_summary_recent", None)
+        if refresh is not None:
+            await refresh()
 
     def _is_hybrid_install(self) -> bool:
         """True if the configured model belongs to the EVLQ hybrid family."""
