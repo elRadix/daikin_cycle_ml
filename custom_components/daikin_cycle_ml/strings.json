@@ -303,6 +303,9 @@
       },
       "cop_physically_impossible": {
         "name": "COP physically impossible"
+      },
+      "dhw_installed": {
+        "name": "DHW installed"
       }
     },
     "sensor": {
@@ -507,6 +510,10 @@
     "espaltherma_v2_missing_attrs": {
       "title": "ESPAltherma v2 sensors missing",
       "description": "{count} required sensor(s) are not published by ESPAltherma v2: {labels}. Enable them in the ESPAltherma v2 web UI (Settings → Definitions), then restart ESPAltherma."
+    },
+    "dhw_missing_suspect": {
+      "title": "DHW tank not detected",
+      "description": "Cycle ML has not detected a DHW tank, but historical DHW cycles exist in the database. If you do not have a DHW tank (e.g., Bivalent Direct), you can safely ignore this. If you do have one, verify your ESPAltherma sensor configuration, or set 'DHW Tank Present' to 'Always' in Options → Advanced."
     }
   },
   "options": {

@@ -2,6 +2,45 @@
 
 ## [Unreleased]
 
+## [1.22.3] - 2026-11-12
+
+### Added
+- **`dhw_present` config option** (`auto` / `always` / `never`) in Options → Advanced.
+  Controls whether the integration expects a DHW tank. `auto` uses 3-tier detection
+  (3way valve attribute → DHW tank temp → historical DB cycles). Resolved state is
+  cached per coordinator lifecycle and re-resolved on options reload.
+- **`binary_sensor.daikin_cycle_ml_dhw_installed`** — exposes the resolved DHW state
+  (`on` = tank expected, `off` = bypassed).
+- **`dhw_missing_suspect` Repair issue** — raised when `dhw_present=False` but
+  historical DHW cycles exist in DB, pointing users to fix their config.
+- **Bivalent systems guide** in `docs/CONFIGURATION.md` §4.8 — decision matrix +
+  step-by-step for Bivalent Direct (SH-only) and Bivalent Indirect (DHW).
+- **Troubleshooting entries** for "COP shows Unknown" and "DHW recorded as heating"
+  in `docs/TROUBLESHOOTING.md` §3.4, §3.5, §4.5.4.
+
+### Fixed
+- **#167:** Boolean-valued `3way valve` attribute (`True` / `False`) now correctly
+  parsed as ON/OFF. Previously returned `None`, causing DHW cycles to be recorded
+  as heating on newer ESPAltherma firmware.
+- **#176:** Bivalent Direct (SH-only) installs no longer fail COP aggregation when
+  the 3way valve sensor is disabled in ESPAltherma. Previously this made all COP
+  values `Unknown` and fired `missing_attrs` alerts.
+- **#328:** DHW auto-detection via 3-tier resolution + override. Empty-attr ticks
+  (frozen source) no longer lock in the tier4 default before source data arrives,
+  preventing valve discovery from being permanently disabled.
+
+### Changed
+- Coordinator `_async_update_data` resolves `dhw_present` **before** cycle
+  detection so tick-1 classification uses the resolved value (was: after).
+- Detector consults the valve for DHW corroboration only when `dhw_present=True`;
+  bypasses valve entirely when `False` (enables Bivalent Direct).
+
+### Docs
+- `DATABASE.md`: `features` schema documented as `vector_json` + `v11` (previous
+  `v0..v11` description was stale). `cop_samples` column list corrected
+  (`outdoor` not `outdoor_temp`, plus 6 missing columns). `daily_summary` pro-rata
+  vs full-cycle aggregation semantics documented as by-design.
+
 ## [1.22.2] - 2026-11-11
 
 ### Fixed

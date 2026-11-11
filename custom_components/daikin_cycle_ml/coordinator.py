@@ -22,6 +22,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 # v1.4.1 BUG-2 / BUG-3: score wiring + threshold.
 from .const import (
+    CONF_DHW_PRESENT, DHW_PRESENT_AUTO, DHW_PRESENT_ALWAYS, DHW_PRESENT_NEVER, ATTR_3WAY_VALVE, ATTR_DHW_TANK_TEMP,
     ALERT_STORE_KEY,
     ALERT_STORE_SAVE_DELAY,
     ALERT_STORE_VERSION,
@@ -600,7 +601,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cycle_cop_weight_sum: float = 0.0
         self._cycle_cop_sq_w_sum: float = 0.0
         self._cycle_cop_count: int = 0
-        self.detector = CycleDetector(self.options)
+        self.dhw_present = True
+        self._dhw_present_resolved = False
+        self._dhw_present_source: str = "unresolved"
+        self.last_attrs: dict[str, Any] = {}
+        self.detector = CycleDetector(self.options, dhw_present=self.dhw_present)
         self.store = CycleStore()
         self._errors_total = 0
         self._notify_fail_streak: int = 0
@@ -1742,6 +1747,48 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             mono_cov=mono_cov, ind_cov=ind_cov, reason=reason,
         )
 
+    async def _resolve_dhw_present(self) -> bool:
+        override = self.options.get(CONF_DHW_PRESENT, DHW_PRESENT_AUTO)
+        if override == DHW_PRESENT_ALWAYS:
+            self._dhw_present_source = "override_always"
+            return True
+        if override == DHW_PRESENT_NEVER:
+            self._dhw_present_source = "override_never"
+            return False
+        attrs = getattr(self, 'last_attrs', {}) or {}
+        if ATTR_3WAY_VALVE in attrs or ATTR_DHW_TANK_TEMP in attrs:
+            self._dhw_present_source = "tier1_attrs"
+            return True
+        db = getattr(self, 'db', None)
+        if db is not None and hasattr(db, 'async_get_dhw_cycle_count'):
+            if await db.async_get_dhw_cycle_count() > 0:
+                self._dhw_present_source = "tier3_history"
+                return True
+        self._dhw_present_source = "tier4_default"
+        return False
+
+    async def _async_ensure_dhw_present(self, snap: Any) -> None:
+        """#328: resolve dhw_present once per entry lifetime (resets on reload)."""
+        new_attrs = dict(getattr(snap, "attrs", None) or {})
+        if new_attrs:
+            self.last_attrs = new_attrs
+        if getattr(self, '_dhw_present_resolved', False):
+            return
+        override = self.options.get(CONF_DHW_PRESENT, DHW_PRESENT_AUTO)
+        if override == DHW_PRESENT_AUTO and not new_attrs:
+            # No source data and no override — wait for next tick
+            return
+        try:
+            self.dhw_present = await self._resolve_dhw_present()
+        except Exception:
+            _LOGGER.exception("dhw_present resolve failed — defaulting to True")
+            self.dhw_present = True
+            self._dhw_present_source = "fallback_on_error"
+        self.detector._dhw_present = self.dhw_present
+        self._dhw_present_resolved = True
+        _LOGGER.info("dhw_present resolved: %s (source=%s)",
+                     self.dhw_present, self._dhw_present_source)
+
     async def _async_update_data(self) -> DataSnapshot:
         now = time.time()
         snap = DataSnapshot(last_sample_ts=now)
@@ -1821,6 +1868,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 # incrementing defrost/BUH counters.
                 self._tick_buh_and_defrost(attrs, now)
                 return snap
+            await self._async_ensure_dhw_present(snap)
             self._track_setpoint(attrs)
             snap.power_w = self._read_power_w()
             snap.cop, _cop_src = self._read_cop_effective(now, attrs)

@@ -679,7 +679,7 @@ Two identical alerts of the same type within the window collapse to one. To forc
 
 ### 4.5 Screen 5 — Advanced
 
-Two sections: **Retention**, **Season**.
+Three sections: **Retention**, **Season**, **DHW detection**.
 
 **Retention**
 
@@ -699,6 +699,20 @@ Rows older than retention days are deleted daily at 03:00 local. VACUUM reclaims
 | Season start month | `season_start_month` | 10 (October) | 1–12 |
 
 Used by `spf_season`. Set to the month that starts your heating season. October is safe for Europe.
+
+**DHW Detection**
+
+| Field | Code key | Default | Range |
+|---|---|---|---|
+| DHW tank present | `dhw_present` | `auto` | `auto` / `always` / `never` |
+
+Controls whether the integration expects a DHW tank. Full decision guide in §4.8 (standard vs bivalent setups).
+
+- `auto` — 3-tier detection: 3-way valve attribute → DHW tank temp → historical DHW cycles in DB. Falls back to `False` if none found.
+- `always` — force DHW detection ON. Use when you have a DHW tank but the source sensor is missing the expected attributes.
+- `never` — force DHW detection OFF. Use for **Bivalent Direct (SH-only)** setups where no DHW tank exists and the valve sensor has been disabled.
+
+The resolved state is exposed as `binary_sensor.daikin_cycle_ml_dhw_installed`.
 
 ### 4.6 Screen 6 — Test notification
 
@@ -736,6 +750,62 @@ Configures the electrical-input estimate used for COP.
 **Priority order:** power meter > ESPAltherma 2.0 Stats > v1 inverter fallback (+100 W offset). See **README → COP without a power meter** for full explanation.
 
 **Verify:** `sensor.daikin_cycle_ml_electrical_power_estimated` shows the current estimate. Its `source` attribute reveals which path was taken at any moment.
+
+
+### 4.8 Bivalent systems — DHW detection guide
+
+Bivalent setups combine a Daikin heat pump with an auxiliary boiler. The integration needs to know whether to expect a DHW tank or bypass DHW detection entirely.
+
+**Decision matrix**
+
+| Setup | Recommended `dhw_present` | Why |
+|---|---|---|
+| Standard (HP-only, DHW tank) | `auto` | Valve or tank sensor usually present |
+| **Bivalent Direct (SH-only)** — no DHW tank | `never` | No tank exists; disabling valve sensor prevents ghost-tank rendering artifacts |
+| Bivalent Indirect (DHW only) | `always` | Boiler heats DHW; HP sees tank via boiler circuit |
+| Bivalent Indirect (DHW + SH) | `always` | Same as above |
+
+#### Bivalent Direct (SH-only) — step-by-step
+
+Common case: EVLQ-series HP with an auxiliary boiler and **no DHW tank**. If you disabled the `3way valve` sensor in ESPAltherma (common when it triggers ghost-tank rendering in the HA dashboard):
+
+| Step | Action |
+|---|---|
+| 1 | Options → Advanced → **DHW tank present** → `never` |
+| 2 | Save |
+| 3 | Repair issue (if present) auto-clears on next coordinator tick |
+| 4 | Verify `binary_sensor.daikin_cycle_ml_dhw_installed` is `off` |
+| 5 | COP aggregation resumes as Heating-only; no missing-attribute errors |
+
+#### Bivalent Indirect (DHW) — step-by-step
+
+Common case: HP handles space heating, boiler handles DHW. HP sees the DHW tank through the boiler's tank probe.
+
+| Step | Action |
+|---|---|
+| 1 | Options → Advanced → **DHW tank present** → `always` |
+| 2 | Ensure `DHW tank temp. (R5T)` is enabled in ESPAltherma `.h` file |
+| 3 | Save |
+| 4 | Verify `binary_sensor.daikin_cycle_ml_dhw_installed` is `on` |
+| 5 | Cycles classify correctly between heating and DHW |
+
+#### Repair issue: "DHW tank not detected"
+
+Fires when the integration resolved `dhw_present=False` but historical DHW cycles exist in the database.
+
+| Cause | Fix |
+|---|---|
+| You intended to disable DHW (Bivalent Direct) | Set `never`; issue clears on next coordinator tick |
+| You accidentally disabled a valve sensor | Re-enable in ESPAltherma, or set `always` to force detection |
+
+#### Verifying the resolved state
+
+Developer Tools → States → filter by `dhw_installed`:
+
+| Value | Meaning |
+|---|---|
+| `on` | DHW tank expected; valve/tank signals active |
+| `off` | No DHW tank; DHW detection bypassed |
 
 ## 5. Reconfigure
 

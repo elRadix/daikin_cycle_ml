@@ -5,7 +5,7 @@ from typing import Any
 
 DOMAIN = "daikin_cycle_ml"
 NAME = "Daikin Cycle ML"
-VERSION = "1.22.2"
+VERSION = "1.22.3"
 
 # --- Coordinator ---
 UPDATE_INTERVAL_SECONDS = 30
@@ -283,6 +283,11 @@ ATTR_INV_FREQUENCY_RPS = "INV frequency (rps)"
 ATTR_INV_FREQUENCY_2_RPS = "INV frequency 2 (rps)"
 ATTR_OPERATION_MODE = "Operation Mode"
 ATTR_IU_OPERATION_MODE = "I/U operation mode"
+CONF_DHW_PRESENT = "dhw_present"
+DHW_PRESENT_AUTO = "auto"
+DHW_PRESENT_ALWAYS = "always"
+DHW_PRESENT_NEVER = "never"
+
 ATTR_3WAY_VALVE = "3way valve(On:DHW_Off:Space)"
 ATTR_DEFROST_OPERATION = "Defrost Operation"
 ATTR_LEAVING_WATER_AFTER_BUH = "Leaving water temp. after BUH (R2T)"

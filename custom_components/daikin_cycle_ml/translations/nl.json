@@ -861,6 +861,9 @@
       },
       "cop_physically_impossible": {
         "name": "COP fysiek onmogelijk"
+      },
+      "dhw_installed": {
+        "name": "DHW geïnstalleerd"
       }
     }
   },
@@ -904,6 +907,10 @@
     "espaltherma_v2_missing_attrs": {
       "title": "ESPAltherma v2-sensoren ontbreken",
       "description": "{count} vereiste sensor(en) worden niet gepubliceerd door ESPAltherma v2: {labels}. Schakel ze in via de ESPAltherma v2 web-UI (Instellingen → Definities) en herstart ESPAltherma."
+    },
+    "dhw_missing_suspect": {
+      "title": "DHW-tank niet gedetecteerd",
+      "description": "Cycle ML heeft geen DHW-tank gedetecteerd, maar er bestaan historische DHW-cycli in de database. Heb je geen DHW-tank (bv. Bivalent Direct), kun je dit negeren. Heb je er wel een, controleer dan je ESPAltherma sensorconfiguratie of zet 'DHW Tank Present' op 'Always' in Opties → Geavanceerd."
     }
   },
   "services": {

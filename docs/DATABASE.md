@@ -210,32 +210,35 @@ CREATE TABLE cycles (
 
 ### 3.2 `features`
 
-12-dimensional feature vectors, one per cycle.
+12-dimensional feature vectors, one per cycle, stored as JSON.
 
 ```sql
 CREATE TABLE features (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    cycle_id  INTEGER NOT NULL UNIQUE,
-    v0        REAL, v1 REAL, v2 REAL, v3 REAL, v4 REAL, v5 REAL,
-    v6        REAL, v7 REAL, v8 REAL, v9 REAL, v10 REAL, v11 REAL,
+    cycle_id    INTEGER PRIMARY KEY,
+    vector_json TEXT NOT NULL,  -- JSON array of 12 floats
+    v11         REAL,           -- legacy denormalization of vector_json[11]
     FOREIGN KEY (cycle_id) REFERENCES cycles(id) ON DELETE CASCADE
 );
 ```
 
-| Column | Dimension |
+**Access pattern:** consumers read `vector_json` and parse via `json.loads(row["vector_json"])`. No per-dimension SQL columns exist — the old `v0..v10` layout was retired before v1.22. `v11` remains as a legacy denormalization of `vector_json[11]` for backward compatibility; new code should always read from `vector_json`.
+
+**Feature vector layout** (`vector_json[i]`):
+
+| Index | Dimension |
 |---|---|
-| `v0` | duration_s |
-| `v1` | dT_max |
-| `v2` | dT_avg |
-| `v3` | rps_max |
-| `v4` | rps_avg |
-| `v5` | outdoor_temp |
-| `v6` | buh_used |
-| `v7` | defrost_used |
-| `v8` | cop_avg |
-| `v9` | lwt_avg |
-| `v10` | indoor_temp_avg |
-| `v11` | thermal_kw_avg |
+| 0 | duration_s |
+| 1 | dT_max |
+| 2 | dT_avg |
+| 3 | rps_max |
+| 4 | rps_avg |
+| 5 | outdoor_temp |
+| 6 | buh_used |
+| 7 | defrost_used |
+| 8 | cop_avg |
+| 9 | lwt_avg |
+| 10 | indoor_temp_avg |
+| 11 | thermal_kw_avg |
 
 **Cascade delete:** when a cycle is deleted (retention or manual), its feature row is deleted automatically. This is why maintenance deletes features before cycles — or relies on the cascade.
 
@@ -266,16 +269,21 @@ CREATE TABLE cop_samples (
 
 | Column | Purpose |
 |---|---|
+| `id` | Auto-increment primary key |
 | `ts` | Unix timestamp |
 | `cop` | COP value at sample time |
 | `lwt` | Leaving water temp at sample time |
-| `outdoor` | Outdoor temp at sample time |
-| `flow_lmin` | Water flow at sample time |
-| `power_w` | Electrical power (W) at sample time |
+| `outdoor` | Outdoor air temp at sample time (column name is `outdoor`, not `outdoor_temp`) |
+| `r1t` | R1T outdoor-air sensor raw value |
+| `r4t` | R4T inlet-water sensor raw value |
+| `flow_lmin` | Water flow rate (L/min) at sample time |
 | `power_stable` | 1 if power readings stable for ≥ 5 min, else 0 |
 | `mode` | `heating` / `cooling` / `dhw` / `unknown` |
-| `data_quality` | `good` / `suspect` / `bad` — set by COP analyzer |
 | `source` | `sensor` (from COP sensor) or `computed` (from thermal/electrical ratio) |
+| `mode_original` | Mode before transition-artifact filtering (NULL when identical to `mode`) |
+| `is_transition_artifact` | 1 if sample spans a mode transition, else 0 |
+| `boiler_active` | 1 if bivalent boiler active at sample time, else 0 |
+| `boiler_mode` | Boiler operation mode (`''` when not hybrid) |
 
 **Indexes:** `idx_cop_samples_ts`, `idx_cop_samples_outdoor`
 
@@ -325,24 +333,36 @@ CREATE TABLE daily_summary (
     buh_count        INTEGER DEFAULT 0,
     defrost_count    INTEGER DEFAULT 0,
     updated_ts       REAL NOT NULL,
+    transient_count  INTEGER DEFAULT 0,
     PRIMARY KEY (day, mode)
 );
 ```
 
 | Column | Purpose |
 |---|---|
-| `day` | `YYYY-MM-DD` local date |
+| `day` | `YYYY-MM-DD` local date (Europe/Brussels) |
 | `mode` | `heating` / `cooling` / `dhw` / `unknown` |
-| `cycles` | Cycle count for that day+mode |
-| `total_duration_s` | Total compressor runtime |
-| `duration_min` / `duration_max` | Shortest / longest cycle (seconds) |
+| `cycles` | Count of non-transient cycles that **start** on this day |
+| `total_duration_s` | **Pro-rata overlap**: sum of every cycle's portion that overlaps this day (includes cross-midnight and transient contributions) |
+| `duration_min` / `duration_max` | Shortest / longest **full** cycle duration among cycles that **start** on this day (seconds) |
 | `quality_sum` | Sum of quality scores (average = quality_sum / cycles) |
 | `dt_max_sum` | Sum of dT_max (average = dt_max_sum / cycles) |
 | `rps_sum` | Sum of rps_avg |
 | `buh_count` | Cycles with BUH active |
 | `defrost_count` | Cycles with defrost active |
+| `transient_count` | Count of transient cycles **starting** on this day (disjoint from `cycles`) |
 
 **Index:** `idx_daily_summary_day` on `day`
+
+#### Semantics (by design — not a bug)
+
+`total_duration_s` and `duration_min`/`duration_max` are **intentionally independent** aggregations. Expect these apparent 'inconsistencies':
+
+- **`duration_max > total_duration_s`** — the cycle spans midnight. `duration_max` is the full cycle length; `total_duration_s` counts only today's portion.
+- **`cycles == 0` with `total_duration_s > 0`** — only the tail of a previous-day cycle overlaps today.
+- **`transient_count > 0` with `cycles == 0`** — only transient cycles started today.
+
+None of these indicate data corruption. They are the documented output contract (see also HANDOFF v129.0 §22.1).
 
 No thermal kWh columns — those live in `model_state.thermal_daily_baseline` since v1.9 (I6 design decision to avoid a migration).
 

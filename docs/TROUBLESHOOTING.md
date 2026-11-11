@@ -208,6 +208,8 @@ If all checks pass and no cycles after 2 hours, download diagnostics and check `
 2. Check if its value changes when DHW is active
 3. If it doesn't change, your ESPAltherma `.h` file is picking up the wrong register
 
+**Additional check (v1.22.3+):** If you have a **Bivalent Direct** setup (no DHW tank) and disabled the `3way valve` sensor, set `Options → Advanced → DHW tank present` to `never`. This bypasses valve-based mode detection. See [CONFIGURATION.md §4.8](CONFIGURATION.md#48-bivalent-systems--dhw-detection-guide).
+**v1.22.3+ auto-detection:** Boolean-valued `3way valve` attributes (`True` / `False`) are now parsed correctly. If `binary_sensor.daikin_cycle_ml_dhw_installed` is `off` but you *do* have a DHW tank, set `Options → Advanced → DHW tank present` to `always` to force detection. See [CONFIGURATION.md §4.8](CONFIGURATION.md#48-bivalent-systems--dhw-detection-guide).
 ---
 
 ## 4. Sensors and entities
@@ -329,6 +331,32 @@ independent of HP cycle status.
 **To verify:** watch `binary_sensor.daikin_cycle_ml_boiler_operation_demand`.
 When ON and compressor OFF, the 4 cycle-shape alerts are suppressed at the
 `evaluate_alerts` level.
+
+
+### 4.5.4 COP shows "Unknown" or Repair "DHW tank not detected"
+
+**Cause:** Pre-v1.22.3, mode classification required a `3way valve` attribute to distinguish Heating from DHW. Disabling that sensor (common for Bivalent Direct setups to avoid ghost-tank rendering) made all COP values `Unknown` and fired missing-attribute alerts.
+
+**Fix (v1.22.3+):**
+
+| Step | Action |
+|---|---|
+| 1 | Open **Options → Advanced** |
+| 2 | Set **DHW tank present** per your setup (see table below) |
+| 3 | Save — Repair issue auto-clears on next coordinator tick |
+
+| Setup | `dhw_present` |
+|---|---|
+| Bivalent Direct (SH-only, no DHW tank) | `never` |
+| Bivalent Indirect (DHW) | `always` |
+| Standard (HP-only + DHW tank) | `auto` (default) |
+
+**Verifying:**
+
+- `binary_sensor.daikin_cycle_ml_dhw_installed` matches your setup (`on` = DHW expected, `off` = DHW bypassed)
+- COP aggregation resumes; no more `missing_attrs` alerts for valve or tank-temp attributes
+
+**Full guide:** [CONFIGURATION.md §4.8 — Bivalent systems](CONFIGURATION.md#48-bivalent-systems--dhw-detection-guide).
 
 ## 5. COP and energy
 
