@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+- **Diagnostics: `dhw_present` resolution state now visible.** The coordinator
+  section of download-diagnostics now includes `dhw_present`,
+  `dhw_present_source` (`tier1_attrs` / `tier3_history` / `override_never` /
+  `tier4_default` / `fallback_on_error`), and `dhw_present_resolved`. Enables
+  verification of #328 auto-detection on production instances without DB queries.
+
 ## [1.22.3] - 2026-11-12
 
 ### Added
