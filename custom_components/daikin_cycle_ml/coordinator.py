@@ -2593,6 +2593,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 absorbed = await self.db.async_merge_cycle_forward(cid)
                 if absorbed > 0:
                     rolled = self.store.rollback_last_cycles(absorbed)
+                    # #329b: sync in-memory store with extended keeper in DB
+                    await self.store.sync_last_cycle_from_db(self.db)
                     _LOGGER.debug(
                         "cycle %s forward-merged (%d deleted, %d rolled back)",
                         cid, absorbed, rolled,

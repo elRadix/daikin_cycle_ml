@@ -1157,6 +1157,21 @@ class CycleDB:
             deleted += 1
         return deleted
 
+    async def async_get_cycle_by_start_ts(
+        self, start_ts: float,
+    ) -> dict[str, Any] | None:
+        """#329b: fetch a cycle row by its exact start_ts."""
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT * FROM cycles WHERE start_ts = ? LIMIT 1",
+            (float(start_ts),),
+        )
+        try:
+            row = await cur.fetchone()
+        finally:
+            await cur.close()
+        return dict(row) if row else None
+
     async def async_merge_cycle_forward(self, new_id: int) -> int:
         """v1.12.9 (#131): bridge-aware forward merge after cycle insert.
 

@@ -91,6 +91,19 @@ class CycleStore:
             return None
         return dict(self._cycles[-1])
 
+    async def sync_last_cycle_from_db(self, db: Any) -> bool:
+        """#329b: re-fetch last cycle from DB and replace in-memory entry."""
+        if not self._cycles:
+            return False
+        start_ts = self._cycles[-1].get("start_ts")
+        if start_ts is None:
+            return False
+        fresh = await db.async_get_cycle_by_start_ts(start_ts)
+        if not isinstance(fresh, Mapping) or not fresh:
+            return False
+        self._cycles[-1] = dict(fresh)
+        return True
+
     def count(self) -> int:
         return len(self._cycles)
 
