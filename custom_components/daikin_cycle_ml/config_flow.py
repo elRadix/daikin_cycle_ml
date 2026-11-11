@@ -52,6 +52,10 @@ from .const import (
     ATTRIBUTE_MODE_MANUAL,
     CONF_INDIVIDUAL_PREFIX,
     CONF_SOURCE_TYPE,
+    CONF_DHW_PRESENT,
+    DHW_PRESENT_AUTO,
+    DHW_PRESENT_ALWAYS,
+    DHW_PRESENT_NEVER,
     DEFAULT_ACTION_ADVICE_ENABLED,
     DEFAULT_ADAPTIVE_MIN_SAMPLES,
     DEFAULT_ADAPTIVE_THRESHOLDS_ENABLED,
@@ -1715,6 +1719,9 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
             return self._save(user_input)
         c: dict[str, Any] = dict(self.config_entry.options or {})
         schema = vol.Schema({
+            vol.Required(CONF_DHW_PRESENT,
+                default=c.get(CONF_DHW_PRESENT, DHW_PRESENT_AUTO)
+            ): vol.In([DHW_PRESENT_AUTO, DHW_PRESENT_ALWAYS, DHW_PRESENT_NEVER]),
             vol.Required("retention"): section(vol.Schema({
                 vol.Required("retention_enabled",
                     default=c.get("retention_enabled", DEFAULT_RETENTION_ENABLED)

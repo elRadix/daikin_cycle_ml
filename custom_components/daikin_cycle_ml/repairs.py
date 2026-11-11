@@ -24,6 +24,29 @@ ISSUE_DATASHEET_SCHEMA_UNKNOWN = "datasheet_schema_unknown"
 ISSUE_DATASHEET_LOAD_FAILED = "datasheet_load_failed"
 ISSUE_LEGACY_DB_MULTI_ENTRY = "legacy_db_multi_entry"
 ISSUE_V2_MISSING_ATTRS = "espaltherma_v2_missing_attrs"
+ISSUE_DHW_MISSING_SUSPECT = "dhw_missing_suspect"
+
+
+async def _check_dhw_missing_suspect(
+    hass: HomeAssistant, entry_id: str, coord: Any
+) -> None:
+    """#328: warn if user disabled valve but has DHW history."""
+    issue_id = f"{ISSUE_DHW_MISSING_SUSPECT}_{entry_id}"
+    if bool(getattr(coord, "dhw_present", True)):
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
+    count = await coord.db.async_get_dhw_cycle_count()
+    if count > 0:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=ISSUE_DHW_MISSING_SUSPECT,
+        )
+    else:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
 
 
 async def async_check_repairs(
@@ -41,6 +64,7 @@ async def async_check_repairs(
             _check_db_corrupt(hass, entry_id, coordinator)
             _check_notify_failed(hass, entry_id, coordinator)
             _check_migration_failed(hass, entry_id, coordinator)
+            await _check_dhw_missing_suspect(hass, entry_id, coordinator)
     except Exception:
         _LOGGER.exception("Repairs check failed for %s", entry_id)
 

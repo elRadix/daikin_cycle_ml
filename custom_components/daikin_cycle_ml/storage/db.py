@@ -1157,6 +1157,12 @@ class CycleDB:
             deleted += 1
         return deleted
 
+    async def async_get_dhw_cycle_count(self) -> int:
+        conn = self._require()
+        cur = await conn.execute("SELECT COUNT(*) FROM cycles WHERE mode='dhw'")
+        row = await cur.fetchone()
+        return row[0] if row else 0
+
     async def async_get_cycle_by_start_ts(
         self, start_ts: float,
     ) -> dict[str, Any] | None:

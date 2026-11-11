@@ -78,6 +78,8 @@ def _parse_valve(attrs: Mapping[str, Any]) -> str | None:
     if not isinstance(attrs, Mapping):
         return None
     raw = attrs.get(ATTR_3WAY_VALVE)
+    if isinstance(raw, bool):
+        return "ON" if raw else "OFF"
     if not isinstance(raw, str):
         return None
     v = raw.strip().upper()
@@ -223,8 +225,9 @@ def _apply_thermal_sanity_gate(
 class CycleDetector:
     """Stateful detector: idle <-> running, emits cycle record on close."""
 
-    def __init__(self, options: Mapping[str, Any] | None = None) -> None:
+    def __init__(self, options: Mapping[str, Any] | None = None, dhw_present: bool = True) -> None:
         self._options = dict(options or {})
+        self._dhw_present = dhw_present
         self._state = STATE_IDLE
         self._start_ts: float | None = None
         self._mode: str = "unknown"
@@ -240,6 +243,14 @@ class CycleDetector:
         self._boiler_samples: int = 0
         self._boiler_heat_samples: int = 0
         self._boiler_dhw_samples: int = 0
+
+    def _classify_mode(self, attrs: Mapping[str, Any]) -> str:
+        if not self._dhw_present:
+            return "heating"
+        mode = classify_mode(attrs)
+        if mode in ("heating", "cooling", "unknown") and _parse_valve(attrs) == "ON":
+            return "dhw"
+        return mode
 
     @property
     def state(self) -> str:
@@ -566,7 +577,7 @@ class CycleDetector:
             if on:
                 self._state = STATE_RUNNING
                 self._start_ts = now
-                self._mode = classify_mode(attrs)
+                self._mode = self._classify_mode(attrs)
                 self._accumulate(attrs)
                 self._record_boiler_sample(
                     active=boiler_active,
@@ -585,7 +596,7 @@ class CycleDetector:
                 record = self._close(now)
                 self._state = STATE_RUNNING
                 self._start_ts = now
-                self._mode = classify_mode(attrs)
+                self._mode = self._classify_mode(attrs)
                 self._accumulate(attrs)
                 return record
             self._accumulate(attrs)
