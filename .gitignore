@@ -24,3 +24,6 @@ DEEPSEEK.md
 tests/fixtures/*.db
 tests/fixtures/*.db-wal
 tests/fixtures/*.db-shm
+
+# #329 local prod DB snapshots for test repro
+.test-data/

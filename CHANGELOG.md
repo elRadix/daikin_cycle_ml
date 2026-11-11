@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Fixed
+- **`last_cycle` sensor stale after forward-merge (#329).** `CycleStore.last_cycle()`
+  now refreshes from the DB after a merge extends the keeper cycle, so
+  `sensor.daikin_cycle_ml_last_cycle_duration`, `_ago_min`, and `_quality` match
+  the persisted `cycles` table. Pre-fix values could lag by 6h+ until the next
+  cycle close or HA restart.
+
 ## [1.22.1] - 2026-11-11
 
 ### Added
