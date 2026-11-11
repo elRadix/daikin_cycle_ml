@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.22.2] - 2026-11-11
+
 ### Fixed
 - **`last_cycle` sensor stale after forward-merge (#329).** `CycleStore.last_cycle()`
   now refreshes from the DB after a merge extends the keeper cycle, so
