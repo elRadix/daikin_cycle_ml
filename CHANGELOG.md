@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+### Added
+- **Diagnostics v2 complete**: 22 sections (was 5). New: `meta`, `source`
+  (full attrs + URL-cred redaction), `detector` FSM, `features`, `alerts`,
+  `bivalent`, `defrost`, `buh`, `entities`, `device`, `runtime`,
+  `sampling`, `coordinator_timing`, `transitions`, `repairs`.
+  Extended: `baseline` (mean/m2), `adaptive` (thresholds), `clusters`
+  (vectors+health), `cop_analysis` (state_mapped, bucket_edges),
+  `database` (integrity, retention), `coordinator` (tick timing, errors).
+- **Value-level redaction**: `notify.*` targets and `user:pass@` URL creds
+  scrubbed from any string. `meta.redaction_keys` documents it.
+
+### Changed
+- **`_async_update_data` decorated with `@_instrument_tick`** — captures
+  tick timing + exception trail. Uses `functools.wraps` to preserve the
+  AST contract `test_328_*` relies on.
+- **Coordinator defensive `getattr`** on 5 new trackers so `__new__`-
+  bypassed test fixtures keep working (per R808).
+
 ### Changed
 - **Diagnostics: `dhw_present` resolution state now visible.** The coordinator
   section of download-diagnostics now includes `dhw_present`,

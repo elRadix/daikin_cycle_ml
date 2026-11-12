@@ -1,5 +1,8 @@
 """DataUpdateCoordinator for Daikin Cycle ML."""
 from __future__ import annotations
+import traceback
+from typing import Awaitable, Callable, Concatenate, Coroutine, ParamSpec, TypeVar, cast
+import functools
 
 import asyncio
 import contextlib
@@ -510,6 +513,49 @@ class _AutoSourceChoice:
     reason: str
 
 
+def _instrument_tick(  # MYPY-FIX-V1224
+    func: Callable[Concatenate[Any, P], Coroutine[Any, Any, R]],
+) -> Callable[Concatenate[Any, P], Coroutine[Any, Any, R]]:  # MYPY-FIX-V1224-C
+    """Decorator: async update method with timing + error capture (DIAG-V1224B).
+
+    Preserves method name via functools.wraps so AST contract tests that
+    inspect _async_update_data still see the original body.
+    """
+    @functools.wraps(func)
+    async def wrapper(self: Any, *args: P.args, **kwargs: P.kwargs) -> R:
+        import time as _t
+        if not getattr(self, "_uptime_start_monotonic", 0.0):
+            self._uptime_start_monotonic = _t.monotonic()
+        _t0 = _t.monotonic()
+        self._tick_count = getattr(self, "_tick_count", 0) + 1
+        try:
+            return await func(self, *args, **kwargs)
+        except Exception as exc:
+            self._record_exception(exc)
+            raise
+        finally:
+            _dur = (_t.monotonic() - _t0) * 1000
+            self._last_tick_duration_ms = _dur
+            _max = getattr(self, "_tick_duration_max_ms", 0.0)
+            if _dur > _max:
+                self._tick_duration_max_ms = _dur
+            _buf = getattr(self, "_tick_durations_ms", None)
+            if _buf is not None:
+                _buf.append(_dur)
+            try:
+                self._record_tick_health()
+            except Exception:
+                pass
+    return cast(  # MYPY-FIX-V1224-D
+        Callable[Concatenate[Any, P], Coroutine[Any, Any, R]],
+        wrapper,
+    )
+
+
+P = ParamSpec("P")  # MYPY-FIX-V1224
+R = TypeVar("R")
+
+
 class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     """Reads the source sensor every UPDATE_INTERVAL_SECONDS."""
 
@@ -656,6 +702,25 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._auto_last_chosen: str = ""
         self._source_resolution: dict[str, Any] = {}
         self._last_observed_mode: str = ""
+        # ---------- v1.22.4 DIAG-V1224B: diagnostics instrumentation ----------
+        self._tick_count: int = 0
+        self._tick_durations_ms: deque[float] = deque(maxlen=200)  # MYPY-FIX-V1224
+        self._last_tick_duration_ms: float = 0.0
+        self._tick_duration_max_ms: float = 0.0
+        self._tick_timestamps: deque[float] = deque(maxlen=3000)  # MYPY-FIX-V1224
+        self._gap_count_24h: int = 0
+        self._largest_gap_s: float = 0.0
+        self._last_gap_s: float | None = None
+        self._duplicate_ts_count: int = 0
+        self._non_numeric_attrs: list[str] = []
+        self._null_attrs_last_tick: list[str] = []
+        self._samples_last_24h: int = 0
+        self._samples_expected_24h: int = 2880
+        self._last_exception: str | None = None
+        self._last_exception_ts: float | None = None
+        self._last_exception_traceback: str | None = None
+        self._uptime_start_monotonic: float = 0.0
+        self._transitions: deque[dict[str, Any]] = deque(maxlen=100)  # MYPY-FIX-V1224
         # v1.19.9 #123: daily reject-tracking for cop_physically_impossible.
         self._cop_rejected_today_count: int = 0
         self._cop_rejected_today_first_ts: float = 0.0
@@ -1789,6 +1854,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         _LOGGER.info("dhw_present resolved: %s (source=%s)",
                      self.dhw_present, self._dhw_present_source)
 
+    @_instrument_tick
     async def _async_update_data(self) -> DataSnapshot:
         now = time.time()
         snap = DataSnapshot(last_sample_ts=now)
@@ -3433,6 +3499,48 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 return cm
         return 'unknown'
 
+    def _record_tick_health(self) -> None:  # DIAG-V1224B (defensive)
+        import time as _t
+        now = _t.time()
+        buf = getattr(self, "_tick_timestamps", None)
+        if buf is None:
+            return
+        prev = buf[-1] if buf else None
+        buf.append(now)
+        if prev is not None:
+            gap = now - prev
+            self._last_gap_s = gap
+            if gap > getattr(self, "_largest_gap_s", 0.0):
+                self._largest_gap_s = gap
+            ui = getattr(self, "update_interval", None)
+            expected = ui.total_seconds() if ui else 30.0
+            if gap > expected * 1.5:
+                self._gap_count_24h = getattr(self, "_gap_count_24h", 0) + 1
+            elif gap < expected * 0.5:
+                self._duplicate_ts_count = getattr(self, "_duplicate_ts_count", 0) + 1
+        cutoff = now - 86400
+        while buf and buf[0] < cutoff:
+            buf.popleft()
+        self._samples_last_24h = len(buf)
+        attrs = getattr(getattr(self, "data", None), "attrs", {}) or {}
+        non_num: list[str] = []
+        nulls: list[str] = []
+        for k, v in attrs.items():
+            if v is None:
+                nulls.append(k)
+            elif not isinstance(v, (int, float, bool)):
+                non_num.append(k)
+        self._non_numeric_attrs = non_num[:20]
+        self._null_attrs_last_tick = nulls[:20]
+
+    def _record_exception(self, exc: BaseException) -> None:  # DIAG-V1224B
+        import time as _t
+        self._last_exception = f"{type(exc).__name__}: {exc}"
+        self._last_exception_ts = _t.time()
+        self._last_exception_traceback = "".join(
+            traceback.format_exception(type(exc), exc, exc.__traceback__)
+        )[-4096:]
+
     def _track_mode_transition(self, snap: Any, now: float) -> None:
         """v1.19.9 #122: track non-unknown mode transitions.
 
@@ -3447,6 +3555,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not _new_mode or _new_mode == "unknown":
             return
         if _new_mode != self._last_observed_mode:
+            buf = getattr(self, "_transitions", None)  # DIAG-V1224B (defensive)
+            if buf is not None:
+                buf.append({
+                    "ts": now,
+                    "from": self._last_observed_mode or "unknown",
+                    "to": _new_mode,
+                })
             self._last_mode_change_ts = now
             self._last_observed_mode = _new_mode
 
