@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Ask a question / share your setup
+    url: https://github.com/elRadix/daikin_cycle_ml/discussions
+    about: Usage questions, ESPAltherma setup help, model compat — use Discussions, not Issues.
+  - name: 📖 Documentation
+    url: https://github.com/elRadix/daikin_cycle_ml#readme
+    about: README, DATABASE.md, and dashboard docs. Read these first.
+  - name: 🚀 Latest release / HACS
+    url: https://github.com/elRadix/daikin_cycle_ml/releases/latest
+    about: Make sure you're on the latest version before filing a bug.
