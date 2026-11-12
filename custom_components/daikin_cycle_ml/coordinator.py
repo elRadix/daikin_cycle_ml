@@ -1,7 +1,7 @@
 """DataUpdateCoordinator for Daikin Cycle ML."""
 from __future__ import annotations
 import traceback
-from typing import Any, Awaitable, Callable, Concatenate, Coroutine, ParamSpec, TypeVar, cast
+from typing import Awaitable, Callable, Concatenate, Coroutine, ParamSpec, TypeVar, cast
 import functools
 
 import asyncio

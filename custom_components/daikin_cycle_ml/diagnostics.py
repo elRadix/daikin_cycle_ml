@@ -6,9 +6,11 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from typing import cast  # MYPY-FIX-V1224
 from homeassistant.util import dt as dt_util
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.device_registry import DeviceEntry  # MYPY-FIX-V1224-C
 import time
 import sys
 import re
@@ -256,8 +258,9 @@ def _entities_registry(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any
 
 
 def _device_registry(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:  # # DIAG-V1224
-    reg = dr.async_get(hass)
-    for dev in reg.devices.values():
+    reg = dr.async_get(hass)  # MYPY-FIX-V1224
+    devices_map = cast(dict[str, "DeviceEntry"], reg.devices)  # MYPY-FIX-V1224
+    for dev in devices_map.values():
         if entry.entry_id in dev.config_entries:
             return {
                 "id": dev.id,
@@ -280,9 +283,12 @@ def _detector_snapshot(coord: Any) -> dict[str, Any]:  # # DIAG-V1224
     for k in ("state", "_state", "mode", "_mode", "mode_source",
               "_mode_source", "_run_start_ts", "run_start_ts",
               "_rps_threshold", "_dhw_present"):
-        if hasattr(det, k):
+        if hasattr(det, k):  # MYPY-FIX-V1224
             v = getattr(det, k, None)
-            out[k.lstrip("_")] = v if not hasattr(v, "isoformat") else v.isoformat()
+            if v is not None and hasattr(v, "isoformat"):
+                out[k.lstrip("_")] = v.isoformat()
+            else:
+                out[k.lstrip("_")] = v
     if "run_start_ts" in out and out["run_start_ts"]:
         try:
             out["run_duration_s"] = time.time() - float(out["run_start_ts"])
@@ -591,5 +597,5 @@ async def async_get_config_entry_diagnostics(
         "transitions": _detector_transitions(coord),
         "repairs": _repairs_snapshot(hass),
     }
-    result = _redact_strings_recursive(result)
-    return result
+    result = _redact_strings_recursive(result)  # MYPY-FIX-V1224
+    return cast(dict[str, Any], result)
