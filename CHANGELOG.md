@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.22.4] - 2026-11-12
+
 ### Added
 - **Diagnostics v2 complete**: 22 sections (was 5). New: `meta`, `source`
   (full attrs + URL-cred redaction), `detector` FSM, `features`, `alerts`,
