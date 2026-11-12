@@ -1,0 +1,102 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in Daikin Cycle ML
+title: "[Bug]: "
+labels: ["bug"]
+assignees: [elRadix]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📎 Attach your diagnostics file
+        The **single most useful thing** for us: a diagnostics JSON file.
+        Step-by-step at the bottom of this form.
+
+        Before you submit:
+        - Search [existing issues](https://github.com/elRadix/daikin_cycle_ml/issues)
+        - Update to the [latest version](https://github.com/elRadix/daikin_cycle_ml/releases/latest) via HACS
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Pre-flight checklist
+      options:
+        - label: I searched existing issues and discussions
+          required: true
+        - label: I am running the latest version via HACS
+          required: true
+        - label: I will attach a diagnostics file (or a SQL extract below)
+          required: true
+# PART1
+
+  - type: dropdown
+    id: integration_version
+    attributes:
+      label: Daikin Cycle ML version
+      description: Settings -> Devices & Services -> Daikin Cycle ML (top right of the entry)
+      options:
+        - "1.22.1 (latest)"
+        - "1.22.0"
+        - "1.21.0"
+        - "1.20.x"
+        - "1.19.x or older"
+        - "Other (specify in what-happens)"
+    validations:
+      required: true
+
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant Core version
+      placeholder: "2026.11.0"
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Heat pump model
+      description: Entry title in Settings -> Devices & Services, e.g. epra12eav3
+      placeholder: "epra12eav3"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source_type
+    attributes:
+      label: Source type
+      options:
+        - "Monolithic entity (sensor.althermasensors)"
+        - "Individual entities (sensor.espaltherma_*)"
+        - "Auto-detect"
+        - "Not sure"
+    validations:
+      required: true
+# PART2
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        ## 📎 How to download the diagnostics file
+
+        1. Settings -> Devices & Services -> Daikin Cycle ML
+        2. Click the **three dots** (⋮) next to the integration
+        3. Select **Download diagnostics**
+        4. Drag the downloaded `.json` file into the comment box below
+
+        If the file is >10 MB: open it in a text editor, remove the
+        `database.extra.daily_summary` block, then attach the trimmed file.
+
+        ### Fallback: SQL extract
+        If you cannot attach the file, run this via Developer Tools -> SQL:
+
+        ```sql
+        SELECT day, mode, cycles, transient_count, defrost_count,
+               quality_avg, updated_ts
+        FROM daily_summary
+        WHERE day >= date('now','localtime','-7 days')
+        ORDER BY day DESC, mode;
+        ```
+
+        Paste the output inside a code block in this issue.
+# PART4
