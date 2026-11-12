@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import pathlib
+from datetime import date
 
 import pytest
 
@@ -39,16 +40,19 @@ async def test_snapshot_heals_after_backfill(tmp_path):
     await db.async_open()
     await db.async_initialize()
     try:
-        rows_before = await db.async_daily_summary(days=7)
+        # TIME-INDEPENDENT-FIX: compute window from (today - fixture_date)
+        nov5 = date(2026, 11, 5)
+        days_needed = (date.today() - nov5).days + 7
+        rows_before = await db.async_daily_summary(days=days_needed)
         by = {(r["day"], r["mode"]): r for r in rows_before}
         n5_before = by.get(("2026-11-05", "heating"), {}).get(
             "total_duration_s", 0
         )
 
-        n_rebuilt = await db.async_backfill_daily_summary_recent(days=7)
-        assert n_rebuilt == 7, f"rebuilt={n_rebuilt}, expected 7"
+        n_rebuilt = await db.async_backfill_daily_summary_recent(days=days_needed)
+        assert n_rebuilt == days_needed, f"rebuilt={n_rebuilt}, expected {days_needed}"
 
-        rows_after = await db.async_daily_summary(days=7)
+        rows_after = await db.async_daily_summary(days=days_needed)
         by = {(r["day"], r["mode"]): r for r in rows_after}
         n5_after = by.get(("2026-11-05", "heating"), {}).get(
             "total_duration_s", 0
