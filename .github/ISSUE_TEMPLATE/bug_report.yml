@@ -86,17 +86,4 @@ body:
 
         If the file is >10 MB: open it in a text editor, remove the
         `database.extra.daily_summary` block, then attach the trimmed file.
-
-        ### Fallback: SQL extract
-        If you cannot attach the file, run this via Developer Tools -> SQL:
-
-        ```sql
-        SELECT day, mode, cycles, transient_count, defrost_count,
-               quality_avg, updated_ts
-        FROM daily_summary
-        WHERE day >= date('now','localtime','-7 days')
-        ORDER BY day DESC, mode;
-        ```
-
-        Paste the output inside a code block in this issue.
 # PART4
