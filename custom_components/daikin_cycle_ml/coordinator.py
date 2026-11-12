@@ -1,6 +1,7 @@
 """DataUpdateCoordinator for Daikin Cycle ML."""
 from __future__ import annotations
 import traceback
+from typing import Any, Awaitable, Callable, Concatenate, Coroutine, ParamSpec, TypeVar, cast
 import functools
 
 import asyncio
@@ -512,14 +513,16 @@ class _AutoSourceChoice:
     reason: str
 
 
-def _instrument_tick(func):
+def _instrument_tick(  # MYPY-FIX-V1224
+    func: Callable[Concatenate[Any, P], Coroutine[Any, Any, R]],
+) -> Callable[Concatenate[Any, P], Coroutine[Any, Any, R]]:  # MYPY-FIX-V1224-C
     """Decorator: async update method with timing + error capture (DIAG-V1224B).
 
     Preserves method name via functools.wraps so AST contract tests that
     inspect _async_update_data still see the original body.
     """
     @functools.wraps(func)
-    async def wrapper(self, *args, **kwargs):
+    async def wrapper(self: Any, *args: P.args, **kwargs: P.kwargs) -> R:
         import time as _t
         if not getattr(self, "_uptime_start_monotonic", 0.0):
             self._uptime_start_monotonic = _t.monotonic()
@@ -543,7 +546,14 @@ def _instrument_tick(func):
                 self._record_tick_health()
             except Exception:
                 pass
-    return wrapper
+    return cast(  # MYPY-FIX-V1224-D
+        Callable[Concatenate[Any, P], Coroutine[Any, Any, R]],
+        wrapper,
+    )
+
+
+P = ParamSpec("P")  # MYPY-FIX-V1224
+R = TypeVar("R")
 
 
 class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
@@ -694,10 +704,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._last_observed_mode: str = ""
         # ---------- v1.22.4 DIAG-V1224B: diagnostics instrumentation ----------
         self._tick_count: int = 0
-        self._tick_durations_ms: deque = deque(maxlen=200)
+        self._tick_durations_ms: deque[float] = deque(maxlen=200)  # MYPY-FIX-V1224
         self._last_tick_duration_ms: float = 0.0
         self._tick_duration_max_ms: float = 0.0
-        self._tick_timestamps: deque = deque(maxlen=3000)
+        self._tick_timestamps: deque[float] = deque(maxlen=3000)  # MYPY-FIX-V1224
         self._gap_count_24h: int = 0
         self._largest_gap_s: float = 0.0
         self._last_gap_s: float | None = None
@@ -710,7 +720,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._last_exception_ts: float | None = None
         self._last_exception_traceback: str | None = None
         self._uptime_start_monotonic: float = 0.0
-        self._transitions: deque = deque(maxlen=100)
+        self._transitions: deque[dict[str, Any]] = deque(maxlen=100)  # MYPY-FIX-V1224
         # v1.19.9 #123: daily reject-tracking for cop_physically_impossible.
         self._cop_rejected_today_count: int = 0
         self._cop_rejected_today_first_ts: float = 0.0
