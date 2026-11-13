@@ -574,6 +574,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _runtime_day_key: str = ""
     _buh_step1_s: float = 0.0
     _buh_step2_s: float = 0.0
+    _buh_total_s: float = 0.0  # v1.22.7: wall-time (max 1x per tick regardless of step1/step2)
     _prev_defrost: bool = False
     _defrost_start_ts: float | None = None
     _defrost_count_today: int = 0
@@ -749,6 +750,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._runtime_day_key: str = ""
         self._buh_step1_s: float = 0.0
         self._buh_step2_s: float = 0.0
+        self._buh_total_s: float = 0.0  # v1.22.7: wall-time
         self._prev_defrost: bool = False
         self._defrost_start_ts: float | None = None
         self._defrost_count_today: int = 0
@@ -2071,6 +2073,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         payload: dict[str, Any] = {
             "buh_step1_s": self._buh_step1_s,
             "buh_step2_s": self._buh_step2_s,
+            "buh_total_s": self._buh_total_s,  # v1.22.7: wall-time
             "defrost_count": float(self._defrost_count_today),
             "defrost_duration_s": self._defrost_duration_s,
             "last_defrost_ts": self._last_defrost_ts,
@@ -2138,6 +2141,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._cop_rejected_day_key = day
             self._buh_step1_s = 0.0
             self._buh_step2_s = 0.0
+            self._buh_total_s = 0.0  # v1.22.7
             self._prev_defrost = False
             self._defrost_start_ts = None
             self._defrost_count_today = 0
@@ -2188,6 +2192,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     )
                     self._buh_step1_s = float(existing.get("buh_step1_s", 0.0))
                     self._buh_step2_s = float(existing.get("buh_step2_s", 0.0))
+                    # v1.22.7: backfill for pre-v1.22.7 payloads (no buh_total_s key)
+                    self._buh_total_s = float(existing.get(
+                        "buh_total_s",
+                        max(self._buh_step1_s, self._buh_step2_s),
+                    ))
                     self._defrost_count_today = int(existing.get("defrost_count", 0))
                     self._defrost_duration_s = float(
                         existing.get("defrost_duration_s", 0.0)
@@ -2202,6 +2211,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     "day": self._runtime_day_key,
                     "buh_step1_s": self._buh_step1_s,
                     "buh_step2_s": self._buh_step2_s,
+                    "buh_total_s": self._buh_total_s,  # v1.22.7
                     "defrost_count": self._defrost_count_today,
                     "defrost_duration_s": self._defrost_duration_s,
                     "last_defrost_ts": self._last_defrost_ts,
@@ -2298,6 +2308,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 return False
             self._buh_step1_s = float(payload.get("buh_step1_s", 0.0))
             self._buh_step2_s = float(payload.get("buh_step2_s", 0.0))
+            self._buh_total_s = float(payload.get(
+                "buh_total_s",
+                max(self._buh_step1_s, self._buh_step2_s),
+            ))  # v1.22.7: wall-time counter; migration backfills via max()
             self._defrost_count_today = int(payload.get("defrost_count", 0))
             self._defrost_duration_s = float(
                 payload.get("defrost_duration_s", 0.0)
@@ -2445,10 +2459,16 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
             s1 = attrs.get(ATTR_BUH_STEP1)
             s2 = attrs.get(ATTR_BUH_STEP2)
-            if _is_valid_state(s1) and tolerant_on(s1):
+            step1_on = _is_valid_state(s1) and tolerant_on(s1)
+            step2_on = _is_valid_state(s2) and tolerant_on(s2)
+            if step1_on:
                 self._buh_step1_s += dt_s
-            if _is_valid_state(s2) and tolerant_on(s2):
+            if step2_on:
                 self._buh_step2_s += dt_s
+            # v1.22.7: wall-time counter — one dt_s per tick regardless of
+            # step1+step2 both ON. Fixes 2x inflation (60s per 30s wall-time).
+            if step1_on or step2_on:
+                self._buh_total_s += dt_s
 
             defrost_raw = attrs.get(ATTR_DEFROST_OPERATION)
             if not _is_valid_state(defrost_raw):

@@ -86,18 +86,29 @@ def test_runtime_compressor_today_adds_live_elapsed():
     assert v >= 160
 
 
-def test_runtime_buh_today_sums_steps():
-    c = _mk_coord(
-        runtime={
-            "buh_step1_s": 60.0,
-            "buh_step2_s": 30.0,
-            "defrost_count": 0.0,
-            "defrost_duration_s": 0.0,
-            "last_defrost_ts": 0.0,
-        }
-    )
-    s = _mk_snap()
-    assert s_mod._value_runtime_buh_today_s(s, c) == 90
+def test_runtime_buh_today_walltime():
+    """v1.22.7: wall-time counter (max 1x per tick, not step1+step2).
+
+    Old behavior: step1_s + step2_s = 60 (double-counted).
+    New behavior: buh_total_s = 30 (wall-time), or fallback max(30,30).
+    """
+    c = MagicMock()
+    c.runtime_snapshot = {
+        "buh_step1_s": 30.0,
+        "buh_step2_s": 30.0,
+        "buh_total_s": 30.0,  # v1.22.7: wall-time (was double-count 60)
+        "defrost_count": 0.0,
+        "defrost_duration_s": 0.0,
+        "last_defrost_ts": 0.0,
+        "defrost_start_ts": None,
+        "prev_defrost": False,
+        "defrost_prior_s": None,
+    }
+    c.last_attrs = {}
+    snap = DataSnapshot(attrs={})
+    # Wall-time: 30s (not 60s sum)
+    assert s_mod._value_runtime_buh_today_s(snap, c) == 30
+
 
 
 def test_compressor_starts_counts_cycles():
