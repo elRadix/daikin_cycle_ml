@@ -2449,7 +2449,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 self._buh_step1_s += dt_s
             if _is_valid_state(s2) and tolerant_on(s2):
                 self._buh_step2_s += dt_s
-                
+
             defrost_raw = attrs.get(ATTR_DEFROST_OPERATION)
             if not _is_valid_state(defrost_raw):
                 # v1.20.0 #280 + v1.22.5 #308: partial attrs or sensor dropout.
