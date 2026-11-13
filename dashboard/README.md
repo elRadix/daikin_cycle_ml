@@ -7,6 +7,7 @@ Ready-to-use Lovelace dashboard cards for the **Daikin Cycle ML** integration.
 | Card | Description | Preview | Requires |
 |---|---|---|---|
 | [**Daily Summary Tabbed**](cards/daily-summary-tabbed/README.md) | **5-tab variant** — Overview, Quality, Cycles, Duration, Events. Adaptive charts, popup details, EN/NL entity auto-detect, persistent tab state | <img src="cards/daily-summary-tabbed/screenshot-overview.png" width="480" alt="Daily Summary Tabbed preview"> | v1.12.0+ |
+| [**LWT Fine-Tuning**](cards/lwt-fine-tuning/README.md) | **4-tab heating-curve advisor** — Advice, Buckets (optimal LWT curve with auto-zoom), Analysis (slope/tracking/step), Live (animated LWT marker). EN/NL auto-detect, popup drilldown, optimal-zone band, state-aware waiting messages | <img src="cards/lwt-fine-tuning/showcase.gif" width="480" alt="LWT Fine-Tuning preview (animated)"> | v1.22.6+ |
 
 ## Other cards
 
