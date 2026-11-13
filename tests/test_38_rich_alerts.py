@@ -81,3 +81,11 @@ def test_rich_alert_has_types_in_schema():
 def test_rich_alert_all_types_have_emoji():
     for t in ALL_TYPES:
         assert t in ALERT_TYPE_EMOJI
+
+def test_build_rich_alert_invalid_language_fallback():
+    """Invalid language code must fall back to EN (coverage: build_rich_alert line)."""
+    out = build_rich_alert("short_run", "warning", {}, language="xx")
+    # EN fallback should produce a valid title (not the raw alert_type)
+    assert "Short run" in out or "Short run detected" in out
+    # And should not crash / return empty
+    assert len(out) > 20

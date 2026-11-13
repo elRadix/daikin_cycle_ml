@@ -62,7 +62,7 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 - **Adaptive Y-axis** — charts auto-scale to remove empty space
 - **Popup details** — tap any bar, dot, tile, or stat for a full breakdown
 - **Persistent tab state** — remembers your view across live updates
-- **EN/NL entities** — works with Dutch entity IDs out of the box
+- **EN/NL/FR entities** — works with Dutch entity IDs out of the box
 - **5 configurable variables** — language, default tab, window, chart height, hints
 
 **[📥 Download YAML](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary-tabbed/daily-summary-tabbed.yaml)** · **[📖 Full documentation](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daily-summary-tabbed)**
@@ -73,13 +73,13 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 [<img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/cop-energy/showcase.png" width="480" alt="COP & Energie Card">](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/cop-energy)
 
-**Live COP, energy, and seasonal performance at a glance.** Radial SPF hero gauge, per-mode COP dials, animated RPS-driven fan, and today's energy cascade. Light + dark themes, EN/NL auto-detection — 2 runtime variables.
+**Live COP, energy, and seasonal performance at a glance.** Radial SPF hero gauge, per-mode COP dials, animated RPS-driven fan, and today's energy cascade. Light + dark themes, EN/NL/FR auto-detection — 2 runtime variables.
 
 - **SPF hero gauge** — 3-layer radial with polar 24h chart inside
 - **Mode dials** — Heating, DHW, Cooling side-by-side
 - **Live power view** — animated fan + electrical/thermal split when running
 - **Energy cascade** — daily balance sheet + thermal split + per-mode cards
-- **2 configurable variables** — theme (light/dark/auto) and language (EN/NL/auto)
+- **2 configurable variables** — theme (light/dark/auto) and language (EN/NL/FR/auto)
 
 **[📥 Download YAML](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/cop-energy/cop-energy.yaml)** · **[📖 Full documentation](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/cop-energy)**
 
@@ -89,7 +89,7 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 [<img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/pattern-analysis/showcase.gif" width="480" alt="Pattern Analysis Card">](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/pattern-analysis)
 
-Multi-tab analytics card for **Distribution, Scatter, and COP**. Cycle-duration buckets, quality-coloured scatter with today-highlight pulse, live COP with 48h sparkline + datasheet comparison + per-mode breakdown + dual-axis duration/cycles trend with crown/warning badges. EN/NL entity auto-detect, dark-mode support, interactive popups.
+Multi-tab analytics card for **Distribution, Scatter, and COP**. Cycle-duration buckets, quality-coloured scatter with today-highlight pulse, live COP with 48h sparkline + datasheet comparison + per-mode breakdown + dual-axis duration/cycles trend with crown/warning badges. EN/NL/FR entity auto-detect, dark-mode support, interactive popups.
 
 **[📥 Download YAML](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/pattern-analysis/pattern-analysis.yaml)** · **[📖 Full documentation](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/pattern-analysis)**
 
@@ -99,7 +99,7 @@ Multi-tab analytics card for **Distribution, Scatter, and COP**. Cycle-duration 
 
 **Optimize your heating curve, save COP, live LWT tracking.**
 
-Four-tab advisor: **Advice** (Lower/Raise/Optimal + COP impact), **Buckets** (interactive optimal-LWT curve per outdoor temp, auto-zoom, popup drilldown), **Analysis** (slope / tracking-error / step-size + offset advice), **Live** (animated LWT marker on color-coded range). Auto-locale EN/NL, state-aware waiting messages, configurable via `lang_override`, `default_tab`, `show_help`.
+Four-tab advisor: **Advice** (Lower/Raise/Optimal + COP impact), **Buckets** (interactive optimal-LWT curve per outdoor temp, auto-zoom, popup drilldown), **Analysis** (slope / tracking-error / step-size + offset advice), **Live** (animated LWT marker on color-coded range). Auto-locale EN/NL/FR, state-aware waiting messages, configurable via `lang_override`, `default_tab`, `show_help`.
 
 **[📥 Download YAML](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/lwt-fine-tuning/card.yaml)** · **[📖 Full documentation](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/lwt-fine-tuning)**
 
@@ -171,7 +171,7 @@ The new `sensor.daikin_cycle_ml_electrical_power_estimated` shows the live estim
 **12 sensors** for compressor runtime, BUH runtime, defrost count/duration, duty cycle, and electrical/thermal kWh per mode. All energy sensors are HA Energy Dashboard compatible (`state_class: total_increasing`). **Accumulator persistence across HA restarts** — no more lost daily totals after a reboot.
 
 ### 19 alerts, fully tunable
-**19 alert types** across 7 domains — pendulum, short cycle, ML, setpoint, COP/heat-curve, component health, data quality. Every alert has its **own dedup window** and — new in v1.9 — **11 per-alert toggles** on top of 5 group toggles. Quiet hours with critical bypass, bilingual EN + NL templates, delivery to any `notify.*` service plus persistent notifications.
+**19 alert types** across 7 domains — pendulum, short cycle, ML, setpoint, COP/heat-curve, component health, data quality. Every alert has its **own dedup window** and — new in v1.9 — **11 per-alert toggles** on top of 5 group toggles. Quiet hours with critical bypass, bilingual EN / NL / FR templates, delivery to any `notify.*` service plus persistent notifications.
 
 ### Per-installation machine learning
 **12-dimensional feature vector** per cycle. **Per-mode EWMA baseline** with outlier skip. **Adaptive thresholds** (opt-in) that learn what "normal" looks like for your house. **Weekly k-means clustering** into 3 archetypes (pendulum / normal / dhw_like). **Z-score anomaly detection** flags unusual cycles before they become alerts. **Energy anomaly detection** with Welford baseline catches stuck valves and runaway demand.

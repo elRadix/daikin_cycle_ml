@@ -9,27 +9,28 @@ from hypothesis import strategies as st
 
 from custom_components.daikin_cycle_ml.const import (
     ATTR_3WAY_VALVE,
-    ATTR_BUH_STEP1,
-    ATTR_BUH_STEP2,
-    ATTR_DEFROST_OPERATION,
-    ATTR_FLOW_SENSOR,
-    ATTR_INLET_WATER_R4T,
-    ATTR_IU_OPERATION_MODE,
-    ATTR_LEAVING_WATER_AFTER_BUH,
-    ATTR_LW_SETPOINT,
-    ATTR_OPERATION_MODE,
-    ATTR_OUTDOOR_AIR_R1T,
-    ATTR_WATER_PUMP_OPERATION,
     ATTR_BE_COP,
     ATTR_BOILER_DHW_DEMAND,
     ATTR_BOILER_OPERATION_DEMAND,
+    ATTR_BUH_STEP1,
+    ATTR_BUH_STEP2,
     ATTR_COP,
+    ATTR_DEFROST_OPERATION,
     ATTR_DHW_TANK_TEMP,
+    ATTR_FLOW_SENSOR,
     ATTR_HYBRID_OP_MODE,
     ATTR_INDOOR_AMBIENT_R1T,
+    ATTR_INLET_WATER_R4T,
     ATTR_INV_FREQUENCY_2_RPS,
     ATTR_INV_FREQUENCY_RPS,
+    ATTR_IU_OPERATION_MODE,
+    ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_LEAVING_WATER_BEFORE_BUH,
+    ATTR_LW_SETPOINT,
+    ATTR_OPERATION_MODE,
+    ATTR_OUTDOOR_AIR_R1T,
     ATTR_TARGET_COND_TEMP,
+    ATTR_WATER_PUMP_OPERATION,
     CONSUMED_ATTRIBUTES,
     REQUIRED_ATTRIBUTES,
 )
@@ -103,6 +104,7 @@ def _full_payload_25() -> dict[str, str]:
         f"{DEFAULT_PREFIX}{make_json_key(ATTR_INV_FREQUENCY_2_RPS)}": "15",
         f"{DEFAULT_PREFIX}{make_json_key(ATTR_DHW_TANK_TEMP)}": "55.0",
         f"{DEFAULT_PREFIX}{make_json_key(ATTR_INDOOR_AMBIENT_R1T)}": "21.5",
+        f"{DEFAULT_PREFIX}{make_json_key(ATTR_LEAVING_WATER_BEFORE_BUH)}": "40.5",
         f"{DEFAULT_PREFIX}{make_json_key(ATTR_TARGET_COND_TEMP)}": "38.0",
         f"{DEFAULT_PREFIX}{make_json_key(ATTR_BOILER_OPERATION_DEMAND)}": "OFF",
         f"{DEFAULT_PREFIX}{make_json_key(ATTR_BOILER_DHW_DEMAND)}": "OFF",
@@ -374,7 +376,7 @@ def test_resolve_extra_consumed_missing_not_in_required() -> None:
     extra_labels = set(CONSUMED_ATTRIBUTES) - set(REQUIRED_ATTRIBUTES)
     assert result.missing_required == []
     assert set(result.missing_consumed) == extra_labels
-    assert len(result.missing_consumed) == 13  # 25 consumed - 12 required
+    assert len(result.missing_consumed) == 14  # 26 consumed - 12 required
 
 
 def test_resolve_missing_required_also_in_missing_consumed() -> None:
@@ -411,10 +413,11 @@ def test_read_entity_state_returns_none_when_entity_absent() -> None:
 
 def test_read_entity_state_returns_none_when_raw_state_is_none() -> None:
     """Line 89: state.state is None -> None."""
+    from unittest.mock import MagicMock
+
     from custom_components.daikin_cycle_ml.engine.espaltherma_v2.resolver import (
         _read_entity_state,
     )
-    from unittest.mock import MagicMock
     hass = MagicMock()
     s = MagicMock()
     s.state = None

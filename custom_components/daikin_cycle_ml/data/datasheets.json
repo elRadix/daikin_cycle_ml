@@ -1413,6 +1413,72 @@
         5,
         22
       ]
+    },
+    "epra14dav3": {
+      "family": "Altherma 3 H HT",
+      "kw": 5.69,
+      "lwt_min": 25,
+      "lwt_max": 70,
+      "nom_cop": 4.67,
+      "scop_w35": 4.51,
+      "scop_w55": 3.58,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.67,
+          "hc": 5.69
+        }
+      ],
+      "hc_max_a7": 10.18,
+      "ref": "daikin.eu product table ETVH16S18EA6V / EPRA1xDAV3 (EN14511, A7/W35 dT5)"
+    },
+    "epra16dav3": {
+      "family": "Altherma 3 H HT",
+      "kw": 9.0,
+      "lwt_min": 25,
+      "lwt_max": 70,
+      "nom_cop": 5.0,
+      "scop_w35": 4.51,
+      "scop_w55": 3.58,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 5.0,
+          "hc": 9.0
+        }
+      ],
+      "hc_max_a7": 10.91,
+      "ref": "daikin.eu product table ETVH16S18EA6V / EPRA1xDAV3 (EN14511, A7/W35 dT5)"
+    },
+    "epra18dav3": {
+      "family": "Altherma 3 H HT",
+      "kw": 9.0,
+      "lwt_min": 25,
+      "lwt_max": 70,
+      "nom_cop": 5.0,
+      "scop_w35": 4.51,
+      "scop_w55": 3.58,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 5.0,
+          "hc": 9.0
+        }
+      ],
+      "hc_max_a7": 12.12,
+      "ref": "daikin.eu product table ETVH16S18EA6V / EPRA1xDAV3 (EN14511, A7/W35 dT5)"
     }
   }
 }

@@ -34,9 +34,14 @@ cards:
           var CFG = (typeof variables !== 'undefined' && variables) ? variables : {};
           var cfgLangOvr = String(CFG.lang_override || '').toLowerCase();
           var haLang = (typeof hass !== 'undefined' && hass && hass.language) ? String(hass.language).toLowerCase() : '';
+          var _cl = '';
+          try { for (var _k in states) { if (states[_k] && states[_k].attributes && states[_k].attributes.configured_language && (_k.endsWith('_cycle_state') || _k.endsWith('_cyclus_status'))) { _cl = String(states[_k].attributes.configured_language).toLowerCase(); break; } } } catch(e) {}
           var LANG = 'en';
-          if (cfgLangOvr === 'nl' || cfgLangOvr === 'en') LANG = cfgLangOvr;
+          if (cfgLangOvr === 'nl' || cfgLangOvr === 'en' || cfgLangOvr === 'fr') LANG = cfgLangOvr;
           else if (haLang.indexOf('nl') === 0) LANG = 'nl';
+          else if (haLang.indexOf('fr') === 0) LANG = 'fr';
+          else if (_cl === 'nl') LANG = 'nl';
+          else if (_cl === 'fr') LANG = 'fr';
 
           var specs = null;
           var keys = Object.keys(states);
@@ -47,7 +52,7 @@ cards:
           }
           var model = (specs && specs.attributes && specs.attributes.model) ? String(specs.attributes.model).toUpperCase() : '';
           var title = '⚙️ LWT FINE-TUNING' + (model ? ' · ' + model : '');
-          var subtitle = LANG === 'nl' ? 'Stooklijn · Rendement · COP Analyse' : 'Heating Curve · Efficiency · COP Analysis';
+          var subtitle = LANG === 'nl' ? 'Stooklijn · Rendement · COP Analyse' : (LANG === 'fr' ? "Loi d'eau · Rendement · Analyse COP" : 'Heating Curve · Efficiency · COP Analysis');
           
           return `
             <div style="display:flex; align-items:center; justify-content:flex-start; gap:12px; text-align:left; width:100%;">
@@ -123,11 +128,19 @@ cards:
             var showHelp = CFG.show_help !== false;
             
             var haLang = (typeof hass !== 'undefined' && hass && hass.language) ? String(hass.language).toLowerCase() : '';
+            var _cl = '';
+            try { for (var _k in states) { if (states[_k] && states[_k].attributes && states[_k].attributes.configured_language && (_k.endsWith('_cycle_state') || _k.endsWith('_cyclus_status'))) { _cl = String(states[_k].attributes.configured_language).toLowerCase(); break; } } } catch(e) {}
             var LANG = 'en';
-            if (cfgLangOvr === 'nl' || cfgLangOvr === 'en') {
+            if (cfgLangOvr === 'nl' || cfgLangOvr === 'en' || cfgLangOvr === 'fr') {
               LANG = cfgLangOvr;
             } else if (haLang.indexOf('nl') === 0) {
               LANG = 'nl';
+            } else if (haLang.indexOf('fr') === 0) {
+              LANG = 'fr';
+            } else if (_cl === 'nl') {
+              LANG = 'nl';
+            } else if (_cl === 'fr') {
+              LANG = 'fr';
             }
 
             /* ═══ 2. ENTITY REGISTRY ═══ */
@@ -185,35 +198,35 @@ cards:
 
             /* ═══ 4. I18N (EN/NL) ═══ */
             var I18N = {
-              optimal_lwt: { nl: 'Optimale LWT', en: 'Optimal LWT' },
-              lower_lwt: { nl: 'Verlaag LWT', en: 'Lower LWT' },
-              increase_lwt: { nl: 'Verhoog LWT', en: 'Increase LWT' },
-              bucket: { nl: 'Bucket', en: 'Bucket' },
-              samples: { nl: 'samples', en: 'samples' },
-              reliable: { nl: 'betrouwbaar', en: 'reliable' },
-              live_temps: { nl: 'Live Temperaturen (LWT)', en: 'Live Temperatures (LWT)' },
-              current_cop: { nl: 'Huidige COP (geschat)', en: 'Current COP (est.)' },
-              target_cop: { nl: 'Doel COP (optimum)', en: 'Target COP (optimum)' },
-              impact: { nl: 'Rendement Impact', en: 'Efficiency Impact' },
-              act: { nl: 'Actueel', en: 'Actual' },
-              opt: { nl: 'Optimum', en: 'Optimum' },
-              set: { nl: 'Setpoint', en: 'Setpoint' },
-              goal: { nl: 'Doel', en: 'Goal' },
-              curve_opt: { nl: 'Stooklijn Optimalisatie', en: 'Heating Curve Optimization' },
-              click_details: { nl: '(Klik voor details)', en: '(Click for details)' },
-              analyse: { nl: 'Analyse & Offset', en: 'Analysis & Offset' },
-              slope: { nl: 'Slope', en: 'Slope' },
-              track: { nl: 'Tracking Fout', en: 'Tracking Error' },
-              step: { nl: 'Stap Grootte', en: 'Step Size' },
-              offset_advice: { nl: 'Offset Advies', en: 'Offset Advice' },
-              keep_offset: { nl: 'Behoud offset', en: 'Keep offset' },
-              increase: { nl: 'Verhoog', en: 'Increase' },
-              decrease: { nl: 'Verlaag', en: 'Decrease' },
-              insufficient_data: { nl: 'Onvoldoende data voor grafiek.', en: 'Insufficient data for chart.' },
-              waiting_data: { nl: 'Wachten op Daikin data...', en: 'Waiting for Daikin data...' },
-              waiting_dhw: { nl: 'Wachten op Daikin data (SWW actief)...', en: 'Waiting for Daikin data (DHW active)...' },
-              waiting_defrost: { nl: 'Wachten op Daikin data (Defrost actief)...', en: 'Waiting for Daikin data (Defrost active)...' },
-              waiting_unavailable: { nl: 'Daikin integratie niet beschikbaar.', en: 'Daikin integration unavailable.' }
+              optimal_lwt: { nl: 'Optimale LWT', en: 'Optimal LWT', fr: 'Départ optimal' },
+              lower_lwt: { nl: 'Verlaag LWT', en: 'Lower LWT', fr: 'Baisser le départ' },
+              increase_lwt: { nl: 'Verhoog LWT', en: 'Increase LWT', fr: 'Monter le départ' },
+              bucket: { nl: 'Bucket', en: 'Bucket', fr: 'Tranche' },
+              samples: { nl: 'samples', en: 'samples', fr: 'échantillons' },
+              reliable: { nl: 'betrouwbaar', en: 'reliable', fr: 'fiable' },
+              live_temps: { nl: 'Live Temperaturen (LWT)', en: 'Live Temperatures (LWT)', fr: 'Températures en direct (départ)' },
+              current_cop: { nl: 'Huidige COP (geschat)', en: 'Current COP (est.)', fr: 'COP actuel (est.)' },
+              target_cop: { nl: 'Doel COP (optimum)', en: 'Target COP (optimum)', fr: 'COP cible (optimum)' },
+              impact: { nl: 'Rendement Impact', en: 'Efficiency Impact', fr: 'Impact rendement' },
+              act: { nl: 'Actueel', en: 'Actual', fr: 'Actuel' },
+              opt: { nl: 'Optimum', en: 'Optimum', fr: 'Optimum' },
+              set: { nl: 'Setpoint', en: 'Setpoint', fr: 'Consigne' },
+              goal: { nl: 'Doel', en: 'Goal', fr: 'Cible' },
+              curve_opt: { nl: 'Stooklijn Optimalisatie', en: 'Heating Curve Optimization', fr: 'Optimisation de la loi d\'eau' },
+              click_details: { nl: '(Klik voor details)', en: '(Click for details)', fr: '(Cliquer pour détails)' },
+              analyse: { nl: 'Analyse & Offset', en: 'Analysis & Offset', fr: 'Analyse et décalage' },
+              slope: { nl: 'Slope', en: 'Slope', fr: 'Pente' },
+              track: { nl: 'Tracking Fout', en: 'Tracking Error', fr: 'Erreur de suivi' },
+              step: { nl: 'Stap Grootte', en: 'Step Size', fr: 'Taille du pas' },
+              offset_advice: { nl: 'Offset Advies', en: 'Offset Advice', fr: 'Conseil décalage' },
+              keep_offset: { nl: 'Behoud offset', en: 'Keep offset', fr: 'Conserver le décalage' },
+              increase: { nl: 'Verhoog', en: 'Increase', fr: 'Augmenter' },
+              decrease: { nl: 'Verlaag', en: 'Decrease', fr: 'Réduire' },
+              insufficient_data: { nl: 'Onvoldoende data voor grafiek.', en: 'Insufficient data for chart.', fr: 'Données insuffisantes pour le graphique.' },
+              waiting_data: { nl: 'Wachten op Daikin data...', en: 'Waiting for Daikin data...', fr: 'En attente des données Daikin...' },
+              waiting_dhw: { nl: 'Wachten op Daikin data (SWW actief)...', en: 'Waiting for Daikin data (DHW active)...', fr: 'En attente des données Daikin (ECS active)...' },
+              waiting_defrost: { nl: 'Wachten op Daikin data (Defrost actief)...', en: 'Waiting for Daikin data (Defrost active)...', fr: 'En attente des données Daikin (dégivrage actif)...' },
+              waiting_unavailable: { nl: 'Daikin integratie niet beschikbaar.', en: 'Daikin integration unavailable.', fr: 'Intégration Daikin indisponible.' }
             };
             var t = function(k) { var e = I18N[k]; if (!e) return k; return e[LANG] || e.en || e.nl; };
 
@@ -342,17 +355,17 @@ cards:
               if (delta < -0.5) {
                 var msg = LANG === 'nl' 
                   ? `Je setpoint staat momenteel <b>${Math.abs(delta).toFixed(1)}°C te hoog</b> voor deze buitentemperatuur. Door deze te verlagen bespaar je <b>${Math.abs(savings).toFixed(1)}%</b> aan COP-rendement.<br><br><b>Advies:</b> Verlaag je stooklijn (Offset) met ${Math.abs(delta).toFixed(1)}°C om het optimum te bereiken.`
-                  : `Your setpoint is currently <b>${Math.abs(delta).toFixed(1)}°C too high</b> for this outdoor temperature. Lowering it will save you <b>${Math.abs(savings).toFixed(1)}%</b> in COP efficiency.<br><br><b>Advice:</b> Lower your heating curve (Offset) by ${Math.abs(delta).toFixed(1)}°C to reach the optimum.`;
+                  : LANG === 'fr' ? `Votre consigne est actuellement <b>${Math.abs(delta).toFixed(1)}°C trop élevée</b> pour cette température extérieure. En la réduisant, vous économisez <b>${Math.abs(savings).toFixed(1)}%</b> en efficacité COP.<br><br><b>Conseil :</b> Réduisez votre loi d'eau (décalage) de ${Math.abs(delta).toFixed(1)}°C pour atteindre l'optimum.` : `Your setpoint is currently <b>${Math.abs(delta).toFixed(1)}°C too high</b> for this outdoor temperature. Lowering it will save you <b>${Math.abs(savings).toFixed(1)}%</b> in COP efficiency.<br><br><b>Advice:</b> Lower your heating curve (Offset) by ${Math.abs(delta).toFixed(1)}°C to reach the optimum.`;
                 return noteHelper(msg);
               } else if (delta > 0.5) {
                 var msg = LANG === 'nl'
                   ? `Je setpoint staat momenteel <b>${delta.toFixed(1)}°C te laag</b>. Dit kan ten koste gaan van je comfort.<br><br><b>Advies:</b> Verhoog je stooklijn of Offset met ${delta.toFixed(1)}°C om de woning comfortabel te houden.`
-                  : `Your setpoint is currently <b>${delta.toFixed(1)}°C too low</b>. This may impact your comfort.<br><br><b>Advice:</b> Increase your heating curve or Offset by ${delta.toFixed(1)}°C to keep the house comfortable.`;
+                  : LANG === 'fr' ? `Votre consigne est actuellement <b>${delta.toFixed(1)}°C trop basse</b>. Cela peut impacter votre confort.<br><br><b>Conseil :</b> Augmentez votre loi d'eau ou décalage de ${delta.toFixed(1)}°C pour garder la maison confortable.` : `Your setpoint is currently <b>${delta.toFixed(1)}°C too low</b>. This may impact your comfort.<br><br><b>Advice:</b> Increase your heating curve or Offset by ${delta.toFixed(1)}°C to keep the house comfortable.`;
                 return warnHelper(msg);
               } else {
                 var msg = LANG === 'nl'
                   ? `<b>Perfect!</b> Je setpoint staat exact op het optimum voor buitentemperatuur <b>${bucket}°C</b>. De warmtepomp draait op maximale efficiëntie.<br><br>Houd deze instelling vast!`
-                  : `<b>Perfect!</b> Your setpoint is exactly on the optimum for outdoor temperature <b>${bucket}°C</b>. The heat pump is running at maximum efficiency.<br><br>Keep this setting!`;
+                  : LANG === 'fr' ? `<b>Parfait !</b> Votre consigne est exactement à l'optimum pour la température extérieure <b>${bucket}°C</b>. La PAC fonctionne à efficacité maximale.<br><br>Conservez ce réglage !` : `<b>Perfect!</b> Your setpoint is exactly on the optimum for outdoor temperature <b>${bucket}°C</b>. The heat pump is running at maximum efficiency.<br><br>Keep this setting!`;
                 return noteHelper(msg);
               }
             };
@@ -362,7 +375,7 @@ cards:
               return noteHelper(
                 LANG === 'nl'
                   ? `De grafiek toont de beste LWT per buitentemperatuur. Jouw huidige bucket (<b>${bucket}°C</b>) heeft <b>${samples} samples</b> en is <b>${conf}</b>.<br><br><b>Tip:</b> Zie je een 'dip' in de lijn? Dan presteert je woning bij die specifieke temperatuur minder efficiënt. Klik op de stippen om de exacte COP-cijfers te bekijken.`
-                  : `The chart shows the best LWT per outdoor temperature. Your current bucket (<b>${bucket}°C</b>) has <b>${samples} samples</b> and is <b>${conf}</b>.<br><br><b>Tip:</b> See a 'dip' in the line? Your house performs less efficiently at that specific temperature. Click the dots to view the exact COP figures.`
+                  : LANG === 'fr' ? `Le graphique montre le meilleur départ par température extérieure. Votre tranche actuelle (<b>${bucket}°C</b>) a <b>${samples} échantillons</b> et est <b>${conf}</b>.<br><br><b>Astuce :</b> Vous voyez un 'creux' dans la ligne ? Votre logement est moins efficace à cette température. Cliquez sur les points pour voir les chiffres COP exacts.` : `The chart shows the best LWT per outdoor temperature. Your current bucket (<b>${bucket}°C</b>) has <b>${samples} samples</b> and is <b>${conf}</b>.<br><br><b>Tip:</b> See a 'dip' in the line? Your house performs less efficiently at that specific temperature. Click the dots to view the exact COP figures.`
               );
             };
 
@@ -370,12 +383,12 @@ cards:
               if (Math.abs(track) > 2) {
                 var msg = LANG === 'nl'
                   ? `<b>Tracking Fout (${nf(track,1)}°C):</b> Dit is vrij hoog. De warmtepomp heeft moeite om het setpoint te bereiken.<br><br><b>Oplossing:</b> Dit komt vaak door een defrost, een te lage waterflow (verhoog de pompstand) of een te agressieve stooklijn.`
-                  : `<b>Tracking Error (${nf(track,1)}°C):</b> This is quite high. The heat pump struggles to reach the setpoint.<br><br><b>Solution:</b> Often caused by a defrost cycle, low water flow (increase pump speed), or an aggressive heating curve.`;
+                  : LANG === 'fr' ? `<b>Erreur de suivi (${nf(track,1)}°C) :</b> Ceci est assez élevé. La PAC peine à atteindre la consigne.<br><br><b>Solution :</b> Souvent causé par un cycle de dégivrage, un débit d'eau faible (augmentez la vitesse pompe), ou une loi d'eau trop agressive.` : `<b>Tracking Error (${nf(track,1)}°C):</b> This is quite high. The heat pump struggles to reach the setpoint.<br><br><b>Solution:</b> Often caused by a defrost cycle, low water flow (increase pump speed), or an aggressive heating curve.`;
                 return warnHelper(msg);
               } else {
                 var msg = LANG === 'nl'
                   ? `<b>Tracking Fout (${nf(track,1)}°C):</b> Zeer goed. De stooklijn volgt het setpoint bijna perfect.<br><br><b>Uitleg:</b> De <b>Slope</b> bepaalt hoe snel de temperatuur stijgt als het kouder wordt. De <b>Offset</b> is het vaste verschil dat je handmatig toevoegt om het huis net dat beetje extra warmte te geven.`
-                  : `<b>Tracking Error (${nf(track,1)}°C):</b> Very good. The curve tracks the setpoint almost perfectly.<br><br><b>Explanation:</b> The <b>Slope</b> determines how fast the temperature rises when it gets colder. The <b>Offset</b> is the fixed difference you manually add to give the house that little bit of extra heat.`;
+                  : LANG === 'fr' ? `<b>Erreur de suivi (${nf(track,1)}°C) :</b> Très bon. La loi d'eau suit presque parfaitement la consigne.<br><br><b>Explication :</b> La <b>Pente</b> détermine à quelle vitesse la température monte quand il fait plus froid. Le <b>Décalage</b> est la différence fixe que vous ajoutez manuellement pour donner un peu de chaleur en plus.` : `<b>Tracking Error (${nf(track,1)}°C):</b> Very good. The curve tracks the setpoint almost perfectly.<br><br><b>Explanation:</b> The <b>Slope</b> determines how fast the temperature rises when it gets colder. The <b>Offset</b> is the fixed difference you manually add to give the house that little bit of extra heat.`;
                 return noteHelper(msg);
               }
             };
@@ -777,9 +790,9 @@ cards:
             var tabLive = defaultTab === 'live' ? 'lwt-btn-active' : '';
 
             out += '<div class="lwt-tabs">'
-              + '<div class="lwt-btn ' + tabAdvice + '" data-ev-action="view" data-ev-arg="advice">' + (LANG === 'nl' ? 'Advies' : 'Advice') + '</div>'
+              + '<div class="lwt-btn ' + tabAdvice + '" data-ev-action="view" data-ev-arg="advice">' + (LANG === 'nl' ? 'Advies' : (LANG === 'fr' ? 'Conseils' : 'Advice')) + '</div>'
               + '<div class="lwt-btn ' + tabBuckets + '" data-ev-action="view" data-ev-arg="buckets">Buckets</div>'
-              + '<div class="lwt-btn ' + tabAnalysis + '" data-ev-action="view" data-ev-arg="analysis">' + (LANG === 'nl' ? 'Analyse' : 'Analysis') + '</div>'
+              + '<div class="lwt-btn ' + tabAnalysis + '" data-ev-action="view" data-ev-arg="analysis">' + (LANG === 'nl' ? 'Analyse' : (LANG === 'fr' ? 'Analyse' : 'Analysis')) + '</div>'
               + '<div class="lwt-btn ' + tabLive + '" data-ev-action="view" data-ev-arg="live">Live</div>'
               + '</div>';
 

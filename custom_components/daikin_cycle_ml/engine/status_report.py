@@ -12,6 +12,7 @@ try:
         COP_LOW_THRESHOLD,
         SEVERITY_EMOJI,
         STOOKLIJN_STATE_LABEL_EN,
+        STOOKLIJN_STATE_LABEL_FR,
         STOOKLIJN_STATE_LABEL_NL,
     )
 except Exception:  # pragma: no cover
@@ -20,8 +21,10 @@ except Exception:  # pragma: no cover
     SEVERITY_EMOJI = {}
     STOOKLIJN_STATE_LABEL_EN = {}
     STOOKLIJN_STATE_LABEL_NL = {}
+    STOOKLIJN_STATE_LABEL_FR = {}
 
 DIV = "\u2501" * 22
+_SAMPLES_WORD = {"en": "samples", "nl": "samples", "fr": "\u00e9chantillons"}
 _TPL_FIELD_RE = re.compile(r"\{(\w+)\}")
 
 GREETINGS = {
@@ -187,7 +190,7 @@ def build_status_report(snapshot: Mapping[str, Any], *, language: str = "en", em
     if samples is not None:
         modes_str = (" \u00b7 " + ", ".join(modes)) if modes else ""
         lines.append(_row("\U0001F393", L["baseline"],
-                          f"{int(samples)} samples{modes_str}",
+                          f"{int(samples)} {_SAMPLES_WORD.get(language, 'samples')}{modes_str}",
                           emojis=emoji_enabled))
     sev = snapshot.get("anomaly_severity") or "normal"
     sev_e = SEVERITY_EMOJI.get(sev, "") if emoji_enabled else ""
@@ -197,7 +200,7 @@ def build_status_report(snapshot: Mapping[str, Any], *, language: str = "en", em
     cop = snapshot.get("cop_today")
     cop_n = snapshot.get("cop_today_samples")
     if cop is not None:
-        v = f"{float(cop):.2f} ({int(cop_n)} samples)" if cop_n else (f"{float(cop):.2f}")
+        v = f"{float(cop):.2f} ({int(cop_n)} {_SAMPLES_WORD.get(language, 'samples')})" if cop_n else (f"{float(cop):.2f}")
         lines.append(_row("\U0001F4C9", L["cop_today"], v, emojis=emoji_enabled))
     lines.append(DIV)
 
@@ -225,9 +228,12 @@ def build_stooklijn_report(cache: Any, *, language: str = "en", emoji_enabled: b
     if not isinstance(cache, Mapping):
         cache = {}
     is_nl = language == "nl"
-    title = "Stooklijn advies" if is_nl else "Stooklijn advice"
+    is_fr = language == "fr"
+    title = ("Stooklijn advies" if is_nl
+             else "Conseil de loi d'eau" if is_fr else "Stooklijn advice")
     state_raw = str(cache.get("state") or "unknown")
     _labels = (STOOKLIJN_STATE_LABEL_NL if is_nl
+               else STOOKLIJN_STATE_LABEL_FR if is_fr
                else STOOKLIJN_STATE_LABEL_EN)
     state = _labels.get(state_raw, state_raw)
     try:
@@ -261,11 +267,11 @@ def build_stooklijn_report(cache: Any, *, language: str = "en", emoji_enabled: b
                  _subtitle_line(ts, full_model, emoji_enabled), DIV]
     else:
         lines = ["Daikin Cycle ML \u2014 " + title, _subtitle_line(ts, full_model, emoji_enabled), DIV]
-    lbl_state = "Status"
-    lbl_besp = "COP-winst" if is_nl else "COP gain"
-    lbl_cmf = "Comfort"
-    lbl_conf = "Vertrouwen" if is_nl else "Confidence"
-    lbl_smp = "Samples"
+    lbl_state = "\u00c9tat" if is_fr else "Status"
+    lbl_besp = "COP-winst" if is_nl else "Gain de COP" if is_fr else "COP gain"
+    lbl_cmf = "Confort" if is_fr else "Comfort"
+    lbl_conf = "Vertrouwen" if is_nl else "Fiabilit\u00e9" if is_fr else "Confidence"
+    lbl_smp = "\u00c9chantillons" if is_fr else "Samples"
     lines.append(_row("\U0001F3AF", lbl_state, state, emojis=emoji_enabled))
     lines.append(_row("\U0001F4C8", lbl_besp, (f"+{besparing:.0f}%"), emojis=emoji_enabled))
     lines.append(_row("\U0001F321\uFE0F", lbl_cmf, (f"{comfort:+.1f} \u00b0C"), emojis=emoji_enabled))
@@ -278,10 +284,11 @@ def build_stooklijn_report(cache: Any, *, language: str = "en", emoji_enabled: b
 def build_cop_low_report(cop: Any, samples: Any, *, language: str = "en", emoji_enabled: bool = True, full_model: str = "") -> str:
     """Bilingual low-COP report."""
     is_nl = language == "nl"
-    title = "Dag-COP laag" if is_nl else "Day COP low"
+    is_fr = language == "fr"
+    title = "Dag-COP laag" if is_nl else "COP du jour bas" if is_fr else "Day COP low"
     lbl_cop = "COP"
-    lbl_th = "Drempel" if is_nl else "Threshold"
-    lbl_smp = "Samples"
+    lbl_th = "Drempel" if is_nl else "Seuil" if is_fr else "Threshold"
+    lbl_smp = "\u00c9chantillons" if is_fr else "Samples"
     now = _dt.datetime.now()
     ts = now.strftime("%Y-%m-%d %H:%M")
     if emoji_enabled:
@@ -761,4 +768,169 @@ KMEANS_ADVICE_BY_REASON: dict[str, dict[str | None, str]] = {
             "te forceren."
         ),
     },
+}
+
+
+# ---------------------------------------------------------------------
+# French (fr) — azsono03 fork. Same keys as "en"; any key missing here
+# falls back to the English text through the .get(...) lookups above.
+# ---------------------------------------------------------------------
+GREETINGS["fr"] = {
+    "morning":   ("\U0001F305", "RAPPORT DU MATIN",      "\u2615 Bonjour \u2014 bonne journ\u00e9e !"),
+    "afternoon": ("\u2600\uFE0F", "RAPPORT DE L'APR\u00c8S-MIDI", "\u2615 Bon apr\u00e8s-midi !"),
+    "evening":   ("\U0001F307", "RAPPORT DU SOIR",       "\U0001F319 Bonne soir\u00e9e !"),
+    "night":     ("\U0001F319", "RAPPORT DE NUIT",       "\U0001F634 Nuit calme \u2014 tout va bien."),
+}
+
+LABELS["fr"] = {
+    "status": "\u00c9tat", "mode": "Mode", "last": "Dernier cycle",
+    "quality": "Qualit\u00e9", "lwt": "D\u00e9part eau", "indoor": "Int\u00e9rieur",
+    "outdoor": "Ext\u00e9rieur", "flow": "D\u00e9bit", "thermal": "Chaleur",
+    "cycles_today": "Cycles aujourd'hui", "short": "Cycles courts",
+    "good": "Bons cycles", "per_hour": "Par heure",
+    "baseline": "R\u00e9f\u00e9rence", "anomaly": "Anomalie", "cop_today": "COP du jour",
+    "stats": "Statistiques", "total": "Total", "today": "Aujourd'hui",
+    "d7": "7 j", "d30": "30 j", "avg_dur": "Dur\u00e9e moyenne",
+}
+
+MODE_LABELS["fr"] = {
+    "heating": "chauffage", "cooling": "rafra\u00eechissement",
+    "dhw": "eau chaude", "unknown": "inconnu",
+}
+
+ALERT_TITLES["fr"] = {
+    "pendulum_hourly": "Cycles trop fr\u00e9quents (sur 1 heure)",
+    "pendulum_daily":  "Cycles trop fr\u00e9quents (sur la journ\u00e9e)",
+    "short_run":      "Cycle court d\u00e9tect\u00e9",
+    "short_cycling_pattern": "S\u00e9rie de cycles courts d\u00e9tect\u00e9e",
+    "short_off":      "Arr\u00eat trop court d\u00e9tect\u00e9",
+    "ml_anomaly":     "Anomalie d\u00e9tect\u00e9e par l'apprentissage",
+    "setpoint_osc":   "Consigne de d\u00e9part d'eau instable",
+    "cop_low":        "COP du jour bas",
+    "stooklijn_advies": "Conseil de loi d'eau",
+    "cop_degradation": "Baisse du COP",
+    "defrost_excessive": "D\u00e9givrages excessifs",
+    "buh_excessive": "Appoint \u00e9lectrique trop sollicit\u00e9",
+    "source_stale": "ESPAltherma ne r\u00e9pond plus",
+    "cop_physically_impossible": "COP physiquement impossible",
+    "missing_attributes": "Valeurs ESPAltherma manquantes",
+    "dhw_pendulum": "Cycles trop fr\u00e9quents en eau chaude",
+    "high_cycle_rate": "Fr\u00e9quence de cycles \u00e9lev\u00e9e",
+    "cop_vs_datasheet_low": "COP sous la fiche technique",
+    "db_retention_warning": "Base de donn\u00e9es non purg\u00e9e",
+    "kmeans_retrain_stale": "Apprentissage hebdomadaire en retard",
+    "energy_daily_anomaly": "Consommation du jour anormale",
+}
+
+ALERT_LABELS["fr"] = {
+    "cycles_hour": "Cycles / heure", "target_hour": "Objectif",
+    "cycles_today": "Cycles aujourd'hui", "target_day": "Objectif",
+    "duration": "Dur\u00e9e", "threshold": "Seuil",
+    "off_time": "Temps d'arr\u00eat", "mode": "Mode",
+    "zscore": "\u00c9cart (z)", "top_dim": "Crit\u00e8re principal",
+    "changes": "Changements", "window": "Fen\u00eatre",
+    "lwt_setpoint": "Consigne d\u00e9part", "lwt_target": "D\u00e9part vis\u00e9",
+    "lwt_actual": "D\u00e9part mesur\u00e9", "outdoor": "Ext\u00e9rieur",
+    "last_duration": "Dernier cycle", "avg_duration_7d": "Dur\u00e9e moy. 7 j",
+    "samples": "\u00c9chantillons", "delta_max": "\u00c9cart de consigne",
+    "cop": "COP", "severity": "Gravit\u00e9",
+    "indoor": "Int\u00e9rieur", "flow": "D\u00e9bit",
+    "week_pct": "Semaine", "threshold_pct": "Seuil",
+    "trend_30d": "Tendance 30 j",
+    "count_7d": "Nombre 7 j", "duration_7d_min": "Dur\u00e9e 7 j",
+    "buh_ratio_7d": "Part de l'appoint", "threshold_ratio": "Seuil",
+    "stale_alerts": "Alertes \u00e0 purger", "stale_cycles": "Cycles \u00e0 purger",
+    "alert_retention_days": "Conservation alertes",
+    "cycle_retention_days": "Conservation cycles",
+    "hours_since_ok": "Heures depuis OK",
+    "last_ok_ts": "Dernier OK",
+    "consecutive_failures": "\u00c9checs d'affil\u00e9e",
+    "last_failure_reason": "Dernier \u00e9chec",
+    "buh_count_7d": "Appoint 7 j",
+    "age_s": "\u00c2ge", "threshold_s": "Seuil",
+    "source_sensor": "Source",
+    "missing_count": "Manquantes", "missing_list": "Lesquelles",
+    "dhw_cph": "Cycles ECS / h", "target_cph": "Objectif",
+    "multiplier": "Facteur", "pct_diff": "\u00c9cart",
+    "cop_expected": "Attendu",
+    "today_el_kwh": "Aujourd'hui kWh",
+    "baseline_el_mean": "Moyenne de r\u00e9f\u00e9rence",
+    "baseline_el_sigma": "\u00c9cart type",
+    "z_score": "\u00c9cart (z)",
+    "count": "Nombre",
+    "min_cycles": "Cycles min.", "window_min": "Fen\u00eatre",
+    "threshold_min": "Seuil",
+}
+
+SEVERITY_LABELS["fr"] = {
+    "critical": "critique", "warning": "avertissement",
+    "watch": "\u00e0 surveiller", "normal": "normal", "info": "info",
+}
+
+ALERT_ADVICE["fr"] = {
+    "pendulum_hourly": ("\u2022 V\u00e9rifier l'\u00e9cart de consigne, l'hyst\u00e9r\u00e9sis et la "
+        "loi d'eau \u2014 la PAC d\u00e9marre trop souvent."),
+    "pendulum_daily": ("\u2022 V\u00e9rifier l'\u00e9cart de consigne, l'hyst\u00e9r\u00e9sis et la "
+        "loi d'eau \u2014 la PAC d\u00e9marre trop souvent."),
+    "short_run": ("\u2022 Cycle plus court que le seuil : allonger la dur\u00e9e "
+        "minimale de marche ou baisser la consigne de d\u00e9part d'eau."),
+    "short_cycling_pattern": ("\u2022 Cycles courts fr\u00e9quents. Allonger la "
+        "dur\u00e9e minimale de marche ou stabiliser la consigne de d\u00e9part."),
+    "short_off": ("\u2022 Arr\u00eat trop court : en cas de fausses alertes, baisser "
+        "le seuil d'arr\u00eat court ; si de vrais cycles courts \u00e9chappent, l'augmenter."),
+    "ml_anomaly": ("\u2022 Le comportement s'\u00e9carte de la r\u00e9f\u00e9rence apprise. "
+        "V\u00e9rifier les derniers changements de consigne, de m\u00e9t\u00e9o ou d'eau chaude."),
+    "setpoint_osc": ("\u2022 Stabiliser la consigne de d\u00e9part d'eau ou augmenter "
+        "l'hyst\u00e9r\u00e9sis du thermostat."),
+    "cop_degradation": ("\u2022 Le COP a fortement baiss\u00e9 par rapport \u00e0 la semaine "
+        "derni\u00e8re. V\u00e9rifier la charge en fluide, les filtres et la propret\u00e9 du groupe ext\u00e9rieur."),
+    "defrost_excessive": ("\u2022 D\u00e9givrages fr\u00e9quents. V\u00e9rifier l'humidit\u00e9 "
+        "ext\u00e9rieure, la sonde de d\u00e9givrage et la circulation d'air du groupe ext\u00e9rieur."),
+    "buh_excessive": ("\u2022 L'appoint \u00e9lectrique tourne souvent. V\u00e9rifier le "
+        "dimensionnement de la PAC, la temp\u00e9rature ext\u00e9rieure et les d\u00e9givrages."),
+    "source_stale": ("\u2022 ESPAltherma n'envoie plus de donn\u00e9es. V\u00e9rifier "
+        "le module, le Wi-Fi et la liaison MQTT / ESPHome."),
+    "cop_physically_impossible": (
+        "\u2022 COP au-dessus du maximum physique (1,5 \u00d7 Carnot). "
+        "V\u00e9rifier l'\u00e9talonnage des sondes ou le firmware."),
+    "missing_attributes": ("\u2022 Des valeurs n\u00e9cessaires manquent \u00e0 la source. "
+        "V\u00e9rifier le mod\u00e8le / les registres ESPAltherma."),
+    "dhw_pendulum": ("\u2022 L'eau chaude d\u00e9marre trop souvent. V\u00e9rifier la "
+        "consigne du ballon, l'hyst\u00e9r\u00e9sis et la vanne 3 voies."),
+    "high_cycle_rate": ("\u2022 Fr\u00e9quence de cycles au-dessus de 1,5 \u00d7 l'objectif. "
+        "V\u00e9rifier l'\u00e9cart de consigne, l'hyst\u00e9r\u00e9sis et la loi d'eau."),
+    "cop_vs_datasheet_low": ("\u2022 COP sous la valeur de la fiche technique. V\u00e9rifier "
+        "la charge en fluide, les filtres et la propret\u00e9 du groupe ext\u00e9rieur."),
+    "db_retention_warning": ("\u2022 La base de donn\u00e9es n'est pas purg\u00e9e. V\u00e9rifier "
+        "que la maintenance tourne \u00e0 3 h et qu'aucun lancement manuel n'a \u00e9chou\u00e9."),
+    "kmeans_retrain_stale": ("\u2022 L'apprentissage hebdomadaire n'a pas r\u00e9ussi depuis "
+        "14 jours ou plus. Lancer daikin_cycle_ml.recompute_kmeans depuis Outils de "
+        "d\u00e9veloppement \u2192 Actions, ou red\u00e9marrer Home Assistant."),
+    "energy_daily_anomaly": ("\u2022 La consommation \u00e9lectrique du jour d\u00e9passe de plus "
+        "de 2 \u00e9carts types la r\u00e9f\u00e9rence sur 30 jours. Chercher une demande excessive, "
+        "une vanne bloqu\u00e9e ou des conditions inhabituelles."),
+}
+
+KMEANS_ADVICE_BY_REASON["fr"] = {
+    "too_few": (
+        "Pas assez de cycles sur les 7 derniers jours pour l'apprentissage "
+        "(il en faut au moins 3, id\u00e9alement 20 ou plus). Rien \u00e0 faire "
+        "\u2014 il reprendra quand les cycles reviendront."
+    ),
+    "fetch_failed": (
+        "\u00c9chec de lecture de la base. Chercher \u00ab kmeans fetch failed \u00bb "
+        "dans les journaux ; si \u00e7a persiste, red\u00e9marrer Home Assistant."
+    ),
+    "kmeans_failed": (
+        "L'algorithme de regroupement a \u00e9chou\u00e9. \u00c0 signaler sur "
+        "github.com/elRadix/daikin_cycle_ml/issues."
+    ),
+    "no_db": (
+        "Base de donn\u00e9es non initialis\u00e9e. V\u00e9rifier que l'int\u00e9gration est "
+        "charg\u00e9e : Param\u00e8tres \u2192 Appareils et services \u2192 Daikin Cycle ML."
+    ),
+    None: (
+        "L'apprentissage hebdomadaire ne s'est pas lanc\u00e9. Red\u00e9marrer Home "
+        "Assistant puis lancer daikin_cycle_ml.recompute_kmeans pour le forcer."
+    ),
 }
