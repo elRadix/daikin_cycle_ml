@@ -21,12 +21,12 @@ card_mod:
 cards:
   - type: custom:mushroom-template-card
     primary: >-
-      🎯 DAIKIN CYCLE ML — PATTERN ANALYSIS{{ ' · ' +
+      🎯 DAIKIN CYCLE ML — {{ 'ANALYSE DES CYCLES' if state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') == 'fr' else 'PATTERN ANALYSIS' }}{{ ' · ' +
       (state_attr('sensor.daikin_cycle_ml_hp_specs','model')|string|upper) if
       state_attr('sensor.daikin_cycle_ml_hp_specs','model') else '' }}
     secondary: >-
       {% set l = state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') or 'en' -%}
-      {% if l == 'nl' %}Verdeling · cycles vs duration · COP-efficiëntie{% else %}Distribution · cycles vs duration · COP efficiency{% endif %}
+      {% if l == 'nl' %}Verdeling · cycles vs duration · COP-efficiëntie{% elif l == 'fr' %}Répartition · cycles / durée · efficacité COP{% else %}Distribution · cycles vs duration · COP efficiency{% endif %}
     icon: mdi:chart-scatter-plot
     icon_color: blue
     multiline_secondary: true
@@ -198,7 +198,7 @@ cards:
             var vI = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Math.round(parseFloat(v)).toString(); };
             var attr = function(id,n,d){ try{ if(!id)return d; var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
             var getState = function(eid){ try { var st = states[eid]; if (!st) return null; var v = parseFloat(st.state); return isFinite(v) ? v : null; } catch(e){ return null; } };
-            var weekday = function(iso){ if(!iso) return ''; try{ var d = new Date(iso + 'T12:00:00'); return ['zo','ma','di','wo','do','vr','za'][d.getDay()]; }catch(e){ return ''; } };
+            var weekday = function(iso){ if(!iso) return ''; try{ var d = new Date(iso + 'T12:00:00'); return (LANG==='fr'?['dim','lun','mar','mer','jeu','ven','sam']:['zo','ma','di','wo','do','vr','za'])[d.getDay()]; }catch(e){ return ''; } };
             var fmtDay = function(iso){ if(!iso) return '—'; var p=String(iso).split('-'); return p.length>=3 ? p[2]+'/'+p[1] : iso; };
             var fmtMin = function(m){
               if(!hasV(m)||!isFinite(Number(m))) return '—';
@@ -328,9 +328,14 @@ cards:
             var cfgLang = String(attr(STATE,'configured_language','en')).toLowerCase();
             var haLang = (typeof hass !== 'undefined' && hass && hass.language) ? String(hass.language).toLowerCase() : '';
             var LANG = 'en';
-            if (cfgLangOvr === 'nl' || cfgLangOvr === 'en') { LANG = cfgLangOvr; }
+            if (cfgLangOvr === 'nl' || cfgLangOvr === 'en' || cfgLangOvr === 'fr') { LANG = cfgLangOvr; }
             else if (haLang.indexOf('nl') === 0) { LANG = 'nl'; }
             else if (cfgLang === 'nl') { LANG = 'nl'; }
+            else if (cfgLang === 'fr' || haLang.indexOf('fr') === 0) { LANG = 'fr'; }
+            /* FR-I18N (azsono03) */
+            var FRM={" cycles in IDEAL zone":" cycles dans la zone IDÉALE"," cycles in PENDULUM zone":" cycles dans la zone TROP COURTE"," cycles over ":" cycles sur ","24h vs 7d":"24 h / 7 j","30d":"30 j","365d":"365 j","Last 7d":"7 derniers jours","SHORT 20-60m":"COURT 20-60 min","GOOD 60-180m":"BON 60-180 min","LONG >180m":"LONG >180 min","40-70 mid":"40-70 moyen","<40 low":"<40 faible","ACTION REQUIRED":"ACTION REQUISE","ATTENTION":"ATTENTION","AVG DURATION":"DURÉE MOY.","Average quality ":"Qualité moyenne ","Average quality low (":"Qualité moyenne faible (","Avg duration":"Durée moy.","Avg off":"Arrêt moy.","Avg quality":"Qualité moy.","Avg ratio":"Taux moy.","Avg/day":"Moy./jour","BUH":"Appoint","BUH >":"Appoint >","Band":"Plage","Best day":"Meilleur jour","Boiler COP":"COP chaudière","Bucket":"Tranche","CARNOT EFF.":"RENDEMENT CARNOT","COMPRESSOR":"COMPRESSEUR","COOLING":"RAFRAÎCHISSEMENT","COP":"COP","COP TODAY":"COP DU JOUR","COP TREND":"TENDANCE COP","COP above datasheet reference":"COP au-dessus de la fiche technique","CYCLES PER DAY":"CYCLES PAR JOUR","CYCLES/DAY":"CYCLES/JOUR","Comfort":"Confort","Compressor off":"Compresseur arrêté","Contribution":"Part","Cool":"Froid","Cooling":"Rafraîchissement","Cycles":"Cycles","Cycles per day":"Cycles par jour","DEFROST":"DÉGIVRAGE","DEFROST IMPACT":"EFFET DES DÉGIVRAGES","DHW":"ECS","DURATION/DAY":"DURÉE/JOUR","Days":"Jours","Defrost":"Dégivrage","Duration":"Durée","Duration per day":"Durée par jour","Duty":"Taux de marche","ELEC":"ÉLEC","ELECTRICAL":"ÉLECTRIQUE","EMITTER":"RADIATEURS","ENERGY TODAY":"ÉNERGIE DU JOUR","Elapsed":"Écoulé","Energy":"Énergie","Event counts per day":"Événements par jour","Event ratio per day":"Taux d'événements par jour","Good days":"Bons jours","Good ratio":"Taux de bons cycles","HEAT BALANCE":"BILAN DE CHALEUR","HEAT PUMP":"PAC","HEATING":"CHAUFFAGE","HEATING OFF":"CHAUFFAGE COUPÉ","HP → EMITTER":"PAC → RADIATEURS","Heat":"Chauffage","Heating":"Chauffage","IDLE":"À L'ARRÊT","IN":"ENTRÉE","INFO":"INFO","Insufficient data":"Pas assez de données","LWT":"Départ","LWT NOW":"DÉPART ACTUEL","LWT OPT":"DÉPART OPTIMAL","Last defrost":"Dernier dégivrage","Last: ":"Dernier : ","Live cycle · COP · quality · alerts":"Cycle en direct · COP · qualité · alertes","Longest":"Le plus long","Longest day":"Jour le plus long","Low days":"Jours faibles","MAX LWT":"DÉPART MAX","MIN LWT":"DÉPART MIN","MODES":"MODES","Max day":"Jour max","Mid days":"Jours moyens","Mode":"Mode","Month":"Mois","No COP data":"Pas de COP","No data":"Pas de données","OUT":"SORTIE","OUTDOOR TEMPERATURE (°C)":"TEMPÉRATURE EXTÉRIEURE (°C)","Outdoor":"Extérieur","PENDULUM <20m":"TROP COURT <20 min","Phase":"Phase","Power":"Puissance","QUALITY":"QUALITÉ","Quality":"Qualité","Quality dropping (":"Qualité en baisse (","Quality per day":"Qualité par jour","Quality rising (+":"Qualité en hausse (+","RPS":"tr/s","RUNNING":"EN MARCHE","Range":"Plage","Reliability":"Fiabilité","Runs":"Cycles","Runtime":"Durée de marche","SAVINGS":"ÉCONOMIE","SPF SEASON":"SPF SAISON","STANDBY":"EN ATTENTE","SUPPLY LWT (°C)":"DÉPART D'EAU (°C)","Samples":"Échantillons","Savings":"Économie","Share":"Part","Short runs":"Cycles courts","Since midnight":"Depuis minuit","Source":"Source","Span":"Période","Starts":"Démarrages","Starts today":"Démarrages du jour","State":"État","Step":"Pas","Sum":"Somme","System performing normally":"Le système fonctionne normalement","THERM":"CHALEUR","THERMAL":"CHALEUR","THERMAL SPLIT":"RÉPARTITION DE LA CHALEUR","Today":"Aujourd'hui","Total":"Total","Total BUH":"Appoint total","Total defrost":"Dégivrage total","Total runtime":"Marche totale","Trends":"Tendances","VS DATASHEET":"VS FICHE TECHNIQUE","WEEK TREND":"TENDANCE SEMAINE","Week":"Semaine","Worst day":"Pire jour","Y-axis max":"Échelle max","Year":"Année","act":"act.","active":"active","ago":"plus tôt","avg":"moy.","buckets":"tranches","cycles":"cycles","datasheet":"fiche technique","day":"jour","defrost <":"dégivrage <","demand":"demande","duration":"durée","events":"événements","heating OFF >":"chauffage coupé >","high":"élevé","in bucket":"dans la tranche","insufficient buckets":"pas assez de tranches","last":"dernier","low":"faible","max":"max","min":"min","month":"mois","more":"de plus","nominal":"normal","nominal COP":"COP nominal","of cycles":"des cycles","outdoor":"extérieur","per day":"par jour","samples":"échantillons","state":"état","supply":"départ","today":"aujourd'hui","total":"total","week":"semaine","Ø duration":"Ø durée","Ø/cycle":"Ø/cycle","← 💧 RETURN":"← 💧 RETOUR","≥70 good":"≥70 bon","⏮️ Last cycle":"⏮️ Dernier cycle","⏱️ DURATION":"⏱️ DURÉE","♻️ Hydraulic circuit":"♻️ Circuit hydraulique","⚠ BUH ASSIST":"⚠ APPOINT","⚡ BUH":"⚡ Appoint","⚡ EVENTS":"⚡ ÉVÉNEMENTS","✅ System OK — no active warnings":"✅ Système OK — aucune alerte active","❄ DEFROST":"❄ DÉGIVRAGE","❄ Defrost":"❄ Dégivrage","⭐ QUALITY":"⭐ QUALITÉ","🎯 COP":"🎯 COP","🎯 COP Efficiency":"🎯 Efficacité COP","🎯 Cycles vs Duration":"🎯 Cycles / durée","🎯 SCATTER":"🎯 NUAGE","💡 COP = efficiency · ~ref = approximate datasheet comparison (A7/W35) · duration/cycle trends per day":"💡 COP = efficacité · ~réf = comparaison approximative avec la fiche (A7/W35) · tendances durée/cycles par jour","💡 Cycle = continuous compressor run · <15m = inefficient cycling · >48h = safety limit":"💡 Cycle = marche continue du compresseur · <15 min = cycles trop courts · >48 h = limite de sécurité","💡 Duration = total compressor runtime per day · split per mode · ⚠ = clipped":"💡 Durée = marche totale du compresseur par jour · par mode · ⚠ = tronqué","💡 Higher COP = better · Q = quality 0-100 · Alerts on top = action":"💡 COP élevé = mieux · Q = qualité 0-100 · Alertes en haut = à traiter","💡 Ratio = events per cycle × 100 · green = nominal (15%) · red = elevated (35%)":"💡 Taux = événements par cycle × 100 · vert = normal (15 %) · rouge = élevé (35 %)","💡 Tap a bar for details — buckets by avg cycle duration per mode":"💡 Toucher une barre pour le détail — tranches par durée moyenne de cycle et par mode","💡 Tap a dot for details — X: cycles/day · Y: avg duration · color: quality":"💡 Toucher un point pour le détail — X : cycles/jour · Y : durée moy. · couleur : qualité","💡 Tap a dot or stat for day details":"💡 Toucher un point ou une valeur pour le détail du jour","💡 Tap an item for details":"💡 Toucher un élément pour le détail","📅 Today":"📅 Aujourd'hui","📈 Heating curve advice":"📈 Conseil de loi d'eau","📈 Regression":"📈 Régression","📊 Cycle duration distribution":"📊 Répartition des durées de cycle","📊 DISTRIBUTION":"📊 RÉPARTITION","📊 OVERVIEW":"📊 VUE D'ENSEMBLE","📊 historical":"📊 historique","🔄 CYCLES":"🔄 CYCLES","🔍 auto-discovery":"🔍 détection auto","🔥 SUPPLY →":"🔥 DÉPART →"," below datasheet":" sous la fiche technique"," well above target":" bien au-dessus de l'objectif","% week":" % / semaine","BUH active":"Appoint en marche","COP dropping ":"COP en baisse ","COP heating ":"COP chauffage ","COP low":"COP bas","DHW cycling":"Cycles d'eau chaude","High cycle rate":"Fréquence de cycles élevée","Missing attributes":"Valeurs manquantes","Pendulum/day":"Cycles trop fréquents/jour","Pendulum/hour":"Cycles trop fréquents/heure","Previous: BUH":"Précédent : appoint","Previous: defrost":"Précédent : dégivrage","SPF ":"SPF ","Setpoint oscillation":"Consigne instable","Short off-time":"Arrêt court","Short run":"Marche courte","Source stale":"Source muette","Too many cycles (target ":"Trop de cycles (objectif ","Update available":"Mise à jour disponible","is_stale flag":"Source en retard"};
+            var FR=function(x){ return (LANG==='fr' && typeof x==='string' && Object.prototype.hasOwnProperty.call(FRM,x)) ? FRM[x] : x; };
+            var FRO=function(o){ if(typeof o==='string') return Object.prototype.hasOwnProperty.call(FRM,o)?FRM[o]:o; if(o&&typeof o==='object'){ var r=Array.isArray(o)?[]:{}; for(var k in o){ r[k]=FRO(o[k]); } return r; } return o; };
 
             var I18N = {
               hdr_dist: {nl:'📊 Verdeling cyclus-duur', en:'📊 Cycle duration distribution'},
@@ -363,7 +368,7 @@ cards:
               defrost_n: {nl:'❄ DEFROST', en:'❄ DEFROST'},
               no_cop_data: {nl:'Geen COP-data', en:'No COP data'}
             };
-            var t = function(k){ var e=I18N[k]; if(!e) return k; return e[LANG] || e.en || e.nl; };
+            var t = function(k){ var e=I18N[k]; if(!e) return k; if(LANG==='fr') return e.fr || FR(e.en || e.nl); return e[LANG] || e.en || e.nl; };
 
             var rawDays = attr(SUMMARY, 'days', []);
             if(!Array.isArray(rawDays)) rawDays = [];
@@ -440,10 +445,10 @@ cards:
             var buildDistContent = function(sub, wkey){
               var windowSet = {}; sub.forEach(function(d){ windowSet[d.day]=true; });
               var dist = [
-                {label:'PENDEL', sub:'<20m', col:TH.red, bg:DARK?'rgba(239,83,80,0.10)':'#FFEBEE', n:0, durSum:0, days:{}},
-                {label:'KORT', sub:'20-60m', col:TH.orange, bg:DARK?'rgba(255,167,38,0.10)':'#FFF3E0', n:0, durSum:0, days:{}},
-                {label:'GOED', sub:'60-180m', col:TH.green, bg:DARK?'rgba(102,187,106,0.10)':'#E8F5E9', n:0, durSum:0, days:{}},
-                {label:'LANG', sub:'>180m', col:TH.blue, bg:DARK?'rgba(66,165,245,0.10)':'#E3F2FD', n:0, durSum:0, days:{}}
+                {label:(LANG==='fr'?'TROP COURT':'PENDEL'), sub:'<20m', col:TH.red, bg:DARK?'rgba(239,83,80,0.10)':'#FFEBEE', n:0, durSum:0, days:{}},
+                {label:(LANG==='fr'?'COURT':'KORT'), sub:'20-60m', col:TH.orange, bg:DARK?'rgba(255,167,38,0.10)':'#FFF3E0', n:0, durSum:0, days:{}},
+                {label:(LANG==='fr'?'BON':'GOED'), sub:'60-180m', col:TH.green, bg:DARK?'rgba(102,187,106,0.10)':'#E8F5E9', n:0, durSum:0, days:{}},
+                {label:(LANG==='fr'?'LONG':'LANG'), sub:'>180m', col:TH.blue, bg:DARK?'rgba(66,165,245,0.10)':'#E3F2FD', n:0, durSum:0, days:{}}
               ];
               rawDays.forEach(function(rd){
                 if(!rd.day || !windowSet[rd.day] || !rd.cycles || rd.cycles <= 0) return;
@@ -810,9 +815,9 @@ cards:
                     s += '</g>';
                   }
                 });
-                s += T(hX[0], tY+tH-2, (LANG==='nl'?'dag':'day'), {a:'middle', s:7, w:800, f:TH.sub});
-                s += T(hX[1], tY+tH-2, (LANG==='nl'?'week':'week'), {a:'middle', s:7, w:800, f:TH.sub});
-                s += T(hX[2], tY+tH-2, (LANG==='nl'?'maand':'month'), {a:'middle', s:7, w:800, f:TH.sub});
+                s += T(hX[0], tY+tH-2, (LANG==='nl'?'dag':FR('day')), {a:'middle', s:7, w:800, f:TH.sub});
+                s += T(hX[1], tY+tH-2, (LANG==='nl'?'week':FR('week')), {a:'middle', s:7, w:800, f:TH.sub});
+                s += T(hX[2], tY+tH-2, (LANG==='nl'?'maand':FR('month')), {a:'middle', s:7, w:800, f:TH.sub});
               } else {
                 s += T(W/2, tY+tH/2, t('no_cop_data'), {a:'middle', s:9, w:900, f:TH.sub});
               }
@@ -965,7 +970,7 @@ cards:
               }
               
               s += T(cPadL, cY+cPadT-3, 'm', {s:6.5, w:900, f:TH.text});
-              s += T(cPadL+cPlotW, cY+cPadT-3, (LANG==='nl'?'cycli':'cycles'), {a:'end', s:6.5, w:900, f:TH.purple});
+              s += T(cPadL+cPlotW, cY+cPadT-3, (LANG==='nl'?'cycli':FR('cycles')), {a:'end', s:6.5, w:900, f:TH.purple});
               s += gridParts + tgtParts + barsParts;
               if (sub.length >= 2) {
                 s += '<path d="'+linePath+'" fill="none" stroke="'+TH.purple+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>';
@@ -980,9 +985,9 @@ cards:
               
               var legY = cY+cH-2;
               s += '<rect x="'+cPadL+'" y="'+(legY-6)+'" width="8" height="6" rx="1" fill="'+TH.green+'"/>';
-              s += T(cPadL+11, legY-1, (LANG==='nl'?'duur':'duration'), {s:6.5, w:800, f:TH.sub});
+              s += T(cPadL+11, legY-1, (LANG==='nl'?'duur':FR('duration')), {s:6.5, w:800, f:TH.sub});
               s += '<circle cx="'+(cPadL+70)+'" cy="'+(legY-3)+'" r="2.5" fill="'+TH.purple+'"/>';
-              s += T(cPadL+76, legY-1, (LANG==='nl'?'cycli':'cycles'), {s:6.5, w:800, f:TH.sub});
+              s += T(cPadL+76, legY-1, (LANG==='nl'?'cycli':FR('cycles')), {s:6.5, w:800, f:TH.sub});
 
               /* ROW 5: Strip */
               var sY = 376, stripH = 40;
@@ -994,7 +999,7 @@ cards:
                 {lbl:t('buh_impact'), val:buhRt, txt:(hasN(buhRt)?fmtMin(buhRt/60):'—'), col:TH.buh,
                   items:[{t:'hl', k:t('buh_impact'), v:(hasN(buhRt)?fmtMin(buhRt/60):'—'), c:TH.buh},{t:'sep'},{t:'kv',k:'Seconds',v:(hasN(buhRt)?String(Math.round(buhRt)):'—'),c:TH.text}]},
                 {lbl:t('defrost_n'), val:defrCnt, txt:(hasN(defrCnt)?Math.round(defrCnt)+'×':'—'), col:TH.defrost,
-                  items:[{t:'hl', k:t('defrost_n'), v:(hasN(defrCnt)?Math.round(defrCnt)+'×':'—'), c:TH.defrost},{t:'sep'},{t:'kv',k:'Last 7d',v:'—',c:TH.sub}]}
+                  items:[{t:'hl', k:t('defrost_n'), v:(hasN(defrCnt)?Math.round(defrCnt)+'×':'—'), c:TH.defrost},{t:'sep'},{t:'kv',k:FR('Last 7d'),v:'—',c:TH.sub}]}
               ];
               var sw = (W - P*2 - 3*3) / 4;
               for (var j=0; j<4; j++) {
@@ -1011,22 +1016,22 @@ cards:
               /* ROW 6: Insight */
               var insight = null;
               if (hasN(modeData.heating.day) && dsRef !== null && modeData.heating.day < dsRef * 0.85) {
-                insight = {bad:true, text:(LANG==='nl'?'COP heating '+fmt1(modeData.heating.day)+' onder datasheet':'COP heating '+fmt1(modeData.heating.day)+' below datasheet'),
+                insight = {bad:true, text:(LANG==='nl'?'COP heating '+fmt1(modeData.heating.day)+' onder datasheet':FR('COP heating ')+fmt1(modeData.heating.day)+FR(' below datasheet')),
                   items:[{t:'hl', k:'Heating COP', v:fmt1(modeData.heating.day), c:TH.red},{t:'kv',k:'Ref',v:fmt1(dsRef),c:TH.sub}]};
               } else if (hasN(degr) && degr < -8) {
-                insight = {bad:true, text:(LANG==='nl'?'COP daalt '+degr.toFixed(1)+'% week':'COP dropping '+degr.toFixed(1)+'% week'),
+                insight = {bad:true, text:(LANG==='nl'?'COP daalt '+degr.toFixed(1)+'% week':FR('COP dropping ')+degr.toFixed(1)+FR('% week')),
                   items:[{t:'hl', k:'Week trend', v:degr.toFixed(1)+'%', c:TH.red},{t:'kv',k:'Threshold',v:'-8%',c:TH.sub}]};
               } else if (cntVals.some(function(v){ return v > targetCycles * 1.5; })) {
-                insight = {bad:true, text:(LANG==='nl'?'Te veel cycli (target '+targetCycles+')':'Too many cycles (target '+targetCycles+')'),
+                insight = {bad:true, text:(LANG==='nl'?'Te veel cycli (target '+targetCycles+')':FR('Too many cycles (target ')+targetCycles+')'),
                   items:[{t:'hl', k:'Peak cycles', v:String(Math.max.apply(null, cntVals)), c:TH.red},{t:'kv',k:'Target',v:String(targetCycles),c:TH.sub}]};
               } else if (hasN(spf) && spf >= 3.5) {
-                insight = {bad:false, text:(LANG==='nl'?'SPF '+fmt1(spf)+' ruim boven doel':'SPF '+fmt1(spf)+' well above target'),
+                insight = {bad:false, text:(LANG==='nl'?'SPF '+fmt1(spf)+' ruim boven doel':FR('SPF ')+fmt1(spf)+FR(' well above target')),
                   items:[{t:'hl', k:'SPF', v:fmt1(spf), c:TH.green},{t:'kv',k:'Target',v:'≥3.5',c:TH.sub}]};
               } else if (hasN(copToday) && dsRef !== null && copToday > dsRef) {
-                insight = {bad:false, text:(LANG==='nl'?'COP boven datasheet referentie':'COP above datasheet reference'),
+                insight = {bad:false, text:(LANG==='nl'?'COP boven datasheet referentie':FR('COP above datasheet reference')),
                   items:[{t:'hl', k:'COP', v:fmt1(copToday), c:TH.green},{t:'kv',k:'Ref',v:fmt1(dsRef),c:TH.sub}]};
               } else {
-                insight = {bad:false, text:(LANG==='nl'?'Systeem presteert normaal':'System performing normally'),
+                insight = {bad:false, text:(LANG==='nl'?'Systeem presteert normaal':FR('System performing normally')),
                   items:[{t:'hl', k:'COP', v:fmt1(copToday), c:TH.green}]};
               }
               var insPop = popAttr({title:(insight.bad?'⚠️ ':'✅ ')+insight.text, items:insight.items});
@@ -1044,7 +1049,7 @@ cards:
               var wkey = 'w'+winSize;
               var cls = String(winSize)===activeWin ? ' pa-view-active' : '';
               if(sub.length === 0){
-                return '<div class="pa-view'+cls+'" data-win="'+winSize+'"><div class="pa-empty">⏳ '+(LANG==='nl'?'Geen data':'No data')+'</div></div>';
+                return '<div class="pa-view'+cls+'" data-win="'+winSize+'"><div class="pa-empty">⏳ '+(LANG==='nl'?'Geen data':FR('No data'))+'</div></div>';
               }
               var wTotCycles = sub.reduce(function(a,d){ return a + d.cycles; }, 0);
               var wAvgQ = (function(){ var q = sub.filter(function(d){ return d.quality_avg !== null; }); return q.length>0 ? q.reduce(function(a,d){ return a+d.quality_avg; },0)/q.length : null; })();
@@ -1062,31 +1067,31 @@ cards:
                 var idx = avg<20?0:avg<60?1:avg<180?2:3;
                 distCounts[idx] += rd.cycles;
               });
-              var insightIcon='📊', insightText=(LANG==='nl'?'Onvoldoende data':'Insufficient data'), insightCol=TH.sub, insightBg='rgba(128,128,128,0.08)';
+              var insightIcon='📊', insightText=(LANG==='nl'?'Onvoldoende data':FR('Insufficient data')), insightCol=TH.sub, insightBg='rgba(128,128,128,0.08)';
               if(distCounts[0] >= 3 && distCounts[0] >= distCounts[2]){
-                insightIcon='🚨'; insightText=distCounts[0]+(LANG==='nl'?' cycli in PENDEL zone':' cycles in PENDULUM zone');
+                insightIcon='🚨'; insightText=distCounts[0]+(LANG==='nl'?' cycli in PENDEL zone':FR(' cycles in PENDULUM zone'));
                 insightCol=TH.red; insightBg='rgba(198,40,40,0.10)';
               } else if(distCounts[2] >= 3 && distCounts[0] <= 1){
-                insightIcon='✅'; insightText=distCounts[2]+(LANG==='nl'?' cycli in IDEAAL zone':' cycles in IDEAL zone');
+                insightIcon='✅'; insightText=distCounts[2]+(LANG==='nl'?' cycli in IDEAAL zone':FR(' cycles in IDEAL zone'));
                 insightCol=TH.green; insightBg='rgba(46,125,50,0.10)';
               } else if(wAvgQ !== null && wAvgQ >= 70){
-                insightIcon='⭐'; insightText=(LANG==='nl'?'Gemiddelde kwaliteit ':'Average quality ')+vI(wAvgQ)+'%';
+                insightIcon='⭐'; insightText=(LANG==='nl'?'Gemiddelde kwaliteit ':FR('Average quality '))+vI(wAvgQ)+'%';
                 insightCol=TH.green; insightBg='rgba(46,125,50,0.08)';
               } else if(wAvgQ !== null && wAvgQ < 40){
-                insightIcon='⚠️'; insightText=(LANG==='nl'?'Gemiddelde kwaliteit laag (':'Average quality low (')+vI(wAvgQ)+'%)';
+                insightIcon='⚠️'; insightText=(LANG==='nl'?'Gemiddelde kwaliteit laag (':FR('Average quality low ('))+vI(wAvgQ)+'%)';
                 insightCol=TH.red; insightBg='rgba(198,40,40,0.08)';
               } else if(trendD !== null && trendD > 5){
-                insightIcon='📈'; insightText=(LANG==='nl'?'Kwaliteit stijgt (+':'Quality rising (+')+vI(trendD)+'%)';
+                insightIcon='📈'; insightText=(LANG==='nl'?'Kwaliteit stijgt (+':FR('Quality rising (+'))+vI(trendD)+'%)';
                 insightCol=TH.green; insightBg='rgba(46,125,50,0.08)';
               } else if(trendD !== null && trendD < -5){
-                insightIcon='📉'; insightText=(LANG==='nl'?'Kwaliteit daalt (':'Quality dropping (')+vI(trendD)+'%)';
+                insightIcon='📉'; insightText=(LANG==='nl'?'Kwaliteit daalt (':FR('Quality dropping ('))+vI(trendD)+'%)';
                 insightCol=TH.orange; insightBg='rgba(230,81,0,0.08)';
               } else if(wTotCycles > 0){
-                insightIcon='🎯'; insightText=wTotCycles+(LANG==='nl'?' cycli over ':' cycles over ')+sub.length+'d · Ø '+fmtMin(wAvgDur);
+                insightIcon='🎯'; insightText=wTotCycles+(LANG==='nl'?' cycli over ':FR(' cycles over '))+sub.length+'d · Ø '+fmtMin(wAvgDur);
                 insightCol=TH.text; insightBg='rgba(21,101,192,0.08)';
               }
               var copHdrVal = getState(resolveEntity('cop_today'));
-              var hd = function(tab, title, right){ return '<div class="pa-hdr" data-tab-hdr="'+tab+'"><span>'+title+'</span><span class="pa-hdr-right">'+right+' · '+sub.length+'d</span></div>'; };
+              var hd = function(tab, title, right){ return '<div class="pa-hdr" data-tab-hdr="'+tab+'"><span>'+title+'</span><span class="pa-hdr-right">'+right+' · '+sub.length+(LANG==='fr'?' j':'d')+'</span></div>'; };
               var hdrs = hd('dist', t('hdr_dist'), wTotCycles+'× · Ø '+fmtMin(wAvgDur))
                        + hd('scatter', t('hdr_scatter'), t('cnt_perday'))
                        + hd('cop', t('hdr_cop'), 'COP '+fmt1(copHdrVal));
@@ -1106,10 +1111,10 @@ cards:
               return '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:9px;background:'+bg+';border:1px solid '+color+'55;font-size:0.68em;font-weight:900;color:'+color+';white-space:nowrap;line-height:1.2;"><span style="width:6px;height:6px;border-radius:50%;background:'+color+';flex-shrink:0;"></span>'+label+'</span>';
             };
             var legendDist = '<div class="pa-legend" data-tab-leg="dist">'
-              + chip(TH.red, DARK?'rgba(239,83,80,0.10)':'#FFEBEE', (LANG==='nl'?'PENDEL <20m':'PENDULUM <20m'))
-              + chip(TH.orange, DARK?'rgba(255,167,38,0.10)':'#FFF3E0', 'SHORT 20-60m')
-              + chip(TH.green, DARK?'rgba(102,187,106,0.10)':'#E8F5E9', 'GOOD 60-180m')
-              + chip(TH.blue, DARK?'rgba(66,165,245,0.10)':'#E3F2FD', 'LONG >180m')
+              + chip(TH.red, DARK?'rgba(239,83,80,0.10)':'#FFEBEE', (LANG==='nl'?'PENDEL <20m':FR('PENDULUM <20m')))
+              + chip(TH.orange, DARK?'rgba(255,167,38,0.10)':'#FFF3E0', FR('SHORT 20-60m'))
+              + chip(TH.green, DARK?'rgba(102,187,106,0.10)':'#E8F5E9', FR('GOOD 60-180m'))
+              + chip(TH.blue, DARK?'rgba(66,165,245,0.10)':'#E3F2FD', FR('LONG >180m'))
               + '</div>';
             var legendScatter = '<div class="pa-legend" data-tab-leg="scatter">'
               + chip(TH.red, DARK?'rgba(239,83,80,0.10)':'#FFEBEE', '🚨 pendel')
@@ -1127,7 +1132,7 @@ cards:
             var winGroup = '<div class="pa-win-group">';
             [7,15,30].forEach(function(w){
               var act = (String(w) === activeWin) ? ' pa-active' : '';
-              winGroup += '<div class="pa-win-btn'+act+'" data-pa-action="win" data-pa-arg="'+w+'">'+w+'d</div>';
+              winGroup += '<div class="pa-win-btn'+act+'" data-pa-action="win" data-pa-arg="'+w+'">'+w+(LANG==='fr'?' j':'d')+'</div>';
             });
             winGroup += '</div>';
             var actions = '<div class="pa-actions">' + winGroup + '</div>';

@@ -552,9 +552,12 @@ def _state_label(state: str, step_c: int, lang: str) -> str:
     """Localized state label (B11/B13)."""
     from .const import (
         STOOKLIJN_STATE_LABEL_EN,
+        STOOKLIJN_STATE_LABEL_FR,
         STOOKLIJN_STATE_LABEL_NL,
     )
-    tbl = STOOKLIJN_STATE_LABEL_NL if lang == 'nl' else STOOKLIJN_STATE_LABEL_EN
+    tbl = {
+        'nl': STOOKLIJN_STATE_LABEL_NL, 'fr': STOOKLIJN_STATE_LABEL_FR,
+    }.get(lang, STOOKLIJN_STATE_LABEL_EN)
     tmpl = tbl.get(state) or state
     try:
         return str(tmpl).format(step=step_c)

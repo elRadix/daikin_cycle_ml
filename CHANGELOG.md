@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+- **French translations** (credit: [@azsono03](https://github.com/azsono03)) — full UI (`fr.json`, 873 keys parity with `en.json`), notification reports, state labels, config-flow selector, and dashboard cards (simple-card, heating-curve, cop-energy, pattern-analysis, daily-summary-tabbed, lwt-fine-tuning). Auto-locale detection picks FR from `hass.language` or `notification_language` setting.
+- **Daikin Altherma 3 H HT** models: EPRA14DAV3, EPRA16DAV3, EPRA18DAV3 (Daikin EN14511 datasheets).
+
+
 ## [1.22.5] - 2026-11-13
 
 ### Fixed

@@ -5,7 +5,7 @@ list observed on a real EPRA12EAV3 install (provided 2026-11-07). This
 test proves that:
   1. Discovery finds every sensor.* and binary_sensor.* entity
   2. Discovery ignores non-target domains (number.*, switch.*, update.*, button.*)
-  3. Resolution finds exactly 21/25 CONSUMED attributes
+  3. Resolution finds exactly 22/26 CONSUMED attributes
   4. 4 legitimately-absent consumed attributes surface in missing_consumed:
      COP (computed), INV frequency 2 (no cascade), Hybrid Op. Mode (non-hybrid),
      Stats: Electricalinput estimated (firmware uses correct spelling)
@@ -22,8 +22,6 @@ import pytest
 from custom_components.daikin_cycle_ml.const import (
     ATTR_3WAY_VALVE,
     ATTR_BE_COP,
-    ATTR_BOILER_DHW_DEMAND,
-    ATTR_BOILER_OPERATION_DEMAND,
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
     ATTR_COP,
@@ -35,10 +33,8 @@ from custom_components.daikin_cycle_ml.const import (
     ATTR_INLET_WATER_R4T,
     ATTR_INV_FREQUENCY_2_RPS,
     ATTR_INV_FREQUENCY_RPS,
-    ATTR_IU_OPERATION_MODE,
     ATTR_LEAVING_WATER_AFTER_BUH,
     ATTR_LW_SETPOINT,
-    ATTR_OPERATION_MODE,
     ATTR_OUTDOOR_AIR_R1T,
     ATTR_TARGET_COND_TEMP,
     ATTR_WATER_PUMP_OPERATION,
@@ -233,10 +229,10 @@ def test_discover_entity_ids_includes_both_domains(hass_with_epra12) -> None:
 
 @pytest.mark.asyncio
 async def test_resolution_returns_21_attributes(hass_with_epra12) -> None:
-    """EPRA12EAV3 has 21 of 25 CONSUMED attributes present."""
+    """EPRA12EAV3 has 22 of 26 CONSUMED attributes present (R1T before BUH included)."""
     result = resolve_attrs(hass_with_epra12)
-    assert len(result.attrs) == 21, (
-        f"expected 21, got {len(result.attrs)}: missing={result.missing_consumed}"
+    assert len(result.attrs) == 22, (
+        f"expected 22, got {len(result.attrs)}: missing={result.missing_consumed}"
     )
 
 
@@ -313,6 +309,7 @@ async def test_stats_labels_resolve(hass_with_epra12) -> None:
 async def test_stats_heat_output_drives_cop_source(hass_with_epra12) -> None:
     """With Stats heat output present, _read_cop_effective uses v2 path."""
     from unittest.mock import MagicMock
+
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )

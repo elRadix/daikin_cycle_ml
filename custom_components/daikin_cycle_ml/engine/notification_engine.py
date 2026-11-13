@@ -329,7 +329,7 @@ def evaluate_alerts(
         emoji_enabled = bool(options.get("notify_emoji_enabled", True))
 
     _lang = language or (options.get("notification_language") if options else None) or "en"
-    if _lang not in ("en", "nl"):
+    if _lang not in ("en", "nl", "fr"):
         _lang = "en"
 
     agg_min = _opt_float(options, "alert_aggregation_minutes", DEFAULT_AGG_MIN)

@@ -30,6 +30,11 @@ ignore = [
 known-first-party = ["homeassistant", "custom_components"]
 
 [tool.ruff.lint.per-file-ignores]
+"scripts/**" = [
+    "RUF001",  # French typography uses −/–/× intentionally
+    "RUF005",  # tuple concat in build tool
+    "E741",    # build-tool variable names
+]
 "tests/**" = [
     "B011",   # assert False (tests)
     "F841",   # unused var in tests

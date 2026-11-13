@@ -100,6 +100,10 @@ MODEL_EPRA10EAV3 = "epra10eav3"
 MODEL_EPRA11EAV3 = "epra11eav3"
 MODEL_EPRA14EAV3 = "epra14eav3"
 MODEL_EPRA14DAW17 = "epra14daw17"
+# Altherma 3 H HT split, single-phase (V3), ETVH/ETVX/ETBH/ETSH16 indoor units
+MODEL_EPRA14DAV3 = "epra14dav3"
+MODEL_EPRA16DAV3 = "epra16dav3"
+MODEL_EPRA18DAV3 = "epra18dav3"
 MODEL_EPRA16EAV3 = "epra16eav3"
 MODEL_ERLA04DAV3 = "erla04dav3"
 MODEL_ERLA06DAV3 = "erla06dav3"
@@ -165,6 +169,9 @@ MODEL_CHOICES = [
     MODEL_EPRA12EAV3,
     MODEL_EPRA14EAV3,
     MODEL_EPRA14DAW17,
+    MODEL_EPRA14DAV3,
+    MODEL_EPRA16DAV3,
+    MODEL_EPRA18DAV3,
     MODEL_EPRA16EAV3,
     MODEL_ERLA04DAV3,
     MODEL_ERLA06DAV3,
@@ -226,6 +233,9 @@ MODEL_LABELS = {
     MODEL_EPRA12EAV3: "Daikin Altherma 3 H MT - EPRA12EAV3",
     MODEL_EPRA14EAV3: "Daikin Altherma 3 H MT - EPRA14EAV3",
     MODEL_EPRA14DAW17: "Daikin Altherma 3 H HT - EPRA14DAW17",
+    MODEL_EPRA14DAV3: "Daikin Altherma 3 H HT - EPRA14DAV3",
+    MODEL_EPRA16DAV3: "Daikin Altherma 3 H HT - EPRA16DAV3",
+    MODEL_EPRA18DAV3: "Daikin Altherma 3 H HT - EPRA18DAV3",
     MODEL_EPRA16EAV3: "Daikin Altherma 3 H MT - EPRA16EAV3",
     MODEL_ERLA04DAV3: "Daikin Altherma 3 R - ERLA04DAV3",
     MODEL_ERLA06DAV3: "Daikin Altherma 3 R - ERLA06DAV3",
@@ -291,6 +301,8 @@ DHW_PRESENT_NEVER = "never"
 ATTR_3WAY_VALVE = "3way valve(On:DHW_Off:Space)"
 ATTR_DEFROST_OPERATION = "Defrost Operation"
 ATTR_LEAVING_WATER_AFTER_BUH = "Leaving water temp. after BUH (R2T)"
+# Compressor-side supply temp, preferred by physics.dt_from_attrs
+ATTR_LEAVING_WATER_BEFORE_BUH = "Leaving water temp. before BUH (R1T)"
 ATTR_INLET_WATER_R4T = "Inlet water temp.(R4T)"
 ATTR_DHW_TANK_TEMP = "DHW tank temp. (R5T)"
 ATTR_OUTDOOR_AIR_R1T = "Outdoor air temp.(R1T)"
@@ -364,11 +376,13 @@ V2_STATS_CONSUMED_LABELS: list[str] = [
     "Stats: Electricalinput estimated (kW)",  # V2_STATS_KEY_TYPO (firmware typo)
 ]
 
-CONSUMED_ATTRIBUTES: list[str] = list(CORE_ATTRIBUTES) + [
+CONSUMED_ATTRIBUTES: list[str] = [
+    *CORE_ATTRIBUTES,
     ATTR_INV_FREQUENCY_2_RPS,
     ATTR_COP,
     ATTR_DHW_TANK_TEMP,
     ATTR_INDOOR_AMBIENT_R1T,
+    ATTR_LEAVING_WATER_BEFORE_BUH,
     ATTR_TARGET_COND_TEMP,
     ATTR_BOILER_OPERATION_DEMAND,
     ATTR_BOILER_DHW_DEMAND,
@@ -399,6 +413,7 @@ CONSUMED_ATTRIBUTE_FEATURES: dict[str, str] = {
     ATTR_COP: "cop_calculation",
     ATTR_DHW_TANK_TEMP: "dhw_classification",
     ATTR_INDOOR_AMBIENT_R1T: "comfort_analysis",
+    ATTR_LEAVING_WATER_BEFORE_BUH: "thermal_power",
     ATTR_TARGET_COND_TEMP: "heating_curve_advice",
     ATTR_BOILER_OPERATION_DEMAND: "hybrid_analytics",
     ATTR_BOILER_DHW_DEMAND: "hybrid_analytics",
@@ -597,7 +612,8 @@ DEFAULT_SETPOINT_OSC_MIN_DELTA = 0.5
 # --- Batch 22: notification language + alert groups + setpoint_osc options ---
 LANG_EN = "en"
 LANG_NL = "nl"
-NOTIFICATION_LANGUAGES = [LANG_EN, LANG_NL]
+LANG_FR = "fr"
+NOTIFICATION_LANGUAGES = [LANG_EN, LANG_NL, LANG_FR]
 DEFAULT_NOTIFICATION_LANGUAGE = LANG_EN
 
 ALERT_GROUP_PENDULUM = "pendulum"
@@ -692,6 +708,20 @@ STOOKLIJN_STATE_LABEL_NL = {
 }
 
 STOOKLIJN_STATE_LABEL = STOOKLIJN_STATE_LABEL_EN
+STOOKLIJN_STATE_LABEL_FR = {
+    "keep": "Garder le départ d'eau actuel",
+    "lower_lwt": "Baisser le départ d'eau de {step} °C",
+    "raise_lwt": "Monter le départ d'eau de {step} °C",
+    "no_data": "Pas de données",
+    "unknown": "Inconnu",
+    "behoud": "Garder le départ d'eau actuel",
+    "verlaag_lwt": "Baisser le départ d'eau de {step} °C",
+    "verhoog_lwt": "Monter le départ d'eau de {step} °C",
+    "verlaag_lwt_2c": "Baisser le départ d'eau de 2 °C",
+    "verhoog_lwt_2c": "Monter le départ d'eau de 2 °C",
+    "geen_data": "Pas de données",
+}
+
 # --- B6: cop_hourly REST API + curve sensor ---
 COP_HOURLY_API_URL = "/api/daikin_cycle_ml/cop_hourly"
 COP_HOURLY_API_DEFAULT_DAYS = 30

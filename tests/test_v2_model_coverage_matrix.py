@@ -91,9 +91,9 @@ def _coverage_for_model(model_slugs: set[str]) -> dict[str, int]:
 
 
 def test_operational_attributes_count() -> None:
-    """Sanity: 21 operational = 25 consumed minus 4 intrinsic."""
-    assert len(OPERATIONAL_ATTRIBUTES) == 21, (
-        f"expected 21, got {len(OPERATIONAL_ATTRIBUTES)}"
+    """Sanity: 22 operational = 26 consumed minus 4 intrinsic."""
+    assert len(OPERATIONAL_ATTRIBUTES) == 22, (
+        f"expected 22, got {len(OPERATIONAL_ATTRIBUTES)}"
     )
     assert len(INTRINSIC_LABELS) == 4
 

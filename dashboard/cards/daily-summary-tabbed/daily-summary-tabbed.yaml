@@ -33,7 +33,7 @@ card_mod:
 cards:
   - type: custom:mushroom-template-card
     primary: >-
-      📅 DAIKIN CYCLE ML — SUMMARY{% set ns = namespace(specs='') %}{% for s in
+      📅 DAIKIN CYCLE ML — {{ 'RÉSUMÉ' if state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') == 'fr' else 'SUMMARY' }}{% set ns = namespace(specs='') %}{% for s in
       states.sensor %}{% if ns.specs == '' and
       (s.entity_id.endswith('_hp_specs') or s.entity_id.endswith('_wp_specs'))
       %}{% set ns.specs = s.entity_id %}{% endif %}{% endfor %}{{ ' · ' +
@@ -47,7 +47,7 @@ cards:
       s.entity_id.endswith('_cyclus_status')) %}{% set ns.state = s.entity_id
       %}{% endif %}{% endfor %}{% set l = state_attr(ns.state, 'configured_language') or 'en' -%}{% set f = state_attr(ns.specs,
       'family') or '—' -%}{% set k = state_attr(ns.specs, 'kw') or '—' -%}{{ f
-      }} · {{ k }} kW · {% if l == 'nl' %}Cycli · duur · kwaliteit · events{%
+      }} · {{ k }} kW · {% if l == 'nl' %}Cycli · duur · kwaliteit · events{% elif l == 'fr' %}Cycles · durée · qualité · événements{%
       else %}Cycles · duration · quality · events{% endif %}
     icon: mdi:calendar-range
     icon_color: blue
@@ -216,18 +216,18 @@ cards:
             var attr = function(id,n,d){ try{ if(!id)return d; var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
             var aN = function(id,n,d){ var v=attr(id,n,null); if(v===null)return d; var x=parseFloat(v); return isNaN(x)?d:x; };
             var weekday = function(iso){ if(!iso) return ''; try{ var d = new Date(iso + 'T12:00:00'); return ['zo','ma','di','wo','do','vr','za'][d.getDay()]; }catch(e){ return ''; } };
-            var weekdayEn = function(iso){ if(!iso) return ''; try{ var d = new Date(iso + 'T12:00:00'); return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]; }catch(e){ return ''; } };
+            var weekdayEn = function(iso){ if(!iso) return ''; try{ var d = new Date(iso + 'T12:00:00'); return (LANG==='fr'?['dim','lun','mar','mer','jeu','ven','sam']:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'])[d.getDay()]; }catch(e){ return ''; } };
             var fmtDay = function(iso){ if(!iso) return '—'; var p=String(iso).split('-'); return p.length>=3 ? p[2]+'/'+p[1] : iso; };
             var fmtBigMin = function(m){
               if(!hasV(m)) return '—'; var n = Number(m);
-              if(n >= 1440) return Math.round(n/1440)+'d';
+              if(n >= 1440) return Math.round(n/1440)+(LANG==='fr'?' j':'d');
               if(n >= 120) return Math.round(n/60)+'h';
               if(n >= 60) return (n/60).toFixed(1).replace('.',',')+'h';
               return Math.round(n)+'m';
             };
             var fmtBigHours = function(h){
               if(!hasV(h)) return '—'; var n = Number(h);
-              if(n >= 24*7) return Math.round(n/24)+'d';
+              if(n >= 24*7) return Math.round(n/24)+(LANG==='fr'?' j':'d');
               if(n >= 24) return Math.round(n)+'h';
               if(n >= 10) return n.toFixed(0)+'h';
               if(n >= 1) return n.toFixed(1).replace('.',',')+'h';
@@ -251,9 +251,14 @@ cards:
               ? String(hass.language).toLowerCase() : '';
             var cfgLang = String(attr(STATE,'configured_language','en')).toLowerCase();
             var LANG = 'en';
-            if (cfgLangOvr === 'nl' || cfgLangOvr === 'en') { LANG = cfgLangOvr; }
+            if (cfgLangOvr === 'nl' || cfgLangOvr === 'en' || cfgLangOvr === 'fr') { LANG = cfgLangOvr; }
             else if (haLang.indexOf('nl') === 0) { LANG = 'nl'; }
             else if (cfgLang === 'nl') { LANG = 'nl'; }
+            else if (cfgLang === 'fr' || haLang.indexOf('fr') === 0) { LANG = 'fr'; }
+            /* FR-I18N (azsono03) */
+            var FRM={" cycles in IDEAL zone":" cycles dans la zone IDÉALE"," cycles in PENDULUM zone":" cycles dans la zone TROP COURTE"," cycles over ":" cycles sur ","24h vs 7d":"24 h / 7 j","30d":"30 j","365d":"365 j","Last 7d":"7 derniers jours","SHORT 20-60m":"COURT 20-60 min","GOOD 60-180m":"BON 60-180 min","LONG >180m":"LONG >180 min","40-70 mid":"40-70 moyen","<40 low":"<40 faible","ACTION REQUIRED":"ACTION REQUISE","ATTENTION":"ATTENTION","AVG DURATION":"DURÉE MOY.","Average quality ":"Qualité moyenne ","Average quality low (":"Qualité moyenne faible (","Avg duration":"Durée moy.","Avg off":"Arrêt moy.","Avg quality":"Qualité moy.","Avg ratio":"Taux moy.","Avg/day":"Moy./jour","BUH":"Appoint","BUH >":"Appoint >","Band":"Plage","Best day":"Meilleur jour","Boiler COP":"COP chaudière","Bucket":"Tranche","CARNOT EFF.":"RENDEMENT CARNOT","COMPRESSOR":"COMPRESSEUR","COOLING":"RAFRAÎCHISSEMENT","COP":"COP","COP TODAY":"COP DU JOUR","COP TREND":"TENDANCE COP","COP above datasheet reference":"COP au-dessus de la fiche technique","CYCLES PER DAY":"CYCLES PAR JOUR","CYCLES/DAY":"CYCLES/JOUR","Comfort":"Confort","Compressor off":"Compresseur arrêté","Contribution":"Part","Cool":"Froid","Cooling":"Rafraîchissement","Cycles":"Cycles","Cycles per day":"Cycles par jour","DEFROST":"DÉGIVRAGE","DEFROST IMPACT":"EFFET DES DÉGIVRAGES","DHW":"ECS","DURATION/DAY":"DURÉE/JOUR","Days":"Jours","Defrost":"Dégivrage","Duration":"Durée","Duration per day":"Durée par jour","Duty":"Taux de marche","ELEC":"ÉLEC","ELECTRICAL":"ÉLECTRIQUE","EMITTER":"RADIATEURS","ENERGY TODAY":"ÉNERGIE DU JOUR","Elapsed":"Écoulé","Energy":"Énergie","Event counts per day":"Événements par jour","Event ratio per day":"Taux d'événements par jour","Good days":"Bons jours","Good ratio":"Taux de bons cycles","HEAT BALANCE":"BILAN DE CHALEUR","HEAT PUMP":"PAC","HEATING":"CHAUFFAGE","HEATING OFF":"CHAUFFAGE COUPÉ","HP → EMITTER":"PAC → RADIATEURS","Heat":"Chauffage","Heating":"Chauffage","IDLE":"À L'ARRÊT","IN":"ENTRÉE","INFO":"INFO","Insufficient data":"Pas assez de données","LWT":"Départ","LWT NOW":"DÉPART ACTUEL","LWT OPT":"DÉPART OPTIMAL","Last defrost":"Dernier dégivrage","Last: ":"Dernier : ","Live cycle · COP · quality · alerts":"Cycle en direct · COP · qualité · alertes","Longest":"Le plus long","Longest day":"Jour le plus long","Low days":"Jours faibles","MAX LWT":"DÉPART MAX","MIN LWT":"DÉPART MIN","MODES":"MODES","Max day":"Jour max","Mid days":"Jours moyens","Mode":"Mode","Month":"Mois","No COP data":"Pas de COP","No data":"Pas de données","OUT":"SORTIE","OUTDOOR TEMPERATURE (°C)":"TEMPÉRATURE EXTÉRIEURE (°C)","Outdoor":"Extérieur","PENDULUM <20m":"TROP COURT <20 min","Phase":"Phase","Power":"Puissance","QUALITY":"QUALITÉ","Quality":"Qualité","Quality dropping (":"Qualité en baisse (","Quality per day":"Qualité par jour","Quality rising (+":"Qualité en hausse (+","RPS":"tr/s","RUNNING":"EN MARCHE","Range":"Plage","Reliability":"Fiabilité","Runs":"Cycles","Runtime":"Durée de marche","SAVINGS":"ÉCONOMIE","SPF SEASON":"SPF SAISON","STANDBY":"EN ATTENTE","SUPPLY LWT (°C)":"DÉPART D'EAU (°C)","Samples":"Échantillons","Savings":"Économie","Share":"Part","Short runs":"Cycles courts","Since midnight":"Depuis minuit","Source":"Source","Span":"Période","Starts":"Démarrages","Starts today":"Démarrages du jour","State":"État","Step":"Pas","Sum":"Somme","System performing normally":"Le système fonctionne normalement","THERM":"CHALEUR","THERMAL":"CHALEUR","THERMAL SPLIT":"RÉPARTITION DE LA CHALEUR","Today":"Aujourd'hui","Total":"Total","Total BUH":"Appoint total","Total defrost":"Dégivrage total","Total runtime":"Marche totale","Trends":"Tendances","VS DATASHEET":"VS FICHE TECHNIQUE","WEEK TREND":"TENDANCE SEMAINE","Week":"Semaine","Worst day":"Pire jour","Y-axis max":"Échelle max","Year":"Année","act":"act.","active":"active","ago":"plus tôt","avg":"moy.","buckets":"tranches","cycles":"cycles","datasheet":"fiche technique","day":"jour","defrost <":"dégivrage <","demand":"demande","duration":"durée","events":"événements","heating OFF >":"chauffage coupé >","high":"élevé","in bucket":"dans la tranche","insufficient buckets":"pas assez de tranches","last":"dernier","low":"faible","max":"max","min":"min","month":"mois","more":"de plus","nominal":"normal","nominal COP":"COP nominal","of cycles":"des cycles","outdoor":"extérieur","per day":"par jour","samples":"échantillons","state":"état","supply":"départ","today":"aujourd'hui","total":"total","week":"semaine","Ø duration":"Ø durée","Ø/cycle":"Ø/cycle","← 💧 RETURN":"← 💧 RETOUR","≥70 good":"≥70 bon","⏮️ Last cycle":"⏮️ Dernier cycle","⏱️ DURATION":"⏱️ DURÉE","♻️ Hydraulic circuit":"♻️ Circuit hydraulique","⚠ BUH ASSIST":"⚠ APPOINT","⚡ BUH":"⚡ Appoint","⚡ EVENTS":"⚡ ÉVÉNEMENTS","✅ System OK — no active warnings":"✅ Système OK — aucune alerte active","❄ DEFROST":"❄ DÉGIVRAGE","❄ Defrost":"❄ Dégivrage","⭐ QUALITY":"⭐ QUALITÉ","🎯 COP":"🎯 COP","🎯 COP Efficiency":"🎯 Efficacité COP","🎯 Cycles vs Duration":"🎯 Cycles / durée","🎯 SCATTER":"🎯 NUAGE","💡 COP = efficiency · ~ref = approximate datasheet comparison (A7/W35) · duration/cycle trends per day":"💡 COP = efficacité · ~réf = comparaison approximative avec la fiche (A7/W35) · tendances durée/cycles par jour","💡 Cycle = continuous compressor run · <15m = inefficient cycling · >48h = safety limit":"💡 Cycle = marche continue du compresseur · <15 min = cycles trop courts · >48 h = limite de sécurité","💡 Duration = total compressor runtime per day · split per mode · ⚠ = clipped":"💡 Durée = marche totale du compresseur par jour · par mode · ⚠ = tronqué","💡 Higher COP = better · Q = quality 0-100 · Alerts on top = action":"💡 COP élevé = mieux · Q = qualité 0-100 · Alertes en haut = à traiter","💡 Ratio = events per cycle × 100 · green = nominal (15%) · red = elevated (35%)":"💡 Taux = événements par cycle × 100 · vert = normal (15 %) · rouge = élevé (35 %)","💡 Tap a bar for details — buckets by avg cycle duration per mode":"💡 Toucher une barre pour le détail — tranches par durée moyenne de cycle et par mode","💡 Tap a dot for details — X: cycles/day · Y: avg duration · color: quality":"💡 Toucher un point pour le détail — X : cycles/jour · Y : durée moy. · couleur : qualité","💡 Tap a dot or stat for day details":"💡 Toucher un point ou une valeur pour le détail du jour","💡 Tap an item for details":"💡 Toucher un élément pour le détail","📅 Today":"📅 Aujourd'hui","📈 Heating curve advice":"📈 Conseil de loi d'eau","📈 Regression":"📈 Régression","📊 Cycle duration distribution":"📊 Répartition des durées de cycle","📊 DISTRIBUTION":"📊 RÉPARTITION","📊 OVERVIEW":"📊 VUE D'ENSEMBLE","📊 historical":"📊 historique","🔄 CYCLES":"🔄 CYCLES","🔍 auto-discovery":"🔍 détection auto","🔥 SUPPLY →":"🔥 DÉPART →"," below datasheet":" sous la fiche technique"," well above target":" bien au-dessus de l'objectif","% week":" % / semaine","BUH active":"Appoint en marche","COP dropping ":"COP en baisse ","COP heating ":"COP chauffage ","COP low":"COP bas","DHW cycling":"Cycles d'eau chaude","High cycle rate":"Fréquence de cycles élevée","Missing attributes":"Valeurs manquantes","Pendulum/day":"Cycles trop fréquents/jour","Pendulum/hour":"Cycles trop fréquents/heure","Previous: BUH":"Précédent : appoint","Previous: defrost":"Précédent : dégivrage","SPF ":"SPF ","Setpoint oscillation":"Consigne instable","Short off-time":"Arrêt court","Short run":"Marche courte","Source stale":"Source muette","Too many cycles (target ":"Trop de cycles (objectif ","Update available":"Mise à jour disponible","is_stale flag":"Source en retard"};
+            var FR=function(x){ return (LANG==='fr' && typeof x==='string' && Object.prototype.hasOwnProperty.call(FRM,x)) ? FRM[x] : x; };
+            var FRO=function(o){ if(typeof o==='string') return Object.prototype.hasOwnProperty.call(FRM,o)?FRM[o]:o; if(o&&typeof o==='object'){ var r=Array.isArray(o)?[]:{}; for(var k in o){ r[k]=FRO(o[k]); } return r; } return o; };
 
             var I18N = {
               tab_overview:{nl:'📊 OVERZICHT', en:'📊 OVERVIEW'},
@@ -322,7 +327,7 @@ cards:
               boiler_contrib: {nl:'Bijdrage', en:'Contribution'},
               boiler_cop: {nl:'Boiler COP', en:'Boiler COP'}
             };
-            var t = function(k){ var e=I18N[k]; if(!e) return k; return e[LANG] || e.en || e.nl; };
+            var t = function(k){ var e=I18N[k]; if(!e) return k; if(LANG==='fr') return e.fr || FR(e.en || e.nl); return e[LANG] || e.en || e.nl; };
             var wd = function(iso){ return LANG==='nl' ? weekday(iso) : weekdayEn(iso); };
 
             /* POPUP SYSTEM */
@@ -362,7 +367,7 @@ cards:
                     }
                   }
                   if (payload.modes && payload.modes.length) {
-                    html += '<div class="pa-popup-sep"></div><div class="pa-popup-mhdr">' + (LANG==='nl'?'MODI':'MODES') + '</div><div class="pa-popup-modes">';
+                    html += '<div class="pa-popup-sep"></div><div class="pa-popup-mhdr">' + (LANG==='nl'?'MODI':FR('MODES')) + '</div><div class="pa-popup-modes">';
                     for (var mi = 0; mi < payload.modes.length; mi++) {
                       var md = payload.modes[mi];
                       var qStr = (md.q === null || md.q === undefined) ? '—' : md.q;
@@ -502,9 +507,9 @@ cards:
                 { k:t('r_defrost'),  v:String(d.defrost||0), c:(d.defrost>0?'#1976D2':'var(--disabled-text-color, #94a3b8)') }
               ];
               var modes = [];
-              var mmap = { heating:{ic:'🔥', col:C.heating, nm:(LANG==='nl'?'Verwarming':'Heating')},
-                           dhw:{ic:'🚿', col:C.dhw, nm:'DHW'},
-                           cooling:{ic:'🧊', col:C.cooling, nm:(LANG==='nl'?'Koeling':'Cooling')} };
+              var mmap = { heating:{ic:'🔥', col:C.heating, nm:(LANG==='nl'?'Verwarming':FR('Heating'))},
+                           dhw:{ic:'🚿', col:C.dhw, nm:FR('DHW')},
+                           cooling:{ic:'🧊', col:C.cooling, nm:(LANG==='nl'?'Koeling':FR('Cooling'))} };
               Object.keys(d.modes).forEach(function(mk){
                 var m = d.modes[mk];
                 if (m.cycles > 0) {
@@ -605,7 +610,7 @@ cards:
                 ],
                 modes: [
                   { icon:'🔥', col:C.heating, name:t('leg_heat'), cycles:modeTotals.heating, dur:fmtBigMin(modeDurs.heating), q:'—', qc:'var(--disabled-text-color, #94a3b8)' },
-                  { icon:'🚿', col:C.dhw,    name:'DHW',          cycles:modeTotals.dhw,    dur:fmtBigMin(modeDurs.dhw),    q:'—', qc:'var(--disabled-text-color, #94a3b8)' },
+                  { icon:'🚿', col:C.dhw,    name:FR('DHW'),          cycles:modeTotals.dhw,    dur:fmtBigMin(modeDurs.dhw),    q:'—', qc:'var(--disabled-text-color, #94a3b8)' },
                   { icon:'🧊', col:C.cooling, name:t('leg_cool'), cycles:modeTotals.cooling, dur:fmtBigMin(modeDurs.cooling), q:'—', qc:'var(--disabled-text-color, #94a3b8)' }
                 ]
               });
@@ -624,7 +629,7 @@ cards:
               h += '<div class="pa-hero-ring">'+ringSvg+'</div>';
               h += '</div>';
               h += '<div class="pa-hero-foot">';
-              h += '<span class="pa-hero-stat">'+String(wTotCycles)+' cycli · '+fmtBigHours(wHours)+'</span>';
+              h += '<span class="pa-hero-stat">'+String(wTotCycles)+(LANG==='fr'?' cycles · ':' cycli · ')+fmtBigHours(wHours)+'</span>';
               h += '<span class="pa-hero-dates">'+fmtDay(sub[0].day)+' → '+fmtDay(sub[sub.length-1].day)+'</span>';
               h += '</div>';
               if (barHtml) h += '<div class="pa-hero-split">'+barHtml+'</div>';
@@ -649,7 +654,7 @@ cards:
               }
 
               h += '<div class="pa-block">';
-              h += '<div class="pa-block-hdr"><span>📈 '+(LANG==='nl'?'Trends':'Trends')+'</span><span>'+sub.length+'d</span></div>';
+              h += '<div class="pa-block-hdr"><span>📈 '+(LANG==='nl'?'Trends':FR('Trends'))+'</span><span>'+sub.length+(LANG==='fr'?' j':'d')+'</span></div>';
               h += buildSpark(sub);
               h += '</div>';
               return h;
@@ -660,13 +665,13 @@ cards:
               var panW = 143, panGap = 15;
               var panH = 48;
               var data = [
-                { title:(LANG==='nl'?'KWALITEIT':'QUALITY'), color:C.quality, bg:CBG.quality,
+                { title:(LANG==='nl'?'KWALITEIT':FR('QUALITY')), color:C.quality, bg:CBG.quality,
                   data:sub.map(function(d){ return d.quality_avg; }), yMin:0, yMax:100,
                   fmt:function(v){ return Math.round(v)+'%'; } },
-                { title:(LANG==='nl'?'CYCLI/DAG':'CYCLES/DAY'), color:C.heating, bg:CBG.heating,
+                { title:(LANG==='nl'?'CYCLI/DAG':FR('CYCLES/DAY')), color:C.heating, bg:CBG.heating,
                   data:sub.map(function(d){ return d.cycles; }), yMin:0, yMax:null,
                   fmt:function(v){ return String(Math.round(v)); } },
-                { title:(LANG==='nl'?'DUUR/DAG':'DURATION/DAY'), color:C.cooling, bg:CBG.cooling,
+                { title:(LANG==='nl'?'DUUR/DAG':FR('DURATION/DAY')), color:C.cooling, bg:CBG.cooling,
                   data:sub.map(function(d){ return d.dur_min/60; }), yMin:0, yMax:null,
                   fmt:function(v){ return v<10 ? v.toFixed(1).replace('.',',')+'h' : Math.round(v)+'h'; } }
               ];
@@ -967,30 +972,30 @@ cards:
               var dutyCol = dutyBand === 'nominal' ? QGOOD : (dutyBand === 'low' ? 'var(--primary-color, #0097E0)' : (dutyBand === 'high' ? QMID : 'var(--disabled-text-color, #94a3b8)'));
               var buhCol = buhSec > 0 ? C.buh : 'var(--disabled-text-color, #94a3b8)';
               var defCol = defCnt > 0 ? C.defrost : 'var(--disabled-text-color, #94a3b8)';
-              var dutyLabel = dutyBand === 'nominal' ? (LANG==='nl'?'nominaal':'nominal')
-                            : dutyBand === 'low' ? (LANG==='nl'?'laag':'low')
-                            : dutyBand === 'high' ? (LANG==='nl'?'hoog':'high') : '—';
+              var dutyLabel = dutyBand === 'nominal' ? (LANG==='nl'?'nominaal':FR('nominal'))
+                            : dutyBand === 'low' ? (LANG==='nl'?'laag':FR('low'))
+                            : dutyBand === 'high' ? (LANG==='nl'?'hoog':FR('high')) : '—';
 
               var buhPid = registerPayload({
-                title: '⚡ BUH · '+(LANG==='nl'?'vandaag':'today'),
+                title: '⚡ BUH · '+(LANG==='nl'?'vandaag':FR('today')),
                 items: [
                   { k:t('r_totaldur'), v:fmtSec(buhSec), hl:true },
                   { k:t('p_step')+' 1', v:fmtSec(buhS1) },
                   { k:t('p_step')+' 2', v:fmtSec(buhS2) },
                   { k:t('p_energy'), v:v1(buhKwh)+' kWh', c:C.buh },
-                  { k:t('r_span'), v:(LANG==='nl'?'Sinds 00:00':'Since midnight') }
+                  { k:t('r_span'), v:(LANG==='nl'?'Sinds 00:00':FR('Since midnight')) }
                 ]
               });
               var defPid = registerPayload({
-                title: '❄ Defrost · '+(LANG==='nl'?'vandaag':'today'),
+                title: '❄ Defrost · '+(LANG==='nl'?'vandaag':FR('today')),
                 items: [
                   { k:t('r_cycles'), v:defCnt+'×', c:C.defrost, hl:true },
                   { k:t('r_avgdur2'), v:fmtSec(defAvg) },
-                  { k:t('r_lastdef'), v:(defLast>0?fmtSec(Date.now()/1000-defLast)+' '+(LANG==='nl'?'geleden':'ago'):'—') }
+                  { k:t('r_lastdef'), v:(defLast>0?fmtSec(Date.now()/1000-defLast)+' '+(LANG==='nl'?'geleden':FR('ago')):'—') }
                 ]
               });
               var dutyPid = registerPayload({
-                title: '⚙ Duty · '+(LANG==='nl'?'vandaag':'today'),
+                title: '⚙ Duty · '+(LANG==='nl'?'vandaag':FR('today')),
                 items: [
                   { k:t('r_duty'), v:v1(dutyPct)+'%', c:dutyCol, hl:true },
                   { k:t('p_band'), v:dutyLabel, c:dutyCol },
@@ -999,7 +1004,7 @@ cards:
                 ]
               });
               var startsPid = registerPayload({
-                title: '🔄 '+(LANG==='nl'?'Starts':'Starts'),
+                title: '🔄 '+(LANG==='nl'?'Starts':FR('Starts')),
                 items: [
                   { k:t('r_starts'), v:String(startsT), hl:true }
                 ]
@@ -1016,18 +1021,18 @@ cards:
               var buhSub = (buhS1>0||buhS2>0) ? ('S1 '+fmtSec(buhS1)+' · S2 '+fmtSec(buhS2)) : '—';
               var defSub = defCnt > 0 ? ('Ø '+fmtSec(defAvg)) : '—';
               var today = '<div class="pa-block">';
-              today += '<div class="pa-block-hdr"><span>🔥 '+(LANG==='nl'?'Vandaag':'Today')+'</span><span>live</span></div>';
+              today += '<div class="pa-block-hdr"><span>🔥 '+(LANG==='nl'?'Vandaag':FR('Today'))+'</span><span>live</span></div>';
               today += '<div class="pa-event-tiles">';
               today += tile('⚡', 'BUH', fmtSec(buhSec), buhSub + ' · ' + v1(buhKwh)+' kWh', buhCol, buhPid);
               today += tile('❄', 'Defrost', defCnt+'×', defSub, defCol, defPid);
               today += tile('⚙', 'Duty', v1(dutyPct)+'%', dutyLabel, dutyCol, dutyPid);
-              today += tile('🔄', 'Starts', String(startsT), LANG==='nl'?'vandaag':'today', startsT > 0 ? 'var(--secondary-text-color, #1565C0)' : 'var(--disabled-text-color, #94a3b8)', startsPid);
+              today += tile('🔄', FR('Starts'), String(startsT), LANG==='nl'?'vandaag':FR('today'), startsT > 0 ? 'var(--secondary-text-color, #1565C0)' : 'var(--disabled-text-color, #94a3b8)', startsPid);
               if (IS_HYBRID) {
                 var boilerPct = BOILER_CONTRIB ? (parseFloat((states[BOILER_CONTRIB] || {}).state) || 0) : 0;
                 var boilerCop = BOILER_EFF ? (parseFloat((states[BOILER_EFF] || {}).state) || 0) : 0;
                 var boilerMode = HYBRID_MODE ? String((states[HYBRID_MODE] || {}).state) : 'Hybrid';
                 var bPid = registerPayload({
-                  title: '🔥 ' + t('hybrid_mode') + ' · ' + (LANG==='nl'?'vandaag':'today'),
+                  title: '🔥 ' + t('hybrid_mode') + ' · ' + (LANG==='nl'?'vandaag':FR('today')),
                   items: [
                     { k:t('hybrid_mode'), v:boilerMode, hl:true, c:'#E65100' },
                     { k:t('boiler_contrib'), v:v1(boilerPct)+'%' },
@@ -1180,7 +1185,7 @@ cards:
                 var diffS = nowS - defLast;
                 if (diffS < 3600) lastDefStr = Math.round(diffS/60)+'m';
                 else if (diffS < 86400) lastDefStr = Math.round(diffS/3600)+'h';
-                else lastDefStr = Math.round(diffS/86400)+'d';
+                else lastDefStr = Math.round(diffS/86400)+(LANG==='fr'?' j':'d');
               }
               var stats = statStrip([
                 {l:t('r_totalbuh'), v:String(totB), c:C.buh},
@@ -1218,7 +1223,7 @@ cards:
               var q = buildQuality(sub);
               h += '<div class="tab-pane" data-tab-pane="quality">';
               h += '<div class="pa-block">';
-              h += '<div class="pa-block-hdr"><span>⭐ '+t('qual_chart')+'</span><span>'+sub.length+'d</span></div>';
+              h += '<div class="pa-block-hdr"><span>⭐ '+t('qual_chart')+'</span><span>'+sub.length+(LANG==='fr'?' j':'d')+'</span></div>';
               h += q.chart;
               h += q.stats;
               h += chipRow([
@@ -1232,7 +1237,7 @@ cards:
               var c = buildCycles(sub);
               h += '<div class="tab-pane" data-tab-pane="cycles">';
               h += '<div class="pa-block">';
-              h += '<div class="pa-block-hdr"><span>🔄 '+t('cycles_chart')+'</span><span>'+sub.length+'d</span></div>';
+              h += '<div class="pa-block-hdr"><span>🔄 '+t('cycles_chart')+'</span><span>'+sub.length+(LANG==='fr'?' j':'d')+'</span></div>';
               h += c.chart;
               h += c.stats;
               h += chipRow([
@@ -1246,7 +1251,7 @@ cards:
               var du = buildDuration(sub);
               h += '<div class="tab-pane" data-tab-pane="duration">';
               h += '<div class="pa-block">';
-              h += '<div class="pa-block-hdr"><span>⏱️ '+t('dur_chart')+'</span><span>'+sub.length+'d</span></div>';
+              h += '<div class="pa-block-hdr"><span>⏱️ '+t('dur_chart')+'</span><span>'+sub.length+(LANG==='fr'?' j':'d')+'</span></div>';
               h += du.chart;
               h += du.stats;
               h += chipRow([
@@ -1261,7 +1266,7 @@ cards:
               h += '<div class="tab-pane" data-tab-pane="events">';
               h += ev.today;
               h += '<div class="pa-block">';
-              h += '<div class="pa-block-hdr"><span>📊 '+t('ev_chart')+'</span><span>'+sub.length+'d</span></div>';
+              h += '<div class="pa-block-hdr"><span>📊 '+t('ev_chart')+'</span><span>'+sub.length+(LANG==='fr'?' j':'d')+'</span></div>';
               h += ev.counts;
               var evChips = [];
               if (ev.hasB) evChips.push({col:C.buh, bg:CBG.buh, label:'⚡ '+t('leg_buh')});
@@ -1270,7 +1275,7 @@ cards:
               h += chipRow(evChips, '');
               h += '</div>';
               h += '<div class="pa-block">';
-              h += '<div class="pa-block-hdr"><span>📈 '+t('ev_ratio')+'</span><span>% '+(LANG==='nl'?'van cycli':'of cycles')+'</span></div>';
+              h += '<div class="pa-block-hdr"><span>📈 '+t('ev_ratio')+'</span><span>% '+(LANG==='nl'?'van cycli':FR('of cycles'))+'</span></div>';
               h += ev.ratio;
               h += ev.stats;
               h += chipRow([
@@ -1304,7 +1309,7 @@ cards:
             var winGroup = '<div class="pa-win-group">';
             [7,15,30].forEach(function(w){
               var act = (String(w) === activeWin) ? ' pa-active' : '';
-              winGroup += '<div class="pa-win-btn'+act+'" data-pa-action="win" data-pa-arg="'+w+'">'+w+'d</div>';
+              winGroup += '<div class="pa-win-btn'+act+'" data-pa-action="win" data-pa-arg="'+w+'">'+w+(LANG==='fr'?' j':'d')+'</div>';
             });
             winGroup += '</div>';
             var actions = '<div class="pa-actions">'+winGroup+'</div>';
