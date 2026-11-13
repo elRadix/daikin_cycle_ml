@@ -625,10 +625,12 @@ ALERT_ADVICE = {
             "curve \u2014 the pump is cycling too often."),
         "pendulum_daily": ("\u2022 Check setpoint delta, hysteresis and heat "
             "curve \u2014 the pump is cycling too often."),
-        "short_run": ("\u2022 Cycle shorter than threshold: raise minimum "
-            "run time or lower the LWT setpoint."),
+        "short_run": ("\u2022 Cycle shorter than threshold. Note: short runs "
+            "immediately after DHW are normal (valve switch/overshoot). "
+            "Otherwise, check pump speed or LWT overshoot."),
         "short_cycling_pattern": ("\u2022 Frequent short runs detected. "
-            "Raise minimum run time or reduce LWT setpoint oscillation."),
+            "Check pump speed and LWT overshoot. Note: short runs "
+            "directly after DHW are normal."),
         "short_off": ("\u2022 Off-time too short: if false positives, decrease "
             "short_off_threshold_min; if missing real short cycles, increase it."),
         "ml_anomaly": ("\u2022 Behaviour deviates from learned baseline. "
