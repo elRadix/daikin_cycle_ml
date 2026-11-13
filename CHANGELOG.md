@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [1.22.5] - 2026-11-13
+
+### Fixed
+- **Adaptive DHW tail** (#340): Suppress short_run/short_off for DHW tails.
+- **Defrost unknown state** (#308): Preserve state on sensor dropouts.
+- **DB exception handling**: `async_get_median_dhw_gap()` catches `_require()` errors.
+- **Status report**: Removed invalid Daikin advice texts.
+- **B1 time-bombed test** (#339): `test_sim_cross_midnight_heating_cycle` is now time-independent.
+
+
 ## [1.22.4] - 2026-11-12
 
 ### Added
