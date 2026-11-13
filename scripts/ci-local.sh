@@ -3,6 +3,24 @@
 # Runs the same 3 checks as CI: pytest (100% cov), ruff, mypy strict.
 # Exit 0 on all-pass, 1 on any fail.
 set -uo pipefail
+
+# v1.22.7 R834: skip CI on branch-deletion pushes (local_sha all-zeros).
+# Prevents 500s+ wait when running `git push --delete <branch>`.
+# Normal pushes: single stdin read, <1ms cost. Bypass: git push --no-verify.
+if [ ! -t 0 ]; then
+    _has_real_push=0
+    while read -r _lr _ls _rr _rs; do
+        if [ "${_ls:-}" != "0000000000000000000000000000000000000000" ] && [ -n "${_ls:-}" ]; then
+            _has_real_push=1
+            break
+        fi
+    done
+    if [ "$_has_real_push" = "0" ]; then
+        echo "[ci-local] SKIP_CI_ON_DELETE: only ref deletions, no CI needed"
+        exit 0
+    fi
+fi
+
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 MYPY_VENV=/opt/mypy-ci-venv
