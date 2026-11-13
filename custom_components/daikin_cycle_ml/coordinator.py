@@ -2436,16 +2436,24 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 )
             if dt_s <= 0.0:
                 return
+            def _is_valid_state(val: Any) -> bool:
+                if val is None:
+                    return False
+                if isinstance(val, str) and val.strip().lower() in ("unknown", "unavailable"):
+                    return False
+                return True
+
             s1 = attrs.get(ATTR_BUH_STEP1)
             s2 = attrs.get(ATTR_BUH_STEP2)
-            if tolerant_on(s1):
+            if _is_valid_state(s1) and tolerant_on(s1):
                 self._buh_step1_s += dt_s
-            if tolerant_on(s2):
+            if _is_valid_state(s2) and tolerant_on(s2):
                 self._buh_step2_s += dt_s
+                
             defrost_raw = attrs.get(ATTR_DEFROST_OPERATION)
-            if defrost_raw is None:
-                # v1.20.0 #280: partial attrs. Preserve last known state;
-                # do not falsely close an in-flight defrost.
+            if not _is_valid_state(defrost_raw):
+                # v1.20.0 #280 + v1.22.5 #308: partial attrs or sensor dropout.
+                # Preserve last known state; do not falsely close an in-flight defrost.
                 return
             defrost_on = tolerant_on(defrost_raw)
             prior = self._defrost_prior_s
@@ -4368,10 +4376,20 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         _run_end_ts = (last or {}).get("end_ts")
         if isinstance(_run_end_ts, (int, float)) and (now - _run_end_ts) > 3600.0:
             _run_stale = True
+        # v1.22.5 #339: Suppress short-run alerts for DHW tail cycles
+        _is_dhw_tail = _is_transient_int((last or {}).get("is_dhw_tail"))
+        if not _is_dhw_tail and last:
+            _cycles = self.store.cycles()
+            if len(_cycles) >= 2 and _cycles[-2].get("mode") == "dhw":
+                _gap = (last.get("start_ts", now) - _cycles[-2].get("end_ts", 0))
+                if _gap < 900:  # 15 minutes
+                    _is_dhw_tail = True
+
         is_short_run = (
             isinstance(dur, (int, float))
             and not _is_transient_int((last or {}).get("is_transient"))
             and not _run_stale
+            and not _is_dhw_tail
             and dur < short_run_th
         )
         # #245: completed gap from last cycle record, not live off-time
@@ -4385,6 +4403,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             if isinstance(_off_end_ts, (int, float)) and (now - _off_end_ts) > 3600.0:
                 _off_stale = True
             if _off_stale or not isinstance(off, (int, float)) or off >= short_off_th:
+                is_short_off = False
+            elif _is_dhw_tail:
                 is_short_off = False
             else:
                 # v1.19.7 fix #10: require at least one short run in the pair

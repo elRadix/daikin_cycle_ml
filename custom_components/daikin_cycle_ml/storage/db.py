@@ -895,6 +895,33 @@ class CycleDB:
             ),
         )
 
+    async def async_get_median_dhw_gap(self) -> float:
+        """Bereken de mediane gap (seconden) tussen DHW en de daaropvolgende heating."""
+        query = """
+            WITH pairs AS (
+                SELECT c2.start_ts - c1.end_ts as gap_s
+                FROM cycles c1
+                JOIN cycles c2 ON c2.id = c1.id + 1
+                WHERE c1.mode = 'dhw' AND c2.mode = 'heating'
+                  AND (c2.start_ts - c1.end_ts) < 3600
+                ORDER BY c2.start_ts DESC LIMIT 20
+            )
+            SELECT gap_s FROM pairs ORDER BY gap_s ASC;
+        """
+        try:
+            conn = self._require()
+            rows = list(await (await conn.execute(query)).fetchall())
+            if not rows:
+                return 300.0
+            gaps = [r[0] for r in rows if r[0] is not None]
+            if not gaps:
+                return 300.0
+            mid = len(gaps) // 2
+            median = gaps[mid] if len(gaps) % 2 else (gaps[mid - 1] + gaps[mid]) / 2
+            return max(300.0, float(median) * 2.5)
+        except Exception:
+            return 300.0
+
     async def _mark_cycle_dhw_tail(self, cycle_id: int) -> None:
         """Shape C: mark tail, no split."""
         conn = self._require()
