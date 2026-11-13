@@ -93,14 +93,24 @@ Multi-tab analytics card for **Distribution, Scatter, and COP**. Cycle-duration 
 
 **[📥 Download YAML](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/pattern-analysis/pattern-analysis.yaml)** · **[📖 Full documentation](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/pattern-analysis)**
 
+### ⭐ New: LWT Fine-Tuning
+
+[<img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/lwt-fine-tuning/showcase.gif" width="480" alt="LWT Fine-Tuning Card — 4-tab demo (animated)">](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/lwt-fine-tuning)
+
+**Optimize your heating curve, save COP, live LWT tracking.**
+
+Four-tab advisor: **Advice** (Lower/Raise/Optimal + COP impact), **Buckets** (interactive optimal-LWT curve per outdoor temp, auto-zoom, popup drilldown), **Analysis** (slope / tracking-error / step-size + offset advice), **Live** (animated LWT marker on color-coded range). Auto-locale EN/NL, state-aware waiting messages, configurable via `lang_override`, `default_tab`, `show_help`.
+
+**[📥 Download YAML](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/lwt-fine-tuning/card.yaml)** · **[📖 Full documentation](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/lwt-fine-tuning)**
+
 ---
 
 ### More cards
 
-| Simple Card | Heating Curve | Daily Summary | COP & Energie | Pattern Analysis |
-|:---:|:---:|:---:|:---:|:---:|
-| [![Daikin Cycle ML - Simple Card](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/simple-card/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/simple-card) | [![Daikin Cycle ML - Heating Curve](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/heating-curve/preview.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/heating-curve) | [![Daikin Cycle ML - Daily Summary](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daily-summary) | [![Daikin Cycle ML - COP & Energie](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/cop-energy/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/cop-energy) | [![Daikin Cycle ML - Pattern Analysis](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/pattern-analysis/showcase.gif)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/pattern-analysis) |
-| *One-glance overview* | *LWT vs outdoor* | *8-day cycle history* | *Live COP + SPF gauge* | *Distribution / Scatter / COP* |
+| Simple Card | Heating Curve | Daily Summary | COP & Energie | Pattern Analysis | LWT Fine-Tuning |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| [![Daikin Cycle ML - Simple Card](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/simple-card/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/simple-card) | [![Daikin Cycle ML - Heating Curve](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/heating-curve/preview.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/heating-curve) | [![Daikin Cycle ML - Daily Summary](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daily-summary) | [![Daikin Cycle ML - COP & Energie](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/cop-energy/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/cop-energy) | [![Daikin Cycle ML - Pattern Analysis](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/pattern-analysis/showcase.gif)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/pattern-analysis) | [![Daikin Cycle ML - LWT Fine-Tuning](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/lwt-fine-tuning/showcase.gif)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/lwt-fine-tuning) |
+| *One-glance overview* | *LWT vs outdoor* | *8-day cycle history* | *Live COP + SPF gauge* | *Distribution / Scatter / COP* | *4-tab LWT advisor* |
 
 *All Lovelace dashboard cards — see [dashboard/](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard) for installation.*
 

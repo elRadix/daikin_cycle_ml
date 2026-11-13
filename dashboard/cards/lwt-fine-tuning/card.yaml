@@ -1,0 +1,798 @@
+type: custom:stack-in-card
+variables:
+  lang_override: 'en' # Forceer 'en' (default) of 'nl'
+  default_tab: 'advice' # 'advice', 'buckets', 'analysis', of 'live'
+  show_help: true # Zet op false om de adviesblokken te verbergen
+card_mod:
+  style: |
+    ha-card {
+      border: 3px solid #0097E0;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #F5FAFD 0%, #E6F4FB 50%, #D6ECF7 100%);
+      box-shadow: 0 8px 24px rgba(0, 151, 224, 0.25);
+      overflow: visible;
+    }
+cards:
+  # --- HEADER (Left-aligned) ---
+  - type: custom:button-card
+    show_name: false
+    show_icon: false
+    styles:
+      card:
+        - background: linear-gradient(135deg,#E3F2FD 0%,#BBDEFB 100%)
+        - border-bottom: 3px solid #0097E0
+        - border-radius: 16px 16px 0 0
+        - padding: 16px 20px
+        - box-shadow: none
+      grid:
+        - grid-template-areas: '"content"'
+        - grid-template-columns: 1fr
+        - justify-items: start
+    custom_fields:
+      content: |
+        [[[
+          var CFG = (typeof variables !== 'undefined' && variables) ? variables : {};
+          var cfgLangOvr = String(CFG.lang_override || '').toLowerCase();
+          var haLang = (typeof hass !== 'undefined' && hass && hass.language) ? String(hass.language).toLowerCase() : '';
+          var LANG = 'en';
+          if (cfgLangOvr === 'nl' || cfgLangOvr === 'en') LANG = cfgLangOvr;
+          else if (haLang.indexOf('nl') === 0) LANG = 'nl';
+
+          var specs = null;
+          var keys = Object.keys(states);
+          for (var k = 0; k < keys.length; k++) {
+            if (keys[k].indexOf('sensor.') === 0 && (keys[k].endsWith('_hp_specs') || keys[k].endsWith('_wp_specs'))) {
+              specs = states[keys[k]]; break;
+            }
+          }
+          var model = (specs && specs.attributes && specs.attributes.model) ? String(specs.attributes.model).toUpperCase() : '';
+          var title = '⚙️ LWT FINE-TUNING' + (model ? ' · ' + model : '');
+          var subtitle = LANG === 'nl' ? 'Stooklijn · Rendement · COP Analyse' : 'Heating Curve · Efficiency · COP Analysis';
+          
+          return `
+            <div style="display:flex; align-items:center; justify-content:flex-start; gap:12px; text-align:left; width:100%;">
+              <div style="background:#0097E0; color:white; padding:8px; border-radius:10px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,151,224,0.3); flex-shrink:0;">
+                <svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:white;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+              </div>
+              <div style="text-align:left;">
+                <div style="font-size:1.05em; font-weight:900; color:#0D47A1; text-transform:uppercase; letter-spacing:0.8px; text-align:left;">${title}</div>
+                <div style="font-size:0.85em; font-weight:800; color:#1565C0; text-align:left;">${subtitle}</div>
+              </div>
+            </div>
+          `;
+        ]]]
+
+  # --- MAIN CONTENT ---
+  - type: custom:button-card
+    show_name: false
+    show_icon: false
+    triggers_update: all
+    tap_action:
+      action: javascript
+      javascript: |
+        [[[
+          try {
+            var root = this.shadowRoot || this.getRootNode();
+            var hub = root.querySelector('.lwt-hub');
+            if (!hub) return;
+            var hits = Array.from(root.querySelectorAll(':hover, :active')).reverse();
+            for (var i = 0; i < hits.length; i++) {
+              var el = hits[i];
+              if (!el.dataset || !el.dataset.evAction) continue;
+              var a = el.dataset.evAction;
+              if (a === 'view') {
+                var arg = el.dataset.evArg;
+                hub.setAttribute('data-view', arg);
+                root.querySelectorAll('.lwt-btn').forEach(function(b){
+                  b.classList.toggle('lwt-btn-active', b.dataset.evArg === arg);
+                });
+                window.__lwtHidePop && window.__lwtHidePop(hub);
+                return;
+              }
+              if (a === 'pop' && el.dataset.evPid) { window.__lwtShowPop(hub, el); return; }
+              if (a === 'close') { window.__lwtHidePop && window.__lwtHidePop(hub); return; }
+            }
+          } catch(e) { console.warn('[LWTHub]', e); }
+        ]]]
+    hold_action:
+      action: none
+    double_tap_action:
+      action: none
+    styles:
+      card:
+        - background: none
+        - box-shadow: none
+        - border: none
+        - padding: 8px
+        - overflow: visible
+      grid:
+        - grid-template-areas: '"content"'
+        - grid-template-columns: 1fr
+      custom_fields:
+        content:
+          - width: 100%
+          - pointer-events: auto
+    custom_fields:
+      content: |
+        [[[
+          try {
+            /* ═══ 1. CONFIG & LANGUAGE ═══ */
+            var CFG = (typeof variables !== 'undefined' && variables) ? variables : {};
+            var cfgLangOvr = String(CFG.lang_override || '').toLowerCase();
+            var defaultTab = CFG.default_tab || 'advice';
+            var showHelp = CFG.show_help !== false;
+            
+            var haLang = (typeof hass !== 'undefined' && hass && hass.language) ? String(hass.language).toLowerCase() : '';
+            var LANG = 'en';
+            if (cfgLangOvr === 'nl' || cfgLangOvr === 'en') {
+              LANG = cfgLangOvr;
+            } else if (haLang.indexOf('nl') === 0) {
+              LANG = 'nl';
+            }
+
+            /* ═══ 2. ENTITY REGISTRY ═══ */
+            var REGISTRY = {
+              hp_specs: ['hp_specs', 'wp_specs'],
+              cycle_state: ['cycle_state', 'cyclus_status'],
+              lwt_advice: ['heating_curve_advice', 'stooklijn_advies']
+            };
+
+            var resolveEntity = function(role) {
+              var names = REGISTRY[role];
+              if (!names) return null;
+              var all = Object.keys(states).filter(function(e) { return e.indexOf('sensor.') === 0; });
+              var preferred = all.filter(function(e) { return e.indexOf('daikin_cycle_ml') !== -1; });
+              var i, j;
+              for (i = 0; i < names.length; i++) {
+                for (j = 0; j < preferred.length; j++) {
+                  if (preferred[j].slice(-1 - names[i].length) === '_' + names[i]) return preferred[j];
+                }
+              }
+              for (i = 0; i < names.length; i++) {
+                for (j = 0; j < all.length; j++) {
+                  if (all[j].slice(-1 - names[i].length) === '_' + names[i]) return all[j];
+                }
+              }
+              return null;
+            };
+
+            var STATE = resolveEntity('cycle_state');
+            var ADVICE = resolveEntity('lwt_advice');
+
+            /* ═══ 3. HELPERS ═══ */
+            var hasV = function(v) { return v !== null && v !== undefined && v !== '' && String(v) !== 'None' && String(v) !== 'unknown' && String(v) !== 'unavailable' && parseFloat(v) !== 0; };
+            var nf = function(v, d) { if (!hasV(v) || isNaN(v)) return '—'; return Number(v).toFixed(d).replace('.', ','); };
+            
+            var e = ADVICE ? states[ADVICE] : null;
+            var hasData = e && e.attributes && e.attributes.bucket;
+            var d = hasData ? e.attributes : {};
+            
+            var act = d.huidige_lwt || 0;
+            var opt = d.optimale_lwt || 0;
+            var set = d.huidige_setpoint || 0;
+            var target = d.doel_setpoint || 0;
+            var delta = d.delta_c || 0;
+            var bucket = d.bucket || '-';
+            var buckets = d.buckets || {};
+            var samples = d.samples || 0;
+            var savings = d.besparing_cop_pct || 0;
+            var comfort = d.comfort_impact || 0;
+            var betrouwbaarheid = d.betrouwbaarheid || 0;
+            var slope = d.slope_delta || 0;
+            var track = d.tracking_error || 0;
+            var offset = d.offset_delta_c || 0;
+            var step = d.step_c || 0;
+
+            /* ═══ 4. I18N (EN/NL) ═══ */
+            var I18N = {
+              optimal_lwt: { nl: 'Optimale LWT', en: 'Optimal LWT' },
+              lower_lwt: { nl: 'Verlaag LWT', en: 'Lower LWT' },
+              increase_lwt: { nl: 'Verhoog LWT', en: 'Increase LWT' },
+              bucket: { nl: 'Bucket', en: 'Bucket' },
+              samples: { nl: 'samples', en: 'samples' },
+              reliable: { nl: 'betrouwbaar', en: 'reliable' },
+              live_temps: { nl: 'Live Temperaturen (LWT)', en: 'Live Temperatures (LWT)' },
+              current_cop: { nl: 'Huidige COP (geschat)', en: 'Current COP (est.)' },
+              target_cop: { nl: 'Doel COP (optimum)', en: 'Target COP (optimum)' },
+              impact: { nl: 'Rendement Impact', en: 'Efficiency Impact' },
+              act: { nl: 'Actueel', en: 'Actual' },
+              opt: { nl: 'Optimum', en: 'Optimum' },
+              set: { nl: 'Setpoint', en: 'Setpoint' },
+              goal: { nl: 'Doel', en: 'Goal' },
+              curve_opt: { nl: 'Stooklijn Optimalisatie', en: 'Heating Curve Optimization' },
+              click_details: { nl: '(Klik voor details)', en: '(Click for details)' },
+              analyse: { nl: 'Analyse & Offset', en: 'Analysis & Offset' },
+              slope: { nl: 'Slope', en: 'Slope' },
+              track: { nl: 'Tracking Fout', en: 'Tracking Error' },
+              step: { nl: 'Stap Grootte', en: 'Step Size' },
+              offset_advice: { nl: 'Offset Advies', en: 'Offset Advice' },
+              keep_offset: { nl: 'Behoud offset', en: 'Keep offset' },
+              increase: { nl: 'Verhoog', en: 'Increase' },
+              decrease: { nl: 'Verlaag', en: 'Decrease' },
+              insufficient_data: { nl: 'Onvoldoende data voor grafiek.', en: 'Insufficient data for chart.' },
+              waiting_data: { nl: 'Wachten op Daikin data...', en: 'Waiting for Daikin data...' },
+              waiting_dhw: { nl: 'Wachten op Daikin data (SWW actief)...', en: 'Waiting for Daikin data (DHW active)...' },
+              waiting_defrost: { nl: 'Wachten op Daikin data (Defrost actief)...', en: 'Waiting for Daikin data (Defrost active)...' },
+              waiting_unavailable: { nl: 'Daikin integratie niet beschikbaar.', en: 'Daikin integration unavailable.' }
+            };
+            var t = function(k) { var e = I18N[k]; if (!e) return k; return e[LANG] || e.en || e.nl; };
+
+            if (!ADVICE) {
+              return '<div style="padding:40px;text-align:center;color:#C62828;font-weight:800;">' + t('waiting_unavailable') + '</div>';
+            }
+
+            if (!hasData) {
+              var st = STATE && states[STATE] ? states[STATE].state : '';
+              var waitMsg = t('waiting_data');
+              var iconColor = '#1565C0';
+              var iconAnim = 'animation: spin 2s linear infinite;';
+              var iconPath = '<path d="M12 4V2A10 10 0 0 0 2 12h2a8 8 0 0 1 8-8z"/>';
+              
+              if (st === 'dhw' || st === 'sww') {
+                waitMsg = t('waiting_dhw');
+                iconColor = '#0097E0';
+                iconPath = '<path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8zm0 18c-3.35 0-6-2.57-6-6.2 0-2.34 1.95-5.44 6-9.14 4.05 3.7 6 6.79 6 9.14 0 3.63-2.65 6.2-6 6.2z"/>';
+                iconAnim = 'animation: pulse 2s infinite;';
+              } else if (st === 'defrost') {
+                waitMsg = t('waiting_defrost');
+                iconColor = '#C62828';
+                iconPath = '<path d="M12 2L2 22h20L12 2zm0 4l7 14H5l7-14z"/>';
+                iconAnim = 'animation: pulse 2s infinite;';
+              }
+
+              return `
+                <div style="padding:40px;text-align:center;color:#1565C0;font-weight:800;display:flex;flex-direction:column;gap:12px;align-items:center;">
+                  <svg viewBox="0 0 24 24" style="width:32px;height:32px;fill:${iconColor};${iconAnim}">
+                    ${iconPath}
+                  </svg>
+                  <div>${waitMsg}</div>
+                </div>
+              `;
+            }
+
+            /* ═══ 5. POPUP SYSTEM ═══ */
+            if (!window.__lwtReg) window.__lwtReg = {};
+            if (!window.__lwtSeq) window.__lwtSeq = 0;
+            if (window.__lwtSeq > 2000) { window.__lwtReg = {}; window.__lwtSeq = 0; }
+            var reg = function(payload){ window.__lwtSeq++; var id = 'lwt' + window.__lwtSeq; window.__lwtReg[id] = payload; return id; };
+
+            if (!window.__lwtShowPop) {
+              window.__lwtShowPop = function(hub, el){
+                try {
+                  var host = hub.querySelector('.lwt-pop-host');
+                  if (!host) return;
+                  var pid = el.getAttribute('data-ev-pid');
+                  var payload = window.__lwtReg[pid];
+                  if (!payload) return;
+                  
+                  var old = host.querySelector('.lwt-pop');
+                  if (old && old.parentNode) old.parentNode.removeChild(old);
+                  if (hub.__popTimer) { clearTimeout(hub.__popTimer); hub.__popTimer = null; }
+
+                  var pop = document.createElement('div');
+                  pop.className = 'lwt-pop';
+                  var html = '<div class="lwt-pop-hd"><span class="lwt-pop-ttl">' + payload.title + '</span><span class="lwt-pop-x">✕</span></div>';
+                  for (var j = 0; j < payload.rows.length; j++) {
+                    var it = payload.rows[j];
+                    if (it.t === 'sep') { html += '<div class="lwt-pop-sep"></div>'; continue; }
+                    if (it.t === 'hl') {
+                      html += '<div class="lwt-pop-hl"><span class="lwt-pop-hlk">' + it.k + '</span><span class="lwt-pop-hlv" style="color:' + (it.c || '#0D47A1') + '">' + it.v + '</span></div>';
+                      continue;
+                    }
+                    html += '<div class="lwt-pop-row"><span class="lwt-pop-k"><i style="background:' + (it.c || '#0097E0') + '"></i>' + it.k + '</span><span class="lwt-pop-v" style="color:' + (it.c || '#0D47A1') + '">' + it.v + '</span></div>';
+                  }
+                  
+                  html += '<div class="lwt-pop-caret"></div>';
+                  pop.innerHTML = html;
+                  pop.style.visibility = 'hidden';
+                  host.appendChild(pop);
+                  
+                  var hubR = hub.getBoundingClientRect();
+                  var elR = el.getBoundingClientRect();
+                  var pw = pop.offsetWidth || 240, ph = pop.offsetHeight || 150;
+                  var ex = elR.left - hubR.left, ey = elR.top - hubR.top;
+                  var ew = elR.width, eh = elR.height;
+                  
+                  var left = Math.max(8, Math.min(ex + ew/2 - pw/2, hubR.width - pw - 8));
+                  var top = ey - ph - 12;
+                  var placeAbove = top >= 8;
+                  
+                  if (!placeAbove && (ey + eh + ph + 12 > hubR.height)) {
+                    top = 8;
+                    placeAbove = true;
+                  } else if (!placeAbove) {
+                    top = ey + eh + 12;
+                  }
+                  
+                  var caret = pop.querySelector('.lwt-pop-caret');
+                  if (caret) {
+                    var caretX = ex + ew/2 - left - 6;
+                    caret.style.left = Math.max(12, Math.min(caretX, pw - 24)) + 'px';
+                    caret.style[placeAbove ? 'bottom' : 'top'] = '-6px';
+                  }
+                  
+                  pop.style.left = left + 'px';
+                  pop.style.top = top + 'px';
+                  pop.style.visibility = 'visible';
+                  hub.__popTimer = setTimeout(function(){ window.__lwtHidePop(hub); }, 6000);
+                } catch(e){ console.warn('[LWTHub pop]', e); }
+              };
+              window.__lwtHidePop = function(hub){
+                try {
+                  var host = hub.querySelector('.lwt-pop-host');
+                  if (!host) return;
+                  var pop = host.querySelector('.lwt-pop');
+                  if (pop && pop.parentNode) pop.parentNode.removeChild(pop);
+                  if (hub.__popTimer) { clearTimeout(hub.__popTimer); hub.__popTimer = null; }
+                } catch(e){}
+              };
+            }
+
+            /* ═══ 6. DYNAMIC NOTES ═══ */
+            var noteHelper = function(text) {
+              if (!showHelp) return '';
+              return `<div class="lwt-note"><span class="lwt-note-icon">💡</span><div class="lwt-note-text">${text}</div></div>`;
+            };
+            var warnHelper = function(text) {
+              if (!showHelp) return '';
+              return `<div class="lwt-note lwt-warn"><span class="lwt-note-icon">⚠️</span><div class="lwt-note-text">${text}</div></div>`;
+            };
+
+            var buildNoteAdvies = function() {
+              if (delta < -0.5) {
+                var msg = LANG === 'nl' 
+                  ? `Je setpoint staat momenteel <b>${Math.abs(delta).toFixed(1)}°C te hoog</b> voor deze buitentemperatuur. Door deze te verlagen bespaar je <b>${Math.abs(savings).toFixed(1)}%</b> aan COP-rendement.<br><br><b>Advies:</b> Verlaag je stooklijn (Offset) met ${Math.abs(delta).toFixed(1)}°C om het optimum te bereiken.`
+                  : `Your setpoint is currently <b>${Math.abs(delta).toFixed(1)}°C too high</b> for this outdoor temperature. Lowering it will save you <b>${Math.abs(savings).toFixed(1)}%</b> in COP efficiency.<br><br><b>Advice:</b> Lower your heating curve (Offset) by ${Math.abs(delta).toFixed(1)}°C to reach the optimum.`;
+                return noteHelper(msg);
+              } else if (delta > 0.5) {
+                var msg = LANG === 'nl'
+                  ? `Je setpoint staat momenteel <b>${delta.toFixed(1)}°C te laag</b>. Dit kan ten koste gaan van je comfort.<br><br><b>Advies:</b> Verhoog je stooklijn of Offset met ${delta.toFixed(1)}°C om de woning comfortabel te houden.`
+                  : `Your setpoint is currently <b>${delta.toFixed(1)}°C too low</b>. This may impact your comfort.<br><br><b>Advice:</b> Increase your heating curve or Offset by ${delta.toFixed(1)}°C to keep the house comfortable.`;
+                return warnHelper(msg);
+              } else {
+                var msg = LANG === 'nl'
+                  ? `<b>Perfect!</b> Je setpoint staat exact op het optimum voor buitentemperatuur <b>${bucket}°C</b>. De warmtepomp draait op maximale efficiëntie.<br><br>Houd deze instelling vast!`
+                  : `<b>Perfect!</b> Your setpoint is exactly on the optimum for outdoor temperature <b>${bucket}°C</b>. The heat pump is running at maximum efficiency.<br><br>Keep this setting!`;
+                return noteHelper(msg);
+              }
+            };
+
+            var buildNoteBuckets = function() {
+              var conf = samples > 50 ? (LANG==='nl'?'zeer betrouwbaar':'very reliable') : (samples > 10 ? (LANG==='nl'?'betrouwbaar':'reliable') : (LANG==='nl'?'nog onvoldoende data':'not enough data yet'));
+              return noteHelper(
+                LANG === 'nl'
+                  ? `De grafiek toont de beste LWT per buitentemperatuur. Jouw huidige bucket (<b>${bucket}°C</b>) heeft <b>${samples} samples</b> en is <b>${conf}</b>.<br><br><b>Tip:</b> Zie je een 'dip' in de lijn? Dan presteert je woning bij die specifieke temperatuur minder efficiënt. Klik op de stippen om de exacte COP-cijfers te bekijken.`
+                  : `The chart shows the best LWT per outdoor temperature. Your current bucket (<b>${bucket}°C</b>) has <b>${samples} samples</b> and is <b>${conf}</b>.<br><br><b>Tip:</b> See a 'dip' in the line? Your house performs less efficiently at that specific temperature. Click the dots to view the exact COP figures.`
+              );
+            };
+
+            var buildNoteAnalyse = function() {
+              if (Math.abs(track) > 2) {
+                var msg = LANG === 'nl'
+                  ? `<b>Tracking Fout (${nf(track,1)}°C):</b> Dit is vrij hoog. De warmtepomp heeft moeite om het setpoint te bereiken.<br><br><b>Oplossing:</b> Dit komt vaak door een defrost, een te lage waterflow (verhoog de pompstand) of een te agressieve stooklijn.`
+                  : `<b>Tracking Error (${nf(track,1)}°C):</b> This is quite high. The heat pump struggles to reach the setpoint.<br><br><b>Solution:</b> Often caused by a defrost cycle, low water flow (increase pump speed), or an aggressive heating curve.`;
+                return warnHelper(msg);
+              } else {
+                var msg = LANG === 'nl'
+                  ? `<b>Tracking Fout (${nf(track,1)}°C):</b> Zeer goed. De stooklijn volgt het setpoint bijna perfect.<br><br><b>Uitleg:</b> De <b>Slope</b> bepaalt hoe snel de temperatuur stijgt als het kouder wordt. De <b>Offset</b> is het vaste verschil dat je handmatig toevoegt om het huis net dat beetje extra warmte te geven.`
+                  : `<b>Tracking Error (${nf(track,1)}°C):</b> Very good. The curve tracks the setpoint almost perfectly.<br><br><b>Explanation:</b> The <b>Slope</b> determines how fast the temperature rises when it gets colder. The <b>Offset</b> is the fixed difference you manually add to give the house that little bit of extra heat.`;
+                return noteHelper(msg);
+              }
+            };
+
+            /* ═══ 7. VIEW BUILDERS ═══ */
+            
+            var buildAdvies = function() {
+              var icon = `<svg viewBox="0 0 24 24" style="width:36px;height:36px;fill:#0097E0;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
+              var adviceColor = '#0097E0';
+              var adviceBg = 'rgba(0,151,224,0.1)';
+              
+              if (delta < -0.5) {
+                adviceColor = '#2E7D32'; adviceBg = 'rgba(46,125,50,0.1)';
+                icon = `<svg viewBox="0 0 24 24" style="width:36px;height:36px;fill:${adviceColor};"><path d="M12 22l10-12H2l10 12z"/></svg>`;
+              } else if (delta > 0.5) {
+                adviceColor = '#C62828'; adviceBg = 'rgba(198,40,40,0.1)';
+                icon = `<svg viewBox="0 0 24 24" style="width:36px;height:36px;fill:${adviceColor};"><path d="M12 2L2 14h20L12 2z"/></svg>`;
+              }
+
+              var targetCop = (buckets[bucket] && buckets[bucket].cop) ? buckets[bucket].cop : 0;
+              var currentCop = targetCop > 0 && savings > 0 ? (targetCop / (1 + (savings / 100))) : targetCop;
+
+              var getW = function(v) { return Math.max(0, Math.min(100, ((v - 20) / 20) * 100)); };
+              var bar = function(label, val, col, width) {
+                var displayVal = hasV(val) ? nf(val, 1) + '°' : '—';
+                var displayWidth = hasV(val) ? width : 0;
+                return `<div class="lwt-bar-row">
+                  <div class="lwt-bar-lbl" style="color:${col}">${label}</div>
+                  <div class="lwt-bar-track"><div class="lwt-bar-fill" style="width:${displayWidth}%;background:${col}"></div></div>
+                  <div class="lwt-bar-val" style="color:${col}">${displayVal}</div>
+                </div>`;
+              };
+
+              var label = delta < -0.5 ? t('lower_lwt') : (delta > 0.5 ? t('increase_lwt') : t('optimal_lwt'));
+
+              return `
+                <div class="lwt-hero" style="background:${adviceBg};border:1px solid ${adviceColor}40;">
+                  <div class="lwt-hero-icon">${icon}</div>
+                  <div class="lwt-hero-txt">
+                    <div class="lwt-hero-ttl" style="color:${adviceColor}">${label}</div>
+                    <div class="lwt-hero-sub" style="color:#1565C0;margin-top:4px;">${t('bucket')} <b>${bucket}°C</b> &middot; ${samples} ${t('samples')} &middot; ${(betrouwbaarheid*100).toFixed(0)}% ${t('reliable')}</div>
+                  </div>
+                </div>
+
+                <div class="lwt-cop-grid">
+                  <div class="lwt-cop-item">
+                    <div class="lwt-cop-lbl">${t('current_cop')}</div>
+                    <div class="lwt-cop-val" style="color:#1565C0">${currentCop > 0 ? currentCop.toFixed(2) : '—'}</div>
+                  </div>
+                  <div class="lwt-cop-item">
+                    <div class="lwt-cop-lbl">${t('target_cop')}</div>
+                    <div class="lwt-cop-val" style="color:#2E7D32">${targetCop > 0 ? targetCop.toFixed(2) : '—'}</div>
+                  </div>
+                  <div class="lwt-cop-item">
+                    <div class="lwt-cop-lbl">${t('impact')}</div>
+                    <div class="lwt-cop-val" style="color:${savings >= 0 ? '#2E7D32' : '#C62828'}">${savings >= 0 ? '+' : ''}${savings.toFixed(1)}%</div>
+                  </div>
+                </div>
+
+                <div class="lwt-card">
+                  <div class="lwt-card-ttl" style="color:#0D47A1;">${t('live_temps')}</div>
+                  ${bar(t('act'), act, '#0097E0', getW(act))}
+                  ${bar(t('opt'), opt, '#2E7D32', getW(opt))}
+                  <div class="lwt-sep"></div>
+                  ${bar(t('set'), set, '#E65100', getW(set))}
+                  ${bar(t('goal'), target, '#6A1B9A', getW(target))}
+                </div>
+                ${buildNoteAdvies()}
+              `;
+            };
+
+            var buildBuckets = function() {
+              var keys = Object.keys(buckets).sort(function(a,b){ return parseFloat(a.split('-')[0]) - parseFloat(b.split('-')[0]); });
+              if (keys.length < 2) return '<div style="padding:20px;text-align:center;color:#1565C0;font-weight:800;">' + t('insufficient_data') + '</div>';
+              
+              // Auto zoom logic
+              var minVal = 100, maxVal = 0;
+              keys.forEach(function(k){ 
+                var l = buckets[k].lwt; 
+                if (hasV(l) && l > 0) {
+                  if(l<minVal) minVal=l; 
+                  if(l>maxVal) maxVal=l; 
+                }
+              });
+              if (hasV(set) && set > 0) {
+                if (set < minVal) minVal = set;
+                if (set > maxVal) maxVal = set;
+              }
+              if (hasV(target) && target > 0) {
+                if (target < minVal) minVal = target;
+                if (target > maxVal) maxVal = target;
+              }
+              
+              if (minVal === 100) minVal = 20;
+              if (maxVal === 0) maxVal = 40;
+              
+              var pad = Math.max(2, (maxVal - minVal) * 0.1);
+              var yMin = Math.floor(minVal - pad);
+              var yMax = Math.ceil(maxVal + pad);
+              if (yMin === yMax) { yMin -= 2; yMax += 2; }
+              
+              var W = 460, H = 220, pX = 25, pY = 25;
+              var pW = W - pX*2, pH = H - pY*2;
+              
+              var yAt = function(v) { return H - pY - ((v - yMin) / (yMax - yMin)) * pH; };
+              var xAt = function(i) { return pX + (i / (keys.length - 1)) * pW; };
+
+              var svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible;">`;
+              svg += `<defs>
+                <linearGradient id="lwtGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#0097E0"/><stop offset="100%" stop-color="#2E7D32"/></linearGradient>
+                <linearGradient id="lwtArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2E7D32" stop-opacity="0.2"/><stop offset="100%" stop-color="#2E7D32" stop-opacity="0"/></linearGradient>
+              </defs>`;
+              
+              for (var g = 0; g <= 4; g++) {
+                var gv = yMin + (yMax - yMin) * (g / 4);
+                var gy = yAt(gv);
+                svg += `<line x1="${pX}" y1="${gy}" x2="${W-pX}" y2="${gy}" stroke="#BBDEFB" stroke-dasharray="4,4" />`;
+                svg += `<text x="${pX-5}" y="${gy+4}" font-size="9" fill="#1565C0" text-anchor="end" font-weight="bold">${Math.round(gv)}°</text>`;
+              }
+
+              var ySet = hasV(set) && set > 0 ? yAt(set) : null;
+              var yTarget = hasV(target) && target > 0 ? yAt(target) : null;
+              
+              if (ySet !== null) {
+                svg += `<line x1="${pX}" y1="${ySet}" x2="${W-pX}" y2="${ySet}" stroke="#E65100" stroke-dasharray="6,4" stroke-width="2" opacity="0.8" />`;
+                svg += `<text x="${W-pX+2}" y="${ySet+3}" font-size="9" fill="#E65100" font-weight="bold">${t('set')}</text>`;
+              }
+              if (yTarget !== null) {
+                svg += `<line x1="${pX}" y1="${yTarget}" x2="${W-pX}" y2="${yTarget}" stroke="#6A1B9A" stroke-dasharray="6,4" stroke-width="2" opacity="0.8" />`;
+                svg += `<text x="${W-pX+2}" y="${yTarget+3}" font-size="9" fill="#6A1B9A" font-weight="bold">${t('goal')}</text>`;
+              }
+
+              var pts = [];
+              var elements = '';
+              
+              keys.forEach(function(k, i) {
+                var x = xAt(i);
+                var lwt = buckets[k].lwt || yMin;
+                var y = yAt(lwt);
+                pts.push(`${x},${y}`);
+                
+                var isCur = (k === bucket);
+                var isHigh = lwt > (target + 1.5);
+                var col = isCur ? (isHigh ? '#C62828' : '#2E7D32') : '#94a3b8';
+                
+                var pid = reg({ title: 'Bucket ' + k + '°C', rows: [
+                  { t:'hl', k:t('opt'), v: nf(lwt,1)+'°C', c:col },
+                  { t:'sep' },
+                  { k:'COP', v: nf(buckets[k].cop,2), c:'#0D47A1' },
+                  { k:t('samples'), v: buckets[k].n, c:'#0D47A1' },
+                  { k:'Outdoor', v: k + '°C', c:'#1565C0' }
+                ]});
+                
+                elements += `<g class="lwt-hit" data-ev-action="pop" data-ev-pid="${pid}">
+                  <rect x="${x - 15}" y="0" width="30" height="${H}" fill="transparent" style="cursor:pointer;"/>
+                  <circle cx="${x}" cy="${y}" r="${isCur ? 7 : 4}" fill="${col}" stroke="${isCur ? '#fff' : 'none'}" stroke-width="2.5" />
+                  <text x="${x}" y="${H - 4}" font-size="9" fill="#1565C0" text-anchor="middle" font-weight="bold">${k}</text>
+                </g>`;
+              });
+              
+              // Optimal zone band (thicker line + area shading)
+              var areaPath = `M ${pts[0].split(',')[0]},${H-pY} L ${pts.join(' L ')} L ${pts[pts.length-1].split(',')[0]},${H-pY} Z`;
+              svg += `<path d="${areaPath}" fill="url(#lwtArea)" />`;
+              svg += `<path d="M ${pts.join(' L ')}" fill="none" stroke="url(#lwtGrad)" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" />`;
+              svg += elements;
+              svg += `</svg>`;
+
+              return `
+                <div class="lwt-card">
+                  <div class="lwt-card-ttl" style="color:#0D47A1;">${t('curve_opt')} ${t('click_details')}</div>
+                  <div style="margin-top:10px;">${svg}</div>
+                  <div class="lwt-legend">
+                    <span><span style="color:#0097E0">━</span> ${t('act')}</span>
+                    <span><span style="color:#2E7D32">━</span> ${t('opt')}</span>
+                    ${ySet !== null ? `<span><span style="color:#E65100">╍</span> ${t('set')}</span>` : ''}
+                    ${yTarget !== null ? `<span><span style="color:#6A1B9A">╍</span> ${t('goal')}</span>` : ''}
+                  </div>
+                </div>
+                ${buildNoteBuckets()}
+              `;
+            };
+
+            var buildAnalyse = function() {
+              var oText = offset === 0 ? t('keep_offset') : (offset > 0 ? t('increase') + ' +' + offset + '°' : t('decrease') + ' ' + offset + '°');
+              var oCol = offset === 0 ? '#2E7D32' : (offset > 0 ? '#C62828' : '#2E7D32');
+              
+              return `
+                <div class="lwt-card">
+                  <div class="lwt-card-ttl" style="color:#0D47A1;">${t('analyse')}</div>
+                  <div class="lwt-grid">
+                    <div class="lwt-grid-item">
+                      <div class="lwt-grid-lbl">${t('slope')}</div>
+                      <div class="lwt-grid-val">${slope}</div>
+                    </div>
+                    <div class="lwt-grid-item">
+                      <div class="lwt-grid-lbl">${t('track')}</div>
+                      <div class="lwt-grid-val">${nf(track,1)}°</div>
+                    </div>
+                    <div class="lwt-grid-item">
+                      <div class="lwt-grid-lbl">${t('step')}</div>
+                      <div class="lwt-grid-val">${step}°</div>
+                    </div>
+                  </div>
+                  <div class="lwt-advice-box" style="background:${oCol}15;border-color:${oCol}40;">
+                    <span style="color:#0D47A1;font-weight:800;font-size:0.9em;">${t('offset_advice')}</span>
+                    <span style="color:${oCol};font-weight:800;font-size:1em;">${oText}</span>
+                  </div>
+                </div>
+                ${buildNoteAnalyse()}
+              `;
+            };
+
+            var buildLive = function() {
+              // Auto-scale logic for narrow ranges
+              var vals = [act, opt];
+              if (hasV(set)) vals.push(set);
+              if (hasV(target)) vals.push(target);
+              
+              var rMin = Math.min.apply(null, vals);
+              var rMax = Math.max.apply(null, vals);
+              
+              // Add padding (20% of range, min 2 degrees)
+              var rangePad = Math.max(2, (rMax - rMin) * 0.2); 
+              var minV = Math.floor(rMin - rangePad);
+              var maxV = Math.ceil(rMax + rangePad);
+              
+              // Ensure a minimum span of 5 degrees to keep the chart readable
+              if (maxV - minV < 5) {
+                var mid = (minV + maxV) / 2;
+                minV = Math.floor(mid - 2.5);
+                maxV = Math.ceil(mid + 2.5);
+              }
+              
+              var W = 440, H = 120;
+              var pX = 20, pW = W - pX * 2;
+              
+              var valToX = function(v) { 
+                if (v < minV) v = minV;
+                if (v > maxV) v = maxV;
+                return pX + ((v - minV) / (maxV - minV)) * pW; 
+              };
+              
+              var xOpt = valToX(opt);
+              var xAct = valToX(act);
+              var xSet = hasV(set) ? valToX(set) : null;
+              var xTarget = hasV(target) ? valToX(target) : null;
+
+              var svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;overflow:visible;margin-top:10px;">`;
+              
+              // Background Track
+              svg += `<rect x="${pX}" y="50" width="${pW}" height="20" fill="#E3F2FD" rx="10"/>`;
+              
+              // Optimal Zone (Green band)
+              var optZoneMin = opt - 1.5;
+              var optZoneMax = opt + 1.5;
+              if (optZoneMin < minV) optZoneMin = minV;
+              if (optZoneMax > maxV) optZoneMax = maxV;
+              
+              var optZoneW = valToX(optZoneMax) - valToX(optZoneMin);
+              svg += `<rect x="${valToX(optZoneMin)}" y="50" width="${optZoneW}" height="20" fill="#A5D6A7" rx="4" opacity="0.6"/>`;
+              
+              // Setpoint line
+              if (xSet !== null) {
+                svg += `<line x1="${xSet}" y1="40" x2="${xSet}" y2="80" stroke="#E65100" stroke-width="3" stroke-dasharray="4,2"/>`;
+                svg += `<text x="${xSet}" y="32" font-size="10" fill="#E65100" text-anchor="middle" font-weight="bold">${t('set')}</text>`;
+              }
+              
+              // Target line
+              if (xTarget !== null) {
+                svg += `<line x1="${xTarget}" y1="45" x2="${xTarget}" y2="75" stroke="#6A1B9A" stroke-width="3" stroke-dasharray="2,2"/>`;
+                svg += `<text x="${xTarget}" y="90" font-size="10" fill="#6A1B9A" text-anchor="middle" font-weight="bold">${t('goal')}</text>`;
+              }
+
+              // Current Actual Marker
+              svg += `<g class="lwt-hit">`;
+              svg += `<circle cx="${xAct}" cy="60" r="12" fill="#0097E0" opacity="0.2">`;
+              svg += `<animate attributeName="r" values="12;20;12" dur="2s" repeatCount="indefinite"/>`;
+              svg += `<animate attributeName="opacity" values="0.2;0;0.2" dur="2s" repeatCount="indefinite"/>`;
+              svg += `</circle>`;
+              svg += `<circle cx="${xAct}" cy="60" r="8" fill="#0097E0" stroke="#fff" stroke-width="3" style="filter:drop-shadow(0 2px 4px rgba(0,151,224,0.5))"/>`;
+              svg += `<text x="${xAct}" y="42" font-size="12" fill="#0097E0" text-anchor="middle" font-weight="900">${nf(act,1)}°</text>`;
+              svg += `</g>`;
+
+              // Scale Labels
+              svg += `<text x="${pX}" y="105" font-size="9" fill="#94a3b8" font-weight="bold">${minV}°</text>`;
+              svg += `<text x="${pX + pW/4}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.25).toFixed(1)}°</text>`;
+              svg += `<text x="${pX + pW/2}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.5).toFixed(1)}°</text>`;
+              svg += `<text x="${pX + pW*0.75}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.75).toFixed(1)}°</text>`;
+              svg += `<text x="${pX + pW}" y="105" font-size="9" fill="#94a3b8" text-anchor="end" font-weight="bold">${maxV}°</text>`;
+
+              svg += `</svg>`;
+
+              return `
+                <div class="lwt-card">
+                  <div class="lwt-card-ttl" style="color:#0D47A1;">${t('live_temps')}</div>
+                  ${svg}
+                  <div class="lwt-live-meta">
+                    <div class="lwt-lm-item">
+                      <div class="lwt-lm-lbl">${t('act')}</div>
+                      <div class="lwt-lm-val" style="color:#0097E0">${nf(act,1)}°</div>
+                    </div>
+                    <div class="lwt-lm-item">
+                      <div class="lwt-lm-lbl">${t('opt')}</div>
+                      <div class="lwt-lm-val" style="color:#2E7D32">${nf(opt,1)}°</div>
+                    </div>
+                    <div class="lwt-lm-item">
+                      <div class="lwt-lm-lbl">${t('set')}</div>
+                      <div class="lwt-lm-val" style="color:#E65100">${hasV(set) ? nf(set,1)+'°' : '—'}</div>
+                    </div>
+                    <div class="lwt-lm-item">
+                      <div class="lwt-lm-lbl">${t('goal')}</div>
+                      <div class="lwt-lm-val" style="color:#6A1B9A">${hasV(target) ? nf(target,1)+'°' : '—'}</div>
+                    </div>
+                  </div>
+                </div>
+                ${buildNoteAdvies()}
+              `;
+            };
+
+            /* ═══ 8. CSS ═══ */
+            var css = '<style>'
+              + '@keyframes spin { 100% { transform: rotate(360deg); } }'
+              + '@keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }'
+              + '.lwt-hub{position:relative;font-family:system-ui,-apple-system,sans-serif;color:#0D47A1;width:100%;}'
+              + '.lwt-tabs{display:flex;background:#E3F2FD;border-radius:12px;padding:4px;margin:8px 16px 16px 16px;}'
+              + '.lwt-btn{flex:1;padding:8px 0;border-radius:9px;border:none;background:transparent;color:#1565C0;font-weight:800;font-size:0.75em;cursor:pointer;transition:all .2s;}'
+              + '.lwt-btn-active{background:#fff;color:#0097E0;box-shadow:0 2px 8px rgba(0,151,224,0.15);font-weight:900;}'
+              + '.lwt-view{display:none;}'
+              + '.lwt-hub[data-view="advice"] .lwt-view[data-view="advice"]{display:block;}'
+              + '.lwt-hub[data-view="buckets"] .lwt-view[data-view="buckets"]{display:block;}'
+              + '.lwt-hub[data-view="analysis"] .lwt-view[data-view="analysis"]{display:block;}'
+              + '.lwt-hub[data-view="live"] .lwt-view[data-view="live"]{display:block;}'
+              
+              + '.lwt-hero{margin:0 16px 12px 16px;padding:16px;border-radius:16px;display:flex;align-items:center;gap:12px;}'
+              + '.lwt-hero-icon{flex-shrink:0;display:flex;}'
+              + '.lwt-hero-txt{flex-grow:1;}'
+              + '.lwt-hero-ttl{font-size:1.1em;font-weight:900;margin-bottom:4px;}'
+              + '.lwt-hero-sub{font-size:0.75em;font-weight:700;}'
+              
+              + '.lwt-cop-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:0 16px 12px 16px;background:#fff;padding:12px;border-radius:16px;border:1px solid #BBDEFB;}'
+              + '.lwt-cop-item{text-align:center;}'
+              + '.lwt-cop-lbl{font-size:0.65em;font-weight:800;color:#1565C0;text-transform:uppercase;margin-bottom:4px;}'
+              + '.lwt-cop-val{font-size:1.3em;font-weight:900;font-family:monospace;line-height:1;}'
+              
+              + '.lwt-card{margin:0 16px 12px 16px;background:#fff;border-radius:16px;padding:16px;border:1px solid #BBDEFB;box-shadow:0 4px 15px -5px rgba(0,151,224,0.08);}'
+              + '.lwt-card-ttl{font-size:0.8em;font-weight:900;text-transform:uppercase;margin-bottom:12px;letter-spacing:0.5px;}'
+              
+              + '.lwt-bar-row{display:flex;align-items:center;margin-bottom:10px;}'
+              + '.lwt-bar-lbl{width:65px;font-size:0.75em;font-weight:900;text-transform:uppercase;}'
+              + '.lwt-bar-track{flex-grow:1;background:#E3F2FD;height:12px;border-radius:6px;margin:0 10px;overflow:hidden;}'
+              + '.lwt-bar-fill{height:100%;border-radius:6px;transition:width 0.5s ease;}'
+              + '.lwt-bar-val{width:45px;text-align:right;font-size:0.85em;font-weight:900;font-family:monospace;}'
+              + '.lwt-sep{height:1px;background:#BBDEFB;margin:12px 0;}'
+              
+              + '.lwt-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}'
+              + '.lwt-grid-item{background:#F5FAFD;border-radius:10px;padding:8px;text-align:center;border:1px solid #BBDEFB;}'
+              + '.lwt-grid-lbl{font-size:0.65em;font-weight:900;color:#1565C0;margin-bottom:4px;}'
+              + '.lwt-grid-val{font-size:1.1em;font-weight:900;font-family:monospace;color:#0D47A1;}'
+              + '.lwt-advice-box{display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:12px;border:1px solid;}'
+              
+              + '.lwt-legend{display:flex;gap:10px;font-size:0.7em;color:#1565C0;justify-content:center;margin-top:12px;font-weight:800;border-top:1px dashed #BBDEFB;padding-top:10px;}'
+              + '.lwt-legend span{display:flex;align-items:center;gap:4px;}'
+
+              + '.lwt-note{display:flex;align-items:flex-start;gap:10px;margin:0 16px 12px 16px;background:#F5FAFD;border-left:4px solid #0097E0;border-radius:8px;padding:14px;font-size:0.78em;line-height:1.6;color:#1565C0;font-weight:600;box-shadow:0 2px 8px rgba(0,151,224,0.05);}'
+              + '.lwt-warn{background:#FFF3E0; border-left-color:#E65100; color:#E65100;}'
+              + '.lwt-note-icon{font-size:1.2em;line-height:1;flex-shrink:0;}'
+              + '.lwt-note-text{flex:1;min-width:0;white-space:normal;word-wrap:break-word;overflow-wrap:break-word;}'
+
+              + '.lwt-live-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px;background:#F5FAFD;padding:10px;border-radius:10px;}'
+              + '.lwt-lm-item{text-align:center;}'
+              + '.lwt-lm-lbl{font-size:0.6em;font-weight:800;color:#94a3b8;text-transform:uppercase;margin-bottom:2px;}'
+              + '.lwt-lm-val{font-size:1.1em;font-weight:900;font-family:monospace;}'
+
+              + '.lwt-hit{cursor:pointer;transition:opacity .15s;}'
+              + '.lwt-hit:hover{opacity:0.8;}'
+              + '.lwt-pop-host{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:visible;z-index:500;}'
+              
+              + '.lwt-pop{position:absolute;width:220px;background:#fff;border:2px solid #0097E0;border-radius:12px;padding:0;box-shadow:0 10px 25px rgba(0,151,224,0.25);pointer-events:auto;z-index:501;animation:lwtPopIn .15s ease-out;}'
+              + '@keyframes lwtPopIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}'
+              + '.lwt-pop-caret{position:absolute;width:10px;height:10px;background:#fff;transform:rotate(45deg);border:2px solid #0097E0;border-top:none;border-left:none;z-index:-1;bottom:-7px;}'
+              + '.lwt-pop-hd{background:#0097E0;color:#fff;padding:10px 12px;font-weight:900;font-size:0.8em;display:flex;justify-content:space-between;border-bottom:1px solid #BBDEFB;border-radius:10px 10px 0 0;}'
+              + '.lwt-pop-hl{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#F5FAFD;gap:8px;}'
+              + '.lwt-pop-hlk{color:#1565C0;font-size:0.75em;font-weight:800;}'
+              + '.lwt-pop-hlv{font-size:1.1em;font-weight:900;font-family:monospace;}'
+              + '.lwt-pop-row{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;font-size:0.75em;font-weight:800;}'
+              + '.lwt-pop-k{display:flex;align-items:center;gap:6px;color:#1565C0;}'
+              + '.lwt-pop-k i{width:6px;height:6px;border-radius:50%;display:inline-block;}'
+              + '.lwt-pop-v{font-family:monospace;font-weight:900;}'
+              + '.lwt-pop-sep{height:1px;background:#BBDEFB;margin:0 12px;}'
+              + '</style>';
+
+            /* ═══ 9. COMBINE VIEWS ═══ */
+            var out = '<div class="lwt-hub" data-view="' + defaultTab + '">';
+            out += css;
+            
+            var tabAdvice = defaultTab === 'advice' ? 'lwt-btn-active' : '';
+            var tabBuckets = defaultTab === 'buckets' ? 'lwt-btn-active' : '';
+            var tabAnalysis = defaultTab === 'analysis' ? 'lwt-btn-active' : '';
+            var tabLive = defaultTab === 'live' ? 'lwt-btn-active' : '';
+
+            out += '<div class="lwt-tabs">'
+              + '<div class="lwt-btn ' + tabAdvice + '" data-ev-action="view" data-ev-arg="advice">' + (LANG === 'nl' ? 'Advies' : 'Advice') + '</div>'
+              + '<div class="lwt-btn ' + tabBuckets + '" data-ev-action="view" data-ev-arg="buckets">Buckets</div>'
+              + '<div class="lwt-btn ' + tabAnalysis + '" data-ev-action="view" data-ev-arg="analysis">' + (LANG === 'nl' ? 'Analyse' : 'Analysis') + '</div>'
+              + '<div class="lwt-btn ' + tabLive + '" data-ev-action="view" data-ev-arg="live">Live</div>'
+              + '</div>';
+
+            out += '<div class="lwt-view" data-view="advice">' + buildAdvies() + '</div>';
+            out += '<div class="lwt-view" data-view="buckets">' + buildBuckets() + '</div>';
+            out += '<div class="lwt-view" data-view="analysis">' + buildAnalyse() + '</div>';
+            out += '<div class="lwt-view" data-view="live">' + buildLive() + '</div>';
+            
+            out += '<div class="lwt-pop-host"></div>';
+            out += '</div>';
+            return out;
+
+          } catch(err) {
+            return '<div style="padding:16px;color:#C62828;font-family:monospace;font-size:12px;font-weight:bold;">⚠️ Error: ' + (err.message || err) + '</div>';
+          }
+        ]]]
