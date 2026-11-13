@@ -32,6 +32,11 @@ from .const import (
 )
 from .const import buh_step_kw_for_model as _buh_step_kw_for_model
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
+from .engine.runtime_source import (
+    compressor_starts_today,
+    defrost_count_today,
+    read_native_buh_minutes,
+)  # v1.22.7
 from .engine.thermal import (
     compute_thermal_power_live as _compute_thermal_power_live,
 )
@@ -767,19 +772,53 @@ def _value_runtime_buh_today_s(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> int:
     snap = c.runtime_snapshot
-    return int(snap["buh_step1_s"] + snap["buh_step2_s"])
+    _s_attrs = getattr(s, "attrs", None)
+    _c_attrs = getattr(c, "last_attrs", None)
+    attrs = _s_attrs if isinstance(_s_attrs, dict) else (
+        _c_attrs if isinstance(_c_attrs, dict) else {}
+    )
+    native_min = read_native_buh_minutes(attrs)
+    if native_min is not None:
+        return int(round(native_min * 60.0))
+    _snap = snap if isinstance(snap, dict) else {}
+    return int(_snap.get("buh_total_s", max(
+        _snap.get("buh_step1_s", 0.0), _snap.get("buh_step2_s", 0.0)
+    )))
 
 
 def _value_compressor_starts_today(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> int:
-    return len(c.store.cycles_today(_now()))
+    _s_attrs = getattr(s, "attrs", None)
+    _c_attrs = getattr(c, "last_attrs", None)
+    attrs = _s_attrs if isinstance(_s_attrs, dict) else (
+        _c_attrs if isinstance(_c_attrs, dict) else {}
+    )
+    try:
+        cycles = c.store.cycles_today(_now())
+        computed = len(cycles) if cycles else 0
+    except Exception:
+        computed = 0
+    value, _src = compressor_starts_today(attrs, computed)
+    return value
 
 
 def _value_defrost_count_today(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> int:
-    return int(c.runtime_snapshot["defrost_count"])
+    _s_attrs = getattr(s, "attrs", None)
+    _c_attrs = getattr(c, "last_attrs", None)
+    attrs = _s_attrs if isinstance(_s_attrs, dict) else (
+        _c_attrs if isinstance(_c_attrs, dict) else {}
+    )
+    snap = c.runtime_snapshot
+    _snap = snap if isinstance(snap, dict) else {}
+    try:
+        computed = int(_snap.get("defrost_count", 0) or 0)
+    except (TypeError, ValueError):
+        computed = 0
+    value, _src = defrost_count_today(attrs, computed)
+    return value
 
 
 def _value_defrost_duration_today_s(
@@ -878,6 +917,7 @@ def _attrs_runtime_compressor_today_s(
         "avg_cycle_s": int(total / len(cycles)) if cycles else None,
         "buh_step1_s": int(snap["buh_step1_s"]),
         "buh_step2_s": int(snap["buh_step2_s"]),
+        "buh_total_s": int(snap.get("buh_total_s", 0)),  # v1.22.7
     }
 
 
@@ -885,9 +925,20 @@ def _attrs_runtime_buh_today_s(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> dict[str, Any]:
     snap = c.runtime_snapshot
-    s1 = snap["buh_step1_s"]
-    s2 = snap["buh_step2_s"]
+    _s_attrs = getattr(s, "attrs", None)
+    _c_attrs = getattr(c, "last_attrs", None)
+    attrs = _s_attrs if isinstance(_s_attrs, dict) else (
+        _c_attrs if isinstance(_c_attrs, dict) else {}
+    )
+    native_min = read_native_buh_minutes(attrs)
+    _snap = snap if isinstance(snap, dict) else {}
+    s1 = float(_snap.get("buh_step1_s", 0.0) or 0.0)
+    s2 = float(_snap.get("buh_step2_s", 0.0) or 0.0)
+    total = _snap.get("buh_total_s", max(s1, s2))
     return {
+        "source": "native" if native_min is not None else "computed",
+        "native_min": native_min,
+        "total_s": int(total),
         "step1_s": int(s1),
         "step2_s": int(s2),
         "buh_energy_kwh_est": _buh_energy_kwh_est(c, s1, s2),
