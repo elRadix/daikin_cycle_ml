@@ -134,10 +134,14 @@ async def test_sim_48h_alert_once_per_day(tmp_path, patched_compat):
 @pytest.mark.asyncio
 async def test_sim_cross_midnight_heating_cycle(tmp_path):
     """Cross-midnight cycle: 22:00 → 04:00, no duplicate cycle counts."""
+    from datetime import datetime, timedelta
     db = await _mk_db(tmp_path)
     try:
+        # Bereken de datums dynamisch op basis van DAY_START_TS (B1 fix)
+        day1 = datetime.fromtimestamp(DAY_START_TS).strftime("%Y-%m-%d")
+        day2 = (datetime.fromtimestamp(DAY_START_TS) + timedelta(days=1)).strftime("%Y-%m-%d")
+
         # Cycle start 22:00 day 1, ends 04:00 day 2
-        # DAY_START_TS = local midnight, so +22h = 22:00, +6h = next day 04:00
         start = DAY_START_TS + 22 * 3600
         end = start + 6 * 3600
 
@@ -151,15 +155,18 @@ async def test_sim_cross_midnight_heating_cycle(tmp_path):
         })
 
         # Rollup both days
-        await db.async_rollup_day("2026-11-05")
-        await db.async_rollup_day("2026-11-06")
+        await db.async_rollup_day(day1)
+        await db.async_rollup_day(day2)
 
-        rows = await db.async_daily_summary(days=7)
+        # B1 fix: DAY_START_TS is fixed at 2026-11-05.
+        # With days=7 the query filters out 2026-11-05 once today > 2026-11-12.
+        # Use days=30 to keep the test time-independent.
+        rows = await db.async_daily_summary(days=30)
         by = {(r["day"], r["mode"]): r for r in rows}
 
         # Both days should have heating entries
-        assert ("2026-11-05", "heating") in by
-        assert ("2026-11-06", "heating") in by
+        assert (day1, "heating") in by
+        assert (day2, "heating") in by
 
         # Pro-rata: 2h on day1 (22:00-00:00), 4h on day2 (00:00-04:00)
         d1_h = by[("2026-11-05", "heating")]["total_duration_s"] / 3600
