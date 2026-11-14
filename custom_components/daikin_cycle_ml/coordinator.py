@@ -3233,6 +3233,36 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     ) -> None:
         if self.db is None:
             return
+        # A2 (v1.22.8): BUH-skip -- onderdruk heating-curve advies zolang
+        # backup-heater het werk doet. Voorkomt vals lower_lwt advies
+        # (issue #353). Bewust NIET gated op `if not force` -- setup-pad
+        # (line ~3380) moet ook geen vals advies schrijven.
+        _attrs = getattr(getattr(self, 'data', None), 'attrs', None) or {}
+        _buh_on = False
+        if isinstance(_attrs, dict):
+            _buh_on = (
+                tolerant_on(_attrs.get(ATTR_BUH_STEP1))
+                or tolerant_on(_attrs.get(ATTR_BUH_STEP2))
+            )
+        if _buh_on:
+            _cache = getattr(self, '_stooklijn_cache', {})
+            if _cache.get('reason') != 'buh_active':
+                self._stooklijn_cache = {
+                    'state': 'keep', 'reason': 'buh_active',
+                    'huidige_lwt': None, 'optimale_lwt': None,
+                    'besparing_cop_pct': 0.0, 'comfort_impact': 0.0,
+                    'betrouwbaarheid': 0.0, 'bucket': '', 'samples': 0,
+                    'buckets': {}, 'setpoint_lwt': None, 'doel_setpoint': None,
+                    'step_c': 0, 'delta_c': 0.0, 'tracking_error': None,
+                    'err_indoor': None, 'urgency': 0.0, 'comfort_cap': None,
+                    'offset_delta_c': 0.0, 'slope_delta': None,
+                }
+                self._stooklijn_cache_ts = now
+            return
+        # A2 (v1.22.8): BUH-off transitie -- forceer herberekening
+        # volgende tick als cache nog op buh_active staat.
+        if getattr(self, '_stooklijn_cache', {}).get('reason') == 'buh_active':
+            self._stooklijn_cache_ts = 0.0
         # 52b3: DHW-check FIRST -- must run before cache-check,
         # otherwise the 1-hour cache short-circuits the DHW skip.
         if not force:
