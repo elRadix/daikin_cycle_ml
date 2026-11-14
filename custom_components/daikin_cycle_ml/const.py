@@ -5,7 +5,7 @@ from typing import Any
 
 DOMAIN = "daikin_cycle_ml"
 NAME = "Daikin Cycle ML"
-VERSION = "1.22.6"
+VERSION = "1.22.7"
 
 # --- Coordinator ---
 UPDATE_INTERVAL_SECONDS = 30
