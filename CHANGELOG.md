@@ -2,11 +2,12 @@
 
 ## [Unreleased]
 
+## [1.22.7] - 2026-11-14
+
 ### Fixed
 - **BUH runtime double-count** — Step1+Step2 both active now counted as wall-time (1× dt) instead of sum (2× dt). `runtime_buh_today` was showing 90.6 min for 42.6 min actual BUH use. New `_buh_total_s` counter; `step1_s`/`step2_s` kept as diagnostic detail.
 - **Native counter fallback** — When ESPAltherma v2 exposes `Stats:` firmware counters, BUH / defrost-count / compressor-starts now prefer native values with computed fallback. New `engine/runtime_source.py` module with `read_native_*()` helpers. `source` attribute (`native` / `computed`) added to sensor attributes.
 - **Restore migration** — Pre-v1.22.7 payloads (no `buh_total_s`) auto-backfill via `max(step1, step2)` to prevent false inflation after upgrade.
-
 
 ## [1.22.6] - 2026-11-14
 
