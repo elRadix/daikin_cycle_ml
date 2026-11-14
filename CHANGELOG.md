@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Fixed
+- **`heating_curve_advice` stale `lower_lwt` during BUH-active** (A2, Refs #353) -- the 1-hour `_stooklijn_cache` was not invalidated when the backup heater activated, leaving the advice stuck on `lower_lwt` while the heat pump was not effectively running. 7-day production replay: 3 confirmed incidents (2026-11-13 03:59, 2026-11-14 01:43, 2026-11-14 05:00). The cache now writes `state=keep, reason=buh_active` while BUH Step1/Step2 is ON, exposed via a new `suppressed_by` attribute on the sensor. After BUH-off, `_stooklijn_cache_ts = 0.0` forces recompute within one tick.
 - **`runtime_compressor_today` undercount** (#353 A1) — was summing only completed cycles whose `start_ts` fell on today, missing (a) cross-midnight cycle tails and (b) the currently-open cycle. Prod-1 reported 3.4h where ESPAltherma native said 10.3h. v1.22.8 restores three-source agreement.
 - **BUH attribute leak** — `runtime_compressor_today` exposed `buh_step1_s`/`buh_step2_s`/`buh_total_s`. Those belong on `runtime_buh_today` only; leak removed.
 - **Native-first attrs resolution** — all runtime resolvers (BUH, compressor, defrost, starts) used an inline attrs-pick that preferred an *empty* `snapshot.attrs` over a *populated* `coordinator.last_attrs`, silently returning the computed fallback even when firmware counters were present. Consolidated into a single `_resolve_attrs()` helper that prefers whichever side carries data.
