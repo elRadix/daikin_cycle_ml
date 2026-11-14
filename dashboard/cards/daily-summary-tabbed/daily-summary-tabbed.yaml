@@ -969,12 +969,13 @@ cards:
               var dutyBand = ID_DUTY  ? String(attr(ID_DUTY, 'band', '') || '') : '';
               var startsT = ID_STARTS ? (parseFloat((states[ID_STARTS]  || {}).state) || 0) : 0;
 
-              var dutyCol = dutyBand === 'nominal' ? QGOOD : (dutyBand === 'low' ? 'var(--primary-color, #0097E0)' : (dutyBand === 'high' ? QMID : 'var(--disabled-text-color, #94a3b8)'));
+              var dutyCol = dutyBand === 'nominal' ? QGOOD : (dutyBand === 'low' ? 'var(--primary-color, #0097E0)' : (dutyBand === 'high' ? QMID : (dutyBand === 'saturated' ? QLOW : 'var(--disabled-text-color, #94a3b8)')));
               var buhCol = buhSec > 0 ? C.buh : 'var(--disabled-text-color, #94a3b8)';
               var defCol = defCnt > 0 ? C.defrost : 'var(--disabled-text-color, #94a3b8)';
               var dutyLabel = dutyBand === 'nominal' ? (LANG==='nl'?'nominaal':FR('nominal'))
                             : dutyBand === 'low' ? (LANG==='nl'?'laag':FR('low'))
-                            : dutyBand === 'high' ? (LANG==='nl'?'hoog':FR('high')) : '—';
+                            : dutyBand === 'high' ? (LANG==='nl'?'hoog':FR('high'))
+                            : dutyBand === 'saturated' ? (LANG==='nl'?'verzadigd':(LANG==='fr'?'saturé':'saturated')) : '—';
 
               var buhPid = registerPayload({
                 title: '⚡ BUH · '+(LANG==='nl'?'vandaag':FR('today')),

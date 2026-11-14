@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+### Fixed
+- **`runtime_compressor_today` undercount** (#353 A1) — was summing only completed cycles whose `start_ts` fell on today, missing (a) cross-midnight cycle tails and (b) the currently-open cycle. Prod-1 reported 3.4h where ESPAltherma native said 10.3h. v1.22.8 restores three-source agreement.
+- **BUH attribute leak** — `runtime_compressor_today` exposed `buh_step1_s`/`buh_step2_s`/`buh_total_s`. Those belong on `runtime_buh_today` only; leak removed.
+- **Native-first attrs resolution** — all runtime resolvers (BUH, compressor, defrost, starts) used an inline attrs-pick that preferred an *empty* `snapshot.attrs` over a *populated* `coordinator.last_attrs`, silently returning the computed fallback even when firmware counters were present. Consolidated into a single `_resolve_attrs()` helper that prefers whichever side carries data.
+- **`_read_float` accepted bool / inf / NaN** — `True` coerced to `1.0`, `float("inf")` overflowed on `int(round(...))`, `NaN` bypassed range checks. All rejected.
+- **`daily-summary-tabbed` card missing `saturated` duty band** — the card fell to `'—'` label + gray colour when `duty_cycle_today.band == "saturated"`; A1's correct higher runtime exposes this pre-existing gap. Card now renders `saturated` with proper EN/NL/FR label and red colour. `pattern-analysis` registers the entity but never renders `.band` — unaffected.
+
+### Added
+- **Native-first compressor counter** — `engine/runtime_source.py::read_native_compressor_minutes()` reads ESPAltherma v2 `Stats: Compressor run today (min)` when available.
+- **Native-first defrost + starts attrs** — `read_native_defrost_count()` and `read_native_compressor_starts()` expose the firmware count alongside the computed value.
+- **`source` attribute on every native-aware counter** — `runtime_buh_today`, `runtime_compressor_today`, `compressor_starts_today`, `defrost_count_today`, `defrost_duration_today`. Values: `native` / `computed`. Firmware has no per-step BUH split, no per-mode starts, no defrost duration — those sub-fields labelled `*_source: computed` for honesty.
+- **`CycleStore.cycles_intersecting(start_ts, end_ts)`** — overlap-window query used by the computed fallback to attribute cross-midnight cycle tails to today. Excludes transient LWT pulses (mirrors `async_rollup_day`).
+- **`_resolve_attrs()` helper** — single canonical attrs resolver for all sensor value/attr functions.
+- **Defensive input handling** — `_read_float` rejects non-finite; `cycles_intersecting` guarded against store exceptions, malformed records, `None` returns.
+
+### Dashboard compatibility
+No entity IDs change, no new/removed entities. Two counters correct previously undercounted values:
+
+- **`sensor.daikin_cycle_ml_runtime_compressor_today`** — value corrected (prod-1: 3.4h → 10.3h). Any fixed-scale card should update `max: 5h` → `max: 12h` (or higher for long runs).
+- **`sensor.daikin_cycle_ml_duty_cycle_today`** — derived from above. Value corrected (prod-1: 33% → 99.8%); `band` attribute moves `nominal` → `saturated` on continuous-compressor days. Card templates updated.
+
+Unchanged (native values already correct since v1.22.7): `runtime_buh_today`, `compressor_starts_today`, `defrost_count_today`, `defrost_duration_today`.
+
+### Tests
+- Reproduction test reproducing the exact prod-1 2026-11-14 undercount (12388s vs 37881s), proving the fix converges native and computed to <1% delta.
+- Red-team test (~50 cases): bool/NaN/inf/negative native, MagicMock attrs, malformed cycles, store exceptions, oversized values.
+- Smoke test: every counter value_fn + attr_fn executes on empty state; every native-aware counter exposes `source`.
+- `CycleStore.cycles_intersecting` edge coverage: missing/invalid start_ts or end_ts, transient skip/include, boundary-touching windows, mixed records.
+- Sync integrity: BUH / starts / defrost counters — `source`, `native_count`, `computed_count`, `total_s` consistency between entity value and attrs.
+
+
 ## [1.22.7] - 2026-11-14
 
 ### Fixed

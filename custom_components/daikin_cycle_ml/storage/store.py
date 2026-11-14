@@ -310,6 +310,40 @@ class CycleStore:
                 out.append(dict(c))
         return out
 
+    def cycles_intersecting(
+        self, start_ts: float, end_ts: float, *, exclude_transient: bool = True
+    ) -> list[dict[str, Any]]:
+        """v1.22.8: cycles whose active window overlaps [start_ts, end_ts).
+
+        Used by the computed ``runtime_compressor_today`` fallback to
+        attribute cross-midnight cycle tails correctly. Only returns
+        CLOSED cycles (end_ts must be a number); open cycles are handled
+        by the caller via ``s.cycle_start_ts`` because the DB row for an
+        open cycle is not guaranteed to exist yet (row is created on
+        close, not on start — see db.py INSERT INTO cycles at close-path).
+
+        ``exclude_transient=True`` (default) skips LWT-sampling pulses
+        (mirrors ``async_rollup_day`` semantics so computed totals stay
+        consistent with ``daily_summary``).
+        """
+        out: list[dict[str, Any]] = []
+        s_ts = float(start_ts)
+        e_ts = float(end_ts)
+        for c in self._cycles:
+            c_start = c.get("start_ts")
+            c_end = c.get("end_ts")
+            if not isinstance(c_start, (int, float)):
+                continue
+            if not isinstance(c_end, (int, float)):
+                continue
+            if exclude_transient and _is_transient_int(
+                c.get("is_transient")
+            ) != 0:
+                continue
+            if float(c_end) > s_ts and float(c_start) < e_ts:
+                out.append(dict(c))
+        return out
+
     def non_transient_today(self, now: float) -> list[dict[str, Any]]:
         """v1.12.0 (#105): today's cycles excluding startup transients.
 

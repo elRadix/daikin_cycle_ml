@@ -29,6 +29,7 @@ def _mk_coord(**overrides: Any) -> DaikinCycleMLCoordinator:
     c = MagicMock()
     c.store = MagicMock()
     c.store.cycles_today.return_value = overrides.get("cycles", [])
+    c.store.cycles_intersecting.return_value = overrides.get("intersecting", [])
     c.entry = MagicMock()
     c.entry.data = {"model": overrides.get("model", "EPRA08")}
     rt = overrides.get(
@@ -67,11 +68,14 @@ def test_c5_sensors_have_value_and_attr_fn():
 
 
 def test_runtime_compressor_today_sums_cycles():
+    """v1.22.8: uses cycles_intersecting overlap (not duration_s sum)."""
     now = time.time()
     c = _mk_coord(
-        cycles=[
-            {"duration_s": 100, "mode": "heating", "start_ts": now - 3600},
-            {"duration_s": 50, "mode": "dhw", "start_ts": now - 1800},
+        intersecting=[
+            {"start_ts": now - 3600, "end_ts": now - 3500, "mode": "heating",
+             "is_transient": 0},
+            {"start_ts": now - 1800, "end_ts": now - 1750, "mode": "dhw",
+             "is_transient": 0},
         ]
     )
     s = _mk_snap()
@@ -79,11 +83,17 @@ def test_runtime_compressor_today_sums_cycles():
 
 
 def test_runtime_compressor_today_adds_live_elapsed():
+    """v1.22.8: open-cycle contribution computed from cycle_start_ts."""
     now = time.time()
-    c = _mk_coord(cycles=[{"duration_s": 100, "mode": "heating"}])
+    c = _mk_coord(
+        intersecting=[
+            {"start_ts": now - 3600, "end_ts": now - 3500, "mode": "heating",
+             "is_transient": 0},
+        ]
+    )
     s = _mk_snap(state="running", cycle_start_ts=now - 60)
     v = s_mod._value_runtime_compressor_today_s(s, c)
-    assert v >= 160
+    assert v >= 160  # 100 (closed) + ~60 (open)
 
 
 def test_runtime_buh_today_walltime():
@@ -158,7 +168,13 @@ def test_duty_cycle_computes_pct(monkeypatch):
 
     now = _dt.datetime.now().replace(hour=12, minute=0, second=0, microsecond=0).timestamp()
     monkeypatch.setattr("custom_components.daikin_cycle_ml.sensor._now", lambda: now)
-    c = _mk_coord(cycles=[{"duration_s": 3600, "mode": "heating", "start_ts": now - 7200}])
+    # v1.22.8: intersect contract needs start_ts + end_ts
+    c = _mk_coord(
+        intersecting=[
+            {"start_ts": now - 7200, "end_ts": now,
+             "mode": "heating", "is_transient": 0},
+        ]
+    )
     s = _mk_snap()
     pct = s_mod._value_duty_cycle_today_pct(s, c)
     assert 0.0 < pct < 100.0
@@ -188,12 +204,16 @@ def test_local_midnight_is_before_now():
 
 
 def test_attrs_runtime_per_mode_split():
+    """v1.22.8: per-mode via cycles_intersecting overlap."""
     now = time.time()
     c = _mk_coord(
-        cycles=[
-            {"duration_s": 100, "mode": "heating", "start_ts": now - 3600},
-            {"duration_s": 50, "mode": "dhw", "start_ts": now - 1800},
-            {"duration_s": 30, "mode": "cooling", "start_ts": now - 900},
+        intersecting=[
+            {"start_ts": now - 3600, "end_ts": now - 3500, "mode": "heating",
+             "is_transient": 0},
+            {"start_ts": now - 1800, "end_ts": now - 1750, "mode": "dhw",
+             "is_transient": 0},
+            {"start_ts": now - 900, "end_ts": now - 870, "mode": "cooling",
+             "is_transient": 0},
         ]
     )
     s = _mk_snap()
@@ -202,6 +222,8 @@ def test_attrs_runtime_per_mode_split():
     assert a["dhw_s"] == 50
     assert a["cooling_s"] == 30
     assert a["cycle_count"] == 3
+    assert a["source"] == "computed"
+    assert a["native_min"] is None
 
 
 def test_attrs_compressor_starts_per_mode():
@@ -258,19 +280,21 @@ def test_attrs_duty_cycle_bands():
     assert a["runtime_s"] == 0
 
 
-def test_attrs_duty_cycle_nominal_band():
-    now = time.time()
-    # Force a 30% duty: 30min runtime in 100min elapsed
-    # Use epoch-relative midnight to control elapsed
-    midnight = s_mod._local_midnight(now)
-    elapsed = now - midnight
-    target_pct = 30.0
-    runtime = int(elapsed * target_pct / 100.0)
-    c = _mk_coord(cycles=[{"duration_s": runtime, "mode": "heating"}])
+def test_attrs_duty_cycle_nominal_band(monkeypatch):
+    # v1.22.8: deterministic + exact assertion; pct=30% → "nominal" (15<=pct<60)
+    fake = 100000.0
+    monkeypatch.setattr(s_mod, "_now", lambda: fake)
+    monkeypatch.setattr(s_mod, "_local_midnight", lambda _: fake - 100.0)
+    c = _mk_coord(
+        intersecting=[
+            {"start_ts": fake - 100.0, "end_ts": fake - 70.0,
+             "mode": "heating", "is_transient": 0},
+        ]
+    )
     s = _mk_snap()
     a = s_mod._attrs_duty_cycle_today_pct(s, c)
-    # band is nominal if 15 <= pct < 60
-    assert a["band"] in ("low", "nominal")
+    assert a["band"] == "nominal"   # exact, not "in (...)"; 30/100 = 30%
+    assert a["runtime_s"] == 30
 
 
 def test_attrs_runtime_buh_includes_energy_est():
@@ -313,11 +337,14 @@ def test_buh_energy_kwh_est_swallows_exception():
 
 
 def test_attrs_runtime_unknown_mode_skipped():
+    """v1.22.8: unknown-mode cycles skipped from per-mode buckets."""
     now = time.time()
     c = _mk_coord(
-        cycles=[
-            {"duration_s": 100, "mode": "unknown", "start_ts": now - 3600},
-            {"duration_s": 50, "mode": "heating", "start_ts": now - 1800},
+        intersecting=[
+            {"start_ts": now - 3600, "end_ts": now - 3500, "mode": "unknown",
+             "is_transient": 0},
+            {"start_ts": now - 1800, "end_ts": now - 1750, "mode": "heating",
+             "is_transient": 0},
         ]
     )
     s = _mk_snap()
@@ -339,20 +366,32 @@ def test_attrs_starts_unknown_mode_skipped():
 
 
 def test_attrs_duty_cycle_high_band(monkeypatch):
+    # v1.22.8: intersect contract needs start_ts + end_ts
     fake = 100000.0
     monkeypatch.setattr(s_mod, "_now", lambda: fake)
     monkeypatch.setattr(s_mod, "_local_midnight", lambda _: fake - 100.0)
-    c = _mk_coord(cycles=[{"duration_s": 70, "mode": "heating"}])
+    c = _mk_coord(
+        intersecting=[
+            {"start_ts": fake - 100.0, "end_ts": fake - 30.0,
+             "mode": "heating", "is_transient": 0},
+        ]
+    )
     s = _mk_snap()
     a = s_mod._attrs_duty_cycle_today_pct(s, c)
     assert a["band"] == "high"
 
 
 def test_attrs_duty_cycle_saturated_band(monkeypatch):
+    # v1.22.8: intersect contract needs start_ts + end_ts
     fake = 100000.0
     monkeypatch.setattr(s_mod, "_now", lambda: fake)
     monkeypatch.setattr(s_mod, "_local_midnight", lambda _: fake - 100.0)
-    c = _mk_coord(cycles=[{"duration_s": 90, "mode": "heating"}])
+    c = _mk_coord(
+        intersecting=[
+            {"start_ts": fake - 100.0, "end_ts": fake - 10.0,
+             "mode": "heating", "is_transient": 0},
+        ]
+    )
     s = _mk_snap()
     a = s_mod._attrs_duty_cycle_today_pct(s, c)
     assert a["band"] == "saturated"
