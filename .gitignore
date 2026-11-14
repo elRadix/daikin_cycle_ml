@@ -27,3 +27,6 @@ tests/fixtures/*.db-shm
 
 # #329 local prod DB snapshots for test repro
 .test-data/
+
+# v1.22.7: defensive patterns for ad-hoc local files
+*.pyc
