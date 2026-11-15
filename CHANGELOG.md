@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.22.8] - 2026-11-16
+
+### Fixed
+- A3a: sample-rate label truthful (samples_window, sample_rate_pct)
+- A3b: _refresh_cop_today throttled to 60s (was 2880 queries/day)
+
+### Docs
+- A3 decision record: docs/design/a3-tick-metrics.md
+- BUH excessive troubleshooting (README)
+
 ## [Unreleased]
 
 ### Fixed
