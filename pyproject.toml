@@ -52,7 +52,7 @@ markers = [
 ]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-addopts = "-q --cov=custom_components.daikin_cycle_ml --cov-fail-under=100"
+addopts = "-q --cov=custom_components.daikin_cycle_ml --cov-fail-under=100 --timeout=120"
 filterwarnings = [
     "error::RuntimeWarning",
     "error::pytest.PytestUnraisableExceptionWarning",

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test duration reporter (R656).
+"""Test duration reporter.
 
 Parses pytest JUnit XML and prints:
   - total wall-clock time from XML (sum of test times)
@@ -127,7 +127,7 @@ def check_baseline(summary: dict, baseline_path: Path, tolerance_pct: float) -> 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
-        description="Report pytest durations from JUnit XML (R656).",
+        description="Report pytest durations from JUnit XML.",
     )
     ap.add_argument("xml", type=Path, help="Path to pytest --junit-xml output")
     ap.add_argument("--top", type=int, default=25, help="Top-N slowest tests")
