@@ -821,3 +821,15 @@ MIT — see [LICENSE](https://github.com/elRadix/daikin_cycle_ml/blob/main/LICEN
 - **Home Assistant** core team — for the framework that makes custom components this easy
 - **IQS reviewers** — for pushing toward Bronze + Silver + Gold compliance
 
+
+## Troubleshooting
+
+### "BUH excessive" alert
+
+If you see `buh_excessive` alerts during cold spells:
+
+1. **Check the filter** — restricted flow increases dT beyond target
+2. **Increase pump speed** — target dT >= 4K (was 5K default; 4K is acceptable)
+3. **Verify dT** — if dT consistently < 3K, water returns too cool, BUH cycles excessively
+
+Background: BUH (backup heater) runs when HP output is insufficient. Excessive usage (ratio > 0.15 over 7 days) indicates HP underperformance or excessive load.
