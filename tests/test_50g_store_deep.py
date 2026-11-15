@@ -1,6 +1,7 @@
 """Batch 50h -- storage/store.py deep coverage (API-safe)."""
 
 from __future__ import annotations
+
 import contextlib
 
 from custom_components.daikin_cycle_ml.storage.store import CycleStore

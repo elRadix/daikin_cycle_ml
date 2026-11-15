@@ -60,7 +60,8 @@ def test_features_mapping_extra_label_raises(monkeypatch) -> None:
 def test_buh_step_kw_for_model_none_returns_default() -> None:
     """Line 532-533: model is None/empty -> BUH_STEP_KW_DEFAULT."""
     from custom_components.daikin_cycle_ml.const import (
-        BUH_STEP_KW_DEFAULT, buh_step_kw_for_model,
+        BUH_STEP_KW_DEFAULT,
+        buh_step_kw_for_model,
     )
     assert buh_step_kw_for_model(None) == BUH_STEP_KW_DEFAULT
     assert buh_step_kw_for_model("") == BUH_STEP_KW_DEFAULT
@@ -69,7 +70,8 @@ def test_buh_step_kw_for_model_none_returns_default() -> None:
 def test_buh_step_kw_for_model_uppercased() -> None:
     """Line 534: model key uppercased before dict lookup (unknown -> default)."""
     from custom_components.daikin_cycle_ml.const import (
-        BUH_STEP_KW_DEFAULT, buh_step_kw_for_model,
+        BUH_STEP_KW_DEFAULT,
+        buh_step_kw_for_model,
     )
     assert buh_step_kw_for_model("NONEXISTENT_MODEL_XYZ") == BUH_STEP_KW_DEFAULT
 
@@ -77,7 +79,8 @@ def test_buh_step_kw_for_model_uppercased() -> None:
 def test_models_in_family_basisprofiel_returns_self() -> None:
     """Line 821-822: basis family -> single-item list."""
     from custom_components.daikin_cycle_ml.const import (
-        MODEL_BASISPROFIEL, models_in_family,
+        MODEL_BASISPROFIEL,
+        models_in_family,
     )
     assert models_in_family(MODEL_BASISPROFIEL) == [MODEL_BASISPROFIEL]
 
@@ -85,6 +88,7 @@ def test_models_in_family_basisprofiel_returns_self() -> None:
 def test_models_in_family_custom_returns_self() -> None:
     """Line 821-822: custom family -> single-item list."""
     from custom_components.daikin_cycle_ml.const import (
-        MODEL_CUSTOM, models_in_family,
+        MODEL_CUSTOM,
+        models_in_family,
     )
     assert models_in_family(MODEL_CUSTOM) == [MODEL_CUSTOM]

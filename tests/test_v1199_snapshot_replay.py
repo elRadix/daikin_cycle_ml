@@ -27,7 +27,6 @@ from custom_components.daikin_cycle_ml.engine.physics import (
 )
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
-
 FIXTURE = pathlib.Path("tests/fixtures/_prod1_20261105.db")
 
 pytestmark = pytest.mark.skipif(

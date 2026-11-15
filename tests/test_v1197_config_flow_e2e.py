@@ -97,7 +97,7 @@ def test_map_attributes_errors_on_unknown_key():
     flow = _wizard()  # no source_state → hass.states.get returns None → available empty
     flow._data["source_sensor"] = "sensor.test"
     from custom_components.daikin_cycle_ml.const import REQUIRED_ATTRIBUTES
-    user_input = {c: "sensor.nonexistent" for c in REQUIRED_ATTRIBUTES}
+    user_input = dict.fromkeys(REQUIRED_ATTRIBUTES, "sensor.nonexistent")
     r = asyncio.run(flow.async_step_map_attributes(user_input=user_input))
     assert r["type"] == "form"
     assert r["step_id"] == "map_attributes"

@@ -3,18 +3,13 @@ from __future__ import annotations
 
 import asyncio
 import time
-from types import SimpleNamespace
-from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator)
-from custom_components.daikin_cycle_ml.engine.notification_engine import (
-    evaluate_alerts)
+from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
+from custom_components.daikin_cycle_ml.engine.notification_engine import evaluate_alerts
 from tests.test_rollup_concurrency import _mk_db
-from tests.test_v1199_cop_gate_wire import (  # noqa: F401
-    _mk_gate_coord)
+from tests.test_v1199_cop_gate_wire import _mk_gate_coord
 
 
 # GAP 4: alert dedup over time (1440 min window)

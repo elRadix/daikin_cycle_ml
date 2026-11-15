@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 from collections import deque
 from datetime import timedelta
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -309,9 +309,11 @@ def test_track_mode_same_mode_no_append(coord_bare):
 
 def test_track_mode_different_mode_appends(coord_bare):
     """heating -> dhw -> 2 transitions logged."""
-    s1 = MagicMock(); s1.mode = "heating"
+    s1 = MagicMock()
+    s1.mode = "heating"
     coord_bare._track_mode_transition(s1, 100.0)
-    s2 = MagicMock(); s2.mode = "dhw"
+    s2 = MagicMock()
+    s2.mode = "dhw"
     coord_bare._track_mode_transition(s2, 200.0)
     assert len(coord_bare._transitions) == 2
     assert coord_bare._transitions[1]["from"] == "heating"
@@ -320,27 +322,31 @@ def test_track_mode_different_mode_appends(coord_bare):
 
 def test_track_mode_unknown_skipped(coord_bare):
     """mode='unknown' -> early return, no append."""
-    snap = MagicMock(); snap.mode = "unknown"
+    snap = MagicMock()
+    snap.mode = "unknown"
     coord_bare._track_mode_transition(snap, 100.0)
     assert len(coord_bare._transitions) == 0
 
 
 def test_track_mode_none_skipped(coord_bare):
     """mode=None -> early return."""
-    snap = MagicMock(); snap.mode = None
+    snap = MagicMock()
+    snap.mode = None
     coord_bare._track_mode_transition(snap, 100.0)
     assert len(coord_bare._transitions) == 0
 
 
 def test_track_mode_non_string_skipped(coord_bare):
     """mode=42 -> isinstance(str) False -> early return."""
-    snap = MagicMock(); snap.mode = 42
+    snap = MagicMock()
+    snap.mode = 42
     coord_bare._track_mode_transition(snap, 100.0)
     assert len(coord_bare._transitions) == 0
 
 
 def test_track_mode_empty_string_skipped(coord_bare):
     """mode='' -> early return."""
-    snap = MagicMock(); snap.mode = ""
+    snap = MagicMock()
+    snap.mode = ""
     coord_bare._track_mode_transition(snap, 100.0)
     assert len(coord_bare._transitions) == 0

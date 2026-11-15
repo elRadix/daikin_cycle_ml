@@ -1,12 +1,10 @@
 """Red test for Issue #308: Real coordinator method fails on unknown/unavailable."""
-import pytest
-from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
 from custom_components.daikin_cycle_ml.const import (
-    ATTR_DEFROST_OPERATION,
     ATTR_BUH_STEP1,
-    ATTR_BUH_STEP2,
-    ENERGY_DT_CAP_S,
+    ATTR_DEFROST_OPERATION,
 )
+from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
+
 
 def _mock_coord():
     coord = DaikinCycleMLCoordinator.__new__(DaikinCycleMLCoordinator)

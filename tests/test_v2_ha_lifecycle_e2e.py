@@ -16,12 +16,9 @@ R598: real async_setup_entry, real _async_update_data, real DB.
 """
 from __future__ import annotations
 
-import asyncio
-import time
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
-from homeassistant.config_entries import ConfigEntryState
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.daikin_cycle_ml import (
@@ -30,19 +27,30 @@ from custom_components.daikin_cycle_ml import (
     async_unload_entry,
 )
 from custom_components.daikin_cycle_ml.const import (
-    ATTR_BUH_STEP1, ATTR_BUH_STEP2, ATTR_COP, ATTR_DEFROST_OPERATION,
-    ATTR_FLOW_SENSOR, ATTR_INLET_WATER_R4T,
-    ATTR_IU_OPERATION_MODE, ATTR_LEAVING_WATER_AFTER_BUH,
-    ATTR_LW_SETPOINT, ATTR_OPERATION_MODE, ATTR_OUTDOOR_AIR_R1T,
-    ATTR_WATER_PUMP_OPERATION, ATTR_3WAY_VALVE,
-    CONF_INDIVIDUAL_PREFIX, CONF_SOURCE_TYPE,
-    DEFAULT_INDIVIDUAL_PREFIX, DOMAIN,
-    SOURCE_TYPE_INDIVIDUAL, SOURCE_TYPE_MONOLITHIC,
+    ATTR_3WAY_VALVE,
+    ATTR_BUH_STEP1,
+    ATTR_BUH_STEP2,
+    ATTR_COP,
+    ATTR_DEFROST_OPERATION,
+    ATTR_FLOW_SENSOR,
+    ATTR_INLET_WATER_R4T,
+    ATTR_IU_OPERATION_MODE,
+    ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_LW_SETPOINT,
+    ATTR_OPERATION_MODE,
+    ATTR_OUTDOOR_AIR_R1T,
+    ATTR_WATER_PUMP_OPERATION,
+    CONF_INDIVIDUAL_PREFIX,
+    CONF_SOURCE_TYPE,
+    DEFAULT_INDIVIDUAL_PREFIX,
+    DOMAIN,
+    SOURCE_TYPE_INDIVIDUAL,
+    SOURCE_TYPE_MONOLITHIC,
 )
 from custom_components.daikin_cycle_ml.engine.espaltherma_v2.slug import (
     make_json_key,
 )
-
+from homeassistant.config_entries import ConfigEntryState
 
 # ============================================================
 # Fixtures

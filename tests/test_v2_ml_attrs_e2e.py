@@ -8,16 +8,21 @@ R598: real production ML functions, no reconstruction.
 from __future__ import annotations
 
 import time
-from unittest.mock import MagicMock
-
-import pytest
 
 from custom_components.daikin_cycle_ml.const import (
-    ATTR_BUH_STEP1, ATTR_BUH_STEP2, ATTR_COP, ATTR_DEFROST_OPERATION,
-    ATTR_FLOW_SENSOR, ATTR_INLET_WATER_R4T,
-    ATTR_IU_OPERATION_MODE, ATTR_LEAVING_WATER_AFTER_BUH,
-    ATTR_LW_SETPOINT, ATTR_OPERATION_MODE, ATTR_OUTDOOR_AIR_R1T,
-    ATTR_WATER_PUMP_OPERATION, ATTR_3WAY_VALVE,
+    ATTR_3WAY_VALVE,
+    ATTR_BUH_STEP1,
+    ATTR_BUH_STEP2,
+    ATTR_COP,
+    ATTR_DEFROST_OPERATION,
+    ATTR_FLOW_SENSOR,
+    ATTR_INLET_WATER_R4T,
+    ATTR_IU_OPERATION_MODE,
+    ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_LW_SETPOINT,
+    ATTR_OPERATION_MODE,
+    ATTR_OUTDOOR_AIR_R1T,
+    ATTR_WATER_PUMP_OPERATION,
 )
 from custom_components.daikin_cycle_ml.ml.adaptive_thresholds import (
     AdaptiveThresholds,

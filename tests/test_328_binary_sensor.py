@@ -4,8 +4,8 @@ Semantics:
   on  = DHW tank present / expected (valve, tank sensor, history, override=always)
   off = no DHW tank (override=never, or auto-detect tier4)
 """
-import pytest
 from unittest.mock import MagicMock
+
 from custom_components.daikin_cycle_ml.binary_sensor import BINARY_SENSOR_DEFS
 
 
@@ -24,7 +24,8 @@ def test_dhw_installed_registered_in_defs():
 def test_dhw_installed_state_on_when_dhw_present():
     e = _entry()
     assert e is not None
-    coord = MagicMock(); coord.dhw_present = True
+    coord = MagicMock()
+    coord.dhw_present = True
     snap = MagicMock()
     assert e["state_fn"](snap, coord) is True
 
@@ -32,7 +33,8 @@ def test_dhw_installed_state_on_when_dhw_present():
 def test_dhw_installed_state_off_when_no_dhw():
     e = _entry()
     assert e is not None
-    coord = MagicMock(); coord.dhw_present = False
+    coord = MagicMock()
+    coord.dhw_present = False
     snap = MagicMock()
     assert e["state_fn"](snap, coord) is False
 

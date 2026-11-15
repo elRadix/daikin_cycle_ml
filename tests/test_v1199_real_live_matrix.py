@@ -14,23 +14,22 @@ from __future__ import annotations
 
 import asyncio
 import time
-from types import SimpleNamespace
 
 import pytest
 
 from custom_components.daikin_cycle_ml.const import (
     ATTR_INLET_WATER_R4T,
-    ATTR_LEAVING_WATER_AFTER_BUH)
+    ATTR_LEAVING_WATER_AFTER_BUH,
+)
 from custom_components.daikin_cycle_ml.engine.physics import (
     ACCEPT_MARGIN,
     CARNOT_EFFICIENCY_FACTOR,
     REJECT_MULTIPLIER,
-    classify_cop_sample)
+    classify_cop_sample,
+)
 from custom_components.daikin_cycle_ml.engine.thermal import dt_from_attrs
 from tests.test_rollup_concurrency import _mk_db
-from tests.test_v1199_cop_gate_wire import (  # noqa: F401
-    _mk_gate_coord)
-
+from tests.test_v1199_cop_gate_wire import _mk_gate_coord
 
 # ============================================================
 # Carnot factor boundaries: 0.65 * 1.05 * carnot

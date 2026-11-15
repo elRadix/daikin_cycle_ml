@@ -26,13 +26,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.daikin_cycle_ml.engine.notification_engine import (
-    BINARY_ALERT_MAP)
-from custom_components.daikin_cycle_ml.engine.status_report import (
-    build_rich_alert)
+from custom_components.daikin_cycle_ml.engine.notification_engine import BINARY_ALERT_MAP
+from custom_components.daikin_cycle_ml.engine.status_report import build_rich_alert
 from tests.test_rollup_concurrency import _mk_db
-from tests.test_v1199_cop_gate_wire import (  # noqa: F401
-    _mk_gate_coord)
+from tests.test_v1199_cop_gate_wire import _mk_gate_coord
 
 
 @pytest.mark.asyncio

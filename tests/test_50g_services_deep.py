@@ -1,8 +1,8 @@
 """Batch 50g -- services.py deep coverage."""
 
 from __future__ import annotations
-import contextlib
 
+import contextlib
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

@@ -17,20 +17,16 @@ from __future__ import annotations
 
 import asyncio
 import time
+from datetime import UTC
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator)
-from custom_components.daikin_cycle_ml.engine.physics import (
-    classify_cop_sample)
+from custom_components.daikin_cycle_ml.engine.physics import classify_cop_sample
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
 from tests.test_rollup_concurrency import _mk_db
-from tests.test_v1199_cop_gate_wire import (  # noqa: F401
-    _mk_gate_coord)
-
+from tests.test_v1199_cop_gate_wire import _mk_gate_coord
 
 # ============================================================
 # 1. Source outage
@@ -38,15 +34,15 @@ from tests.test_v1199_cop_gate_wire import (  # noqa: F401
 
 def test_failure_source_outage_detects_stale():
     """Bron >120s stil -> source_stale trigger correct."""
-    from custom_components.daikin_cycle_ml.binary_sensor import (
-        _is_source_stale)
-    from datetime import datetime, timezone
+    from datetime import datetime
+
+    from custom_components.daikin_cycle_ml.binary_sensor import _is_source_stale
 
     now = time.time()
     snap = SimpleNamespace(last_success_ts=now - 10)  # tick fresh
     hass = MagicMock()
     st = MagicMock()
-    st.last_updated = datetime.fromtimestamp(now - 500, tz=timezone.utc)
+    st.last_updated = datetime.fromtimestamp(now - 500, tz=UTC)
     hass.states.get.return_value = st
     c = SimpleNamespace(
         hass=hass, source_entity="sensor.althermasensors", options={}
@@ -56,15 +52,15 @@ def test_failure_source_outage_detects_stale():
 
 def test_failure_source_outage_recovery():
     """Bron terug na outage -> alert valt weg."""
-    from custom_components.daikin_cycle_ml.binary_sensor import (
-        _is_source_stale)
-    from datetime import datetime, timezone
+    from datetime import datetime
+
+    from custom_components.daikin_cycle_ml.binary_sensor import _is_source_stale
 
     now = time.time()
     snap = SimpleNamespace(last_success_ts=now - 10)
     hass = MagicMock()
     st = MagicMock()
-    st.last_updated = datetime.fromtimestamp(now - 5, tz=timezone.utc)
+    st.last_updated = datetime.fromtimestamp(now - 5, tz=UTC)
     hass.states.get.return_value = st
     c = SimpleNamespace(
         hass=hass, source_entity="sensor.althermasensors", options={}
@@ -212,8 +208,7 @@ async def test_failure_reboot_state_preserved(tmp_path):
 
 def test_failure_defrost_parse_variants():
     """Defrost met alle varianten ('ON', 'on', True, 1) werkt."""
-    from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
-        parse_global_cop_attrs)
+    from custom_components.daikin_cycle_ml.engine.cop_analyzer import parse_global_cop_attrs
     for raw in ["ON", "on", True, 1]:
         s = parse_global_cop_attrs({
             "state": "5.0", "defrost_operation": raw,

@@ -9,7 +9,7 @@ despite the source being healthy.
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -19,7 +19,7 @@ from custom_components.daikin_cycle_ml.binary_sensor import _is_source_stale
 def _mock_hass_with_source(updated_ts: float) -> MagicMock:
     hass = MagicMock()
     st = MagicMock()
-    st.last_updated = datetime.fromtimestamp(updated_ts, tz=timezone.utc)
+    st.last_updated = datetime.fromtimestamp(updated_ts, tz=UTC)
     hass.states.get.return_value = st
     return hass
 

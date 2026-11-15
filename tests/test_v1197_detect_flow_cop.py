@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pathlib
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -28,8 +28,8 @@ def test_replay_nov_2_gap_detects_all_samples():
     """
     c = sqlite3.connect(f"file:{FIXTURE}?mode=ro", uri=True)
     try:
-        start = int(datetime(2026, 11, 2, 16, 55, tzinfo=timezone.utc).timestamp())
-        end = int(datetime(2026, 11, 2, 22, 57, tzinfo=timezone.utc).timestamp())
+        start = int(datetime(2026, 11, 2, 16, 55, tzinfo=UTC).timestamp())
+        end = int(datetime(2026, 11, 2, 22, 57, tzinfo=UTC).timestamp())
         rows = c.execute(
             "SELECT cop, flow_lmin FROM cop_samples "
             "WHERE ts >= ? AND ts < ? ORDER BY ts",

@@ -1,9 +1,9 @@
 """Batch 49 -- coordinator remaining coverage."""
 
 from __future__ import annotations
-import contextlib
 
 import asyncio
+import contextlib
 from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator

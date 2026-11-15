@@ -11,9 +11,7 @@ import time
 
 from custom_components.daikin_cycle_ml import binary_sensor as _bs
 from custom_components.daikin_cycle_ml.binary_sensor import (
-    _is_dhw_pendulum,
     _is_high_cycle_rate,
-    _is_pendulum_daily,
     _is_pendulum_hourly,
 )
 from custom_components.daikin_cycle_ml.coordinator import DataSnapshot

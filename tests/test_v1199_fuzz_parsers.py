@@ -13,13 +13,13 @@ from __future__ import annotations
 import math
 
 import pytest
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
     _parse_bool,
     _parse_float,
 )
-
 
 # ============================================================
 # _parse_float: 200+ cases via hypothesis

@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import time
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -33,7 +33,6 @@ async def test_insert_accepts_flag_field(tmp_path):
         })
         assert ok is True
         # Default 0
-        import aiosqlite
         async with db._conn.execute(
             "SELECT is_transition_artifact FROM cop_samples LIMIT 1"
         ) as cur:
@@ -89,7 +88,6 @@ def _make_coord_for_gate(db):
         cop=None,
     )
     # Mock build_compat_view to return fixed attrs (simplification)
-    import custom_components.daikin_cycle_ml.coordinator as coord_mod
     c._test_compat = compat
     return c
 

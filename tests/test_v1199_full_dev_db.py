@@ -18,8 +18,6 @@ import asyncio
 import pathlib
 import shutil
 import time
-from datetime import datetime
-from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -28,12 +26,9 @@ from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,
 )
 from custom_components.daikin_cycle_ml.engine.physics import (
-    CARNOT_EFFICIENCY_FACTOR,
-    REJECT_MULTIPLIER,
     classify_cop_sample,
 )
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
-
 
 FIXTURE = pathlib.Path("tests/fixtures/_prod1_20261105.db")
 

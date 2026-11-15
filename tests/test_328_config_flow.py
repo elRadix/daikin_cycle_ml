@@ -4,14 +4,17 @@ HA 2024.12+ API: OptionsFlow takes no __init__ args.
 HA 2026.x: vol.Required wraps static defaults in a default_factory lambda,
 so `.default` returns a callable — resolve via _resolve_default().
 """
+from unittest.mock import MagicMock, PropertyMock, patch
+
 import pytest
-from unittest.mock import MagicMock, patch, PropertyMock
-from custom_components.daikin_cycle_ml.const import (
-    CONF_DHW_PRESENT, DHW_PRESENT_AUTO, DHW_PRESENT_ALWAYS,
-    DHW_PRESENT_NEVER,
-)
+
 from custom_components.daikin_cycle_ml.config_flow import (
     DaikinCycleMLOptionsFlow,
+)
+from custom_components.daikin_cycle_ml.const import (
+    CONF_DHW_PRESENT,
+    DHW_PRESENT_AUTO,
+    DHW_PRESENT_NEVER,
 )
 
 
@@ -46,18 +49,24 @@ def _ce(entry):
 
 @pytest.mark.asyncio
 async def test_advanced_schema_has_dhw_present(hass):
-    entry = MagicMock(); entry.options = {}; entry.data = {}
+    entry = MagicMock()
+    entry.options = {}
+    entry.data = {}
     with _ce(entry):
-        flow = DaikinCycleMLOptionsFlow(); flow.hass = hass
+        flow = DaikinCycleMLOptionsFlow()
+        flow.hass = hass
         res = await flow.async_step_advanced()
     assert _find_dhw_key(res["data_schema"]) is not None
 
 
 @pytest.mark.asyncio
 async def test_advanced_schema_dhw_present_default_is_auto(hass):
-    entry = MagicMock(); entry.options = {}; entry.data = {}
+    entry = MagicMock()
+    entry.options = {}
+    entry.data = {}
     with _ce(entry):
-        flow = DaikinCycleMLOptionsFlow(); flow.hass = hass
+        flow = DaikinCycleMLOptionsFlow()
+        flow.hass = hass
         res = await flow.async_step_advanced()
     key = _find_dhw_key(res["data_schema"])
     assert _resolve_default(key) == DHW_PRESENT_AUTO, \
@@ -70,7 +79,8 @@ async def test_advanced_schema_dhw_present_respects_existing(hass):
     entry.options = {CONF_DHW_PRESENT: DHW_PRESENT_NEVER}
     entry.data = {}
     with _ce(entry):
-        flow = DaikinCycleMLOptionsFlow(); flow.hass = hass
+        flow = DaikinCycleMLOptionsFlow()
+        flow.hass = hass
         res = await flow.async_step_advanced()
     key = _find_dhw_key(res["data_schema"])
     assert _resolve_default(key) == DHW_PRESENT_NEVER, \
@@ -81,11 +91,14 @@ async def test_advanced_schema_dhw_present_respects_existing(hass):
 
 @pytest.mark.asyncio
 async def test_options_save_routes_dhw_present(hass):
-    entry = MagicMock(); entry.options = {}; entry.data = {}
+    entry = MagicMock()
+    entry.options = {}
+    entry.data = {}
     with _ce(entry), \
          patch.object(DaikinCycleMLOptionsFlow, "async_create_entry") as ace:
         ace.return_value = {"type": "create_entry"}
-        flow = DaikinCycleMLOptionsFlow(); flow.hass = hass
+        flow = DaikinCycleMLOptionsFlow()
+        flow.hass = hass
         flow._save({CONF_DHW_PRESENT: DHW_PRESENT_NEVER})
     ace.assert_called_once()
     data = ace.call_args.kwargs.get("data", {})

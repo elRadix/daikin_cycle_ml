@@ -12,13 +12,12 @@ counters with per-sensor ``source`` attributes.
 from __future__ import annotations
 
 import math
-
-from typing import Any, Optional
+from typing import Any
 
 _INVALID_STRINGS = frozenset({"", "unknown", "unavailable", "---", "none", "null"})
 
 
-def _read_float(attrs: dict[str, Any], key: str) -> Optional[float]:
+def _read_float(attrs: dict[str, Any], key: str) -> float | None:
     """Read a numeric attribute safely. None on missing / parse-fail / negative.
 
     Strict: requires ``attrs`` to be a real dict (not a Mock), and ``raw`` to be
@@ -45,12 +44,12 @@ def _read_float(attrs: dict[str, Any], key: str) -> Optional[float]:
     return v if v >= 0.0 else None
 
 
-def read_native_buh_minutes(attrs: dict[str, Any]) -> Optional[float]:
+def read_native_buh_minutes(attrs: dict[str, Any]) -> float | None:
     """Return native ``Stats: Backup heater today (min)`` if valid, else None."""
     return _read_float(attrs, "Stats: Backup heater today (min)")
 
 
-def read_native_compressor_minutes(attrs: dict[str, Any]) -> Optional[float]:
+def read_native_compressor_minutes(attrs: dict[str, Any]) -> float | None:
     """v1.22.8: Return native ``Stats: Compressor run today (min)`` if valid, else None.
 
     ESPAltherma v2 only. This counter includes cross-midnight cycles and the
@@ -61,12 +60,12 @@ def read_native_compressor_minutes(attrs: dict[str, Any]) -> Optional[float]:
     return _read_float(attrs, "Stats: Compressor run today (min)")
 
 
-def read_native_defrost_count(attrs: dict[str, Any]) -> Optional[float]:
+def read_native_defrost_count(attrs: dict[str, Any]) -> float | None:
     """v1.22.8: Return native ``Stats: Defrosts today`` if valid, else None."""
     return _read_float(attrs, "Stats: Defrosts today")
 
 
-def read_native_compressor_starts(attrs: dict[str, Any]) -> Optional[float]:
+def read_native_compressor_starts(attrs: dict[str, Any]) -> float | None:
     """v1.22.8: Return native ``Stats: Compressor starts today`` if valid, else None."""
     return _read_float(attrs, "Stats: Compressor starts today")
 

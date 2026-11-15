@@ -1,8 +1,11 @@
 """Coverage for async_get_median_dhw_gap in db.py (Issue #340)."""
-import pytest
-import aiosqlite
 from unittest.mock import MagicMock
+
+import aiosqlite
+import pytest
+
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
+
 
 @pytest.fixture
 async def db():

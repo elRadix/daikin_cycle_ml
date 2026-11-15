@@ -36,7 +36,6 @@ import pytest
 from custom_components.daikin_cycle_ml import coordinator as co
 from custom_components.daikin_cycle_ml.storage.store import CycleStore
 
-
 # ============================================================
 # Builders
 # ============================================================

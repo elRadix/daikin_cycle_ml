@@ -1,6 +1,7 @@
 """Reproduction tests for Issue #245: short_off firing on live off-time."""
 from types import MethodType
 from unittest.mock import MagicMock
+
 from custom_components.daikin_cycle_ml.binary_sensor import _is_short_off
 from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
 

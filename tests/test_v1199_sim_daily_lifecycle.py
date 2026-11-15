@@ -16,16 +16,11 @@ from __future__ import annotations
 import asyncio
 import time
 from types import SimpleNamespace
-from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator)
 from tests.test_rollup_concurrency import _mk_db
-from tests.test_v1199_cop_gate_wire import (  # noqa: F401
-    _mk_gate_coord)
-
+from tests.test_v1199_cop_gate_wire import _mk_gate_coord
 
 # Vaste dag voor reproduceerbaarheid: 2026-11-05 00:00 LOCAL (Brussels).
 # mktime interprets 9-tuple as local time, so this is container-local

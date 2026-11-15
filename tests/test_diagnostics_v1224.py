@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -28,14 +28,14 @@ def _fake_coord(**kw):
     c._source_resolution = kw.get("source_resolution", {})
     c._last_alert_sent = kw.get("last_alert_sent", {})
     c._defrost_count_today = kw.get("defrost_count", 0)
-    c._defrost_start_ts = kw.get("defrost_start", None)
-    c._defrost_duration_s = kw.get("defrost_dur", None)
-    c._last_defrost_ts = kw.get("last_defrost", None)
+    c._defrost_start_ts = kw.get("defrost_start")
+    c._defrost_duration_s = kw.get("defrost_dur")
+    c._last_defrost_ts = kw.get("last_defrost")
     c._buh_step = kw.get("buh_step", 0)
     c._db_integrity_ok = kw.get("integrity", True)
     c._db_retention_stale = kw.get("retention", {})
-    c.detector = kw.get("detector", None)
-    c.store = kw.get("store", None)
+    c.detector = kw.get("detector")
+    c.store = kw.get("store")
     c.data = kw.get("data", MagicMock())
     c.data.attrs = kw.get("attrs", {})
     c.data.state = "running"

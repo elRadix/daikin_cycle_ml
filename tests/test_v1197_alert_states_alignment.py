@@ -16,8 +16,6 @@ data. Pre-fix: all three fail. Post-fix: all pass.
 import time
 from types import SimpleNamespace
 
-import pytest
-
 from custom_components.daikin_cycle_ml import coordinator as co
 from custom_components.daikin_cycle_ml.storage.store import CycleStore
 
@@ -194,18 +192,10 @@ async def test_dispatch_short_off_transient_creates_no_notification():
     This is the end-to-end proof that my v1.19.7 binary_sensor fix reaches
     notifications (a gap discovered in PASTE 7C).
     """
-    from unittest.mock import AsyncMock, MagicMock
-    from custom_components.daikin_cycle_ml.storage.store import CycleStore
     from custom_components.daikin_cycle_ml.engine.notification_engine import evaluate_alerts
 
     # Build states dict directly with short_off=False (post-fix behavior)
-    states = {k: False for k in ("short_run", "short_off", "pendulum_hourly",
-                                  "pendulum_daily", "dhw_pendulum", "high_cycle_rate",
-                                  "ml_anomaly", "setpoint_osc", "cop_degradation",
-                                  "defrost_excessive", "buh_excessive", "source_stale",
-                                  "missing_attributes", "cop_vs_datasheet_low",
-                                  "db_retention_warning", "kmeans_retrain_stale",
-                                  "energy_daily_anomaly")}
+    states = dict.fromkeys(("short_run", "short_off", "pendulum_hourly", "pendulum_daily", "dhw_pendulum", "high_cycle_rate", "ml_anomaly", "setpoint_osc", "cop_degradation", "defrost_excessive", "buh_excessive", "source_stale", "missing_attributes", "cop_vs_datasheet_low", "db_retention_warning", "kmeans_retrain_stale", "energy_daily_anomaly"), False)
     # short_off should be FALSE because transient cycle
     alerts = evaluate_alerts(states, {}, time.time(), {})
     short_off_alerts = [a for a in alerts if a.alert_type == "short_off"]

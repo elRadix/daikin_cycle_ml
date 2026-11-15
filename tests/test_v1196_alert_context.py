@@ -8,10 +8,8 @@ trigger counts only real cycles -> user-facing inconsistency.
 from __future__ import annotations
 
 import datetime as _dt
-import time
 from collections import deque
 
-import pytest
 from freezegun import freeze_time
 
 from custom_components.daikin_cycle_ml.binary_sensor import _is_pendulum_daily

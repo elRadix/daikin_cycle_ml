@@ -9,10 +9,9 @@ operation; BUH is COP=1 inefficient backup. The defrost test below
 documents this deliberately (was a false-positive in prior version).
 """
 import math
-import pytest
+
 from custom_components.daikin_cycle_ml.engine import physics as ph
 from custom_components.daikin_cycle_ml.engine import quality_scorer as qs
-
 
 # ---- Physics ----
 

@@ -20,12 +20,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator)
+from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
 from tests.test_rollup_concurrency import _mk_db
-from tests.test_v1199_cop_gate_wire import (  # noqa: F401
-    _mk_gate_coord)
-
+from tests.test_v1199_cop_gate_wire import _mk_gate_coord
 
 # ============================================================
 # GAP 1: cold-start, real attrs, no mock of build_compat_view

@@ -12,9 +12,9 @@ R644 (snapshot replay): v2.0 equivalent of v1.19.9 snapshot replay.
 from __future__ import annotations
 
 import asyncio
-import sqlite3
 import pathlib
 import shutil
+import sqlite3
 import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -22,16 +22,27 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.daikin_cycle_ml.const import (
-    ATTR_BUH_STEP1, ATTR_BUH_STEP2, ATTR_COP, ATTR_DEFROST_OPERATION,
-    ATTR_FLOW_SENSOR, ATTR_INLET_WATER_R4T,
-    ATTR_LEAVING_WATER_AFTER_BUH, ATTR_LW_SETPOINT,
-    ATTR_OPERATION_MODE, ATTR_OUTDOOR_AIR_R1T,
-    ATTR_WATER_PUMP_OPERATION, ATTR_3WAY_VALVE, ATTR_IU_OPERATION_MODE,
-    CONF_SOURCE_TYPE, DEFAULT_INDIVIDUAL_PREFIX, REQUIRED_ATTRIBUTES,
+    ATTR_3WAY_VALVE,
+    ATTR_BUH_STEP1,
+    ATTR_BUH_STEP2,
+    ATTR_COP,
+    ATTR_DEFROST_OPERATION,
+    ATTR_FLOW_SENSOR,
+    ATTR_INLET_WATER_R4T,
+    ATTR_IU_OPERATION_MODE,
+    ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_LW_SETPOINT,
+    ATTR_OPERATION_MODE,
+    ATTR_OUTDOOR_AIR_R1T,
+    ATTR_WATER_PUMP_OPERATION,
+    CONF_SOURCE_TYPE,
+    DEFAULT_INDIVIDUAL_PREFIX,
+    REQUIRED_ATTRIBUTES,
     SOURCE_TYPE_AUTO,
 )
 from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator, DataSnapshot,
+    DaikinCycleMLCoordinator,
+    DataSnapshot,
 )
 from custom_components.daikin_cycle_ml.engine.physics import (
     classify_cop_sample,
@@ -645,8 +656,8 @@ async def test_prod_v2_sensor_cop_source_visible() -> None:
     set -> diagnostics exposes it. Proves the transparency chain works
     for real prod-like inputs.
     """
-    import json
     from pytest_homeassistant_custom_component.common import MockConfigEntry
+
     from custom_components.daikin_cycle_ml.const import DOMAIN
     from custom_components.daikin_cycle_ml.diagnostics import (
         async_get_config_entry_diagnostics,

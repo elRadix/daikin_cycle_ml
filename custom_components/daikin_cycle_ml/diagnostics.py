@@ -1,23 +1,25 @@
 """Diagnostics support for Daikin Cycle ML (extended 12c)."""
 from __future__ import annotations
 
-import logging
-import sqlite3
-from pathlib import Path
-from typing import Any
-
-from typing import cast  # MYPY-FIX-V1224
-from homeassistant.util import dt as dt_util
-from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers import device_registry as dr
-from homeassistant.helpers.device_registry import DeviceEntry  # MYPY-FIX-V1224-C
-import time
-import sys
-import re
 import json
+import logging
+import re
+import sqlite3
+import sys
+import time
+from pathlib import Path
+from typing import (
+    Any,
+    cast,  # MYPY-FIX-V1224
+)
+
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.device_registry import DeviceEntry  # MYPY-FIX-V1224-C
+from homeassistant.util import dt as dt_util
 
 from .const import DB_FILENAME, DB_FILENAME_TEMPLATE
 
@@ -289,7 +291,7 @@ def _detector_snapshot(coord: Any) -> dict[str, Any]:  # # DIAG-V1224
                 out[k.lstrip("_")] = v.isoformat()
             else:
                 out[k.lstrip("_")] = v
-    if "run_start_ts" in out and out["run_start_ts"]:
+    if out.get("run_start_ts"):
         try:
             out["run_duration_s"] = time.time() - float(out["run_start_ts"])
         except (TypeError, ValueError):
@@ -392,6 +394,7 @@ def _detector_transitions(coord: Any) -> list[dict[str, Any]]:  # DIAG-V1224B
 
 def _repairs_snapshot(hass: HomeAssistant) -> dict[str, Any]:  # DIAG-V1224B
     from homeassistant.helpers import issue_registry as ir
+
     from .const import DOMAIN
     try:
         registry = ir.async_get(hass)

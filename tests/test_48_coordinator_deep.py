@@ -1,9 +1,9 @@
 """Batch 48 -- coordinator method coverage (call every branch)."""
 
 from __future__ import annotations
-import contextlib
 
 import asyncio
+import contextlib
 from unittest.mock import AsyncMock, MagicMock
 
 from custom_components.daikin_cycle_ml.coordinator import (

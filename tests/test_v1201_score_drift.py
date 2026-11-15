@@ -15,10 +15,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from custom_components.daikin_cycle_ml.engine.quality_scorer import score_cycle
-
 
 CYCLE_321 = {
     "start_ts": 1794122010.0,

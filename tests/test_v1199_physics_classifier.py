@@ -8,8 +8,6 @@ Covers all Model 2 scenarios from the #123 analysis:
 """
 from __future__ import annotations
 
-import pytest
-
 from custom_components.daikin_cycle_ml.engine.physics import (
     ACCEPT_MARGIN,
     CARNOT_EFFICIENCY_FACTOR,
@@ -17,7 +15,6 @@ from custom_components.daikin_cycle_ml.engine.physics import (
     classify_cop_sample,
     get_physical_cop_ceiling,
 )
-
 
 # --- Constants sanity ---
 

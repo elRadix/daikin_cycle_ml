@@ -1,6 +1,7 @@
 """Regression test for v1.23.0 HT attribute aliases (#189)."""
 from custom_components.daikin_cycle_ml.engine.attribute_compat import build_compat_view
 
+
 def test_ht_hydrobox_aliases() -> None:
     """Verify [Hydrobox] prefixes map correctly to canonical keys."""
     attrs = {

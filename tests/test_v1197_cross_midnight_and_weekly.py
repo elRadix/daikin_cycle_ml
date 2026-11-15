@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -19,7 +19,7 @@ async def _mk_db(tmp_path, name="test.db"):
 
 
 def _ts(y, mo, d, h=0, mi=0):
-    return datetime(y, mo, d, h, mi, tzinfo=timezone.utc).timestamp()
+    return datetime(y, mo, d, h, mi, tzinfo=UTC).timestamp()
 
 
 async def _ins(conn, start, end, mode="heating", **kw):
@@ -54,11 +54,11 @@ async def test_cross_midnight_split_pro_rata(tmp_path):
         await db.async_rollup_day("2026-10-26")
         await db.async_rollup_day("2026-10-27")
 
-        rows = dict(
-            (r[0], r[1]) for r in await (await conn.execute(
+        rows = {
+            r[0]: r[1] for r in await (await conn.execute(
                 "SELECT day, total_duration_s FROM daily_summary WHERE mode='heating'"
             )).fetchall()
-        )
+        }
         oct26 = rows.get("2026-10-26", 0)
         oct27 = rows.get("2026-10-27", 0)
 
@@ -102,11 +102,11 @@ async def test_mixed_cross_midnight_sum_preserved(tmp_path):
         await conn.commit()
         await db.async_rollup_day("2026-10-26")
         await db.async_rollup_day("2026-10-27")
-        rows = dict(
-            (r[0], r[1]) for r in await (await conn.execute(
+        rows = {
+            r[0]: r[1] for r in await (await conn.execute(
                 "SELECT day, total_duration_s FROM daily_summary WHERE mode='heating'"
             )).fetchall()
-        )
+        }
         assert abs(rows.get("2026-10-26", 0) - 8*3600) < 60, f"Oct26 {rows.get('2026-10-26')/3600:.2f}h != 8"
         assert abs(rows.get("2026-10-27", 0) - 4*3600) < 60, f"Oct27 {rows.get('2026-10-27')/3600:.2f}h != 4"
         assert abs(sum(rows.values()) - 12*3600) < 60
@@ -124,7 +124,7 @@ async def test_cold_week_24_7_22_to_24h(tmp_path):
     db = await _mk_db(tmp_path)
     try:
         conn = db._require()
-        base = datetime(2026, 11, 4, tzinfo=timezone.utc)
+        base = datetime(2026, 11, 4, tzinfo=UTC)
         for off in range(7):
             ds = (base + timedelta(days=off)).timestamp()
             de = ds + DAY
@@ -178,12 +178,12 @@ async def test_mild_week_modulated_10_to_18h(tmp_path):
 
         await db.async_rollup_day("2026-10-28")
 
-        rows = dict(
-            (r[0], r[1]) for r in await (await conn.execute(
+        rows = {
+            r[0]: r[1] for r in await (await conn.execute(
                 "SELECT mode, ROUND(total_duration_s/3600.0, 2) "
                 "FROM daily_summary WHERE day='2026-10-28'"
             )).fetchall()
-        )
+        }
         assert 10.0 <= rows.get("heating", 0) <= 12.0, f"heating {rows.get('heating')}h"
         assert 1.3 <= rows.get("dhw", 0) <= 1.7, f"dhw {rows.get('dhw')}h"
         total = rows.get("heating", 0) + rows.get("dhw", 0)
@@ -199,6 +199,7 @@ async def test_mild_week_modulated_10_to_18h(tmp_path):
 async def test_maybe_rollup_day_crosses_midnight(tmp_path):
     """Coordinator's live rollup path must rebuild both days on cross-midnight."""
     from types import SimpleNamespace
+
     from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
 
     db = await _mk_db(tmp_path)
@@ -220,11 +221,11 @@ async def test_maybe_rollup_day_crosses_midnight(tmp_path):
         record = {"start_ts": start, "end_ts": end, "mode": "heating"}
         await DaikinCycleMLCoordinator._maybe_rollup_day(c, record)
 
-        rows = dict(
-            (r[0], r[1]) for r in await (await conn.execute(
+        rows = {
+            r[0]: r[1] for r in await (await conn.execute(
                 "SELECT day, total_duration_s FROM daily_summary WHERE mode='heating'"
             )).fetchall()
-        )
+        }
         assert abs(rows.get("2026-11-02", 0) - 2*3600) < 60, f"Nov2 {rows.get('2026-11-02')/3600:.2f}h != 2"
         assert abs(rows.get("2026-11-03", 0) - 10*3600) < 60, f"Nov3 {rows.get('2026-11-03')/3600:.2f}h != 10"
     finally:

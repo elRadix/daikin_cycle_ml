@@ -14,8 +14,8 @@ Test-only. No source changes.
 """
 
 from __future__ import annotations
-import contextlib
 
+import contextlib
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, PropertyMock, patch
 

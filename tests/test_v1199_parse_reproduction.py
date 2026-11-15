@@ -11,8 +11,6 @@ Categories:
 """
 from __future__ import annotations
 
-import math
-
 import pytest
 
 from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
@@ -20,7 +18,6 @@ from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
     _parse_float,
     parse_global_cop_attrs,
 )
-
 
 # ============================================================
 # _parse_float: NaN / inf rejection (data-integrity critical)

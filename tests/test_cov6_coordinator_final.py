@@ -10,9 +10,9 @@ Style: __new__ bypass, MagicMock/AsyncMock, SimpleNamespace (R153).
 """
 
 from __future__ import annotations
-import contextlib
 
 import asyncio
+import contextlib
 import time
 from collections import deque
 from types import SimpleNamespace

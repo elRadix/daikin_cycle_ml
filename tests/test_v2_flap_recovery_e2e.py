@@ -20,23 +20,32 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.daikin_cycle_ml.binary_sensor import (
-    _is_source_stale, SOURCE_STALE_FACTOR,
+    SOURCE_STALE_FACTOR,
+    _is_source_stale,
 )
 from custom_components.daikin_cycle_ml.const import (
-    ATTR_BUH_STEP1, ATTR_BUH_STEP2, ATTR_COP, ATTR_DEFROST_OPERATION,
-    ATTR_FLOW_SENSOR, ATTR_INLET_WATER_R4T,
-    ATTR_IU_OPERATION_MODE, ATTR_LEAVING_WATER_AFTER_BUH,
-    ATTR_LW_SETPOINT, ATTR_OPERATION_MODE, ATTR_OUTDOOR_AIR_R1T,
-    ATTR_WATER_PUMP_OPERATION, ATTR_3WAY_VALVE,
-    CONF_SOURCE_TYPE, DEFAULT_INDIVIDUAL_PREFIX,
-    SOURCE_TYPE_AUTO, SOURCE_TYPE_INDIVIDUAL, SOURCE_TYPE_MONOLITHIC,
+    ATTR_3WAY_VALVE,
+    ATTR_BUH_STEP1,
+    ATTR_BUH_STEP2,
+    ATTR_COP,
+    ATTR_DEFROST_OPERATION,
+    ATTR_FLOW_SENSOR,
+    ATTR_INLET_WATER_R4T,
+    ATTR_IU_OPERATION_MODE,
+    ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_LW_SETPOINT,
+    ATTR_OPERATION_MODE,
+    ATTR_OUTDOOR_AIR_R1T,
+    ATTR_WATER_PUMP_OPERATION,
+    CONF_SOURCE_TYPE,
+    DEFAULT_INDIVIDUAL_PREFIX,
+    SOURCE_TYPE_AUTO,
+    SOURCE_TYPE_INDIVIDUAL,
+    SOURCE_TYPE_MONOLITHIC,
     UPDATE_INTERVAL_SECONDS,
 )
 from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,
-)
-from custom_components.daikin_cycle_ml.engine.espaltherma_v2.slug import (
-    make_json_key,
 )
 
 _COORD_MOD = "custom_components.daikin_cycle_ml.coordinator"

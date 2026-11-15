@@ -1,15 +1,13 @@
 """v1.22.8 A1: reproduce prod-1 2026-11-14 undercount, prove fix."""
 from __future__ import annotations
 
-import time
 from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
 from custom_components.daikin_cycle_ml import sensor as S
+from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
 from custom_components.daikin_cycle_ml.storage.store import CycleStore
-
 
 MIDNIGHT_CET = 1794610800.0
 PREV_START   = 1794570211.536616

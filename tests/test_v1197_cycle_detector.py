@@ -4,6 +4,7 @@ Exercises the IDLE↔RUNNING state machine with realistic compressor
 sequences, defrosts, and boiler-guard.
 """
 import pytest
+
 from custom_components.daikin_cycle_ml.engine.cycle_detector import CycleDetector
 
 

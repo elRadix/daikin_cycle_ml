@@ -105,6 +105,7 @@ def test_merge_block_contains_rollup_call():
     daily_summary frozen on the pre-merge snapshot for 7.5h.
     """
     import inspect
+
     from custom_components.daikin_cycle_ml.coordinator import (
         DaikinCycleMLCoordinator,
     )
