@@ -350,9 +350,21 @@ def _state_map(raw: Any) -> Any:
     return _STATE_MAP.get(raw, raw)
 
 
-def _sampling_snapshot(coord: Any) -> dict[str, Any]:  # DIAG-V1224B
+def _sampling_snapshot(coord: Any) -> dict[str, Any]:  # DIAG-V1224B / A3a
+    primed = bool(getattr(coord, "_samples_window_primed", False))
+    last = getattr(coord, "_samples_last_24h", None)
+    expected_since = getattr(coord, "_samples_expected_since_start", 0)
+    rate_pct = (
+        round(last / expected_since * 100.0, 1)
+        if primed is False and expected_since > 0 and isinstance(last, int)
+        else None
+    )
     return {
-        "samples_last_24h": getattr(coord, "_samples_last_24h", None),
+        "samples_window": "24h" if primed else "since_start",
+        "samples_last_24h": last,
+        "samples_since_start": last if not primed else None,
+        "samples_expected_since_start": expected_since if not primed else None,
+        "sample_rate_pct": rate_pct,
         "samples_expected_24h": getattr(coord, "_samples_expected_24h", None),
         "gap_count_24h": getattr(coord, "_gap_count_24h", 0),
         "largest_gap_s": getattr(coord, "_largest_gap_s", 0.0),

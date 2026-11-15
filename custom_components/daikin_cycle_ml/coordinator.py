@@ -721,6 +721,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._non_numeric_attrs: list[str] = []
         self._null_attrs_last_tick: list[str] = []
         self._samples_last_24h: int = 0
+        self._samples_window_primed: bool = False  # A3a: True once loaded from DB
+        self._samples_expected_since_start: int = 0
         self._samples_expected_24h: int = 2880
         self._last_exception: str | None = None
         self._last_exception_ts: float | None = None
@@ -734,6 +736,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._stooklijn_cache: dict[str, Any] = {}
         self._stooklijn_cache_ts: float = 0.0
         self._cop_today_cache: dict[str, Any] = {}
+        self._cop_today_cache_ts: float = 0.0  # A3b: throttle guard
+        self._cop_today_dirty: bool = True
         self._cop_today_heating_cache: dict[str, Any] = {}
         self._alerts_today_cache: dict[str, Any] = {}
         self._alerts_today_cache_ts: float = 0.0
@@ -2966,6 +2970,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     async def _refresh_cop_today(self, now: float) -> None:
         if self.db is None:
             return
+        # A3b: throttle to 60s (was unthrottled → 5760 queries/day)
+        # Defensive getattr: safe under __new__ in tests and partial init
+        if (not getattr(self, "_cop_today_dirty", True)
+                and (now - getattr(self, "_cop_today_cache_ts", 0.0)) < 60.0):
+            return
+        # Set timestamp + clear dirty BEFORE any return path.
+        # The early-return on empty rows must still refresh the throttle clock.
+        self._cop_today_cache_ts = now
+        self._cop_today_dirty = False
         try:
             rows = await self.db.async_fetch_cop_samples(days=1)
         except Exception:
@@ -3583,6 +3596,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         while buf and buf[0] < cutoff:
             buf.popleft()
         self._samples_last_24h = len(buf)
+        if not getattr(self, '_samples_window_primed', False):
+            _ui = getattr(self, 'update_interval', None)
+            _iv = _ui.total_seconds() if _ui else 30.0
+            _up = _t.monotonic() - getattr(self, '_uptime_start_monotonic', _t.monotonic())
+            self._samples_expected_since_start = int(_up / _iv)
         attrs = getattr(getattr(self, "data", None), "attrs", {}) or {}
         non_num: list[str] = []
         nulls: list[str] = []
