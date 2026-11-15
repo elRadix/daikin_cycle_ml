@@ -59,7 +59,7 @@ def check_dutch(files):
     if hits:
         for path, ln, w in hits:
             print(f"  {path}:{ln}: '{w}'", file=sys.stderr)
-        fail(f"Dutch in {len(hits)} locations (R857)", 2)
+        fail(f"Dutch in {len(hits)} locations", 2)
 
 
 def check_r858(files):
@@ -77,7 +77,7 @@ def check_r858(files):
     if hits:
         for path, ln, mt in hits:
             print(f"  {path}:{ln}: {mt!r}", file=sys.stderr)
-        fail("R858 unsafe '|| echo 0' - use 2>/dev/null + ${VAR:-0}", 3)
+        fail("unsafe '|| echo 0' — use 2>/dev/null + ${VAR:-0}", 3)
 
 
 def added_lines(path):
@@ -119,7 +119,7 @@ def run_ruff(files):
         row = iss.get("location", {}).get("row", 0)
         (new if row in added_lines(path) else pre).append(iss)
     if pre:
-        print(f"WARN: {len(pre)} pre-existing ruff issues (R830):",
+        print(f"WARN: {len(pre)} pre-existing ruff issues:",
               file=sys.stderr)
         for iss in pre[:5]:
             print(f"  {iss['filename']}:{iss['location']['row']} "
@@ -129,7 +129,7 @@ def run_ruff(files):
             print(f"  {iss['filename']}:{iss['location']['row']} "
                   f"{iss.get('code')}: {iss.get('message')}",
                   file=sys.stderr)
-        fail(f"{len(new)} NEW ruff issues (R830)", 1)
+        fail(f"{len(new)} NEW ruff issues", 1)
 
 
 def run_import(files):
@@ -144,7 +144,7 @@ def run_import(files):
         r = subprocess.run([PYTHON, "-c", f"import {mod}"],
                            capture_output=True, text=True)
         if r.returncode != 0:
-            fail(f"import gate R828: {mod}\n{r.stderr[:300]}", 4)
+            fail(f"import gate: {mod}\n{r.stderr[:300]}", 4)
 
 
 def pre_commit():
@@ -171,11 +171,11 @@ def commit_msg(path):
         return
     dutch = [w for w in DUTCH if w in text.lower()]
     if dutch:
-        fail(f"Dutch in commit msg (R857): {sorted(set(dutch))}", 2)
+        fail(f"Dutch in commit msg: {sorted(set(dutch))}", 2)
     has_p = bool(PARTOF.search(text))
     has_a = bool(AUTOCLOSE.search(text))
     if has_p and has_a:
-        fail("Part of #N + Fixes/Closes #N together (R846)", 6)
+        fail("Part of #N + Fixes/Closes #N together", 6)
     print("G2 commit-msg PASS")
 
 

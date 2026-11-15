@@ -18,8 +18,6 @@ def cmd_diff_main(args):
     return exit_codes.OK
 
 def cmd_commit(args):
-    if not git.staged_files():
-        log.warn('nothing staged — commit will fail; run: git add ...')
     msg = args.message
     if args.partial_issue:
         bad = re.search(rf'(?i)\b(fixes|closes|resolves)\s+#{args.partial_issue}\b', msg)
@@ -33,11 +31,16 @@ def cmd_commit(args):
     if closers and not args.complete:
         log.warn(f'hint: auto-close keyword(s) {closers} — add --complete to confirm')
     if text.has_dutch(msg):
-        log.err('commit message contains Dutch — English only (translations/nl.json is the only allowed place)')
+        log.err('commit message contains Dutch — English only '
+                '(translations/nl.json is the only allowed place)')
         return exit_codes.AST_FAIL
+    if not git.staged_files():
+        log.warn('nothing staged — commit will fail; run: git add ...')
     log.info(f'git commit -m {msg!r}')
     git.run('commit', '-m', msg)
     return exit_codes.OK
+
+
 
 def cmd_amend(args):
     git.run('commit', '--amend', '--no-edit')

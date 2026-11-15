@@ -37,7 +37,7 @@ def main():
 
     dutch = [w for w in DUTCH if w in body.lower()]
     if dutch:
-        fail(f"Dutch detected (R857): {sorted(set(dutch))}", 1)
+        fail(f"Dutch detected: {sorted(set(dutch))}", 1)
 
     if a.dry_run:
         print(f"DRY-RUN: would create '{a.title}' ({len(body)}B)")

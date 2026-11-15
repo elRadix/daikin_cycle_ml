@@ -42,7 +42,7 @@ def main():
     comment = build(a.version, a.pr, a.commit)
     dutch = [w for w in DUTCH if w in comment.lower()]
     if dutch:
-        fail(f"Dutch (R857): {sorted(set(dutch))}", 1)
+        fail(f"Dutch: {sorted(set(dutch))}", 1)
 
     if a.dry_run:
         print("DRY-RUN comment:\n" + comment)

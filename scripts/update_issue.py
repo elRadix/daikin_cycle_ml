@@ -61,7 +61,7 @@ def main():
     a = p.parse_args()
 
     if not a.pattern.startswith(("^", "(?m)^")):
-        fail("pattern must be line-anchored (start with ^) per R860", 2)
+        fail("pattern must be line-anchored (start with ^)", 2)
     if not a.new_block_file.exists():
         fail(f"block missing: {a.new_block_file}", 2)
     blk = a.new_block_file.read_text(encoding="utf-8")
@@ -69,7 +69,7 @@ def main():
         fail("block empty", 2)
     dutch = [w for w in DUTCH if w in blk.lower()]
     if dutch:
-        fail(f"Dutch (R857): {sorted(set(dutch))}", 1)
+        fail(f"Dutch: {sorted(set(dutch))}", 1)
 
     body = fetch(a.issue, a.repo)
     new = replace(body, a.pattern, blk, a.allow_multi)
