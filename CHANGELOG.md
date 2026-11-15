@@ -1,48 +1,45 @@
 # Changelog
 
+## [Unreleased]
+
 ## [1.22.8] - 2026-11-16
 
 ### Fixed
-- A3a: sample-rate label truthful (samples_window, sample_rate_pct)
-- A3b: _refresh_cop_today throttled to 60s (was 2880 queries/day)
-
-### Docs
-- A3 decision record: docs/design/a3-tick-metrics.md
-- BUH excessive troubleshooting (README)
-
-## [Unreleased]
-
-### Fixed
-- **`heating_curve_advice` stale `lower_lwt` during BUH-active** (A2, Refs #353) -- the 1-hour `_stooklijn_cache` was not invalidated when the backup heater activated, leaving the advice stuck on `lower_lwt` while the heat pump was not effectively running. 7-day production replay: 3 confirmed incidents (2026-11-13 03:59, 2026-11-14 01:43, 2026-11-14 05:00). The cache now writes `state=keep, reason=buh_active` while BUH Step1/Step2 is ON, exposed via a new `suppressed_by` attribute on the sensor. After BUH-off, `_stooklijn_cache_ts = 0.0` forces recompute within one tick.
-- **`runtime_compressor_today` undercount** (#353 A1) — was summing only completed cycles whose `start_ts` fell on today, missing (a) cross-midnight cycle tails and (b) the currently-open cycle. Prod-1 reported 3.4h where ESPAltherma native said 10.3h. v1.22.8 restores three-source agreement.
-- **BUH attribute leak** — `runtime_compressor_today` exposed `buh_step1_s`/`buh_step2_s`/`buh_total_s`. Those belong on `runtime_buh_today` only; leak removed.
-- **Native-first attrs resolution** — all runtime resolvers (BUH, compressor, defrost, starts) used an inline attrs-pick that preferred an *empty* `snapshot.attrs` over a *populated* `coordinator.last_attrs`, silently returning the computed fallback even when firmware counters were present. Consolidated into a single `_resolve_attrs()` helper that prefers whichever side carries data.
-- **`_read_float` accepted bool / inf / NaN** — `True` coerced to `1.0`, `float("inf")` overflowed on `int(round(...))`, `NaN` bypassed range checks. All rejected.
-- **`daily-summary-tabbed` card missing `saturated` duty band** — the card fell to `'—'` label + gray colour when `duty_cycle_today.band == "saturated"`; A1's correct higher runtime exposes this pre-existing gap. Card now renders `saturated` with proper EN/NL/FR label and red colour. `pattern-analysis` registers the entity but never renders `.band` — unaffected.
+- **A1 — `runtime_compressor_today` undercount.** Was summing only completed cycles whose `start_ts` fell on today, missing (a) cross-midnight cycle tails and (b) the currently-open cycle. Prod-1 reported 3.4 h where ESPAltherma native said 10.3 h. Restored three-source agreement via `CycleStore.cycles_intersecting()` + open-cycle contribution.
+- **A2 — `heating_curve_advice` stale during BUH.** The 1-hour `_stooklijn_cache` was not invalidated when the backup heater activated, leaving the advice stuck on `lower_lwt` while the heat pump was not effectively running. 7-day production replay: 3 confirmed incidents (2026-11-13 03:59, 2026-11-14 01:43, 2026-11-14 05:00). Cache now writes `state=keep`, `reason=buh_active` while BUH Step1/Step2 is ON, exposed via a new `suppressed_by` attribute. After BUH-off, `_stooklijn_cache_ts = 0.0` forces recompute within one tick.
+- **A3a — Sample-rate label truthful.** `sampling` diagnostics now expose `samples_window` (`24h` / `since_start`) and `sample_rate_pct`. With uptime < 24 h, the old `samples_last_24h` label implied 6.9 % when the real rate was 95.7 % (prod-1).
+- **A3b — `_refresh_cop_today` throttled.** Was running 2 awaited DB queries per tick (5 760 queries/day). Now throttled to 60 s (2 880/day, −50 %). Throttle clock set before all return paths, so empty-row early return no longer skips the guard.
+- **BUH attribute leak.** `runtime_compressor_today` exposed `buh_step1_s` / `buh_step2_s` / `buh_total_s`. Those belong on `runtime_buh_today` only; leak removed.
+- **Native-first attrs resolution.** All runtime resolvers used an inline attrs-pick that preferred an empty `snapshot.attrs` over a populated `coordinator.last_attrs`, silently returning the computed fallback even when firmware counters were present. Consolidated into a single `_resolve_attrs()` helper.
+- **`_read_float` hardening.** Now rejects `bool`, `inf`, `NaN` (previously `True` coerced to `1.0`, `float("inf")` overflowed on `int(round(...))`, `NaN` bypassed range checks).
+- **`daily-summary-tabbed` card — saturated duty band.** Card fell to '—' label + gray colour when `duty_cycle_today.band == "saturated"`. A1's correct higher runtime exposes this pre-existing gap. Now renders saturated with proper EN/NL/FR label and red colour. `pattern-analysis` registers the entity but never renders `.band` — unaffected.
 
 ### Added
-- **Native-first compressor counter** — `engine/runtime_source.py::read_native_compressor_minutes()` reads ESPAltherma v2 `Stats: Compressor run today (min)` when available.
-- **Native-first defrost + starts attrs** — `read_native_defrost_count()` and `read_native_compressor_starts()` expose the firmware count alongside the computed value.
-- **`source` attribute on every native-aware counter** — `runtime_buh_today`, `runtime_compressor_today`, `compressor_starts_today`, `defrost_count_today`, `defrost_duration_today`. Values: `native` / `computed`. Firmware has no per-step BUH split, no per-mode starts, no defrost duration — those sub-fields labelled `*_source: computed` for honesty.
-- **`CycleStore.cycles_intersecting(start_ts, end_ts)`** — overlap-window query used by the computed fallback to attribute cross-midnight cycle tails to today. Excludes transient LWT pulses (mirrors `async_rollup_day`).
+- **Native-first compressor counter.** `engine/runtime_source.py::read_native_compressor_minutes()` reads ESPAltherma v2 `Stats: Compressor run today (min)`.
+- **Native-first defrost + starts attrs.** `read_native_defrost_count()` and `read_native_compressor_starts()` expose the firmware count alongside the computed value.
+- **`source` attribute** on every native-aware counter — `runtime_buh_today`, `runtime_compressor_today`, `compressor_starts_today`, `defrost_count_today`, `defrost_duration_today`. Values: `native` / `computed`. Sub-fields without firmware equivalent are labelled `*_source: computed`.
+- **`CycleStore.cycles_intersecting(start_ts, end_ts)`** — overlap-window query attributes cross-midnight cycle tails to today. Excludes transient LWT pulses (mirrors `async_rollup_day`).
 - **`_resolve_attrs()` helper** — single canonical attrs resolver for all sensor value/attr functions.
-- **Defensive input handling** — `_read_float` rejects non-finite; `cycles_intersecting` guarded against store exceptions, malformed records, `None` returns.
+- **Defensive input handling** — `_read_float` rejects non-finite; `cycles_intersecting` guarded against store exceptions, malformed records, None returns.
 
 ### Dashboard compatibility
 No entity IDs change, no new/removed entities. Two counters correct previously undercounted values:
+- `sensor.daikin_cycle_ml_runtime_compressor_today` — value corrected (prod-1: 3.4 h → 10.3 h). Fixed-scale cards should update `max: 5h` → `max: 12h` (or higher).
+- `sensor.daikin_cycle_ml_duty_cycle_today` — derived. Value corrected (prod-1: 33 % → 99.8 %); `band` moves `nominal` → `saturated` on continuous-compressor days. Card templates updated.
+- Unchanged (native values already correct since v1.22.7): `runtime_buh_today`, `compressor_starts_today`, `defrost_count_today`, `defrost_duration_today`.
 
-- **`sensor.daikin_cycle_ml_runtime_compressor_today`** — value corrected (prod-1: 3.4h → 10.3h). Any fixed-scale card should update `max: 5h` → `max: 12h` (or higher for long runs).
-- **`sensor.daikin_cycle_ml_duty_cycle_today`** — derived from above. Value corrected (prod-1: 33% → 99.8%); `band` attribute moves `nominal` → `saturated` on continuous-compressor days. Card templates updated.
-
-Unchanged (native values already correct since v1.22.7): `runtime_buh_today`, `compressor_starts_today`, `defrost_count_today`, `defrost_duration_today`.
+### Docs
+- `docs/design/a3-tick-metrics.md` — A3 decision record (A3a + A3b rationale, A3c residual).
+- `README.md` — BUH excessive troubleshooting (check filter, pump speed, dT ≥ 4 K).
 
 ### Tests
-- Reproduction test reproducing the exact prod-1 2026-11-14 undercount (12388s vs 37881s), proving the fix converges native and computed to <1% delta.
-- Red-team test (~50 cases): bool/NaN/inf/negative native, MagicMock attrs, malformed cycles, store exceptions, oversized values.
-- Smoke test: every counter value_fn + attr_fn executes on empty state; every native-aware counter exposes `source`.
-- `CycleStore.cycles_intersecting` edge coverage: missing/invalid start_ts or end_ts, transient skip/include, boundary-touching windows, mixed records.
-- Sync integrity: BUH / starts / defrost counters — `source`, `native_count`, `computed_count`, `total_s` consistency between entity value and attrs.
-
+- **6 093 tests pass, 100 % coverage.**
+- New `test_v1228_a3_reproduction.py` — 11 tests: A3a repro + 3 branch arms, A3b throttle-active (5 windows × 2 queries = 10), A3b P4 regression guard (empty rows still set `ts`), A3b `db=None` early return, refute-hypothesis guard.
+- A1 reproduction test: exact prod-1 2026-11-14 undercount (12 388 s vs 37 881 s), converges native/computed to < 1 % delta.
+- A2 test: 7-day production replay — 3 confirmed incidents.
+- Red-team (~50 cases): `bool` / `NaN` / `inf` / negative native, `MagicMock` attrs, malformed cycles, store exceptions.
+- `CycleStore.cycles_intersecting` edge coverage: missing/invalid `start_ts`/`end_ts`, transient skip/include, boundary-touching windows, mixed records.
+- Sync integrity: BUH / starts / defrost counters — `source`, `native_count`, `computed_count`, `total_s` consistency.
 
 ## [1.22.7] - 2026-11-14
 
