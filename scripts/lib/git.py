@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 
+DEFAULT_TIMEOUT = 600
+
 
 class GitError(Exception):
     def __init__(self, cmd, rc, out, err):
@@ -17,7 +19,10 @@ def _run(*a, check=True):
     if os.environ.get('DRY_RUN'):
         print(f'[dry-run — NOT EXECUTED] git {" ".join(a)}', file=sys.stderr)
         return subprocess.CompletedProcess(a, 0, '', '')
-    r = subprocess.run(['git', *a], capture_output=True, text=True)
+    timeout = int(os.environ.get('GIT_TIMEOUT', DEFAULT_TIMEOUT))
+    r = subprocess.run(
+        ['git', *a], capture_output=True, text=True, timeout=timeout,
+    )
     if check and r.returncode != 0:
         raise GitError(a, r.returncode, r.stdout, r.stderr)
     return r

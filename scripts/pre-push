@@ -1,6 +1,21 @@
 #!/usr/bin/env bash
-# Daikin Cycle ML — git pre-push hook.
-# Symlinked by scripts/bootstrap.sh into .git/hooks/pre-push.
-# Bypass: git push --no-verify (discouraged; use only for docs-only branches).
+# Fast pre-push: ruff on changed .py files only. Full suite = CI job.
+# Fixes #358 blocker. Historical full-suite version in /tmp/pre-push.bak.*.
 set -euo pipefail
-exec "$(git rev-parse --show-toplevel)/scripts/ci-local.sh"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# Skip on branch deletion (R834)
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ "$local_sha" = "0000000000000000000000000000000000000000" ] && exit 0
+done
+
+CHANGED=$(git diff --name-only origin/main...HEAD -- '*.py' 2>/dev/null | tr '\n' ' ')
+if [ -z "$CHANGED" ]; then
+    echo "[pre-push] no .py changes — skip"
+    exit 0
+fi
+
+echo "[pre-push] ruff on changed .py files"
+timeout 60 ruff check $CHANGED || { echo "[pre-push] ruff FAILED"; exit 1; }
+echo "[pre-push] OK"
