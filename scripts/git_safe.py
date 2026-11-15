@@ -57,7 +57,7 @@ def _has_keepalive():
     p = pathlib.Path.home() / '.ssh' / 'config'
     return p.exists() and 'ServerAliveInterval' in p.read_text()
 
-def _pr_body_has_r813(branch):
+def _pr_body_has_bypass(branch):
     import subprocess
     r = subprocess.run(
         ['gh', 'pr', 'view', branch, '--json', 'body', '-q', '.body'],
@@ -79,8 +79,8 @@ def cmd_push(args):
         return exit_codes.OK
     if not _has_keepalive():
         log.warn('hint: ~/.ssh/config missing ServerAliveInterval — long pushes may drop')
-    if args.no_verify and not _pr_body_has_r813(branch):
-        log.err('--no-verify requires "## R813 bypass" or "## no-verify bypass" section in PR body')
+    if args.no_verify and not _pr_body_has_bypass(branch):
+        log.err('--no-verify requires "## no-verify bypass" section in PR body')
         return exit_codes.PUSH_FAIL
     cmd = ['push'] + (['--no-verify'] if args.no_verify else []) + ['origin', branch]
     try:

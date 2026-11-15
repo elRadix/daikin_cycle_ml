@@ -4,7 +4,7 @@
 # Exit 0 on all-pass, 1 on any fail.
 set -uo pipefail
 
-# v1.22.7 R834: skip CI on branch-deletion pushes (local_sha all-zeros).
+# Skip CI on branch-deletion pushes (local_sha all-zeros).
 # Prevents 500s+ wait when running `git push --delete <branch>`.
 # Normal pushes: single stdin read, <1ms cost. Bypass: git push --no-verify.
 if [ ! -t 0 ]; then
@@ -40,8 +40,8 @@ if ! grep -q 'Required test coverage of 100% reached' "$LOG"; then
     FAIL=1
 fi
 if [[ -f /tmp/ci-local-pytest.xml ]]; then
-    echo "[ci-local] 1b/4 duration report (R656)"
-    # Non-blocking in local gate (CI is normative per R651).
+    echo "[ci-local] 1b/4 duration report"
+    # Non-blocking in local gate (CI is normative).
     # Exit 1 (regression) is informational; regression check doesn't flip FAIL.
     python3 scripts/duration_report.py /tmp/ci-local-pytest.xml --top 10 \
         --baseline tests/duration_baseline.json --tolerance-pct 50 \
