@@ -21,7 +21,6 @@ import pytest
 from custom_components.daikin_cycle_ml import coordinator as co
 from custom_components.daikin_cycle_ml.storage.store import CycleStore
 
-
 # ============================================================
 # Builders
 # ============================================================
@@ -398,6 +397,7 @@ def test_model_mixed_legacy_and_new_sensors():
 def test_setpoint_osc_fires_when_6_changes_with_reversal():
     """6 setpoint changes with direction reversal in 30min → fires."""
     from types import MethodType
+
     from custom_components.daikin_cycle_ml import coordinator as co_mod
     c = _coord(_empty_store(), options={"setpoint_oscillation_threshold": 4})
     # Bind the REAL method (do not stub — that's the bug we just fixed)
@@ -416,6 +416,7 @@ def test_setpoint_osc_fires_when_6_changes_with_reversal():
 def test_setpoint_osc_monotonic_drift_silent():
     """Monotonic rise (no reversal): silent (guards slow drift)."""
     from types import MethodType
+
     from custom_components.daikin_cycle_ml import coordinator as co_mod
     c = _coord(_empty_store(), options={"setpoint_oscillation_threshold": 4})
     c._compute_setpoint_oscillating = MethodType(
@@ -460,8 +461,8 @@ def test_defrost_normal_silent():
 
 def test_source_stale_fires_when_no_data_5m():
     """ESPAltherma silent for >5x update interval → critical alert."""
-    from custom_components.daikin_cycle_ml.const import UPDATE_INTERVAL_SECONDS
     from custom_components.daikin_cycle_ml.binary_sensor import SOURCE_STALE_FACTOR
+    from custom_components.daikin_cycle_ml.const import UPDATE_INTERVAL_SECONDS
     stale_ts = time.time() - (SOURCE_STALE_FACTOR * UPDATE_INTERVAL_SECONDS) - 10
     s = _states(_empty_store(), snap=_snap(last_success_ts=stale_ts))
     assert s["source_stale"] is True
@@ -707,7 +708,7 @@ def test_cop_samples_like_weekly_trends():
 def test_electrical_load_implies_thermal():
     """Cycle with high rps produces high thermal; alerts based on duration only.
 
-    Electrical power is derived from rps × voltage × power factor, not stored
+    Electrical power is derived from rps x voltage x power factor, not stored
     directly. What matters for alerts is cycle shape, which we verify stays
     decoupled from power proxy values.
     """

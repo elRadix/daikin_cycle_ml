@@ -6,9 +6,12 @@ Real API verified via inspect:
   CopSample is a dataclass — must be constructed, not dicts.
 """
 import time
-import pytest
+
 from custom_components.daikin_cycle_ml.engine.cop_analyzer import (
-    CopSample, StooklijnAdvies, analyze_stooklijn, bucket_for_outdoor,
+    CopSample,
+    StooklijnAdvies,
+    analyze_stooklijn,
+    bucket_for_outdoor,
 )
 
 

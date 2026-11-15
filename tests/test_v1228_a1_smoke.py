@@ -4,9 +4,8 @@ from __future__ import annotations
 import time
 from unittest.mock import MagicMock
 
-from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
 from custom_components.daikin_cycle_ml import sensor as S
-
+from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
 
 COUNTER_KEYS = {
     "runtime_buh_today", "runtime_compressor_today",
@@ -33,7 +32,8 @@ def _mk_coord(attrs=None, intersecting=None, cycles_today=None):
         "last_defrost_ts": 0.0, "defrost_start_ts": None,
         "prev_defrost": False, "defrost_prior_s": None,
     }
-    c.entry = MagicMock(); c.entry.data = {"model": "EPRA12"}
+    c.entry = MagicMock()
+    c.entry.data = {"model": "EPRA12"}
     c.energy_snapshot = {}
     return c
 
@@ -47,32 +47,41 @@ def _mk_snap(**over):
 
 
 def test_all_counter_value_fns_execute_on_empty_state():
-    c = _mk_coord(); s = _mk_snap()
+    c = _mk_coord()
+    s = _mk_snap()
     for d in S.SENSOR_DEFS:
-        if d["key"] not in COUNTER_KEYS: continue
+        if d["key"] not in COUNTER_KEYS:
+            continue
         vf = d.get("value_fn")
-        if vf is None: continue
+        if vf is None:
+            continue
         v = vf(s, c)
         assert v is None or isinstance(v, (int, float))
 
 
 def test_all_counter_attr_fns_execute_on_empty_state():
-    c = _mk_coord(); s = _mk_snap()
+    c = _mk_coord()
+    s = _mk_snap()
     for d in S.SENSOR_DEFS:
-        if d["key"] not in COUNTER_KEYS: continue
+        if d["key"] not in COUNTER_KEYS:
+            continue
         af = d.get("attr_fn")
-        if af is None: continue
+        if af is None:
+            continue
         assert isinstance(af(s, c), dict)
 
 
 def test_native_aware_counters_all_expose_source():
-    c = _mk_coord(); s = _mk_snap()
+    c = _mk_coord()
+    s = _mk_snap()
     missing = []
     for d in S.SENSOR_DEFS:
-        if d["key"] not in NATIVE_AWARE_KEYS: continue
+        if d["key"] not in NATIVE_AWARE_KEYS:
+            continue
         af = d.get("attr_fn")
         if af is None:
-            missing.append(f"{d['key']}: no attr_fn"); continue
+            missing.append(f"{d['key']}: no attr_fn")
+            continue
         a = af(s, c)
         if "source" not in a:
             missing.append(f"{d['key']}: no source")
@@ -80,11 +89,14 @@ def test_native_aware_counters_all_expose_source():
 
 
 def test_native_aware_counters_report_computed_when_no_attrs():
-    c = _mk_coord(); s = _mk_snap()
+    c = _mk_coord()
+    s = _mk_snap()
     for d in S.SENSOR_DEFS:
-        if d["key"] not in NATIVE_AWARE_KEYS: continue
+        if d["key"] not in NATIVE_AWARE_KEYS:
+            continue
         af = d.get("attr_fn")
-        if af is None: continue
+        if af is None:
+            continue
         assert af(s, c)["source"] == "computed"
 
 
@@ -95,7 +107,8 @@ def test_native_aware_counters_report_native_when_attrs_present():
         "Stats: Compressor starts today": 5,
         "Stats: Defrosts today": 2,
     }
-    c = _mk_coord(attrs=attrs); s = _mk_snap()
+    c = _mk_coord(attrs=attrs)
+    s = _mk_snap()
     expected = {
         "runtime_buh_today": "native",
         "runtime_compressor_today": "native",
@@ -104,7 +117,8 @@ def test_native_aware_counters_report_native_when_attrs_present():
         "defrost_duration_today": "computed",
     }
     for d in S.SENSOR_DEFS:
-        if d["key"] not in expected: continue
+        if d["key"] not in expected:
+            continue
         a = d["attr_fn"](s, c)
         assert a["source"] == expected[d["key"]], (
             f"{d['key']}: expected {expected[d['key']]}, got {a['source']}"
@@ -118,7 +132,8 @@ def test_native_entity_values_match_firmware():
         "Stats: Compressor starts today": 5,
         "Stats: Defrosts today": 2,
     }
-    c = _mk_coord(attrs=attrs); s = _mk_snap()
+    c = _mk_coord(attrs=attrs)
+    s = _mk_snap()
     expected = {
         "runtime_buh_today": 1800,
         "runtime_compressor_today": 3600,
@@ -126,7 +141,8 @@ def test_native_entity_values_match_firmware():
         "defrost_count_today": 2,
     }
     for d in S.SENSOR_DEFS:
-        if d["key"] not in expected: continue
+        if d["key"] not in expected:
+            continue
         v = d["value_fn"](s, c)
         assert v == expected[d["key"]], (
             f"{d['key']}: expected {expected[d['key']]}, got {v}"
@@ -150,18 +166,23 @@ def test_full_tick_no_exceptions():
     c.store = store
     s = _mk_snap(state="running", cycle_start_ts=now - 1000)
     for d in S.SENSOR_DEFS:
-        if d["key"] not in COUNTER_KEYS: continue
+        if d["key"] not in COUNTER_KEYS:
+            continue
         vf = d.get("value_fn")
-        if vf is None: continue
+        if vf is None:
+            continue
         v = vf(s, c)
         assert v is None or isinstance(v, (int, float))
 
 
 def test_no_counter_attrs_missing_source_attribute():
-    c = _mk_coord(attrs={}); s = _mk_snap()
+    c = _mk_coord(attrs={})
+    s = _mk_snap()
     valid = {"native", "computed"}
     for d in S.SENSOR_DEFS:
-        if d["key"] not in NATIVE_AWARE_KEYS: continue
+        if d["key"] not in NATIVE_AWARE_KEYS:
+            continue
         af = d.get("attr_fn")
-        if af is None: continue
+        if af is None:
+            continue
         assert af(s, c)["source"] in valid

@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import time
 
-import pytest
-
 from custom_components.daikin_cycle_ml.const import (
     ALERT_DEDUP_DEFAULTS,
     ALERT_GROUP_MAP,
@@ -24,7 +22,7 @@ from custom_components.daikin_cycle_ml.engine.notification_engine import (
 
 def _all_binary_states_true() -> dict[str, bool]:
     """Alle 19 alert-keys op True."""
-    return {k: True for k in BINARY_ALERT_MAP}
+    return dict.fromkeys(BINARY_ALERT_MAP, True)
 
 
 def test_alert_storm_all_19_fire():

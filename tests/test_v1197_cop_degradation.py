@@ -4,7 +4,6 @@ Real API verified via inspect:
   analyze_degradation(recent_rows, prev_rows, dirty_hours, *, ...) -> dict
   Rows are hourly dicts with 'outdoor', 'cop', 'n_samples', 'hour'/'ts'.
 """
-import time
 from custom_components.daikin_cycle_ml.engine import cop_degradation as cd
 
 

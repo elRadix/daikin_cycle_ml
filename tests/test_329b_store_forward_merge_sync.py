@@ -7,7 +7,6 @@ from custom_components.daikin_cycle_ml.storage.db import CycleDB
 from custom_components.daikin_cycle_ml.storage.store import CycleStore
 
 
-
 def _rec(*, start, end, mode="heating", dur=None, trans=0):
     """Minimal cycle record. duration_s defaults to end-start."""
     return {

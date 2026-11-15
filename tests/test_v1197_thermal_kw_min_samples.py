@@ -24,7 +24,6 @@ import pytest
 
 from custom_components.daikin_cycle_ml.engine import cycle_detector as cd
 
-
 FIXTURE = pathlib.Path(__file__).parent / "fixtures" / "_prod1_20261103.db"
 
 

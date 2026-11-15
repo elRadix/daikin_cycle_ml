@@ -17,13 +17,23 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.daikin_cycle_ml.const import (
-    ATTR_BUH_STEP1, ATTR_BUH_STEP2, ATTR_COP, ATTR_DEFROST_OPERATION,
-    ATTR_FLOW_SENSOR, ATTR_INLET_WATER_R4T, ATTR_IU_OPERATION_MODE,
-    ATTR_LEAVING_WATER_AFTER_BUH, ATTR_LW_SETPOINT,
-    ATTR_OPERATION_MODE, ATTR_OUTDOOR_AIR_R1T,
-    ATTR_WATER_PUMP_OPERATION, ATTR_3WAY_VALVE,
-    CONF_SOURCE_TYPE, DEFAULT_INDIVIDUAL_PREFIX, DOMAIN,
-    REQUIRED_ATTRIBUTES, SOURCE_TYPE_AUTO,
+    ATTR_3WAY_VALVE,
+    ATTR_BUH_STEP1,
+    ATTR_BUH_STEP2,
+    ATTR_COP,
+    ATTR_DEFROST_OPERATION,
+    ATTR_FLOW_SENSOR,
+    ATTR_INLET_WATER_R4T,
+    ATTR_IU_OPERATION_MODE,
+    ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_LW_SETPOINT,
+    ATTR_OPERATION_MODE,
+    ATTR_OUTDOOR_AIR_R1T,
+    ATTR_WATER_PUMP_OPERATION,
+    CONF_SOURCE_TYPE,
+    DEFAULT_INDIVIDUAL_PREFIX,
+    REQUIRED_ATTRIBUTES,
+    SOURCE_TYPE_AUTO,
 )
 
 _COORD_MOD = "custom_components.daikin_cycle_ml.coordinator"
@@ -121,7 +131,6 @@ class _Reached(BaseException):
     exception class that the target code will NOT catch, so the test
     proves the flow reached the intended line.
     """
-    pass
 
 
 def _set_mono_state(c, present: bool) -> None:

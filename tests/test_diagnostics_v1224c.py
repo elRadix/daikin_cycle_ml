@@ -5,10 +5,10 @@ coverage report line numbers). No pragmas, no skipped branches.
 """
 from __future__ import annotations
 
-import json
+from unittest.mock import MagicMock
+from unittest.mock import patch as _patch
 
 import pytest
-from unittest.mock import MagicMock, patch as _patch
 
 from custom_components.daikin_cycle_ml.diagnostics import (
     _detector_snapshot,
@@ -129,8 +129,8 @@ def test_detector_transitions_raises():
 # ---- 8. lines 395-400: actual issues present ----
 @pytest.mark.asyncio
 async def test_repairs_snapshot_with_issues(hass):
-    from homeassistant.helpers import issue_registry as ir
     from custom_components.daikin_cycle_ml.const import DOMAIN
+    from homeassistant.helpers import issue_registry as ir
     ir.async_create_issue(
         hass, DOMAIN, "test_issue_1",
         is_fixable=False, severity=ir.IssueSeverity.WARNING,
@@ -231,8 +231,9 @@ async def test_full_diagnostics_still_calls_new_helpers(hass, fake_entry_c):
 async def test_device_registry_no_match(hass, fake_entry_c):
     """Branch 261->260: device exists but its config_entries doesn't
     include our entry_id -> if-False, loop back to line 260, exit."""
-    from homeassistant.helpers import device_registry as dr
     from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    from homeassistant.helpers import device_registry as dr
     other = MockConfigEntry(
         domain="daikin_cycle_ml", entry_id="other_dev_e", title="Other"
     )

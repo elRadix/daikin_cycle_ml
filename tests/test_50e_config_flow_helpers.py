@@ -1,6 +1,7 @@
 """Batch 50e -- direct helper coverage in config_flow."""
 
 from __future__ import annotations
+
 import contextlib
 
 from custom_components.daikin_cycle_ml import config_flow as cf

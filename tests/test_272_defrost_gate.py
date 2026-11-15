@@ -3,14 +3,12 @@
 Must FAIL on current code. After fix, must PASS.
 """
 from __future__ import annotations
+
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
 
-import pytest
-
 from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
-
 
 BASE_ATTRS: dict[str, Any] = {
     "Operation Mode": "Heating",

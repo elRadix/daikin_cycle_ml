@@ -1,9 +1,9 @@
 """Batch 49 -- misc modules coverage."""
 
 from __future__ import annotations
-import contextlib
 
 import asyncio
+import contextlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
 from custom_components.daikin_cycle_ml import sensor as S
+from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
 from custom_components.daikin_cycle_ml.engine.runtime_source import _read_float
 
 

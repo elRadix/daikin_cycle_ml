@@ -30,7 +30,6 @@ from custom_components.daikin_cycle_ml.const import (
     ATTR_BUH_STEP2,
     ATTR_DEFROST_OPERATION,
     ENERGY_DT_CAP_S,
-    ENERGY_DT_WARN_S,
 )
 from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,

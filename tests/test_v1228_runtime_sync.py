@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
 from custom_components.daikin_cycle_ml import sensor as S
+from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
 
 
 def _mk_coord(attrs=None, snap_over=None, cycles=None):

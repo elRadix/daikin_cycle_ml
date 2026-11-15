@@ -5,11 +5,15 @@ _resolve_dhw_present → detector._dhw_present. They close the gap that
 unit tests on _resolve_dhw_present alone could not catch (helper
 correctness != helper is actually invoked in production flow).
 """
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
 from custom_components.daikin_cycle_ml.const import (
-    CONF_DHW_PRESENT, DHW_PRESENT_AUTO, DHW_PRESENT_NEVER,
-    ATTR_3WAY_VALVE, ATTR_DHW_TANK_TEMP,
+    ATTR_3WAY_VALVE,
+    CONF_DHW_PRESENT,
+    DHW_PRESENT_AUTO,
+    DHW_PRESENT_NEVER,
 )
 from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,
@@ -26,7 +30,8 @@ def _mk_coord(hass, options=None):
 @pytest.mark.asyncio
 async def test_ensure_dhw_present_resolves_from_valve(hass):
     coord = _mk_coord(hass)
-    snap = MagicMock(); snap.attrs = {ATTR_3WAY_VALVE: True}
+    snap = MagicMock()
+    snap.attrs = {ATTR_3WAY_VALVE: True}
     await coord._async_ensure_dhw_present(snap)
     assert coord.dhw_present is True
     assert coord.detector._dhw_present is True
@@ -37,7 +42,8 @@ async def test_ensure_dhw_present_resolves_from_valve(hass):
 @pytest.mark.asyncio
 async def test_ensure_dhw_present_override_never_wins(hass):
     coord = _mk_coord(hass, {CONF_DHW_PRESENT: DHW_PRESENT_NEVER})
-    snap = MagicMock(); snap.attrs = {ATTR_3WAY_VALVE: True}  # valve says yes
+    snap = MagicMock()
+    snap.attrs = {ATTR_3WAY_VALVE: True}  # valve says yes
     await coord._async_ensure_dhw_present(snap)
     assert coord.dhw_present is False      # override wins
     assert coord.detector._dhw_present is False
@@ -48,7 +54,8 @@ async def test_ensure_dhw_present_override_never_wins(hass):
 async def test_ensure_dhw_present_runs_once(hass):
     coord = _mk_coord(hass)
     coord._resolve_dhw_present = AsyncMock(return_value=True)
-    snap = MagicMock(); snap.attrs = {"Operation Mode": "Heating"}
+    snap = MagicMock()
+    snap.attrs = {"Operation Mode": "Heating"}
     await coord._async_ensure_dhw_present(snap)
     await coord._async_ensure_dhw_present(snap)
     assert coord._resolve_dhw_present.await_count == 1
@@ -57,10 +64,12 @@ async def test_ensure_dhw_present_runs_once(hass):
 @pytest.mark.asyncio
 async def test_last_attrs_updated_each_tick(hass):
     coord = _mk_coord(hass)
-    snap1 = MagicMock(); snap1.attrs = {"foo": 1}
+    snap1 = MagicMock()
+    snap1.attrs = {"foo": 1}
     await coord._async_ensure_dhw_present(snap1)
     assert coord.last_attrs == {"foo": 1}
-    snap2 = MagicMock(); snap2.attrs = {"bar": 2}
+    snap2 = MagicMock()
+    snap2.attrs = {"bar": 2}
     await coord._async_ensure_dhw_present(snap2)
     assert coord.last_attrs == {"bar": 2}
 
@@ -69,7 +78,8 @@ async def test_last_attrs_updated_each_tick(hass):
 async def test_resolution_failure_defaults_to_true(hass):
     coord = _mk_coord(hass)
     coord._resolve_dhw_present = AsyncMock(side_effect=Exception("boom"))
-    snap = MagicMock(); snap.attrs = {"Operation Mode": "Heating"}
+    snap = MagicMock()
+    snap.attrs = {"Operation Mode": "Heating"}
     await coord._async_ensure_dhw_present(snap)
     assert coord.dhw_present is True
     assert coord._dhw_present_source == "fallback_on_error"
@@ -80,7 +90,8 @@ async def test_resolve_auto_history_from_db(hass):
     coord = _mk_coord(hass, {CONF_DHW_PRESENT: DHW_PRESENT_AUTO})
     coord.db = MagicMock()
     coord.db.async_get_dhw_cycle_count = AsyncMock(return_value=3)
-    snap = MagicMock(); snap.attrs = {"Operation Mode": "Heating"}  # no DHW signals
+    snap = MagicMock()
+    snap.attrs = {"Operation Mode": "Heating"}  # no DHW signals
     await coord._async_ensure_dhw_present(snap)
     assert coord.dhw_present is True
     assert coord._dhw_present_source == "tier3_history"
@@ -92,7 +103,8 @@ async def test_resolve_auto_default_false_no_signals(hass):
     coord = _mk_coord(hass, {CONF_DHW_PRESENT: DHW_PRESENT_AUTO})
     coord.db = MagicMock()
     coord.db.async_get_dhw_cycle_count = AsyncMock(return_value=0)
-    snap = MagicMock(); snap.attrs = {"Operation Mode": "Heating"}
+    snap = MagicMock()
+    snap.attrs = {"Operation Mode": "Heating"}
     await coord._async_ensure_dhw_present(snap)
     assert coord.dhw_present is False
     assert coord._dhw_present_source == "tier4_default"
@@ -137,7 +149,8 @@ async def test_ensure_dhw_present_does_not_lock_on_empty_attrs(hass):
     coord = _mk_coord(hass, {CONF_DHW_PRESENT: DHW_PRESENT_AUTO})
     coord.db = MagicMock()
     coord.db.async_get_dhw_cycle_count = AsyncMock(return_value=0)
-    snap = MagicMock(); snap.attrs = {}
+    snap = MagicMock()
+    snap.attrs = {}
     await coord._async_ensure_dhw_present(snap)
     assert coord._dhw_present_resolved is False, (
         "premature resolution on empty attrs — would lock out valve discovery"
@@ -160,7 +173,8 @@ async def test_tick_1_classifies_with_resolved_dhw_present(hass):
     with fix, tick-1 classifies as 'heating'.
     """
     from custom_components.daikin_cycle_ml.const import (
-        ATTR_OPERATION_MODE, ATTR_INV_FREQUENCY_RPS,
+        ATTR_INV_FREQUENCY_RPS,
+        ATTR_OPERATION_MODE,
     )
 
     coord = _mk_coord(hass, {CONF_DHW_PRESENT: DHW_PRESENT_NEVER})
@@ -169,7 +183,8 @@ async def test_tick_1_classifies_with_resolved_dhw_present(hass):
         ATTR_OPERATION_MODE: "Heating",         # real signal says heating
         ATTR_INV_FREQUENCY_RPS: 50.0,           # > 3.0 threshold -> RUNNING
     }
-    snap = MagicMock(); snap.attrs = attrs
+    snap = MagicMock()
+    snap.attrs = attrs
 
     await coord._async_ensure_dhw_present(snap)
     assert coord.detector._dhw_present is False, "override_never not applied"
@@ -189,7 +204,8 @@ async def test_tick_1_classifies_with_resolved_dhw_present(hass):
 async def test_tick_1_default_auto_valve_detects_dhw(hass):
     """#167: bool valve present, no override → tick-1 detects DHW."""
     from custom_components.daikin_cycle_ml.const import (
-        ATTR_OPERATION_MODE, ATTR_INV_FREQUENCY_RPS,
+        ATTR_INV_FREQUENCY_RPS,
+        ATTR_OPERATION_MODE,
     )
 
     coord = _mk_coord(hass, {CONF_DHW_PRESENT: DHW_PRESENT_AUTO})
@@ -200,7 +216,8 @@ async def test_tick_1_default_auto_valve_detects_dhw(hass):
         ATTR_OPERATION_MODE: "Heating",
         ATTR_INV_FREQUENCY_RPS: 50.0,           # > 3.0 threshold -> RUNNING
     }
-    snap = MagicMock(); snap.attrs = attrs
+    snap = MagicMock()
+    snap.attrs = attrs
 
     await coord._async_ensure_dhw_present(snap)
     assert coord.detector._dhw_present is True, "tier1 auto-detect failed"

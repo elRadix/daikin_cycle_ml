@@ -17,7 +17,6 @@ from custom_components.daikin_cycle_ml.engine.physics import (
 )
 from tests.test_rollup_concurrency import _mk_db
 
-
 # Seizoensgebonden (outdoor, lwt, cop) drietallen die fysisch realistisch zijn
 SEASONAL_POINTS = [
     (-15.0, 45.0, 1.8),   # deep winter

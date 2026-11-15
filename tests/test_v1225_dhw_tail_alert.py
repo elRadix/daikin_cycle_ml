@@ -1,6 +1,7 @@
 """Comprehensive tests for v1.22.5 DHW tail alert suppression (tHyEstes issue)."""
 import time
 from unittest.mock import MagicMock
+
 import pytest
 
 from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator

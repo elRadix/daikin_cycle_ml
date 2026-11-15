@@ -11,7 +11,8 @@ Invarianten:
 from __future__ import annotations
 
 import pytest
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from custom_components.daikin_cycle_ml.engine.physics import (
     ACCEPT_MARGIN,
@@ -19,7 +20,6 @@ from custom_components.daikin_cycle_ml.engine.physics import (
     REJECT_MULTIPLIER,
     classify_cop_sample,
 )
-
 
 VALID_MODES = st.sampled_from(["heating", "dhw"])
 ALL_MODES = st.sampled_from(["heating", "dhw", "cooling", "defrost",

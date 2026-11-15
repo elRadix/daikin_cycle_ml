@@ -128,7 +128,6 @@ async def test_v2_sample_inserted_with_correct_value(tmp_path) -> None:
     try:
         c = _make_coord_for_cop(db, cop_value=4.5, lwt=35.0, outdoor=10.0)
         await c._maybe_collect_cop_sample(time.time())
-        import aiosqlite
         async with db._conn.execute(
             "SELECT cop, source, is_transition_artifact, boiler_active "
             "FROM cop_samples"
@@ -159,7 +158,6 @@ async def test_v2_sample_carnot_reject_not_persisted(tmp_path) -> None:
         # lwt=35 outdoor=10: carnot=12.3, reject_thr=18.5 -> cop=100 rejected
         c = _make_coord_for_cop(db, cop_value=100.0, lwt=35.0, outdoor=10.0)
         await c._maybe_collect_cop_sample(time.time())
-        import aiosqlite
         async with db._conn.execute(
             "SELECT COUNT(*) FROM cop_samples"
         ) as cur:
@@ -186,7 +184,6 @@ async def test_v2_sample_settle_gate_blocked(tmp_path) -> None:
         now = time.time()
         c._last_mode_change_ts = now - 100.0  # 100s < 300s settle
         await c._maybe_collect_cop_sample(now)
-        import aiosqlite
         async with db._conn.execute(
             "SELECT COUNT(*) FROM cop_samples"
         ) as cur:
@@ -211,7 +208,6 @@ async def test_v2_sample_interval_gate_blocked(tmp_path) -> None:
         now = time.time()
         c._last_cop_sample_ts = now - 100.0  # 100s < 300s interval
         await c._maybe_collect_cop_sample(now)
-        import aiosqlite
         async with db._conn.execute(
             "SELECT COUNT(*) FROM cop_samples"
         ) as cur:
@@ -246,7 +242,6 @@ async def test_v2_samples_roll_up_to_hourly(tmp_path) -> None:
             })
         n = await db.async_rollup_cop_hourly(window_hours=2)
         assert n == 1, f"expected 1 hourly row, got {n}"
-        import aiosqlite
         async with db._conn.execute(
             "SELECT n_samples, cop_mean FROM cop_hourly"
         ) as cur:
@@ -404,7 +399,6 @@ async def test_boiler_sample_excluded_from_rollup(tmp_path) -> None:
             })
         n = await db.async_rollup_cop_hourly(window_hours=2)
         assert n == 1
-        import aiosqlite
         async with db._conn.execute(
             "SELECT n_samples, cop_mean FROM cop_hourly"
         ) as cur:
@@ -443,7 +437,6 @@ async def test_artifact_sample_included_in_rollup(tmp_path) -> None:
             })
         n = await db.async_rollup_cop_hourly(window_hours=2)
         assert n == 1
-        import aiosqlite
         async with db._conn.execute(
             "SELECT n_samples FROM cop_hourly"
         ) as cur:
@@ -513,10 +506,10 @@ async def test_diagnostics_exposes_cop_source(tmp_path) -> None:
     """v2 heat output -> snap.cop_source='espaltherma_heat_output' ->
     diagnostics output shows the correct source tag (no hidden fallback).
     """
-    import json
     from pytest_homeassistant_custom_component.common import (
         MockConfigEntry,
     )
+
     from custom_components.daikin_cycle_ml.const import DOMAIN
 
     db = await _mk_fresh_db(tmp_path)

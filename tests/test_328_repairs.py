@@ -7,15 +7,19 @@ Behavior matrix:
   user flips to True               -> issue cleared
   dhw_present=True                 -> DB never queried (perf short-circuit)
 """
-import pytest
 from unittest.mock import AsyncMock, MagicMock
-from homeassistant.helpers import issue_registry as ir
+
+import pytest
+
 from custom_components.daikin_cycle_ml.const import DOMAIN
 from custom_components.daikin_cycle_ml.coordinator import DaikinCycleMLCoordinator
+from homeassistant.helpers import issue_registry as ir
 
 
 def _mk_coord(hass, dhw_present, db_count):
-    entry = MagicMock(); entry.options = {}; entry.data = {}
+    entry = MagicMock()
+    entry.options = {}
+    entry.data = {}
     coord = DaikinCycleMLCoordinator(hass, entry)
     coord.dhw_present = dhw_present
     coord.db = MagicMock()

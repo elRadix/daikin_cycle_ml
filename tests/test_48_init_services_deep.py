@@ -1,8 +1,8 @@
 """Batch 48 -- __init__.py + services.py error paths."""
 
 from __future__ import annotations
-import contextlib
 
+import contextlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

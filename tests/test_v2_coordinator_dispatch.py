@@ -19,9 +19,6 @@ import pytest
 
 _COORD_MOD = "custom_components.daikin_cycle_ml.coordinator"
 
-from custom_components.daikin_cycle_ml.coordinator import (
-    DaikinCycleMLCoordinator,
-)
 from custom_components.daikin_cycle_ml.const import (
     ATTR_3WAY_VALVE,
     ATTR_BUH_STEP1,
@@ -42,6 +39,9 @@ from custom_components.daikin_cycle_ml.const import (
     SOURCE_TYPE_AUTO,
     SOURCE_TYPE_INDIVIDUAL,
     SOURCE_TYPE_MONOLITHIC,
+)
+from custom_components.daikin_cycle_ml.coordinator import (
+    DaikinCycleMLCoordinator,
 )
 
 

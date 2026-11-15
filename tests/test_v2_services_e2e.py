@@ -15,13 +15,13 @@ import time
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from homeassistant.exceptions import HomeAssistantError
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.daikin_cycle_ml.const import DOMAIN
 from custom_components.daikin_cycle_ml.services import (
     async_register_services,
 )
+from homeassistant.exceptions import HomeAssistantError
 
 
 async def _setup_entry_with_coord(hass, entry_id="svc-test"):

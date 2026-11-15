@@ -1,18 +1,18 @@
 """DataUpdateCoordinator for Daikin Cycle ML."""
 from __future__ import annotations
-import traceback
-from typing import Awaitable, Callable, Concatenate, Coroutine, ParamSpec, TypeVar, cast
-import functools
 
 import asyncio
 import contextlib
+import functools
 import logging
 import math
 import time
+import traceback
 from collections import deque
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any
+from typing import Any, Concatenate, ParamSpec, TypeVar, cast
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -25,14 +25,15 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 # v1.4.1 BUG-2 / BUG-3: score wiring + threshold.
 from .const import (
-    CONF_DHW_PRESENT, DHW_PRESENT_AUTO, DHW_PRESENT_ALWAYS, DHW_PRESENT_NEVER, ATTR_3WAY_VALVE, ATTR_DHW_TANK_TEMP,
     ALERT_STORE_KEY,
     ALERT_STORE_SAVE_DELAY,
     ALERT_STORE_VERSION,
+    ATTR_3WAY_VALVE,
     ATTR_BOILER_DHW_DEMAND,
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
     ATTR_DEFROST_OPERATION,
+    ATTR_DHW_TANK_TEMP,
     ATTR_FLOW_SENSOR,
     ATTR_INDOOR_AMBIENT_R1T,
     ATTR_LEAVING_WATER_AFTER_BUH,
@@ -40,6 +41,7 @@ from .const import (
     ATTR_OUTDOOR_AIR_R1T,
     ATTR_TARGET_COND_TEMP,
     BUH_7D_RATIO_THRESHOLD_DEFAULT,
+    CONF_DHW_PRESENT,
     CONF_INDIVIDUAL_PREFIX,
     CONF_SOURCE_TYPE,
     COP_CURVE_RECENT_HOURS,
@@ -59,6 +61,9 @@ from .const import (
     DEGRADATION_BASELINE_DAYS,
     DEGRADATION_REFRESH_THROTTLE_S,
     DEGRADATION_WINDOW_DAYS,
+    DHW_PRESENT_ALWAYS,
+    DHW_PRESENT_AUTO,
+    DHW_PRESENT_NEVER,
     DOMAIN,
     ENERGY_ANOMALY_FLOOR_KWH,
     ENERGY_ANOMALY_MIN_DAYS,
@@ -2453,9 +2458,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             def _is_valid_state(val: Any) -> bool:
                 if val is None:
                     return False
-                if isinstance(val, str) and val.strip().lower() in ("unknown", "unavailable"):
-                    return False
-                return True
+                return not (isinstance(val, str) and val.strip().lower() in ("unknown", "unavailable"))
 
             s1 = attrs.get(ATTR_BUH_STEP1)
             s2 = attrs.get(ATTR_BUH_STEP2)
@@ -4452,9 +4455,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _off_end_ts = (last or {}).get("end_ts")
             if isinstance(_off_end_ts, (int, float)) and (now - _off_end_ts) > 3600.0:
                 _off_stale = True
-            if _off_stale or not isinstance(off, (int, float)) or off >= short_off_th:
-                is_short_off = False
-            elif _is_dhw_tail:
+            if _off_stale or not isinstance(off, (int, float)) or off >= short_off_th or _is_dhw_tail:
                 is_short_off = False
             else:
                 # v1.19.7 fix #10: require at least one short run in the pair

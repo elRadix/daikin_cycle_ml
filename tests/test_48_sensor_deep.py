@@ -1,8 +1,8 @@
 """Batch 48 -- sensor.py + binary_sensor.py edge coverage."""
 
 from __future__ import annotations
-import contextlib
 
+import contextlib
 from unittest.mock import MagicMock
 
 from custom_components.daikin_cycle_ml import binary_sensor as bs_mod

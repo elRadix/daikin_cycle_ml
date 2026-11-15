@@ -77,7 +77,7 @@ def test_walltime_none_on():
 # ─── Sensor value (native-first) ───
 
 def test_sensor_value_native_first():
-    """v2: native Stats × 60 wins over computed."""
+    """v2: native Stats x 60 wins over computed."""
     c = _mock_coord()
     c._buh_total_s = 300.0
     s = DataSnapshot(last_sample_ts=0.0)
@@ -262,6 +262,7 @@ def test_sensor_compressor_starts_computed():
 def test_read_float_attrs_not_dict():
     """Coverage for `if not isinstance(attrs, dict): return None`."""
     from unittest.mock import MagicMock
+
     from custom_components.daikin_cycle_ml.engine.runtime_source import (
         read_native_buh_minutes,
     )
