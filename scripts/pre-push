@@ -5,12 +5,12 @@ if [ -z "${PRE_PUSH_TIMEOUT_APPLIED:-}" ]; then
     exec timeout --signal=KILL 120 "$0" "$@"
 fi
 # Fast pre-push: ruff on changed .py files only. Full suite = CI job.
-# Fixes #358 blocker. Historical full-suite version in /tmp/pre-push.bak.*.
+# Fast-only: full suite runs on GitHub CI.
 set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-# Skip on branch deletion (R834)
+# Skip on branch deletion
 while read -r local_ref local_sha remote_ref remote_sha; do
     [ "$local_sha" = "0000000000000000000000000000000000000000" ] && exit 0
 done

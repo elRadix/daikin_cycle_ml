@@ -24,16 +24,16 @@ def cmd_commit(args):
     if args.partial_issue:
         bad = re.search(rf'(?i)\b(fixes|closes|resolves)\s+#{args.partial_issue}\b', msg)
         if bad:
-            log.err(f'R846: uses "{bad.group(0)}" for PARTIAL fix')
-            log.err(f'R846: use "Part of #{args.partial_issue}"')
+            log.err(f'partial fix uses "{bad.group(0)}" — auto-closes the issue')
+            log.err(f'use "Part of #{args.partial_issue}" — closes only on --complete')
             return exit_codes.AST_FAIL
         if not re.search(rf'(?i)\bpart\s+of\s+#{args.partial_issue}\b', msg):
-            log.warn(f'R846: no "Part of #{args.partial_issue}"')
+            log.warn(f'hint: partial fix should say "Part of #{args.partial_issue}"')
     closers = re.findall(r'(?i)\b(fixes|closes|resolves)\s+#(\d+)', msg)
     if closers and not args.complete:
-        log.warn(f'R856: auto-close {closers} without --complete')
+        log.warn(f'hint: auto-close keyword(s) {closers} — add --complete to confirm')
     if text.has_dutch(msg):
-        log.err('R857: Dutch in commit message')
+        log.err('commit message contains Dutch — English only (translations/nl.json is the only allowed place)')
         return exit_codes.AST_FAIL
     log.info(f'git commit -m {msg!r}')
     git.run('commit', '-m', msg)
@@ -47,9 +47,9 @@ def cmd_amend(args):
     git.run('push', '--force-with-lease', 'origin', branch)
     remote, local = git.remote_hash(branch), git.local_hash()
     if remote != local:
-        log.err(f'R859: remote {remote[:7]} != local {local[:7]}')
+        log.err(f'remote {remote[:7]} != local {local[:7]} — force-push did not stick')
         return exit_codes.PUSH_FAIL
-    log.ok(f'R859: verified {remote[:7]}')
+    log.ok(f'remote verified {remote[:7]}')
     return exit_codes.OK
 
 def _has_keepalive():
@@ -59,9 +59,15 @@ def _has_keepalive():
 
 def _pr_body_has_r813(branch):
     import subprocess
-    r = subprocess.run(['gh','pr','view',branch,'--json','body','-q','.body'],
-        check=False, capture_output=True, text=True)
-    return r.returncode == 0 and 'R813' in r.stdout
+    r = subprocess.run(
+        ['gh', 'pr', 'view', branch, '--json', 'body', '-q', '.body'],
+        check=False, capture_output=True, text=True,
+    )
+    body = (r.stdout if r.returncode == 0 else '').lower()
+    return ('r813' in body
+            or 'no-verify bypass' in body
+            or 'bypass rationale' in body)
+
 
 def cmd_push(args):
     branch = args.branch or git.current_branch()
@@ -72,9 +78,9 @@ def cmd_push(args):
         log.warn(f'nothing to push ({branch} == origin/{branch})')
         return exit_codes.OK
     if not _has_keepalive():
-        log.warn('R863: no ServerAliveInterval in ~/.ssh/config')
+        log.warn('hint: ~/.ssh/config missing ServerAliveInterval — long pushes may drop')
     if args.no_verify and not _pr_body_has_r813(branch):
-        log.err('R864: --no-verify but no R813 section in PR body')
+        log.err('--no-verify requires "## R813 bypass" or "## no-verify bypass" section in PR body')
         return exit_codes.PUSH_FAIL
     cmd = ['push'] + (['--no-verify'] if args.no_verify else []) + ['origin', branch]
     try:
@@ -82,11 +88,11 @@ def cmd_push(args):
     except git.GitError as e:
         msg = ((e.err or '') + (e.out or '')).lower()
         if 'pre-push' in msg or 'hook' in msg:
-            log.warn('hint: pre-push hook failed — likely #358 whole-repo ruff')
-            log.warn('hint: fix #358 OR add R813 to PR body + retry --no-verify')
+            log.warn('hint: pre-push hook failed (see stderr above)')
+            log.warn('hint: add "## no-verify bypass" to PR body, then retry --no-verify')
         elif 'rejected' in msg or 'failed to push' in msg:
-            log.warn('hint: branch protection (GH013) or non-FF')
-            log.warn('hint: use PR flow; force: git_safe amend --push')
+            log.warn('hint: push rejected — check branch protection or non-fast-forward')
+            log.warn('hint: push via PR; force: git_safe amend --push')
         raise
     log.ok(f'pushed {branch} -> {local[:7]}')
     return exit_codes.OK
@@ -97,31 +103,31 @@ def cmd_post_merge(args):
     if args.detail:
         body += f'\n\n{args.detail}'
     if text.has_dutch(body):
-        log.err('R857: Dutch in post-merge comment')
+        log.err('post-merge comment contains Dutch — English only')
         return exit_codes.AST_FAIL
     import subprocess
     r = subprocess.run(['gh','pr','comment',str(args.pr_num),'--body',body],
         check=False, capture_output=True, text=True)
     if r.returncode != 0:
-        log.err(f'R819: gh failed: {r.stderr.strip()}')
+        log.err(f'gh pr comment failed: {r.stderr.strip()}')
         return exit_codes.PUSH_FAIL
-    log.ok(f'R819: commented on #{args.pr_num}')
+    log.ok(f'commented on PR #{args.pr_num}')
     return exit_codes.OK
 
 def cmd_branch_cleanup(args):
     if args.branch in ('main','master'):
-        log.err(f'R798: refusing protected branch "{args.branch}"')
+        log.err(f'refusing to delete protected branch "{args.branch}"')
         return exit_codes.AST_FAIL
     if not git.output('branch', '--list', args.branch).strip():
-        log.warn(f'R798: "{args.branch}" not found')
+        log.warn(f'branch "{args.branch}" not found locally')
         return exit_codes.OK
     git.run('branch', '-D', args.branch)
-    log.ok(f'R798: deleted {args.branch}')
+    log.ok(f'deleted {args.branch}')
     return exit_codes.OK
 
 def cmd_branch_delete(args):
     git.run('push', '--no-verify', 'origin', '--delete', args.branch)
-    log.ok(f'R833/R834: deleted remote {args.branch}')
+    log.ok(f'deleted remote branch {args.branch}')
     return exit_codes.OK
 
 def main():
