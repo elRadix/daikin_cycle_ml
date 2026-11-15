@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Hard 120s whole-hook timeout (fast-fail beats 59min orphan)
+if [ -z "${PRE_PUSH_TIMEOUT_APPLIED:-}" ]; then
+    export PRE_PUSH_TIMEOUT_APPLIED=1
+    exec timeout --signal=KILL 120 "$0" "$@"
+fi
 # Fast pre-push: ruff on changed .py files only. Full suite = CI job.
 # Fixes #358 blocker. Historical full-suite version in /tmp/pre-push.bak.*.
 set -euo pipefail

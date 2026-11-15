@@ -28,7 +28,7 @@ FAIL=0
 LOG=/tmp/ci-local-pytest.log
 
 echo "[ci-local] 1/4 pytest (full suite, 100% cov)"
-pytest -q --no-header --junit-xml=/tmp/ci-local-pytest.xml > "$LOG" 2>&1
+timeout --signal=KILL 1800 pytest --basetemp=/dev/shm/pytest_tmp -q --no-header --junit-xml=/tmp/ci-local-pytest.xml > "$LOG" 2>&1
 PYTEST_RC=$?
 grep -E '[0-9]+ (passed|failed|skipped)' "$LOG" | tail -1 || true
 if [[ $PYTEST_RC -ne 0 ]]; then
