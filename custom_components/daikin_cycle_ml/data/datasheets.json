@@ -12,7 +12,7 @@
       "https://www.daikin.at/content/dam/DACE-AT/document-library/catalogues/heat/Daikin_Katalog_Heizung_2025.pdf",
       "https://www.ncm-pcdb.org.uk/sap/pcdbdetails.jsp?pid=31&id=107746&type=362&mid=020045"
     ],
-    "climate_zone_note": "EBLA09DA3W1: primary curves Average (Daikin EU spec table). Keymark 011-1W0423 is Warmer climate only — stored separately as part_load_curves_warmer, MUST NOT be merged with Average."
+    "climate_zone_note": "EBLA09DA3W1: primary curves Average (Daikin EU spec table). Keymark 011-1W0423 is Warmer climate only \u2014 stored separately as part_load_curves_warmer, MUST NOT be merged with Average."
   },
   "schema_version": 1,
   "generated": "2026-10-27T00:00:00Z",
@@ -27,7 +27,7 @@
   "models": {
     "epra14daw17": {
       "family": "Hydrosplit HT",
-      "kw": 5.9,
+      "kw": 14.0,
       "lwt_min": 15,
       "lwt_max": 70,
       "nom_cop": 4.79,
@@ -41,7 +41,7 @@
           "t_out": 7,
           "t_lwc": 35,
           "cop": 4.79,
-          "hc": 5.9
+          "hc": 14.0
         }
       ]
     },
@@ -1416,7 +1416,7 @@
     },
     "epra14dav3": {
       "family": "Altherma 3 H HT",
-      "kw": 5.69,
+      "kw": 14.0,
       "lwt_min": 25,
       "lwt_max": 70,
       "nom_cop": 4.67,
@@ -1430,7 +1430,7 @@
           "t_out": 7,
           "t_lwc": 35,
           "cop": 4.67,
-          "hc": 5.69
+          "hc": 14.0
         }
       ],
       "hc_max_a7": 10.18,
@@ -1438,7 +1438,7 @@
     },
     "epra16dav3": {
       "family": "Altherma 3 H HT",
-      "kw": 9.0,
+      "kw": 16.0,
       "lwt_min": 25,
       "lwt_max": 70,
       "nom_cop": 5.0,
@@ -1452,7 +1452,7 @@
           "t_out": 7,
           "t_lwc": 35,
           "cop": 5.0,
-          "hc": 9.0
+          "hc": 16.0
         }
       ],
       "hc_max_a7": 10.91,
@@ -1460,7 +1460,7 @@
     },
     "epra18dav3": {
       "family": "Altherma 3 H HT",
-      "kw": 9.0,
+      "kw": 18.0,
       "lwt_min": 25,
       "lwt_max": 70,
       "nom_cop": 5.0,
@@ -1474,7 +1474,7 @@
           "t_out": 7,
           "t_lwc": 35,
           "cop": 5.0,
-          "hc": 9.0
+          "hc": 18.0
         }
       ],
       "hc_max_a7": 12.12,
