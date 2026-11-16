@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Fixed
+- `diagnostics` output now includes `notify_health` (fail_streak, fail_target_configured, fail_logged_count, currently_failing). Property added by PR #373 (Fixes #367) but never emitted (#384, PR #385)
 - `binary_sensor.source_stale` false positive at stable weather. Now uses `State.last_reported` (bumps on every publish) with `last_updated` fallback. Sensor was stuck `on` for hours while `sensor.source_health` reported healthy (#379, #380)
 - `diagnostics._device_registry` used deprecated `reg.devices`-as-mapping and `DeviceEntry.config_entries` — replaced with `async_entries_for_config_entry`. Prevents breakage in HA 2027.9/2027.10 (#381)
 - `sensor.alerts_today` attributes exceeded HA Recorder's 16 KB limit on busy days (24.3 KB / 27 alerts on prod-1), causing HA to silently drop ALL attributes from history. Now size-capped in 3 branches: full list if fits, capped to 10 if not, empty list with aggregates preserved if even 10 too big. `truncated_reason=attr_size_limit` marker added (#382)

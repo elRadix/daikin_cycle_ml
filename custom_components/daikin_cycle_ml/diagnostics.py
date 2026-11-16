@@ -334,6 +334,15 @@ def _defrost_snapshot(coord: Any) -> dict[str, Any]:  # # DIAG-V1224
 def _buh_snapshot(coord: Any) -> dict[str, Any]:  # # DIAG-V1224
     return {"step": getattr(coord, "_buh_step", None)}
 
+def _notify_health_snapshot(coord: Any) -> dict[str, Any]:
+    """#384: notify-dispatch health (fail-streak counters)."""
+    if coord is None:
+        return {}
+    h = getattr(coord, "notify_health", None)
+    if isinstance(h, dict):
+        return {str(k): v for k, v in h.items()}
+    return {}
+
 
 _STATE_MAP = {  # # DIAG-V1224
     "keep": "stable",
@@ -608,6 +617,7 @@ async def async_get_config_entry_diagnostics(
         "device": _device_registry(hass, entry),
         "runtime": _runtime_extended(coord),  # DIAG-V1224B
         "sampling": _sampling_snapshot(coord),
+        "notify_health": _notify_health_snapshot(coord),
         "coordinator_timing": _coordinator_timing(coord),
         "transitions": _detector_transitions(coord),
         "repairs": _repairs_snapshot(hass),
