@@ -4,6 +4,7 @@
 
 
 ### Fixed
+- notify: ServiceNotFound no longer spams logs (warning + dedupe per service), repair created, diagnostics notify_health exposed (#367)
 - Correct datasheet capacity for EPRA HT models (#370)
 
 
