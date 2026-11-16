@@ -10,6 +10,7 @@ Example:
 from __future__ import annotations
 
 import contextlib
+import json
 import logging
 import time
 from collections.abc import Callable
@@ -57,6 +58,9 @@ from .engine.thermal import (
 )
 from .engine.timer_health import is_stale
 from .entity import DaikinCycleMLEntity, async_remove_stale_entities
+
+_ALERTS_ATTR_MAX_ITEMS = 10
+_ALERTS_ATTR_BYTE_LIMIT = 14 * 1024  # 14 KB safety margin under HA's 16384
 
 PARALLEL_UPDATES = 0  # read-only platform, HA serializes updates
 
@@ -329,16 +333,51 @@ def _attrs_current_cycle(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[s
 def _attrs_alerts_today(
     s: DataSnapshot, c: DaikinCycleMLCoordinator,
 ) -> dict[str, Any]:
-    """v1.19.8: full alerts list for today."""
+    """Alerts list for today, size-capped to fit HA Recorder 16KB limit.
+
+    v1.22.10: busy days (27 alerts, 24.3KB) exceeded HA's 16384-byte
+    Recorder cap -> HA silently dropped all attributes from history.
+    Keep aggregates; progressively truncate the alerts list only when
+    the serialized payload exceeds _ALERTS_ATTR_BYTE_LIMIT.
+    Full history remains in SQLite and via services.get_alerts.
+    """
     data = s.alerts_today or {}
-    return {
-        "since": data.get("since"),
-        "total": data.get("total", 0),
-        "by_type": data.get("by_type", {}),
-        "by_severity": data.get("by_severity", {}),
-        "alerts": data.get("alerts", []),
-        "truncated": data.get("truncated", False),
-    }
+    alerts = data.get("alerts") or []
+    total_alerts = len(alerts)
+
+    def _build(alerts_list: list[dict[str, Any]]) -> dict[str, Any]:
+        shown = len(alerts_list)
+        return {
+            "since": data.get("since"),
+            "total": data.get("total", 0),
+            "by_type": data.get("by_type", {}),
+            "by_severity": data.get("by_severity", {}),
+            "alerts": alerts_list,
+            "alerts_shown": shown,
+            "alerts_total": total_alerts,
+            "truncated": (
+                data.get("truncated", False) or shown < total_alerts
+            ),
+        }
+
+    def _size(d: dict[str, Any]) -> int:
+        return len(json.dumps(d, separators=(",", ":")))
+
+    # Branch 1: full list fits
+    out = _build(alerts)
+    if _size(out) <= _ALERTS_ATTR_BYTE_LIMIT:
+        return out
+
+    # Branch 2: cap to last N items
+    capped = _build(alerts[-_ALERTS_ATTR_MAX_ITEMS:])
+    if _size(capped) <= _ALERTS_ATTR_BYTE_LIMIT:
+        capped["truncated_reason"] = "attr_size_limit"
+        return capped
+
+    # Branch 3: even N items too big -> drop list (aggregates preserved)
+    out = _build([])
+    out["truncated_reason"] = "attr_size_limit"
+    return out
 
 
 def _attrs_last_cycle(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
