@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.22.10] - 2026-11-16
+
 ### Fixed
 - `diagnostics` output now includes `notify_health` (fail_streak, fail_target_configured, fail_logged_count, currently_failing). Property added by PR #373 (Fixes #367) but never emitted (#384, PR #385)
 - `binary_sensor.source_stale` false positive at stable weather. Now uses `State.last_reported` (bumps on every publish) with `last_updated` fallback. Sensor was stuck `on` for hours while `sensor.source_health` reported healthy (#379, #380)
@@ -16,6 +18,8 @@
 
 ### Tests
 - `tests/test_v1231_source_stale_recovery.py` — 10 tests covering `last_reported` preference, `last_updated` fallback, and prod-1 stable-value case (#379)
+- `tests/test_v1232_ha_deprecations.py` - 12 tests for HA 2027 device-registry + Recorder 16KB alerts_today (#381, #382)
+- `tests/test_v1233_notify_health_diag.py` - 5 tests for notify_health emit (#384)
 
 ## [1.22.9] - 2026-11-16
 
