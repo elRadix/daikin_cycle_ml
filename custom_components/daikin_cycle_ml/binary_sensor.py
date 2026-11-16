@@ -206,7 +206,15 @@ def _is_source_stale(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
             # falls through to tick-based fallback instead of raising
             # TypeError on `MagicMock > float` comparisons.
             from datetime import datetime as _dt
-            lu = getattr(st, "last_updated", None)
+            # v1.22.10: prefer last_reported (bumps on every publish)
+            # over last_updated (bumps only on value change). ESPAltherma
+            # publishes every 30s even when values are unchanged; at
+            # stable weather last_updated can be minutes old while the
+            # source is perfectly healthy. Fall back to last_updated
+            # for HA <2023.9 or mocked states without last_reported.
+            lu = getattr(st, "last_reported", None)
+            if not isinstance(lu, _dt):
+                lu = getattr(st, "last_updated", None)
             if isinstance(lu, _dt):
                 return (_now() - lu.timestamp()) > thr
     # Fallback: no hass handle (unit test) or source missing -> tick.
