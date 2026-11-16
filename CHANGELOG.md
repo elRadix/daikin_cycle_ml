@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.22.9] - 2026-11-16
+
 
 ### Fixed
 - chore(scripts): fix resolve_issue.py typo (vunreleased) and false release/prod claims (#367)
