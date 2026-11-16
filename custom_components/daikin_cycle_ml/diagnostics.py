@@ -18,7 +18,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.device_registry import DeviceEntry  # MYPY-FIX-V1224-C
 from homeassistant.util import dt as dt_util
 
 from .const import DB_FILENAME, DB_FILENAME_TEMPLATE
@@ -260,20 +259,21 @@ def _entities_registry(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any
 
 
 def _device_registry(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:  # # DIAG-V1224
-    reg = dr.async_get(hass)  # MYPY-FIX-V1224
-    devices_map = cast(dict[str, "DeviceEntry"], reg.devices)  # MYPY-FIX-V1224
-    for dev in devices_map.values():
-        if entry.entry_id in dev.config_entries:
-            return {
-                "id": dev.id,
-                "name": dev.name,
-                "manufacturer": dev.manufacturer,
-                "model": dev.model,
-                "sw_version": dev.sw_version,
-                "hw_version": dev.hw_version,
-                "identifiers": [list(i) for i in dev.identifiers],
-                "area_id": dev.area_id,
-            }
+    # v1.22.10: modern device registry API. Old code relied on the
+    # dictionary-style mapping access and the plural-fields attribute
+    # that HA removes in 2027.9 and 2027.10 respectively.
+    reg = dr.async_get(hass)
+    for dev in dr.async_entries_for_config_entry(reg, entry.entry_id):
+        return {
+            "id": dev.id,
+            "name": dev.name,
+            "manufacturer": dev.manufacturer,
+            "model": dev.model,
+            "sw_version": dev.sw_version,
+            "hw_version": dev.hw_version,
+            "identifiers": [list(i) for i in dev.identifiers],
+            "area_id": dev.area_id,
+        }
     return {"missing": True, "reason": "no_device_for_entry"}
 
 
