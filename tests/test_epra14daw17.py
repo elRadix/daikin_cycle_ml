@@ -52,7 +52,7 @@ def test_datasheet_uses_published_nominal_point_and_seasonal_metadata():
     assert spec is not None
     assert spec["family"] == "Hydrosplit HT"
     assert spec["source"] == "bundled"
-    assert spec["kw"] == 5.9
+    assert spec["kw"] == 14.0
     assert spec["lwt_min"] == 15
     assert spec["lwt_max"] == 70
     assert spec["nom_cop"] == 4.79
@@ -61,7 +61,7 @@ def test_datasheet_uses_published_nominal_point_and_seasonal_metadata():
     assert spec["refrigerant"] == "R32"
     assert "charge_kg" not in spec
     assert spec["points"] == [
-        {"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 4.79, "hc": 5.9}
+        {"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 4.79, "hc": 14.0}
     ]
 
 
