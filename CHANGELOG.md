@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+
+### Fixed
+- Correct datasheet capacity for EPRA HT models (#370)
+
+
 ## [1.22.8] - 2026-11-16
 
 ### Fixed
