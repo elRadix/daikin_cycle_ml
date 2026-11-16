@@ -29,20 +29,26 @@ from custom_components.daikin_cycle_ml.const import (
 )
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
+_OPEN_DBS: list[CycleDB] = []
+
 
 @pytest.fixture(autouse=True)
 async def _close_dbs():
     """Ensure DBs close cleanly even when a test asserts early."""
     yield
-    # aiosqlite closes on GC; force flush by yielding control once
-    import asyncio as _asyncio
-    await _asyncio.sleep(0)
+    for db in _OPEN_DBS:
+        try:
+            await db.async_close()
+        except Exception:
+            pass
+    _OPEN_DBS.clear()
 
 
 async def _mk_db(tmp_path, name="test.db"):
     db = CycleDB(str(tmp_path / name))
     await db.async_open()
     await db.async_initialize()
+    _OPEN_DBS.append(db)
     return db
 
 
