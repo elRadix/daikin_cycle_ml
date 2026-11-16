@@ -21,11 +21,24 @@ def fail(m, c):
     sys.exit(c)
 
 
-def build(version, pr, commit):
+def build(version: str, pr: int, commit: str | None, prod_verified: bool) -> str:
     cl = f"\nCommit: `{commit}`" if commit else ""
-    return (f"## Resolved in v{version}\n\nFix shipped in #{pr}.{cl}\n\n"
+    is_semver = version and version[0].isdigit()
+    v_prefix = "v" if is_semver else ""
+
+    if is_semver:
+        header = f"## Resolved in {v_prefix}{version}"
+        release_line = f"- [x] Released in {v_prefix}{version}"
+    else:
+        header = f"## Merged in #{pr}"
+        release_line = f"- [ ] Targeted for {version} (unreleased)"
+
+    prod_line = "- [x] Prod replay confirmed" if prod_verified else "- [ ] Prod replay pending"
+
+    return (f"{header}{cl}\n\n"
             f"**Verification**\n- [x] Tests pass (100% coverage)\n"
-            f"- [x] Prod replay confirmed\n- [x] Released in v{version}\n")
+            f"{prod_line}\n"
+            f"{release_line}\n")
 
 
 def main():
@@ -37,9 +50,10 @@ def main():
     p.add_argument("--repo", default=None)
     p.add_argument("--close", action="store_true")
     p.add_argument("--dry-run", action="store_true")
+    p.add_argument("--prod-verified", action="store_true", help="Claim prod replay was confirmed")
     a = p.parse_args()
 
-    comment = build(a.version, a.pr, a.commit)
+    comment = build(a.version, a.pr, a.commit, a.prod_verified)
     dutch = [w for w in DUTCH if w in comment.lower()]
     if dutch:
         fail(f"Dutch: {sorted(set(dutch))}", 1)
@@ -49,8 +63,7 @@ def main():
         print(f"would close: {a.close}")
         return
 
-    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False,
-                                     encoding="utf-8") as f:
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
         f.write(comment)
         tmp = f.name
     c = ["gh", "issue", "comment", str(a.issue), "--body-file", tmp]
@@ -64,8 +77,7 @@ def main():
         Path(tmp).unlink(missing_ok=True)
 
     if a.close:
-        cc = ["gh", "issue", "close", str(a.issue),
-              "--reason", "completed"]
+        cc = ["gh", "issue", "close", str(a.issue), "--reason", "completed"]
         if a.repo:
             cc += ["--repo", a.repo]
         try:
@@ -73,8 +85,7 @@ def main():
         except subprocess.CalledProcessError as e:
             fail(f"close failed: {e}", 4)
 
-    vc = ["gh", "issue", "view", str(a.issue),
-          "--json", "state", "-q", ".state"]
+    vc = ["gh", "issue", "view", str(a.issue), "--json", "state", "-q", ".state"]
     if a.repo:
         vc += ["--repo", a.repo]
     state = subprocess.check_output(vc, text=True).strip()
