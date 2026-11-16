@@ -16,6 +16,7 @@ from typing import Any, Concatenate, ParamSpec, TypeVar, cast
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceNotFound
 from homeassistant.helpers.event import (
     async_call_later,
     async_track_time_change,
@@ -606,6 +607,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
     _notify_fail_streak: int = 0
     _notify_fail_target: str = ""
+    _notify_fail_logged: set[str] = set()
     _db_integrity_ok: bool = True
     _migration_error: str | None = None
 
@@ -662,6 +664,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._errors_total = 0
         self._notify_fail_streak: int = 0
         self._notify_fail_target: str = ""
+        self._notify_fail_logged: set[str] = set()
         self._db_integrity_ok: bool = True
         self._migration_error: str | None = None
         self._last_alert_sent: dict[str, float] = {}
@@ -1461,7 +1464,6 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         """Schedule delayed one-shot stale check (Fix B, #125)."""
         if self._kmeans_backfill_unsub is not None:
             return
-        from homeassistant.helpers.event import async_call_later
         self._kmeans_backfill_unsub = async_call_later(
             self.hass,
             _KMEANS_BACKFILL_DELAY_S,
@@ -4754,13 +4756,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
         svc = opts.get("notify_service")
         if svc and "." in str(svc):
-            try:
-                dom, name = str(svc).split(".", 1)
-                await self.hass.services.async_call(
-                    dom, name, {"message": msg}, blocking=False
-                )
-            except Exception:
-                _LOGGER.exception("status notify service failed")
+            await self._dispatch_notify(str(svc), msg, context="status")
 
         return msg
 
@@ -5441,6 +5437,60 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         """Model-SKU for notification subtitle; empty in test-shells."""
         return getattr(self, "_full_model_display", "")
 
+    @property
+    def notify_health(self) -> dict[str, Any]:
+        """#367: notify-dispatch health snapshot (for diagnostics)."""
+        return {
+            "fail_streak": int(self._notify_fail_streak),
+            "fail_target_configured": bool(self._notify_fail_target),
+            "fail_logged_count": len(self._notify_fail_logged),
+            "currently_failing": self._notify_fail_streak > 0,
+        }
+
+    async def _dispatch_notify(
+        self, svc: str, message: str, context: str = "alert"
+    ) -> bool:
+        """Central notify dispatch. Returns True on success.
+
+        Logs WARNING (not exception) on failure and dedupes per service.
+        Dedupe state cleared on success so a service that recovers and
+        then goes down again is logged once more.
+        """
+        if not (isinstance(svc, str) and "." in svc):
+            return False
+        domain, name = svc.split(".", 1)
+        payload = {"message": message}
+        try:
+            await self.hass.services.async_call(
+                domain, name, payload, blocking=False,
+            )
+            self._notify_fail_streak = 0
+            self._notify_fail_target = ""
+            self._notify_fail_logged.discard(svc)
+            return True
+        except ServiceNotFound:
+            self._notify_fail_streak += 1
+            self._notify_fail_target = str(svc)
+            if svc not in self._notify_fail_logged:
+                self._notify_fail_logged.add(svc)
+                _LOGGER.warning(
+                    "notify service %s not found (context=%s); "
+                    "further failures for this service suppressed",
+                    svc, context,
+                )
+            return False
+        except Exception as err:
+            self._notify_fail_streak += 1
+            self._notify_fail_target = str(svc)
+            if svc not in self._notify_fail_logged:
+                self._notify_fail_logged.add(svc)
+                _LOGGER.warning(
+                    "notify service %s failed (context=%s): %s; "
+                    "further failures for this service suppressed",
+                    svc, context, err,
+                )
+            return False
+
     async def _emit_alert(self, alert: Any) -> None:
         """Deliver a single alert via persistent + notify service."""
         if alert.persistent:
@@ -5460,17 +5510,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         svc = self.options.get("notify_service")
         if not (isinstance(svc, str) and "." in svc):
             return
-        domain, service = svc.split(".", 1)
-        payload: dict[str, Any] = {"message": alert.message}
-        try:
-            await self.hass.services.async_call(
-                domain, service, payload, blocking=False,
-            )
-            self._notify_fail_streak = 0
-        except Exception:
-            self._notify_fail_streak += 1
-            self._notify_fail_target = str(svc)
-            _LOGGER.exception("notify service %s failed", svc)
+        await self._dispatch_notify(str(svc), alert.message, context="alert")
 
 # ---------------------------------------------------------------------
 # I2 (v1.9.0): kmeans_retrain_stale render helpers
