@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Fixed
+- `binary_sensor.source_stale` false positive at stable weather. Now uses `State.last_reported` (bumps on every publish) with `last_updated` fallback. Sensor was stuck `on` for hours while `sensor.source_health` reported healthy (#379, #380)
+
+### Added
+- (none)
+
+### Changed
+- (none)
+
+### Tests
+- `tests/test_v1231_source_stale_recovery.py` — 10 tests covering `last_reported` preference, `last_updated` fallback, and prod-1 stable-value case (#379)
+
 ## [1.22.9] - 2026-11-16
 
 
