@@ -2039,9 +2039,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.errors_total = self._errors_total
             await self._refresh_datasheet_state(
                 now,
-                _safe_float_opt(self._stooklijn_cache.get("huidige_lwt")),
+                self._resolve_lwt_for_datasheet(snap),
                 self._resolve_outdoor_temp(snap),
-                snap.cop,
+                self._resolve_cop_for_datasheet(snap),
             )
             snap.datasheet = self._datasheet_cache.get("datasheet")
             snap.datasheet_model = self._datasheet_cache.get("model")
@@ -3161,6 +3161,26 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             t_out = _safe_float_opt(raw_attrs.get("R1T-Outdoor air temp."))
         return t_out
 
+    def _resolve_lwt_for_datasheet(self, snap: Any) -> float | None:
+        """LWT voor A7/W35 normalisatie: stooklijn cache, dan raw attrs."""
+        lwt = _safe_float_opt(self._stooklijn_cache.get("huidige_lwt"))
+        if lwt is None:
+            lwt = _safe_float_opt(
+                (getattr(snap, "attrs", None) or {}).get(
+                    "Leaving water temp. before BUH (R1T)"
+                )
+            )
+        return lwt
+
+    def _resolve_cop_for_datasheet(self, snap: Any) -> float | None:
+        """COP voor A7/W35: snap.cop eerst, dan ESP Stats fallback."""
+        cop = getattr(snap, "cop", None)
+        if isinstance(cop, (int, float)) and not isinstance(cop, bool) and cop > 0:
+            return float(cop)
+        return _safe_float_opt(
+            (getattr(snap, "attrs", None) or {}).get("Stats: COP estimated")
+        )
+
     async def _refresh_datasheet_state(
         self,
         now: float,
@@ -3220,6 +3240,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "updated_ts": now,
         }
         if ds is None or cop_meas is None or lwt_now is None or t_out is None:
+            _LOGGER.debug(
+                "v1.22.11 #388 gate-1 null: ds=%s cop=%s lwt=%s t_out=%s",
+                ds is not None, cop_meas, lwt_now, t_out,
+            )
             self._datasheet_cache = out
             return
         ref = next(
@@ -3227,6 +3251,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             None,
         )
         if ref is None or float(ref.get("cop", 0)) <= 0:
+            _LOGGER.debug(
+                "v1.22.11 #388 gate-2 ref invalid: ref=%s", ref,
+            )
             self._datasheet_cache = out
             return
         t_cond_ref = 35.0 + 5.0 + 273.15
@@ -3236,6 +3263,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         t_evap_live = t_out - 8.0 + 273.15
         dT_live = t_cond_live - t_evap_live
         if dT_live <= 0:
+            _LOGGER.debug(
+                "v1.22.11 #388 gate-3 dT_live=%s lwt=%s t_out=%s",
+                dT_live, lwt_now, t_out,
+            )
             self._datasheet_cache = out
             return
         cop_norm = cop_meas * (
