@@ -3175,11 +3175,19 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     def _resolve_cop_for_datasheet(self, snap: Any) -> float | None:
         """COP voor A7/W35: snap.cop eerst, dan ESP Stats fallback."""
         cop = getattr(snap, "cop", None)
-        if isinstance(cop, (int, float)) and not isinstance(cop, bool) and cop > 0:
-            return float(cop)
-        return _safe_float_opt(
-            (getattr(snap, "attrs", None) or {}).get("Stats: COP estimated")
-        )
+        if not (
+            isinstance(cop, (int, float)) and not isinstance(cop, bool) and cop > 0
+        ):
+            cop = _safe_float_opt(
+                (getattr(snap, "attrs", None) or {}).get("Stats: COP estimated")
+            )
+        if cop is None:
+            return None
+        cop = float(cop)
+        if math.isnan(cop) or math.isinf(cop) or cop <= 0 or cop > MAX_COP:
+            _LOGGER.debug("#388 cop gate reject: %.2f", cop)
+            return None
+        return cop
 
     async def _refresh_datasheet_state(
         self,

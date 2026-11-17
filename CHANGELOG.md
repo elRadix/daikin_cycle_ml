@@ -6,6 +6,8 @@
 - COP normalized A7/W35 no longer surfaces null when LWT or COP
   comes from a transient gap in stooklijn-cache / snap.cop; raw
   attribute fallbacks plus per-gate debug logging (#388, PR #389)
+- COP raw-attribute fallback now passes the same MAX_COP validity gate
+  as the primary COP path, closing a guard bypass (#388, PR #389)
 
 ## [1.22.10] - 2026-11-16
 
