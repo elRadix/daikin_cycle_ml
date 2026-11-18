@@ -8,6 +8,23 @@
   attribute fallbacks plus per-gate debug logging (#388, PR #389)
 - COP raw-attribute fallback now passes the same MAX_COP validity gate
   as the primary COP path, closing a guard bypass (#388, PR #389)
+- Dashboard cards rendered empty on Dutch or French installs. HA derives
+  entity_ids from the translated name at creation time
+  (`sensor.daikin_cycle_ml_cyclus_status`, `..._etat_du_cycle`), but
+  Simple Card, Heating Curve, COP & Energie and Daily Summary hard-coded
+  the English ids. All cards now resolve entities language-independently:
+  English id if present, else HA entity registry by `translation_key`
+  (also survives user-renamed entity_ids), else NL/FR id. English installs
+  render byte-identical output. Pattern Analysis also had wrong Dutch
+  aliases for the DHW COP sensors (`cop_sww_*`) and `cop_degradatie_week`
+  (#347, #369)
+
+### Tests
+- `tests/test_347_dashboard_entity_resolution.py` — 32 tests: no bare
+  entity literals in card JS, alias tables match translations, Jinja
+  headers rendered by the real HA template engine for EN/NL/FR ids, and
+  every card JS block executed under Node for EN/NL/FR/renamed ids
+  (#347, #369)
 
 ## [1.22.10] - 2026-11-16
 

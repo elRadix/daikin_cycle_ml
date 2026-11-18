@@ -1,7 +1,20 @@
 # AGENTS.md — Daikin Cycle ML
 
-HA custom integration. Python 3.14, HA Core 2026.10.
-Loaded automatically by DeepSeek Code at session start.
+Home Assistant integration that turns your ESPAltherma sensor into a
+complete heat pump intelligence platform — cycle detection, per-mode COP,
+seasonal SPF, weather-normalized degradation, runtime + energy accounting,
+installer-grade curve advice, and 19 ML-powered alerts.
+
+Data source: ESPAltherma by @raomin (github.com/raomin/ESPAltherma) —
+reads the Daikin Altherma X10A port via ESP32 and exposes the attributes
+this integration consumes.
+
+Local-only. No cloud. No accounts. Everything runs inside the Home
+Assistant box.
+
+HA custom integration. Python 3.14 (CI) / 3.13 (ruff target, model-compat).
+Min HA 2026.9.0 (hacs.json). Loaded automatically by the coding agent at
+session start.
 
 NOTE ON FORMAT: code samples use 4-space indented blocks per R349.
 Do not add triple-backtick fences when editing this file.
@@ -9,30 +22,78 @@ Do not add triple-backtick fences when editing this file.
 NOTE: DEEPSEEK.md is local-only, gitignored. Read it from the dev
 container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
 
-## Project identity
+## Project identity (v84.0 — verified 2026-11-18)
 
-- Repo: /workspace/daikin_cycle_ml (daikin_cycle_dev, image python:3.14)
-- Main tip: 14dadfe (I8 squash merge, PR #82)
-- Working branch: none (main clean)
-- Tracker: GitHub issue #66 (PINNED, 66 done / 21 pending)
-- Release in flight: v1.9.0 (target); stable is v1.8.1
+- GitHub: elRadix/daikin_cycle_ml · default branch main · HACS custom repo
+- Dev container: /workspace/daikin_cycle_ml (daikin_cycle_dev, image python:3.14)
+  Cloud sessions (claude.ai/code) clone to /home/user/daikin_cycle_ml:
+  Python 3.13, no homeassistant package installed — run bootstrap first.
+- Main tip: 25c2d48 (Part of #388: cop_normalized_a7w35 raw-attr fallbacks, PR #389)
+  Full hash: 25c2d4845465a3d3486affae49dd817de155cfd6
+- Latest release/tag: v1.22.10 (2026-11-16, commit 91034f5, PR #386)
+  Previous: v1.22.9 (2026-11-16), v1.22.8 (2026-11-15)
+- CHANGELOG [Unreleased]: #388 COP raw-attr fallbacks + MAX_COP gate (PR #389)
+- Manifest / const.VERSION: 1.22.10 (match)
+- Open PRs: none
 - Retired: run.py — never reference
-- Ruleset protect-main: id 24465625, 6 required contexts
-- CI workflows on main: 7 (Ruff, Hassfest, HACS Validation, Mypy, Pylint, Coverage, CodeQL)
+- Ruleset protect-main: id 24465625 — required-context count TE VERIFIEREN
+- CI workflows (.github/workflows, 8): ruff, hassfest, hacs, mypy, pylint,
+  coverage, markdown, model-compat. Plus CodeQL (dynamic, "Push on main").
+- CI on main @ 25c2d48: all green (Coverage, Markdown, Ruff, Hassfest,
+  Pylint, HACS, Mypy, CodeQL).
+- Model compat (scheduled daily 06:00 UTC) FAILED on 2026-11-17 @ 91034f5 —
+  cause TE VERIFIEREN.
 
-## Current state (v83.0 rebuilt 2026-10-19)
+## Trackers / open issues (2026-11-18, 18 open)
 
-- Coverage: 100.00% (6724 stmts / 1922 branches)
-- Tests: 6724 passed / 4 skipped
-- Mypy: 35 files strict (via /opt/mypy-ci-venv, HA 2026.9.3)
-- i18n parity: config.step 157/157/157 · options.step 281/281/281
-- options.notifications_enabled 11/11/11 · options.notifications_dedup 19/19/19
-- Sensors / Binary / Registry: 50 / 15 / 61 (+2 update.* = 63 by entity_id)
-- Services / Repairs: 10 / 8
-- Alerts (19): 17 BINARY_ALERT_MAP + 2 standalone (cop_low, stooklijn_advies) + status_summary
-- DB: daikin_cycle_ml.db schema v15 · HA Store alerts schema v1
-- Prod deployed: 14dadfe · Prod HA Core 2026.10.1 · Prod manifest 1.8.1
-- QA scripts: scripts/bootstrap.sh, scripts/ci-local.sh, scripts/pre-push
+Issue #66 (v1.9 tracker) is no longer the active tracker. Work is now
+tracked per issue; commits/PRs reference their own issue
+("Part of #N" / "Fixes #N").
+
+- #388  p2 bug   COP chain impossible value (9.83), guards not firing —
+                 partially addressed by PR #389; MAX_COP / threshold part open
+- #369  p3 bug   Dashboards not working
+- #368  enh      Universal Energy Balance Engine + Adaptive Floor Buffer
+- #353  bug      v1.22.8 runtime_compressor_today undercount + BUH-active advice guards
+- #347  bug      Broken dashboards
+- #343  p1 enh   Subcooling-based refrigerant diagnostics (espaltherma)
+- #339  p2       Diagnostics v2 polish + tech-debt cleanup
+- #309           P1/P2 MQTT bridge as input
+- #288  p1 enh   Bivalent system support (Direct SH / Indirect DHW)
+- #239  p1       [Tracker] RFI #127 thermodynamics + COP sanity gates
+- #221  p1       [Tracker] Altherma R Hybrid (EVLQ) — future analytics
+- #208  p3       HA dark mode
+- #198  p2       Wizard dropdown -> full Daikin catalog via alias layer
+- #193  p3 docs  Canonical cycle-thresholds JSON shared with ESPAltherma
+- #189  p1       HT attribute aliases (blocked-external)
+- #187  p2 epic  ESPAltherma collaboration
+- #175  p3       Per-model stooklijn defaults HT (blocked-external)
+- #88   epic     Rolling backlog tracker
+
+## Current state (v84.0 — 2026-11-18)
+
+- Coverage: 100.00% (pyproject fail_under = 100)
+- Tests: README badge 6160 · 428 entries in tests/ · exact pass/skip
+  count TE VERIFIEREN (not runnable in cloud session without HA)
+- Pylint 10.00/10 · Ruff clean · Mypy strict 0 errors (CI, HA pin 2026.9.3)
+- Translations: en, nl, fr (+ icons.json)
+- Entities (README): 50 sensors · 17 binary sensors
+  (strings.json entity keys: sensor 51 / binary_sensor 20 — difference TE VERIFIEREN)
+- Services: 13 (services.yaml) · Repair issues: 11 (strings.json issues)
+- Alerts: 19
+- DB: daikin_cycle_ml.db schema v16 (v1.12.0 migration, #105/#107) ·
+  HA Store alerts v1 · user datasheet store v1
+- IQS: Bronze + Silver + Gold (README badge)
+- Prod deployed version / HA Core: TE VERIFIEREN
+- QA scripts: scripts/bootstrap.sh, scripts/ci-local.sh, scripts/pre-push,
+  scripts/check-markdown.sh, scripts/create_issue.py, update_issue.py,
+  resolve_issue.py, git_safe.py
+
+### Superseded v83.0 snapshot (2026-10-19, VERVALLEN — kept for history)
+
+- Main 14dadfe (PR #82), tracker #66, release target v1.9.0, stable v1.8.1
+- Tests 6724 / 4 skipped, 35 mypy files, 50 / 15 entities, 10 services,
+  8 repairs, DB schema v15, prod 14dadfe on HA 2026.10.1
 
 ## Hard rules (ACTIVE — never violate)
 
@@ -43,8 +104,9 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
     R329  No | head -N under set -euo pipefail — SIGPIPE kills the block.
     R347  After translation deploy: HA Core restart OR config-entry reload.
     R350  Recon-grep before any alert-pipeline change. --exclude-dir=__pycache__.
-    R351  Every commit subject carries (#66). PR body line 1 = Refs #66.
-          Tick boxes only AFTER merge.
+    R351  VERVALLEN (v84.0): #66 no longer the tracker. Current practice:
+          commit/PR references its own issue ("Part of #N" / "Fixes #N").
+          Tick tracker boxes only AFTER merge.
     R352  Never combine cat >> and gh post in one heredoc. Split, or cat >.
     R353  getattr(self, name, default) in _build_alert_context /
           _alert_binary_states. Never direct attribute access.
@@ -202,7 +264,7 @@ per-regel recon + format-matching). Zie handoff v17.0 DEEL 15.1 #2.
 ## CI gates (must pass before every commit)
 
 - Smoke:   pytest --no-cov tests/<file>
-- Full:    pytest -q  (target: 4 skipped, 100.00% coverage)
+- Full:    pytest -q  (target: 100.00% coverage, fail_under=100)
 - Ruff:    ruff check --no-fix --select E,F,W --ignore E501,E402,F401 <files>
 - Mypy:    mypy --strict custom_components/
 
@@ -212,7 +274,7 @@ per-regel recon + format-matching). Zie handoff v17.0 DEEL 15.1 #2.
 1. Read HANDOFF.md → run bootstrap.
 2. Recon (R350 grep) — no writes.
 3. Review plan with user. Wait for "go".
-4. Implement, one commit per deliverable. Subject ends (#66).
+4. Implement, one commit per deliverable. Subject references its issue (#N).
 5. Verify — full pytest + ruff + mypy.
 6. Review — pre-merge rule check.
 7. Plan-B live-fire — MANUAL: user triggers OptionsFlow Test-all.
@@ -324,15 +386,15 @@ Key options:
 
 ## Daily operation
 
-Sensors (50) — subset below; full list in live entity registry:
+Sensors (50 per README) — subset below; full list in live entity registry:
 cycle_state, current_cycle, last_cycle, today, quality_today,
 source_health, learned_thresholds, cop_vandaag, stooklijn_advies.
-Binary sensors (15): compressor_running, defrost_active, buh_active,
+Binary sensors (17 per README; list below is the v83 subset): compressor_running, defrost_active, buh_active,
 dhw_active, heating_active, cooling_active, pendulum_hourly,
 pendulum_daily, short_run, short_off, source_stale,
 missing_attributes, setpoint_oscillating, dhw_pendulum, high_cycle_rate.
 
-Services (10):
+Services (13):
 - daikin_cycle_ml.reset_counters
 - daikin_cycle_ml.export_cycles
 - daikin_cycle_ml.label_cycle
@@ -343,6 +405,9 @@ Services (10):
 - daikin_cycle_ml.import_datasheet
 - daikin_cycle_ml.remove_user_datasheet
 - daikin_cycle_ml.recompute_kmeans
+- daikin_cycle_ml.assign_legacy_db
+- daikin_cycle_ml.archive_legacy_db
+- daikin_cycle_ml.export_legacy_db
 
 Scheduled jobs (automatic):
 - poll every 30s
@@ -369,6 +434,18 @@ Diagnostics endpoint: Settings -> Devices & Services -> Daikin Cycle ML
 - entry (redacted), coordinator state, store counters, last cycle
 - baseline summary (per-mode sample counts)
 - database counts (5 tables) + extra (daily_summary 7d, model_state keys)
+
+## Changelog policy (added 2026-11-18)
+
+- CHANGELOG.md is APPEND-ONLY. Add new items under ## [Unreleased]
+  using the existing section style (### Added / Changed / Fixed / ...).
+- Never restructure, reformat, regroup or re-link existing history.
+  A full Keep a Changelog reformat was tried (f140781) and reverted
+  (8d46d9f) on user instruction.
+- Fixes stay under [Unreleased] until the user decides to release;
+  no version bump or tag on your own initiative.
+- PRs for user-reported issues use "Part of #N" (not "Fixes #N") so the
+  issue stays open until the release ships and the reporter confirms.
 
 ## Release procedure
 
@@ -457,3 +534,12 @@ dropped). All work is now pushed to origin after each batch to prevent recurrenc
 - SOP.md → git rm, all sections migrated here verbatim.
 - Run.py rules R83-R92 moved to Historical rules (RETIRED) section.
 - Rule catalog R374-R384 promoted from candidate → active.
+
+### v84.0 addendum (2026-11-18)
+
+- Handoff refreshed from live git + GitHub state; v83.0 snapshot was stale
+  (v1.9.0 era). Main = 25c2d48, latest release v1.22.10.
+- Product description (README intro) added to top of this file.
+- Tracker #66 retired as active tracker; R351 marked VERVALLEN.
+- Open follow-ups: #388 remainder, Model compat scheduled failure,
+  test count + prod state TE VERIFIEREN.

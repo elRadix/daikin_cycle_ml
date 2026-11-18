@@ -35,7 +35,7 @@ cards:
           var cfgLangOvr = String(CFG.lang_override || '').toLowerCase();
           var haLang = (typeof hass !== 'undefined' && hass && hass.language) ? String(hass.language).toLowerCase() : '';
           var _cl = '';
-          try { for (var _k in states) { if (states[_k] && states[_k].attributes && states[_k].attributes.configured_language && (_k.endsWith('_cycle_state') || _k.endsWith('_cyclus_status'))) { _cl = String(states[_k].attributes.configured_language).toLowerCase(); break; } } } catch(e) {}
+          try { for (var _k in states) { if (states[_k] && states[_k].attributes && states[_k].attributes.configured_language && (_k.endsWith('_cycle_state') || _k.endsWith('_cyclus_status') || _k.endsWith('_etat_du_cycle'))) { _cl = String(states[_k].attributes.configured_language).toLowerCase(); break; } } } catch(e) {}
           var LANG = 'en';
           if (cfgLangOvr === 'nl' || cfgLangOvr === 'en' || cfgLangOvr === 'fr') LANG = cfgLangOvr;
           else if (haLang.indexOf('nl') === 0) LANG = 'nl';
@@ -46,10 +46,12 @@ cards:
           var specs = null;
           var keys = Object.keys(states);
           for (var k = 0; k < keys.length; k++) {
-            if (keys[k].indexOf('sensor.') === 0 && (keys[k].endsWith('_hp_specs') || keys[k].endsWith('_wp_specs'))) {
+            if (keys[k].indexOf('sensor.') === 0 && (keys[k].endsWith('_hp_specs') || keys[k].endsWith('_wp_specs') || keys[k].endsWith('_caracteristiques_de_la_pac'))) {
               specs = states[keys[k]]; break;
             }
           }
+          var _sEnts = (typeof hass !== 'undefined' && hass && hass.entities) ? hass.entities : null; /* #347: renamed entity ids */
+          if (!specs && _sEnts) { for (var _sId in _sEnts) { var _sE = _sEnts[_sId]; if (_sE && _sE.platform === 'daikin_cycle_ml' && _sE.translation_key === 'hp_specs' && states[_sId]) { specs = states[_sId]; break; } } }
           var model = (specs && specs.attributes && specs.attributes.model) ? String(specs.attributes.model).toUpperCase() : '';
           var title = '⚙️ LWT FINE-TUNING' + (model ? ' · ' + model : '');
           var subtitle = LANG === 'nl' ? 'Stooklijn · Rendement · COP Analyse' : (LANG === 'fr' ? "Loi d'eau · Rendement · Analyse COP" : 'Heating Curve · Efficiency · COP Analysis');
@@ -129,7 +131,7 @@ cards:
             
             var haLang = (typeof hass !== 'undefined' && hass && hass.language) ? String(hass.language).toLowerCase() : '';
             var _cl = '';
-            try { for (var _k in states) { if (states[_k] && states[_k].attributes && states[_k].attributes.configured_language && (_k.endsWith('_cycle_state') || _k.endsWith('_cyclus_status'))) { _cl = String(states[_k].attributes.configured_language).toLowerCase(); break; } } } catch(e) {}
+            try { for (var _k in states) { if (states[_k] && states[_k].attributes && states[_k].attributes.configured_language && (_k.endsWith('_cycle_state') || _k.endsWith('_cyclus_status') || _k.endsWith('_etat_du_cycle'))) { _cl = String(states[_k].attributes.configured_language).toLowerCase(); break; } } } catch(e) {}
             var LANG = 'en';
             if (cfgLangOvr === 'nl' || cfgLangOvr === 'en' || cfgLangOvr === 'fr') {
               LANG = cfgLangOvr;
@@ -145,11 +147,12 @@ cards:
 
             /* ═══ 2. ENTITY REGISTRY ═══ */
             var REGISTRY = {
-              hp_specs: ['hp_specs', 'wp_specs'],
-              cycle_state: ['cycle_state', 'cyclus_status'],
-              lwt_advice: ['heating_curve_advice', 'stooklijn_advies']
+              hp_specs: ['hp_specs', 'wp_specs', 'caracteristiques_de_la_pac'],
+              cycle_state: ['cycle_state', 'cyclus_status', 'etat_du_cycle'],
+              lwt_advice: ['heating_curve_advice', 'stooklijn_advies', 'conseil_de_loi_d_eau']
             };
 
+            var _DCM_TK = {"hp_specs":"hp_specs","cycle_state":"cycle_state","heating_curve_advice":"heating_curve_advice"}; /* #347 entity resolver: en suffix -> translation_key */
             var resolveEntity = function(role) {
               var names = REGISTRY[role];
               if (!names) return null;
@@ -166,6 +169,8 @@ cards:
                   if (all[j].slice(-1 - names[i].length) === '_' + names[i]) return all[j];
                 }
               }
+              var _tkEn = names[0], _tkEnts = (typeof hass !== 'undefined' && hass && hass.entities) ? hass.entities : null; /* #347: registry lookup by translation_key (language independent) */
+              if (_tkEnts && _DCM_TK[_tkEn]) { for (var _tkId in _tkEnts) { var _tkE = _tkEnts[_tkId]; if (_tkE && _tkE.platform === 'daikin_cycle_ml' && _tkE.translation_key === _DCM_TK[_tkEn] && _tkId.indexOf('sensor.') === 0 && states[_tkId]) return _tkId; } }
               return null;
             };
 

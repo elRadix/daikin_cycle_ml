@@ -21,11 +21,11 @@ card_mod:
 cards:
   - type: custom:mushroom-template-card
     primary: >-
-      🎯 DAIKIN CYCLE ML — {{ 'ANALYSE DES CYCLES' if state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') == 'fr' else 'PATTERN ANALYSIS' }}{{ ' · ' +
-      (state_attr('sensor.daikin_cycle_ml_hp_specs','model')|string|upper) if
-      state_attr('sensor.daikin_cycle_ml_hp_specs','model') else '' }}
+      🎯 DAIKIN CYCLE ML — {{ 'ANALYSE DES CYCLES' if state_attr(((integration_entities('daikin_cycle_ml') | select('match', 'sensor[.].*_(cycle_state|cyclus_status|etat_du_cycle)$') | list) + ['sensor.daikin_cycle_ml_cycle_state']) | first,'configured_language') == 'fr' else 'PATTERN ANALYSIS' }}{{ ' · ' +
+      (state_attr(((integration_entities('daikin_cycle_ml') | select('match', 'sensor[.].*_(hp_specs|wp_specs|caracteristiques_de_la_pac)$') | list) + ['sensor.daikin_cycle_ml_hp_specs']) | first,'model')|string|upper) if
+      state_attr(((integration_entities('daikin_cycle_ml') | select('match', 'sensor[.].*_(hp_specs|wp_specs|caracteristiques_de_la_pac)$') | list) + ['sensor.daikin_cycle_ml_hp_specs']) | first,'model') else '' }}
     secondary: >-
-      {% set l = state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') or 'en' -%}
+      {% set l = state_attr(((integration_entities('daikin_cycle_ml') | select('match', 'sensor[.].*_(cycle_state|cyclus_status|etat_du_cycle)$') | list) + ['sensor.daikin_cycle_ml_cycle_state']) | first,'configured_language') or 'en' -%}
       {% if l == 'nl' %}Verdeling · cycles vs duration · COP-efficiëntie{% elif l == 'fr' %}Répartition · cycles / durée · efficacité COP{% else %}Distribution · cycles vs duration · COP efficiency{% endif %}
     icon: mdi:chart-scatter-plot
     icon_color: blue
@@ -140,31 +140,32 @@ cards:
             var cfgLangOvr = String(CFG.lang_override || '').toLowerCase();
 
             var REGISTRY = {
-              daily_summary: ['daily_summary_recent','recent_dagoverzicht'],
-              hp_specs: ['hp_specs','wp_specs'],
-              cycle_state: ['cycle_state','cyclus_status'],
-              compressor_starts: ['compressor_starts_today','compressorstarts_vandaag'],
-              runtime_buh: ['runtime_buh_today','buh_bedrijfstijd_vandaag'],
-              defrost_count: ['defrost_count_today','ontdooiingen_vandaag'],
-              defrost_duration: ['defrost_duration_today','ontdooiingsduur_vandaag'],
-              duty_cycle: ['duty_cycle_today','duty_cycle_vandaag'],
-              cop_today: ['cop_today','cop_vandaag'],
-              cop_heating_day: ['cop_heating_day','cop_verwarming_dag'],
-              cop_heating_week: ['cop_heating_week','cop_verwarming_week'],
-              cop_heating_month: ['cop_heating_month','cop_verwarming_maand'],
-              cop_dhw_day: ['cop_dhw_day','cop_dhw_dag'],
-              cop_dhw_week: ['cop_dhw_week','cop_dhw_week'],
-              cop_dhw_month: ['cop_dhw_month','cop_dhw_maand'],
-              cop_cooling_day: ['cop_cooling_day','cop_koeling_dag'],
-              cop_cooling_week: ['cop_cooling_week','cop_koeling_week'],
-              cop_cooling_month: ['cop_cooling_month','cop_koeling_maand'],
-              spf_season: ['spf_season','spf_seizoen'],
-              cop_degradation_week: ['cop_degradation_week_pct','cop_degradatie_week_pct'],
-              learned_thresholds: ['learned_thresholds','geleerde_drempels'],
-              cop_curve_recent: ['cop_curve_recent'],
-              cop_vs_datasheet_pct: ['cop_vs_datasheet_pct']
+              daily_summary: ['daily_summary_recent','recent_dagoverzicht','resume_des_derniers_jours'],
+              hp_specs: ['hp_specs','wp_specs','caracteristiques_de_la_pac'],
+              cycle_state: ['cycle_state','cyclus_status','etat_du_cycle'],
+              compressor_starts: ['compressor_starts_today','compressorstarts_vandaag','demarrages_compresseur_aujourd_hui'],
+              runtime_buh: ['runtime_buh_today','buh_bedrijfstijd_vandaag','marche_appoint_aujourd_hui'],
+              defrost_count: ['defrost_count_today','ontdooiingen_vandaag','degivrages_aujourd_hui'],
+              defrost_duration: ['defrost_duration_today','ontdooiingsduur_vandaag','duree_de_degivrage_aujourd_hui'],
+              duty_cycle: ['duty_cycle_today','duty_cycle_vandaag','taux_de_marche_aujourd_hui'],
+              cop_today: ['cop_today','cop_vandaag','cop_chauffage_du_jour'],
+              cop_heating_day: ['cop_heating_day','cop_verwarming_dag','cop_chauffage_jour'],
+              cop_heating_week: ['cop_heating_week','cop_verwarming_week','cop_chauffage_semaine'],
+              cop_heating_month: ['cop_heating_month','cop_verwarming_maand','cop_chauffage_mois'],
+              cop_dhw_day: ['cop_dhw_day','cop_dhw_dag','cop_sww_dag','cop_eau_chaude_jour'],
+              cop_dhw_week: ['cop_dhw_week','cop_dhw_week','cop_sww_week','cop_eau_chaude_semaine'],
+              cop_dhw_month: ['cop_dhw_month','cop_dhw_maand','cop_sww_maand','cop_eau_chaude_mois'],
+              cop_cooling_day: ['cop_cooling_day','cop_koeling_dag','cop_rafraichissement_jour'],
+              cop_cooling_week: ['cop_cooling_week','cop_koeling_week','cop_rafraichissement_semaine'],
+              cop_cooling_month: ['cop_cooling_month','cop_koeling_maand','cop_rafraichissement_mois'],
+              spf_season: ['spf_season','spf_seizoen','rendement_saisonnier_spf_saison'],
+              cop_degradation_week: ['cop_degradation_week_pct','cop_degradatie_week_pct','cop_degradatie_week','baisse_du_cop_sur_la_semaine'],
+              learned_thresholds: ['learned_thresholds','geleerde_drempels','seuils_appris'],
+              cop_curve_recent: ['cop_curve_recent','courbe_de_cop_recente'],
+              cop_vs_datasheet_pct: ['cop_vs_datasheet_pct','cop_par_rapport_a_la_fiche']
             };
 
+            var _DCM_TK = {"daily_summary_recent":"daily_summary_recent","hp_specs":"hp_specs","cycle_state":"cycle_state","compressor_starts_today":"compressor_starts_today","runtime_buh_today":"runtime_buh_today","defrost_count_today":"defrost_count_today","defrost_duration_today":"defrost_duration_today","duty_cycle_today":"duty_cycle_today","cop_today":"cop_today","cop_heating_day":"cop_heating_day","cop_heating_week":"cop_heating_week","cop_heating_month":"cop_heating_month","cop_dhw_day":"cop_dhw_day","cop_dhw_week":"cop_dhw_week","cop_dhw_month":"cop_dhw_month","cop_cooling_day":"cop_cooling_day","cop_cooling_week":"cop_cooling_week","cop_cooling_month":"cop_cooling_month","spf_season":"spf_season","cop_degradation_week_pct":"cop_degradation_week_pct","learned_thresholds":"learned_thresholds","cop_curve_recent":"cop_curve_recent","cop_vs_datasheet_pct":"cop_vs_datasheet_pct"}; /* #347 entity resolver: en suffix -> translation_key */
             var resolveEntity = function(role){
               var names = REGISTRY[role];
               if(!names) return null;
@@ -181,6 +182,8 @@ cards:
                   if (all[i].endsWith('_'+names[j])) return all[i];
                 }
               }
+              var _tkEn = names[0], _tkEnts = (typeof hass !== 'undefined' && hass && hass.entities) ? hass.entities : null; /* #347: registry lookup by translation_key (language independent) */
+              if (_tkEnts && _DCM_TK[_tkEn]) { for (var _tkId in _tkEnts) { var _tkE = _tkEnts[_tkId]; if (_tkE && _tkE.platform === 'daikin_cycle_ml' && _tkE.translation_key === _DCM_TK[_tkEn] && _tkId.indexOf('sensor.') === 0 && states[_tkId]) return _tkId; } }
               return null;
             };
 

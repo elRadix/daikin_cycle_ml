@@ -13,7 +13,7 @@ cards:
     primary: 🔵 DAIKIN CYCLE ML
     secondary: >-
       {% set l =
-      state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') or
+      state_attr(((integration_entities('daikin_cycle_ml') | select('match', 'sensor[.].*_(cycle_state|cyclus_status|etat_du_cycle)$') | list) + ['sensor.daikin_cycle_ml_cycle_state']) | first,'configured_language') or
       'en' -%} {% if l == 'nl' %}📈 Stooklijn — LWT vs buiten · heatmap · modes
       · balans{% elif l == 'fr' %}📈 Loi d'eau — départ / extérieur · carte COP · modes · bilan{% else %}📈 Heating curve — LWT vs outdoor · heatmap · modes ·
       balance{% endif %}
@@ -46,6 +46,10 @@ cards:
     custom_fields:
       content: |
         [[[
+          /* #347 entity resolver (EN id -> [translation_key, nl, fr]) */
+          var _dcmA = {"binary_sensor.daikin_cycle_ml_buh_active":["buh_active","daikin_cycle_ml_buh_actief","daikin_cycle_ml_appoint_en_marche"],"binary_sensor.daikin_cycle_ml_compressor_running":["compressor_running","daikin_cycle_ml_compressor_actief","daikin_cycle_ml_compresseur_en_marche"],"binary_sensor.daikin_cycle_ml_defrost_active":["defrost_active","daikin_cycle_ml_defrost_actief","daikin_cycle_ml_degivrage_en_cours"],"sensor.daikin_cycle_ml_cop_curve_recent":["cop_curve_recent","daikin_cycle_ml_cop_curve_recent","daikin_cycle_ml_courbe_de_cop_recente"],"sensor.daikin_cycle_ml_cop_mean_day":["cop_mean_day","daikin_cycle_ml_cop_gemiddelde_dag","daikin_cycle_ml_cop_moyen_du_jour"],"sensor.daikin_cycle_ml_cop_mean_week":["cop_mean_week","daikin_cycle_ml_cop_gemiddelde_week","daikin_cycle_ml_cop_moyen_de_la_semaine"],"sensor.daikin_cycle_ml_cop_today":["cop_today","daikin_cycle_ml_cop_vandaag","daikin_cycle_ml_cop_chauffage_du_jour"],"sensor.daikin_cycle_ml_current_cycle":["current_cycle","daikin_cycle_ml_huidige_cyclus","daikin_cycle_ml_cycle_en_cours"],"sensor.daikin_cycle_ml_cycle_state":["cycle_state","daikin_cycle_ml_cyclus_status","daikin_cycle_ml_etat_du_cycle"],"sensor.daikin_cycle_ml_heating_curve_advice":["heating_curve_advice","daikin_cycle_ml_stooklijn_advies","daikin_cycle_ml_conseil_de_loi_d_eau"],"sensor.daikin_cycle_ml_hp_specs":["hp_specs","daikin_cycle_ml_wp_specs","daikin_cycle_ml_caracteristiques_de_la_pac"],"sensor.daikin_cycle_ml_last_cycle":["last_cycle","daikin_cycle_ml_laatste_cyclus","daikin_cycle_ml_dernier_cycle"],"sensor.daikin_cycle_ml_thermal_power_live":["thermal_power_live","daikin_cycle_ml_thermisch_vermogen_live","daikin_cycle_ml_puissance_thermique_instantanee"]};
+          var _dcmC = {};
+          var _dcmR = function(id){ if (_dcmC[id]) return _dcmC[id]; var r = id, a = _dcmA[id], st = (typeof states !== 'undefined' && states) ? states : {}; if (!st[id] && a) { var dom = id.split('.')[0], i, k, ents = (typeof hass !== 'undefined' && hass && hass.entities) ? hass.entities : null; if (ents) { for (k in ents) { var e = ents[k]; if (e && e.platform === 'daikin_cycle_ml' && e.translation_key === a[0] && k.indexOf(dom + '.') === 0 && st[k]) { r = k; break; } } } if (r === id) { for (i = 1; i < a.length; i++) { if (st[dom + '.' + a[i]]) { r = dom + '.' + a[i]; break; } } } } _dcmC[id] = r; return r; };
           /* ============ helpers ============ */
           var st = function(s,d){ if(d===undefined)d=0; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='')return d; var v=parseFloat(x.state); return isNaN(v)?d:v; };
           var stv = function(s){ var x=states[s]; if(!x||!x.state)return null; if(x.state==='unknown'||x.state==='unavailable'||x.state==='')return null; var v=parseFloat(x.state); return isNaN(v)?null:v; };
@@ -122,7 +126,7 @@ cards:
           var t = function(k){ return (STR[LANG] && STR[LANG][k]) || (STR.en && STR.en[k]) || k; };
 
           /* ============ AUTO-DISCOVERY ============ */
-          var S_STATE = 'sensor.daikin_cycle_ml_cycle_state';
+          var S_STATE = _dcmR('sensor.daikin_cycle_ml_cycle_state');
           var cfgLang = String(attr(S_STATE,'configured_language','en')).toLowerCase();
           var LANG = (cfgLang === 'nl') ? 'nl' : (cfgLang === 'fr' ? 'fr' : 'en');
           var cfgModel = String(attr(S_STATE,'configured_model','')).toLowerCase();
@@ -132,12 +136,12 @@ cards:
           var cfgInd    = attr(S_STATE,'configured_indoor_sensor',null);
 
           /* ============ data ============ */
-          var S_STOOK = 'sensor.daikin_cycle_ml_heating_curve_advice';
-          var S_CURVE = 'sensor.daikin_cycle_ml_cop_curve_recent';
-          var S_LAST  = 'sensor.daikin_cycle_ml_last_cycle';
-          var S_CUR   = 'sensor.daikin_cycle_ml_current_cycle';
-          var S_THERM = 'sensor.daikin_cycle_ml_thermal_power_live';
-          var S_COPTODAY = 'sensor.daikin_cycle_ml_cop_today';
+          var S_STOOK = _dcmR('sensor.daikin_cycle_ml_heating_curve_advice');
+          var S_CURVE = _dcmR('sensor.daikin_cycle_ml_cop_curve_recent');
+          var S_LAST  = _dcmR('sensor.daikin_cycle_ml_last_cycle');
+          var S_CUR   = _dcmR('sensor.daikin_cycle_ml_current_cycle');
+          var S_THERM = _dcmR('sensor.daikin_cycle_ml_thermal_power_live');
+          var S_COPTODAY = _dcmR('sensor.daikin_cycle_ml_cop_today');
 
           var stookBuckets = attr(S_STOOK,'buckets',{});
           /* R200: state is not an attribute — read from states[id].state */
@@ -163,8 +167,8 @@ cards:
           byMode.dhw.sort(function(a,b){return a.t-b.t;});
           byMode.cooling.sort(function(a,b){return a.t-b.t;});
 
-          var copDay   = stv('sensor.daikin_cycle_ml_cop_mean_day');
-          var copWeek  = stv('sensor.daikin_cycle_ml_cop_mean_week');
+          var copDay   = stv(_dcmR('sensor.daikin_cycle_ml_cop_mean_day'));
+          var copWeek  = stv(_dcmR('sensor.daikin_cycle_ml_cop_mean_week'));
           var copToday = stv(S_COPTODAY);
           var actualCOP = copDay !== null ? copDay : copToday;
 
@@ -184,11 +188,11 @@ cards:
 
           var compOn = false, buhOn = false, defrOn = false;
           try {
-            var bcomp = states['binary_sensor.daikin_cycle_ml_compressor_running'];
+            var bcomp = states[_dcmR('binary_sensor.daikin_cycle_ml_compressor_running')];
             compOn = bcomp && String(bcomp.state).toLowerCase()==='on';
-            var bbuh = states['binary_sensor.daikin_cycle_ml_buh_active'];
+            var bbuh = states[_dcmR('binary_sensor.daikin_cycle_ml_buh_active')];
             buhOn = bbuh && String(bbuh.state).toLowerCase()==='on';
-            var bdef = states['binary_sensor.daikin_cycle_ml_defrost_active'];
+            var bdef = states[_dcmR('binary_sensor.daikin_cycle_ml_defrost_active')];
             defrOn = bdef && String(bdef.state).toLowerCase()==='on';
           } catch(e){}
 
@@ -209,7 +213,7 @@ cards:
             'erla14': { kw: 14, lwtMin: 25, lwtMax: 65, nomCop: 4.2, family: 'Split',     ref: 'R32' },
             'erla16': { kw: 16, lwtMin: 25, lwtMax: 65, nomCop: 4.1, family: 'Split',     ref: 'R32' }
           };
-          var S_SPECS = 'sensor.daikin_cycle_ml_hp_specs';
+          var S_SPECS = _dcmR('sensor.daikin_cycle_ml_hp_specs');
           var hpIsConfigured = aB(S_SPECS, 'configured', false);
           var hp;
           if (hpIsConfigured) {
@@ -780,6 +784,10 @@ cards:
     custom_fields:
       content: |
         [[[
+          /* #347 entity resolver (EN id -> [translation_key, nl, fr]) */
+          var _dcmA = {"sensor.daikin_cycle_ml_cop_mean_day":["cop_mean_day","daikin_cycle_ml_cop_gemiddelde_dag","daikin_cycle_ml_cop_moyen_du_jour"],"sensor.daikin_cycle_ml_cop_mean_week":["cop_mean_week","daikin_cycle_ml_cop_gemiddelde_week","daikin_cycle_ml_cop_moyen_de_la_semaine"],"sensor.daikin_cycle_ml_cycle_state":["cycle_state","daikin_cycle_ml_cyclus_status","daikin_cycle_ml_etat_du_cycle"],"sensor.daikin_cycle_ml_heating_curve_advice":["heating_curve_advice","daikin_cycle_ml_stooklijn_advies","daikin_cycle_ml_conseil_de_loi_d_eau"]};
+          var _dcmC = {};
+          var _dcmR = function(id){ if (_dcmC[id]) return _dcmC[id]; var r = id, a = _dcmA[id], st = (typeof states !== 'undefined' && states) ? states : {}; if (!st[id] && a) { var dom = id.split('.')[0], i, k, ents = (typeof hass !== 'undefined' && hass && hass.entities) ? hass.entities : null; if (ents) { for (k in ents) { var e = ents[k]; if (e && e.platform === 'daikin_cycle_ml' && e.translation_key === a[0] && k.indexOf(dom + '.') === 0 && st[k]) { r = k; break; } } } if (r === id) { for (i = 1; i < a.length; i++) { if (st[dom + '.' + a[i]]) { r = dom + '.' + a[i]; break; } } } } _dcmC[id] = r; return r; };
           var st = function(s,d){ if(d===undefined)d=0; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='')return d; var v=parseFloat(x.state); return isNaN(v)?d:v; };
           var hasV = function(v){ return v!==null && v!==undefined && v!=='' && String(v)!=='None'; };
           var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.',','); };
@@ -789,7 +797,7 @@ cards:
           var DK_BLUE = '#0097E0';
           var DK_BLUE_DK = '#003366';
 
-          var S_STATE = 'sensor.daikin_cycle_ml_cycle_state';
+          var S_STATE = _dcmR('sensor.daikin_cycle_ml_cycle_state');
           var cfgLang = String(attr(S_STATE,'configured_language','en')).toLowerCase();
           var LANG = (cfgLang === 'nl') ? 'nl' : (cfgLang === 'fr' ? 'fr' : 'en');
           var T = {
@@ -803,12 +811,12 @@ cards:
           T.fr = FRO(T.en);
           var t = function(k){ return (T[LANG] && T[LANG][k]) || (T.en && T.en[k]) || k; };
 
-          var S = 'sensor.daikin_cycle_ml_heating_curve_advice';
+          var S = _dcmR('sensor.daikin_cycle_ml_heating_curve_advice');
           var sav = aN(S,'besparing_cop_pct',null);
           var opt = aN(S,'optimale_lwt',null);
           var now = aN(S,'huidige_lwt',null);
-          var copDay = st('sensor.daikin_cycle_ml_cop_mean_day', null);
-          var copWeek = st('sensor.daikin_cycle_ml_cop_mean_week', null);
+          var copDay = st(_dcmR('sensor.daikin_cycle_ml_cop_mean_day'), null);
+          var copWeek = st(_dcmR('sensor.daikin_cycle_ml_cop_mean_week'), null);
 
           var trendTxt = '—', trendCol = '#7f8c8d';
           if (copDay !== null && copWeek !== null && copWeek > 0) {

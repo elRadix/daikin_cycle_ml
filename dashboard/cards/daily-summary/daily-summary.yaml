@@ -46,6 +46,10 @@ cards:
     custom_fields:
       content: |
         [[[
+          /* #347 entity resolver (EN id -> [translation_key, nl, fr]) */
+          var _dcmA = {"sensor.daikin_cycle_ml_daily_summary_recent":["daily_summary_recent","daikin_cycle_ml_recent_dagoverzicht","daikin_cycle_ml_resume_des_derniers_jours"],"sensor.daikin_cycle_ml_hp_specs":["hp_specs","daikin_cycle_ml_wp_specs","daikin_cycle_ml_caracteristiques_de_la_pac"]};
+          var _dcmC = {};
+          var _dcmR = function(id){ if (_dcmC[id]) return _dcmC[id]; var r = id, a = _dcmA[id], st = (typeof states !== 'undefined' && states) ? states : {}; if (!st[id] && a) { var dom = id.split('.')[0], i, k, ents = (typeof hass !== 'undefined' && hass && hass.entities) ? hass.entities : null; if (ents) { for (k in ents) { var e = ents[k]; if (e && e.platform === 'daikin_cycle_ml' && e.translation_key === a[0] && k.indexOf(dom + '.') === 0 && st[k]) { r = k; break; } } } if (r === id) { for (i = 1; i < a.length; i++) { if (st[dom + '.' + a[i]]) { r = dom + '.' + a[i]; break; } } } } _dcmC[id] = r; return r; };
           try {
             /* ============================================================
                LANGUAGE
@@ -202,8 +206,8 @@ cards:
             /* ============================================================
                READ
                ============================================================ */
-            var SUMMARY = 'sensor.daikin_cycle_ml_daily_summary_recent';
-            var SPECS = 'sensor.daikin_cycle_ml_hp_specs';
+            var SUMMARY = _dcmR('sensor.daikin_cycle_ml_daily_summary_recent');
+            var SPECS = _dcmR('sensor.daikin_cycle_ml_hp_specs');
             var totalCycles = parseInt(stStr(SUMMARY, '0'), 10) || 0;
             var daysAvail = aN(SUMMARY, 'days_available', 0);
             var latestDay = attr(SUMMARY, 'latest_day', null);
