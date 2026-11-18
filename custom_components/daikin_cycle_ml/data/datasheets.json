@@ -12,7 +12,8 @@
       "https://www.daikin.at/content/dam/DACE-AT/document-library/catalogues/heat/Daikin_Katalog_Heizung_2025.pdf",
       "https://www.ncm-pcdb.org.uk/sap/pcdbdetails.jsp?pid=31&id=107746&type=362&mid=020045"
     ],
-    "climate_zone_note": "EBLA09DA3W1: primary curves Average (Daikin EU spec table). Keymark 011-1W0423 is Warmer climate only \u2014 stored separately as part_load_curves_warmer, MUST NOT be merged with Average."
+    "climate_zone_note": "EBLA09DA3W1: primary curves Average (Daikin EU spec table). Keymark 011-1W0423 is Warmer climate only \u2014 stored separately as part_load_curves_warmer, MUST NOT be merged with Average.",
+    "audit_392": "2026-11-18: models with verified=true carry Daikin product-table values (ref). Points without a source are kept unchanged; verified=false marks models not in Daikin's/ESPAltherma's catalogue."
   },
   "schema_version": 1,
   "generated": "2026-10-27T00:00:00Z",
@@ -54,7 +55,9 @@
       "charge_kg": 2.6,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [],
+      "verified": false,
+      "note": "Not in Daikin's or ESPAltherma's catalogue (EPRA E is 8-12 kW). Kept so existing config entries keep loading; values unverified."
     },
     "epra06eav3": {
       "family": "Monoblock",
@@ -65,17 +68,19 @@
       "charge_kg": 3.0,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [],
+      "verified": false,
+      "note": "Not in Daikin's or ESPAltherma's catalogue (EPRA E is 8-12 kW). Kept so existing config entries keep loading; values unverified."
     },
     "epra08eav3": {
-      "family": "Monoblock",
+      "family": "Altherma 3 H MT",
       "kw": 8,
       "lwt_min": 18,
       "lwt_max": 60,
-      "nom_cop": 4.4,
+      "nom_cop": 4.92,
       "charge_kg": 3.8,
-      "scop_w35": 4.65,
-      "scop_w55": 3.25,
+      "scop_w35": 4.79,
+      "scop_w55": 3.47,
       "refrigerant": "R32",
       "gwp": 675,
       "points": [
@@ -111,8 +116,7 @@
           "label": "A7/W55",
           "t_out": 7,
           "t_lwc": 55,
-          "cop": 2.94,
-          "hc": 2.94
+          "cop": 2.94
         },
         {
           "label": "A-7/W55",
@@ -121,14 +125,17 @@
           "cop": 2.05,
           "hc": 2.55
         }
-      ]
+      ],
+      "hc_max_a7": 7.95,
+      "ref": "daikin.co.uk product table ETBX12E9W / EPRA08-12EV (EN14511 Ta 7/6 C, LWC 35 C (dT5); SCOP EN14825 average climate)",
+      "verified": true
     },
     "epra10eav3": {
-      "family": "Monoblock",
+      "family": "Altherma 3 H MT",
       "kw": 10,
       "lwt_min": 18,
       "lwt_max": 60,
-      "nom_cop": 4.3,
+      "nom_cop": 4.92,
       "charge_kg": 3.8,
       "refrigerant": "R32",
       "gwp": 675,
@@ -165,8 +172,7 @@
           "label": "A7/W55",
           "t_out": 7,
           "t_lwc": 55,
-          "cop": 2.94,
-          "hc": 2.94
+          "cop": 2.94
         },
         {
           "label": "A-7/W55",
@@ -175,7 +181,12 @@
           "cop": 2.05,
           "hc": 2.55
         }
-      ]
+      ],
+      "scop_w35": 4.82,
+      "scop_w55": 3.48,
+      "hc_max_a7": 9.25,
+      "ref": "daikin.co.uk product table ETBX12E9W / EPRA08-12EV (EN14511 Ta 7/6 C, LWC 35 C (dT5); SCOP EN14825 average climate)",
+      "verified": true
     },
     "epra11eav3": {
       "family": "Monoblock",
@@ -186,17 +197,19 @@
       "charge_kg": 3.8,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [],
+      "verified": false,
+      "note": "Not in Daikin's or ESPAltherma's catalogue (EPRA E is 8-12 kW). Kept so existing config entries keep loading; values unverified."
     },
     "epra12eav3": {
-      "family": "Monoblock",
+      "family": "Altherma 3 H MT",
       "kw": 12,
       "lwt_min": 18,
       "lwt_max": 60,
-      "nom_cop": 4.2,
+      "nom_cop": 4.92,
       "charge_kg": 3.8,
-      "scop_w35": 4.63,
-      "scop_w55": 3.23,
+      "scop_w35": 4.82,
+      "scop_w55": 3.48,
       "refrigerant": "R32",
       "gwp": 675,
       "points": [
@@ -232,8 +245,7 @@
           "label": "A7/W55",
           "t_out": 7,
           "t_lwc": 55,
-          "cop": 2.94,
-          "hc": 2.94
+          "cop": 2.94
         },
         {
           "label": "A-7/W55",
@@ -242,7 +254,10 @@
           "cop": 2.05,
           "hc": 2.55
         }
-      ]
+      ],
+      "hc_max_a7": 9.97,
+      "ref": "daikin.co.uk product table ETBX12E9W / EPRA08-12EV (EN14511 Ta 7/6 C, LWC 35 C (dT5); SCOP EN14825 average climate)",
+      "verified": true
     },
     "epra14eav3": {
       "family": "Monoblock",
@@ -260,7 +275,9 @@
           "t_lwc": 35,
           "cop": 4.67
         }
-      ]
+      ],
+      "verified": false,
+      "note": "Not in Daikin's or ESPAltherma's catalogue (EPRA E is 8-12 kW; 14-18 kW is EPRA D). Kept so existing config entries keep loading; values unverified."
     },
     "epra16eav3": {
       "family": "Monoblock",
@@ -278,7 +295,9 @@
           "t_lwc": 35,
           "cop": 5.0
         }
-      ]
+      ],
+      "verified": false,
+      "note": "Not in Daikin's or ESPAltherma's catalogue (EPRA E is 8-12 kW; 14-18 kW is EPRA D). Kept so existing config entries keep loading; values unverified."
     },
     "erla04dav3": {
       "family": "Split",
@@ -289,7 +308,9 @@
       "charge_kg": 2.4,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [],
+      "verified": false,
+      "note": "Not in Daikin's or ESPAltherma's catalogue (ERLA D is 11-16 kW). Kept so existing config entries keep loading; values unverified."
     },
     "erla06dav3": {
       "family": "Split",
@@ -300,7 +321,9 @@
       "charge_kg": 2.9,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [],
+      "verified": false,
+      "note": "Not in Daikin's or ESPAltherma's catalogue (ERLA D is 11-16 kW). Kept so existing config entries keep loading; values unverified."
     },
     "erla08dav3": {
       "family": "Split",
@@ -311,7 +334,9 @@
       "charge_kg": 3.2,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [],
+      "verified": false,
+      "note": "Not in Daikin's or ESPAltherma's catalogue (ERLA D is 11-16 kW). Kept so existing config entries keep loading; values unverified."
     },
     "erla11dav3": {
       "family": "Split",
@@ -320,24 +345,31 @@
       "lwt_max": 60,
       "nom_cop": 4.83,
       "charge_kg": 3.8,
-      "scop_w35": 4.63,
-      "scop_w55": 3.23,
+      "scop_w35": 4.72,
+      "scop_w55": 3.27,
       "refrigerant": "R32",
       "gwp": 675,
       "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.83,
+          "hc": 10.6
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.66,
+          "hc": 9.82
+        },
         {
           "label": "A10/W35",
           "t_out": 10,
           "t_lwc": 35,
           "cop": 5.32,
           "hc": 9.2
-        },
-        {
-          "label": "A7/W35",
-          "t_out": 7,
-          "t_lwc": 35,
-          "cop": 4.83,
-          "hc": 10.56
         },
         {
           "label": "A2/W35",
@@ -352,13 +384,6 @@
           "t_lwc": 35,
           "cop": 2.92,
           "hc": 8.75
-        },
-        {
-          "label": "A7/W45",
-          "t_out": 7,
-          "t_lwc": 45,
-          "cop": 3.66,
-          "hc": 9.82
         },
         {
           "label": "A-2/W45",
@@ -388,7 +413,9 @@
           "cop": 1.82,
           "hc": 7.89
         }
-      ]
+      ],
+      "ref": "daikin.eu product table EBVX-D9W / ERLA11-14DV3 (ERLA11/14DAV3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "erla12dav3": {
       "family": "Split",
@@ -401,7 +428,9 @@
       "scop_w55": 3.22,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [],
+      "verified": false,
+      "note": "Not in Daikin's or ESPAltherma's catalogue (ERLA D is 11-16 kW). Kept so existing config entries keep loading; values unverified."
     },
     "erla14dav3": {
       "family": "Split",
@@ -410,24 +439,31 @@
       "lwt_max": 60,
       "nom_cop": 4.87,
       "charge_kg": 3.8,
-      "scop_w35": 4.6,
-      "scop_w55": 3.22,
+      "scop_w35": 4.68,
+      "scop_w55": 3.26,
       "refrigerant": "R32",
       "gwp": 675,
       "points": [
-        {
-          "label": "A10/W35",
-          "t_out": 10,
-          "t_lwc": 35,
-          "cop": 5.32,
-          "hc": 9.2
-        },
         {
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
           "cop": 4.87,
           "hc": 12.0
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.64,
+          "hc": 12.5
+        },
+        {
+          "label": "A10/W35",
+          "t_out": 10,
+          "t_lwc": 35,
+          "cop": 5.32,
+          "hc": 9.2
         },
         {
           "label": "A2/W35",
@@ -442,13 +478,6 @@
           "t_lwc": 35,
           "cop": 2.86,
           "hc": 9.3
-        },
-        {
-          "label": "A7/W45",
-          "t_out": 7,
-          "t_lwc": 45,
-          "cop": 3.64,
-          "hc": 12.45
         },
         {
           "label": "A-2/W45",
@@ -478,7 +507,9 @@
           "cop": 1.82,
           "hc": 8.47
         }
-      ]
+      ],
+      "ref": "daikin.eu product table EBVX-D9W / ERLA11-14DV3 (ERLA11/14DAV3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "erla16dav3": {
       "family": "Split",
@@ -493,18 +524,25 @@
       "gwp": 675,
       "points": [
         {
-          "label": "A10/W35",
-          "t_out": 10,
-          "t_lwc": 35,
-          "cop": 5.32,
-          "hc": 9.2
-        },
-        {
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
           "cop": 4.53,
           "hc": 16.0
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.51,
+          "hc": 16.0
+        },
+        {
+          "label": "A10/W35",
+          "t_out": 10,
+          "t_lwc": 35,
+          "cop": 5.32,
+          "hc": 9.2
         },
         {
           "label": "A2/W35",
@@ -519,13 +557,6 @@
           "t_lwc": 35,
           "cop": 2.7,
           "hc": 10.6
-        },
-        {
-          "label": "A7/W45",
-          "t_out": 7,
-          "t_lwc": 45,
-          "cop": 3.51,
-          "hc": 16.0
         },
         {
           "label": "A-2/W45",
@@ -555,14 +586,16 @@
           "cop": 1.78,
           "hc": 8.87
         }
-      ]
+      ],
+      "ref": "daikin.eu product table EBVX-D6V / ERLA-DW17 (ERLA16DAW17) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5)); SCOP not changed (V3 variant)",
+      "verified": true
     },
     "erga04eav3": {
       "family": "Split",
       "kw": 4,
       "lwt_min": 25,
       "lwt_max": 55,
-      "nom_cop": 4.6,
+      "nom_cop": 5.1,
       "charge_kg": 2.6,
       "refrigerant": "R32",
       "gwp": 675,
@@ -571,22 +604,28 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 5.1
+          "cop": 5.1,
+          "hc": 4.3
         },
         {
-          "label": "A7/W55",
+          "label": "A7/W45",
           "t_out": 7,
-          "t_lwc": 55,
-          "cop": 3.65
+          "t_lwc": 45,
+          "cop": 3.65,
+          "hc": 4.6
         }
-      ]
+      ],
+      "scop_w35": 4.54,
+      "scop_w55": 3.29,
+      "ref": "daikin.eu product table EHBX-E6V / ERGA04-08EVA (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "erga06eav3": {
       "family": "Split",
       "kw": 6,
       "lwt_min": 25,
       "lwt_max": 55,
-      "nom_cop": 4.6,
+      "nom_cop": 4.85,
       "charge_kg": 3.0,
       "refrigerant": "R32",
       "gwp": 675,
@@ -595,15 +634,21 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 4.85
+          "cop": 4.85,
+          "hc": 6.0
         },
         {
-          "label": "A7/W55",
+          "label": "A7/W45",
           "t_out": 7,
-          "t_lwc": 55,
-          "cop": 3.5
+          "t_lwc": 45,
+          "cop": 3.5,
+          "hc": 5.9
         }
-      ]
+      ],
+      "scop_w35": 4.52,
+      "scop_w55": 3.27,
+      "ref": "daikin.eu product table EHBX-E6V / ERGA04-08EVA (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "erga08eav3": {
       "family": "Split",
@@ -619,15 +664,21 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 4.6
+          "cop": 4.6,
+          "hc": 7.5
         },
         {
-          "label": "A7/W55",
+          "label": "A7/W45",
           "t_out": 7,
-          "t_lwc": 55,
-          "cop": 3.5
+          "t_lwc": 45,
+          "cop": 3.5,
+          "hc": 7.8
         }
-      ]
+      ],
+      "scop_w35": 4.61,
+      "scop_w55": 3.3,
+      "ref": "daikin.eu product table EHBX-E6V / ERGA04-08EVA (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "epga10dav3": {
       "family": "Split",
@@ -638,7 +689,9 @@
       "charge_kg": 3.5,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [],
+      "verified": false,
+      "note": "Not in Daikin's or ESPAltherma's catalogue (EPGA D is 11-16 kW). Kept so existing config entries keep loading; values unverified."
     },
     "epga11dav3": {
       "family": "Split",
@@ -721,47 +774,123 @@
       "charge_kg": 3.5,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.91,
+          "hc": 9.37
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.71,
+          "hc": 9.0
+        }
+      ],
+      "scop_w35": 4.72,
+      "scop_w55": 3.39,
+      "ref": "daikin.co.uk product tables EDLA09-14D3V3 (EDLA0xDA3V3) and EDLA-D3V37 (EDLA16DA3V37) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "edla11d3v3": {
       "family": "Monoblock",
       "kw": 11,
       "lwt_min": 25,
       "lwt_max": 60,
-      "nom_cop": 4.91,
+      "nom_cop": 4.83,
       "charge_kg": 4.0,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.83,
+          "hc": 10.6
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.66,
+          "hc": 9.82
+        }
+      ],
+      "scop_w35": 4.64,
+      "scop_w55": 3.32,
+      "ref": "daikin.co.uk product tables EDLA09-14D3V3 (EDLA0xDA3V3) and EDLA-D3V37 (EDLA16DA3V37) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "edla14d3v3": {
       "family": "Monoblock",
       "kw": 14,
       "lwt_min": 25,
       "lwt_max": 60,
-      "nom_cop": 4.91,
+      "nom_cop": 4.87,
       "charge_kg": 4.5,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.87,
+          "hc": 12.0
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.64,
+          "hc": 12.5
+        }
+      ],
+      "scop_w35": 4.62,
+      "scop_w55": 3.37,
+      "ref": "daikin.co.uk product tables EDLA09-14D3V3 (EDLA0xDA3V3) and EDLA-D3V37 (EDLA16DA3V37) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "edla16d3v3": {
       "family": "Monoblock",
       "kw": 16,
       "lwt_min": 25,
       "lwt_max": 60,
-      "nom_cop": 4.91,
+      "nom_cop": 4.53,
       "charge_kg": 5.0,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.53,
+          "hc": 16.0
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.51,
+          "hc": 16.0
+        }
+      ],
+      "scop_w35": 4.62,
+      "scop_w55": 3.33,
+      "ref": "daikin.co.uk product tables EDLA09-14D3V3 (EDLA0xDA3V3) and EDLA-D3V37 (EDLA16DA3V37) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "ebla04ev3": {
       "family": "Monoblock",
       "kw": 4,
       "lwt_min": 25,
       "lwt_max": 55,
-      "nom_cop": 4.6,
+      "nom_cop": 5.1,
       "charge_kg": 2.6,
       "refrigerant": "R32",
       "gwp": 675,
@@ -770,22 +899,28 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 5.1
+          "cop": 5.1,
+          "hc": 4.3
         },
         {
-          "label": "A7/W55",
+          "label": "A7/W45",
           "t_out": 7,
-          "t_lwc": 55,
-          "cop": 3.65
+          "t_lwc": 45,
+          "cop": 3.65,
+          "hc": 4.6
         }
-      ]
+      ],
+      "scop_w35": 4.54,
+      "scop_w55": 3.29,
+      "ref": "daikin.co.uk product table EBLA04-08EV3 (EBLA0xE2V3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "ebla06ev3": {
       "family": "Monoblock",
       "kw": 6,
       "lwt_min": 25,
       "lwt_max": 55,
-      "nom_cop": 4.6,
+      "nom_cop": 4.85,
       "charge_kg": 3.0,
       "refrigerant": "R32",
       "gwp": 675,
@@ -794,15 +929,21 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 4.85
+          "cop": 4.85,
+          "hc": 6.0
         },
         {
-          "label": "A7/W55",
+          "label": "A7/W45",
           "t_out": 7,
-          "t_lwc": 55,
-          "cop": 3.5
+          "t_lwc": 45,
+          "cop": 3.5,
+          "hc": 5.9
         }
-      ]
+      ],
+      "scop_w35": 4.52,
+      "scop_w55": 3.28,
+      "ref": "daikin.co.uk product table EBLA04-08EV3 (EBLA0xE2V3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "ebla08ev3": {
       "family": "Monoblock",
@@ -818,15 +959,21 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 4.6
+          "cop": 4.6,
+          "hc": 7.5
         },
         {
-          "label": "A7/W55",
+          "label": "A7/W45",
           "t_out": 7,
-          "t_lwc": 55,
-          "cop": 3.5
+          "t_lwc": 45,
+          "cop": 3.5,
+          "hc": 7.8
         }
-      ]
+      ],
+      "scop_w35": 4.61,
+      "scop_w55": 3.35,
+      "ref": "daikin.co.uk product table EBLA04-08EV3 (EBLA0xE2V3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "edlq05cv3": {
       "family": "Monoblock",
@@ -954,7 +1101,9 @@
           "t_lwc": 35,
           "cop": 5.0
         }
-      ]
+      ],
+      "verified": false,
+      "note": "Not in Daikin's or ESPAltherma's catalogue (EPRA E is 8-12 kW; 14-18 kW is EPRA D). Kept so existing config entries keep loading; values unverified."
     },
     "eblq05cv3": {
       "family": "Monoblock",
@@ -964,7 +1113,26 @@
       "nom_cop": 5.0,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 5.0,
+          "hc": 4.4
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.58,
+          "hc": 4.03
+        }
+      ],
+      "scop_w35": 4.45,
+      "scop_w55": 3.22,
+      "ref": "daikin-ce.com product table EBLQ-CV3 (EBLQ05/07CAV3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "eblq07cv3": {
       "family": "Monoblock",
@@ -974,7 +1142,26 @@
       "nom_cop": 4.52,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.52,
+          "hc": 7.0
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.42,
+          "hc": 6.9
+        }
+      ],
+      "scop_w35": 4.18,
+      "scop_w55": 3.22,
+      "ref": "daikin-ce.com product table EBLQ-CV3 (EBLQ05/07CAV3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     },
     "eblq11cv3": {
       "family": "Monoblock",
@@ -1430,11 +1617,12 @@
           "t_out": 7,
           "t_lwc": 35,
           "cop": 4.67,
-          "hc": 14.0
+          "hc": 5.69
         }
       ],
       "hc_max_a7": 10.18,
-      "ref": "daikin.eu product table ETVH16S18EA6V / EPRA1xDAV3 (EN14511, A7/W35 dT5)"
+      "ref": "daikin.eu product table ETVX16E6V / EPRA014-018DV (EN14511 Ta 7/6 C, LWC 35 C (dT5); max capacity dT 3-8 at Ta 7); SCOP from ETVH16S18EA6V table (indoor-dependent)",
+      "verified": true
     },
     "epra16dav3": {
       "family": "Altherma 3 H HT",
@@ -1452,11 +1640,12 @@
           "t_out": 7,
           "t_lwc": 35,
           "cop": 5.0,
-          "hc": 16.0
+          "hc": 9.0
         }
       ],
       "hc_max_a7": 10.91,
-      "ref": "daikin.eu product table ETVH16S18EA6V / EPRA1xDAV3 (EN14511, A7/W35 dT5)"
+      "ref": "daikin.eu product table ETVX16E6V / EPRA014-018DV (EN14511 Ta 7/6 C, LWC 35 C (dT5); max capacity dT 3-8 at Ta 7); SCOP from ETVH16S18EA6V table (indoor-dependent)",
+      "verified": true
     },
     "epra18dav3": {
       "family": "Altherma 3 H HT",
@@ -1474,11 +1663,42 @@
           "t_out": 7,
           "t_lwc": 35,
           "cop": 5.0,
-          "hc": 18.0
+          "hc": 9.0
         }
       ],
       "hc_max_a7": 12.12,
-      "ref": "daikin.eu product table ETVH16S18EA6V / EPRA1xDAV3 (EN14511, A7/W35 dT5)"
+      "ref": "daikin.eu product table ETVX16E6V / EPRA014-018DV (EN14511 Ta 7/6 C, LWC 35 C (dT5); max capacity dT 3-8 at Ta 7); SCOP from ETVH16S18EA6V table (indoor-dependent)",
+      "verified": true
+    },
+    "erga08evh7": {
+      "family": "Split",
+      "kw": 8,
+      "lwt_min": 25,
+      "lwt_max": 55,
+      "nom_cop": 4.6,
+      "scop_w35": 4.61,
+      "scop_w55": 3.35,
+      "charge_kg": 3.4,
+      "refrigerant": "R32",
+      "gwp": 675,
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.6,
+          "hc": 7.5
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.5,
+          "hc": 7.8
+        }
+      ],
+      "ref": "daikin.eu product table EHBX-E6V / ERGA-EVH7 (ERGA08EAV3H7) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "verified": true
     }
   }
 }

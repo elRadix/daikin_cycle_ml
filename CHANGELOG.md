@@ -18,6 +18,26 @@
   render byte-identical output. Pattern Analysis also had wrong Dutch
   aliases for the DHW COP sensors (`cop_sww_*`) and `cop_degradatie_week`
   (#347, #369)
+- Datasheet corrections from official Daikin product tables (EN14511 /
+  EN14825), each with a `ref` and `verified: true` (#392):
+  - EPRA08/10/12EAV3: `nom_cop` 4.92 (was 4.4/4.3/4.2), SCOP 4.79-4.82 /
+    3.47-3.48 (was copied from ERLA11), family `Altherma 3 H MT` (was
+    Monoblock), max capacity added, bogus `A7/W55 hc` removed
+  - ERGA04-08EAV3 and EBLA04-08EV3: the second point was labelled A7/W55
+    but held Daikin's LWC 45 C values; relabelled A7/W45, capacities and
+    SCOP added
+  - EDLA09-16D3V3: `nom_cop` per size (all were 4.91) and A7/W35 + A7/W45
+    points added
+  - ERLA11/14DAV3 SCOP, ERLA16 / EPRA14-18DAV3 nominal capacities,
+    EBLQ05/07CV3 points + SCOP
+  - `erga08evh7` (ERGA08EAV3H7) was a wizard choice without a datasheet
+  - EPRA04/06/11/14/16/18EAV3, ERLA04/06/08/12DAV3 and EPGA10DAV3 are not in
+    Daikin's or ESPAltherma's catalogue: flagged `verified: false` with a
+    note, not removed (existing config entries keep loading)
+- `docs/MODEL_ATTRIBUTES.json` regenerated at ESPAltherma beta `b613d10`
+  (+2 labels, none removed). The scheduled model-compat drift job failed
+  daily because the `model-compat` label did not exist; it now creates it
+  (#392)
 
 ### Tests
 - `tests/test_347_dashboard_entity_resolution.py` — 32 tests: no bare
@@ -25,6 +45,11 @@
   headers rendered by the real HA template engine for EN/NL/FR ids, and
   every card JS block executed under Node for EN/NL/FR/renamed ids
   (#347, #369)
+- `tests/test_392_datasheet_audit.py` (279) and
+  `tests/test_392_config_flow_all_models_e2e.py` (66): datasheet
+  consistency, pinned Daikin values, ESPAltherma family mapping, and the
+  full wizard through HA's flow manager for every model plus setup,
+  options round-trip and unload (#392)
 
 ## [1.22.10] - 2026-11-16
 

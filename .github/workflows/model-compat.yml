@@ -162,6 +162,12 @@ jobs:
 
           This issue is managed by .github/workflows/model-compat.yml (weekly-drift). It is edited, not duplicated."
 
+          # #392: the label did not exist, so `gh issue create --label`
+          # failed and the drift job went red daily. Create it idempotently.
+          gh label create "model-compat" \
+            --description "ESPAltherma upstream drift (model-compat workflow)" \
+            --color "5319e7" --force
+
           EXISTING=$(gh issue list --label "model-compat" --state open --json number --jq '.[0].number // empty')
 
           if [ -n "$EXISTING" ]; then
