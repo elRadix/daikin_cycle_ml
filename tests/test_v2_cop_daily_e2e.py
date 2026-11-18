@@ -417,11 +417,13 @@ async def test_boiler_sample_excluded_from_rollup(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_artifact_sample_included_in_rollup(tmp_path) -> None:
-    """is_transition_artifact=1 is NOT excluded from cop_hourly.
+async def test_artifact_sample_excluded_from_rollup(tmp_path) -> None:
+    """#388: is_transition_artifact=1 is excluded from cop_hourly.
 
-    Documents existing behaviour: artifacts only affect the v28 flag,
-    not the hourly aggregation. Boiler exclusion is the only filter.
+    Pre-#388 the live rollup included classifier-flagged samples while
+    _rebuild_cop_hourly_for_hours excluded them. Prod-1 showed flagged
+    14.0 samples inflating cop_mean_* / cop_today. Flagged rows stay in
+    cop_samples for the v28 audit trail; they no longer feed aggregates.
     """
     db = await _mk_fresh_db(tmp_path)
     try:
@@ -441,9 +443,8 @@ async def test_artifact_sample_included_in_rollup(tmp_path) -> None:
             "SELECT n_samples FROM cop_hourly"
         ) as cur:
             n_s = (await cur.fetchone())[0]
-        assert n_s == 2, (
-            f"existing behaviour includes artifacts; got n={n_s} — "
-            "if this changes, update the test AND the v28 design"
+        assert n_s == 1, (
+            f"#388: flagged sample must not be rolled up; got n={n_s}"
         )
     finally:
         await db.async_close()

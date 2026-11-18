@@ -50,7 +50,7 @@ class _FakeDB:
     def __init__(self) -> None:
         self.fetch_cop_samples_calls: list[int] = []
 
-    async def async_fetch_cop_samples(self, days: int = 1):
+    async def async_fetch_cop_samples(self, days: int = 1, **_kw):
         self.fetch_cop_samples_calls.append(days)
         return [{"ts": time.time(), "cop": 3.5, "mode": "heating",
                  "boiler_active": 0}]
@@ -62,7 +62,7 @@ class _FakeDBEmpty:
     def __init__(self) -> None:
         self.fetch_cop_samples_calls: list[int] = []
 
-    async def async_fetch_cop_samples(self, days: int = 1):
+    async def async_fetch_cop_samples(self, days: int = 1, **_kw):
         self.fetch_cop_samples_calls.append(days)
         return []
 
