@@ -34,9 +34,8 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
 - Main tip: d24187e (chore: release v1.23.0, #396)
   Merged 2026-11-18: #390 (b16516e), #391 (43c6df4), #393 (afd8204),
   #394 (acd84f9), #395 (a4a54ae), #396 (d24187e)
-- Latest release: v1.23.0, published 2026-11-18 16:20 UTC on d24187e.
-  Tag/release name is `1.23` (NOT `v1.23.0` like v1.22.7..v1.22.10) —
-  TE VERIFIEREN whether to retag; see v86.0 addendum.
+- Latest release: v1.23.0 (tag v1.23.0 -> d24187e), published 2026-11-18.
+  Stray tag `1.23.0` (no v, same commit) still exists — delete via UI.
   Previous: v1.22.10 (tag v1.22.10 -> 91034f5, 2026-11-16).
 - Manifest / const.VERSION / pyproject: 1.23.0 (match)
 - Open PRs: none
@@ -591,13 +590,10 @@ dropped). All work is now pushed to origin after each batch to prevent recurrenc
 
 - Released v1.23.0: #394 + #395 merged, release PR #396 (version bump
   only, PR #386 template, post-merge verification comment posted).
-- Release published by user with tag/name `1.23` on d24187e. Previous
-  convention is `vX.Y.Z`. Consequences: the compare link in the release
-  notes (v1.22.10...v1.23.0) and the `releases/tag/v1.23.0` links in the
-  closing comments on #347/#369/#288/#388/#392 return 404. Fix (user,
-  UI): edit release -> tag `v1.23.0` (create on publish, target d24187e,
-  same commit), title `v1.23.0`; optionally delete tag `1.23`.
-  TE VERIFIEREN.
+- Release first published as tag `1.23`; user retagged to `v1.23.0`
+  (same commit d24187e). Release + compare + issue-comment links verified
+  200. Stray tag `1.23.0` left over: delete in UI (cloud cannot delete tags).
+  Always publish releases with tag `vX.Y.Z`.
 - Release notes source: logo, star badge, What's new (end-user), After
   updating, Thank you (reporters by @handle), Docs, Technical, Follow-ups,
   Tests, Changelog/compare, Support. Template = release 1.23.
