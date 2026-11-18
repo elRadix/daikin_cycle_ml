@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.23.3] - 2026-11-18
+
 ### Added
 - Optional **BUH power sensor** (Configure → Device → Sensors): the meter
   of a backup heater on its own circuit is added to the power sensor for
