@@ -14,7 +14,7 @@ cards:
     secondary: >-
       {% set lang_override = '' -%} {% set l = (lang_override if lang_override
       in ['nl','en','fr'] else
-      (state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') or
+      (state_attr(((integration_entities('daikin_cycle_ml') | select('match', 'sensor[.].*_(cycle_state|cyclus_status|etat_du_cycle)$') | list) + ['sensor.daikin_cycle_ml_cycle_state']) | first,'configured_language') or
       'en')) -%} {% if l == 'nl' %}Live cyclus · COP · kwaliteit · alerts{% elif l == 'fr' %}Cycle en direct · COP · qualité · alertes{% else
       %}Live cycle · COP · quality · alerts{% endif %}
     icon: mdi:heat-pump
@@ -50,6 +50,10 @@ cards:
     custom_fields:
       content: |
         [[[
+          /* #347 entity resolver (EN id -> [translation_key, nl, fr]) */
+          var _dcmA = {"binary_sensor.daikin_cycle_ml_buh_active":["buh_active","daikin_cycle_ml_buh_actief","daikin_cycle_ml_appoint_en_marche"],"binary_sensor.daikin_cycle_ml_compressor_running":["compressor_running","daikin_cycle_ml_compressor_actief","daikin_cycle_ml_compresseur_en_marche"],"binary_sensor.daikin_cycle_ml_cooling_active":["cooling_active","daikin_cycle_ml_koeling_actief","daikin_cycle_ml_rafraichissement_en_cours"],"binary_sensor.daikin_cycle_ml_defrost_active":["defrost_active","daikin_cycle_ml_defrost_actief","daikin_cycle_ml_degivrage_en_cours"],"binary_sensor.daikin_cycle_ml_dhw_active":["dhw_active","daikin_cycle_ml_sww_actief","daikin_cycle_ml_eau_chaude_en_cours"],"binary_sensor.daikin_cycle_ml_dhw_pendulum":["dhw_pendulum","daikin_cycle_ml_sww_pendelen","daikin_cycle_ml_cycles_d_eau_chaude_trop_frequents"],"binary_sensor.daikin_cycle_ml_heating_active":["heating_active","daikin_cycle_ml_verwarming_actief","daikin_cycle_ml_chauffage_en_cours"],"binary_sensor.daikin_cycle_ml_high_cycle_rate":["high_cycle_rate","daikin_cycle_ml_hoge_cyclusfrequentie","daikin_cycle_ml_frequence_de_cycles_elevee"],"binary_sensor.daikin_cycle_ml_missing_attributes":["missing_attrs","daikin_cycle_ml_ontbrekende_attributen","daikin_cycle_ml_valeurs_manquantes"],"binary_sensor.daikin_cycle_ml_pendulum_daily":["pendulum_daily","daikin_cycle_ml_pendelen_per_dag","daikin_cycle_ml_cycles_trop_frequents_jour"],"binary_sensor.daikin_cycle_ml_pendulum_hourly":["pendulum_hourly","daikin_cycle_ml_pendelen_per_uur","daikin_cycle_ml_cycles_trop_frequents_heure"],"binary_sensor.daikin_cycle_ml_setpoint_oscillating":["setpoint_oscillating","daikin_cycle_ml_setpoint_oscilleert","daikin_cycle_ml_consigne_instable"],"binary_sensor.daikin_cycle_ml_short_off":["short_off","daikin_cycle_ml_korte_off_tijd","daikin_cycle_ml_arret_court"],"binary_sensor.daikin_cycle_ml_short_run":["short_run","daikin_cycle_ml_korte_run","daikin_cycle_ml_marche_courte"],"binary_sensor.daikin_cycle_ml_source_stale":["source_stale","daikin_cycle_ml_bron_verouderd","daikin_cycle_ml_source_muette"],"sensor.daikin_cycle_ml_cop_today":["cop_today","daikin_cycle_ml_cop_vandaag","daikin_cycle_ml_cop_chauffage_du_jour"],"sensor.daikin_cycle_ml_current_cycle":["current_cycle","daikin_cycle_ml_huidige_cyclus","daikin_cycle_ml_cycle_en_cours"],"sensor.daikin_cycle_ml_cycle_state":["cycle_state","daikin_cycle_ml_cyclus_status","daikin_cycle_ml_etat_du_cycle"],"sensor.daikin_cycle_ml_cycles_today":["cycles_today","daikin_cycle_ml_cycli_vandaag","daikin_cycle_ml_cycles_aujourd_hui"],"sensor.daikin_cycle_ml_heating_curve_advice":["heating_curve_advice","daikin_cycle_ml_stooklijn_advies","daikin_cycle_ml_conseil_de_loi_d_eau"],"sensor.daikin_cycle_ml_last_cycle":["last_cycle","daikin_cycle_ml_laatste_cyclus","daikin_cycle_ml_dernier_cycle"],"sensor.daikin_cycle_ml_learned_thresholds":["learned_thresholds","daikin_cycle_ml_geleerde_drempels","daikin_cycle_ml_seuils_appris"],"sensor.daikin_cycle_ml_quality_today":["quality_today","daikin_cycle_ml_kwaliteit_vandaag","daikin_cycle_ml_qualite_du_jour"],"sensor.daikin_cycle_ml_source_health":["source_health","daikin_cycle_ml_bron_gezondheid","daikin_cycle_ml_fraicheur_de_la_source"]};
+          var _dcmC = {};
+          var _dcmR = function(id){ if (_dcmC[id]) return _dcmC[id]; var r = id, a = _dcmA[id], st = (typeof states !== 'undefined' && states) ? states : {}; if (!st[id] && a) { var dom = id.split('.')[0], i, k, ents = (typeof hass !== 'undefined' && hass && hass.entities) ? hass.entities : null; if (ents) { for (k in ents) { var e = ents[k]; if (e && e.platform === 'daikin_cycle_ml' && e.translation_key === a[0] && k.indexOf(dom + '.') === 0 && st[k]) { r = k; break; } } } if (r === id) { for (i = 1; i < a.length; i++) { if (st[dom + '.' + a[i]]) { r = dom + '.' + a[i]; break; } } } } _dcmC[id] = r; return r; };
           /* ============ helpers ============ */
           var st = function(s,d){ if(d===undefined)d=0; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='')return d; var v=parseFloat(x.state); return isNaN(v)?d:v; };
           var stStr = function(s,d){ if(d===undefined)d='—'; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='none'||x.state==='')return d; return x.state; };
@@ -66,7 +70,7 @@ cards:
           /* ============ LANGUAGE ============ */
           /* LANG_OVERRIDE: '' = auto from integration, 'nl' / 'en' / 'fr' = force */
           var LANG_OVERRIDE = '';
-          var S_STATE = 'sensor.daikin_cycle_ml_cycle_state';
+          var S_STATE = _dcmR('sensor.daikin_cycle_ml_cycle_state');
           var cfgLangRaw = String(attr(S_STATE,'configured_language','en')).toLowerCase();
           var LANG = (LANG_OVERRIDE === 'nl' || LANG_OVERRIDE === 'en')
             ? LANG_OVERRIDE
@@ -124,31 +128,31 @@ cards:
           /* ============ entities ============ */
           var S = {
             state:S_STATE,
-            cur:'sensor.daikin_cycle_ml_current_cycle',
-            last:'sensor.daikin_cycle_ml_last_cycle',
-            today:'sensor.daikin_cycle_ml_cycles_today',
-            q:'sensor.daikin_cycle_ml_quality_today',
-            cop:'sensor.daikin_cycle_ml_cop_today',
-            health:'sensor.daikin_cycle_ml_source_health',
-            learn:'sensor.daikin_cycle_ml_learned_thresholds',
-            stook:'sensor.daikin_cycle_ml_heating_curve_advice'
+            cur:_dcmR('sensor.daikin_cycle_ml_current_cycle'),
+            last:_dcmR('sensor.daikin_cycle_ml_last_cycle'),
+            today:_dcmR('sensor.daikin_cycle_ml_cycles_today'),
+            q:_dcmR('sensor.daikin_cycle_ml_quality_today'),
+            cop:_dcmR('sensor.daikin_cycle_ml_cop_today'),
+            health:_dcmR('sensor.daikin_cycle_ml_source_health'),
+            learn:_dcmR('sensor.daikin_cycle_ml_learned_thresholds'),
+            stook:_dcmR('sensor.daikin_cycle_ml_heating_curve_advice')
           };
           var B = {
-            comp:'binary_sensor.daikin_cycle_ml_compressor_running',
-            heat:'binary_sensor.daikin_cycle_ml_heating_active',
-            cool:'binary_sensor.daikin_cycle_ml_cooling_active',
-            dhw:'binary_sensor.daikin_cycle_ml_dhw_active',
-            defrost:'binary_sensor.daikin_cycle_ml_defrost_active',
-            buh:'binary_sensor.daikin_cycle_ml_buh_active',
-            shortRun:'binary_sensor.daikin_cycle_ml_short_run',
-            shortOff:'binary_sensor.daikin_cycle_ml_short_off',
-            pendH:'binary_sensor.daikin_cycle_ml_pendulum_hourly',
-            pendD:'binary_sensor.daikin_cycle_ml_pendulum_daily',
-            dhwPend:'binary_sensor.daikin_cycle_ml_dhw_pendulum',
-            highRate:'binary_sensor.daikin_cycle_ml_high_cycle_rate',
-            setpoint:'binary_sensor.daikin_cycle_ml_setpoint_oscillating',
-            stale:'binary_sensor.daikin_cycle_ml_source_stale',
-            missing:'binary_sensor.daikin_cycle_ml_missing_attributes'
+            comp:_dcmR('binary_sensor.daikin_cycle_ml_compressor_running'),
+            heat:_dcmR('binary_sensor.daikin_cycle_ml_heating_active'),
+            cool:_dcmR('binary_sensor.daikin_cycle_ml_cooling_active'),
+            dhw:_dcmR('binary_sensor.daikin_cycle_ml_dhw_active'),
+            defrost:_dcmR('binary_sensor.daikin_cycle_ml_defrost_active'),
+            buh:_dcmR('binary_sensor.daikin_cycle_ml_buh_active'),
+            shortRun:_dcmR('binary_sensor.daikin_cycle_ml_short_run'),
+            shortOff:_dcmR('binary_sensor.daikin_cycle_ml_short_off'),
+            pendH:_dcmR('binary_sensor.daikin_cycle_ml_pendulum_hourly'),
+            pendD:_dcmR('binary_sensor.daikin_cycle_ml_pendulum_daily'),
+            dhwPend:_dcmR('binary_sensor.daikin_cycle_ml_dhw_pendulum'),
+            highRate:_dcmR('binary_sensor.daikin_cycle_ml_high_cycle_rate'),
+            setpoint:_dcmR('binary_sensor.daikin_cycle_ml_setpoint_oscillating'),
+            stale:_dcmR('binary_sensor.daikin_cycle_ml_source_stale'),
+            missing:_dcmR('binary_sensor.daikin_cycle_ml_missing_attributes')
           };
           var UPD = 'update.daikin_cycle_ml_update';
 

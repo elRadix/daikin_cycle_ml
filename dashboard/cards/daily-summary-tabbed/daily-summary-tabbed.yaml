@@ -33,18 +33,18 @@ card_mod:
 cards:
   - type: custom:mushroom-template-card
     primary: >-
-      📅 DAIKIN CYCLE ML — {{ 'RÉSUMÉ' if state_attr('sensor.daikin_cycle_ml_cycle_state','configured_language') == 'fr' else 'SUMMARY' }}{% set ns = namespace(specs='') %}{% for s in
+      📅 DAIKIN CYCLE ML — {{ 'RÉSUMÉ' if state_attr(((integration_entities('daikin_cycle_ml') | select('match', 'sensor[.].*_(cycle_state|cyclus_status|etat_du_cycle)$') | list) + ['sensor.daikin_cycle_ml_cycle_state']) | first,'configured_language') == 'fr' else 'SUMMARY' }}{% set ns = namespace(specs='') %}{% for s in
       states.sensor %}{% if ns.specs == '' and
-      (s.entity_id.endswith('_hp_specs') or s.entity_id.endswith('_wp_specs'))
+      (s.entity_id.endswith('_hp_specs') or s.entity_id.endswith('_wp_specs') or s.entity_id.endswith('_caracteristiques_de_la_pac'))
       %}{% set ns.specs = s.entity_id %}{% endif %}{% endfor %}{{ ' · ' +
       (state_attr(ns.specs, 'model')|string|upper) if ns.specs and
       state_attr(ns.specs, 'model') else '' }}
     secondary: >-
       {% set ns = namespace(specs='', state='') %}{% for s in states.sensor %}{%
       if ns.specs == '' and (s.entity_id.endswith('_hp_specs') or
-      s.entity_id.endswith('_wp_specs')) %}{% set ns.specs = s.entity_id %}{%
+      s.entity_id.endswith('_wp_specs') or s.entity_id.endswith('_caracteristiques_de_la_pac')) %}{% set ns.specs = s.entity_id %}{%
       endif %}{% if ns.state == '' and (s.entity_id.endswith('_cycle_state') or
-      s.entity_id.endswith('_cyclus_status')) %}{% set ns.state = s.entity_id
+      s.entity_id.endswith('_cyclus_status') or s.entity_id.endswith('_etat_du_cycle')) %}{% set ns.state = s.entity_id
       %}{% endif %}{% endfor %}{% set l = state_attr(ns.state, 'configured_language') or 'en' -%}{% set f = state_attr(ns.specs,
       'family') or '—' -%}{% set k = state_attr(ns.specs, 'kw') or '—' -%}{{ f
       }} · {{ k }} kW · {% if l == 'nl' %}Cycli · duur · kwaliteit · events{% elif l == 'fr' %}Cycles · durée · qualité · événements{%
@@ -155,25 +155,26 @@ cards:
             var cfgLangOvr = String(CFG.lang_override || '').toLowerCase();
 
             var REGISTRY = {
-              daily_summary:       ['daily_summary_recent','recent_dagoverzicht'],
-              hp_specs:            ['hp_specs','wp_specs'],
-              cycle_state:         ['cycle_state','cyclus_status'],
-              current_cycle:       ['current_cycle','huidige_cyclus'],
-              last_cycle:          ['last_cycle','laatste_cyclus'],
-              starts_today:        ['compressor_starts_today','compressorstarts_vandaag'],
-              runtime_buh:         ['runtime_buh_today','buh_bedrijfstijd_vandaag'],
-              runtime_compressor:  ['runtime_compressor_today','compressorbedrijfstijd_vandaag'],
-              defrost_count:       ['defrost_count_today','ontdooiingen_vandaag'],
-              defrost_duration:    ['defrost_duration_today','ontdooiingsduur_vandaag'],
-              duty_cycle:          ['duty_cycle_today','duty_cycle_vandaag'],
-              cop_today:           ['cop_today','cop_vandaag'],
-              cycles_today:        ['cycles_today','cycli_vandaag'],
-              source_health:       ['source_health','bron_gezondheid'],
-              quality_today:       ['quality_today','kwaliteit_vandaag'],
-              hybrid_mode:         ['hybrid_mode'],
-              boiler_contribution: ['boiler_contribution_today_pct'],
-              boiler_efficiency:   ['boiler_efficiency_cop']
+              daily_summary:       ['daily_summary_recent','recent_dagoverzicht','resume_des_derniers_jours'],
+              hp_specs:            ['hp_specs','wp_specs','caracteristiques_de_la_pac'],
+              cycle_state:         ['cycle_state','cyclus_status','etat_du_cycle'],
+              current_cycle:       ['current_cycle','huidige_cyclus','cycle_en_cours'],
+              last_cycle:          ['last_cycle','laatste_cyclus','dernier_cycle'],
+              starts_today:        ['compressor_starts_today','compressorstarts_vandaag','demarrages_compresseur_aujourd_hui'],
+              runtime_buh:         ['runtime_buh_today','buh_bedrijfstijd_vandaag','marche_appoint_aujourd_hui'],
+              runtime_compressor:  ['runtime_compressor_today','compressorbedrijfstijd_vandaag','marche_compresseur_aujourd_hui'],
+              defrost_count:       ['defrost_count_today','ontdooiingen_vandaag','degivrages_aujourd_hui'],
+              defrost_duration:    ['defrost_duration_today','ontdooiingsduur_vandaag','duree_de_degivrage_aujourd_hui'],
+              duty_cycle:          ['duty_cycle_today','duty_cycle_vandaag','taux_de_marche_aujourd_hui'],
+              cop_today:           ['cop_today','cop_vandaag','cop_chauffage_du_jour'],
+              cycles_today:        ['cycles_today','cycli_vandaag','cycles_aujourd_hui'],
+              source_health:       ['source_health','bron_gezondheid','fraicheur_de_la_source'],
+              quality_today:       ['quality_today','kwaliteit_vandaag','qualite_du_jour'],
+              hybrid_mode:         ['hybrid_mode','mode_hybride'],
+              boiler_contribution: ['boiler_contribution_today_pct','part_de_la_chaudiere_aujourd_hui'],
+              boiler_efficiency:   ['boiler_efficiency_cop','rendement_chaudiere_cop']
             };
+            var _DCM_TK = {"daily_summary_recent":"daily_summary_recent","hp_specs":"hp_specs","cycle_state":"cycle_state","current_cycle":"current_cycle","last_cycle":"last_cycle","compressor_starts_today":"compressor_starts_today","runtime_buh_today":"runtime_buh_today","runtime_compressor_today":"runtime_compressor_today","defrost_count_today":"defrost_count_today","defrost_duration_today":"defrost_duration_today","duty_cycle_today":"duty_cycle_today","cop_today":"cop_today","cycles_today":"cycles_today","source_health":"source_health","quality_today":"quality_today","hybrid_mode":"hybrid_mode","boiler_contribution_today_pct":"boiler_contribution_today_pct","boiler_efficiency_cop":"boiler_efficiency_cop"}; /* #347 entity resolver: en suffix -> translation_key */
             var resolveEntity = function(role){
               var names = REGISTRY[role];
               if(!names) return null;
@@ -190,6 +191,8 @@ cards:
                   if(all[j].slice(-1 - names[i].length) === '_' + names[i]) return all[j];
                 }
               }
+              var _tkEn = names[0], _tkEnts = (typeof hass !== 'undefined' && hass && hass.entities) ? hass.entities : null; /* #347: registry lookup by translation_key (language independent) */
+              if (_tkEnts && _DCM_TK[_tkEn]) { for (var _tkId in _tkEnts) { var _tkE = _tkEnts[_tkId]; if (_tkE && _tkE.platform === 'daikin_cycle_ml' && _tkE.translation_key === _DCM_TK[_tkEn] && _tkId.indexOf('sensor.') === 0 && states[_tkId]) return _tkId; } }
               return null;
             };
 

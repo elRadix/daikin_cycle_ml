@@ -27,6 +27,12 @@ Ready-to-use Lovelace dashboard cards for the **Daikin Cycle ML** integration.
 
 - **daikin_cycle_ml** `>= v1.4.0`
 
+> **Entity ids below are the English defaults.** On a Dutch or French
+> install HA creates translated ids (e.g. `sensor.daikin_cycle_ml_cyclus_status`,
+> `sensor.daikin_cycle_ml_etat_du_cycle`). All cards resolve these
+> automatically via the entity registry `translation_key`, so they also keep
+> working after you rename entity ids (#347, #369).
+
 **Core entities** (used by both cards):
 
 - `sensor.daikin_cycle_ml_heating_curve_advice`
