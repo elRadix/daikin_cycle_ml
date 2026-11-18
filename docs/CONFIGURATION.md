@@ -476,13 +476,20 @@ Three sections: **Sensors**, **Detection**, **Comfort**.
 | Field | Code key | Type | Default |
 |---|---|---|---|
 | Power sensor | `power_sensor_entity` | entity picker | (from data, or empty) |
+| BUH power sensor | `buh_power_sensor_entity` | entity picker | (empty) |
 | COP sensor | `cop_sensor_entity` | entity picker | (empty) |
 | Indoor temp sensor | `indoor_temp_sensor` | entity picker | (empty) |
 
 - **Power sensor** — W sensor for energy accounting + cycle fallback
+- **BUH power sensor** — optional meter of the backup heater when it is on its own circuit (W or kW). Added to the power sensor for electrical power and COP, so BUH heat (measured after the BUH) and BUH electricity are both counted. Not used for compressor detection
 - **COP sensor** — COP sensor (`measurement` or `ratio`), enables rolling COP analysis.
   Values above `MAX_COP` (11.0) or non-finite (`inf`) are ignored and the
-  computed COP is used instead
+  computed COP is used instead. Leave this empty unless the sensor is
+  better than the integration's own COP (power sensor + BUH power sensor +
+  ESPAltherma heat from one snapshot). A template that mixes attributes
+  and separate entities, or a slow power meter, reads off when the values
+  were sampled at different moments; compare in diagnostics
+  `coordinator.cop_cross_check`
 - **Indoor temp sensor** — room temp, ML feature + comfort guards
 
 **Detection**

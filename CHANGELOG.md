@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Added
+- Optional **BUH power sensor** (Configure → Device → Sensors): the meter
+  of a backup heater on its own circuit is added to the power sensor for
+  electrical power and COP. Before, BUH heat was counted but its
+  electricity was not, so COP read high while the BUH ran. Not used for
+  compressor detection
 - Diagnostics `coordinator.cop_cross_check`: COP in use vs measured
   (flow x dT / power) vs ESPAltherma's estimate, so an external COP
   sensor that reads high is visible (#408)
@@ -30,6 +35,10 @@
   `duration_max` (never larger); all days are re-rolled once (#408)
 
 ### Tests
+- `tests/test_buh_power_sensor.py` - sum with the power meter, kW
+  normalisation, invalid / idle BUH values, compressor detection
+  unchanged, COP with and without the BUH meter, options step and
+  translations
 - `tests/test_prod1_v1232_datasheet_buh_source.py` - prod-1 v1.23.2
   diagnostics: AUTO tie supplement, normalisation with individual keys
   and no `last_record`, time-based BUH ratio incl. fallback

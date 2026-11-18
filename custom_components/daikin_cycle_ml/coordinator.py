@@ -729,6 +729,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             **dict(entry.options or {}),
         }
         self.power_sensor: str | None = self.options.get("power_sensor_entity")
+        # Optional backup-heater meter on its own circuit: added to the
+        # power meter for electrical power / COP, never for compressor
+        # detection (BUH power would make an idle compressor look on).
+        self.buh_power_sensor: str | None = self.options.get(
+            "buh_power_sensor_entity"
+        )
+        self._last_buh_meter_w: float | None = None
         self.indoor_temp_entity: str | None = self.options.get(
             "indoor_temp_sensor"
         ) or None
@@ -1693,7 +1700,27 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             pw = float(st.state)
         except (TypeError, ValueError):
             return None
-        return pw if pw > 0 else None
+        if pw <= 0:
+            return None
+        buh_w = self._power_from_buh_meter()
+        self._last_buh_meter_w = buh_w
+        return pw + buh_w if buh_w else pw
+
+    def _power_from_buh_meter(self) -> float | None:
+        """Backup-heater meter in W (unit-normalised), None if unset/invalid."""
+        bs = getattr(self, "buh_power_sensor", None)
+        if not bs:
+            return None
+        st = self.hass.states.get(bs)
+        if st is None:
+            return None
+        try:
+            raw = float(st.state)
+        except (TypeError, ValueError):
+            return None
+        if not math.isfinite(raw) or raw < 0:
+            return None
+        return _normalize_power_w(raw, st.attributes.get("unit_of_measurement"))
 
     def _power_from_v2_stats(
         self, now: float, attrs: dict[str, Any] | None

@@ -280,12 +280,14 @@
             "data": {
               "power_sensor_entity": "Vermogensensor (fallback)",
               "cop_sensor_entity": "COP-sensor",
-              "indoor_temp_sensor": "Binnentemperatuur sensor"
+              "indoor_temp_sensor": "Binnentemperatuur sensor",
+              "buh_power_sensor_entity": "Vermogensensor back-upverwarming (BUH)"
             },
             "data_description": {
               "power_sensor_entity": "Optioneel. Fallback wanneer RPS niet beschikbaar is.",
               "cop_sensor_entity": "Globale COP-sensor, b.v. sensor.altherma_global_cop.",
-              "indoor_temp_sensor": "Optioneel. Voor de indoor_temp_avg feature (dim #10)."
+              "indoor_temp_sensor": "Optioneel. Voor de indoor_temp_avg feature (dim #10).",
+              "buh_power_sensor_entity": "Optioneel. Vermogensmeter van de back-upverwarming als die op een eigen groep zit (bv. sensor.weerstand_power). Wordt opgeteld bij de vermogensensor voor elektrisch vermogen en COP; niet gebruikt voor compressordetectie."
             }
           },
           "detection": {

@@ -309,6 +309,7 @@ def _attrs_cycle_state(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str
     return {
         "configured_source_sensor": data.get("source_sensor"),
         "configured_power_sensor": opts.get("power_sensor_entity"),
+        "configured_buh_power_sensor": opts.get("buh_power_sensor_entity"),
         "configured_cop_sensor": opts.get("cop_sensor_entity"),
         "configured_indoor_sensor": opts.get("indoor_temp_sensor"),
         "configured_model": data.get("model"),
@@ -1205,6 +1206,9 @@ def _attrs_electrical_power_estimated(
         "inv_current_a": attrs.get(INV_PRIMARY_CURRENT_KEY),
         "buh_step1_on": str(attrs.get(BUH_STEP1_KEY, "")).strip().upper() == "ON",
         "buh_step2_on": str(attrs.get(BUH_STEP2_KEY, "")).strip().upper() == "ON",
+        # optional backup-heater meter, included in the state when set
+        "buh_power_sensor": opts.get("buh_power_sensor_entity"),
+        "buh_meter_w": getattr(c, "_last_buh_meter_w", None),
     }
 
 

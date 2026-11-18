@@ -280,12 +280,14 @@
             "data": {
               "power_sensor_entity": "Power sensor (fallback)",
               "cop_sensor_entity": "COP sensor",
-              "indoor_temp_sensor": "Indoor temperature sensor"
+              "indoor_temp_sensor": "Indoor temperature sensor",
+              "buh_power_sensor_entity": "BUH power sensor"
             },
             "data_description": {
               "power_sensor_entity": "Optional. Used as fallback when RPS is unavailable.",
               "cop_sensor_entity": "Global COP sensor, e.g. sensor.altherma_global_cop. Used for cop_samples.",
-              "indoor_temp_sensor": "Optional. Used for the indoor_temp_avg feature (dim #10)."
+              "indoor_temp_sensor": "Optional. Used for the indoor_temp_avg feature (dim #10).",
+              "buh_power_sensor_entity": "Optional. Power meter of the backup heater when it is on its own circuit (e.g. sensor.weerstand_power). Added to the power sensor for electrical power and COP; not used for compressor detection."
             }
           },
           "detection": {
