@@ -3896,7 +3896,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         # flag:   suspect -> store with is_transition_artifact=1.
         # accept: normal operation -> store with flag=0.
         # not_applicable: cooling / missing data / lwt<=outdoor -> store as-is.
-        from .engine.physics import classify_cop_sample
+        from .engine.physics import below_cop_floor, classify_cop_sample
 
         _cls = classify_cop_sample(
             mode=str(_mode),
@@ -3925,7 +3925,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             if _cur_ts <= 0.0:
                 self._cop_rejected_today_first_ts = now
             return
-        if _cls == 'flag':
+        # #369: COP < 1.0 while heating/DHW is a start-up transient; flag it
+        # so it stays out of every COP aggregate (#391 filter).
+        if _cls == 'flag' or below_cop_floor(
+            str(_mode), _as_opt_float(row.get('cop'))
+        ):
             row['is_transition_artifact'] = 1
         ok = await self.db.async_insert_cop_sample(row)
         if ok:

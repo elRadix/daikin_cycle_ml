@@ -49,6 +49,18 @@
   (+2 labels, none removed). The scheduled model-compat drift job failed
   daily because the `model-compat` label did not exist; it now creates it
   (#392)
+- Hybrid EVLQ05/08CV3: the A7/W35 datasheet reference was 5.85 / 5.75
+  (part-load figure) instead of Daikin's EN14511 nominal 5.04 / 4.45, so
+  `cop_vs_datasheet_pct` read 16-29 % low and `cop_vs_datasheet_low` fired.
+  Nominal capacity and max capacity added (#369, #392)
+- Hybrid indoor/kit codes from ESPAltherma's `Altherma(Hybrid)` definition
+  (EHYHBH05/08AAV3/AFV3, EHYHBX08AAV3/AFV3, RHYHBH/RHYHBX, CHYHBH05/08) and
+  EVLQ05/08CAV3 now resolve to their EVLQ outdoor unit. Non-hybrid models
+  are unchanged (#369)
+- Heating/DHW COP samples below 1.0 (compressor start-up transients; down to
+  0.35 on a reported install) are stored flagged and no longer pull down
+  `cop_today`, `cop_mean_*`, SPF and heating-curve advice. The Carnot
+  classifier is unchanged (#369)
 - Bivalent installs (heat pump + external boiler, #288): boiler demand
   signals were ignored on every non-EVLQ model (v1.17.2 template-drift
   guard), so boiler-only periods polluted HP COP samples, did not close HP
@@ -73,6 +85,9 @@
   consistency, pinned Daikin values, ESPAltherma family mapping, and the
   full wizard through HA's flow manager for every model plus setup,
   options round-trip and unload (#392)
+- `tests/test_369_hybrid_cop_floor.py`: EVLQ nominal reference, hybrid
+  alias resolution (and non-hybrid models unchanged), COP floor through the
+  real collection path and `cop_today` (#369)
 - `tests/test_288_bivalent_boiler_signals.py` (23): opt-in detection,
   trusted-signal matrix, alert kwargs and boiler-only COP skip for bivalent,
   monovalent unchanged, ERGA EVH aliases (#288)

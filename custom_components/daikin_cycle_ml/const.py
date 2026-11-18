@@ -854,6 +854,25 @@ MODEL_ALIASES: dict[str, str] = {
     "ehyhbh05av32": MODEL_EVLQ05CV3,
     "ehyhbh08av32": MODEL_EVLQ08CV3,
     "ehyhbx08av3": MODEL_EVLQ08CV3,
+    # #369: indoor-unit / kit codes from ESPAltherma beta data/as_numbers.json
+    # (definition "Altherma(Hybrid)") and the EVLQ CAV3 outdoor variant.
+    "evlq05cav3": MODEL_EVLQ05CV3,
+    "ehyhbh05aav3": MODEL_EVLQ05CV3,
+    "ehyhbh05afv3": MODEL_EVLQ05CV3,
+    "ehyhbh05aav3u": MODEL_EVLQ05CV3,
+    "rhyhbh05aav3": MODEL_EVLQ05CV3,
+    "chyhbh05aav3": MODEL_EVLQ05CV3,
+    "chyhbh05afv3": MODEL_EVLQ05CV3,
+    "evlq08cav3": MODEL_EVLQ08CV3,
+    "ehyhbh08aav3": MODEL_EVLQ08CV3,
+    "ehyhbh08afv3": MODEL_EVLQ08CV3,
+    "ehyhbh08aav3u": MODEL_EVLQ08CV3,
+    "ehyhbx08aav3": MODEL_EVLQ08CV3,
+    "ehyhbx08afv3": MODEL_EVLQ08CV3,
+    "rhyhbh08aav3": MODEL_EVLQ08CV3,
+    "rhyhbx08aav3": MODEL_EVLQ08CV3,
+    "chyhbh08aav3": MODEL_EVLQ08CV3,
+    "chyhbh08afv3": MODEL_EVLQ08CV3,
     # #288: ERGA E "EVH"/"EVH7" variants (e.g. ERGA06EVH on the #288
     # bivalent install); Daikin ERGA-EVH tables list the EAV3 performance.
     "erga04evh": MODEL_ERGA04EAV3,
