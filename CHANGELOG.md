@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Added
+- `docs/cycle-thresholds.json`: versioned, canonical list of the cycle
+  detection, pendulum and quality defaults, sanity gates and Carnot bands
+  (factor 0.65); a test fails CI when it drifts from the code (#193)
 - Diagnostics `coordinator_timing` records when the slowest tick happened
   (`tick_duration_max_ts`, `tick_duration_max_tick`, 1 = startup) and its
   three slowest steps (`tick_duration_max_phases_ms`), so a rare slow tick
@@ -30,6 +33,8 @@
   source as the Today block, instead of only cycle flags (#400)
 
 ### Tests
+- `tests/test_193_cycle_thresholds.py` - JSON == code for every published
+  threshold, Carnot bands behave as documented (#193)
 - `tests/test_353_a3c_tick_attribution.py` - real write-lock reproduction
   (no lost samples), queue bound/flush, conditional VACUUM, slow-tick
   attribution, diagnostics fields (#353)

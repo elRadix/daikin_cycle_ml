@@ -515,6 +515,11 @@ Default thresholds work for most installs, but every installation is different:
 - Options → Pendulum → raise `short_off_threshold_min` from 5 to 10
 - Check if your thermostat has a minimum off-time setting
 
+**All defaults in one place:** [`docs/cycle-thresholds.json`](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/cycle-thresholds.json)
+lists the cycle detection, pendulum and quality defaults plus the sanity gates
+(COP ≤ 11, thermal ≤ 14 kW, COP floor 1.0) and the Carnot bands (factor 0.65).
+A test keeps it identical to the code.
+
 ### Set up the comfort guardrails
 
 The heat curve advice uses **projected indoor temperature** to decide how aggressive to be:
