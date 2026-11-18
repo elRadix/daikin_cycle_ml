@@ -1,24 +1,8 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [Unreleased]
 
-### Changed
-
-**Tests**
-
-- `tests/test_347_dashboard_entity_resolution.py` — 32 tests: no bare
-  entity literals in card JS, alias tables match translations, Jinja
-  headers rendered by the real HA template engine for EN/NL/FR ids, and
-  every card JS block executed under Node for EN/NL/FR/renamed ids
-  (#347, #369)
-
 ### Fixed
-
 - COP normalized A7/W35 no longer surfaces null when LWT or COP
   comes from a transient gap in stooklijn-cache / snap.cop; raw
   attribute fallbacks plus per-gate debug logging (#388, PR #389)
@@ -35,69 +19,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   aliases for the DHW COP sensors (`cop_sww_*`) and `cop_degradatie_week`
   (#347, #369)
 
+### Tests
+- `tests/test_347_dashboard_entity_resolution.py` — 32 tests: no bare
+  entity literals in card JS, alias tables match translations, Jinja
+  headers rendered by the real HA template engine for EN/NL/FR ids, and
+  every card JS block executed under Node for EN/NL/FR/renamed ids
+  (#347, #369)
+
 ## [1.22.10] - 2026-11-16
 
-### Changed
-
-**Tests**
-
-- `tests/test_v1231_source_stale_recovery.py` — 10 tests covering `last_reported` preference, `last_updated` fallback, and prod-1 stable-value case (#379)
-- `tests/test_v1232_ha_deprecations.py` - 12 tests for HA 2027 device-registry + Recorder 16KB alerts_today (#381, #382)
-- `tests/test_v1233_notify_health_diag.py` - 5 tests for notify_health emit (#384)
-
 ### Fixed
-
 - `diagnostics` output now includes `notify_health` (fail_streak, fail_target_configured, fail_logged_count, currently_failing). Property added by PR #373 (Fixes #367) but never emitted (#384, PR #385)
 - `binary_sensor.source_stale` false positive at stable weather. Now uses `State.last_reported` (bumps on every publish) with `last_updated` fallback. Sensor was stuck `on` for hours while `sensor.source_health` reported healthy (#379, #380)
 - `diagnostics._device_registry` used deprecated `reg.devices`-as-mapping and `DeviceEntry.config_entries` — replaced with `async_entries_for_config_entry`. Prevents breakage in HA 2027.9/2027.10 (#381)
 - `sensor.alerts_today` attributes exceeded HA Recorder's 16 KB limit on busy days (24.3 KB / 27 alerts on prod-1), causing HA to silently drop ALL attributes from history. Now size-capped in 3 branches: full list if fits, capped to 10 if not, empty list with aggregates preserved if even 10 too big. `truncated_reason=attr_size_limit` marker added (#382)
 
+### Added
+- (none)
+
+### Changed
+- (none)
+
+### Tests
+- `tests/test_v1231_source_stale_recovery.py` — 10 tests covering `last_reported` preference, `last_updated` fallback, and prod-1 stable-value case (#379)
+- `tests/test_v1232_ha_deprecations.py` - 12 tests for HA 2027 device-registry + Recorder 16KB alerts_today (#381, #382)
+- `tests/test_v1233_notify_health_diag.py` - 5 tests for notify_health emit (#384)
+
 ## [1.22.9] - 2026-11-16
 
-### Fixed
 
+### Fixed
 - chore(scripts): fix resolve_issue.py typo (vunreleased) and false release/prod claims (#367)
 - test: fixed thread leak in live_rollup teardown by explicitly closing DB connections (#366)
 - notify: ServiceNotFound no longer spams logs (warning + dedupe per service), repair created, diagnostics notify_health exposed (#367)
 - Correct datasheet capacity for EPRA HT models (#370)
 
+
 ## [1.22.8] - 2026-11-16
 
-### Added
-
-- **Native-first compressor counter.** `engine/runtime_source.py::read_native_compressor_minutes()` reads ESPAltherma v2 `Stats: Compressor run today (min)`.
-- **Native-first defrost + starts attrs.** `read_native_defrost_count()` and `read_native_compressor_starts()` expose the firmware count alongside the computed value.
-- **`source` attribute** on every native-aware counter — `runtime_buh_today`, `runtime_compressor_today`, `compressor_starts_today`, `defrost_count_today`, `defrost_duration_today`. Values: `native` / `computed`. Sub-fields without firmware equivalent are labelled `*_source: computed`.
-- **`CycleStore.cycles_intersecting(start_ts, end_ts)`** — overlap-window query attributes cross-midnight cycle tails to today. Excludes transient LWT pulses (mirrors `async_rollup_day`).
-- **`_resolve_attrs()` helper** — single canonical attrs resolver for all sensor value/attr functions.
-- **Defensive input handling** — `_read_float` rejects non-finite; `cycles_intersecting` guarded against store exceptions, malformed records, None returns.
-
-### Changed
-
-**Dashboard compatibility**
-
-No entity IDs change, no new/removed entities. Two counters correct previously undercounted values:
-- `sensor.daikin_cycle_ml_runtime_compressor_today` — value corrected (prod-1: 3.4 h → 10.3 h). Fixed-scale cards should update `max: 5h` → `max: 12h` (or higher).
-- `sensor.daikin_cycle_ml_duty_cycle_today` — derived. Value corrected (prod-1: 33 % → 99.8 %); `band` moves `nominal` → `saturated` on continuous-compressor days. Card templates updated.
-- Unchanged (native values already correct since v1.22.7): `runtime_buh_today`, `compressor_starts_today`, `defrost_count_today`, `defrost_duration_today`.
-
-**Docs**
-
-- `docs/design/a3-tick-metrics.md` — A3 decision record (A3a + A3b rationale, A3c residual).
-- `README.md` — BUH excessive troubleshooting (check filter, pump speed, dT ≥ 4 K).
-
-**Tests**
-
-- **6 093 tests pass, 100 % coverage.**
-- New `test_v1228_a3_reproduction.py` — 11 tests: A3a repro + 3 branch arms, A3b throttle-active (5 windows × 2 queries = 10), A3b P4 regression guard (empty rows still set `ts`), A3b `db=None` early return, refute-hypothesis guard.
-- A1 reproduction test: exact prod-1 2026-11-14 undercount (12 388 s vs 37 881 s), converges native/computed to < 1 % delta.
-- A2 test: 7-day production replay — 3 confirmed incidents.
-- Red-team (~50 cases): `bool` / `NaN` / `inf` / negative native, `MagicMock` attrs, malformed cycles, store exceptions.
-- `CycleStore.cycles_intersecting` edge coverage: missing/invalid `start_ts`/`end_ts`, transient skip/include, boundary-touching windows, mixed records.
-- Sync integrity: BUH / starts / defrost counters — `source`, `native_count`, `computed_count`, `total_s` consistency.
-
 ### Fixed
-
 - **A1 — `runtime_compressor_today` undercount.** Was summing only completed cycles whose `start_ts` fell on today, missing (a) cross-midnight cycle tails and (b) the currently-open cycle. Prod-1 reported 3.4 h where ESPAltherma native said 10.3 h. Restored three-source agreement via `CycleStore.cycles_intersecting()` + open-cycle contribution.
 - **A2 — `heating_curve_advice` stale during BUH.** The 1-hour `_stooklijn_cache` was not invalidated when the backup heater activated, leaving the advice stuck on `lower_lwt` while the heat pump was not effectively running. 7-day production replay: 3 confirmed incidents (2026-11-13 03:59, 2026-11-14 01:43, 2026-11-14 05:00). Cache now writes `state=keep`, `reason=buh_active` while BUH Step1/Step2 is ON, exposed via a new `suppressed_by` attribute. After BUH-off, `_stooklijn_cache_ts = 0.0` forces recompute within one tick.
 - **A3a — Sample-rate label truthful.** `sampling` diagnostics now expose `samples_window` (`24h` / `since_start`) and `sample_rate_pct`. With uptime < 24 h, the old `samples_last_24h` label implied 6.9 % when the real rate was 95.7 % (prod-1).
@@ -107,10 +67,36 @@ No entity IDs change, no new/removed entities. Two counters correct previously u
 - **`_read_float` hardening.** Now rejects `bool`, `inf`, `NaN` (previously `True` coerced to `1.0`, `float("inf")` overflowed on `int(round(...))`, `NaN` bypassed range checks).
 - **`daily-summary-tabbed` card — saturated duty band.** Card fell to '—' label + gray colour when `duty_cycle_today.band == "saturated"`. A1's correct higher runtime exposes this pre-existing gap. Now renders saturated with proper EN/NL/FR label and red colour. `pattern-analysis` registers the entity but never renders `.band` — unaffected.
 
+### Added
+- **Native-first compressor counter.** `engine/runtime_source.py::read_native_compressor_minutes()` reads ESPAltherma v2 `Stats: Compressor run today (min)`.
+- **Native-first defrost + starts attrs.** `read_native_defrost_count()` and `read_native_compressor_starts()` expose the firmware count alongside the computed value.
+- **`source` attribute** on every native-aware counter — `runtime_buh_today`, `runtime_compressor_today`, `compressor_starts_today`, `defrost_count_today`, `defrost_duration_today`. Values: `native` / `computed`. Sub-fields without firmware equivalent are labelled `*_source: computed`.
+- **`CycleStore.cycles_intersecting(start_ts, end_ts)`** — overlap-window query attributes cross-midnight cycle tails to today. Excludes transient LWT pulses (mirrors `async_rollup_day`).
+- **`_resolve_attrs()` helper** — single canonical attrs resolver for all sensor value/attr functions.
+- **Defensive input handling** — `_read_float` rejects non-finite; `cycles_intersecting` guarded against store exceptions, malformed records, None returns.
+
+### Dashboard compatibility
+No entity IDs change, no new/removed entities. Two counters correct previously undercounted values:
+- `sensor.daikin_cycle_ml_runtime_compressor_today` — value corrected (prod-1: 3.4 h → 10.3 h). Fixed-scale cards should update `max: 5h` → `max: 12h` (or higher).
+- `sensor.daikin_cycle_ml_duty_cycle_today` — derived. Value corrected (prod-1: 33 % → 99.8 %); `band` moves `nominal` → `saturated` on continuous-compressor days. Card templates updated.
+- Unchanged (native values already correct since v1.22.7): `runtime_buh_today`, `compressor_starts_today`, `defrost_count_today`, `defrost_duration_today`.
+
+### Docs
+- `docs/design/a3-tick-metrics.md` — A3 decision record (A3a + A3b rationale, A3c residual).
+- `README.md` — BUH excessive troubleshooting (check filter, pump speed, dT ≥ 4 K).
+
+### Tests
+- **6 093 tests pass, 100 % coverage.**
+- New `test_v1228_a3_reproduction.py` — 11 tests: A3a repro + 3 branch arms, A3b throttle-active (5 windows × 2 queries = 10), A3b P4 regression guard (empty rows still set `ts`), A3b `db=None` early return, refute-hypothesis guard.
+- A1 reproduction test: exact prod-1 2026-11-14 undercount (12 388 s vs 37 881 s), converges native/computed to < 1 % delta.
+- A2 test: 7-day production replay — 3 confirmed incidents.
+- Red-team (~50 cases): `bool` / `NaN` / `inf` / negative native, `MagicMock` attrs, malformed cycles, store exceptions.
+- `CycleStore.cycles_intersecting` edge coverage: missing/invalid `start_ts`/`end_ts`, transient skip/include, boundary-touching windows, mixed records.
+- Sync integrity: BUH / starts / defrost counters — `source`, `native_count`, `computed_count`, `total_s` consistency.
+
 ## [1.22.7] - 2026-11-14
 
 ### Fixed
-
 - **BUH runtime double-count** — Step1+Step2 both active now counted as wall-time (1× dt) instead of sum (2× dt). `runtime_buh_today` was showing 90.6 min for 42.6 min actual BUH use. New `_buh_total_s` counter; `step1_s`/`step2_s` kept as diagnostic detail.
 - **Native counter fallback** — When ESPAltherma v2 exposes `Stats:` firmware counters, BUH / defrost-count / compressor-starts now prefer native values with computed fallback. New `engine/runtime_source.py` module with `read_native_*()` helpers. `source` attribute (`native` / `computed`) added to sensor attributes.
 - **Restore migration** — Pre-v1.22.7 payloads (no `buh_total_s`) auto-backfill via `max(step1, step2)` to prevent false inflation after upgrade.
@@ -118,24 +104,22 @@ No entity IDs change, no new/removed entities. Two counters correct previously u
 ## [1.22.6] - 2026-11-14
 
 ### Added
-
 - **French translations** (credit: [@azsono03](https://github.com/azsono03)) — full UI (`fr.json`, 873 keys parity with `en.json`), notification reports, state labels, config-flow selector, and dashboard cards (simple-card, heating-curve, cop-energy, pattern-analysis, daily-summary-tabbed, lwt-fine-tuning). Auto-locale detection picks FR from `hass.language` or `notification_language` setting.
 - **Daikin Altherma 3 H HT** models: EPRA14DAV3, EPRA16DAV3, EPRA18DAV3 (Daikin EN14511 datasheets).
 
 ## [1.22.5] - 2026-11-13
 
 ### Fixed
-
 - **Adaptive DHW tail** (#340): Suppress short_run/short_off for DHW tails.
 - **Defrost unknown state** (#308): Preserve state on sensor dropouts.
 - **DB exception handling**: `async_get_median_dhw_gap()` catches `_require()` errors.
 - **Status report**: Removed invalid Daikin advice texts.
 - **B1 time-bombed test** (#339): `test_sim_cross_midnight_heating_cycle` is now time-independent.
 
+
 ## [1.22.4] - 2026-11-12
 
 ### Added
-
 - **Diagnostics v2 complete**: 22 sections (was 5). New: `meta`, `source`
   (full attrs + URL-cred redaction), `detector` FSM, `features`, `alerts`,
   `bivalent`, `defrost`, `buh`, `entities`, `device`, `runtime`,
@@ -147,13 +131,13 @@ No entity IDs change, no new/removed entities. Two counters correct previously u
   scrubbed from any string. `meta.redaction_keys` documents it.
 
 ### Changed
-
 - **`_async_update_data` decorated with `@_instrument_tick`** — captures
   tick timing + exception trail. Uses `functools.wraps` to preserve the
   AST contract `test_328_*` relies on.
 - **Coordinator defensive `getattr`** on 5 new trackers so `__new__`-
   bypassed test fixtures keep working (per R808).
 
+### Changed
 - **Diagnostics: `dhw_present` resolution state now visible.** The coordinator
   section of download-diagnostics now includes `dhw_present`,
   `dhw_present_source` (`tier1_attrs` / `tier3_history` / `override_never` /
@@ -163,7 +147,6 @@ No entity IDs change, no new/removed entities. Two counters correct previously u
 ## [1.22.3] - 2026-11-12
 
 ### Added
-
 - **`dhw_present` config option** (`auto` / `always` / `never`) in Options → Advanced.
   Controls whether the integration expects a DHW tank. `auto` uses 3-tier detection
   (3way valve attribute → DHW tank temp → historical DB cycles). Resolved state is
@@ -177,22 +160,7 @@ No entity IDs change, no new/removed entities. Two counters correct previously u
 - **Troubleshooting entries** for "COP shows Unknown" and "DHW recorded as heating"
   in `docs/TROUBLESHOOTING.md` §3.4, §3.5, §4.5.4.
 
-### Changed
-
-- Coordinator `_async_update_data` resolves `dhw_present` **before** cycle
-  detection so tick-1 classification uses the resolved value (was: after).
-- Detector consults the valve for DHW corroboration only when `dhw_present=True`;
-  bypasses valve entirely when `False` (enables Bivalent Direct).
-
-**Docs**
-
-- `DATABASE.md`: `features` schema documented as `vector_json` + `v11` (previous
-  `v0..v11` description was stale). `cop_samples` column list corrected
-  (`outdoor` not `outdoor_temp`, plus 6 missing columns). `daily_summary` pro-rata
-  vs full-cycle aggregation semantics documented as by-design.
-
 ### Fixed
-
 - **#167:** Boolean-valued `3way valve` attribute (`True` / `False`) now correctly
   parsed as ON/OFF. Previously returned `None`, causing DHW cycles to be recorded
   as heating on newer ESPAltherma firmware.
@@ -203,10 +171,21 @@ No entity IDs change, no new/removed entities. Two counters correct previously u
   (frozen source) no longer lock in the tier4 default before source data arrives,
   preventing valve discovery from being permanently disabled.
 
+### Changed
+- Coordinator `_async_update_data` resolves `dhw_present` **before** cycle
+  detection so tick-1 classification uses the resolved value (was: after).
+- Detector consults the valve for DHW corroboration only when `dhw_present=True`;
+  bypasses valve entirely when `False` (enables Bivalent Direct).
+
+### Docs
+- `DATABASE.md`: `features` schema documented as `vector_json` + `v11` (previous
+  `v0..v11` description was stale). `cop_samples` column list corrected
+  (`outdoor` not `outdoor_temp`, plus 6 missing columns). `daily_summary` pro-rata
+  vs full-cycle aggregation semantics documented as by-design.
+
 ## [1.22.2] - 2026-11-11
 
 ### Fixed
-
 - **`last_cycle` sensor stale after forward-merge (#329).** `CycleStore.last_cycle()`
   now refreshes from the DB after a merge extends the keeper cycle, so
   `sensor.daikin_cycle_ml_last_cycle_duration`, `_ago_min`, and `_quality` match
@@ -216,18 +195,15 @@ No entity IDs change, no new/removed entities. Two counters correct previously u
 ## [1.22.1] - 2026-11-11
 
 ### Added
-
 - HT attribute aliases for `[Hydrobox]` LWT, R4T, and compressor frequency signals (#189).
 - Live quality score for the in-progress cycle, refreshed every 5 minutes and folded into `quality_today` (#320).
   Long continuously-modulating cycles (prod-1 evidence: 22.5h, 19.9h, 21.8h) now show a running score instead of `0%` until close.
   New attributes on `sensor.daikin_cycle_ml_quality_today`: `live_score`, `is_cycle_open`, `live_cycle_duration_s`.
 
 ### Changed
-
 - Clarify that `duration_min` and `duration_max` in `DATABASE.md` are stored in **seconds** (#235).
 
 ### Fixed
-
 - Defrost counter no longer stays at 0 on ESPAltherma v2 setups (#308).
   All defrost / BUH on-detection now routes through a single tolerant `const.tolerant_on()` helper. Prod-1 evidence: `defrost_count_today` worked 2026-11-06, dropped to 0 after v1.20.0 (#281).
 - Prevent `setpoint_oscillating` alert from firing when the compressor is in `idle` state (#299).
@@ -250,7 +226,6 @@ No entity IDs change, no new/removed entities. Two counters correct previously u
 ## [1.22.0] - 2026-11-09
 
 ### Added
-
 - Support for **EPRA14DAW17** (Daikin Altherma 3 H HT Hydrosplit) with R32, 5.9 kW heating capacity, and 70°C max LWT (#301). *(Special thanks to @nickveenhof for their first external contribution!)*
 - Safe `_BASE` model profile for the new HT model to prevent inheriting legacy R410A cycle behavior.
 - Regression tests for EPRA14DAW17 datasheet integrity and model resolution.
@@ -313,7 +288,36 @@ No entity IDs change, no new/removed entities. Two counters correct previously u
   without BUH assistance; penalizing them false-flags a normal
   maintenance operation.
 
-**Tests**
+### Fixed
+
+- **Backfill respects user options (#284)**: `_async_backfill_quality`
+  previously called `score_cycle(record, None)`, forcing default
+  thresholds (45/5.0) regardless of user's `good_run_threshold_min` /
+  `good_dt_threshold_k`. Cycles re-scored via backfill (post-v1.4.2,
+  on integration setup) therefore reported incorrect quality. Prod
+  evidence: cycles id=278, 303 scored with defaults (45/5.0) instead
+  of user config (45/4.0) — visible in `quality_today`, `last_cycle`,
+  `daily_summary_recent.quality_avg`. One-line fix: pass
+  `getattr(coordinator, "options", None)` to `score_cycle`.
+- **Stale options after OptionsFlow save (#286)**: `coordinator.options`
+  is a snapshot taken at setup and never refreshed. When a user changed
+  `good_run_threshold_min` / `good_dt_threshold_k` via OptionsFlow,
+  `entry.options` updated but the running coordinator kept scoring with
+  old values until restart. Cycle-321 evidence: a stale `60/5.0`
+  fingerprint (never present in any current config) scored the cycle
+  at 50 while configured `45/4.0` would score 100. Fix: standard HA
+  pattern — `entry.add_update_listener(_async_options_updated)` triggers
+  `config_entries.async_reload`, which rebuilds the coordinator with
+  fresh options and refreshes every dependent threshold (detector,
+  alerts, scoring, notify).
+- **Snapshot/snapshot-heal tests use production ordering (#292)**:
+  `test_v1198_snapshot_heal.py`, `test_v1199_full_dev_db.py`, and
+  `test_v1199_snapshot_replay.py` now call `async_initialize()` on
+  fixture-loaded DBs to match production ordering (previously only
+  `async_open()`, missing v29 ALTER guard). No semantic changes to
+  those tests.
+
+### Tests
 
 - **Backfill reproducer (#284)**: `tests/test_v1201_score_drift.py`
   (5 tests) confirms (a) cycle-321 record scores 100 with user options
@@ -358,7 +362,7 @@ No entity IDs change, no new/removed entities. Two counters correct previously u
   passed, was 29 passed + 1 xpassed), no xfail markers remain in the
   codebase. Production code was correct all along (R636, R708).
 
-**Not in scope**
+### Not in scope
 
 Historical recompute of pre-fix quality scores is out of scope:
 `score_cycle` uses two runtime-only inputs (`off_time_s`,
@@ -367,36 +371,9 @@ are preserved as-is (R715 audit trail). Only future cycles benefit from
 the backfill fix (#284), the legionella exemption (#289), and the
 stale-options fix (#286).
 
-### Fixed
-
-- **Backfill respects user options (#284)**: `_async_backfill_quality`
-  previously called `score_cycle(record, None)`, forcing default
-  thresholds (45/5.0) regardless of user's `good_run_threshold_min` /
-  `good_dt_threshold_k`. Cycles re-scored via backfill (post-v1.4.2,
-  on integration setup) therefore reported incorrect quality. Prod
-  evidence: cycles id=278, 303 scored with defaults (45/5.0) instead
-  of user config (45/4.0) — visible in `quality_today`, `last_cycle`,
-  `daily_summary_recent.quality_avg`. One-line fix: pass
-  `getattr(coordinator, "options", None)` to `score_cycle`.
-- **Stale options after OptionsFlow save (#286)**: `coordinator.options`
-  is a snapshot taken at setup and never refreshed. When a user changed
-  `good_run_threshold_min` / `good_dt_threshold_k` via OptionsFlow,
-  `entry.options` updated but the running coordinator kept scoring with
-  old values until restart. Cycle-321 evidence: a stale `60/5.0`
-  fingerprint (never present in any current config) scored the cycle
-  at 50 while configured `45/4.0` would score 100. Fix: standard HA
-  pattern — `entry.add_update_listener(_async_options_updated)` triggers
-  `config_entries.async_reload`, which rebuilds the coordinator with
-  fresh options and refreshes every dependent threshold (detector,
-  alerts, scoring, notify).
-- **Snapshot/snapshot-heal tests use production ordering (#292)**:
-  `test_v1198_snapshot_heal.py`, `test_v1199_full_dev_db.py`, and
-  `test_v1199_snapshot_replay.py` now call `async_initialize()` on
-  fixture-loaded DBs to match production ordering (previously only
-  `async_open()`, missing v29 ALTER guard). No semantic changes to
-  those tests.
 
 ## [1.20.0] - 2026-11-07
+
 
 ### Added
 
@@ -455,45 +432,6 @@ stale-options fix (#286).
   their canonical counterparts. Also `BE_COP` and `BECOP` resolve to
   canonical `BE COP`.
 
-**Test suite**
-
-- **635 v2 tests** across 27 test files (~9000 lines):
-  - 93 per-attribute matrix
-  - 468 discovery (422 upstream labels, 4 case-only collisions, 200-case fuzz)
-  - 3 resolver alias tests + 26 total
-  - 13 config-flow + 8 E2E
-  - 8 coordinator dispatch
-  - 8 repairs
-  - 18 full-support (6 GAPs)
-  - 12 HA lifecycle
-  - 12 flap recovery
-  - 8 restart with open cycle
-  - 7 services E2E
-  - 11 ML on v2 attrs
-  - 11 EPRA12EAV3 full-coverage (real 138-entity user install)
-  - 24 model-coverage matrix (34 real models + HT exclusions + Stats source check)
-  - 13 COP→daily E2E
-  - 12 prod-DB simulation (6023 samples, 215 cycles, live 2026-11-07)
-- **100% line coverage** maintained on all modules.
-- **HA 2026+ compliance** verified across 7 potential deprecation checks.
-
-**Known limitations**
-
-- **Coexistence merge** (combine both sources simultaneously) not
-  implemented — coverage-based pick only. Planned for v1.21.0.
-- **HT models** (`Altherma(HT ERRQ-ERSQ)`, `Altherma(HT EKHBRD-ERRQ)`):
-  different register protocol, do not publish the 4 source attributes
-  needed for Stats. Out of current scope.
-- **ESPAltherma firmware requirement for Stats**: v2.0.0-beta.19 or
-  newer. Older firmware does not compute Stats; COP falls back to the
-  internal computation path (~6% drift).
-- **Per-model `not_applicable`**: legitimately absent labels (non-DHW
-  without R5T, non-hybrid without boiler, single-compressor without
-  INV freq 2) still show as missing in the repair issue. Planned for
-  v1.21.0 to distinguish misconfiguration from legitimately-absent.
-- **Custom-map UI in repair dialog** — currently requires Options →
-  Advanced → Custom Attribute Map. Planned for v1.21.0.
-
 ### Fixed
 
 - **P1: `resolve_attrs` limited to 12 labels** (#281): the v2 resolver
@@ -535,6 +473,45 @@ stale-options fix (#286).
 - **Multi-defrost running tally showed max instead of sum** (#280).
 - **Defrost count double-counted after HA restart mid-defrost** (#280).
 - **BUH electrical power ignored when attrs arrive as bool** (#280).
+
+### Test suite
+
+- **635 v2 tests** across 27 test files (~9000 lines):
+  - 93 per-attribute matrix
+  - 468 discovery (422 upstream labels, 4 case-only collisions, 200-case fuzz)
+  - 3 resolver alias tests + 26 total
+  - 13 config-flow + 8 E2E
+  - 8 coordinator dispatch
+  - 8 repairs
+  - 18 full-support (6 GAPs)
+  - 12 HA lifecycle
+  - 12 flap recovery
+  - 8 restart with open cycle
+  - 7 services E2E
+  - 11 ML on v2 attrs
+  - 11 EPRA12EAV3 full-coverage (real 138-entity user install)
+  - 24 model-coverage matrix (34 real models + HT exclusions + Stats source check)
+  - 13 COP→daily E2E
+  - 12 prod-DB simulation (6023 samples, 215 cycles, live 2026-11-07)
+- **100% line coverage** maintained on all modules.
+- **HA 2026+ compliance** verified across 7 potential deprecation checks.
+
+### Known limitations
+
+- **Coexistence merge** (combine both sources simultaneously) not
+  implemented — coverage-based pick only. Planned for v1.21.0.
+- **HT models** (`Altherma(HT ERRQ-ERSQ)`, `Altherma(HT EKHBRD-ERRQ)`):
+  different register protocol, do not publish the 4 source attributes
+  needed for Stats. Out of current scope.
+- **ESPAltherma firmware requirement for Stats**: v2.0.0-beta.19 or
+  newer. Older firmware does not compute Stats; COP falls back to the
+  internal computation path (~6% drift).
+- **Per-model `not_applicable`**: legitimately absent labels (non-DHW
+  without R5T, non-hybrid without boiler, single-compressor without
+  INV freq 2) still show as missing in the repair issue. Planned for
+  v1.21.0 to distinguish misconfiguration from legitimately-absent.
+- **Custom-map UI in repair dialog** — currently requires Options →
+  Advanced → Custom Attribute Map. Planned for v1.21.0.
 
 ## [1.19.10] - 2026-11-06
 
@@ -627,9 +604,7 @@ stale-options fix (#286).
   live sensor attributes).
 
 ## [1.19.9] - 2026-11-06
-
 ### Added
-
 - **v28 migration — historical re-classification (Bug #10 fix, #123):**
   After v1.19.9 per-insert classifier is active for new samples, this
   migration re-classifies all existing `cop_samples` with the new
@@ -665,17 +640,13 @@ stale-options fix (#286).
   4/148 samples classified (3 flag, 0 reject, 145 accept); the
   borderline sample (cop=8.48 vs ceiling 8.46) preserved via the 1.05
   sensor-noise margin. Alert wiring follows in phase 4.
-
 ### Changed
-
 - **`_parse_float` dead branch removed (R637):** the `if len(parts)
   == 2: ... else: return None` inside the EU-decimal handler was
   unreachable (a `count(",") == 1` guard guarantees exactly 2 parts
   from `split(",")`). Removed rather than masked with
   `# pragma: no cover`.
-
 ### Fixed
-
 - **3 alert-types missing group mapping (real prod gap, 2026-11-05):**
   `db_retention_warning`, `energy_daily_anomaly`, and
   `kmeans_retrain_stale` were present in `BINARY_ALERT_MAP` and fired
@@ -731,9 +702,7 @@ stale-options fix (#286).
   source of truth, no drift. Adds 7 regression tests (RED before fix).
 
 ## [1.19.8] - 2026-11-05
-
 ### Added
-
 - **`sensor.alerts_today`:** new sensor exposing today's alert count and
   full-day alert list. State = total count since local midnight.
   Attributes: `since` (ISO), `total`, `by_type`, `by_severity`, `alerts[]`
@@ -752,9 +721,7 @@ stale-options fix (#286).
   SQL, no data loss. Adds 3 regression tests plus 1 real-prod snapshot
   test (`test_snapshot_heals_after_backfill`, skips in CI when the
   fixture is absent).
-
 ### Changed
-
 - **`source_stale` threshold 60s -> 120s:** raised `SOURCE_STALE_FACTOR`
   from 2.0 to 4.0 to tolerate a single missed tick. Reduces false-positive
   `source_stale` alerts (severity `critical`, bypasses quiet hours) on
@@ -772,9 +739,7 @@ stale-options fix (#286).
   values are unaffected. The fix prevents distortion on future co-fire
   days (cold snaps, defrost recovery, DHW peaks). Non-hybrid installs:
   unchanged path, identical results.
-
 ### Fixed
-
 - **`source_stale` false positive (prod-1, 2026-11-04 13:58:57):** alert
   fired at age=62.5s vs threshold=60s. Recorder-proven source cadence was
   30.1s with no gap; integration view was 2 beats stale from a single
@@ -827,9 +792,7 @@ stale-options fix (#286).
   past their own day boundary. Adds 2 regression tests.
 
 ## [1.19.7] - 2026-11-04
-
 ### Added
-
 - **`short_cycling_pattern` binary sensor + alert (#11):** new
   `binary_sensor.daikin_cycle_ml_short_cycling_pattern` fires when
   3+ short-run cycles occur within a rolling 60-minute window.
@@ -854,9 +817,7 @@ stale-options fix (#286).
   for 3 alerts, migration v27 with fixture replay and resilience,
   cross-midnight attribution, compressor detection via flow+COP with
   69-sample real-data replay.
-
 ### Changed
-
 - **`short_off` requires 2+ cycles (#259):** a lone cycle with a small
   stored `off_s` is not a short-cycling pattern. Both layers now
   require >= 2 cycles in the store.
@@ -876,22 +837,7 @@ stale-options fix (#286).
 - **R596 gate parses JUnit XML.** Pytest 9.0.3 suppresses the
   `N passed` summary line on stdout; the test-count check is now
   source-independent.
-
-**Test suite**
-
-- v1.19.6 baseline: 4158 passed, 4 skipped.
-- v1.19.7 final: **4492 passed, 4 skipped, 100% coverage**.
-
-**Known Limitations**
-
-- **Historical pre-v1.19.7 low-modulation gaps are not retroactively
-  filled.** The #261 detection fix applies prospectively; COP samples
-  that were not converted to cycles at the time stay as gaps. v27
-  rebuilds attribution, not detection. Retroactive cycle synthesis
-  is tracked as a v1.20.0 investigation.
-
 ### Fixed
-
 - **Alerts — 6 consecutive alert-firing bugs (#1, #2, #3, #4, #10):**
   `short_off` now skips transient pump-only LWT sampling pulses and
   requires at least one short run in the pair (264min -> 60s -> 84min
@@ -954,11 +900,18 @@ stale-options fix (#286).
   for every affected day. On Prod-1 fixture: **3 overlapping pairs
   fixed, 5 days rebuilt**. Second run is a no-op (marker
   `data_migration_v27_completed`).
+### Test suite
+- v1.19.6 baseline: 4158 passed, 4 skipped.
+- v1.19.7 final: **4492 passed, 4 skipped, 100% coverage**.
+### Known Limitations
+- **Historical pre-v1.19.7 low-modulation gaps are not retroactively
+  filled.** The #261 detection fix applies prospectively; COP samples
+  that were not converted to cycles at the time stay as gaps. v27
+  rebuilds attribution, not detection. Retroactive cycle synthesis
+  is tracked as a v1.20.0 investigation.
 
 ## [1.19.6] - 2026-11-03
-
 ### Changed
-
 - **`sensor.cycles_last_hour`:** now reflects only non-transient cycles
   (was: all cycles). User-visible state change on transient-heavy days
   (e.g. `5` -> `2`); the new behaviour is correct, because a 30-120s
@@ -966,14 +919,7 @@ stale-options fix (#286).
 - **`store.cycles_in_window` / `store.cycles_in_window_mode`:** new
   keyword-only parameters `exclude_transient: bool = True` and
   `exclude_future: bool = True`. Existing call sites unaffected.
-
-**Tests**
-
-- +75 new tests across 9 new files (`test_v1196_*.py`), every fix proved
-  red -> green. Full suite: 4158 passed, 4 skipped, 100% coverage.
-
 ### Fixed
-
 - **Alerts — transient leak in window counters:** `pendulum_hourly`,
   `pendulum_daily`, `dhw_pendulum` and `high_cycle_rate` now exclude
   transient pump-only LWT sampling pulses (`is_transient=1`) from their
@@ -1019,11 +965,12 @@ stale-options fix (#286).
   `_is_pendulum_daily`. Before the fix the trigger counted 30 real cycles
   but the alert message displayed 40 (30 real + 10 transient), confusing
   users on transient-heavy days.
+### Tests
+- +75 new tests across 9 new files (`test_v1196_*.py`), every fix proved
+  red -> green. Full suite: 4158 passed, 4 skipped, 100% coverage.
 
 ## [1.19.5] - 2026-11-02
-
 ### Fixed
-
 - **Alerts:** `short_run` now skips transient pump-only LWT sampling pulses
   (`is_transient=1`). Previously these 30-120s pulses were treated as real
   short cycles, firing `short_run` on every transient close. Because the
@@ -1033,18 +980,7 @@ stale-options fix (#286).
   `short_run`. (#246)
 
 ## [1.19.4] - 2026-11-02
-
-### Changed
-
-**Tests**
-
-- 3 new reproduction tests in `test_issue_245_short_off.py` (pre-fix
-  fail, post-fix pass).
-- Updated `test_52b5_dhw_mode_gating.py` mock to include `off_s` in the
-  `last_cycle` record.
-
 ### Fixed
-
 - **Alerts:** `short_off` now uses the completed gap from the last cycle
   record (`off_s`) instead of the live `off_time_since_last(now)`.
   Previously the alert fired immediately after *any* cycle ended, because
@@ -1052,19 +988,14 @@ stale-options fix (#286).
 - **Alerts:** corrected backwards advice text for `short_off` — "decrease
   threshold for false positives" instead of "increase" (which would have
   caused more alerts). (#245)
+### Tests
+- 3 new reproduction tests in `test_issue_245_short_off.py` (pre-fix
+  fail, post-fix pass).
+- Updated `test_52b5_dhw_mode_gating.py` mock to include `off_s` in the
+  `last_cycle` record.
 
 ## [1.19.3] - 2026-11-01
-
-### Changed
-
-**Note**
-
-- PR #247 claimed "`good_off_min` attribute populated — no longer `null`
-  at idle". That was incorrect: mode resolution was fixed, but the
-  `_off_min` data bucket was empty regardless of mode. Corrected here.
-
 ### Fixed
-
 - **Adaptive data-availability gaps:** three independent gaps made
   `learned_thresholds` partly useless. (1) `observe_cycle()` received
   every closed cycle including `is_transient=1` startup pulses, so p20
@@ -1076,11 +1007,13 @@ stale-options fix (#286).
   and `target_cycles_per_day` always `None`. Now: transients skipped,
   `off_s` attached to record, and `observe_day` called from the 03:00
   maintenance callback using yesterday's `daily_summary.cycles`. (#249)
+### Note
+- PR #247 claimed "`good_off_min` attribute populated — no longer `null`
+  at idle". That was incorrect: mode resolution was fixed, but the
+  `_off_min` data bucket was empty regardless of mode. Corrected here.
 
 ## [1.19.2] - 2026-11-01
-
 ### Fixed
-
 - **`learned_thresholds` sensor permanently `unknown` when HP is idle:**
   `sensor.daikin_cycle_ml_learned_thresholds` (and its `good_off_min`
   attribute) always reported `unknown` whenever `snap.mode` was
@@ -1092,9 +1025,7 @@ stale-options fix (#286).
   current -> last cycle -> dominant adaptive mode. (#245)
 
 ## [1.19.1] - 2026-11-01
-
 ### Fixed
-
 - **OptionsFlow wiped sensor mappings on every non-sensor step:** saving
   any step other than "Sensor mapping" (notifications, pendulum, advanced,
   etc.) reset `power_sensor_entity`, `cop_sensor_entity` and
@@ -1103,18 +1034,14 @@ stale-options fix (#286).
   Explicit `None` submissions still clear (user intent preserved). (#244)
 
 ## [1.19.0] - 2026-11-01
-
 ### Added
-
 - **HP model in notification subtitle:** All notifications now show the full
   heat-pump model SKU (e.g. `EPRA12EAV3`, `ERLA11DAV3`) as a subtitle line
   beneath the title. Source: `config_entry.data['model']`, uppercased;
   `basisprofiel`, `custom`, and empty values fall back to the previous
   timestamp-only line. Backward compatible: `full_model=""` = byte-identical
   output. (#241)
-
 ### Fixed
-
 - **Per-type alert dedup defaults ignored:** `ALERT_DEDUP_DEFAULTS` was not
   consulted in `evaluate_alerts`; 15 of 17 alert types fell back to the
   global `alert_aggregation_minutes` (30 min) instead of their intended
@@ -1123,15 +1050,11 @@ stale-options fix (#286).
   an explicit `alert_agg_<type>_min` override still takes precedence. (#240)
 
 ## [1.18.0] - 2026-11-01
-
 ### Added
-
 - **Branding:** Added integration icons and logos (`brand/` directory) to satisfy HACS and HA Quality Scale requirements.
 - **Test Hardening:** Enforced strict pytest warnings (`RuntimeWarning`, `PytestUnraisableExceptionWarning`) in `pyproject.toml`.
 - **Quality Scale:** Updated `quality_scale.yaml` to mark `brands` as completed.
-
 ### Fixed
-
 - **Hybrid indicators leak (diagnostics):** `snap.hybrid_mode`, `snap.boiler_efficiency_cop`, and `snap.inv_freq_secondary` are now only populated when `snap.is_hybrid` is True.
 - **Detector boiler-only close guard:** `detector.update()` now receives `boiler_active=False` on non-hybrid installs.
 - **Alert suppression leak:** `_boiler_kwargs_for_alerts()` returns `boiler_active=False` on non-hybrid.
@@ -1142,84 +1065,56 @@ stale-options fix (#286).
 - **R580 Compliance:** Replaced all `try/except Exception: pass` blocks in the test suite with `contextlib.suppress(Exception)` to prevent silent test failures.
 
 ## [1.17.1] - 2026-11-01
-
 ### Added
-
 - **7 new test suites:** `test_ha_contracts.py`, `test_diagnostics_redaction.py`, `test_services_validation.py`, `test_entity_lifecycle.py`, `test_migrations_idempotency.py`, `test_coordinator_resilience.py`, `test_db_concurrency.py`. Total: **3988 passed, 4 skipped, 100% coverage**.
-
 ### Changed
-
 - **Test contract hardening (R580):** Removed `try/except Exception: pass` from `test_47_init_edges.py` and `test_49_misc_more.py`. Assertions now fail loudly on regressions.
 - **Deterministic rollup tests:** `test_multi_instance.py`, `test_rollup_concurrency.py`, and `test_rollup_e2e_real_db.py` now use a fixed mid-hour timestamp instead of `time.time()`, eliminating hour-boundary flakiness.
 - **Auto-fixed 221 ruff errors** (I001 import sorting, F401 unused imports) to eliminate pre-existing debt from v1.16.0's `fix=false` change.
-
 ### Fixed
-
 - **`async_unload_entry` return type (HA 2026.10.4):** Explicitly returns `True` instead of implicit `None`. HA Core 2026.10.4 asserts `isinstance(result, bool)` in `config_entries.py:1132`, which failed on unload and prevented clean reload/removal.
 - **Coordinator `config_entry` (HA 2026.10.4):** `DaikinCycleMLCoordinator` now passes `config_entry=entry` to `DataUpdateCoordinator.__init__`. Without it, `async_config_entry_first_refresh()` raised `ConfigEntryError` on every setup and the integration failed to load.
 
 ## [1.17.0] - 2026-11-01
-
 ### Added
-
 - **Dashboard dynamic HP specs:** The heating-curve card now dynamically reads specs from `sensor.daikin_cycle_ml_hp_specs` instead of a hardcoded JS dictionary (Fixes #226). Falls back to the old table only when the sensor isn't configured.
 - **Comprehensive test coverage** for rollup orchestration, sensor-chain E2E, concurrency, marketplace compliance, migrations idempotency, multi-instance isolation, and dashboard card integrity. 10 new test files, ~1500 lines, `pytest` total: 3974 passed, 100% coverage.
 - **ML Clustering Labels:** Updated KMeans cluster labels from `pendulum`/`dhw_like`/`normal` to `pendulum`/`normal`/`long_cycle`. The previous `dhw_like` label incorrectly classified long heating cycles as DHW. Users with automations depending on `cluster == "dhw_like"` should update them to `long_cycle`.
-
 ### Changed
-
 - **Ruff CI config:** `fix = true` was removed from `pyproject.toml`. CI now checks only (read-only). 20 additional style rules are ignored as they have no runtime impact.
 - **Dashboard `daily-summary-tabbed` card:** Added native Dark Mode support using HA CSS variables. Renamed misleading labels ("Longest" -> "Longest day", "Cap" -> "Y-axis max"). Added conditional Hybrid (Boiler) stats and mode indicator for EVLQ/EBLQ installations.
 - **Cycle duration clamping:** Removed the hardcoded 4-hour limit in `coordinator.py` that silently truncated long compressor cycles before database insertion. The integration now relies correctly on the 48-hour detector safety net, ensuring accurate cycle durations, daily summaries, and sensor values.
-
 ### Fixed
-
 - **Rollup gap after HA restart:** Startup rollup now fills the gap between the last rollup before a restart and the first tick after it. Previously, up to 6 hours of `cop_hourly` data could be missing after a HA restart, leaving `cop_dhw_day` and `cop_heating_day` sensors showing stale data.
 - **6-hour delay in per-cycle COP visibility:** Post-cycle rollup with `window_hours=48` runs immediately after every completed cycle. Previously, DHW or heating data from the just-finished cycle would not appear in `cop_dhw_day` or `cop_heating_day` until the next 6-hour tick.
 - **Zero-variance baseline outlier detection:** When all training samples are identical (std=0), any deviating sample was silently accepted as non-outlier because z-scores returned 0. Now detected via direct mean-deviation check, so an outlier against a zero-variance baseline is properly skipped.
 - **`strings.json` missing error keys:** Added `config.error.source_offline` and `config.error.source_empty`. These existed in `translations/en.json` and `translations/nl.json` but were missing from `strings.json` (the HA-runtime source), causing users to see a generic error message instead of the specific ESPAltherma source guidance when the source was offline or empty.
 
 ## [1.16.0] - 2026-10-31
-
 ### Added
-
 - **Dashboard:** Native Dark Mode support, updated labels, and conditional Hybrid (Boiler) statistics for EVLQ/EBLQ installations.
-
 ### Changed
-
 - **HA 2026+ Compliance:** Removed `try/except` blocks in `async_setup_entry` so errors bubble up correctly. `async_unload_entry` now raises `HomeAssistantError` instead of returning `False`.
 - **Marketplace Ready:** Added `quality_scale.yaml` (Gold tier), `icons.json`, `issue_tracker`, and `codeowners`.
-
 ### Fixed
-
 - **Cycle duration:** Removed the 4-hour limit in `coordinator.py` that silently truncated long compressor cycles. The integration now relies on the 48-hour detector safety net, ensuring accurate cycle durations, daily summaries, and sensor values.
 
 ## [1.15.2] - 2026-10-30
-
-### Changed
-
-**Upgrade notes**
-
-- HACS update to v1.15.2 + restart. No migrations, no DB changes.
-
 ### Fixed
-
 - **Version manifest correction.** v1.15.1 shipped with `manifest.json`, `const.py`, and `pyproject.toml` still reporting `1.15.0` despite the release tag being `v1.15.1`. HA and HACS displayed the integration as `1.15.0`. All three files now correctly report `1.15.2`. No functional code changes. The v1.15.1 tag has been reverted to its original commit `911898a` for accurate history.
 - Added **R576** (release-tag safety) and **R577** (force-push discipline) to `docs/DEVELOPMENT.md §11`.
+### Upgrade notes
+- HACS update to v1.15.2 + restart. No migrations, no DB changes.
 
 ## [1.15.1] - 2026-10-30
-
 ### Fixed
-
 - Hybrid-only entities (3 sensors + 2 binary_sensors: `hybrid_mode`, `boiler_efficiency_cop`, `boiler_contribution_today_pct`, `boiler_operation_demand`, `boiler_dhw_demand`) are no longer created on non-hybrid installs; stale registry entries purged on setup so upgrades no longer leave ghost `off`/`unknown` entities.
 - `cop_normalized_a7w35` and `cop_vs_datasheet_pct` now fall back to `snap.attrs['R1T-Outdoor air temp.']` when `snap.last_record.outdoor_temp` is absent, fixing `unknown` state on systems without a rolled last_record.
 - `MAX_CYCLE_DURATION_S` raised from 4h to 48h. The R315 hard-cap that force-closes cycles exceeding a fixed duration was truncating legitimate long modulating runs — real 18h 8min cycle was recorded as 4h. Reported via Tweakers forum. 48h still caps true runaway cycles but no longer interferes with steady winter operation.
 - DB migration v25 (idempotent, marker-guarded): merges pre-existing 4h capped-cycle artifacts left in the database from before the cap raise. Capped parents (duration_s==14400, end_ts-start_ts>14400) are chained with children starting within 60s in the same mode; aggregate fields (dT_max, rps_max, buh_used, defrost_used) combined via MAX; child features remapped to parent; affected daily_summary rows re-rolled. Standalone capped cycles (no adjacent child) left untouched. Existing DBs gain real 5-18h durations in Daily Summary on first restart.
 
 ## [1.15.0] - 2026-10-30
-
 ### Added
-
 - **#222** EBLA09DA3W1 9 kW 3-phase R32 monobloc datasheet:
   - EN 14511 nominal heating points (A-7/W35, A2/W35, A7/W35, A7/W45)
   - EN 14825 part-load: Average climate (Strasbourg) primary + Warmer (Keymark 011-1W0423) as separate reference
@@ -1239,11 +1134,11 @@ stale-options fix (#286).
   - Alert suppression: `short_run`, `short_off`, `pendulum_hourly`, `pendulum_daily` suppressed during boiler-only
   - DB schema v22: `cop_samples.boiler_active`; `cycles.boiler_contribution_samples` (v21)
   - Diagnostics: boiler_active, boiler_dhw_active, hybrid_mode, boiler_efficiency_cop, inv_freq_secondary
-
-### Changed
-
-**Docs**
-
+### Fixed
+- **#217** IDLE state now forces RPS=0, thermal_power_live=0.0, and COP=None instead of showing stale values.
+- **#217** Add ERG04/06/08 model aliases mapping to ERGA profiles.
+- **#217** Heating Curve advice now requires 18+ samples; sets `reason=insufficient_samples` otherwise.
+### Docs
 - **#211 #207** Reconcile CONFIGURATION §2.1 vs README attribute lists (12 required, matching `const.REQUIRED_ATTRIBUTES`); move INV freq + R5T to §2.2 recommended, LW setpoint to §2.1 required.
 - **#211** Add R1T ambiguity warning (§2.1, `## Known limitations`) and external-sensor failure-mode section (§2.1.1, `## Known limitations`).
 - **#207** Cross-link §2.3 to MODEL_COMPATIBILITY §5 per-model matrix.
@@ -1253,73 +1148,45 @@ stale-options fix (#286).
 - **#215** README structural pass: added `## Contents` TOC (19 auto-derived anchors), moved `## Why this exists` above `## What you get` for clearer narrative flow (Showcase position unchanged); blank-line and divider symmetry restored at section boundaries.
 - **#224 #218** Hybrid EVLQ documentation: README supported-models section, ENTITIES.md §2.13 hybrid sensors (3) + 2 boiler binary sensors, MODEL_COMPATIBILITY.md §6.6 hybrid (R5T sentinel, R561 guard, COP isolation), CONFIGURATION.md §3.3 six model families, DATABASE.md v21/v22 migrations, TROUBLESHOOTING.md §4.5 three hybrid scenarios.
 
-### Fixed
-
-- **#217** IDLE state now forces RPS=0, thermal_power_live=0.0, and COP=None instead of showing stale values.
-- **#217** Add ERG04/06/08 model aliases mapping to ERGA profiles.
-- **#217** Heating Curve advice now requires 18+ samples; sets `reason=insufficient_samples` otherwise.
-
 ## [1.14.0] - 2026-10-29
-
 ### Added
-
 - **#206** electrical input cascade: power meter > the upstream 2.0 `Stats: Electrical input estimated (kW)` > v1 inverter fallback (`INV_A x 230V x phases + BUH_step1_kW + BUH_step2_kW + 100W`). v2 detection with 300s hysteresis. Ref raomin/the upstream Discussion #599.
 - **#206** OptionsFlow step `cop_calc` (`supply_phases` 1|3, `buh_step1_kw`, `buh_step2_kw`).
 - **#206** sensor `electrical_power_estimated` (W) with `source` attribute (`power_meter`|`espaltherma_v2_stats`|`inverter_estimated_v1`|`none`).
 - **#206** coordinator `_read_cop_effective` fallback (cop_sensor > computed flow_dt / electrical power). MAX_COP (11.0) gate. DataSnapshot: `cop_source`, `electrical_power_w`, `electrical_power_source`.
 - **#206** const: `SUPPLY_PHASES_DEFAULT/ALLOWED`, `BUH_STEP1_KW_DEFAULT`, `BUH_STEP2_KW_DEFAULT`, `ELECTRICAL_OFFSET_W_V1`, `VOLTAGE_NOMINAL_V`, `V2_STATS_KEY`, `INV_PRIMARY_CURRENT_KEY`, `BUH_STEP1_KEY`, `BUH_STEP2_KEY`, `V2_STATS_HYSTERESIS_S`.
-
-### Changed
-
-**Tests**
-
+### Fixed
+- **#206** `_errors_total` class-level default (partial fixtures via `object.__new__` no longer `AttributeError` in `_async_update_data` except-handler).
+- **#206** `_read_power` / `_read_power_w` use `getattr(self, "power_sensor", None)` (mirror of `_power_from_meter`).
+- **#206** `cycles_today()` skips `start_ts > now + 60s` (clock-skew tolerance, blocks DB-import corruption).
+- **#206** `_value_duty_cycle_today_pct` clamps [0, 100].
+### Tests
 - `test_205_electrical_power_cascade.py` (14), `test_206_cop_fallback.py` (6), `test_g1_defensive_guards.py` (6) - new.
 - `test_c5_sensors.py::test_duty_cycle_computes_pct` monkeypatches `_now` (wall-clock independence).
 - `test_c3a_integration.py`, `test_v160_spf.py`, `test_v160_per_mode_cop.py`, `test_v160_deep.py` - SENSOR_DEFS 46 -> 47.
 Suite: 3703 -> 3729 (+26).
 
-### Fixed
-
-- **#206** `_errors_total` class-level default (partial fixtures via `object.__new__` no longer `AttributeError` in `_async_update_data` except-handler).
-- **#206** `_read_power` / `_read_power_w` use `getattr(self, "power_sensor", None)` (mirror of `_power_from_meter`).
-- **#206** `cycles_today()` skips `start_ts > now + 60s` (clock-skew tolerance, blocks DB-import corruption).
-- **#206** `_value_duty_cycle_today_pct` clamps [0, 100].
-
 ## [1.13.2] - 2026-10-28
-
-### Changed
-
-**Docs**
-
-- **#191 + #195 (v1.13.2)** - the upstream data-source credit in README + reciprocal link; datasheets.json `_meta` (CC BY 4.0, attribution_required, permission_grant for raomin); MODEL_COMPATIBILITY.md sources section; permission granted both directions.
-
 ### Fixed
-
 - **#201 (v1.13.2)** - clearable optional sensor fields: OptionsFlow._save normalizes omitted keys to None before merge so clearing persists (HA core #154795 pattern). 5 tests.
 - **#188 + #184 (v1.13.2)** - thermal power physical delta T: mode-aware (heating/dhw: R1T-before-BUH minus R4T, cooling: R4T minus R1T), matching raomin the upstream commit 5382853; clamp negative to 0kW, drop >14kW. v20 migration adds cop_samples.r1t + r4t columns; sampler writes both. Historical pre-v1.13.2 samples fall back to legacy formula (no history rewrite).
+### Docs
+- **#191 + #195 (v1.13.2)** - the upstream data-source credit in README + reciprocal link; datasheets.json `_meta` (CC BY 4.0, attribution_required, permission_grant for raomin); MODEL_COMPATIBILITY.md sources section; permission granted both directions.
 
 ## [1.13.1] - 2026-10-28
-
 ### Added
-
 - **Model family wizard** (#197): two-step config flow. Step 1 picks the model family (EPRA, ERLA, ERGA, EPGA, EDLA, EBLA, EDLQ, EBLQ, EPSK, EKHBRD, ERRQ) or Basic/Custom. Step 2 lists only that family's models; Basic/Custom skip the model picker.
 - **Alias layer (phase 1)** (#198): `MODEL_ALIASES` maps commercial model names to base technical codes. Resolvers `resolve_model_key`, `family_for_model`, `models_in_family` in `const.py`. Aliasing applied transparently inside `engine.model_profiles.get_profile()` and `engine.model_datasheets.get_datasheet()`.
 - **ERGA08EVH7** commercial alias for ERGA08EAV3 - closes #197.
-
 ### Changed
-
 - `config_flow._MODEL_SELECTOR` split into module-level `_FAMILY_SELECTOR` + `_build_model_selector(family)` factory. Reconfigure-basic keeps the flat picker.
 - i18n step count 16 -> 17 (strings.json, translations/en.json, translations/nl.json).
 - Legacy compat: `async_step_user` detects legacy payloads (`source_sensor` without `family`) and forwards to `async_step_model` so existing tests and programmatic callers keep working.
-
 ### Fixed
-
 - **#196 cop_samples=0 on fresh installs** (v1.13.0 regression): `_maybe_collect_cop_sample` now reads source the upstream attributes via `build_compat_view` and overlays the COP value from `cop_sensor`. Previously read the cop_sensor's own attributes only (numeric template sensor with no synthetic keys like `leaving_temp`/`outdoor_temperature`), causing `data_quality='unknown'` -> hard reject -> 0 samples on fresh installs despite valid cycles. Legacy fallback preserved for callers without source attributes. Source path also correctly extracts `lwt`/`outdoor`/`flow_lmin` so samples are analytically complete. Confirmed root cause on 2 users (ERGA08EVH7 split + EPRA12EAV3 monoblock). 10 new tests cover the source path, legacy fallback, edge cases, and `data.cop` fallback.
 
-## [1.13.0] - 2026-10-27
-
+## [1.13.0] — 2026-10-27
 ### Added
-
 - **CI guard: MODEL_CHOICES ↔ MODEL_LABELS surface contract** — `model-compat.yml` now fails the PR gate on wizard/label drift (the PR #166 class) or a choice without a behavioural profile. Path filter also triggers on `engine/model_profiles.py` and `data/datasheets.json` changes, which were previously silent. New test: `test_model_choices_match_labels`. No runtime behaviour change to the integration.
 - **#175 (partial) — HT profile + datasheet points**
   - `_HT_PROFILE` in `model_profiles.py`: `good_dt_threshold_k=10.0` (vs 5.0 LT), `max_cycle_duration_min=300`, `defrost_interval_min=45`, `short_run_threshold_min=30`, `target_cycles_per_day=5`. Assigned to 6 HT models (EKHBRD011/014/016, ERRQ011/014/016). EBLQ remains LT (const.py:126).
@@ -1333,20 +1200,7 @@ Suite: 3703 -> 3729 (+26).
   - **HT outdoor** — `errq011-ersq011` (11.0 kW, 3.08), `errq014-ersq014` (14.0 kW, 3.00), `errq016-ersq016` (16.0 kW, 2.88)
   - All 11 use `_BASE` behavioural profile (defaults) — HT units likely need per-family tuning (higher `good_dt_threshold_k`, `max_cycle_duration_min`) once live data is available; tracked as v1.13.0 follow-up.
   - Zero test changes — `test_all_model_choices_present`, `test_no_model_expects_brine`, `test_all_profiles_have_same_keys` auto-cover via `MODEL_CHOICES` iteration.
-
-### Changed
-
-**Docs**
-
-- **Guide**: how to change your model via Reconfigure (`docs/MODEL_COMPATIBILITY.md` §"Changing your model"). Model is config entry data, not an option — per HA 2026+ guidelines.
-- **Datasheet runtime coverage** — bundled datasheet store extended to all 51 real models (was 40). 11 new entries (EBLQ05-16, EKHBRD011-016, ERRQ011-016). 12 partial curves (2 points) + 3 nom_cop-only from verified Daikin EN specs — no interpolated data.
-- **Validator** — `_T_LWC_MAX` 70 → 80 °C for HT models.
-- **Docs** — runtime coverage table + user_datasheets instructions.
-- EPSK12AW1/EPSK14AW1 COP A7/W35 filled from heatpumpkeymark + Daikin CH (5.50).
-- **Datasheet reference table** — `docs/MODEL_COMPATIBILITY.md` now lists public Daikin datasheet COP, capacity and LWT values for every bundled model family: EBLQ CV3, EKHBRD+ERRQ, ERRQ-ERSQ, EPSK AW1, EDLA D3V3, EBLA EV3, ERGA EAV3, EPGA DAV3, EPRA18. Excluded GEO2/GEO3 listed for reference only.
-
 ### Fixed
-
 - **#129 + #124 (v1.13.0)** — Sanity gate for `cop_avg` and `thermal_kw_avg`
   - `_apply_cop_sanity_gate` (coordinator): NULL when `n < MIN_SAMPLES_FOR_AVG (3)` or `cop_avg > MAX_COP (11.0)`
   - `_apply_thermal_sanity_gate` (cycle_detector): NULL when `thermal_kw_avg > MAX_THERMAL_KW (14.0)`
@@ -1355,20 +1209,23 @@ Suite: 3703 -> 3729 (+26).
   - Gated value propagated to return-tuple (R488) — features-writer safe
   - **v19-migration caveat:** `features.vector_json[11]=0.0` now means "gated/missing", NOT "zero heat". Do not treat as measurement during v19 recompute — recompute from `cop_samples` per #129.
   - 11 tests in `tests/test_v1130_sanity_gate.py`
+### Docs
+- **Guide**: how to change your model via Reconfigure (`docs/MODEL_COMPATIBILITY.md` §"Changing your model"). Model is config entry data, not an option — per HA 2026+ guidelines.
+- **Datasheet runtime coverage** — bundled datasheet store extended to all 51 real models (was 40). 11 new entries (EBLQ05-16, EKHBRD011-016, ERRQ011-016). 12 partial curves (2 points) + 3 nom_cop-only from verified Daikin EN specs — no interpolated data.
+- **Validator** — `_T_LWC_MAX` 70 → 80 °C for HT models.
+- **Docs** — runtime coverage table + user_datasheets instructions.
+- EPSK12AW1/EPSK14AW1 COP A7/W35 filled from heatpumpkeymark + Daikin CH (5.50).
+- **Datasheet reference table** — `docs/MODEL_COMPATIBILITY.md` now lists public Daikin datasheet COP, capacity and LWT values for every bundled model family: EBLQ CV3, EKHBRD+ERRQ, ERRQ-ERSQ, EPSK AW1, EDLA D3V3, EBLA EV3, ERGA EAV3, EPGA DAV3, EPRA18. Excluded GEO2/GEO3 listed for reference only.
 
-## [1.12.9] - 2026-10-26
-
+## [1.12.9] — 2026-10-26
 ### Added
-
 - **#155** — Model compatibility contract + drift gate
   - `tools/parse_espaltherma_defs.py` + `tools/check_compat_contract.py`
   - `MODEL_COMPATIBILITY.md` (40-model matrix + 3 decoy warnings)
   - `.github/workflows/model-compat.yml` (PR path-gate) + `weekly-drift.yml` (signal-only)
   - 130 tests in `tests/test_model_compat.py`
 - **#155 follow-up** — Adopt upstream beta drift @ `99ed8d19` (39→40 models, 401→421 labels; new HT ERRQ-ERSQ outdoor unit definition, refrigerant-circuit labels only, no runtime impact)
-
 ### Fixed
-
 - **#131 (PR-1)** — Forward bridge-aware cycle merge (db primitive)
   - Extracted `_apply_merge()` primitive shared with v18 R446b migration
   - `async_merge_cycle_forward(new_id)` — detects transient-cycle-sandwiched-between-same-mode pattern, collapses to one keeper row
@@ -1398,14 +1255,12 @@ Suite: 3703 -> 3729 (+26).
   - Heuristic: `stored > real_matched × 1.5` → UPDATE (relative, not duration-based)
   - Marker `data_migration_v1_12_5_sample_count_fix` with `completed_ts`
   - 5 tests in `tests/test_v1129_sample_count_fix.py`
-
+### Closed
 - **#133** (umbrella) — #133a (v1.12.5 forward COUNT) + #133b (v1.12.9 historical) both shipped
 - **#136** — tracked via PR #155
 
-## [1.12.8] - 2026-10-25
-
+## [1.12.8] — 2026-10-25
 ### Fixed
-
 - **Reconfigure failure during source offline window** - when the user triggered reconfigure while `sensor.althermasensors` was momentarily `unavailable` or had empty attributes (e.g., during an the upstream reboot, WiFi/MQTT reconnect, or right after an HA restart), the code called `missing_required({})` which returned all 12 required attributes as missing. The resulting UX message was misleading - "required attributes missing" - when the real problem was "sensor is offline, try again in 30-60s".
   - New guards: `source_offline` (state is unavailable/unknown) and `source_empty` (state is Online but attributes is empty).
   - Existing `missing_attributes` path now includes `len(attrs)` and `last_updated` in the log for future diagnosis.
@@ -1413,21 +1268,18 @@ Suite: 3703 -> 3729 (+26).
   - **Not a v1/v2 the upstream compat issue** - v1 and v2 both publish all 12 required attributes when the sensor is online (verified against prod 2 v1 dump 2026-10-25).
 Refs: reported via prod 2 (v1 the upstream) log 2026-10-25T22:00:47 local. Setup wizard hardening deferred to #141 (v1.12.9).
 
-## [1.12.7] - 2026-10-25
-
-### Changed
-
-**Docs**
-
+## [1.12.7] — 2026-10-25
+### Fixed
+- **the upstream beta compatibility (#150)** — `R1T-Outdoor air temp.` prefix format was bypassed by `cycle_detector.update()` and `coordinator._snap_attr()` when called with raw attrs (bypassing `read()`). Result: `outdoor_mean: None` in all `cop_curve_recent` points, `stooklijn_advies.buckets` stuck on `unknown`, `cop_degradatie_week.bins_used` empty. Fix: apply `build_compat_view()` at both entry points (idempotent, safe when `read()` already applied).
+- **ERGA D ECH2O config flow (#150)** — HPSU inlet label `[HPSU] Tr return Temp (R4T)` not aliased. Setup wizard raised `missing_attributes`. Alias added.
+- **EPRA D / ERGA D ECH2O lwt_before_buh (#150)** — HPSU label `[HPSU] Tv inflow Temp (R1T)` (double-space, handled by `normalize_key`) not aliased. Alias added.
+- **DEFAULT.h fallbacks (#150)** — `Inlet temperature(R4T)` and `DHW temperature(R5T)` shorter forms not aliased. Aliases added.
+### Docs
 - **README — Supported models & the upstream attributes** — new section documenting the 12 required attributes, how to enable them in the the upstream web UI, 39 supported model families, known limitations (Altherma 4, ERGA/EPRA D ECH2O HPSU, Hybrid, LT_EBLQ 5-7kW Monobloc, Mini chiller EWAQ), and not-supported (HT protocol S, PROTOCOL_S, PROTOCOL_S_ROTEX).
 - **README cleanup** — removed outdated `## What's new` and `## Version history` sections. Full version history now lives in `CHANGELOG.md` only.
-
-**Tests**
-
+### Tests
 - 19 new tests in `tests/test_outdoor_temp_fallback.py` — prefix, suffix, HPSU inlet, HPSU lwt_before_buh, DEFAULT fallbacks, decoy rejection (R1T/R4T/R5T non-canonical labels), placeholder handling, detector runtime with prefix attrs.
-
-**Coverage source**
-
+### Coverage source
 - 39 root the upstream beta model definitions indexed; 401 unique labels (active + commented templates)
 - 33/39 use `R1T-Outdoor air temp.` (prefix format)
 - 32/39 use `Inlet water temp.(R4T)` (suffix)
@@ -1435,19 +1287,8 @@ Refs: reported via prod 2 (v1 the upstream) log 2026-10-25T22:00:47 local. Setup
 - ERGA D ECH2O is the only model using HPSU labels for both R4T and R1T
 Fixes #150 · Refs #117
 
-### Fixed
-
-- **the upstream beta compatibility (#150)** — `R1T-Outdoor air temp.` prefix format was bypassed by `cycle_detector.update()` and `coordinator._snap_attr()` when called with raw attrs (bypassing `read()`). Result: `outdoor_mean: None` in all `cop_curve_recent` points, `stooklijn_advies.buckets` stuck on `unknown`, `cop_degradatie_week.bins_used` empty. Fix: apply `build_compat_view()` at both entry points (idempotent, safe when `read()` already applied).
-- **ERGA D ECH2O config flow (#150)** — HPSU inlet label `[HPSU] Tr return Temp (R4T)` not aliased. Setup wizard raised `missing_attributes`. Alias added.
-- **EPRA D / ERGA D ECH2O lwt_before_buh (#150)** — HPSU label `[HPSU] Tv inflow Temp (R1T)` (double-space, handled by `normalize_key`) not aliased. Alias added.
-- **DEFAULT.h fallbacks (#150)** — `Inlet temperature(R4T)` and `DHW temperature(R5T)` shorter forms not aliased. Aliases added.
-
-## [1.12.6] - 2026-10-25
-
-### Changed
-
-**Dashboard Cards**
-
+## [1.12.6] — 2026-10-25
+### Dashboard Cards
 - **New: Daily Summary Tabbed** — 5-tab Lovelace card (opt-in, no code changes)
   - `Overview` — HP model hero, quality ring, mode split, best/worst day, sparkline trends
   - `Quality` — adaptive Y-axis (auto-scales to 60-100 when all data high, removes dead space)
@@ -1463,31 +1304,23 @@ Fixes #150 · Refs #117
 - **Root README showcase redesign** — tabbed card now features as primary showcase with hero layout, 5 feature bullets, and CTA buttons (Download YAML + Full docs)
 - **dashboard/README.md** — split into Featured Card (tabbed, 480px) + Other cards (existing 3, 320px) sections
 - **Card README** — quick nav anchors, linked YAML download with Raw/save hint
-
-**Notes**
-
+### Notes
 - **Dashboard-only release** — no integration code changes
 - **Backwards compatible** — dashboard cards are opt-in; no forced changes for existing users
 - **No fleet action required** — users can stay on v1.12.5 if they don't want the new card
 - **HACS notification** — version bump triggers update notification in HACS for v1.12.5 users
-
-**Still validating**
-
+### Still validating
 - **#125 kmeans scheduling** — fase A (scheduler wiring smoke-test) on Monday 2026-10-26 04:05 local; fase B (weekly retrain validation) on Sunday 2026-11-01 04:05 local. Neither is affected by this dashboard release.
 
 ## [1.12.5] - 2026-10-25
-
 ### Added
-
 - `_sample_aggregates(start, end, mode=None, exclude_artifacts=False)`:
   optional mode filter and artifact exclusion. Backward-compatible —
   existing migration callsites (which pass only start/end) unchanged.
 - `_cop_confidence` reformulated as pure count-based 4-tier scale:
   `none` (0-2) / `low` (3-5) / `medium` (6-11) / `high` (12+).
   12 samples at 300s cadence = 1h steady-state, statistically robust.
-
 ### Changed
-
 - Forward cycle-close now writes real `COUNT(*)` from `cop_samples`
   (mode-filtered) into `cycles.cop_sample_count`, replacing the
   tick counter (`duration_s / 30`) that inflated counts ~10x (#133).
@@ -1495,17 +1328,7 @@ Fixes #150 · Refs #117
   from live ticks (correct thermodynamic integration: sum Q / sum P
   over the cycle). DB `AVG(cop)` is used only when no live ticks
   were accumulated (fallback for restart/reload cases).
-
-**Known limitations**
-
-- Historical cycles with tick-inflated `cop_sample_count` require
-  the #133b one-shot migration to correct; tracked separately.
-- `DEFAULT_COP_SAMPLE_INTERVAL_SECONDS` = 600 but effective observed
-  cadence is ~340s due to `power_stable` + `data_quality` filters.
-  Cadence tuning deferred to v1.13.0.
-
 ### Fixed
-
 - `cop_sample_count` no longer mislabels short dense cycles as
   "high" confidence and long sparse cycles as "low" — the previous
   formula divided `duration_s` by 30 which conflated tick count
@@ -1520,17 +1343,21 @@ Fixes #150 · Refs #117
   (60s) when source reports steady-state heating/cooling. Reuses
   existing `_pending_mode` / `_pending_mode_since` fields; no schema
   change. (#144)
-
+### Corrections to prior release
 - v1.12.4 release notes stated "cop_sample_count and cop_avg now
   computed from real COUNT(*)/AVG(cop)". That was true only for the
   **backfill** path (Amend 7, R445a-c, R446b). The forward live path
   in `_collect_cycle_averages` was not updated and continued using
   tick-based `cop_sample_count`. v1.12.5 closes this gap.
+### Known limitations
+- Historical cycles with tick-inflated `cop_sample_count` require
+  the #133b one-shot migration to correct; tracked separately.
+- `DEFAULT_COP_SAMPLE_INTERVAL_SECONDS` = 600 but effective observed
+  cadence is ~340s due to `power_stable` + `data_quality` filters.
+  Cadence tuning deferred to v1.13.0.
 
 ## [1.12.4] - 2026-10-24
-
 ### Added
-
 - Schema v18: 6 new columns (mode_original + is_transition_artifact on
   cop_samples; mode_original, parent_cycle_id, is_dhw_tail, is_reconstructed
   on cycles) + 2 indices.
@@ -1545,16 +1372,19 @@ Fixes #150 · Refs #117
   - R448: daily_summary rebuild for affected days
 - ATTR_DHW_TANK_TEMP constant ("DHW tank temp. (R5T)") - verbatim, no
   substring match, protects against prod-1-only decoy key.
-
 ### Changed
-
 - cop_sample_count and cop_avg now computed from real COUNT(*)/AVG(cop)
   on cop_samples (never from cached tick count). Related to #133.
 - cop_hourly n_samples computed from real COUNT(*) (excludes transition
   artifacts).
-
-**Known limitations**
-
+### Fixed
+- Historical DHW samples reclassified (fleet: 68 in-cycle unknowns).
+- COP artifacts flagged by dynamic Carnot threshold (fleet: 247 samples).
+- Orphan DHW cycles synthesized (fleet: 13 events).
+- Split cycles merged (fleet: 100 total; 37+31+32 per prod).
+- cop_hourly partial-hour rows corrected (fixes #130).
+- daily_summary rebuilt from corrected cycles.
+### Known limitations
 - Synthesized cycles have thermal_kw_avg = NULL (cop_samples lacks cold-side
   temperature; fix deferred to v1.13.0 #129).
 - energy_acc / runtime_acc not rebuilt (preserves HWM chain).
@@ -1563,28 +1393,14 @@ Fixes #150 · Refs #117
 - Migration does NOT retrain ML models (kmeans, baseline). Run
   `daikin_cycle_ml.recompute_kmeans` and `recompute_baseline` manually
   post-deploy, or upgrade to v1.12.5 which auto-retrains once.
-
-**Rollback**
-
+### Rollback
 Preserved via mode_original and parent_cycle_id. Manual SQL in
 docs/UPGRADE.md. Marker deletion (data_migration_v1_12_4) triggers
 re-run on next boot.
 
-### Fixed
-
-- Historical DHW samples reclassified (fleet: 68 in-cycle unknowns).
-- COP artifacts flagged by dynamic Carnot threshold (fleet: 247 samples).
-- Orphan DHW cycles synthesized (fleet: 13 events).
-- Split cycles merged (fleet: 100 total; 37+31+32 per prod).
-- cop_hourly partial-hour rows corrected (fixes #130).
-- daily_summary rebuilt from corrected cycles.
-
 ## [1.12.3] - 2026-10-22
-
 **DHW compound-mode detection fix.** Closes #116 forward half.
-
 ### Added
-
 - `classify_mode` now token-splits I/U operation mode on `+` and `/`
   separators, correctly handling compound strings like `Heating + DHW`
   and `Cooling + DHW`. DHW wins over heating/cooling in compound mode
@@ -1597,62 +1413,44 @@ re-run on next boot.
 - Constants `VALVE_DEBOUNCE_S = 30.0`, `MODE_DEBOUNCE_S = 60.0`.
 - 2 new persisted detector state fields (`pending_mode`,
   `pending_mode_since`); backward-compatible with old payloads.
-
 ### Changed
-
 - `_is_dhw_active` now uses token-contains matching via
   `_attr_contains_mode` (exact-match was the bug for compound modes).
 - Cycle detector closes the current cycle and opens a fresh DHW cycle
   when I/U mode transitions to include `dhw` during a running heating
   cycle (both cycles reach DB with correct mode).
-
-**Version**
-
-- 1.12.3 across const.py, manifest.json, pyproject.toml, CHANGELOG.md.
-
-**Known limitations**
-
-- Historical misclassified cycles still need v1.12.4 migration.
-- Prod 2 shows `mixed_heating_then_dhw` shape -- requires cycle
-  splitting in v1.12.4 (not just relabeling).
-- 4-hour cycles (14400s) flagged as v1.13.0 investigation.
-- Short defrost artifacts (0-60s, defrost=1) deferred to v1.13.0.
-
 ### Fixed
-
 - DHW reheat runs misclassified as heating when Daikin reported
   `Heating + DHW`. Confirmed on 3/3 production instances (#116).
   - `sensor.cop_dhw_today` / `_day` / `_week` / `_month` now update.
   - `binary_sensor.dhw_active` fires during real DHW runs.
   - `daily_summary` DHW rows populate going forward.
   - `cop_hourly` mode bucketing correct for new samples.
+### Version
+- 1.12.3 across const.py, manifest.json, pyproject.toml, CHANGELOG.md.
+### Known limitations
+- Historical misclassified cycles still need v1.12.4 migration.
+- Prod 2 shows `mixed_heating_then_dhw` shape -- requires cycle
+  splitting in v1.12.4 (not just relabeling).
+- 4-hour cycles (14400s) flagged as v1.13.0 investigation.
+- Short defrost artifacts (0-60s, defrost=1) deferred to v1.13.0.
 
 ## [1.12.2] - 2026-10-21
-
 **Data-integrity patch.** Closes the remaining v89.0 DB-integrity
 findings plus enables WAL durability properly.
-
 ### Added
-
 - WAL journal mode enabled for production DBs (#113). CycleDB now takes a `journal_mode` parameter (default `delete` for tests, `wal` for prod). Includes `synchronous=NORMAL` and `busy_timeout=5000` for concurrent-reader safety.
-
 ### Changed
-
 - v17 data migration runs once per DB (marker-guarded). Idempotent, safe for all schema levels v14–v16.
-
 ### Fixed
-
 - `async_prune_cop_hourly` cutoff now uses hours-since-epoch to match `ts_hour` storage (#111). Prior mismatch silently wiped the entire `cop_hourly` table on every maintenance cycle.
 - `mode='unknown'` for cycles with valid compressor data now auto-corrected on migration (#112). Per-mode aggregation no longer undercounts heating.
 - `thermal_kw_avg` backfilled for all historical cycles from `features.vector_json[11]` (#114). Recovery is lossless.
 - Stale `daily_summary` rows with `mode='unknown'` deleted and rebuilt during migration (#112).
 
 ## [1.12.1] - 2026-10-21
-
 **Patch release.** Fixes the restart phantom short_off from #109.
-
 ### Fixed
-
 - Restart phantom short_off (#109). When the upstream is not
   initialised at HA boot, the coordinator advanced the detector
   with missing rps, force-closing the running cycle and producing
@@ -1660,14 +1458,11 @@ findings plus enables WAL durability properly.
   now freezes until required attributes return.
 
 ## [1.12.0] - 2026-10-21
-
 **Data-integrity release.** Six issues, 11 commits. Closes every
 durability gap found in the v88.0 post-release audit plus five wiring
 bugs where production code existed, compiled, tested, and never
 actually fired.
-
 ### Added
-
 - **DB-first cycle persist** (#103). Cycle rows are written to SQLite
   *before* the ML pipeline runs. Any ML exception cannot leave the
   cycle in-memory-only.
@@ -1687,9 +1482,7 @@ actually fired.
   SELECT wired. Before: in-memory only, lost on restart.
 - **`model_state` retention** (#106). `energy_acc.*` /
   `runtime_acc.*` older than 400 days pruned in `_run_maintenance`.
-
 ### Changed
-
 - **Energy persist interval 300 s → 30 s** (#101). Aligns with
   `UPDATE_INTERVAL_SECONDS`. Hard-crash loss bounded to ≤1 tick
   instead of ≤5 min. WAL mode handles the 10× write amplification.
@@ -1699,44 +1492,7 @@ actually fired.
 - **`record_short_run` / `record_short_off` called** (#105). Dead
   code since v1.4. `short_runs_today` / `short_offs_today`
   counters now accurate.
-
-**Data Integrity Guarantees**
-
-| Scenario | Before v1.12.0 | After v1.12.0 |
-|---|---|---|
-| HA graceful restart | ≤300 s loss | **Zero loss** |
-| Config entry reload | ≤300 s loss | **Zero loss** |
-| Container stop / HAOS reboot | ≤300 s loss | **Zero loss** |
-| Cycle close (normal) | ML-first, up to 100 ms window | **DB-first, ~0 ms** |
-| Cycle close (ML exception) | Cycle may be lost | **Durable regardless of ML** |
-| Hard power loss / `kill -9` | ≤300 s | **≤30 s** (one persist tick) |
-| Counter consistency | Drift after restart | **Invariant always** |
-
-**Statistics**
-
-| Metric | v1.11.3 | v1.12.0 | Delta |
-|---|---|---|---|
-| Commits in release | — | **11** | — |
-| Test count | 3124 | **3193** | **+69** |
-| Statement coverage | 100.00 % | **100.00 %** | — |
-| Branch coverage | 100.00 % | **100.00 %** | — |
-| Source statements | 7136 | **7230** | +94 |
-| Source branches | 2044 | **2066** | +22 |
-| Modules | 37 | **37** | — |
-| Schema version | v15 | **v16** | +1 |
-| Issues closed | — | **6** | — |
-| Breaking changes | — | **0** | — |
-Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#103](https://github.com/elRadix/daikin_cycle_ml/issues/103), [#104](https://github.com/elRadix/daikin_cycle_ml/issues/104), [#105](https://github.com/elRadix/daikin_cycle_ml/issues/105), [#106](https://github.com/elRadix/daikin_cycle_ml/issues/106), [#107](https://github.com/elRadix/daikin_cycle_ml/issues/107)
-
-**Links**
-
-- [Full diff](https://github.com/elRadix/daikin_cycle_ml/compare/v1.11.3...v1.12.0)
-- [Documentation](https://github.com/elRadix/daikin_cycle_ml#readme)
-- [Upgrade notes](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/UPGRADE.md)
-- [Issue tracker](https://github.com/elRadix/daikin_cycle_ml/issues)
-
 ### Fixed
-
 - **Counter drift in `CycleStore`** (#101). `add_cycle` never
   incremented `cycles_today`; only `hydrate_from_rows` did. After
   restart the counter froze at the hydrate value while
@@ -1778,15 +1534,40 @@ Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#
 - **`model_state` growth** (#106). One `energy_acc.<day>` and one
   `runtime_acc.<day>` key per day, never pruned. 400-day retention
   added to `_run_maintenance`.
+### Data Integrity Guarantees
+| Scenario | Before v1.12.0 | After v1.12.0 |
+|---|---|---|
+| HA graceful restart | ≤300 s loss | **Zero loss** |
+| Config entry reload | ≤300 s loss | **Zero loss** |
+| Container stop / HAOS reboot | ≤300 s loss | **Zero loss** |
+| Cycle close (normal) | ML-first, up to 100 ms window | **DB-first, ~0 ms** |
+| Cycle close (ML exception) | Cycle may be lost | **Durable regardless of ML** |
+| Hard power loss / `kill -9` | ≤300 s | **≤30 s** (one persist tick) |
+| Counter consistency | Drift after restart | **Invariant always** |
+### Statistics
+| Metric | v1.11.3 | v1.12.0 | Delta |
+|---|---|---|---|
+| Commits in release | — | **11** | — |
+| Test count | 3124 | **3193** | **+69** |
+| Statement coverage | 100.00 % | **100.00 %** | — |
+| Branch coverage | 100.00 % | **100.00 %** | — |
+| Source statements | 7136 | **7230** | +94 |
+| Source branches | 2044 | **2066** | +22 |
+| Modules | 37 | **37** | — |
+| Schema version | v15 | **v16** | +1 |
+| Issues closed | — | **6** | — |
+| Breaking changes | — | **0** | — |
+Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#103](https://github.com/elRadix/daikin_cycle_ml/issues/103), [#104](https://github.com/elRadix/daikin_cycle_ml/issues/104), [#105](https://github.com/elRadix/daikin_cycle_ml/issues/105), [#106](https://github.com/elRadix/daikin_cycle_ml/issues/106), [#107](https://github.com/elRadix/daikin_cycle_ml/issues/107)
+### Links
+- [Full diff](https://github.com/elRadix/daikin_cycle_ml/compare/v1.11.3...v1.12.0)
+- [Documentation](https://github.com/elRadix/daikin_cycle_ml#readme)
+- [Upgrade notes](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/UPGRADE.md)
+- [Issue tracker](https://github.com/elRadix/daikin_cycle_ml/issues)
 
 ## [1.11.3] - 2026-10-21
-
 ### Added
-
 - Regression tests for the merge path and the HWM safety net.
-
 ### Fixed
-
 - Energy accumulator sensors (`thermal_energy_heating_today`,
   `electrical_energy_*_today`, etc.) no longer report a decrease after
   a restart, violating the `total_increasing` state class contract that
@@ -1801,14 +1582,10 @@ Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#
   the accumulator. Reset only at day rollover.
 
 ## [1.11.2] - 2026-10-21
-
 ### Added
-
 - Three regression tests: raw v2 dump resolves, genuinely missing values
   are still reported, and placeholder values (`---`) count as missing.
-
 ### Fixed
-
 - Config flow and reconfigure now honor the the upstream attribute compat
   view, matching the coordinator. Fixes false-positive reconfigure warnings
   and wrong "core attributes" counts on definition files that label the
@@ -1818,9 +1595,7 @@ Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#
   that actually provides the attribute under an aliased key.
 
 ## [1.11.1] - 2026-10-21
-
 ### Fixed
-
 - the upstream definition files that label the outdoor sensor
   `R1T-Outdoor air temp.` (e.g. ALTHERMA LT_CA_CB, both v1 and v2 builds) now
   resolve the required `Outdoor air temp.(R1T)` attribute. Fixes the
@@ -1831,32 +1606,22 @@ Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#
   asserts every entry in `REQUIRED_ATTRIBUTES` resolves.
 
 ## [1.11.0] - 2026-10-21
-
 ### Added
-
 - the upstream v2 attribute compatibility layer. Legacy v1 attributes are
   preserved; canonical v2 English names are materialised beside them.
   Lookup is tolerant of v2 punctuation/spacing and translated v1 labels.
-
-### Changed
-
-**Deferred**
-
+### Deferred
 - Manifest `categories` for the HA integration catalogue
   (`climate.heat_pumps_air_conditioning`, `energy`) — deferred pending
   `hassfest:latest` image update. Code/test ready; re-add once the image
   schema includes the `categories` key.
-
-**Compatibility**
-
+### Compatibility
 - No entity or unique-ID changes. English v1 users are unaffected.
 - Translated v1 definitions now resolve through aliases instead of failing
   `missing_required`.
 
 ## [1.10.0] - 2026-10-20
-
 ### Added
-
 - Per-entry SQLite database file `daikin_cycle_ml_<entry_id>.db` — issue #75.
 - `storage/migration.py`: idempotent, marker-guarded, backup-first
   migration with size-verified rename and rollback on mismatch.
@@ -1871,18 +1636,20 @@ Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#
 - Diagnostics: `database.per_entry` enumerates every `daikin_cycle_ml_*.db`
   file with per-entry file size and table counts. `database.legacy` is
   reported when the legacy file exists.
-
 ### Changed
-
 - `_async_setup_database` now takes a `ConfigEntry` parameter to resolve
   the per-entry DB path. Third argument is optional (`None` = legacy path,
   for backward compatibility with tests and external callers).
 - `services.yaml` new entries use the `config_entry:` selector instead of
   `text: null`. Existing 10 services still use `text: null`; modernization
   scheduled for a future release.
-
-**BREAKING**
-
+### Fixed
+- Issue #75: historical COP/SPF aggregates shared across config entries.
+- `async_remove_entry` now deletes the per-entry DB on config-entry
+  removal. Previously no `async_remove_entry` handler existed at all, so
+  the shared DB was orphaned after every entry removal. User artifacts
+  (`.legacy-<ts>` and `.daikin_backups/`) are preserved.
+### Breaking changes
 - **Per-entry SQLite database file.** The integration historically used a
   single shared `/config/.storage/daikin_cycle_ml.db` across all config
   entries. Historical aggregate tables (`daily_summary`, `cop_hourly`,
@@ -1902,9 +1669,7 @@ Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#
   unrecoverable — the data was physically interleaved. The repair issue
   and export service make this visible and auditable. Single-entry and
   new-install users are not affected.
-
-**Tests**
-
+### Tests
 - `tests/test_v1100_per_entry_db.py` — migration paths, all branches,
   marker-recovery, size-mismatch rollback.
 - `tests/test_v1100_legacy_db_services.py` (15 tests) — 3 services,
@@ -1914,9 +1679,7 @@ Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#
 - `tests/test_v1100_setup_entry_migration.py` (1 test) — end-to-end
   migration via `async_setup_entry`.
 - Total coverage: 7056 stmts / 2000 branches, **100.00%**.
-
-**Known limitations**
-
+### Known limitations
 - Multi-entry users who ran entries concurrently before v1.10.0 cannot
   recover per-entry historical attribution (physically unrecoverable).
   Use `export_legacy_db` to audit, `archive_legacy_db` to start fresh.
@@ -1924,36 +1687,16 @@ Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#
   Per-entry split tracked as follow-up issue. Impact: dedup windows are
   cross-entry, no data corruption.
 
-### Fixed
-
-- Issue #75: historical COP/SPF aggregates shared across config entries.
-- `async_remove_entry` now deletes the per-entry DB on config-entry
-  removal. Previously no `async_remove_entry` handler existed at all, so
-  the shared DB was orphaned after every entry removal. User artifacts
-  (`.legacy-<ts>` and `.daikin_backups/`) are preserved.
-
 ## [1.9.2] - 2026-10-20
-
 ### Changed
-
 - **README install order** (item 4). HACS catalog search is now the primary
   path; custom-repository is a labeled fallback (the integration is not
   yet in the default catalog; submission pending in hacs/default#11345).
-
-**Tests**
-
-- 15 new tests in `tests/test_v192_hacs_review.py` covering all four guards.
-  Three existing tests updated to declare entity ownership; one existing
-  test assertion encoded the pre-fix vulnerability as expected behaviour.
-
 ### Fixed
-
 - **`mkdir` on event loop** (item 3). `_async_setup_database` called
   `db_path.parent.mkdir(...)` synchronously. Moved to
   `hass.async_add_executor_job`.
-
 ### Security
-
 - **`send_test_notification` target escalation** (hacs/default#11345 item 1).
   `target` and the `notify_service` option accepted any `domain.service`,
   which was then called via `hass.services.async_call(...)` with no user
@@ -1972,23 +1715,20 @@ Issues closed: [#101](https://github.com/elRadix/daikin_cycle_ml/issues/101), [#
   Orphaned entities with `config_entry_id=None` will no longer be renamed;
   manual cleanup in the entity registry is the correct remediation. This
   is the fix, not a regression.
+### Tests
+- 15 new tests in `tests/test_v192_hacs_review.py` covering all four guards.
+  Three existing tests updated to declare entity ownership; one existing
+  test assertion encoded the pre-fix vulnerability as expected behaviour.
 
 ## [1.9.1] - 2026-10-20
-
 ### Added
-
 - 9 new tests in `tests/test_v191_energy_acc_self_healing.py` covering the self-healing persist, retry, and logging branches (both runtime and energy paths).
-
 ### Fixed
-
 - Energy accumulators reset to 0 on HA reboot. Root cause: silent failure in `_restore_energy_acc` / `_restore_runtime_acc` on boot left `_day_key` empty; first tick zeroed memory and persist overwrote the DB row with zeros. Three-layer fix: self-healing persist (restore from DB if DB > memory before overwrite), retry restore in `_async_update_data`, and WARNING logs on the silent restore paths. Prevents the boot-wipe loop even if restore keeps failing for any future reason.
 
 ## [1.9.0] - 2026-10-20
-
 Alerts v2, 3 new P3 alerts, and full documentation restructure.
-
 ### Added
-
 - **3 new alerts:**
   - `db_retention_warning` — DB retention not running
   - `kmeans_retrain_stale` — clustering hasn't succeeded in 14+ days
@@ -1999,64 +1739,31 @@ Alerts v2, 3 new P3 alerts, and full documentation restructure.
 - **`avg_duration_7d_min`** context field on 3 pendulum/ML alerts (J)
 - **`async_defrost_duration_since`** DB helper for accurate 7-day defrost totals (I7)
 - **`samples` row** in `energy_daily_anomaly` alert schema (I7)
-
 ### Changed
-
 - `cop_low` + `stooklijn_advies` route through shared filter chain
 - Per-alert dedup windows replace single global aggregation setting
 - `energy_daily_anomaly` splits display-candidate vs fire-candidate
 - Q4 fix: `setpoint_osc` no longer fires on monotonic drift (requires reversal)
 - `DEFAULT_ALERT_RETENTION_DAYS` 30 → 90 (I7 cleanup)
 - `_build_alert_context` falls back to `store.last_cycle()` when `snap.last_record` empty (I6 C6)
-
-**Documentation**
-
-- **README split into 8 docs** in `docs/` (Configuration, Entities, Alerts, ML, Database, Development, Troubleshooting, Upgrade) — landing page + deep dives
-- **AGENTS.md consolidated** — SOP.md merged in, 23 sections, single source of truth
-- **QA pipeline** — `scripts/bootstrap.sh`, `scripts/ci-local.sh`, `scripts/pre-push` (4-gate local parity)
-- **Markdown guard** — `scripts/check-markdown.sh` with 19 checks + CI workflow
-- **R374–R384 promoted** to ACTIVE/CANDIDATES in AGENTS.md (11 new rules)
-
 ### Removed
-
 - SOP.md (content merged into AGENTS.md)
-
 ### Fixed
-
 - `pendulum_daily` collision + `short_off` mismatch + `ml_anomaly` mode overwrite
 - `last_alert_sent` was in-memory only — now persisted to HA Store
 - `defrost_excessive.duration_7d_min` was hardcoded 0 — now real 7-day sum (I7)
 - `energy_daily_anomaly` misleading 0.0 sigma/z when n<2 — now em-dash `None` (I7)
 - `energy_acc.<today>` silently wiped on runtime restore failure (I8) — decoupled day-key gates
 - Retention fallback literals 90/30 in coordinator/db.py → const names (I7)
+### Documentation
+- **README split into 8 docs** in `docs/` (Configuration, Entities, Alerts, ML, Database, Development, Troubleshooting, Upgrade) — landing page + deep dives
+- **AGENTS.md consolidated** — SOP.md merged in, 23 sections, single source of truth
+- **QA pipeline** — `scripts/bootstrap.sh`, `scripts/ci-local.sh`, `scripts/pre-push` (4-gate local parity)
+- **Markdown guard** — `scripts/check-markdown.sh` with 19 checks + CI workflow
+- **R374–R384 promoted** to ACTIVE/CANDIDATES in AGENTS.md (11 new rules)
 
 ## [1.8.1] - 2026-10-08
-
-### Changed
-
-**Tests**
-
-- `tests/test_v181_alert_render_ctx.py` — 14 new tests covering the
-  three-layer fix, mode fallback branches, sentinel semantics, and the
-  R331-B setpoint-helper fix (see below).
-- 6 existing assertions updated in `test_build_alert_context.py`,
-  `test_52e_coordinator_coverage.py`, `test_cov3_coordinator_edges.py`.
-- Coverage: 100.00% (6279 stmts / 1808 branches).
-
-**Rule**
-
-- New rule **R331**: `DataSnapshot.attrs` is the canonical attribute
-  source. `_snap_attr` must read `attrs` first, fall back to
-  `attributes` / `raw_attrs`. Sentinels must be `None`, never `—`.
-  Guard: `tests/test_v181_alert_render_ctx.py`.
-
-**Release note**
-
-- Released without the standard 72h observation window (R204) and
-  without the kmeans gate (R318), at owner direction.
-
 ### Fixed
-
 - **Alert notifications rendered blank sensor values** (R331). Three
   stacked bugs in the alert context pipeline:
   - `_snap_attr` read `snap.attributes`, but `DataSnapshot` uses
@@ -2088,11 +1795,24 @@ Alerts v2, 3 new P3 alerts, and full documentation restructure.
   `snap.mode` and `last_cycle.mode` are unknown, the alert context
   now falls back to the raw operation-mode attribute, preventing the
   "Modus: onbekend" symptom on ML-anomaly notifications.
+### Tests
+- `tests/test_v181_alert_render_ctx.py` — 14 new tests covering the
+  three-layer fix, mode fallback branches, sentinel semantics, and the
+  R331-B setpoint-helper fix (see below).
+- 6 existing assertions updated in `test_build_alert_context.py`,
+  `test_52e_coordinator_coverage.py`, `test_cov3_coordinator_edges.py`.
+- Coverage: 100.00% (6279 stmts / 1808 branches).
+### Rule
+- New rule **R331**: `DataSnapshot.attrs` is the canonical attribute
+  source. `_snap_attr` must read `attrs` first, fall back to
+  `attributes` / `raw_attrs`. Sentinels must be `None`, never `—`.
+  Guard: `tests/test_v181_alert_render_ctx.py`.
+### Release note
+- Released without the standard 72h observation window (R204) and
+  without the kmeans gate (R318), at owner direction.
 
 ## [1.8.0] - 2026-10-08
-
 ### Added
-
 - Smart auto-import for non-canonical the upstream setups (issue #51):
   - Laag 1 - entity discovery via canonical-attribute overlap scoring
   - Laag 2 - alias table + normalized matching (14+ community variants)
@@ -2117,9 +1837,7 @@ Alerts v2, 3 new P3 alerts, and full documentation restructure.
   - `tests/test_v181_wizard_split_page_b.py` (12 tests)
   - `tests/test_v181_wizard_split_page_c.py` (7 tests)
   - `tests/test_r327_no_whitespace_in_translations.py` (1 test)
-
 ### Changed
-
 - `config_flow.async_step_user` - automatic mode now falls back to
   smart-import when exact canonical matching fails and >= 3 canonicals
   resolve. Exact-match path unchanged (backward-compat tested).
@@ -2131,9 +1849,7 @@ Alerts v2, 3 new P3 alerts, and full documentation restructure.
   `async_step_attribute_mapping_advanced` (kept for one release cycle)
 - i18n parity 15/15/15 -> 16/16/16 (new `attribute_mapping_advanced` key;
   deprecated `model_custom` key retained)
-
 ### Fixed
-
 - Hassfest `[TRANSLATIONS]` error on the HP-spec JSON description: the
   `config.step.model_custom_info.data_description.custom_datasheet_json`
   string had a trailing newline. Fixed + regression guard `R327`
@@ -2150,19 +1866,13 @@ Alerts v2, 3 new P3 alerts, and full documentation restructure.
   before v1.8.0 tag.
 
 ## [1.7.2] - 2026-10-08
-
 ### Added
-
 - const.MAX_CYCLE_DURATION_S = 4 * 3600.0
 - engine.cycle_detector._pump_is_off() helper
 - Tests: test_v172_cycle_hardcap.py (8), test_v172_pump_is_off.py (33)
-
 ### Changed
-
 - tests/test_coordinator.py - 2 tests aangepast (fixture _valid_attrs semantiek)
-
 ### Fixed
-
 - Cycle detector stuck in RUNNING up to 46h (issue #49). Root cause:
   pump is False identity check failed when the upstream _normalize()
   returned string 'OFF', None, or numeric values. Both pump-check
@@ -2175,12 +1885,9 @@ Alerts v2, 3 new P3 alerts, and full documentation restructure.
   compared 0.5W threshold against 200W power.
 
 ## [1.7.1] - 2026-10-07
-
 Stable release. Promotes the v1.7.1 pre-release series to production
 after visual confirmation of the Daily Summary card on a live dashboard.
-
 ### Added
-
 - Sensor `daily_summary_recent` (shipped in v1.7.1-pre.1) — a rolling
   view of the `daily_summary` table with `days[]` and `totals_by_mode`.
 - Dashboard card `dashboard/cards/daily-summary/daily-summary.yaml`
@@ -2190,24 +1897,17 @@ after visual confirmation of the Daily Summary card on a live dashboard.
   auto-scaling, HP-spec-aware.
 - Card documentation `dashboard/cards/daily-summary/README.md`.
 - Third showcase slot in the root README Showcase section.
-
 ### Changed
-
 - Fixed broken preview image reference for Simple Card in
   `dashboard/README.md` (`preview.png` -> `showcase.png`, pre-existing bug).
-
 ### Fixed
-
 - None.
 > Detailed pre-release notes: see `[1.7.1-pre.2]` and `[1.7.1-pre.1]` below.
 
 ## [1.7.1-pre.2] - 2026-10-07
-
 Pre-release: daily summary dashboard card. Completes the v1.7.1
 pre-release series; v1.7.1 final pending prod visual confirmation.
-
 ### Added
-
 - Dashboard card `dashboard/cards/daily-summary/daily-summary.yaml` —
   full cycle history visual with SVG sparklines, dynamically colored
   quality line chart, stacked cycles / duration bars, BUH + defrost
@@ -2215,23 +1915,16 @@ pre-release series; v1.7.1 final pending prod visual confirmation.
 - Card documentation `dashboard/cards/daily-summary/README.md`.
 - Third showcase slot in root README Showcase section.
 - Daily Summary row + entity requirements in `dashboard/README.md`.
-
 ### Changed
-
 - Fixed broken preview image reference for Simple Card in
   `dashboard/README.md` (`preview.png` -> `showcase.png`, pre-existing bug).
-
 ### Fixed
-
 - None.
 
 ## [1.7.1-pre.1] - 2026-10-07
-
 Pre-release: daily summary visibility. Card lands in pre.2 after this
 sensor is verified on prod.
-
 ### Added
-
 - New sensor `daily_summary_recent`: state = total cycles across all days
   in `daily_summary`; attributes = full payload (`days[]`, `totals_by_mode{}`,
   `days_available`, `days_count`, `latest_day`, `oldest_day`).
@@ -2240,53 +1933,36 @@ sensor is verified on prod.
   (`_maybe_backfill_daily_summary`).
 - Translations for the sensor name in strings.json + en.json + nl.json
   (parity 425 -> 426).
-
 ### Changed
-
 - None (card deferred to v1.7.1-pre.2).
-
-**Notes**
-
+### Fixed
+- None.
+### Notes
 - No DB schema change; no new DB method. The sensor reads the existing
   `db.async_daily_summary` and transforms it in-process.
 - Pre-release only: v1.7.1 final after explicit prod-confirm (R204).
 
-### Fixed
-
-- None.
-
 ## [1.7.0] - 2026-10-07
-
 ### Added
-
 - Live daily summary rollup: `daily_summary` table populated as each cycle closes (#42).
 - New option `daily_summary_live_enabled` in OptionsFlow > Advanced > Retention (default True).
 - One-time startup backfill: historic cycles populate `daily_summary` on first startup after upgrade.
-
 ### Changed
-
 - `async_run_maintenance` refactored to call `async_rollup_day` per affected day before prune. Idempotent replace semantics eliminate prior double-count risk.
-
-**Notes**
-
+### Fixed
+- `daily_summary` stays empty on fresh installs. Root cause (Anomaly D, 2026-10-07): aggregation scoped to retention cutoff only, so no cycles qualified until 365d elapsed.
+### Notes
 - Existing installs: backfill runs once on next HA restart; no user action required.
 - Rollback to v1.6.7 leaves `daily_summary` populated but idle; no data loss.
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-### Fixed
-
-- `daily_summary` stays empty on fresh installs. Root cause (Anomaly D, 2026-10-07): aggregation scoped to retention cutoff only, so no cycles qualified until 365d elapsed.
-
 ## [1.6.7] - 2026-10-07
-
 Patch release: R310 accumulator rehydration on coordinator startup and
 non-blocking datasheet JSON loads.
 [Full diff v1.6.6...v1.6.7](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.6...v1.6.7)
-
 ### Added
-
 - R310: `_restore_runtime_acc()` / `_restore_energy_acc()` in the
   coordinator, wired into the same setup hook as `_restore_detector_state`
   (R306). Restores `model_state["runtime_acc.<day>"]` and
@@ -2295,16 +1971,12 @@ non-blocking datasheet JSON loads.
   payload, or malformed payload; never raises.
 - Success log lines on both restore paths for prod-verify grepping.
 - Tests: `test_r310_acc_restore.py` (11 cases).
-
 ### Changed
-
 - None user-visible beyond the fixes above. No schema change, no entity
   change, no config change, no string change. Daily accumulators may
   show higher totals on restart days post-upgrade; that is the intended
   behavior.
-
 ### Fixed
-
 - HA restart / reload / HACS redownload silently zeroed today's
   `_energy_acc` / `_runtime_acc`. Observed 2026-10-07: 09:03 CEST restart
   discarded the 07:11-08:11 heating cycle's 0.41 kWh. Persist had no
@@ -2315,13 +1987,10 @@ non-blocking datasheet JSON loads.
   Replaced with `asyncio.get_running_loop().run_in_executor(None, fn)`.
 
 ## [1.6.6] - 2026-10-07
-
 Patch release: cycle detector state persistence (R306) and pump-guard
 relaxation (R307). Closes the missed-cycle finding from issue #33.
 [Full diff v1.6.5...v1.6.6](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.5...v1.6.6)
-
 ### Added
-
 - R306: `CycleDetector.to_dict()` / `restore_from_dict()` /
   `_float_list()` plus `MAX_RESUME_GAP_S = 6h`. Coordinator persists the
   detector state to `model_state["cycle_detector_state"]` on every
@@ -2333,28 +2002,21 @@ relaxation (R307). Closes the missed-cycle finding from issue #33.
 - Tests: `test_r306_detector_persistence.py` (6 cases) ·
   `test_r307_pump_guard.py` (6 cases) ·
   `test_r306_r307_coverage.py` (12 cases).
-
 ### Changed
-
 - Behavior-changing for existing users: cycle counts may rise as DHW
   starts with delayed pump activation are now detected. Expected, not
   a bug. No schema change, no entity change, no config change.
-
 ### Fixed
-
 - In-progress cycle silently lost on HA reload (issue #33, cause A:
   reload at 2026-09-26 10:24:43 UTC).
 - First 10 minutes of a DHW run discarded when the compressor started
   before the water pump (issue #33, cause B).
 
 ## [1.6.5] - 2026-10-06
-
 Patch release: correctness hygiene for COP-analyzer early-returns and
 cop_samples.mode persistence. dt_s cap on energy/runtime accumulators.
 [Full diff v1.6.4...v1.6.5](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.4...v1.6.5)
-
 ### Added
-
 - R284: `StooklijnAdvies.comfort_cap` defaults to `None`; early-returns
   (no_data, no_recent_heating, no_indoor_sensor, comfort_floor_reached,
   DHW-active) leave it `None` (was misleading `3.0` sentinel).
@@ -2367,69 +2029,48 @@ cop_samples.mode persistence. dt_s cap on energy/runtime accumulators.
   `test_r298_mode_default.py` (3) · `test_r299_data_quality_contract.py`
   (1) · `test_v161_energy_guard.py` (+6) ·
   `test_52b6_init_coverage.py::test_v15_migration_raises` (1).
-
 ### Changed
-
 - `CopSample.mode: str = 'unknown'` explicit dataclass default.
 - `__init__.py` migration chain extended for v15.
-
-**Database**
-
-- Schema v14 -> v15 (`cop_samples.mode` DEFAULT `'unknown'`). Idempotent.
-- Prod-verify 2026-10-06: 0 NULL-mode rows remain.
-
-**Tests**
-
-- 2292 passed, 4 skipped. Coverage 100.00% (5813 / 1640).
-- Ruff + mypy strict clean (34 files). CI 6/6 groen op `8ff381b`.
-
 ### Fixed
-
 - Misleading `comfort_cap=3.0` on early-return paths (R284).
 - Semantic NULL-vs-'unknown' confusion in `cop_samples.mode` (R298).
 - Silent `dt_s` spike in energy accumulator on tick backlog (R288/R288b).
+### Database
+- Schema v14 -> v15 (`cop_samples.mode` DEFAULT `'unknown'`). Idempotent.
+- Prod-verify 2026-10-06: 0 NULL-mode rows remain.
+### Tests
+- 2292 passed, 4 skipped. Coverage 100.00% (5813 / 1640).
+- Ruff + mypy strict clean (34 files). CI 6/6 groen op `8ff381b`.
 
 ## [1.6.4] - 2026-10-06
-
 Patch release: `bucket_summary()` filters DHW-samples from heating-curve
 buckets (issue #29).
 [Full diff v1.6.3...v1.6.4](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.3...v1.6.4)
-
 ### Added
-
 - Keyword-only `include_modes=('heating','unknown')`; `None` disables.
 - `tests/test_r295_bucket_mode_filter.py` (8 cases).
-
 ### Fixed
-
 - `bucket_summary()` mode-filter; DHW no longer pollutes heating-curve
   buckets (R295, issue #29).
 
 ## [1.6.3] - 2026-10-06
-
 Patch release: Hassfest 2026.10 weigert ICU-escape in translations.
 `integration_type` helper -> hub.
 [Full diff v1.6.2...v1.6.3](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.2...v1.6.3)
-
 ### Changed
-
 - `manifest.json`: `integration_type: helper` -> `hub` (R294).
-
 ### Fixed
-
 - ICU-escape `{{ }}` in translations replaced with `{identifier}`
   (R290/R293).
 - `tests/test_r290_icu_braces.py` guard-test (2 cases).
 
 ## [1.6.2] - 2026-10-06
-
 Patch release: onboarding blocker for units that do not expose every
 canonical the upstream attribute (issue #25). Adds a Manual mapping mode
 and downgrades `INV frequency (rps)` from required to optional.
 [Full diff v1.6.1...v1.6.2](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.1...v1.6.2)
-
 ### Added
-
 - Screen-1 dropdown `attribute_mode` with Automatic / Manual options.
 - New config-flow step `map_attributes`: one text field per required
   (12) and optional (1) attribute, letting the user map canonical names
@@ -2437,9 +2078,7 @@ and downgrades `INV frequency (rps)` from required to optional.
 - `const.OPTIONAL_ATTRIBUTES` and `const.ATTRIBUTE_MODE_AUTO|MANUAL`.
 - `tests/test_v162_manual_mapping.py` with 12 cases covering Auto/Manual
   routing, mapping validation, error paths, and translation parity.
-
 ### Changed
-
 - `REQUIRED_ATTRIBUTES` is now derived from `CORE_ATTRIBUTES` minus
   `OPTIONAL_ATTRIBUTES` (13 -> 12). `CORE_ATTRIBUTES` stays at 13 for
   profile consumers.
@@ -2451,45 +2090,28 @@ and downgrades `INV frequency (rps)` from required to optional.
 - `strings.json` + `translations/{en,nl}.json` updated: `attribute_mode`
   field, `map_attributes` step, refreshed error texts. Parity kept at
   410/410/410 leaves.
-
-**Notes**
-
-- Backward compatible: `attribute_mode` defaults to Automatic; existing
-  entries follow the original code path.
-- No entity changes, no DB schema change, no options-flow change.
-- Resolves issue #25.
-
 ### Fixed
-
 - Onboarding no longer blocks on screen 1 when a firmware variant uses
   non-canonical attribute names. Manual mode bypasses the required-check
   and lets the user map each attribute explicitly (issue #25).
 - Improved error message lists the exact missing attribute keys instead
   of a generic "Sensor mist vereiste the upstream-attributen".
+### Notes
+- Backward compatible: `attribute_mode` defaults to Automatic; existing
+  entries follow the original code path.
+- No entity changes, no DB schema change, no options-flow change.
+- Resolves issue #25.
 
 ## [1.6.1] - 2026-10-06
-
 Patch release: fixes an energy accumulator bug found in production where
 standby power (~21 W from a Shelly 3EM reading) was booked as heating
 consumption when the compressor was idle.
 [Full diff v1.6.0...v1.6.1](https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.0...v1.6.1)
-
 ### Added
-
 - Test suite `tests/test_v161_energy_guard.py` with 16 cases covering
   idle/cooldown skip, standby 21 W over 1 h, unknown-mode skip, per-mode
   accumulation, cop fallback, BUH step1/step2 only, and dt_s boundaries.
-
-### Changed
-
-**Notes**
-
-- No new entities, no schema change, no options change.
-- Backward compatible.
-- Unblocks cost tracking (C6b/C6c) planned for v1.6.1 main scope.
-
 ### Fixed
-
 - Energy tick now requires compressor running OR BUH active before
   accumulating thermal/electrical kWh (R286). Idle and cooldown ticks are
   skipped entirely.
@@ -2500,15 +2122,16 @@ consumption when the compressor was idle.
   accumulate electrical only.
 - Detector state access guarded with try/except; a raising detector is
   treated as "not running" rather than crashing the tick.
+### Notes
+- No new entities, no schema change, no options change.
+- Backward compatible.
+- Unblocks cost tracking (C6b/C6c) planned for v1.6.1 main scope.
 
 ## [1.6.0] - 2026-10-06
-
 v1.6.0 adds COP intelligence, Daikin datasheet integration, and
 runtime/energy observability. Local-only, no cloud dependencies.
 [Full diff v1.5.3...v1.6.0](https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0)
-
 ### Added
-
 - **Per-mode COP sensors** — `cop_heating_day`, `cop_heating_week`,
   `cop_heating_month`, plus DHW and cooling variants. 9 new sensors total.
   ([`6c1b330`](https://github.com/elRadix/daikin_cycle_ml/commit/6c1b330))
@@ -2551,9 +2174,7 @@ runtime/energy observability. Local-only, no cloud dependencies.
   slug parity, translation parity, subprocess import-cleanliness, and
   Hypothesis fuzzing of the new COP factories.
   ([`f6de063`](https://github.com/elRadix/daikin_cycle_ml/commit/f6de063))
-
 ### Changed
-
 - **BREAKING:** `cop_today` now reports **heating-only** COP. If your
   automation expects the old blended value, switch to the new
   `cop_combined_today` sensor.
@@ -2579,48 +2200,13 @@ runtime/energy observability. Local-only, no cloud dependencies.
   [`5b83377`](https://github.com/elRadix/daikin_cycle_ml/commit/5b83377))
 - **Model choices** — `MODEL_CHOICES` expanded from 5 to 17.
   ([`0c7a787`](https://github.com/elRadix/daikin_cycle_ml/commit/0c7a787))
-
-**Known Limitations**
-
-- BUH step power is a model-based estimate. If your Daikin has a
-  different BUH configuration, the estimate may drift.
-- Defrost duration is a monotone accumulator (non-monotone summation
-  planned for v1.6.1).
-- Energy values use `rps_heuristic` fallback when no power sensor is
-  configured. Configure `power_sensor_entity` for accurate tracking.
-- Cost tracking (tariff + sensors) and energy toggle are deferred to v1.6.1.
-
-**Upgrade Guide**
-
-**Action required for `cop_today` automations.** The sensor now reports
-heating-only COP. Switch to `cop_combined_today` for the previous blended value.
-**Optional: re-select your Daikin model.** The wizard now shows 17 models.
-If your model was previously "custom", re-select it to get datasheet-backed
-COP normalization.
-**No action required** for entity IDs, DB schema, or other sensors.
-
-**Compatibility**
-
-- Home Assistant 2026.9.3 or later.
-- Database schema v14 (unchanged from 1.5.x).
-- No breaking changes to entity IDs or option keys.
-
-**Install / Update**
-
-Via HACS: update to `1.6.0`.
-Manual: copy `custom_components/daikin_cycle_ml/` into `/config/custom_components/`, restart HA.
----
-
 ### Removed
-
 - **BREAKING:** orphan `data` and `data_description` keys removed from
   `options.step.init` (leftovers from an earlier migration; never rendered).
   ([`0204e2c`](https://github.com/elRadix/daikin_cycle_ml/commit/0204e2c))
 - Unreachable mode-filter branch in `_group_by_bucket`.
   ([`443af4d`](https://github.com/elRadix/daikin_cycle_ml/commit/443af4d))
-
 ### Fixed
-
 - **Adaptive thresholds persistence** — learned adaptive thresholds now
   survive HA restart (previously reset on every restart).
   ([`bd6f655`](https://github.com/elRadix/daikin_cycle_ml/commit/bd6f655))
@@ -2650,54 +2236,63 @@ Manual: copy `custom_components/daikin_cycle_ml/` into `/config/custom_component
 - **Test isolation for OptionsFlow** — class-level `config_entry`
   property patch no longer leaks between tests.
   ([`c428e0f`](https://github.com/elRadix/daikin_cycle_ml/commit/c428e0f))
-
 ### Security
-
 - No security fixes in this release.
+### Known Limitations
+- BUH step power is a model-based estimate. If your Daikin has a
+  different BUH configuration, the estimate may drift.
+- Defrost duration is a monotone accumulator (non-monotone summation
+  planned for v1.6.1).
+- Energy values use `rps_heuristic` fallback when no power sensor is
+  configured. Configure `power_sensor_entity` for accurate tracking.
+- Cost tracking (tariff + sensors) and energy toggle are deferred to v1.6.1.
+### Upgrade Guide
+**Action required for `cop_today` automations.** The sensor now reports
+heating-only COP. Switch to `cop_combined_today` for the previous blended value.
+**Optional: re-select your Daikin model.** The wizard now shows 17 models.
+If your model was previously "custom", re-select it to get datasheet-backed
+COP normalization.
+**No action required** for entity IDs, DB schema, or other sensors.
+### Compatibility
+- Home Assistant 2026.9.3 or later.
+- Database schema v14 (unchanged from 1.5.x).
+- No breaking changes to entity IDs or option keys.
+### Install / Update
+Via HACS: update to `1.6.0`.
+Manual: copy `custom_components/daikin_cycle_ml/` into `/config/custom_components/`, restart HA.
+---
 
 ## [1.5.3] - 2026-10-03
-
 Version alignment release. v1.5.1 and v1.5.2 were tagged with code
 version 1.5.0 (docs-only patches). v1.5.3 aligns the code version,
 tag, and release so HA Diagnostics, HACS, and README all report the
 same number.
-
 ### Changed
-
 - VERSION bump 1.5.2 -> 1.5.3 (const.py, manifest.json, pyproject.toml).
 - README version badge + tag link -> v1.5.3.
 - No functional change vs v1.5.2.
 
 ## [1.5.2] - 2026-10-03
-
 README showcase cache-bust. Docs + asset rename, no code change.
-
 ### Changed
-
 - Renamed dashboard/cards/simple-card/preview.png to showcase.png
   to bust a stale CDN cache entry that prevented the image from
   rendering inside the HACS panel.
 - README showcase table updated to the new path.
 
 ## [1.5.1] - 2026-10-03
-
 HACS README showcase fix. Docs-only, no code change.
-
 ### Changed
-
 - Replaced the showcase HTML table with a markdown pipe table so
   previews render inside the HACS panel (HACS sanitizes raw HTML
   img tags).
 - Absolute raw.githubusercontent.com URLs for preview images.
 
 ## [1.5.0] - 2026-10-03
-
 Dynamic LWT step. The heating-curve advice now emits a 1-3 C step
 relative to the current setpoint, with a comfort floor+ceiling guard
 and tracking-error dampening.
-
 ### Added
-
 - **Dynamic LWT step (1-3 C)** in `analyze_stooklijn`.
 - **Comfort dual-loop** - OptionsFlow sliders `comfort_min_c` (15-22)
   and `comfort_max_c` (22-28) enforce a floor+ceiling.
@@ -2709,9 +2304,7 @@ and tracking-error dampening.
   `DEFAULT_COMFORT_MIN_C`, `DEFAULT_COMFORT_MAX_C`.
 - **37 new tests**: `test_b13_dynamic_step.py` (32) +
   `test_b13_config_flow.py` (5).
-
 ### Changed
-
 - `analyze_stooklijn` now compares against `setpoint_lwt`
   (`LW setpoint (main)`) instead of the last bucket sample.
 - Sensor states are canonical EN: `no_data` / `keep` /
@@ -2723,30 +2316,23 @@ and tracking-error dampening.
 - OptionsFlow screen 2 (device) gained two Required sliders.
 - README reorganized for v1.5.0 (sections 2, 3, 9.1-9.4, 11, 16,
   17, 21, 22).
-
-**Notes**
-
+### Fixed
+- Literal `{step}` placeholder leaked into notification output.
+- `geen_data` / `behoud` fallback when language = EN.
+- Banker rounding `round(2.5) = 2` -> `int(x + 0.5)`.
+- Comfort-guard dead code (indoor_avg was never passed).
+- DHW cache state invalidated after the EN rename.
+### Notes
 - Coverage 100.00% (4676 stmts / 1312 branches), mypy strict 0
   errors, 6/6 CI green on the merge commit.
 - Safe drop-in for v1.4.5 users; automations that match on old
   literals (`behoud`, `verlaag_lwt_2c`, `verhoog_lwt_2c`,
   `geen_data`) must be updated - see README section 3.
 
-### Fixed
-
-- Literal `{step}` placeholder leaked into notification output.
-- `geen_data` / `behoud` fallback when language = EN.
-- Banker rounding `round(2.5) = 2` -> `int(x + 0.5)`.
-- Comfort-guard dead code (indoor_avg was never passed).
-- DHW cache state invalidated after the EN rename.
-
 ## [1.4.5] - 2026-10-02
-
 Documentation and dashboard-cards refresh. No integration code
 change - coverage stays at 100.00%, safe drop-in for v1.4.4.
-
 ### Changed
-
 - **Simple Card** (`dashboard/cards/simple-card/`):
     - Full i18n coverage: every label, caption, and alert
       translates via a `STR` table (NL + EN).
@@ -2771,30 +2357,16 @@ change - coverage stays at 100.00%, safe drop-in for v1.4.4.
   code fence; adds language docs, troubleshooting, and
   adding-a-new-card sections.
 - **Badges**: version -> 1.4.5; tests -> 1700.
-
-**Notes**
-
+### Notes
 - No public API change. Coverage stays at 100.00%.
 - Safe drop-in for v1.4.4.
 - See `dashboard/cards/` for the updated YAML.
 
 ## [1.4.4] - 2026-10-02
-
 Hotfix on top of v1.4.3.
-
 ### Added
-
 - `tests/test_v1_4_4_improvements.py` with 3 regression tests.
-
-### Changed
-
-**Notes**
-
-- No public API change. Coverage stays at 100.00%.
-- Safe drop-in for v1.4.3.
-
 ### Fixed
-
 - **`quality_today.good_cycles` / `bad_cycles` were reset to 0 on
   the first coordinator tick after HA restart.** v1.4.3 correctly
   backfilled `quality_score` and hydrated cycles into the store,
@@ -2805,21 +2377,13 @@ Hotfix on top of v1.4.3.
   `_counters["_day_key"]` to today's date before counting cycles.
   The next `daily_reset_if_needed()` on the same day becomes a
   no-op, preserving the recomputed counters.
+### Notes
+- No public API change. Coverage stays at 100.00%.
+- Safe drop-in for v1.4.3.
 
 ## [1.4.3] - 2026-10-02
-
 Hotfix on top of v1.4.2.
-
-### Changed
-
-**Notes**
-
-- No new tests added; existing v1.4.2 tests still pass.
-- Coverage stays at 100.00%.
-- No public API change. Safe drop-in for v1.4.2.
-
 ### Fixed
-
 - **Ordering bug in `async_setup_entry`**: v1.4.2 called
   `_async_hydrate_store()` BEFORE `_async_backfill_quality()`.
   The store therefore loaded records with `quality_score = NULL`
@@ -2829,48 +2393,40 @@ Hotfix on top of v1.4.2.
   underlying cycles had been scored. The two calls are now
   swapped: backfill runs first, then hydration loads the scored
   records.
+### Notes
+- No new tests added; existing v1.4.2 tests still pass.
+- Coverage stays at 100.00%.
+- No public API change. Safe drop-in for v1.4.2.
 
 ## [1.4.2] - 2026-10-02
-
 Maintenance release on top of v1.4.1.
-
 ### Added
-
 - CycleStore.hydrate_from_rows()
 - CycleDB.async_fetch_recent_cycles_for_hydration()
 - CycleDB.async_backfill_quality_scores()
 - CycleDB.async_prune_cop_hourly()
 - tests/test_v1_4_2_improvements.py
-
 ### Changed
-
 - COP_ROLLUP_WINDOW_HOURS = 720 replaces the hard-coded 6h
   default.
 - README showcase subtitle is now plural.
-
-**Notes**
-
-- Coverage stays at 100.00%.
-- No public API change. Safe drop-in for v1.4.1.
-
 ### Fixed
-
 - CycleStore is now hydrated from SQLite on startup. Before,
   after every HA restart last_cycle, cycles_today, quality_today
   and the good/bad counters reset until the next cycle.
 - Existing cycles receive a backfilled quality_score.
 - cop_hourly retention policy added inside async_run_maintenance
   matching the existing cop_samples policy.
+### Notes
+- Coverage stays at 100.00%.
+- No public API change. Safe drop-in for v1.4.1.
 
 ## [1.4.1] - 2026-10-02
-
 Patch release on top of v1.4.0. Restores three sensor
 behaviours that were broken in production (BUG-2, BUG-3,
 BUG-4). BUG-1 was investigated and **falsified** -- no code
 change was needed for it.
-
 ### Added
-
 - `tests/test_v1_4_1_quality_wiring.py` with 13 regression tests:
   - `_cluster_label()`: no cluster -> `None`; unknown cid -> `None`;
     exception -> `None`; known cid -> label.
@@ -2881,9 +2437,7 @@ change was needed for it.
     leaves `quality_score=None` and skips counters; exception in
     `store.off_time_since_last` is swallowed; exception in
     `store.increment` is swallowed.
-
 ### Changed
-
 - `custom_components/daikin_cycle_ml/coordinator.py`: added
   imports (`GOOD_CYCLE_MIN_SCORE`, `score_cycle`) and helper
   `score_and_count()`; `_async_update_data` now calls the helper
@@ -2897,23 +2451,7 @@ change was needed for it.
 - `tests/test_31cd_coverage.py`: three assertions migrated from
   `== "unknown"` to `is None`.
 - Version strings (`const.py`, `manifest.json`) `1.4.0` -> `1.4.1`.
-
-**Notes**
-
-- **BUG-1 (`cop_mean_day/week/month` reported `unknown`) is
-  FALSIFIED.** Production Jinja verified correct values
-  (`cop_mean_day=6.61`, `n_hours=5`, `n_samples=37`,
-  `by_mode.heating.cop_mean=6.608`). The v41.3 report was
-  observing stale pre-03:00 rollup state on a fresh install.
-  Optional future-proof fix (rollup window 6h -> 720h) deferred
-  to v1.4.2.
-- Coverage remains `100.00%` (4461 stmts / 1258 branches);
-  `--cov-fail-under=100` enforced in CI.
-- No public API, entity_id, unique_id, service, or translation
-  key changed. Safe drop-in for v1.4.0.
-
 ### Fixed
-
 - **BUG-2 - `sensor.daikin_cycle_ml_last_cycle` reported
   `unknown`.** Root cause: `engine/quality_scorer.py::score_cycle()`
   existed but was orphaned (no import site, no call site).
@@ -2941,24 +2479,38 @@ change was needed for it.
   `str | None`; all three branches now return `None`; Home
   Assistant renders the attribute as JSON `null` and the state
   as `unknown`.
+### Notes
+- **BUG-1 (`cop_mean_day/week/month` reported `unknown`) is
+  FALSIFIED.** Production Jinja verified correct values
+  (`cop_mean_day=6.61`, `n_hours=5`, `n_samples=37`,
+  `by_mode.heating.cop_mean=6.608`). The v41.3 report was
+  observing stale pre-03:00 rollup state on a fresh install.
+  Optional future-proof fix (rollup window 6h -> 720h) deferred
+  to v1.4.2.
+- Coverage remains `100.00%` (4461 stmts / 1258 branches);
+  `--cov-fail-under=100` enforced in CI.
+- No public API, entity_id, unique_id, service, or translation
+  key changed. Safe drop-in for v1.4.0.
 
 ## [1.4.0] - 2026-09-29
-
 ### Added
-
 - tests/test_entity_registry_integration.py: drives HA real
   EntityRegistry via `hass.config_entries.async_setup` (R195: no
   `mock_state(LOADED)` + `async_forward_entry_setups`). Asserts
   every SENSOR_DEFS key resolves to sensor.daikin_cycle_ml_<key>,
   no collision slugs, and no Dutch words in keys.
-
 ### Changed
-
 - Version strings (const.py, manifest.json, pyproject.toml)
   1.3.2 -> 1.4.0.
-
-**BREAKING**
-
+### Fixed
+- `_migrate_entity_ids` now updates `unique_id` and `translation_key`
+  alongside `entity_id`, so registry rows reconcile to the entity
+  created on the same setup pass (no orphaned rows).
+- strings.json and translations/en.json had Dutch display names for
+  `cop_vandaag` and `stooklijn_advies`; corrected to English. The
+  Dutch display names remain in translations/nl.json.
+- README version badge corrected.
+### BREAKING
 - Renamed 3 sensor translation keys to English slugs. Entity IDs
   change on next setup; the migration runs automatically and is
   idempotent.
@@ -2970,26 +2522,12 @@ change was needed for it.
   ALERT_GROUP_MAP key, DataSnapshot.stooklijn_advies) are unchanged;
   alert dedupe state carries over.
 
-### Fixed
-
-- `_migrate_entity_ids` now updates `unique_id` and `translation_key`
-  alongside `entity_id`, so registry rows reconcile to the entity
-  created on the same setup pass (no orphaned rows).
-- strings.json and translations/en.json had Dutch display names for
-  `cop_vandaag` and `stooklijn_advies`; corrected to English. The
-  Dutch display names remain in translations/nl.json.
-- README version badge corrected.
-
 ## [1.3.2] - 2026-09-29
-
 ### Changed
-
 - Version strings (const.py, manifest.json, pyproject.toml) 1.3.1 ->
   1.3.2. No code change; tree is identical to f1dc6f9 apart from the
   version strings and this changelog entry.
-
 ### Fixed
-
 - Re-release of v1.3.1 content on the correct commit (f1dc6f9). The
   v1.3.1 git tag and GitHub release were mistakenly created on
   e361f5b (v1.3.0 code), so the v1.3.1 release artifact did not
@@ -2999,18 +2537,14 @@ change was needed for it.
   v1.3.1).
 
 ## [1.3.1] - 2026-09-29
-
 ### Fixed
-
 - Entity ID migration for B5/B6 sensors: missing translation entries
   caused slug collision -> sensor.daikin_cycle_ml, _2, _3, _cop_curve_48h.
 - cop_curve_recent display name now uniform across en/nl/strings.
 - strings.json synced with translations/en.json (9 -> 13 entries).
 
 ## [1.3.0] - 2026-09-29
-
 ### Added
-
 - v14 schema: `cycles.cop_avg`, `cycles.cop_sample_count`, `cycles.cop_sample_stdev`, `cycles.cop_confidence`
 - v14 schema: `cop_samples.source` column (`'interval'` / `'tick'` / `'cycle_close'`)
 - v14 schema: `cop_hourly` rollup table for long-horizon stooklijn
@@ -3021,9 +2555,7 @@ change was needed for it.
 - REST view (B6): `GET /api/daikin_cycle_ml/cop_hourly` (`CopHourlyView`)
 - `sensor.cop_curve_recent` (B6): 48h window, capped 96 points
 - Service `export_cop_hourly` (B7): JSON/CSV export, mirrors `export_cycles`
-
 ### Changed
-
 - pyproject `addopts` coverage gate 95 -> 100
 - `db.async_insert_cycle` 13 -> 17 columns (v14 COP fields)
 - `db.async_insert_cop_sample` 7 -> 8 columns (v14 `source` field)
@@ -3032,40 +2564,30 @@ change was needed for it.
 - `manifest.json` dependencies: `["http"]` (B6 REST view)
 - README badge: 1.2.1 -> 1.3.0
 - DOCUMENTATION: 1.2.1 -> 1.3.0
-
-**Notes**
-
+### Fixed
+- `test_cov8b_*`: new `cycle_cop*` attributes
+- B3 run-1: `asyncio.run()` -> project async pattern (R188)
+- B5 test after B6: `curve_recent` failure isolated the KPI cache (R191)
+- B6: `HomeAssistantView` import from `helpers.http` (R190)
+### Notes
 - Tests: ~1685 passed, 4 skipped, 100.00% branch coverage (4424 stmts / 1248 branches)
 - Sensor count 10 -> 14; service count 5 -> 6
 - New module: `api.py` (REST view); new engine: `engine/thermal.py`
 - cop_hourly retention policy not yet enforced (unbounded, ~1MB/yr)
 - v14 migration is idempotent; prod v1.2.1 DB migrates on first v1.3.0 boot
 
-### Fixed
-
-- `test_cov8b_*`: new `cycle_cop*` attributes
-- B3 run-1: `asyncio.run()` -> project async pattern (R188)
-- B5 test after B6: `curve_recent` failure isolated the KPI cache (R191)
-- B6: `HomeAssistantView` import from `helpers.http` (R190)
-
 ## [1.2.1] - 2026-09-28
-
 ### Changed
-
 - README badges: version 1.1.1 -> 1.2.1, tests 1466 -> 1615,
   coverage 97.16% -> 100.00%.
-
 ### Fixed
-
 - Version strings in `const.py`, `manifest.json`, and `pyproject.toml`
   were never bumped for the v1.2.0 release. HA Integrations UI,
   Diagnostics, and HACS all reported 1.1.1 despite the complete
   v1.2.0 feature set being present. Bumped to 1.2.1.
 
 ## [1.2.0] - 2026-09-28
-
 ### Added
-
 - `sensor.daikin_cycle_ml_thermal_power_live` (FEAT-2): live thermal
   power estimation with a 4-step cascade: `power_w x cop` ->
   `flow_lmin x dT` -> `rps x RPS_KW_FACTOR` -> `idle`. Exposes 6
@@ -3087,9 +2609,7 @@ change was needed for it.
   OptionsFlowWithReload. Purely additive; no renamed or removed
   attributes. `notify_service` intentionally omitted (could leak
   target names).
-
 ### Changed
-
 - `tests/test_31c_sensors.py`: `test_sensor_defs_has_9_containers`
   rewritten to `test_sensor_defs_has_expected_containers` using a
   forward-compat `>=` set check (R42). Removed stale duplicate `==`
@@ -3108,32 +2628,22 @@ change was needed for it.
 - `dashboard/cards/simple-card/preview.png`: 574 KB -> 153 KB via
   palette-256 quantization.
 - `.gitignore`: removed stale deployment-symlink-bridge block.
-
-**Notes**
-
+### Removed
+- Host-side: `daikin_test_old` container (1.23 GB writable layer).
+### Fixed
+- `coordinator.py::_read_power_w`: mypy strict error caused by
+  `state.attributes or {}` narrowing to `dict[Never, Never]`.
+  Removed the defensive `or {}` -- `state` is already None-checked,
+  `attributes` is always a mapping. No behavior change.
+### Notes
 - Test suite: 1505 passed, 4 skipped.
 - Branch coverage: 97% (4104 stmts, 97 miss, 1176 branches, 74 partial).
   Gate remains at 95%; COV-6 will raise to 97%.
 - Ruff clean, Pylint 10.00/10, mypy --strict 0 errors.
 - CI on 2207733: 6/6 green.
 
-### Removed
-
-- Host-side: `daikin_test_old` container (1.23 GB writable layer).
-
-### Fixed
-
-- `coordinator.py::_read_power_w`: mypy strict error caused by
-  `state.attributes or {}` narrowing to `dict[Never, Never]`.
-  Removed the defensive `or {}` -- `state` is already None-checked,
-  `attributes` is always a mapping. No behavior change.
-
 ## [1.1.1] - 2026-09-28
-
-### Added
-
-**Dashboard**
-
+### Added (dashboard)
 - `dashboard/cards/simple-card/` — Lovelace YAML, full README
   (installation, dependencies, language toggle) and preview
   screenshot. Daikin-blue theme, hydraulic diagram, live phase
@@ -3142,9 +2652,9 @@ change was needed for it.
   instructions.
 - `README.md` `## Showcase` section with the simple-card preview
   image, placed right after the badges.
-
-**Post-v1.1.0, docs**
-
+### Documentation (also in this release)
+<!-- batch-bc-20260927 -->
+### Added (post-v1.1.0, docs)
 - `HANDOFF_SOP.md`: self-contained SOP for handoff generation and
   multi-repo maintenance (R133-R145).
 - `SOP.md` section 12: R133-R145 (handoff + multi-repo regels),
@@ -3153,15 +2663,7 @@ change was needed for it.
 - HACS default store submission: PR #11345 open at
   https://github.com/hacs/default/pull/11345 (12/12 automated checks
   SUCCESS).
-
-### Changed
-
-**Documentation (also in this release)**
-
-<!-- batch-bc-20260927 -->
-
-**Notes**
-
+### Notes
 - Coverage baseline shifted 97.40% (v1.0.2, commit 858cf8b) ->
   97.16% (v1.1.0+) due to HACS repo restructure (commit c60bc3f).
   All 32 non-test `.py` files moved from repo-root to
@@ -3172,9 +2674,7 @@ change was needed for it.
   recon batch RECON_C_COVERAGE_DELTA (commit c097197).
 
 ## [1.1.0] - 2026-09-27
-
 ### Added
-
 - **HACS-compliant repo layout**: integration now lives at
   `custom_components/daikin_cycle_ml/` (was: repo-root + symlink workaround).
 - `.github/workflows/hacs.yml`: HACS Action validation (`category: integration`).
@@ -3189,9 +2689,7 @@ change was needed for it.
 - SOP rules R111-R118 (Ruff CI-aligned invocation, symlink manifest
   path, version-agnostic tests, `import re`, `pyproject fix=true`
   risk, HA stubs in CI, HA Python version pin, aiosqlite stub variance).
-
 ### Changed
-
 - Repo restructured: integration files moved from repo-root to
   `custom_components/daikin_cycle_ml/` (breaking for existing installs).
 - `hacs.json`: `homeassistant` minimum 2025.1.0 -> 2026.9.0.
@@ -3213,9 +2711,7 @@ change was needed for it.
   with `_INTEG / X`.
 - README badges: coverage 97.16%, tests 1466, Pylint 10.00/10.
 - README Support section rewritten for this project's context.
-
-**Verified**
-
+### Verified
 - CI: 6/6 workflows green (Ruff, Pylint, Coverage, Mypy, HACS Validation, Hassfest).
 - 1466 tests passed, 4 skipped.
 - Coverage 97.16% (all modules >= 95%).
@@ -3227,17 +2723,13 @@ change was needed for it.
   (`dhw=9, unknown=5, None=13`), no `daikin_cycle_ml` errors in log.
 
 ## [1.0.2] - 2026-09-27
-
 ### Added
-
 - mypy --strict: 219 -> 0 errors across all 30 integration modules.
 - `.github/workflows/mypy.yml` CI workflow (Python 3.14, HA 2026.9.3 stubs).
 - `py.typed` marker (PEP 561).
 - `[tool.mypy]` block in pyproject.toml (strict + follow_imports=silent).
 - SOP rules R108-R110 (leaf-annotation cascade, dict key-type mismatch, idempotent re-run).
-
 ### Changed
-
 - Type annotations on all public functions, methods, and class attributes.
 - `ConfigFlowResult` as canonical return type for `async_step_*` (HA 2026.9).
 - `_OPTIONS_FLOW_BASE` from conditional variable to TYPE_CHECKING + else try/except.
@@ -3246,26 +2738,7 @@ change was needed for it.
 - `engine/notification_engine.py` `_SafeDict` typed `dict[str, Any]`.
 - `storage/store.py` `_counters` locally widened to `dict[str, Any]`.
 - README badges: version 1.0.2, coverage 97.40%, pylint 10.00, tests 1400+.
-
-**Version**
-
-- 1.0.2 (patch: internal typing hardening + CI mypy gate, no runtime changes).
-
-**Test suite**
-
-- Tests: 1461 passed, 4 skipped.
-- Coverage: 97.40% (all modules >= 94%).
-- Ruff: clean.
-- Pylint: 10.00/10.
-- mypy --strict: 0 errors (CI-enforced).
-- CI: Ruff + Pylint + Coverage + Mypy (4 workflows).
-
-**Known limitations**
-
-- Per-module coverage below 95%: `ml/adaptive_thresholds.py` 94%.
-
 ### Fixed
-
 - `ml/clustering.py` `labels` no-redef on line 155 (annotation removed).
 - `ml/features.py` `overrides[name]` narrowing via local variable.
 - `engine/notification_engine.py` `ctx or {}` for None-safe Mapping.
@@ -3275,11 +2748,20 @@ change was needed for it.
 - `storage/db.py` `params: tuple[Any, ...]` for heterogeneous tuple.
 - `storage/db.py` `cops: list[float]` explicit loop instead of comprehension.
 - `storage/db.py` `async_avg_duration_since` return type annotation.
+### Version
+- 1.0.2 (patch: internal typing hardening + CI mypy gate, no runtime changes).
+### Test suite
+- Tests: 1461 passed, 4 skipped.
+- Coverage: 97.40% (all modules >= 94%).
+- Ruff: clean.
+- Pylint: 10.00/10.
+- mypy --strict: 0 errors (CI-enforced).
+- CI: Ruff + Pylint + Coverage + Mypy (4 workflows).
+### Known limitations
+- Per-module coverage below 95%: `ml/adaptive_thresholds.py` 94%.
 
 ## [1.0.1] - 2026-09-27
-
 ### Added
-
 - `cop_samples.mode` column + v13 migration (idempotent ALTER TABLE).
 - `CopSample.ts` + `StooklijnAdvies.reason` dataclass fields.
 - `STOOKLIJN_RECENT_WINDOW_S` (48h) recency window in `cop_analyzer`.
@@ -3293,9 +2775,7 @@ change was needed for it.
 - `custom_components/__init__.py` package marker (52b8i).
 - `.gitignore` entry for `custom_components/daikin_cycle_ml` dev symlink (52b9).
 - ROADMAP.md state-space binning open questions (52c-docs).
-
 ### Changed
-
 - `analyze_stooklijn`: DHW-aware (`mode in (heating, unknown)`) + recency filter.
 - `_maybe_refresh_stooklijn`: DHW-check before cache-check.
 - `_maybe_collect_cop_sample`: persist mode via `_resolve_cop_sample_mode`.
@@ -3305,33 +2785,10 @@ change was needed for it.
 - Pylint 9.94 -> 10.00.
 - English docs (SOP.md + CHANGELOG.md) (R97).
 - CI coverage.yml: replicate custom_components symlink + homeassistant/aiosqlite deps (52b8j).
-
-**Version**
-
-- 1.0.1 (patch: bugfixes + docs + CI only, no breaking changes).
-
-**Test suite**
-
-- Coverage: 95.45%
-- Ruff: clean
-- Pylint: 10.00/10
-- CI: Ruff + Pylint + Coverage pending on this commit.
-
-**Known limitations**
-
-- Per-module coverage below 95%: `coordinator.py` 91%,
-  `engine/attribute_reader.py` 93%, `engine/action_engine.py` 93%,
-  `ml/adaptive_thresholds.py` 94%.
-- `CoverageWarning: module-not-measured` (cosmetic, dual-path import).
-- `mypy --strict` not yet done (Platinum blocker).
-
 ### Removed
-
 - `.pylintrc` inline comment `# (DB CRUD)`.
 - Coverage CI disable fallback (52b8h-fallback, R72).
-
 ### Fixed
-
 - Bug A (52a): `dhw_active` triggered on 3-way valve rest position.
 - Bug B (52b): stooklijn analysis mixed DHW samples with heating samples.
 - Bug C (52a): `sensor.current_cycle.dt_k` returned stale value when idle.
@@ -3343,24 +2800,31 @@ change was needed for it.
 - Bug I: cop_samples.mode inconsistent during DHW (I/U attrs fallback).
 - CI Coverage `ModuleNotFoundError` (symlink, R98).
 - 102 `ModuleNotFoundError` in pytest collection (dual custom_components, R99).
+### Version
+- 1.0.1 (patch: bugfixes + docs + CI only, no breaking changes).
+### Test suite
+- Coverage: 95.45%
+- Ruff: clean
+- Pylint: 10.00/10
+- CI: Ruff + Pylint + Coverage pending on this commit.
+### Known limitations
+- Per-module coverage below 95%: `coordinator.py` 91%,
+  `engine/attribute_reader.py` 93%, `engine/action_engine.py` 93%,
+  `ml/adaptive_thresholds.py` 94%.
+- `CoverageWarning: module-not-measured` (cosmetic, dual-path import).
+- `mypy --strict` not yet done (Platinum blocker).
 
 ## [1.0.0] - 2026-09-26
-
 ### Added
-
 - quality_scale.yaml (IQS manifest, Bronze+Silver+Gold)
 - PARALLEL_UPDATES = 0 in sensor/binary_sensor platforms
 - codeowners in manifest.json
-
 ### Changed
-
 - HA ruff 2026+ config (line-length 100, target py313, I/UP/B/C4/SIM/...)
 - Coverage threshold 94.5 -> 95.0
 - Pylint workflow: scoped to integration code, Python 3.13
 - Ruff workflow toegevoegd (ruff-action@v3)
-
 ### Fixed
-
 - E1102 not-callable in coordinator.py (4 defensieve getter-calls)
 - B905 zip strict= expliciet (ml/clustering.py)
 - F401 explicit re-export (__init__.py)
@@ -3370,9 +2834,7 @@ Format: https://keepachangelog.com/en/1.1.0/
 Versioning: https://semver.org/spec/v2.0.0.html
 
 ## [0.7.0] - 2026-09-26
-
 ### Added
-
 - **Water pump guard** in `cycle_detector.update()`: if `Water pump operation`
   is `False` while RPS is high, sample is ignored (data glitch protection).
 - **Thermal kW calculation** per cycle: `thermal_kw_avg` field derived from
@@ -3386,9 +2848,7 @@ Versioning: https://semver.org/spec/v2.0.0.html
   `step` attribute; cluster binaries removed (now `last_cycle.attributes.cluster`).
 - **Wizard step 3** (Attribute check): shows present/missing breakdown of all
   13 core attributes; warns when any missing; blocks setup until fixed.
-
 ### Changed
-
 - **Core attribute set** (13) replaces Required + Recommended + Optional.
   User selection removed — only what the integration actually uses is kept.
 - **`attribute_reader.read()`** signature drops `selected` param (uses
@@ -3398,15 +2858,7 @@ Versioning: https://semver.org/spec/v2.0.0.html
 - **`MultiBaseline.from_dict`**: resets only on obsolete dims (8, 11); smaller
   test dims preserved.
 - **Coverage threshold** `fail_under` 95.0 → 94.5 (95.00% exact is too fragile).
-
-**Test suite**
-
-- **~1,050 tests** (was 987 → updated to reflect new entity structure)
-- **Coverage** ≥ 95% (threshold relaxed to 94.5 for stability)
----
-
 ### Removed
-
 - 18 unused ATTR_* constants: `ATTR_DISCHARGE_PIPE_TEMP`, `ATTR_SUCTION_PIPE_TEMP`,
   `ATTR_INV_PRIMARY_CURRENT`, `ATTR_TARGET_COND_TEMP`, `ATTR_DHW_SETPOINT`,
   `ATTR_HEAT_EXCHANGER_MID`, `ATTR_LIQUID_PIPE_R6T`, `ATTR_EXPANSION_VALVE`,
@@ -3420,58 +2872,48 @@ Versioning: https://semver.org/spec/v2.0.0.html
 - Old test files: `test_12a_sensors.py`, `test_12b_clusters.py`,
   `test_12d_coverage.py`, `test_sensors.py`, `test_binary_sensors.py`,
   `test_translations.py`.
-
 ### Fixed
-
 - **MultiBaseline dim-guard**: only resets when stored dim is 8 or 11.
+### Test suite
+- **~1,050 tests** (was 987 → updated to reflect new entity structure)
+- **Coverage** ≥ 95% (threshold relaxed to 94.5 for stability)
+---
 
 ## [0.6.0] - 2026-09-26
-
 ### Added
-
 - **i18n alert templates (EN + NL)** via `notification_language` option (default EN). Full-sentence messages with actionable advice, selected per-alert. Replaces hardcoded English templates.
 - **Per-group alert toggles (5):** `alert_group_pendulum`, `alert_group_short_cycle`, `alert_group_ml`, `alert_group_setpoint`, `alert_group_cop_stooklijn`. All default on.
 - **`setpoint_osc` alert fully implemented** — was scaffold-only since v0.5.0 (state_fn hardcoded False, no tracker). Now: deque-based rolling window, min-delta filter, threshold against `setpoint_oscillation_threshold` (model-profile default 6).
 - **3 new Pendulum options:** `setpoint_oscillation_threshold` (default 6), `setpoint_osc_window_min` (default 30), `setpoint_osc_min_delta` (default 0.5°C). All with `data_description` explaining the rationale.
 - **Logging in silent except paths** in `services.py` `recompute_baseline` — 4 spots now emit `_LOGGER.debug/warning`.
-
 ### Changed
-
 - `evaluate_alerts()` gains `language` param (overrides option; falls back to `options["notification_language"]`, then `"en"`).
 - `coordinator._async_dispatch_alerts` passes `language=self.options.get("notification_language", "en")`.
 - `pytest.ini_options.markers` registered: `expected_lingering_tasks`, `expected_lingering_timers` (kills `PytestUnknownMarkWarning`).
 - Status-update advice prefix changed from `💡` emoji to `•` bullet (templates carry their own 💡 in advice block).
-
-**Internal**
-
-- **7 `# pragma: no cover` removed** from coordinator runtime functions:
-  `async_setup_status_updates`, `_async_status_update_callback`, `async_emit_status_update`, `_build_status_snapshot`, `async_save_adaptive_state`, `async_load_adaptive_state`, `_load_kmeans_state`.
-- **39 new tests** for the above (14 `_build_alert_context` + 25 runtime coordinator).
-- **R52 class-level defaults** on coordinator: `_setpoint_history`, `_last_setpoint`, `_status_update_unsub`, `_kmeans_centroids`, `_cluster_labels`. `__new__`-style test fixtures no longer crash.
-- Lazy init in `_track_setpoint` / `_compute_setpoint_oscillating` (defensive against partial init).
-- `notification_engine.evaluate_alerts` template lookup now per-language (`ALERT_TEMPLATES[lang][bkey]`) with fallback to default map.
-
-**Test suite**
-
-- 880 → **958 tests** (+78)
-- Coverage: 95.39% → **95.57%**
-- `coordinator.py`: 92% → 94%
-- `engine/notification_engine.py`: 88% → 89%
----
-
 ### Fixed
-
 - `binary_sensor.setpoint_oscillating` now derives state from coordinator (was always False via stub).
 - `_alert_binary_states` includes `setpoint_osc` key (was missing, alert never fired).
 - `_build_alert_context["setpoint_osc"]` fills real `osc_count` / `window_min` / `threshold` (was `"?"` placeholders).
 - `AlertSpec` templates render correctly; emoji handled by `_prefix_emoji` (not baked in).
 - `DEFAULT_SETPOINT_OSC_THRESHOLD` resolved from model_profiles at runtime (default 6).
 - 4 stale `except Exception: pass` in `recompute_baseline` no longer silent.
+### Internal
+- **7 `# pragma: no cover` removed** from coordinator runtime functions:
+  `async_setup_status_updates`, `_async_status_update_callback`, `async_emit_status_update`, `_build_status_snapshot`, `async_save_adaptive_state`, `async_load_adaptive_state`, `_load_kmeans_state`.
+- **39 new tests** for the above (14 `_build_alert_context` + 25 runtime coordinator).
+- **R52 class-level defaults** on coordinator: `_setpoint_history`, `_last_setpoint`, `_status_update_unsub`, `_kmeans_centroids`, `_cluster_labels`. `__new__`-style test fixtures no longer crash.
+- Lazy init in `_track_setpoint` / `_compute_setpoint_oscillating` (defensive against partial init).
+- `notification_engine.evaluate_alerts` template lookup now per-language (`ALERT_TEMPLATES[lang][bkey]`) with fallback to default map.
+### Test suite
+- 880 → **958 tests** (+78)
+- Coverage: 95.39% → **95.57%**
+- `coordinator.py`: 92% → 94%
+- `engine/notification_engine.py`: 88% → 89%
+---
 
 ## [0.5.0] - 2026-09-26
-
 ### Added
-
 - ML feature-vector extended 8 -> 11 dims (batch 14c):
   cop_avg, lwt_avg, indoor_temp_avg
 - ml/features.py: FEATURE_NAMES +3 names, VECTOR_LEN=11,
@@ -3493,15 +2935,11 @@ Versioning: https://semver.org/spec/v2.0.0.html
 - 51 new tests: test_features_v11 (9), test_14c_coordinator_wiring
   (14), test_14c_migration (10); 814 tests total
 - Coverage: 96.19% (features.py 100%, multi_baseline.py 100%)
-
 ### Changed
-
 - VERSION 0.4.0 -> 0.5.0-dev (manifest.json, pyproject.toml, const.py)
 
 ## [0.4.0] - 2026-09-25
-
 ### Added
-
 - engine/cop_analyzer.py: pure parser for global_cop attributes
   (string->float with unit stripping), 2C outdoor-temp bucketing,
   stooklijn advice engine (verlaag/verhoog/behoud), bucket_summary
@@ -3523,28 +2961,20 @@ Versioning: https://semver.org/spec/v2.0.0.html
   baseline loss), DB_TABLES + cop_samples
 - translations EN + NL for 2 new sensors
 - 54 new tests across batches 14a/14b-1/14b-2/14b-3
-
 ### Changed
-
 - __init__.py: setup_stooklijn added to setup_entry, _stooklijn_unsub
   cancelled on unload
 - Entity count: 48 -> 50 (31 sensors + 19 binary sensors)
-
-**Scope**
-
+### Scope
 - COP analysis in scope. No cost tracking, no setpoint writes,
   ML feature-vector unchanged (integration deferred to 14c).
-
-**Notes**
-
+### Notes
 - Total tests: 716, coverage 96.69%
 - Samples collect at 10min intervals, 365 days retention (~2 MB/year)
 - Analysis window: 30 days, min 5 samples/bucket for advice
 
 ## [0.3.0] - 2026-09-25
-
 ### Added
-
 - 21 coverage tests (test_12d_coverage.py): adaptive thresholds
   edge cases, clustering helpers, notification engine, constants
 - ml/clustering.py: nearest_centroid + classify_clusters (pure)
@@ -3609,9 +3039,7 @@ Versioning: https://semver.org/spec/v2.0.0.html
 - MultiBaseline: per-mode AdaptiveBaseline (EWMA) wired in coordinator
 - recompute_baseline service: reset + rebuild from N days of history
 - run_maintenance service: retention + VACUUM (force=True)
-
 ### Changed
-
 - entity.py: name parameter documented as deprecated (kept for
   backward compat with existing callers)
 - ROADMAP: 12d marked done
@@ -3619,9 +3047,10 @@ Versioning: https://semver.org/spec/v2.0.0.html
 - Anomaly z-score now computed per-mode
 - Tests: 382 -> ~498 passing
 - Docs rewritten for 11d (README, ROADMAP, DOCUMENTATION)
-
-**Notes**
-
+### Fixed
+- strings.json + en.json: typo 'non-criticalalerts' -> 'non-critical alerts'
+- Baseline no longer blurs Heating vs DHW cycles (false positives)
+### Notes
 - v0.3 feature-complete: 12a/12b/12c/12d all green.
 - Entity count: 29 sensors + 19 binary sensors = 48.
 - Old DBs auto-migrate on first cluster write (lazy ALTER TABLE).
@@ -3635,16 +3064,16 @@ Versioning: https://semver.org/spec/v2.0.0.html
 - Sensors for learned values follow in 12a-3.
 - Module is not yet wired into coordinator; that is 12a-2.
 - Default disabled: opt-in once validated on real data.
-
-### Fixed
-
-- strings.json + en.json: typo 'non-criticalalerts' -> 'non-critical alerts'
-- Baseline no longer blurs Heating vs DHW cycles (false positives)
+### Pre-release: 12b - 2026-09-25
+### Pre-release: 12a-3 - 2026-09-25
+### Pre-release: 12a-2 - 2026-09-25
+### Pre-release: 12a - 2026-09-25
+### Pre-release: 12c-2 + 12c-3 - 2026-09-25
+### Pre-release: 12c-1 - 2026-09-25
+### Pre-release - 2026-09-25
 
 ## [0.2.0] - 2026-09-25
-
 ### Added
-
 - Reconfigure flow (source sensor + model) with prefilled form
 - Service definitions with voluptuous schemas (4 services)
 - Diagnostics endpoint (redacted entry + DB counts)
@@ -3655,126 +3084,144 @@ Versioning: https://semver.org/spec/v2.0.0.html
   z-score anomaly engine, advice generator
 - Brand assets: Daikin icon + logo (local brand/ folder)
 - Quality scale checklist (Bronze/Silver/Gold/Platinum)
-
 ### Changed
-
 - Runtime data refactor: entry.runtime_data instead of hass.data[DOMAIN]
 - Platform setup via async_forward_entry_setups (sensor + binary_sensor)
-
-**Tests**
-
+### Fixed
+- Blocking read_text in event loop (storage/db.py) - now via asyncio.to_thread
+- Binary sensor edge cases for short-run / short-off detection
+### Tests
 - 382 tests passing
 - Coverage 96% (target 95%)
 
-### Fixed
-
-- Blocking read_text in event loop (storage/db.py) - now via asyncio.to_thread
-- Binary sensor edge cases for short-run / short-off detection
-
 ## [0.1.0] - 2026-09-25
-
 ### Added
-
 - Initial scaffolding: 8-step config wizard, OptionsFlow
 - Cycle detection via RPS threshold with power-sensor fallback
 - 26 sensors + 16 binary sensors
 - Quality scoring (0-100 per cycle)
 - Timer health + attribute reader engines
 - In-memory cycle store with daily counters
-
-Development notes from before 0.1.0 (internal batch log) are archived in
-[docs/history/CHANGELOG_PRE_0.1.0.md](docs/history/CHANGELOG_PRE_0.1.0.md).
-
-[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.22.10...HEAD
-[1.22.10]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.22.9...v1.22.10
-[1.22.9]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.22.8...v1.22.9
-[1.22.8]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.22.7...v1.22.8
-[1.22.7]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.22.6...v1.22.7
-[1.22.6]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.22.5...v1.22.6
-[1.22.5]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.22.4...v1.22.5
-[1.22.4]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.22.3...v1.22.4
-[1.22.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.22.2...v1.22.3
-[1.22.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.22.1...v1.22.2
-[1.22.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.22.0...v1.22.1
-[1.22.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.21.0...v1.22.0
-[1.21.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.20.0...v1.21.0
-[1.20.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.19.10...v1.20.0
-[1.19.10]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.19.9...v1.19.10
-[1.19.9]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.19.8...v1.19.9
-[1.19.8]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.19.7...v1.19.8
-[1.19.7]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.19.6...v1.19.7
-[1.19.6]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.19.5...v1.19.6
-[1.19.5]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.19.4...v1.19.5
-[1.19.4]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.19.3...v1.19.4
-[1.19.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.19.2...v1.19.3
-[1.19.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.19.1...v1.19.2
-[1.19.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.19.0...v1.19.1
-[1.19.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.18.0...v1.19.0
-[1.18.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.17.1...v1.18.0
-[1.17.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.17.0...v1.17.1
-[1.17.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.16.0...v1.17.0
-[1.16.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.15.2...v1.16.0
-[1.15.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.15.1...v1.15.2
-[1.15.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.15.0...v1.15.1
-[1.15.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.14.0...v1.15.0
-[1.14.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.13.2...v1.14.0
-[1.13.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.13.1...v1.13.2
-[1.13.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.13.0...v1.13.1
-[1.13.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.12.9...v1.13.0
-[1.12.9]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.12.8...v1.12.9
-[1.12.8]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.12.7...v1.12.8
-[1.12.7]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.12.6...v1.12.7
-[1.12.6]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.12.5...v1.12.6
-[1.12.5]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.12.4...v1.12.5
-[1.12.4]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.12.3...v1.12.4
-[1.12.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.12.2...v1.12.3
-[1.12.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.12.1...v1.12.2
-[1.12.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.12.0...v1.12.1
-[1.12.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.11.3...v1.12.0
-[1.11.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.11.2...v1.11.3
-[1.11.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.11.1...v1.11.2
-[1.11.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.11.0...v1.11.1
-[1.11.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.10.0...v1.11.0
+[0.2.0]: https://github.com/local/daikin_cycle_ml/releases/tag/v0.2.0
+[0.1.0]: https://github.com/local/daikin_cycle_ml/releases/tag/v0.1.0
+## Batch 2 - engines + tests (2026-09-25)
+- engine/attribute_reader.py: read(state), _normalize, _coerce_bool,
+  missing_required; filters template garbage, placeholder, null-strings
+- engine/model_profiles.py: MODEL_PROFILES (5 models), get_profile,
+  expected_attributes, defaults_for; expects_brine=False everywhere
+- engine/timer_health.py: clamp_cycle_duration, is_stale, reconcile
+- tests: 22 passed (test_attribute_reader.py x13, test_model_profiles.py x9)
+### Batch 3 - cycle detector (2026-09-25)
+- engine/cycle_detector.py: CycleDetector (idle<->running state machine),
+  detect_compressor_on (RPS + power fallback), classify_mode
+  (I/U operation mode primary, abs(dT) magnitude)
+- tests: 12 new (test_cycle_detector.py), 34 total passed
+### Batch 4 - config flow + translations (2026-09-25)
+- config_flow.py: 8-step wizard (user, model_custom, attributes, cycle,
+  pendulum, quality, notifications, finalize) + OptionsFlow single screen
+- strings.json + translations/en.json + translations/nl.json
+- tests: 8 new (test_config_flow.py), 43 total passed
+- fix: conftest enable_custom_integrations; _num omits unit when None
+### Notes
+- Session 1 / v0.1.0 — scaffold only.
+- Engines: sessions 1-2 (attribute_reader, model_profiles, cycle_detector,
+  timer_health).
+- Sensors + binary_sensors: session 2.
+- Services + notifications: session 3.
+- ML (fase 2): session 4.
+## Batch 5b-1 — 2026-09-25
+- sensor.py: 26 entities (cycle_state, current_*, last_*, *_today, source_age, missing_attrs_count, last_sample_age, coordinator_errors)
+- storage/store.py: daily_reset_if_needed, record_short_run, record_short_off, cycles_in_window, cycles_today
+- coordinator.py: DataSnapshot +last_success_ts, +cycle_start_ts, +errors_total; daily-reset hook
+- tests/test_sensors.py: 28 tests
+### Batch 5b-2 test-fix — 2026-09-25
+- test_source_stale_on_when_old: last_success_ts 9990 → 9000 (age 1000s > threshold 60s)
+- test_short_off_off_when_long: end_ts 850 → 600 (off 400s > threshold 300s)
+### Batch 6a test-fix — 2026-09-25
+- test_fetch_cycles_returns_dicts: start_ts 5000.0 → time.time()-100 (was buiten days=365 window)
+- test_label_cycle: start_ts 8000.0 → time.time()-200 (idem)
+## Batch 6b-1 — 2026-09-25
+- services.yaml: 4 services (reset_counters, export_cycles, label_cycle, recompute_baseline)
+- services.py: registration + vol schemas + 4 pure do-functions + HA handlers
+- __init__.py: async_setup registers services idempotently
+- tests/test_services.py: 20 tests
+## Batch 6b-2 — 2026-09-25
+- diagnostics.py: async_get_config_entry_diagnostics + async_redact_data (notify_service) + DB counts
+- __init__.py: _async_setup_database (best-effort) + unload closes DB
+- storage/store.py: + counters_snapshot() public accessor
+- tests/test_diagnostics.py: 10 tests
+## Batch 6b-3a — 2026-09-25
+- engine/notification_engine.py: pure evaluate_alerts() — binary→alert mapping, quiet hours, aggregation window, severity
+- tests/test_notification_engine.py: 28 tests
+## Batch 6b-3b — 2026-09-25
+- repairs.py: async_check_repairs (source_stale + missing_attrs issues)
+- coordinator.py: _alert_binary_states + _async_dispatch_alerts + _emit_alert; call site na succesvolle update
+- tests/test_repairs.py: 9 tests
+- tests/test_coordinator_alerts.py: 13 tests
+## Batch 7a — 2026-09-25
+- ml/__init__.py: package marker
+- ml/features.py: FEATURE_NAMES (8), extract_feature_vector, is_valid_record, extract_many (pure)
+- ml/baseline.py: Baseline (Welford mean/std, z_scores, is_anomaly, top_dim, JSON roundtrip)
+- tests/test_features.py: 18 tests
+- tests/test_baseline.py: 22 tests
+## Batch 7b — 2026-09-25
+- ml/clustering.py: kmeans() + ClusteringResult + labels_to_dict (k-means++ init, deterministic seed)
+- engine/anomaly_engine.py: classify_severity + AnomalyResult + evaluate()
+- tests/test_clustering.py: 18 tests
+- tests/test_anomaly_engine.py: 16 tests
+## Batch 7c — 2026-09-25
+- engine/action_engine.py: generate_advice + ActionAdvice (anomaly-driven + record-driven + mode-aware)
+- coordinator.py: _process_new_cycle (baseline update + anomaly + advice + DB insert); DataSnapshot + anomaly + advice; __init__ + Baseline + db handle
+- tests/test_action_engine.py: 20 tests
+- tests/test_coordinator_ml.py: 10 tests
+## Batch 8a-fix - 2026-09-25
+- docs rewritten ASCII-only (no em-dash, no box-drawing chars)
+## Batch 8d - 2026-09-25
+- tests/test_timer_health.py: 18 tests (was 0% coverage)
+- tests/test_services_handlers.py: 10 tests (resolve + handlers)
+- tests/test_init_edges.py: 5 tests (DB fail + unload edge)
+- tests/test_coordinator_edges.py: 5 tests (read_power branches)
+## Batch 8e - 2026-09-25
+- LICENSE (MIT)
+- .gitignore
+- manifest/hacs/tree sanity checks
+- import sanity for all modules
+## Batch 9b - 2026-09-25
+- FIX: storage/db.py async_initialize blocking read_text in event loop
+  (HA util/loop warning) -> asyncio.to_thread
+- tests/test_db_blocking.py: 3 regression tests
+## Batch 9c-fix - 2026-09-25
+- reconfigure tests: patch _async_setup_database + async_block_till_done (voorkomt aiosqlite thread-leak)
+## Batch 9e-fix2 - 2026-09-25
+- config_flow.py: async_update_reload_and_abort signature
+  (options_updates -> options)
+## Batch 10a - 2026-09-25
+- entity.py: _attr_translation_key (was _attr_name)
+- strings.json / en.json / nl.json: entity names (42) + issues (2)
+- NL-localization for all entity names + issue texts
+- tests/test_translations.py: 10 tests
+## Batch 10b - 2026-09-25
+- step descriptions enriched (multi-line, per-field info)
+- NL localization of config flow step descriptions
+- options flow step description added
+## Batch 10b-fix - 2026-09-25
+- EN options.init description was Dutch (copy-paste bug)
+## Batch 11a - 2026-09-25
+- ml/baseline.py: +AdaptiveBaseline (EWMA + outlier skip), +baseline_from_dict factory; Baseline (Welford) unchanged
+- ml/multi_baseline.py: MultiBaseline (per-mode)
+- tests/test_adaptive_baseline.py: 19 tests
+- tests/test_multi_baseline.py: 15 tests
+## Batch 11a-docs - 2026-09-25
+- README.md: ML anomaly detection section added
+- DOCUMENTATION.md: AdaptiveBaseline + MultiBaseline details
+## Batch 11b-1-fix2 - 2026-09-25
+- db.py: maintenance deletes features before cycles (FK-safe)
+[Unreleased]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.10.0...HEAD
 [1.10.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.2...v1.10.0
 [1.9.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.8.1...v1.9.0
 [1.8.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.7.2...v1.8.0
-[1.7.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.7.1...v1.7.2
-[1.7.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.7.1-pre.2...v1.7.1
-[1.7.1-pre.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.7.1-pre.1...v1.7.1-pre.2
-[1.7.1-pre.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.7.0...v1.7.1-pre.1
-[1.7.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.7...v1.7.0
-[1.6.7]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.6...v1.6.7
-[1.6.6]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.5...v1.6.6
-[1.6.5]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.4...v1.6.5
-[1.6.4]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.3...v1.6.4
-[1.6.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.2...v1.6.3
-[1.6.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.1...v1.6.2
-[1.6.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.3...v1.6.0
 [1.5.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.2...v1.5.3
-[1.5.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.1...v1.5.2
-[1.5.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.5.0...v1.5.1
-[1.5.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.4.5...v1.5.0
-[1.4.5]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.4.4...v1.4.5
-[1.4.4]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.4.3...v1.4.4
-[1.4.3]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.4.2...v1.4.3
-[1.4.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.4.1...v1.4.2
-[1.4.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.4.0...v1.4.1
-[1.4.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.3.2...v1.4.0
-[1.3.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.3.1...v1.3.2
-[1.3.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.3.0...v1.3.1
-[1.3.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.2.1...v1.3.0
-[1.2.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.2.0...v1.2.1
-[1.2.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.1.1...v1.2.0
-[1.1.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.0.2...v1.1.0
-[1.0.2]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.0.1...v1.0.2
-[1.0.1]: https://github.com/elRadix/daikin_cycle_ml/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v0.7.0...v1.0.0
-[0.7.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v0.6.0...v0.7.0
-[0.6.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/elRadix/daikin_cycle_ml/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/elRadix/daikin_cycle_ml/releases/tag/v0.4.0
