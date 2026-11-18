@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.23.0] - 2026-11-18
+
 ### Fixed
 - COP normalized A7/W35 no longer surfaces null when LWT or COP
   comes from a transient gap in stooklijn-cache / snap.cop; raw
