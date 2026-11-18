@@ -344,7 +344,7 @@ CREATE TABLE daily_summary (
 | `mode` | `heating` / `cooling` / `dhw` / `unknown` |
 | `cycles` | Count of non-transient cycles that **start** on this day |
 | `total_duration_s` | **Pro-rata overlap**: sum of every cycle's portion that overlaps this day (includes cross-midnight and transient contributions) |
-| `duration_min` | Shortest **full** cycle duration among cycles that **start** on this day (seconds) |
+| `duration_min` | Shortest **within-day portion** of the cycles that **start** on this day (seconds), so always `<= duration_max` (#408; before it was the full length) |
 | `duration_max` | Longest **within-day portion** of any cycle overlapping this day (seconds). Always `<= total_duration_s` (#400; before #400 this was the full length of the longest cycle starting that day) |
 | `quality_sum` | Sum of quality scores (average = quality_sum / cycles) |
 | `dt_max_sum` | Sum of dT_max (average = dt_max_sum / cycles) |

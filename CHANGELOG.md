@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+- Diagnostics `coordinator.cop_cross_check`: COP in use vs measured
+  (flow x dT / power) vs ESPAltherma's estimate, so an external COP
+  sensor that reads high is visible (#408)
+
 ### Fixed
 - AUTO source: when the ESPAltherma v2 entities win on a tie, the
   remaining attributes of the monolithic sensor are kept (native
@@ -14,11 +19,23 @@
 - `buh_excessive` now uses BUH minutes / compressor minutes over 7 days,
   as documented, instead of the share of cycles with any BUH (a 20 h run
   with 9 min of backup heater raised the alert)
+- Adaptive thresholds: the learned short-run threshold is never below
+  half of the configured value (prod-1 learned 2 min against 20 min, so
+  `short_run` never fired); `learned_thresholds` attribute
+  `short_run_effective_min` (#408)
+- One-time migration v30: COP samples stored before the COP gates
+  (above 11, or heating/DHW below 1.0) are flagged and their hours
+  rebuilt, so week/month COP no longer shows 0.47 / 16.5 (#408)
+- Daily summary `duration_min` uses the same within-day rule as
+  `duration_max` (never larger); all days are re-rolled once (#408)
 
 ### Tests
 - `tests/test_prod1_v1232_datasheet_buh_source.py` - prod-1 v1.23.2
   diagnostics: AUTO tie supplement, normalisation with individual keys
   and no `last_record`, time-based BUH ratio incl. fallback
+- `tests/test_408_diag_followups.py` - learned short-run floor, v30
+  outlier flagging + hourly/daily rebuild, min <= max, COP cross-check
+  with prod-1 values (#408)
 
 ## [1.23.2] - 2026-11-18
 
