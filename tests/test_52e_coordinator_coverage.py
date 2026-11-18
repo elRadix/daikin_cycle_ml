@@ -233,7 +233,7 @@ def test_refresh_cop_today_week_fetch_fails():
     c = _mk()
     now = time.time()
 
-    async def _fetch(days=1):
+    async def _fetch(days=1, **_kw):
         if days == 1:
             return [{"ts": now, "cop": 3.0}]
         raise RuntimeError("boom")

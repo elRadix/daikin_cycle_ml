@@ -18,6 +18,17 @@
   render byte-identical output. Pattern Analysis also had wrong Dutch
   aliases for the DHW COP sensors (`cop_sww_*`) and `cop_degradatie_week`
   (#347, #369)
+- A configured COP sensor (`cop_sensor_entity`) bypassed the COP validity
+  gate: values above MAX_COP (11.0) or `inf` became the live COP and
+  inflated thermal power and energy. Such values now fall back to the
+  computed COP (#388)
+- Classifier-flagged COP samples (`is_transition_artifact=1`) were still
+  counted in `cop_today`, the hourly COP rollup (`cop_mean_*`, per-mode
+  COP sensors), SPF season/YTD/365d, heating-curve advice and hybrid COP
+  means. On prod-1 a single flagged 14.0 sample lifted `cop_today` by
+  31 %. Flagged samples stay in the DB for audit but no longer feed any
+  COP aggregate. Hourly rows rolled up before this fix are not rebuilt
+  (#388)
 
 ### Tests
 - `tests/test_347_dashboard_entity_resolution.py` — 32 tests: no bare
@@ -25,6 +36,10 @@
   headers rendered by the real HA template engine for EN/NL/FR ids, and
   every card JS block executed under Node for EN/NL/FR/renamed ids
   (#347, #369)
+- `tests/test_388_cop_artifact_gate.py` — 14 tests: prod-1 reproduction
+  (COP sensor gate, flagged-sample exclusion, classifier verdicts at the
+  prod operating points, A7/W35 normalisation with prod inputs) plus DB
+  filter and rollup coverage (#388)
 
 ## [1.22.10] - 2026-11-16
 
