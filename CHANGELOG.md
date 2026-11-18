@@ -2,7 +2,22 @@
 
 ## [Unreleased]
 
+### Added
+- Diagnostics `coordinator_timing` records when the slowest tick happened
+  (`tick_duration_max_ts`, `tick_duration_max_tick`, 1 = startup) and its
+  three slowest steps (`tick_duration_max_phases_ms`), so a rare slow tick
+  can be attributed; `database.pending_cop_samples` and
+  `database.last_vacuum` (#353)
+
+### Changed
+- Nightly VACUUM runs only when at least 20 % of the database pages are
+  free; an explicit `run_maintenance` with `vacuum: true` always runs it
+  (#353)
+
 ### Fixed
+- COP samples that hit `database is locked` (another connection holding
+  the write lock, e.g. VACUUM or an external sqlite3 session) are queued
+  and written on the next tick instead of being dropped (#353)
 - Daily summary with a run crossing midnight: the morning after no
   longer shows quality 0 % (a day with only the overnight tail reports
   no quality, shown as "—"), and "longest" is the longest within-day
@@ -15,6 +30,9 @@
   source as the Today block, instead of only cycle flags (#400)
 
 ### Tests
+- `tests/test_353_a3c_tick_attribution.py` - real write-lock reproduction
+  (no lost samples), queue bound/flush, conditional VACUUM, slow-tick
+  attribution, diagnostics fields (#353)
 - `tests/test_400_daily_summary_midnight.py` - cross-midnight longest /
   quality, merge flag carry-over, per-day events, card rendering (#400)
 
