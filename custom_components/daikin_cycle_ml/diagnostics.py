@@ -21,6 +21,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .const import DB_FILENAME, DB_FILENAME_TEMPLATE
+from .engine.thermal import boiler_signals_trusted as _boiler_signals_trusted
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -563,18 +564,19 @@ async def async_get_config_entry_diagnostics(
             "dhw_present_source": getattr(coord, "_dhw_present_source", "unresolved"),
             "dhw_present_resolved": getattr(coord, "_dhw_present_resolved", False),
             # Hybrid (EVLQ) — issue #218
-            # v1.17.2: boiler_* only meaningful on hybrid installs
+            # v1.17.2 / #288: boiler_* only meaningful when trusted
+            # (hybrid install or bivalent opt-in)
             "boiler_active": (
                 bool(getattr(snap, "boiler_active", False))
-                if getattr(snap, "is_hybrid", False) else False
+                if _boiler_signals_trusted(snap) else False
             ),
             "boiler_heat_active": (
                 bool(getattr(snap, "boiler_heat_active", False))
-                if getattr(snap, "is_hybrid", False) else False
+                if _boiler_signals_trusted(snap) else False
             ),
             "boiler_dhw_active": (
                 bool(getattr(snap, "boiler_dhw_active", False))
-                if getattr(snap, "is_hybrid", False) else False
+                if _boiler_signals_trusted(snap) else False
             ),
             "hybrid_mode": str(getattr(snap, "hybrid_mode", "") or ""),
             "boiler_efficiency_cop": getattr(snap, "boiler_efficiency_cop", None),
@@ -605,6 +607,8 @@ async def async_get_config_entry_diagnostics(
         "alerts": _alerts_snapshot(coord),
         "bivalent": {
             "is_hybrid": bool(getattr(snap, "is_hybrid", False)),
+            "is_bivalent": getattr(snap, "is_bivalent", False) is True,
+            "boiler_signals_trusted": _boiler_signals_trusted(snap),
             "boiler_active": bool(getattr(snap, "boiler_active", False)),
             "boiler_heat_active": bool(getattr(snap, "boiler_heat_active", False)),
             "boiler_dhw_active": bool(getattr(snap, "boiler_dhw_active", False)),

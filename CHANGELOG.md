@@ -49,6 +49,14 @@
   (+2 labels, none removed). The scheduled model-compat drift job failed
   daily because the `model-compat` label did not exist; it now creates it
   (#392)
+- Bivalent installs (heat pump + external boiler, #288): boiler demand
+  signals were ignored on every non-EVLQ model (v1.17.2 template-drift
+  guard), so boiler-only periods polluted HP COP samples, did not close HP
+  cycles cleanly and could raise short-run/pendulum alerts. When the source
+  publishes ESPAltherma's `Bivalent Operation` register (opt-in, commented
+  out by default; German `Bivalenter Betrieb` also accepted) the boiler
+  signals now get the same handling as a hybrid. Without that register
+  behaviour is unchanged. ERGA04/06/08 EVH(7) aliases added (#288)
 
 ### Tests
 - `tests/test_347_dashboard_entity_resolution.py` — 32 tests: no bare
@@ -65,6 +73,9 @@
   consistency, pinned Daikin values, ESPAltherma family mapping, and the
   full wizard through HA's flow manager for every model plus setup,
   options round-trip and unload (#392)
+- `tests/test_288_bivalent_boiler_signals.py` (23): opt-in detection,
+  trusted-signal matrix, alert kwargs and boiler-only COP skip for bivalent,
+  monovalent unchanged, ERGA EVH aliases (#288)
 
 ## [1.22.10] - 2026-11-16
 

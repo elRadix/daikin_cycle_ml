@@ -76,6 +76,7 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
     "Operation Mode": ("Betriebsart", "Mode de fonctionnement"),
     "Thermostat ON/OFF": ("Thermostat EIN/AUS",),
     "Defrost Operation": ("Abtauung",),
+    "Bivalent Operation": ("Bivalenter Betrieb",),
 
     "R6T (subcool hex gas)": ("20-4 (subcool hex gas?)",),
     "R3T (suction 1)": ("20-8 (suction 1?)",),
