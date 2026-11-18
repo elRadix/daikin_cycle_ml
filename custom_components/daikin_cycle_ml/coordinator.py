@@ -1116,6 +1116,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     # in same bucket; bypass, aggregate pure-HP only.
                     rows = await self.db.async_fetch_cop_samples(
                         days=days, include_boiler=False,
+                        include_artifacts=False,
                     )
                     stats, by_mode = DaikinCycleMLCoordinator._aggregate_cop_rows(
                         rows, since_ts=since,
@@ -1658,7 +1659,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         """v1.14.0: COP source cascade (sensor > computed)."""
         sensor_cop = self._read_cop()
         if sensor_cop is not None and sensor_cop > 0:
-            return sensor_cop, "cop_sensor"
+            # #388: same validity gate as the computed path. A user COP
+            # sensor reporting > MAX_COP or inf falls through to the
+            # computed COP instead of inflating thermal power/energy.
+            if math.isfinite(sensor_cop) and sensor_cop <= MAX_COP:
+                return sensor_cop, "cop_sensor"
+            _LOGGER.debug(
+                "#388 cop_sensor value %s rejected (non-finite or > MAX_COP "
+                "%s); using computed COP", sensor_cop, MAX_COP,
+            )
         if not attrs:
             return None, "none"
         # R272: defrost invalidates thermal measurement (compressor short-cycles,
@@ -1726,7 +1735,6 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if thermal_kw is None or thermal_kw <= 0:
             return None, "no_thermal"
 
-        from .const import MAX_COP
         cop = thermal_kw * 1000.0 / power_w
         if math.isnan(cop) or math.isinf(cop) or cop <= 0 or cop > MAX_COP:
             return None, "cop_out_of_range"
@@ -2982,7 +2990,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cop_today_cache_ts = now
         self._cop_today_dirty = False
         try:
-            rows = await self.db.async_fetch_cop_samples(days=1)
+            rows = await self.db.async_fetch_cop_samples(
+                days=1, include_artifacts=False,
+            )
         except Exception:
             return
         if not isinstance(rows, list) or not rows:
@@ -2995,7 +3005,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 (lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1)
             )
             try:
-                week = await self.db.async_fetch_cop_samples(days=7)
+                week = await self.db.async_fetch_cop_samples(
+                    days=7, include_artifacts=False,
+                )
             except Exception:
                 week = rows
 
@@ -3093,7 +3105,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
         async def _mean_since(start_ts: float) -> tuple[float | None, int]:
             try:
-                rows = await self.db.async_fetch_cop_samples_between(start_ts, now)
+                rows = await self.db.async_fetch_cop_samples_between(
+                    start_ts, now, include_artifacts=False,
+                )
             except Exception:
                 return (None, 0)
             cops = [
@@ -3355,7 +3369,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not force and (now - cache_ts) < 3600.0 and cache:
             return
         try:
-            rows = await self.db.async_fetch_cop_samples(days=30)
+            rows = await self.db.async_fetch_cop_samples(
+                days=30, include_artifacts=False,
+            )
         except Exception:
             return
         if not isinstance(rows, list):
