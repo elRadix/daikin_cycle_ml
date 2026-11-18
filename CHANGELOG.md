@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Fixed
+- Daily summary with a run crossing midnight: the morning after no
+  longer shows quality 0 % (a day with only the overnight tail reports
+  no quality, shown as "—"), and "longest" is the longest within-day
+  portion so it can no longer exceed the day's total runtime (#400)
+- Merging two runs less than 2 minutes apart (typical around a defrost)
+  keeps the BUH / defrost flags and peak dT of the absorbed run instead
+  of dropping them (#400)
+- Events tab (Daily Summary Tabbed) and Pattern Analysis per-day counts
+  now use the real per-day defrost events and BUH minutes, the same
+  source as the Today block, instead of only cycle flags (#400)
+
+### Tests
+- `tests/test_400_daily_summary_midnight.py` - cross-midnight longest /
+  quality, merge flag carry-over, per-day events, card rendering (#400)
+
 ## [1.23.0] - 2026-11-18
 
 ### Fixed

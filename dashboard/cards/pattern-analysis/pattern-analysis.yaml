@@ -375,6 +375,7 @@ cards:
 
             var rawDays = attr(SUMMARY, 'days', []);
             if(!Array.isArray(rawDays)) rawDays = [];
+            var EVENTS_BY_DAY = attr(SUMMARY, 'events_by_day', {}) || {};
             var rdDurMin = function(rd){ return hasN(rd.dur_min) ? parseFloat(rd.dur_min) : (hasN(rd.total_duration_s) ? parseFloat(rd.total_duration_s)/60 : 0); };
             var rdDurMax = function(rd){ return hasN(rd.dur_max) ? parseFloat(rd.dur_max) : (hasN(rd.duration_max) ? parseFloat(rd.duration_max)/60 : 0); };
             var rdDurAvg = function(rd){
@@ -421,6 +422,8 @@ cards:
             var daysAll = Object.keys(byDate).map(function(k){
               var e = byDate[k];
               e.quality_avg = e.quality_weight > 0 ? e.quality_sum / e.quality_weight : null;
+              var evD = EVENTS_BY_DAY[e.day]; /* #400: real per-day events (same source as Today block) */
+              if (evD) { if (hasN(evD.defrost_events) && evD.defrost_events > e.defrost) e.defrost = parseFloat(evD.defrost_events); if (hasN(evD.buh_min) && evD.buh_min > 0 && e.buh < 1) e.buh = 1; e.buh_min = hasN(evD.buh_min) ? parseFloat(evD.buh_min) : null; }
               e.dur_avg = e.cycles > 0 ? e.dur_total_min / e.cycles : 0;
               Object.keys(e.modes).forEach(function(mk){
                 var mm = e.modes[mk];

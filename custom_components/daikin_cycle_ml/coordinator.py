@@ -431,12 +431,18 @@ def score_and_count(
 
 def _compute_daily_summary_recent(
     rows: list[dict[str, Any]],
+    events_by_day: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """v1.7.1: transform daily_summary rows into recent-window payload.
 
     Returns a dict with "state" (int, total cycles) + attrs payload.
     Empty rows yields a fully zeroed payload (days=[], totals zeroed).
     Input rows come from db.async_daily_summary (SELECT * + derived fields).
+
+    #400: ``quality_avg`` is None for a row without cycles started that
+    day (cross-midnight tail), so cards render "no data" instead of 0 %.
+    ``events_by_day`` (from runtime_acc.<day>) carries real per-day
+    defrost events and BUH minutes for the event charts.
     """
     totals: dict[str, dict[str, Any]] = {
         "heating": {"days": 0, "cycles": 0, "dur_min": 0.0, "buh": 0, "defrost": 0},
@@ -452,6 +458,7 @@ def _compute_daily_summary_recent(
             "oldest_day": None,
             "days": [],
             "totals_by_mode": totals,
+            "events_by_day": dict(events_by_day or {}),
         }
     ordered = sorted(
         rows,
@@ -471,7 +478,7 @@ def _compute_daily_summary_recent(
             "dur_min": round(total_s / 60.0, 1),
             "dur_min_avg": round(total_s / cycles / 60.0, 1) if cycles else 0.0,
             "dur_max": round(dur_max_s / 60.0, 1),
-            "quality_avg": round(q_sum / cycles, 1) if cycles else 0.0,
+            "quality_avg": round(q_sum / cycles, 1) if cycles else None,
             "buh": int(r.get("buh_count") or 0),
             "defrost": int(r.get("defrost_count") or 0),
         })
@@ -493,6 +500,7 @@ def _compute_daily_summary_recent(
         "oldest_day": min(day_set),
         "days": days,
         "totals_by_mode": totals,
+        "events_by_day": dict(events_by_day or {}),
     }
 
 
@@ -2094,7 +2102,16 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("daily_summary recent refresh failed")
             return
-        self._daily_summary_recent = _compute_daily_summary_recent(rows)
+        events: dict[str, dict[str, Any]] = {}
+        try:
+            ev = await self.db.async_runtime_events_by_day()
+            if isinstance(ev, dict):
+                events = ev
+        except Exception:
+            _LOGGER.warning("runtime events by day failed", exc_info=True)
+        self._daily_summary_recent = _compute_daily_summary_recent(
+            rows, events
+        )
 
     @property
     def runtime_snapshot(self) -> dict[str, float]:
