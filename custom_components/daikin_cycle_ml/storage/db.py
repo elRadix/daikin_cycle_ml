@@ -1173,6 +1173,19 @@ class CycleDB:
             (keeper_end, int(keeper_end - keeper_start),
              cop_avg, cop_count, keeper_id),
         )
+        # #400: carry BUH/defrost flags and the peak dT of absorbed
+        # runs into the keeper; a defrost in the absorbed half was
+        # silently dropped before.
+        ids = [keeper_id, *delete_ids]
+        ph = ",".join("?" * len(ids))
+        await conn.execute(
+            "UPDATE cycles SET "
+            f"buh_used = (SELECT MAX(COALESCE(buh_used, 0)) FROM cycles WHERE id IN ({ph})), "
+            f"defrost_used = (SELECT MAX(COALESCE(defrost_used, 0)) FROM cycles WHERE id IN ({ph})), "
+            f"dT_max = COALESCE((SELECT MAX(dT_max) FROM cycles WHERE id IN ({ph})), dT_max) "
+            "WHERE id = ?",
+            (*ids, *ids, *ids, keeper_id),
+        )
         deleted = 0
         for did in delete_ids:
             await conn.execute(
@@ -2275,6 +2288,39 @@ class CycleDB:
             return None
         return float(row[0])
 
+    async def async_runtime_events_by_day(self) -> dict[str, dict[str, Any]]:
+        """#400: per-day BUH minutes + defrost events from runtime_acc.<day>.
+
+        These are the same accumulators the live *Today* sensors use, so
+        per-day event charts match the Today block.
+        """
+        conn = self._require()
+        async with conn.execute(
+            "SELECT key, value_json FROM model_state "
+            "WHERE key LIKE 'runtime_acc.%'"
+        ) as cur:
+            rows = await cur.fetchall()
+        out: dict[str, dict[str, Any]] = {}
+        for key, raw in rows:
+            day = str(key)[len("runtime_acc."):]
+            try:
+                v = json.loads(raw)
+            except (TypeError, ValueError):
+                continue
+            if not isinstance(v, dict):
+                continue
+            buh_s = v.get("buh_total_s")
+            if not isinstance(buh_s, (int, float)):
+                s1, s2 = v.get("buh_step1_s"), v.get("buh_step2_s")
+                vals = [x for x in (s1, s2) if isinstance(x, (int, float))]
+                buh_s = max(vals) if vals else 0.0
+            dfr = v.get("defrost_count")
+            out[day] = {
+                "buh_min": round(float(buh_s) / 60.0, 1),
+                "defrost_events": int(dfr) if isinstance(dfr, (int, float)) else 0,
+            }
+        return out
+
     async def async_get_model_state(self, key: str, default: Any = None) -> Any:
         conn = self._require()
         async with conn.execute(
@@ -2396,7 +2442,13 @@ class CycleDB:
                 c_end = cap_ts
             ov_start = max(float(c_start), start_ts)
             ov_end = min(float(c_end), end_ts)
-            a["total_duration_s"] += int(max(0.0, ov_end - ov_start))
+            ov_s = int(max(0.0, ov_end - ov_start))
+            a["total_duration_s"] += ov_s
+            # #400: longest = longest within-day portion of any run that
+            # overlaps the day, so duration_max <= total_duration_s even
+            # for a run that crosses midnight.
+            if ov_s > 0 and (a["duration_max"] is None or ov_s > a["duration_max"]):
+                a["duration_max"] = ov_s
             # R709: cycle count, quality, duration_min/max, buh/defrost,
             # dt/rps sums attributed to START day only.
             if not starts_on_day:
@@ -2406,8 +2458,6 @@ class CycleDB:
             if isinstance(dur, (int, float)):
                 if a["duration_min"] is None or dur < a["duration_min"]:
                     a["duration_min"] = int(dur)
-                if a["duration_max"] is None or dur > a["duration_max"]:
-                    a["duration_max"] = int(dur)
             q = r["quality_score"]
             if isinstance(q, (int, float)):
                 a["quality_sum"] += int(q)

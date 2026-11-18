@@ -344,22 +344,23 @@ CREATE TABLE daily_summary (
 | `mode` | `heating` / `cooling` / `dhw` / `unknown` |
 | `cycles` | Count of non-transient cycles that **start** on this day |
 | `total_duration_s` | **Pro-rata overlap**: sum of every cycle's portion that overlaps this day (includes cross-midnight and transient contributions) |
-| `duration_min` / `duration_max` | Shortest / longest **full** cycle duration among cycles that **start** on this day (seconds) |
+| `duration_min` | Shortest **full** cycle duration among cycles that **start** on this day (seconds) |
+| `duration_max` | Longest **within-day portion** of any cycle overlapping this day (seconds). Always `<= total_duration_s` (#400; before #400 this was the full length of the longest cycle starting that day) |
 | `quality_sum` | Sum of quality scores (average = quality_sum / cycles) |
 | `dt_max_sum` | Sum of dT_max (average = dt_max_sum / cycles) |
 | `rps_sum` | Sum of rps_avg |
-| `buh_count` | Cycles with BUH active |
-| `defrost_count` | Cycles with defrost active |
+| `buh_count` | Cycles with BUH active (cycle flag, start day; merged cycles keep the flag of every absorbed run since #400) |
+| `defrost_count` | Cycles with defrost active (same; real per-day defrost events and BUH minutes are in `daily_summary_recent.events_by_day`, from `model_state.runtime_acc.<day>`, #400) |
 | `transient_count` | Count of transient cycles **starting** on this day (disjoint from `cycles`) |
 
 **Index:** `idx_daily_summary_day` on `day`
 
 #### Semantics (by design — not a bug)
 
-`total_duration_s` and `duration_min`/`duration_max` are **intentionally independent** aggregations. Expect these apparent 'inconsistencies':
+`cycles`, `quality_sum`, `duration_min` and the BUH/defrost counts go to the **start day**; `total_duration_s` and `duration_max` are **per-day portions**. Expect:
 
-- **`duration_max > total_duration_s`** — the cycle spans midnight. `duration_max` is the full cycle length; `total_duration_s` counts only today's portion.
-- **`cycles == 0` with `total_duration_s > 0`** — only the tail of a previous-day cycle overlaps today.
+- **`cycles == 0` with `total_duration_s > 0`** — only the tail of a previous-day cycle overlaps today. `daily_summary_recent` then reports `quality_avg: null` (shown as "—"), not 0 % (#400).
+- **`duration_max` on the start day is shorter than the cycle** — a cross-midnight run is split; each day shows its own portion (#400).
 - **`transient_count > 0` with `cycles == 0`** — only transient cycles started today.
 
 None of these indicate data corruption. They are the documented output contract (see also HANDOFF v129.0 §22.1).

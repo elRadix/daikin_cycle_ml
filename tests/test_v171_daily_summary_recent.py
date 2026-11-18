@@ -167,7 +167,9 @@ def test_compute_cycles_zero_defensive() -> None:
         ]
     )
     assert out["days"][0]["dur_min_avg"] == 0.0
-    assert out["days"][0]["quality_avg"] == 0.0
+    # #400: no cycles started that day -> no quality (cards show "—"),
+    # not 0 % (cross-midnight tail rendered as quality 0 %).
+    assert out["days"][0]["quality_avg"] is None
     assert out["state"] == 0
 
 

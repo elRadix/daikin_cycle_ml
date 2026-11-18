@@ -434,6 +434,7 @@ cards:
 
             var rawDays = attr(SUMMARY, 'days', []);
             if(!Array.isArray(rawDays)) rawDays = [];
+            var EVENTS_BY_DAY = attr(SUMMARY, 'events_by_day', {}) || {};
             var specModel = attr(SPECS, 'model', null);
             var specFamily = attr(SPECS, 'family', null);
             var specKw = aN(SPECS, 'kw', null);
@@ -483,6 +484,8 @@ cards:
               var de = byDate[k];
               de.quality_avg = de.quality_weight > 0 ? de.quality_sum / de.quality_weight : null;
               de.dur_avg = de.cycles > 0 ? de.dur_min / de.cycles : 0;
+              var evD = EVENTS_BY_DAY[de.day]; /* #400: real per-day events (same source as Today block) */
+              if (evD) { if (hasV(evD.defrost_events) && evD.defrost_events > de.defrost) de.defrost = parseFloat(evD.defrost_events); if (hasV(evD.buh_min) && evD.buh_min > 0 && de.buh < 1) de.buh = 1; }
               return de;
             }).sort(function(a,b){ return a.day < b.day ? -1 : 1; });
 
