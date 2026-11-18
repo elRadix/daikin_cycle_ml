@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.23.2] - 2026-11-18
+
 ### Fixed
 - A run that is still going is now included in the per-day charts on
   every day it covers (e.g. 22:00 -> now shows on both days after
