@@ -8,6 +8,7 @@ Lookup is also tolerant of punctuation and whitespace drift.
 """
 from __future__ import annotations
 
+import functools
 import re
 from collections.abc import Mapping
 from typing import Any
@@ -104,8 +105,13 @@ def _id_key(name: str) -> str:
     )
 
 
-def _known_names() -> frozenset[str]:
-    """Id keys of every name the integration reads (labels + aliases)."""
+@functools.cache
+def _known_ids() -> frozenset[str]:
+    """Id keys of every name the integration reads (labels + aliases).
+
+    Lazy: tools/check_compat_contract.py loads this file on its own,
+    without the package, and never calls the side-name helpers.
+    """
     from ..const import (  # noqa: PLC0415 - const imports nothing from engine
         CONSUMED_ATTRIBUTES,
         OPTIONAL_ATTRIBUTES,
@@ -116,8 +122,6 @@ def _known_names() -> frozenset[str]:
         names.update((canonical, *aliases))
     return frozenset(_id_key(n) for n in names)
 
-
-_KNOWN_IDS: frozenset[str] = _known_names()
 
 
 def side_names(label: str) -> tuple[str, ...]:
@@ -131,14 +135,14 @@ def side_names(label: str) -> tuple[str, ...]:
         return ()
     return tuple(
         prefix + label for prefix in SIDE_PREFIXES
-        if _id_key(prefix + label) not in _KNOWN_IDS
+        if _id_key(prefix + label) not in _known_ids()
     )
 
 
 def unsided_name(key: str) -> str | None:
     """Definition name of a v2 side name, or None (not sided / a real name)."""
     for prefix in SIDE_PREFIXES:
-        if key.startswith(prefix) and _id_key(key) not in _KNOWN_IDS:
+        if key.startswith(prefix) and _id_key(key) not in _known_ids():
             return key[len(prefix):]
     return None
 
