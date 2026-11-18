@@ -23,7 +23,19 @@ ACCEPT_MARGIN = 1.05
 # physical interpretation. Rejected at source (not stored).
 REJECT_MULTIPLIER = 1.50
 
+# #369: a running heat pump cannot deliver less heat than the electricity it
+# draws. Heating/DHW samples below this floor are start-up / ramp transients
+# (#369 prod data: 0.35 .. 0.99 at compressor start). Kept separate from the
+# Carnot classifier so its contract (None/no-lift -> not_applicable,
+# monotonic in cop) is unchanged; the caller flags, never rejects.
+COP_FLOOR = 1.0
+
 CopClass = Literal["accept", "flag", "reject", "not_applicable"]
+
+
+def below_cop_floor(mode: str, cop: float | None) -> bool:
+    """True for a heating/DHW COP sample below COP_FLOOR (transient)."""
+    return mode in ("heating", "dhw") and cop is not None and cop < COP_FLOOR
 
 
 def get_physical_cop_ceiling(
