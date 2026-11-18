@@ -281,8 +281,8 @@ CREATE TABLE cop_samples (
 | `mode` | `heating` / `cooling` / `dhw` / `unknown` |
 | `source` | `sensor` (from COP sensor) or `computed` (from thermal/electrical ratio) |
 | `mode_original` | Mode before transition-artifact filtering (NULL when identical to `mode`) |
-| `is_transition_artifact` | 1 if sample spans a mode transition, else 0 |
-| `boiler_active` | 1 if bivalent boiler active at sample time, else 0 |
+| `is_transition_artifact` | 1 if the sample is flagged, else 0. Flagged = Carnot classifier `flag` (above 0.65 × Carnot × 1.05, v1.19.9) **or** heating/DHW COP below 1.0 (start-up transient, #369). Kept for audit, **excluded from every COP aggregate** (`cop_today`, hourly rollup, `cop_mean_*`, SPF, heating-curve advice) since #391. Samples above 1.5 × Carnot are rejected (not stored) |
+| `boiler_active` | 1 if the boiler was active at sample time, else 0. Only set when boiler signals are trusted (EVLQ hybrid, or `Bivalent Operation` published, #288) |
 | `boiler_mode` | Boiler operation mode (`''` when not hybrid) |
 
 **Indexes:** `idx_cop_samples_ts`, `idx_cop_samples_outdoor`

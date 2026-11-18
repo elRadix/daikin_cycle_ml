@@ -22,27 +22,29 @@ Do not add triple-backtick fences when editing this file.
 NOTE: DEEPSEEK.md is local-only, gitignored. Read it from the dev
 container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
 
-## Project identity (v84.0 — verified 2026-11-18)
+## Project identity (v85.0 — updated 2026-11-18 evening)
 
 - GitHub: elRadix/daikin_cycle_ml · default branch main · HACS custom repo
 - Dev container: /workspace/daikin_cycle_ml (daikin_cycle_dev, image python:3.14)
   Cloud sessions (claude.ai/code) clone to /home/user/daikin_cycle_ml:
-  Python 3.13, no homeassistant package installed — run bootstrap first.
-- Main tip: 25c2d48 (Part of #388: cop_normalized_a7w35 raw-attr fallbacks, PR #389)
-  Full hash: 25c2d4845465a3d3486affae49dd817de155cfd6
-- Latest release/tag: v1.22.10 (2026-11-16, commit 91034f5, PR #386)
-  Previous: v1.22.9 (2026-11-16), v1.22.8 (2026-11-15)
-- CHANGELOG [Unreleased]: #388 COP raw-attr fallbacks + MAX_COP gate (PR #389)
+  Python 3.13, no homeassistant package installed — create a venv with
+  requirements_test.txt + homeassistant + aiosqlite (CI uses 3.13 too).
+- Main tip: afd8204 (#393 datasheet audit + ESPAltherma beta alignment)
+  Merged today: #390 dashboards (b16516e), #391 COP gate (43c6df4), #393 (afd8204)
+- Latest release/tag: v1.22.10 (2026-11-16). Everything since is under
+  CHANGELOG [Unreleased] — no version bump until the user decides.
 - Manifest / const.VERSION: 1.22.10 (match)
-- Open PRs: none
+- Open PRs: #394 (hybrid EVLQ reference + aliases + COP floor, Part of #369/#392)
+  and the #288 bivalent PR (branch claude/288-bivalent-boiler-signals, includes
+  #394 + today's docs alignment)
 - Retired: run.py — never reference
 - Ruleset protect-main: id 24465625 — required-context count TE VERIFIEREN
 - CI workflows (.github/workflows, 8): ruff, hassfest, hacs, mypy, pylint,
   coverage, markdown, model-compat. Plus CodeQL (dynamic, "Push on main").
-- CI on main @ 25c2d48: all green (Coverage, Markdown, Ruff, Hassfest,
-  Pylint, HACS, Mypy, CodeQL).
-- Model compat (scheduled daily 06:00 UTC) FAILED on 2026-11-17 @ 91034f5 —
-  cause TE VERIFIEREN.
+- Model compat: pinned to ESPAltherma beta b613d10 (#393). The daily drift
+  job failed on a missing `model-compat` label; it now creates it.
+- ESPAltherma checkout for alignment work: git clone --depth 1 --branch beta
+  https://github.com/raomin/espaltherma (public; definitions/ + data/).
 
 ## Trackers / open issues (2026-11-18, 18 open)
 
@@ -50,16 +52,21 @@ Issue #66 (v1.9 tracker) is no longer the active tracker. Work is now
 tracked per issue; commits/PRs reference their own issue
 ("Part of #N" / "Fixes #N").
 
-- #388  p2 bug   COP chain impossible value (9.83), guards not firing —
-                 partially addressed by PR #389; MAX_COP / threshold part open
-- #369  p3 bug   Dashboards not working
+- #392  p2 bug   Datasheet audit + ESPAltherma alignment — #393 merged; EPGA,
+                 EDLQ, EBLQ011-016, EPSK, ERRQ still unverified (Daikin tables JS-only)
+- #388  p2 bug   COP chain — #389 + #391 merged (COP-sensor gate, flagged
+                 samples excluded); open until release + prod confirmation
+- #369  p3 bug   Dashboards not working — root cause Dutch entity_ids, fixed
+                 by #390; hybrid follow-ups in #394. Reply draft not yet posted
 - #368  enh      Universal Energy Balance Engine + Adaptive Floor Buffer
 - #353  bug      v1.22.8 runtime_compressor_today undercount + BUH-active advice guards
-- #347  bug      Broken dashboards
+- #347  bug      Broken dashboards — fixed by #390 (Part of; open until release)
 - #343  p1 enh   Subcooling-based refrigerant diagnostics (espaltherma)
 - #339  p2       Diagnostics v2 polish + tech-debt cleanup
 - #309           P1/P2 MQTT bridge as input
-- #288  p1 enh   Bivalent system support (Direct SH / Indirect DHW)
+- #288  p1 enh   Bivalent support — boiler signals trusted when `Bivalent
+                 Operation` is published (PR open). Wizard section, boiler
+                 sensors, BUH1 disambiguation, new alerts still open
 - #239  p1       [Tracker] RFI #127 thermodynamics + COP sanity gates
 - #221  p1       [Tracker] Altherma R Hybrid (EVLQ) — future analytics
 - #208  p3       HA dark mode
@@ -543,3 +550,18 @@ dropped). All work is now pushed to origin after each batch to prevent recurrenc
 - Tracker #66 retired as active tracker; R351 marked VERVALLEN.
 - Open follow-ups: #388 remainder, Model compat scheduled failure,
   test count + prod state TE VERIFIEREN.
+
+### v85.0 addendum (2026-11-18 evening)
+
+- Merged: #390 (cards resolve entities in any language), #391 (COP-sensor
+  MAX_COP gate; flagged cop_samples excluded from all aggregates), #393
+  (Daikin-sourced datasheet values with `ref`/`verified`, 11 non-catalogue
+  models flagged not removed, MODEL_ATTRIBUTES @ beta b613d10).
+- Open: #394 (EVLQ nominal A7/W35, hybrid indoor-code aliases, COP < 1.0
+  flagged via physics.below_cop_floor — classifier contract untouched),
+  #288 PR (boiler signals trusted for hybrid OR `Bivalent Operation`).
+- Docs aligned: README, CONFIGURATION §4.8, ENTITIES, DATABASE
+  (is_transition_artifact), ALERTS, TROUBLESHOOTING (§4.6 dashboards, §5.1
+  guards), MODEL_COMPATIBILITY coverage table (generated from datasheets.json).
+- Lessons: count-pin tests (EXPECTED_CANONICAL_COUNT) must be bumped when
+  ALIAS_GROUPS grows (R365); never `git stash` while a background suite runs.

@@ -236,7 +236,7 @@ container style.
 |---|---|
 | Card renders as plain YAML text | HACS frontend cards not installed. See **Dependencies**. |
 | `Custom element doesn't exist: stack-in-card` | Frontend card not loaded - restart HA, hard-refresh browser. |
-| Body shows empty / blank | Check browser console for JS errors. Verify entity IDs match. |
+| Body shows empty / blank | Re-paste the latest card YAML (cards resolve entity IDs in any language since #390), then check the browser console for JS errors. |
 | COP shows a dash placeholder | No COP sample collected yet - check `sensor.daikin_cycle_ml_cop_today` in **Developer Tools -> States**. |
 | Language not switching | Verify both `lang_override` (Jinja) and `LANG_OVERRIDE` (JS) are set to the same value. Check for typos - the values are case-sensitive and must be lowercase `'nl'` or `'en'`. |
 | Header in NL, body in EN (or vice versa) | `lang_override` and `LANG_OVERRIDE` are out of sync. Set both to identical values. |
