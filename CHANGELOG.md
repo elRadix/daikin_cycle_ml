@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.23.1] - 2026-11-18
+
 ### Added
 - `docs/cycle-thresholds.json`: versioned, canonical list of the cycle
   detection, pendulum and quality defaults, sanity gates and Carnot bands
