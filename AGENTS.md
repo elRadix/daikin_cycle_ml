@@ -471,21 +471,15 @@ Release PR = version bump only, ONE commit, nothing else in it.
      add missing ### Tests lines for new test files)
 3. Verify: pytest tests/test_50d_version_contract.py -v --no-cov (7 passed),
    ruff clean; CI gate is authoritative.
-4. PR title "chore: release vX.Y.Z", labels chore + priority:p2, body:
-
-       ## Summary
-       Release vX.Y.Z
-       ## Changes
-       - Version bump A -> X.Y.Z (const.py, manifest.json, pyproject.toml)
-       - README badges: version X.Y.Z, tests N
-       - CHANGELOG: entries under [X.Y.Z] (one-line list)
-       ## Already merged in this release
-       - #PR short description (one line per PR)
-       ## Test Plan
-       - pytest tests/test_50d_version_contract.py -v --no-cov: 7 passed
-       - ruff: clean
-       - CI gate (authoritative)
-
+4. PR title "chore: release vX.Y.Z", labels chore + priority:p2. Body has
+   four H2 sections, in this order:
+   - Summary: "Release vX.Y.Z"
+   - Changes: version bump A -> X.Y.Z (const.py, manifest.json,
+     pyproject.toml); README badges version + tests N; CHANGELOG entries
+     under [X.Y.Z] (one-line list)
+   - Already merged in this release: one line per PR (#N short description)
+   - Test Plan: test_50d_version_contract 7 passed; ruff clean; CI gate
+     (authoritative)
 5. After CI green + merge: comment on the PR
    "Post-merge verification: PR #N merged into main. vX.Y.Z release
    merged. CI green. Ready for tag."
