@@ -1220,7 +1220,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
         # Other steps must preserve existing values; the user cannot edit
         # sensors from notifications/pendulum/advanced.
         if sensor_step:
-            for _k in ('power_sensor_entity','cop_sensor_entity','indoor_temp_sensor'):
+            for _k in ('power_sensor_entity','buh_power_sensor_entity','cop_sensor_entity','indoor_temp_sensor'):
                 flat.setdefault(_k, None)
         merged = {**dict(self.config_entry.options or {}), **flat}
         return self.async_create_entry(data=merged)
@@ -1260,6 +1260,15 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                         domain="sensor",
                         # #311: prevent feedback loops when user picks
                         # the integration's own derived sensor.
+                        exclude_entities=["sensor.daikin_cycle_ml_*"],
+                    )
+                ),
+                vol.Optional(
+                    "buh_power_sensor_entity",
+                    description={"suggested_value": c.get("buh_power_sensor_entity")},
+                ): selector.EntitySelector(
+                    selector.EntitySelectorConfig(
+                        domain="sensor",
                         exclude_entities=["sensor.daikin_cycle_ml_*"],
                     )
                 ),

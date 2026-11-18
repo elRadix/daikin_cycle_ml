@@ -280,12 +280,14 @@
                         "data": {
                             "power_sensor_entity": "Capteur de puissance (secours)",
                             "cop_sensor_entity": "Capteur de COP",
-                            "indoor_temp_sensor": "Capteur de température intérieure"
+                            "indoor_temp_sensor": "Capteur de température intérieure",
+                            "buh_power_sensor_entity": "Capteur de puissance de l'appoint (BUH)"
                         },
                         "data_description": {
                             "power_sensor_entity": "Facultatif. Utilisé en secours quand la vitesse du compresseur est absente.",
                             "cop_sensor_entity": "Capteur de COP global, par ex. sensor.altherma_global_cop. Utilisé pour les échantillons de COP.",
-                            "indoor_temp_sensor": "Facultatif. Utilisé par l'apprentissage et les garde-fous de confort."
+                            "indoor_temp_sensor": "Facultatif. Utilisé par l'apprentissage et les garde-fous de confort.",
+                            "buh_power_sensor_entity": "Facultatif. Compteur de l'appoint électrique s'il est sur son propre circuit (ex. sensor.weerstand_power). Ajouté au capteur de puissance pour la puissance électrique et le COP ; pas utilisé pour détecter le compresseur."
                         }
                     },
                     "detection": {

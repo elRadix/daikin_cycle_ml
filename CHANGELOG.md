@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Added
+- Optional **BUH power sensor** (Configure → Device → Sensors): the meter
+  of a backup heater on its own circuit is added to the power sensor for
+  electrical power and COP. Before, BUH heat was counted but its
+  electricity was not, so COP read high while the BUH ran. Not used for
+  compressor detection
+
+### Tests
+- `tests/test_buh_power_sensor.py` - sum with the power meter, kW
+  normalisation, invalid / idle BUH values, compressor detection
+  unchanged, COP with and without the BUH meter, options step and
+  translations
+
 ## [1.23.2] - 2026-11-18
 
 ### Fixed
