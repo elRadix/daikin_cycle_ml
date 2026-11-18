@@ -2893,7 +2893,11 @@ class CycleDB:
         async with conn.execute(
             "SELECT ts, cop, lwt, outdoor, flow_lmin, mode, boiler_active "
             "FROM cop_samples WHERE ts >= ? "
-            "AND (boiler_active IS NULL OR boiler_active = 0)",
+            "AND (boiler_active IS NULL OR boiler_active = 0) "
+            # #388: classifier-flagged samples (is_transition_artifact=1)
+            # stay in the DB for audit but must not feed COP aggregates,
+            # matching _rebuild_cop_hourly_for_hours.
+            "AND COALESCE(is_transition_artifact, 0) = 0",
             (cutoff,),
         ) as cur:
             rows = await cur.fetchall()
@@ -3002,11 +3006,14 @@ class CycleDB:
 
     async def async_fetch_cop_samples(
         self, days: int = 30, *, include_boiler: bool = True,
+        include_artifacts: bool = True,
     ) -> list[dict[str, Any]]:
         """Fetch cop_samples in the last N days.
 
         include_boiler=True (default): all samples (backward compat).
         include_boiler=False: only pure-HP samples (boiler_active=0).
+        include_artifacts=False (#388): drop classifier-flagged samples
+        (is_transition_artifact=1); use for every COP aggregate.
         """
         await self.async_ensure_cop_samples_table()
         conn = self._require()
@@ -3015,6 +3022,8 @@ class CycleDB:
         params: list[Any] = [cutoff]
         if not include_boiler:
             where += " AND (boiler_active IS NULL OR boiler_active = 0)"
+        if not include_artifacts:
+            where += " AND COALESCE(is_transition_artifact, 0) = 0"
         async with conn.execute(
             "SELECT ts, cop, lwt, outdoor, flow_lmin, power_stable, mode, "
             "boiler_active FROM cop_samples WHERE " + where + " ORDER BY ts ASC",
@@ -3026,11 +3035,13 @@ class CycleDB:
 
     async def async_fetch_cop_samples_between(
         self, start_ts: float, end_ts: float, *, include_boiler: bool = True,
+        include_artifacts: bool = True,
     ) -> list[dict[str, Any]]:
         """Return cop_samples with start_ts <= ts <= end_ts.
 
         include_boiler=True (default): all samples.
         include_boiler=False: only pure-HP samples.
+        include_artifacts=False (#388): drop classifier-flagged samples.
         """
         await self.async_ensure_cop_samples_table()
         conn = self._require()
@@ -3038,6 +3049,8 @@ class CycleDB:
         params: list[Any] = [float(start_ts), float(end_ts)]
         if not include_boiler:
             where += " AND (boiler_active IS NULL OR boiler_active = 0)"
+        if not include_artifacts:
+            where += " AND COALESCE(is_transition_artifact, 0) = 0"
         async with conn.execute(
             "SELECT ts, cop, lwt, outdoor, flow_lmin, power_stable, boiler_active "
             "FROM cop_samples WHERE " + where + " ORDER BY ts ASC",

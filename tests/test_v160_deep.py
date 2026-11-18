@@ -350,7 +350,7 @@ def _mk_combined_coord(rows_today, rows_week=None):
     c = object.__new__(DaikinCycleMLCoordinator)
     c.db = MagicMock()
     c.db.async_fetch_cop_samples = AsyncMock(
-        side_effect=lambda days: rows_today if days == 1 else (rows_week or rows_today)
+        side_effect=lambda days, **_kw: rows_today if days == 1 else (rows_week or rows_today)
     )
     c._cop_today_cache = {}
     c._cop_today_heating_cache = {}
@@ -410,7 +410,7 @@ async def test_combined_week_fetch_fallback_to_today_rows():
     c = object.__new__(DaikinCycleMLCoordinator)
     c.db = MagicMock()
 
-    async def _fetch(days):
+    async def _fetch(days, **_kw):
         if days == 1:
             return today_rows
         raise RuntimeError("week fetch fail")
