@@ -134,15 +134,19 @@ from .engine.notification_engine import (
 from .engine.quality_scorer import score_cycle
 from .engine.status_report import KMEANS_ADVICE_BY_REASON  # I2
 from .engine.thermal import (
-    boiler_active_from_attrs as _boiler_active_from_attrs,
     bivalent_present_from_attrs as _bivalent_present_from_attrs,
-    boiler_signals_trusted as _boiler_signals_trusted,
+)
+from .engine.thermal import (
+    boiler_active_from_attrs as _boiler_active_from_attrs,
 )
 from .engine.thermal import (
     boiler_efficiency_cop_from_attrs as _boiler_efficiency_cop_from_attrs,
 )
 from .engine.thermal import (
     boiler_heat_active_from_attrs as _boiler_heat_active_from_attrs,
+)
+from .engine.thermal import (
+    boiler_signals_trusted as _boiler_signals_trusted,
 )
 from .engine.thermal import compute_thermal_power_live as _compute_thermal_power_live
 from .engine.thermal import dhw_tank_temp_from_attrs as _dhw_tank_temp_from_attrs
