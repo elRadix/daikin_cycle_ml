@@ -22,24 +22,27 @@ Do not add triple-backtick fences when editing this file.
 NOTE: DEEPSEEK.md is local-only, gitignored. Read it from the dev
 container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
 
-## Project identity (v86.0 — updated 2026-11-18 night)
+## Project identity (v87.0 — updated 2026-11-18 late night)
 
 - GitHub: elRadix/daikin_cycle_ml · default branch main · HACS custom repo
 - Dev container: /workspace/daikin_cycle_ml (daikin_cycle_dev, image python:3.14)
   Cloud sessions (claude.ai/code) clone to /home/user/daikin_cycle_ml:
   Python 3.13, no homeassistant package installed — create a venv with
   requirements_test.txt + homeassistant + aiosqlite (CI uses 3.13 too).
-  Cloud sessions can push branches but NOT tags (proxy 403): the user
-  creates the tag by publishing the GitHub release in the UI.
-- Main tip: d24187e (chore: release v1.23.0, #396)
-  Merged 2026-11-18: #390 (b16516e), #391 (43c6df4), #393 (afd8204),
-  #394 (acd84f9), #395 (a4a54ae), #396 (d24187e)
-- Latest release: v1.23.0 (tag v1.23.0 -> d24187e), published 2026-11-18.
-- Remote branches: main + this handoff branch only (merged branches and
-  stray tags 1.23 / 1.23.0 deleted 2026-11-18 from daikin_cycle_dev).
+  Cloud sessions can push branches but NOT tags and cannot delete remote
+  branches (proxy 403). Tags + branch deletion run from daikin_cycle_dev
+  via docker exec with a pre-guard (see v87.0 addendum).
+- Main tip: 143f9cf (chore: release v1.23.3, #411)
+- Latest release: v1.23.3 (tag v1.23.3 -> 143f9cf), published 2026-11-18.
+  Same day: v1.23.0 (d24187e), v1.23.1 (900e048), v1.23.2 (02b519f).
   Previous: v1.22.10 (tag v1.22.10 -> 91034f5, 2026-11-16).
-- Manifest / const.VERSION / pyproject: 1.23.0 (match)
-- Open PRs: none
+- Manifest / const.VERSION / pyproject: 1.23.3 (match)
+- Open PRs: none. Remote branches: main only (cleaned 2026-11-18).
+- Dev container working tree is DIRTY on old commit c9ba74c: modified
+  binary_sensor.py, const.py, coordinator.py, scripts/resolve_issue.py +
+  untracked tests/test_v12211_cop_flag_visibility.py,
+  test_v12211_prod1_983_repro.py. Unreviewed pre-#391 work: diff before
+  discarding (TE VERIFIEREN whether anything is missing from main).
 - Retired: run.py — never reference
 - Ruleset protect-main: id 24465625 — required-context count TE VERIFIEREN
 - CI workflows (.github/workflows, 8): ruff, hassfest, hacs, mypy, pylint,
@@ -49,23 +52,21 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
 - ESPAltherma checkout for alignment work: git clone --depth 1 --branch beta
   https://github.com/raomin/espaltherma (public; definitions/ + data/).
 
-## Trackers / open issues (2026-11-18 night, 16 open)
+## Trackers / open issues (2026-11-18 late night, 14 open)
 
 Issue #66 (v1.9 tracker) is no longer the active tracker. Work is now
 tracked per issue; commits/PRs reference their own issue
 ("Part of #N" / "Fixes #N").
 
-Closed with v1.23.0 (commented + update instructions): #347 (@JoHuTi),
-#369 (@MBGek), #288 phase 1 (@fransh47, Discussion #176), #388, #392.
+Closed 2026-11-18 (solution comment + release link): #347 (@JoHuTi),
+#369 (@MBGek), #288 phase 1 (@fransh47), #388, #392 (v1.23.0); #193,
+#353, #400 (CuttingStorm, Tweakers), #408 (v1.23.1-v1.23.3).
 
 - #398  p1 enh   Bivalent phase 2: wizard section, binary_sensor
                  bivalent_active, boiler energy sensors, BUH1 vs
-                 permission-signal disambiguation, 2 new alerts, datasheet
-                 EHBH08E6V + ERGA06EVH (follow-up of #288)
-- #397  p3 bug   Datasheet follow-up: verify EPGA, EDLQ, EBLQ011-016, EPSK,
-                 ERRQ (Daikin tables JS-only; follow-up of #392)
+                 permission-signal disambiguation, 2 new alerts
+- #397  p3 bug   Datasheet follow-up: verify EPGA, EDLQ, EBLQ011-016, EPSK, ERRQ
 - #368  enh      Universal Energy Balance Engine + Adaptive Floor Buffer
-- #353  bug      v1.22.8 runtime_compressor_today undercount + BUH-active advice guards
 - #343  p1 enh   Subcooling-based refrigerant diagnostics (espaltherma)
 - #339  p2       Diagnostics v2 polish + tech-debt cleanup
 - #309           P1/P2 MQTT bridge as input
@@ -73,16 +74,25 @@ Closed with v1.23.0 (commented + update instructions): #347 (@JoHuTi),
 - #221  p1       [Tracker] Altherma R Hybrid (EVLQ) — future analytics
 - #208  p3       HA dark mode
 - #198  p2       Wizard dropdown -> full Daikin catalog via alias layer
-- #193  p3 docs  Canonical cycle-thresholds JSON shared with ESPAltherma
 - #189  p1       HT attribute aliases (blocked-external)
-- #187  p2 epic  ESPAltherma collaboration
+- #187  p2 epic  ESPAltherma collaboration (internal decision 2026-11-18:
+                 nothing posted on the ESPAltherma repo)
 - #175  p3       Per-model stooklijn defaults HT (blocked-external)
 - #88   epic     Rolling backlog tracker
 
-## Current state (v86.0 — 2026-11-18)
+Not yet an issue (user feedback, Tweakers): alerts are not shown in any
+dashboard card; users read sensor.daikin_cycle_ml_alerts_today (NL:
+..._alerts_vandaag) or a markdown card with ha-alert blocks.
 
-- Coverage: 100.00% (pyproject fail_under = 100), CI green on d24187e
-- Tests: README badge 6649 (full local suite in cloud venv, 2026-11-18)
+## Current state (v87.0 — 2026-11-18)
+
+- Coverage: 100.00% (pyproject fail_under = 100), CI green on 143f9cf
+- Tests: README badge 6774 (collected, cloud venv 2026-11-18)
+- DB data migration v30 (#408): flags pre-gate COP outliers, rebuilds
+  cop_hourly hours + all daily_summary days once (marker
+  data_migration_v30_completed)
+- New option: buh_power_sensor_entity (Device -> Sensors), added to the
+  power meter for electrical power / COP only
 - Pylint 10.00/10 · Ruff clean · Mypy strict 0 errors (CI, HA pin 2026.9.3)
 - Translations: en, nl, fr (+ icons.json)
 - Entities (README): 50 sensors · 17 binary sensors
@@ -607,3 +617,53 @@ dropped). All work is now pushed to origin after each batch to prevent recurrenc
   HACS update; R347 restart).
 - Lessons: markdown gate rejects indented `##` / 5+-space bullets even
   inside 4-space code blocks — keep AGENTS.md templates as plain bullets.
+
+### v87.0 addendum (2026-11-18 late night)
+
+- Released v1.23.1 (#401 #402 #403), v1.23.2 (#405), v1.23.3 (#407 #409
+  #410). Release PRs #404 #406 #411 (PR #386 template, labels chore +
+  priority:p2, post-merge verification comment).
+- Behaviour now on main:
+  - A cycle is never closed at midnight; daily_summary splits runtime and
+    longest per day, count/quality/BUH/defrost on the start day; the
+    15-min live rollup includes the detector's open cycle on every day
+    it covers (open_cycle=..., cycle rows are written on close only).
+  - daily_summary_recent.events_by_day (runtime_acc.<day>: BUH minutes,
+    defrost events) feeds Daily Summary Tabbed Events + Pattern Analysis.
+  - buh_excessive = BUH minutes / compressor minutes (7 d), cycle ratio
+    only as fallback.
+  - AUTO tie (v2 wins, Q1 kept): monolithic extras merged into the
+    individual attrs (native Stats: counters survive).
+  - Datasheet outdoor via build_compat_view(ATTR_OUTDOOR_AIR_R1T).
+  - Effective short_run threshold >= half the configured value.
+  - Diagnostics: coordinator_timing.tick_duration_max_{ts,tick,phases_ms},
+    database.pending_cop_samples / last_vacuum, coordinator.cop_cross_check,
+    source_resolution.supplemented_from_mono.
+  - docs/cycle-thresholds.json + drift test; Carnot factor stays 0.65.
+- prod-1 (EPRA12EAV3, HA 2026.11.1): on v1.23.2 max tick 315 ms (startup),
+  27 s spike not reproduced. Advice given: set BUH power sensor to
+  sensor.weerstand_power and clear cop_sensor_entity (user template
+  sensor.altherma_global_cop mixes v2 entity + mono attrs -> reads ~24 %
+  high). TE VERIFIEREN after update: cop_cross_check, buh_meter_w,
+  cop_vs_datasheet_pct (-27 % seen once next to a 7 min short run).
+- Tag + branch cleanup from the dev container (cloud gets 403):
+
+      docker exec -i daikin_cycle_dev bash -lc 'bash -s' <<'EOF'
+      set -uo pipefail
+      cd /workspace/daikin_cycle_ml || exit 1
+      git fetch -q origin main --tags </dev/null
+      SHA=<merge sha>
+      git show "$SHA:custom_components/daikin_cycle_ml/manifest.json" | grep version
+      git tag -a vX.Y.Z "$SHA" -m "vX.Y.Z" && git push origin refs/tags/vX.Y.Z </dev/null
+      EOF
+
+  Branch deletion: same wrapper, delete only when the remote tip equals
+  the merged PR head (pre-guard), then git push origin --delete.
+- Lessons:
+  - CHANGELOG conflicts between parallel PRs: git's conflict block can
+    start mid-section; merge per ### section and assert every line of
+    both sides survives before writing (one bullet was dropped once).
+  - Tests that pass alone can fail in the full suite when another suite
+    patches OptionsFlow.config_entry: pin it with monkeypatch.
+  - A test that injects data production never writes (hand-made open
+    cycle row, last_record + raw mono key) hides real gaps (#405, #407).
