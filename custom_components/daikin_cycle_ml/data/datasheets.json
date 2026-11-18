@@ -1398,7 +1398,8 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 5.85
+          "cop": 5.04,
+          "hc": 4.4
         },
         {
           "label": "A12/W35",
@@ -1406,7 +1407,10 @@
           "t_lwc": 35,
           "cop": 7.71
         }
-      ]
+      ],
+      "hc_max_a7": 5.12,
+      "ref": "Daikin Altherma hybrid R brochure, Specifications EHYHBH/EHYHBX + EVLQ (EN14511 Ta 7/6 C LWC 35 C dT5); EVLQ08 also Daikin Spain spec sheet EVLQ08CV3 + EHYHBX08AV3. A-10/A-7/A2/A12 points unverified.",
+      "verified": true
     },
     "evlq08cv3": {
       "family": "Daikin Altherma R Hybrid EVLQ08CV3",
@@ -1439,7 +1443,8 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 5.75
+          "cop": 4.45,
+          "hc": 7.4
         },
         {
           "label": "A12/W35",
@@ -1447,7 +1452,10 @@
           "t_lwc": 35,
           "cop": 7.27
         }
-      ]
+      ],
+      "hc_max_a7": 10.02,
+      "ref": "Daikin Altherma hybrid R brochure, Specifications EHYHBH/EHYHBX + EVLQ (EN14511 Ta 7/6 C LWC 35 C dT5); EVLQ08 also Daikin Spain spec sheet EVLQ08CV3 + EHYHBX08AV3. A-10/A-7/A2/A12 points unverified.",
+      "verified": true
     },
     "ebla09da3w1": {
       "family": "Altherma 3 M",
