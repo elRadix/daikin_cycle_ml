@@ -455,19 +455,45 @@ Diagnostics endpoint: Settings -> Devices & Services -> Daikin Cycle ML
 - PRs for user-reported issues use "Part of #N" (not "Fixes #N") so the
   issue stays open until the release ships and the reporter confirms.
 
-## Release procedure
+## Release procedure (reference: PR #386 v1.22.10, #396 v1.23.0)
 
-For each release:
-1. Bump VERSION in const.py and version in manifest.json (must match).
-2. Update CHANGELOG.md with a new [x.y.z] - YYYY-MM-DD section.
-3. Update ROADMAP.md: mark completed items, adjust next phase.
-4. Update SOP.md if install/config/procedure changed.
-5. Run full test suite:
-   export PYTHONPATH=/workspace
-   cd /workspace/daikin_cycle_ml
-   pytest -q
-   Gate: coverage >= 95%, 0 failures.
-6. Optional: git tag if repo tracked.
+Release PR = version bump only, ONE commit, nothing else in it.
+
+1. Branch release/vX.Y.Z from fresh origin/main (cloud sessions may use
+   their assigned claude/... branch).
+2. Bump in one commit "chore: release vX.Y.Z":
+   - custom_components/daikin_cycle_ml/const.py  VERSION = "X.Y.Z"
+   - custom_components/daikin_cycle_ml/manifest.json  "version": "X.Y.Z"
+   - pyproject.toml  version = "X.Y.Z"          (all three must match)
+   - README.md badges: version-X.Y.Z and tests-<collected test count>
+   - CHANGELOG.md: insert "## [X.Y.Z] - YYYY-MM-DD" directly under
+     "## [Unreleased]" (append-only; existing items move under it as-is,
+     add missing ### Tests lines for new test files)
+3. Verify: pytest tests/test_50d_version_contract.py -v --no-cov (7 passed),
+   ruff clean; CI gate is authoritative.
+4. PR title "chore: release vX.Y.Z", labels chore + priority:p2, body:
+
+       ## Summary
+       Release vX.Y.Z
+       ## Changes
+       - Version bump A -> X.Y.Z (const.py, manifest.json, pyproject.toml)
+       - README badges: version X.Y.Z, tests N
+       - CHANGELOG: entries under [X.Y.Z] (one-line list)
+       ## Already merged in this release
+       - #PR short description (one line per PR)
+       ## Test Plan
+       - pytest tests/test_50d_version_contract.py -v --no-cov: 7 passed
+       - ruff: clean
+       - CI gate (authoritative)
+
+5. After CI green + merge: comment on the PR
+   "Post-merge verification: PR #N merged into main. vX.Y.Z release
+   merged. CI green. Ready for tag."
+6. Tag vX.Y.Z on the merge commit, push tag, publish GitHub release
+   (template of previous releases: logo, star badge, end-user "What's
+   new" with issue links + "After updating", technical section, Support).
+7. Comment on and close the issues in the release; reporters get update
+   instructions (HACS update, restart, re-paste cards, model check).
 
 ## Known limitations (v0.2 — historical)
 
