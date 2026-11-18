@@ -132,7 +132,9 @@ async def test_sql_supports_open_cycles_when_called_directly(tmp_path):
     assert row is not None
     assert row["total_duration_s"] >= 3500
     assert row["cycles"] == 1
-    assert row["duration_min"] is None  # open cycle has duration_s=NULL
+    # #408 C: duration_min is the within-day portion (as duration_max),
+    # so an open cycle has one instead of NULL.
+    assert row["duration_min"] == row["duration_max"] == row["total_duration_s"]
 
 
 # --- RED: the missing production path ---------------------------------------

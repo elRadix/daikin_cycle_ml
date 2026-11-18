@@ -483,10 +483,20 @@ def _attrs_learned(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, An
         target_cpd = c.adaptive.learn_target_cycles_per_day()
     except Exception:
         target_cpd = None
+    try:
+        # #408 A: the threshold actually used (learned, bounded at half
+        # of the configured short-run threshold).
+        short_eff: int | None = c._effective_threshold(
+            "short_run_threshold_min",
+            int(c.options.get("short_run_threshold_min", 20)),
+        )
+    except Exception:
+        short_eff = None
     return {
         "good_off_min": good_off,
         "target_cycles_per_day": target_cpd,
         "adaptive_enabled": bool(c.options.get("adaptive_thresholds_enabled", False)),
+        "short_run_effective_min": short_eff,
     }
 
 

@@ -21,6 +21,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .const import DB_FILENAME, DB_FILENAME_TEMPLATE
+from .engine.thermal import _flow_dt_kw, dt_from_attrs, flow_from_attrs
 from .engine.thermal import boiler_signals_trusted as _boiler_signals_trusted
 
 _LOGGER = logging.getLogger(__name__)
@@ -385,6 +386,45 @@ def _sampling_snapshot(coord: Any) -> dict[str, Any]:  # DIAG-V1224B / A3a
     }
 
 
+def _num(v: Any) -> float | None:
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        return None
+    return float(v)
+
+
+def _cop_cross_check(coord: Any, snap: Any) -> dict[str, Any]:
+    """#408 D: COP used vs measured (flow x dT / power) vs ESPAltherma.
+
+    An external ``cop_sensor_entity`` below MAX_COP is used as-is; this
+    makes a disagreeing sensor visible (prod-1: sensor 7.59, measured
+    6.1, ESPAltherma 5.61).
+    """
+    attrs = getattr(snap, "attrs", None) or {}
+    used = _num(getattr(snap, "cop", None))
+    measured: float | None = None
+    try:
+        flow, dt = flow_from_attrs(attrs), dt_from_attrs(attrs)
+        reader = getattr(coord, "_read_power_w", None)
+        power_w = _num(reader()) if callable(reader) else None
+        if flow and dt and dt > 0 and power_w and power_w > 0:
+            measured = round(_flow_dt_kw(flow, dt) * 1000.0 / power_w, 2)
+    except Exception:
+        measured = None
+    esp = attrs.get("Stats: COP estimated")
+    esp_cop = _num(esp)
+    dev = (
+        round((used - measured) / measured * 100.0, 1)
+        if used is not None and measured else None
+    )
+    return {
+        "cop_used": used,
+        "cop_source": str(getattr(snap, "cop_source", "none")),
+        "cop_measured_flow_dt_power": measured,
+        "cop_espaltherma_estimate": esp_cop,
+        "used_vs_measured_pct": dev,
+    }
+
+
 def _int_or_zero(v: Any) -> int:
     """#353: tolerate mocks / missing attributes in diagnostics."""
     return int(v) if isinstance(v, int) and not isinstance(v, bool) else 0
@@ -572,6 +612,7 @@ async def async_get_config_entry_diagnostics(
             "attrs_sample": attrs_sample,
             # v1.20.0 #281: COP source transparency (was dead; now surfaced)
             "cop_source": str(getattr(snap, "cop_source", "none")),
+            "cop_cross_check": _cop_cross_check(coord, snap),
             "dhw_present": getattr(coord, "dhw_present", None),
             "dhw_present_source": getattr(coord, "_dhw_present_source", "unresolved"),
             "dhw_present_resolved": getattr(coord, "_dhw_present_resolved", False),
