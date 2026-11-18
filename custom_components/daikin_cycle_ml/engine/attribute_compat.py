@@ -8,6 +8,7 @@ Lookup is also tolerant of punctuation and whitespace drift.
 """
 from __future__ import annotations
 
+import functools
 import re
 from collections.abc import Mapping
 from typing import Any
@@ -86,6 +87,66 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
 }
 
 
+# #413: ESPAltherma v2 publishes a name that exists on both the outdoor
+# (< 0x60) and the indoor registries with its side ("I/U Thermostat
+# ON/OFF", "O/U Thermostat ON/OFF"), see data/catalog_names.txt. v1 keeps
+# the definition name. The indoor side is tried first: the values the
+# integration reads (water, valve, pump, BUH) live on the hydro unit.
+SIDE_PREFIXES: tuple[str, ...] = ("I/U ", "O/U ")
+
+
+
+
+def _id_key(name: str) -> str:
+    """ESPAltherma makeJsonKey: the HA id part of a name (case-blind)."""
+    return "".join(
+        c.lower() if c.isascii() and c.isalnum() else ("_" if c == " " else "")
+        for c in name
+    )
+
+
+@functools.cache
+def _known_ids() -> frozenset[str]:
+    """Id keys of every name the integration reads (labels + aliases).
+
+    Lazy: tools/check_compat_contract.py loads this file on its own,
+    without the package, and never calls the side-name helpers.
+    """
+    from ..const import (  # noqa: PLC0415 - const imports nothing from engine
+        CONSUMED_ATTRIBUTES,
+        OPTIONAL_ATTRIBUTES,
+        REQUIRED_ATTRIBUTES,
+    )
+    names: set[str] = {*CONSUMED_ATTRIBUTES, *OPTIONAL_ATTRIBUTES, *REQUIRED_ATTRIBUTES}
+    for canonical, aliases in ALIAS_GROUPS.items():
+        names.update((canonical, *aliases))
+    return frozenset(_id_key(n) for n in names)
+
+
+
+def side_names(label: str) -> tuple[str, ...]:
+    """v2 side names of a definition name (indoor first).
+
+    None when the label already carries a side, and never a side name that
+    is itself a name the integration reads ("Operation Mode" -> "I/U
+    Operation Mode" is the id of the distinct "I/U operation mode").
+    """
+    if label.startswith(SIDE_PREFIXES):
+        return ()
+    return tuple(
+        prefix + label for prefix in SIDE_PREFIXES
+        if _id_key(prefix + label) not in _known_ids()
+    )
+
+
+def unsided_name(key: str) -> str | None:
+    """Definition name of a v2 side name, or None (not sided / a real name)."""
+    for prefix in SIDE_PREFIXES:
+        if key.startswith(prefix) and _id_key(key) not in _known_ids():
+            return key[len(prefix):]
+    return None
+
+
 _WS = re.compile(r"\s+")
 _PAREN_OPEN = re.compile(r"\s+\(")
 _PAREN_CLOSE = re.compile(r"\s+\)")
@@ -112,8 +173,16 @@ def build_compat_view(attrs: Mapping[str, Any]) -> dict[str, Any]:
     canonical names.
     """
     view: dict[str, Any] = dict(attrs)
+    # #413: a v2 side name also answers to its definition name (indoor
+    # first; a published plain name always wins).
+    for prefix in SIDE_PREFIXES:
+        for key, val in attrs.items():
+            plain = unsided_name(key) if key.startswith(prefix) else None
+            if plain is not None:
+                view.setdefault(plain, val)
+    source: dict[str, Any] = dict(view)
     normalized_index: dict[str, str] = {}
-    for key in attrs:
+    for key in source:
         normalized_index.setdefault(normalize_key(key), key)
 
     for canonical, aliases in ALIAS_GROUPS.items():
@@ -121,14 +190,14 @@ def build_compat_view(attrs: Mapping[str, Any]) -> dict[str, Any]:
         found: bool = False
         value: Any = None
         for name in group:
-            if name in attrs:
-                value, found = attrs[name], True
+            if name in source:
+                value, found = source[name], True
                 break
         if not found:
             for name in group:
                 hit = normalized_index.get(normalize_key(name))
                 if hit is not None:
-                    value, found = attrs[hit], True
+                    value, found = source[hit], True
                     break
         if found:
             for name in group:

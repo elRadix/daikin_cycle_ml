@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+### Added
+- ESPAltherma v2 catalog: `docs/ESPALTHERMA_V2_CATALOG.json`, a pinned
+  snapshot of ESPAltherma's `data/catalog_names.txt` (the v2 MQTT keys
+  and Home Assistant ids per definition) with
+  `tools/parse_espaltherma_catalog.py`. CI checks the snapshot against
+  its commit; the weekly drift issue now lists v2 names removed upstream,
+  the ones the integration reads first. v1 keeps the definition names
+  (`MODEL_ATTRIBUTES.json`) (#413)
+
+### Changed
+- ESPAltherma v2 side names: v2 publishes a name that exists on both
+  the outdoor and the indoor unit as `I/U <name>` / `O/U <name>`. The
+  v2 resolver and the attribute compat view now fall back to these names
+  (indoor first) after the label and its aliases (#413)
+
+### Fixed
+- Installations without a DHW tank logged every cycle as heating,
+  cooling included: cooling runs are now classified as cooling (#413)
+- Operation modes `Auto Cool`, `Cooling Storage`, `Auto Heat` and
+  `Heating Storage` were classified `unknown`: a mode containing "cool"
+  is cooling and one containing "heat" is heating, as ESPAltherma's own
+  statistics do (#413)
+
+### Tests
+- `tests/test_413_v2_catalog.py`: v2 contract against the catalog
+  (required values per definition, consumed values, card and doc entity
+  ids), side-name fallback, cooling classification, catalog tool
+
 ## [1.23.3] - 2026-11-18
 
 ### Added

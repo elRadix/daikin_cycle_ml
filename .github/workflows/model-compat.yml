@@ -92,6 +92,19 @@ jobs:
           print(f"OK: {len(mc)} choices == {len(ml)} labels")
           PY
 
+      # #413: ESPAltherma v2 names (MQTT keys / HA ids) come from
+      # data/catalog_names.txt; the snapshot must match its pinned commit.
+      - name: v2 catalog snapshot matches its pin
+        run: |
+          SHA=$(python -c "import json; print(json.load(open('docs/ESPALTHERMA_V2_CATALOG.json'))['_meta']['commit'])")
+          git init -q /tmp/esp-v2
+          git -C /tmp/esp-v2 remote add origin https://github.com/raomin/ESPAltherma
+          git -C /tmp/esp-v2 fetch -q --depth 1 origin "$SHA"
+          git -C /tmp/esp-v2 checkout -q FETCH_HEAD
+          python tools/parse_espaltherma_catalog.py --source /tmp/esp-v2 \
+            --branch beta --out /tmp/v2-catalog.json
+          diff -u docs/ESPALTHERMA_V2_CATALOG.json /tmp/v2-catalog.json
+
   weekly-drift:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     name: Weekly upstream drift
@@ -135,6 +148,22 @@ jobs:
             echo "DRIFT: pinned=${{ steps.pinned.outputs.sha }} upstream=${{ steps.upstream.outputs.sha }}"
           fi
 
+      # #413: list the v2 names that disappear upstream (renames show as
+      # removed + added), flagging the ones the integration reads.
+      - name: v2 catalog diff
+        if: steps.cmp.outputs.drift == 'true'
+        run: |
+          git clone -q --depth 1 --branch "${{ steps.pinned.outputs.branch }}" \
+            https://github.com/raomin/ESPAltherma /tmp/esp-up
+          if python tools/parse_espaltherma_catalog.py --source /tmp/esp-up \
+              --branch "${{ steps.pinned.outputs.branch }}" --out /tmp/up-catalog.json; then
+            python tools/parse_espaltherma_catalog.py --diff \
+              docs/ESPALTHERMA_V2_CATALOG.json /tmp/up-catalog.json > /tmp/catalog-diff.md
+          else
+            echo "v2 catalog could not be read upstream." > /tmp/catalog-diff.md
+          fi
+          cat /tmp/catalog-diff.md
+
       - name: Open or update tracking issue
         if: steps.cmp.outputs.drift == 'true'
         env:
@@ -159,6 +188,18 @@ jobs:
           \`\`\`
 
           See docs/MODEL_COMPATIBILITY.md section 9 for full workflow.
+
+          ## v2 catalog (ESPAltherma v2 entity names, #413)
+
+          $(cat /tmp/catalog-diff.md)
+
+          Regenerate the snapshot (v1 keeps MODEL_ATTRIBUTES.json):
+
+          \`\`\`
+          python3 tools/parse_espaltherma_catalog.py --source /tmp/espaltherma \\
+            --branch ${{ steps.pinned.outputs.branch }} --out docs/ESPALTHERMA_V2_CATALOG.json
+          pytest tests/test_413_v2_catalog.py -q --no-cov
+          \`\`\`
 
           This issue is managed by .github/workflows/model-compat.yml (weekly-drift). It is edited, not duplicated."
 

@@ -316,6 +316,41 @@ either a new label (extend ALIAS_GROUPS) or a renamed/removed label
 For minor upstream moves (SHA change, no label diff), the weekly drift
 workflow opens an issue automatically (see section 10).
 
+### 9.1 ESPAltherma v2 catalog names (#413)
+
+MODEL_ATTRIBUTES.json holds the definition-file names: that is what
+ESPAltherma v1 publishes. ESPAltherma v2 (beta.30+) publishes the names
+listed in data/catalog_names.txt, which are its MQTT keys and Home
+Assistant ids (sensor.espaltherma_<key>). They differ where a name exists
+on both the outdoor (< 0x60) and the indoor registries: v2 adds the side,
+"I/U Thermostat ON/OFF" / "O/U Thermostat ON/OFF" (plus " (0xNN)" when
+doubled on one side). Translated names are display only; ids stay English.
+
+docs/ESPALTHERMA_V2_CATALOG.json is the pinned snapshot of that file plus
+the firmware-computed values (Stats). Regenerate it with:
+
+    python3 tools/parse_espaltherma_catalog.py \
+      --source /tmp/espaltherma-beta \
+      --branch beta \
+      --out docs/ESPALTHERMA_V2_CATALOG.json
+
+    pytest tests/test_413_v2_catalog.py -q --no-cov
+
+The v2 resolver and the compat view try a label, its aliases, then its
+side names (indoor first), so a future side rename upstream keeps
+resolving. A side name that is itself a name the integration reads is
+never used ("I/U Operation Mode" is the id of "I/U operation mode").
+
+tests/test_413_v2_catalog.py asserts against the snapshot: every
+required value resolves for each definition (HT and Protocol S
+definitions listed as known gaps, #189 / #175), every consumed value is
+published by at least one definition, and every sensor.espaltherma_* id
+in the cards and docs exists in v2.
+
+To compare two snapshots (removed names the integration reads first):
+
+    python3 tools/parse_espaltherma_catalog.py --diff OLD.json NEW.json
+
 ---
 
 ## 10. CI gate
@@ -338,6 +373,8 @@ Steps:
 5. Assert 3 decoys not canonical
 6. Assert 40 models present
 7. Assert SHA in _meta.commit matches the cloned SHA
+8. Regenerate docs/ESPALTHERMA_V2_CATALOG.json at its pinned commit and
+   assert it is unchanged (#413)
 
 Fails the PR if any assertion fails. Human must fix ALIAS_GROUPS or
 regen in the PR branch.
@@ -350,6 +387,8 @@ Cron: Monday 06:00 UTC.
 2. Read _meta.commit from MODEL_ATTRIBUTES.json -> pinned_sha
 3. If equal: exit 0 (silent)
 4. If different: open (or update) issue labeled model-compat
+5. Diff the v2 catalog (section 9.1) between the snapshot and upstream
+   and add it to the issue: removed names the integration reads first
 
 The issue is idempotent: an existing open issue with the same label is
 edited, not duplicated. The workflow never auto-merges or auto-regenerates.
@@ -361,6 +400,7 @@ edited, not duplicated. The workflow never auto-merges or auto-regenerates.
 | Version | Change |
 |---|---|
 | v1.12.9 (PR B) | First tracked MODEL_ATTRIBUTES.json + parser + 130 tests + CI gate + weekly drift |
+| Unreleased (#413) | v2 catalog snapshot ESPALTHERMA_V2_CATALOG.json + tool + contract tests + drift diff |
 | (pre-v1.12.9) | Untracked manual extraction, no CI coverage |
 
 ---

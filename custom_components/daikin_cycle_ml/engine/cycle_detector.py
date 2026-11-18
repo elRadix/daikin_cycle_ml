@@ -164,22 +164,32 @@ def classify_mode(attrs: Mapping[str, Any]) -> str:
     valve is diverted to the tank and heating is paused (not
     concurrent). Reference: issue #116, handoff v91.0 R441/R442.
     """
-    iu = attrs.get(ATTR_IU_OPERATION_MODE)
-    if isinstance(iu, str):
-        tokens = _mode_tokens(iu)
-        if OP_MODE_DHW.lower() in tokens:
-            return "dhw"
-        for key, val in _MODE_MAP.items():
-            if val in tokens:
-                return key
-    op = attrs.get(ATTR_OPERATION_MODE)
-    if isinstance(op, str):
-        tokens = _mode_tokens(op)
-        if OP_MODE_DHW.lower() in tokens:
-            return "dhw"
-        for key, val in _MODE_MAP.items():
-            if val in tokens:
-                return key
+    for raw in (attrs.get(ATTR_IU_OPERATION_MODE), attrs.get(ATTR_OPERATION_MODE)):
+        if isinstance(raw, str):
+            mode = _mode_from_text(raw)
+            if mode != "unknown":
+                return mode
+    return "unknown"
+
+
+def _mode_from_text(raw: str) -> str:
+    """Mode of one operation-mode text (#413).
+
+    Exact tokens first; then, like ESPAltherma's own statistics, a text
+    containing "cool" is cooling ("Auto Cool", "Cooling Storage") and one
+    containing "heat" is heating ("Auto Heat", "Heating Storage").
+    """
+    tokens = _mode_tokens(raw)
+    if OP_MODE_DHW.lower() in tokens:
+        return "dhw"
+    for key, val in _MODE_MAP.items():
+        if val in tokens:
+            return key
+    low = raw.lower()
+    if "cool" in low:
+        return "cooling"
+    if "heat" in low:
+        return "heating"
     return "unknown"
 
 
@@ -245,9 +255,10 @@ class CycleDetector:
         self._boiler_dhw_samples: int = 0
 
     def _classify_mode(self, attrs: Mapping[str, Any]) -> str:
-        if not self._dhw_present:
-            return "heating"
         mode = classify_mode(attrs)
+        if not self._dhw_present:
+            # #413: no tank -> never DHW, but a cooling run stays cooling
+            return "cooling" if mode == "cooling" else "heating"
         if mode in ("heating", "cooling", "unknown") and _parse_valve(attrs) == "ON":
             return "dhw"
         return mode
