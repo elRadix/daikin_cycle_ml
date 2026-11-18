@@ -61,6 +61,14 @@
   0.35 on a reported install) are stored flagged and no longer pull down
   `cop_today`, `cop_mean_*`, SPF and heating-curve advice. The Carnot
   classifier is unchanged (#369)
+- Bivalent installs (heat pump + external boiler, #288): boiler demand
+  signals were ignored on every non-EVLQ model (v1.17.2 template-drift
+  guard), so boiler-only periods polluted HP COP samples, did not close HP
+  cycles cleanly and could raise short-run/pendulum alerts. When the source
+  publishes ESPAltherma's `Bivalent Operation` register (opt-in, commented
+  out by default; German `Bivalenter Betrieb` also accepted) the boiler
+  signals now get the same handling as a hybrid. Without that register
+  behaviour is unchanged. ERGA04/06/08 EVH(7) aliases added (#288)
 
 ### Tests
 - `tests/test_347_dashboard_entity_resolution.py` — 32 tests: no bare
@@ -80,6 +88,9 @@
 - `tests/test_369_hybrid_cop_floor.py`: EVLQ nominal reference, hybrid
   alias resolution (and non-hybrid models unchanged), COP floor through the
   real collection path and `cop_today` (#369)
+- `tests/test_288_bivalent_boiler_signals.py` (23): opt-in detection,
+  trusted-signal matrix, alert kwargs and boiler-only COP skip for bivalent,
+  monovalent unchanged, ERGA EVH aliases (#288)
 
 ## [1.22.10] - 2026-11-16
 

@@ -134,6 +134,9 @@ from .engine.notification_engine import (
 from .engine.quality_scorer import score_cycle
 from .engine.status_report import KMEANS_ADVICE_BY_REASON  # I2
 from .engine.thermal import (
+    bivalent_present_from_attrs as _bivalent_present_from_attrs,
+)
+from .engine.thermal import (
     boiler_active_from_attrs as _boiler_active_from_attrs,
 )
 from .engine.thermal import (
@@ -141,6 +144,9 @@ from .engine.thermal import (
 )
 from .engine.thermal import (
     boiler_heat_active_from_attrs as _boiler_heat_active_from_attrs,
+)
+from .engine.thermal import (
+    boiler_signals_trusted as _boiler_signals_trusted,
 )
 from .engine.thermal import compute_thermal_power_live as _compute_thermal_power_live
 from .engine.thermal import dhw_tank_temp_from_attrs as _dhw_tank_temp_from_attrs
@@ -219,6 +225,7 @@ class DataSnapshot:
     boiler_dhw_active: bool = False
     hybrid_mode: str = ""
     is_hybrid: bool = False
+    is_bivalent: bool = False
     boiler_efficiency_cop: float | None = None
     inv_freq_secondary: float | None = None
     quality_live: int | None = None
@@ -1964,6 +1971,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             # Hybrid (EVLQ) fields — issue #218
             _compat_hybrid = build_compat_view(attrs)
             snap.is_hybrid = self._is_hybrid_install()
+            # #288: bivalent (HP + external boiler) opt-in via the source.
+            snap.is_bivalent = _bivalent_present_from_attrs(_compat_hybrid)
             # v1.17.2: boiler_* fields are functional on ALL installs
             # (supplementary electric boiler possible on non-EVLQ units).
             snap.boiler_active = _boiler_active_from_attrs(_compat_hybrid)
@@ -1983,11 +1992,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             # threshold compares in watts regardless of source sensor unit.
             record = self.detector.update(
                 attrs, now=now, power_w=self._read_power_w(),
-                # v1.17.2: R561 boiler-only close guard is hybrid-only;
-                # non-EVLQ template drift would close running HP cycles early.
-                boiler_active=snap.boiler_active if snap.is_hybrid else False,
-                boiler_heat_active=snap.boiler_heat_active if snap.is_hybrid else False,
-                boiler_dhw_active=snap.boiler_dhw_active if snap.is_hybrid else False,
+                # v1.17.2: R561 boiler-only close guard needs trusted boiler
+                # signals (hybrid, or #288 bivalent opt-in); non-EVLQ
+                # template drift would otherwise close running HP cycles.
+                boiler_active=snap.boiler_active if _boiler_signals_trusted(snap) else False,
+                boiler_heat_active=snap.boiler_heat_active if _boiler_signals_trusted(snap) else False,
+                boiler_dhw_active=snap.boiler_dhw_active if _boiler_signals_trusted(snap) else False,
             )
             if self.detector.state != prev_detector_state:
                 await self._persist_detector_state()
@@ -2961,9 +2971,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "boiler_dhw_active": False,
             }
         _st = getattr(snap, 'state', '')
-        # v1.17.2: boiler-alert suppression is hybrid-only; non-EVLQ
-        # template drift would otherwise suppress real HP-cycle alerts.
-        if not getattr(snap, 'is_hybrid', False):
+        # v1.17.2 / #288: boiler-alert suppression needs trusted boiler
+        # signals (hybrid or bivalent opt-in); template drift otherwise.
+        if not _boiler_signals_trusted(snap):
             return {
                 "boiler_active": False,
                 "hp_running": isinstance(_st, str) and _st == 'running',
@@ -3793,7 +3803,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         # v1.17.2: boiler-flag gated on is_hybrid; non-EVLQ template drift
         # would otherwise skip valid HP samples AND flag them as co-fire
         # (which downstream cop_today/stooklijn filters then remove).
-        if not getattr(data_obj, 'is_hybrid', False):
+        if not _boiler_signals_trusted(data_obj):  # #288: + bivalent
             _ba = False
         _st = getattr(data_obj, 'state', '')
         _hp_on = isinstance(_st, str) and _st == 'running'
@@ -3804,7 +3814,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         _bh = _bh if isinstance(_bh, bool) else False
         _bd = getattr(data_obj, 'boiler_dhw_active', False)
         _bd = _bd if isinstance(_bd, bool) else False
-        if not getattr(data_obj, 'is_hybrid', False):
+        if not _boiler_signals_trusted(data_obj):  # #288: + bivalent
             _bh = False
             _bd = False
         if _bh and _bd:

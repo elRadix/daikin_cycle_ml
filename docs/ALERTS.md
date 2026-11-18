@@ -238,6 +238,8 @@ Fires when live COP is more than 10% below the datasheet value for your model.
 
 Only fires for bundled models (not Custom). Message includes expected vs actual. Useful as a sanity check — if you see this persistently, either the datasheet is wrong for your conditions or the pump is underperforming.
 
+The reference is the datasheet's A7/W35 point, normalised to your LWT and outdoor temperature. Models marked `verified: true` in `data/datasheets.json` use Daikin's EN14511 nominal value with a source in `ref` (#392). EVLQ hybrids used a part-load value (5.75 / 5.85) before #394, which made this alert fire too often.
+
 #### `defrost_excessive`
 
 Fires when 7-day defrost count exceeds 30.

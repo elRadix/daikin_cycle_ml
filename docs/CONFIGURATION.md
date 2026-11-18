@@ -210,7 +210,9 @@ Your wizard path depends on your model and mapping choice:
 - **Altherma 3 H** (EPRA/EBLA/EDLA) — Mid-temp and high-temp
 - **Altherma Monobloc** (EDLQ/EBLQ)
 - **Altherma 4** (EPSK) — R290 models
-- **Altherma R Hybrid** (EVLQ05CV3, EVLQ08CV3) — bivalent with Intergas boiler
+- **Altherma R Hybrid** (EVLQ05CV3, EVLQ08CV3) — bivalent with Intergas boiler.
+  Indoor/kit codes (EHYHBH05/08, EHYHBX08 AAV3/AFV3, RHYHBH/RHYHBX, CHYHBH05/08)
+  and EVLQ05/08CAV3 resolve to these models automatically
 - **Custom** — needs Page A HP spec
 
 **Hybrid models (EVLQ series).** Selecting an EVLQ model activates:
@@ -478,7 +480,9 @@ Three sections: **Sensors**, **Detection**, **Comfort**.
 | Indoor temp sensor | `indoor_temp_sensor` | entity picker | (empty) |
 
 - **Power sensor** — W sensor for energy accounting + cycle fallback
-- **COP sensor** — COP sensor (`measurement` or `ratio`), enables rolling COP analysis
+- **COP sensor** — COP sensor (`measurement` or `ratio`), enables rolling COP analysis.
+  Values above `MAX_COP` (11.0) or non-finite (`inf`) are ignored and the
+  computed COP is used instead
 - **Indoor temp sensor** — room temp, ML feature + comfort guards
 
 **Detection**
@@ -755,6 +759,22 @@ Configures the electrical-input estimate used for COP.
 ### 4.8 Bivalent systems — DHW detection guide
 
 Bivalent setups combine a Daikin heat pump with an auxiliary boiler. The integration needs to know whether to expect a DHW tank or bypass DHW detection entirely.
+
+**Boiler signals (#288).** In ESPAltherma, uncomment `Bivalent Operation`,
+`Boiler Operation Demand` and `Boiler DHW Demand` in your definition file
+(German firmware: `Bivalenter Betrieb` is also accepted). As soon as the
+source publishes `Bivalent Operation`, the integration trusts the boiler
+signals exactly like on an EVLQ hybrid:
+
+- boiler-only periods (boiler on, compressor off) produce no HP COP samples;
+- the boiler-only cycle-close guard applies;
+- `short_run`, `short_off`, `pendulum_hourly`, `pendulum_daily` are
+  suppressed while only the boiler runs.
+
+Without `Bivalent Operation` the boiler attributes are ignored (protection
+against template drift), so monovalent installs are unaffected. The hybrid
+entities (`hybrid_mode`, `boiler_*`) remain EVLQ-only. Diagnostics show
+`bivalent.is_bivalent` and `bivalent.boiler_signals_trusted`.
 
 **Decision matrix**
 

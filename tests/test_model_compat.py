@@ -124,7 +124,8 @@ _FULL_COVERAGE_MODELS: list[str] = [m for m in _HEATING_MODELS if m not in PARTI
 EXPECTED_MODEL_COUNT = 40
 # 16 original canonical labels + v1.20.0 #281 "BE COP" (ESPAltherma publishes
 # BE_COP on some firmware — added as new canonical with alias group).
-EXPECTED_CANONICAL_COUNT = 17
+# + #288 "Bivalent Operation" (German firmware: "Bivalenter Betrieb").
+EXPECTED_CANONICAL_COUNT = 18
 
 
 def test_expected_model_count():

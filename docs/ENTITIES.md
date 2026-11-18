@@ -148,7 +148,7 @@ Reports `unknown` when compressor is off or flow/dT invalid. Normal — not an e
 
 | Entity | Unit | Device class | Description |
 |---|---|---|---|
-| `sensor.daikin_cycle_ml_cop_today` | COP | measurement | Today's **heating-only** COP |
+| `sensor.daikin_cycle_ml_cop_today` | COP | measurement | Today's **heating-only** COP (flagged samples excluded, see DATABASE.md `cop_samples`) |
 | `sensor.daikin_cycle_ml_cop_combined_today` | COP | measurement | Today's blended COP (heating+DHW+cooling) |
 | `sensor.daikin_cycle_ml_cop_mean_day` | COP | measurement | Mean COP over last 24 h (heating-weighted) |
 | `sensor.daikin_cycle_ml_cop_mean_week` | COP | measurement | Mean COP over last 7 days |
@@ -263,7 +263,7 @@ Enable via entity registry if you want them.
 | `sensor.daikin_cycle_ml_boiler_efficiency_cop` | COP | measurement | `BE COP` reference from the controller (typically 1.3 for condensing gas). Info only — never mixed with HP COP |
 | `sensor.daikin_cycle_ml_boiler_contribution_today_pct` | % | measurement | Percentage of today's HP samples taken during boiler co-fire. Excluded from `cop_today` |
 
-**Why "hybrid only":** on non-hybrid installations the source sensor does not publish `Boiler Operation Demand` or `Hybrid Op. Mode`. All 5 hybrid entities return `unavailable` so no zero-values pollute dashboards or automations.
+**Why "hybrid only":** on non-hybrid installations the source sensor does not publish `Boiler Operation Demand` or `Hybrid Op. Mode`. All 5 hybrid entities return `unavailable` so no zero-values pollute dashboards or automations. Bivalent installs that publish `Bivalent Operation` get the hybrid boiler *logic* (COP isolation, alert suppression) but not these entities (#288).
 
 ## 3. Binary sensors (17)
 

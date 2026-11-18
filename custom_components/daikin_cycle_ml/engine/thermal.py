@@ -11,6 +11,7 @@ from typing import (
 
 from ..const import (
     ATTR_BE_COP,
+    ATTR_BIVALENT_OPERATION,
     ATTR_BOILER_DHW_DEMAND,
     ATTR_BOILER_OPERATION_DEMAND,
     ATTR_DHW_TANK_TEMP,
@@ -94,6 +95,28 @@ def boiler_active_from_attrs(attrs: dict[str, Any]) -> bool:
         safe_bool(attrs.get(ATTR_BOILER_OPERATION_DEMAND))
         or safe_bool(attrs.get(ATTR_BOILER_DHW_DEMAND))
     )
+
+
+def bivalent_present_from_attrs(attrs: dict[str, Any]) -> bool:
+    """#288: True when the source publishes 'Bivalent Operation'.
+
+    The ESPAltherma register is commented out by default; a user only
+    enables it on a bivalent install (HP + external boiler, C-02 != 0).
+    Presence (any non-None value) is the opt-in: absent -> unchanged
+    monovalent behaviour.
+    """
+    return attrs.get(ATTR_BIVALENT_OPERATION) is not None
+
+
+def boiler_signals_trusted(obj: Any) -> bool:
+    """#288: boiler demand signals count on hybrid OR bivalent installs.
+
+    Only real booleans are accepted (bool(MagicMock()) is True); anything
+    else is treated as False so ambiguous snapshots never suppress HP logic.
+    """
+    hyb = getattr(obj, "is_hybrid", False)
+    biv = getattr(obj, "is_bivalent", False)
+    return (hyb is True) or (biv is True)
 
 
 def boiler_heat_active_from_attrs(attrs: dict[str, Any]) -> bool:

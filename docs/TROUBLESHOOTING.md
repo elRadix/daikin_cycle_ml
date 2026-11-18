@@ -285,7 +285,9 @@ Without a COP sensor, `sensor.daikin_cycle_ml_cop_today` etc. will not populate.
 unless the configured model is an EVLQ series (EVLQ05CV3 / EVLQ08CV3).
 
 **To activate:** change the model via **Reconfigure → Basic** to a hybrid
-EVLQ model. If your source sensor publishes `Boiler Operation Demand` /
+EVLQ model (indoor codes such as EHYHBX08AAV3 map to EVLQ08CV3).
+**Bivalent (non-EVLQ) installs** do not get these entities; they get the
+boiler logic once `Bivalent Operation` is published (CONFIGURATION.md §4.8). If your source sensor publishes `Boiler Operation Demand` /
 `Boiler DHW Demand`, the sensors activate immediately after reload.
 
 **If already on EVLQ model but sensors stay unavailable:**
@@ -328,6 +330,10 @@ these alerts during boiler operation would be a false positive.
 **What still fires:** `dhw_pendulum`, `source_stale`, `cop_degradation` —
 independent of HP cycle status.
 
+**Bivalent installs (#288):** the same suppression applies when the source
+publishes `Bivalent Operation`. Without it, boiler signals are ignored and
+short-cycle alerts can fire during boiler handovers.
+
 **To verify:** watch `binary_sensor.daikin_cycle_ml_boiler_operation_demand`.
 When ON and compressor OFF, the 4 cycle-shape alerts are suppressed at the
 `evaluate_alerts` level.
@@ -358,11 +364,30 @@ When ON and compressor OFF, the 4 cycle-shape alerts are suppressed at the
 
 **Full guide:** [CONFIGURATION.md §4.8 — Bivalent systems](CONFIGURATION.md#48-bivalent-systems--dhw-detection-guide).
 
+### 4.6 Dashboard cards empty or showing "—"
+
+**Cause (before Unreleased):** the cards looked up English entity IDs only.
+On a Dutch or French install the IDs are translated
+(`sensor.daikin_cycle_ml_cyclus_status`, `..._wp_specs`, `..._etat_du_cycle`)
+so most cards rendered empty (#347, #369).
+
+**Fix:** update the integration, then re-paste every card's YAML from
+`dashboard/cards/` (HACS does not update pasted cards). The cards now find
+entities by translation key, so they also survive renamed entity IDs.
+
 ## 5. COP and energy
 
 ### 5.1 COP values are unrealistic (> 10 or < 1)
 
 **Cause:** Power sensor is missing or wrong. If using `rps_heuristic` fallback, COP is an estimate.
+
+**Built-in guards (Unreleased):**
+- A configured `cop_sensor_entity` reporting above 11.0 or `inf` is ignored;
+  the computed COP is used instead (#388).
+- Heating/DHW samples below 1.0 (compressor start-up) and Carnot-suspect
+  samples are stored flagged and never counted in `cop_today`, `cop_mean_*`,
+  SPF or heating-curve advice (#369, #391). `cop_min` / `cop_max` therefore
+  stay inside the physical range.
 
 **Fix:**
 1. Options → Device → `power_sensor_entity` → configure a real W sensor

@@ -317,6 +317,9 @@ ATTR_TARGET_COND_TEMP = "Target Cond. Temp."
 ATTR_BOILER_OPERATION_DEMAND = "Boiler Operation Demand"
 ATTR_BOILER_DHW_DEMAND = "Boiler DHW Demand"
 ATTR_HYBRID_OP_MODE = "Hybrid Op. Mode"
+# #288: ESPAltherma register 0x60 byte 11 (commented out by default). Its
+# presence means the user enabled bivalent reporting on a non-EVLQ unit.
+ATTR_BIVALENT_OPERATION = "Bivalent Operation"
 ATTR_BE_COP = "BE COP"
 R5T_DISCONNECTED_THRESHOLD = -20.0
 
@@ -870,6 +873,13 @@ MODEL_ALIASES: dict[str, str] = {
     "rhyhbx08aav3": MODEL_EVLQ08CV3,
     "chyhbh08aav3": MODEL_EVLQ08CV3,
     "chyhbh08afv3": MODEL_EVLQ08CV3,
+    # #288: ERGA E "EVH"/"EVH7" variants (e.g. ERGA06EVH on the #288
+    # bivalent install); Daikin ERGA-EVH tables list the EAV3 performance.
+    "erga04evh": MODEL_ERGA04EAV3,
+    "erga06evh": MODEL_ERGA06EAV3,
+    "erga08evh": MODEL_ERGA08EAV3,
+    "erga04evh7": MODEL_ERGA04EAV3,
+    "erga06evh7": MODEL_ERGA06EAV3,
     "erg04eav3": MODEL_ERGA04EAV3,
     "erg06eav3": MODEL_ERGA06EAV3,
     "erg08eav3": MODEL_ERGA08EAV3,

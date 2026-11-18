@@ -53,6 +53,13 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 ## Showcase
 
+> **Every card works in any Home Assistant language.** Entity IDs are created
+> from the translated entity name (`sensor.daikin_cycle_ml_cyclus_status` on a
+> Dutch install, `..._etat_du_cycle` on a French one). All cards find their
+> entities regardless of language, and keep working after you rename entity
+> IDs. After updating the integration, re-paste the card YAML from
+> `dashboard/cards/` — HACS does not update pasted cards.
+
 ### ⭐ Featured: Daily Summary Tabbed
 
 [![Daily Summary Tabbed — 5-tab dashboard card](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary-tabbed/screenshot-overview.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daily-summary-tabbed)
@@ -269,13 +276,25 @@ EHYHBH05/08AV32 or EHYHBX08AV3 hydrobox and an Intergas boiler
 - **Boiler-cycle isolation** — when the boiler runs alone (HP idle), no
   phantom short-cycle alert is raised (R561 guard).
 - **COP isolation** — HP-COP is measured only on pure HP samples. Co-fire
-  samples are stored separately and excluded from `cop_today`, giving a
-  datasheet-comparable COP (5.75 @ A7/W35 deellast, 4.45 @ A7/W35 nominaal).
+  samples are stored separately and excluded from `cop_today`. The datasheet
+  reference is Daikin's EN14511 nominal COP at A7/W35: 4.45 (EVLQ08CV3,
+  7.40 kW) and 5.04 (EVLQ05CV3, 4.40 kW).
+- **Indoor-unit codes recognised** — EHYHBH05/08, EHYHBX08 (AAV3 / AFV3),
+  Rotex RHYHBH/RHYHBX, CHYHBH05/08 and the EVLQ05/08CAV3 outdoor variant all
+  resolve to their EVLQ outdoor model (ESPAltherma `Altherma(Hybrid)`).
 - **Boiler contribution** — new sensor `boiler_contribution_today_pct` shows
   the % of today's samples taken during co-fire.
 - **Heat vs DHW split** -- cycles.boiler_heat_samples vs boiler_dhw_samples; per-sample cop_samples.boiler_mode.
 - **Hybrid sensors** — 2 binary + 3 sensors dedicated to hybrid installs.
   They are `unavailable` on non-hybrid installs.
+
+**Bivalent systems (heat pump + external boiler, any model).** Enable
+ESPAltherma's `Bivalent Operation` register (plus `Boiler Operation Demand` /
+`Boiler DHW Demand`) — they are commented out by default. When the source
+publishes `Bivalent Operation`, the boiler signals get the same handling as
+a hybrid: boiler-only periods are excluded from heat-pump COP, close HP
+cycles cleanly and do not raise short-cycle alerts. Without that register
+nothing changes. See [CONFIGURATION.md §4.8](docs/CONFIGURATION.md#48-bivalent-systems--dhw-detection-guide).
 
 **Attribute caveat:** ESPAltherma's hybrid profile uses non-standard
 R-label spellings (`Outlet Water Heat Exch. Temp. (R1T)`,
