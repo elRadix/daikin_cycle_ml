@@ -43,7 +43,10 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from ...const import CONSUMED_ATTRIBUTES, REQUIRED_ATTRIBUTES
-from ..attribute_compat import ALIAS_GROUPS  # v1.20.0: alias-aware lookup
+from ..attribute_compat import (  # v1.20.0: alias-aware lookup
+    ALIAS_GROUPS,
+    side_names,
+)
 from ..attribute_reader import _normalize  # reuse tested normalization
 from .discovery import build_slug_index
 from .slug import DEFAULT_PREFIX, make_json_key
@@ -89,12 +92,20 @@ def _slug_variants(label: str) -> list[str]:
     monolithic reader handles this via `build_compat_view` + ALIAS_GROUPS;
     v2 resolver must do the same to reach full parity.
 
-    Order: canonical first, then aliases. Callers use the first match.
+    Order: canonical first, then aliases, then the v2 side names (#413).
+    Callers use the first match.
     """
     slugs = [make_json_key(label)]
-    if label in ALIAS_GROUPS:
-        for alias in ALIAS_GROUPS[label]:
-            s = make_json_key(alias)
+    names = (label, *ALIAS_GROUPS.get(label, ()))
+    for alias in names[1:]:
+        s = make_json_key(alias)
+        if s and s not in slugs:
+            slugs.append(s)
+    # #413: v2 catalog side names ("I/U <name>" / "O/U <name>") last, so a
+    # future side rename upstream keeps resolving.
+    for name in names:
+        for sided in side_names(name):
+            s = make_json_key(sided)
             if s and s not in slugs:
                 slugs.append(s)
     return slugs
