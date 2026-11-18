@@ -430,6 +430,39 @@ def score_and_count(
             )
 
 
+def _open_cycle_from_detector(det: Any) -> dict[str, Any] | None:
+    """Running cycle as {"start_ts", "mode"} for the live rollup."""
+    try:
+        snap = det.snapshot()
+    except Exception:
+        return None
+    if not isinstance(snap, dict):
+        return None
+    st = snap.get("start_ts")
+    if isinstance(st, bool) or not isinstance(st, (int, float)) or st <= 0:
+        return None
+    return {"start_ts": float(st), "mode": snap.get("mode") or "unknown"}
+
+
+def _days_covered(open_cycle: dict[str, Any] | None, now: float) -> list[str]:
+    """Local days from the open cycle's start day up to today (max 3)."""
+    today = time.strftime("%Y-%m-%d", time.localtime(now))
+    if not open_cycle:
+        return [today]
+    days: list[str] = []
+    st = time.localtime(min(float(open_cycle["start_ts"]), now))
+    # step from local noon so a 23 h / 25 h DST day never skips a date
+    t = time.mktime((st.tm_year, st.tm_mon, st.tm_mday, 12, 0, 0, 0, 0, -1))
+    while len(days) < 3:
+        d = time.strftime("%Y-%m-%d", time.localtime(t))
+        days.append(d)
+        if d == today:
+            return days
+        t += 86400.0
+    days.append(today)  # > 48 h is force-closed; keep today regardless
+    return days
+
+
 def _compute_daily_summary_recent(
     rows: list[dict[str, Any]],
     events_by_day: dict[str, dict[str, Any]] | None = None,
@@ -2994,8 +3027,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return
         self._last_rollup_today_ts = now
         try:
-            today = time.strftime("%Y-%m-%d", time.localtime(now))
-            await db.async_rollup_day(today)
+            # Cycle rows are written on close: hand the running cycle to
+            # the rollup so it is visible on every day it covers (a run
+            # crossing midnight shows on both days while still going).
+            open_cycle = _open_cycle_from_detector(det)
+            for day in _days_covered(open_cycle, now):
+                await db.async_rollup_day(day, open_cycle=open_cycle)
         except Exception:
             _LOGGER.exception("live daily rollup failed")
             return

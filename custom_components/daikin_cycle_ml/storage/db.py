@@ -33,6 +33,32 @@ PENDING_COP_SAMPLES_MAX = 240
 VACUUM_MIN_FREE_RATIO = 0.20
 
 
+def _open_cycle_row(
+    open_cycle: dict[str, Any] | None,
+    day_start: float,
+    cap_ts: float,
+    modes: tuple[str, ...] | None,
+) -> dict[str, Any] | None:
+    """Synthetic cycles row for the detector's running cycle (or None)."""
+    if not isinstance(open_cycle, dict):
+        return None
+    st = open_cycle.get("start_ts")
+    if isinstance(st, bool) or not isinstance(st, (int, float)) or st <= 0:
+        return None
+    mode = str(open_cycle.get("mode") or "unknown")
+    if modes and mode not in modes:
+        return None
+    if not (float(st) < day_start + 86400.0
+            and cap_ts > max(float(st), day_start)):
+        return None
+    return {
+        "start_ts": float(st), "end_ts": None, "duration_s": None,
+        "mode": mode, "dT_max": None, "rps_avg": None,
+        "quality_score": None, "buh_used": 0, "defrost_used": 0,
+        "is_transient": 0,
+    }
+
+
 def _is_locked(err: BaseException) -> bool:
     """#353: SQLITE_BUSY from another connection holding the write lock."""
     return isinstance(err, sqlite3.OperationalError) and (
@@ -2409,9 +2435,18 @@ class CycleDB:
     # ---------- Batch 11b-1: retention + rollup ----------
 
     async def async_rollup_day(
-        self, day: str, *, modes: tuple[str, ...] | None = None
+        self, day: str, *, modes: tuple[str, ...] | None = None,
+        open_cycle: dict[str, Any] | None = None,
     ) -> int:
-        """Full-recompute daily_summary for one local day (idempotent)."""
+        """Full-recompute daily_summary for one local day (idempotent).
+
+        ``open_cycle`` ({"start_ts", "mode"}): the detector's running cycle.
+        Cycle rows are only written on close, so without it a run that is
+        still going (e.g. 22:00 -> now, past midnight) is missing from
+        daily_summary until it ends. It contributes runtime and the
+        longest within-day portion only; count / quality / BUH / defrost
+        follow when the cycle closes and both days are re-rolled.
+        """
         conn = self._require()
         try:
             start_ts = time.mktime(time.strptime(day, "%Y-%m-%d"))
@@ -2438,7 +2473,10 @@ class CycleDB:
             sql += ",".join("?" * len(modes)) + ")"
             params.extend(modes)
         async with conn.execute(sql, params) as cur:
-            rows = await cur.fetchall()
+            rows: list[Any] = list(await cur.fetchall())
+        live = _open_cycle_row(open_cycle, start_ts, cap_ts, modes)
+        if live is not None:
+            rows.append(live)
         if not rows:
             return 0
         agg: dict[str, dict[str, Any]] = {}
@@ -2474,8 +2512,10 @@ class CycleDB:
             if ov_s > 0 and (a["duration_max"] is None or ov_s > a["duration_max"]):
                 a["duration_max"] = ov_s
             # R709: cycle count, quality, duration_min/max, buh/defrost,
-            # dt/rps sums attributed to START day only.
-            if not starts_on_day:
+            # dt/rps sums attributed to START day only. The live open
+            # cycle is counted when it closes (not yet known: transient,
+            # quality, flags).
+            if not starts_on_day or r is live:
                 continue
             a["cycles"] += 1
             dur = r["duration_s"]

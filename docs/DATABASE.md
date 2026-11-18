@@ -361,6 +361,7 @@ CREATE TABLE daily_summary (
 
 - **`cycles == 0` with `total_duration_s > 0`** — only the tail of a previous-day cycle overlaps today. `daily_summary_recent` then reports `quality_avg: null` (shown as "—"), not 0 % (#400).
 - **`duration_max` on the start day is shorter than the cycle** — a cross-midnight run is split; each day shows its own portion (#400).
+- **A cycle is never closed at midnight.** The detector closes on compressor/pump off, mode change, boiler takeover or the 48 h cap. Cycle rows are written on close; while a run is still going, the 15-min live rollup adds it to every day it covers (runtime + longest portion). Count, quality and BUH/defrost follow when it closes and both days are re-rolled.
 - **`transient_count > 0` with `cycles == 0`** — only transient cycles started today.
 
 None of these indicate data corruption. They are the documented output contract (see also HANDOFF v129.0 §22.1).
