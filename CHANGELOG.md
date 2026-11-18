@@ -8,6 +8,17 @@
   sensor that reads high is visible (#408)
 
 ### Fixed
+- AUTO source: when the ESPAltherma v2 entities win on a tie, the
+  remaining attributes of the monolithic sensor are kept (native
+  `Stats:` counters for compressor runtime, defrosts, BUH and starts no
+  longer fall back to computed values after the switch);
+  `source_resolution.supplemented_from_mono` in diagnostics
+- `cop_normalized_a7w35` and `cop_vs_datasheet_pct` stayed empty with
+  the individual (v2) source: the outdoor temperature is now read
+  through the attribute alias layer (#388)
+- `buh_excessive` now uses BUH minutes / compressor minutes over 7 days,
+  as documented, instead of the share of cycles with any BUH (a 20 h run
+  with 9 min of backup heater raised the alert)
 - Adaptive thresholds: the learned short-run threshold is never below
   half of the configured value (prod-1 learned 2 min against 20 min, so
   `short_run` never fired); `learned_thresholds` attribute
@@ -19,6 +30,9 @@
   `duration_max` (never larger); all days are re-rolled once (#408)
 
 ### Tests
+- `tests/test_prod1_v1232_datasheet_buh_source.py` - prod-1 v1.23.2
+  diagnostics: AUTO tie supplement, normalisation with individual keys
+  and no `last_record`, time-based BUH ratio incl. fallback
 - `tests/test_408_diag_followups.py` - learned short-run floor, v30
   outlier flagging + hourly/daily rebuild, min <= max, COP cross-check
   with prod-1 values (#408)

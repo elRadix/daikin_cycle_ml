@@ -430,6 +430,28 @@ def score_and_count(
             )
 
 
+def _buh_time_ratio(
+    rows: list[dict[str, Any]], events: dict[str, dict[str, Any]],
+) -> float | None:
+    """BUH minutes / compressor minutes over the daily_summary rows.
+
+    None when no day in ``rows`` has stored BUH minutes or there is no
+    runtime (caller falls back to the cycle ratio).
+    """
+    days = {str(r.get("day")) for r in rows if r.get("day")}
+    if not days or not any(d in events for d in days):
+        return None
+    run_s = sum(float(r.get("total_duration_s") or 0) for r in rows)
+    if run_s <= 0:
+        return None
+    buh_s = 0.0
+    for d in days:
+        v = (events.get(d) or {}).get("buh_min")
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            buh_s += float(v) * 60.0
+    return round(buh_s / run_s, 3)
+
+
 def _open_cycle_from_detector(det: Any) -> dict[str, Any] | None:
     """Running cycle as {"start_ts", "mode"} for the live rollup."""
     try:
@@ -1881,6 +1903,18 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 f"v2 {ind_cov}/{len(REQUIRED_ATTRIBUTES)}"
             )
 
+        # v2 wins on tie (Q1) but only carries the required attributes.
+        # Fill the rest from the monolithic sensor when it exists
+        # (ESPAltherma "Stats: ..." native counters, raw labels), so the
+        # tie switch does not silently drop native runtime/defrost/BUH/
+        # starts and the outdoor fallback (prod-1 after 21:48 restart).
+        # Individual values keep precedence for every shared key.
+        supplemented = 0
+        if chosen == "individual" and mono_attrs:
+            extra = {k: v for k, v in mono_attrs.items() if k not in ind_attrs}
+            supplemented = len(extra)
+            ind_attrs = {**extra, **ind_attrs}
+
         if chosen != self._auto_last_chosen:
             if self._auto_last_chosen:
                 _LOGGER.warning(
@@ -1898,6 +1932,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "required_total": len(REQUIRED_ATTRIBUTES),
             "chosen": chosen,
             "reason": reason,
+            "supplemented_from_mono": supplemented,
         }
 
         return _AutoSourceChoice(
@@ -3287,7 +3322,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         t_out = _safe_float_opt((snap.last_record or {}).get("outdoor_temp"))
         if t_out is None:
             raw_attrs = getattr(snap, "attrs", None) or {}
-            t_out = _safe_float_opt(raw_attrs.get("R1T-Outdoor air temp."))
+            # Canonical label via the alias layer: the individual source
+            # (ESPAltherma v2 entities) publishes "Outdoor air temp.(R1T)",
+            # the monolithic sensor "R1T-Outdoor air temp.". Reading only
+            # the raw key left cop_normalized_a7w35 null on prod-1.
+            t_out = _safe_float_opt(
+                build_compat_view(raw_attrs).get(ATTR_OUTDOOR_AIR_R1T)
+            )
         return t_out
 
     def _resolve_lwt_for_datasheet(self, snap: Any) -> float | None:
@@ -4312,7 +4353,23 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _buh = sum(int(r.get("buh_count", 0) or 0) for r in rows)
             _cyc = sum(int(r.get("cycles", 0) or 0) for r in rows)
             self._buh_7d_count = _buh
-            self._buh_7d_ratio = round(_buh / _cyc, 3) if _cyc > 0 else 0.0
+            # BUH ratio = BUH minutes / compressor minutes over 7 days.
+            # The old cycle ratio (cycles with any BUH / cycles) flagged a
+            # 20 h run with 9 min of BUH as "BUH" (prod-1: 0.444 while
+            # BUH ran 10 min/day). Cycle ratio stays as the fallback when
+            # no per-day BUH minutes are stored yet.
+            _events: dict[str, dict[str, Any]] = {}
+            try:
+                _ev = await _db.async_runtime_events_by_day()
+                if isinstance(_ev, dict):
+                    _events = _ev
+            except Exception:
+                _LOGGER.debug("runtime events 7d failed", exc_info=True)
+            _time_ratio = _buh_time_ratio(rows, _events)
+            if _time_ratio is not None:
+                self._buh_7d_ratio = _time_ratio
+            else:
+                self._buh_7d_ratio = round(_buh / _cyc, 3) if _cyc > 0 else 0.0
             # I1: db_retention_warning cache (never raises here;
             # sub-helper swallows its own exceptions and returns
             # an empty dict on failure, leaving the previous cache in place)
