@@ -615,7 +615,7 @@ Sequence:
 3. Prune `alerts` older than `alert_retention_days`
 4. Prune `features` where `cycle_id` no longer exists in `cycles` (orphan cleanup)
 5. Prune `cycles` older than `cycle_retention_days`
-6. Optionally `VACUUM` (if `vacuum_enabled = true`)
+6. Optionally `VACUUM` (if `vacuum_enabled = true`), and since #353 only when at least 20 % of the pages are free (`PRAGMA freelist_count / page_count`). The outcome is in diagnostics `database.last_vacuum`
 7. Update `last_maintenance_ts` in `model_state`
 
 ### 6.3 Manual maintenance
@@ -643,6 +643,10 @@ SQLite VACUUM rebuilds the database file, reclaiming space from deleted rows. It
 - On a > 500 MB DB, VACUUM takes > 1 minute — consider disabling it if you have a very long retention
 
 If HA is restarted during VACUUM, the operation is aborted and the DB is left intact (SQLite journal handles this).
+
+**Nightly vs manual (#353).** The nightly run skips VACUUM when less than 20 % of the pages are free (nothing worth reclaiming), so it no longer holds the write lock every night. `run_maintenance` with an explicit `vacuum: true` always runs it.
+
+**Locks.** While another connection holds the write lock (VACUUM, an external `sqlite3` session on the live file), statements wait up to `busy_timeout` (5 s). Since #353 a COP sample that still hits `database is locked` is queued in memory (max 240) and written on the next tick instead of being dropped; diagnostics show `database.pending_cop_samples`. Slow ticks are attributed in diagnostics `coordinator_timing`: `tick_duration_max_ts`, `tick_duration_max_tick` (1 = startup refresh) and `tick_duration_max_phases_ms` (top-3 steps).
 
 ### 6.5 Retention health check
 

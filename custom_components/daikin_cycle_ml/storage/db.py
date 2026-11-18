@@ -4,7 +4,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import sqlite3
 import time
+from collections import deque
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +25,19 @@ def _time_now() -> float:
 _MIN_SPLIT_DURATION_S = 60.0  # v18: skip split if first DHW sample too early
 _R446_RUN_GAP_S = 900.0  # v18 R446: samples within 900s = same run
 _R446_MIN_RUN_S = 900.0  # v18 R446: minimum run duration to synthesize
-_R446B_MERGE_GAP_S = 120.0  # v18 R446b: gap < 2x MODE_DEBOUNCE_S
+_R446B_MERGE_GAP_S = 120.0
+# #353 A3c: cop samples that hit "database is locked" are kept and retried
+# on the next insert instead of being dropped (bounded: ~4h at 1/min).
+PENDING_COP_SAMPLES_MAX = 240
+# #353 A3c: nightly VACUUM only when at least this share of pages is free.
+VACUUM_MIN_FREE_RATIO = 0.20
+
+
+def _is_locked(err: BaseException) -> bool:
+    """#353: SQLITE_BUSY from another connection holding the write lock."""
+    return isinstance(err, sqlite3.OperationalError) and (
+        "locked" in str(err).lower() or "busy" in str(err).lower()
+    )  # v18 R446b: gap < 2x MODE_DEBOUNCE_S
 
 
 
@@ -100,6 +114,16 @@ class CycleDB:
         self._path = str(path)
         self._journal_mode: str = journal_mode
         self._conn: aiosqlite.Connection | None = None
+        self._pending_cop_samples: deque[dict[str, Any]] = deque(
+            maxlen=PENDING_COP_SAMPLES_MAX
+        )
+        self._cop_locked_logged = False
+        self.last_vacuum: dict[str, Any] = {}
+
+    @property
+    def pending_cop_samples(self) -> int:
+        """#353 A3c: cop samples waiting for a retry after a lock."""
+        return len(self._pending_cop_samples)
 
     @property
     def path(self) -> str:
@@ -2608,8 +2632,13 @@ class CycleDB:
         cop_retention_days: int = 365,
         model_state_retention_days: int = 400,
         vacuum: bool = True,
+        vacuum_min_free_ratio: float = 0.0,
     ) -> dict[str, int]:
-        """Aggregate old cycles, prune, optionally vacuum. Atomic rollup+prune."""
+        """Aggregate old cycles, prune, optionally vacuum. Atomic rollup+prune.
+
+        #353 A3c: with ``vacuum_min_free_ratio`` > 0 the VACUUM runs only
+        when that share of pages is free (nothing to reclaim -> no lock).
+        """
         conn = self._require()
         cutoff = time.time() - float(cycle_retention_days) * 86400.0
         alert_cutoff = time.time() - float(alert_retention_days) * 86400.0
@@ -2703,7 +2732,19 @@ class CycleDB:
 
         # 5. VACUUM outside any transaction
         if vacuum:
-            await self.async_vacuum()
+            free_ratio = await self.async_free_page_ratio()
+            if free_ratio >= vacuum_min_free_ratio:
+                ok = await self.async_vacuum()
+                self.last_vacuum = {
+                    "ts": time.time(), "ran": ok,
+                    "free_ratio": round(free_ratio, 3),
+                }
+            else:
+                self.last_vacuum = {
+                    "ts": time.time(), "ran": False,
+                    "skipped": "free_ratio_below_threshold",
+                    "free_ratio": round(free_ratio, 3),
+                }
 
         return {
             "days_rolled_up": days_rolled_up,
@@ -2714,6 +2755,20 @@ class CycleDB:
             "cop_deleted": cop_deleted,
             "model_state_deleted": model_state_deleted,
         }
+
+    async def async_free_page_ratio(self) -> float:
+        """#353 A3c: share of free pages (what VACUUM would reclaim)."""
+        conn = self._require()
+        try:
+            async with conn.execute("PRAGMA page_count") as cur:
+                row = await cur.fetchone()
+            pages = int(row[0]) if row else 0
+            async with conn.execute("PRAGMA freelist_count") as cur:
+                row = await cur.fetchone()
+            free = int(row[0]) if row else 0
+        except sqlite3.Error:
+            return 1.0
+        return free / pages if pages > 0 else 0.0
 
     async def async_vacuum(self) -> bool:
         """Best-effort VACUUM via a fresh connection.
@@ -3020,39 +3075,72 @@ class CycleDB:
     async def async_insert_cop_sample(
         self, sample: dict[str, Any]
     ) -> bool:
+        """Insert one cop sample; on a lock, queue it for a retry (#353).
+
+        Returns True when the sample is stored or queued.
+        """
         try:
             await self.async_ensure_cop_samples_table()
             conn = self._require()
-            # v1.19.9 #123: accept is_transition_artifact from caller
-            # (3-tier classifier flags suspect samples but keeps them
-            # in DB for audit; default 0 preserves legacy behavior).
-            await conn.execute(
-                "INSERT INTO cop_samples "
-                "(ts, cop, lwt, outdoor, r1t, r4t, flow_lmin, "
-                "power_stable, mode, source, boiler_active, boiler_mode, "
-                "is_transition_artifact) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    float(sample["ts"]),
-                    float(sample["cop"]),
-                    _safe_float_or_none(sample.get("lwt"), lo=-30.0, hi=100.0),
-                    _safe_float_or_none(sample.get("outdoor"), lo=-45.0, hi=55.0),
-                    _safe_float_or_none(sample.get("r1t"), lo=-30.0, hi=100.0),
-                    _safe_float_or_none(sample.get("r4t"), lo=-30.0, hi=100.0),
-                    _safe_float_or_none(sample.get("flow_lmin"), lo=0.0, hi=150.0),
-                    _safe_bool_int(sample.get("power_stable")),
-                    sample.get("mode") or "unknown",
-                    sample.get("source", "interval"),
-                    _safe_bool_int(sample.get("boiler_active")),
-                    _safe_boiler_mode(sample.get("boiler_mode")),
-                    int(sample.get("is_transition_artifact", 0) or 0),
-                ),
-            )
+            while self._pending_cop_samples:
+                try:
+                    await self._exec_cop_insert(
+                        conn, self._pending_cop_samples[0]
+                    )
+                    await conn.commit()
+                except Exception as err:
+                    if _is_locked(err):
+                        raise
+                    _LOGGER.warning("dropping queued cop sample: %s", err)
+                self._pending_cop_samples.popleft()
+            await self._exec_cop_insert(conn, sample)
             await conn.commit()
+            if self._cop_locked_logged:
+                _LOGGER.info("cop_samples writable again; queue flushed")
+            self._cop_locked_logged = False
+            return True
+        except sqlite3.OperationalError as err:
+            if not _is_locked(err):
+                _LOGGER.exception("cop_sample insert failed")
+                return False
+            self._pending_cop_samples.append(dict(sample))
+            if not self._cop_locked_logged:
+                self._cop_locked_logged = True
+                _LOGGER.warning(
+                    "cop_samples locked by another connection; %d sample(s) "
+                    "queued for retry", len(self._pending_cop_samples),
+                )
             return True
         except Exception:
             _LOGGER.exception("cop_sample insert failed")
             return False
+
+    async def _exec_cop_insert(self, conn: Any, sample: dict[str, Any]) -> None:
+        # v1.19.9 #123: accept is_transition_artifact from caller
+        # (3-tier classifier flags suspect samples but keeps them
+        # in DB for audit; default 0 preserves legacy behavior).
+        await conn.execute(
+            "INSERT INTO cop_samples "
+            "(ts, cop, lwt, outdoor, r1t, r4t, flow_lmin, "
+            "power_stable, mode, source, boiler_active, boiler_mode, "
+            "is_transition_artifact) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                float(sample["ts"]),
+                float(sample["cop"]),
+                _safe_float_or_none(sample.get("lwt"), lo=-30.0, hi=100.0),
+                _safe_float_or_none(sample.get("outdoor"), lo=-45.0, hi=55.0),
+                _safe_float_or_none(sample.get("r1t"), lo=-30.0, hi=100.0),
+                _safe_float_or_none(sample.get("r4t"), lo=-30.0, hi=100.0),
+                _safe_float_or_none(sample.get("flow_lmin"), lo=0.0, hi=150.0),
+                _safe_bool_int(sample.get("power_stable")),
+                sample.get("mode") or "unknown",
+                sample.get("source", "interval"),
+                _safe_bool_int(sample.get("boiler_active")),
+                _safe_boiler_mode(sample.get("boiler_mode")),
+                int(sample.get("is_transition_artifact", 0) or 0),
+            ),
+        )
 
     async def async_fetch_cop_samples(
         self, days: int = 30, *, include_boiler: bool = True,

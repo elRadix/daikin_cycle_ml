@@ -385,12 +385,24 @@ def _sampling_snapshot(coord: Any) -> dict[str, Any]:  # DIAG-V1224B / A3a
     }
 
 
+def _int_or_zero(v: Any) -> int:
+    """#353: tolerate mocks / missing attributes in diagnostics."""
+    return int(v) if isinstance(v, int) and not isinstance(v, bool) else 0
+
+
 def _coordinator_timing(coord: Any) -> dict[str, Any]:  # DIAG-V1224B
     durations = list(getattr(coord, "_tick_durations_ms", []) or [])
     out: dict[str, Any] = {
         "tick_count": getattr(coord, "_tick_count", 0),
         "tick_duration_ms_last": getattr(coord, "_last_tick_duration_ms", None),
         "tick_duration_ms_max": getattr(coord, "_tick_duration_max_ms", None),
+        # #353 A3c: when + where the slowest tick happened. tick 1 is the
+        # startup refresh; slowest_phases_ms names the top-3 steps.
+        "tick_duration_max_ts": getattr(coord, "_tick_duration_max_ts", None),
+        "tick_duration_max_tick": getattr(coord, "_tick_duration_max_tick", None),
+        "tick_duration_max_phases_ms": dict(
+            getattr(coord, "_tick_duration_max_phases", {}) or {}
+        ),
         "uptime_s": None,
     }
     if durations:
@@ -601,6 +613,9 @@ async def async_get_config_entry_diagnostics(
             "legacy": db_files["legacy"],
             "integrity_ok": bool(getattr(coord, "_db_integrity_ok", True)),
             "retention_stale": dict(getattr(coord, "_db_retention_stale", {}) or {}),
+            # #353 A3c: cop samples waiting after a lock + last VACUUM.
+            "pending_cop_samples": _int_or_zero(getattr(db, "pending_cop_samples", 0)),
+            "last_vacuum": dict(getattr(db, "last_vacuum", {}) or {}),
         },
         "detector": _detector_snapshot(coord),
         "features": _features_snapshot(coord),

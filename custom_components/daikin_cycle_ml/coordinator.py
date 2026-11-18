@@ -169,6 +169,7 @@ from .ml.clustering import classify_clusters, nearest_centroid
 from .ml.features import VECTOR_LEN, extract_feature_vector
 from .ml.multi_baseline import MultiBaseline
 from .repairs import async_check_repairs
+from .storage.db import VACUUM_MIN_FREE_RATIO
 from .storage.store import CycleStore, _is_transient_int
 
 _LOGGER = logging.getLogger(__name__)
@@ -549,6 +550,9 @@ def _instrument_tick(  # MYPY-FIX-V1224
             self._uptime_start_monotonic = _t.monotonic()
         _t0 = _t.monotonic()
         self._tick_count = getattr(self, "_tick_count", 0) + 1
+        # #353 A3c: per-step attribution of this tick.
+        self._tick_phases = {}
+        self._tick_mark_t = _t0
         try:
             return await func(self, *args, **kwargs)
         except Exception as exc:
@@ -560,6 +564,17 @@ def _instrument_tick(  # MYPY-FIX-V1224
             _max = getattr(self, "_tick_duration_max_ms", 0.0)
             if _dur > _max:
                 self._tick_duration_max_ms = _dur
+                # #353 A3c: remember when + where the slowest tick was.
+                _ph = dict(getattr(self, "_tick_phases", {}) or {})
+                _rest = (_t.monotonic() - getattr(self, "_tick_mark_t", _t0)) * 1000
+                if _rest >= 1.0:
+                    _ph["rest"] = _ph.get("rest", 0.0) + _rest
+                self._tick_duration_max_ts = _t.time()
+                self._tick_duration_max_tick = self._tick_count
+                self._tick_duration_max_phases = {
+                    k: round(v, 1)
+                    for k, v in sorted(_ph.items(), key=lambda kv: -kv[1])[:3]
+                }
             _buf = getattr(self, "_tick_durations_ms", None)
             if _buf is not None:
                 _buf.append(_dur)
@@ -731,6 +746,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._tick_durations_ms: deque[float] = deque(maxlen=200)  # MYPY-FIX-V1224
         self._last_tick_duration_ms: float = 0.0
         self._tick_duration_max_ms: float = 0.0
+        # #353 A3c: attribution of the slowest tick (diagnostics).
+        self._tick_duration_max_ts: float | None = None
+        self._tick_duration_max_tick: int | None = None
+        self._tick_duration_max_phases: dict[str, float] = {}
+        self._tick_phases: dict[str, float] = {}
+        self._tick_mark_t: float = 0.0
         self._tick_timestamps: deque[float] = deque(maxlen=3000)  # MYPY-FIX-V1224
         self._gap_count_24h: int = 0
         self._largest_gap_s: float = 0.0
@@ -948,6 +969,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 alert_retention_days=adays,
                 model_state_retention_days=mdays,
                 vacuum=dovac,
+                # #353 A3c: an explicit vacuum request (service) always
+                # runs; the nightly default only when space is reclaimable.
+                vacuum_min_free_ratio=(
+                    0.0 if vacuum is not None else VACUUM_MIN_FREE_RATIO
+                ),
             )
         except Exception as err:
             _LOGGER.exception('Maintenance failed: %s', err)
@@ -1890,6 +1916,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         _LOGGER.info("dhw_present resolved: %s (source=%s)",
                      self.dhw_present, self._dhw_present_source)
 
+    def _tick_mark(self, phase: str) -> None:
+        """#353 A3c: attribute time since the previous mark to ``phase``."""
+        t = time.monotonic()
+        last = getattr(self, "_tick_mark_t", t)
+        phases = getattr(self, "_tick_phases", None)
+        if isinstance(phases, dict):
+            phases[phase] = phases.get(phase, 0.0) + (t - last) * 1000
+        self._tick_mark_t = t
+
     @_instrument_tick
     async def _async_update_data(self) -> DataSnapshot:
         now = time.time()
@@ -1907,6 +1942,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not self._runtime_day_key and self.db is not None:
             await self._restore_runtime_acc()
         self._maybe_reset_daily_accumulators(now)
+        self._tick_mark("day_rollover")
         try:
             state: Any = None
             attrs: dict[str, Any] = {}
@@ -2010,6 +2046,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             if self.detector.state != prev_detector_state:
                 await self._persist_detector_state()
             self._accumulate_cycle_samples(attrs)
+            self._tick_mark("read_detect")
             if record is not None:
                 # v1.12.0 (#105): classify transient before scoring/insert
                 record["is_transient"] = int(_classify_transient(record))
@@ -2020,6 +2057,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 self.store.add_cycle(record)
                 snap.last_record = record
                 await self._process_new_cycle(record, snap)
+                self._tick_mark("cycle_close")
             snap.state = self.detector.state
             snap.mode = self.detector.snapshot().get("mode", "unknown")
             # v1.19.9 #122: track mode transitions for SETTLE_S gate.
@@ -2035,15 +2073,25 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 cop=snap.cop,
             )
             await self._maybe_persist_accumulators(now)
+            self._tick_mark("persist_acc")
             await self._maybe_collect_cop_sample(now)
+            self._tick_mark("cop_sample")
             await self._refresh_cop_today(now)
+            self._tick_mark("cop_today")
             await self._maybe_refresh_stooklijn(now)
+            self._tick_mark("stooklijn")
             await self._maybe_refresh_cop_hourly(now)
+            self._tick_mark("cop_hourly")
             await self._maybe_refresh_cop_degradation(now)
+            self._tick_mark("cop_degradation")
             await self._maybe_refresh_quality_live(now, snap)
+            self._tick_mark("quality_live")
             await self._maybe_rollup_today_live(time.time())
+            self._tick_mark("rollup_today")
             await self._refresh_alerts_today(now)
+            self._tick_mark("alerts_today")
             await self._maybe_refresh_spf(now)
+            self._tick_mark("spf")
             snap.cop_today = self._cop_today_heating_cache
             snap.cop_combined_today = self._cop_today_cache
             snap.spf_state = self._spf_state_cache
@@ -2077,10 +2125,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.cop_vs_datasheet_pct = self._datasheet_cache.get(
                 "cop_vs_datasheet_pct"
             )
+            self._tick_mark("datasheet")
             await self._async_dispatch_alerts(snap)
+            self._tick_mark("alerts_dispatch")
             await async_check_repairs(
                 self.hass, self.entry.entry_id, snap, self
             )
+            self._tick_mark("repairs")
         except Exception as err:
             snap.errors = 1
             self._errors_total += 1
