@@ -22,22 +22,24 @@ Do not add triple-backtick fences when editing this file.
 NOTE: DEEPSEEK.md is local-only, gitignored. Read it from the dev
 container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
 
-## Project identity (v85.0 — updated 2026-11-18 evening)
+## Project identity (v86.0 — updated 2026-11-18 night)
 
 - GitHub: elRadix/daikin_cycle_ml · default branch main · HACS custom repo
 - Dev container: /workspace/daikin_cycle_ml (daikin_cycle_dev, image python:3.14)
   Cloud sessions (claude.ai/code) clone to /home/user/daikin_cycle_ml:
   Python 3.13, no homeassistant package installed — create a venv with
   requirements_test.txt + homeassistant + aiosqlite (CI uses 3.13 too).
-- Main tip: afd8204 (#393 datasheet audit + ESPAltherma beta alignment)
-  Merged today: #390 dashboards (b16516e), #391 COP gate (43c6df4), #393 (afd8204)
-- Latest release/tag: v1.23.0 (2026-11-18): #390 #391 #393 #394 #395
-  (dashboards any language, COP gates, datasheet audit, hybrid, bivalent).
-  Previous: v1.22.10 (2026-11-16).
+  Cloud sessions can push branches but NOT tags (proxy 403): the user
+  creates the tag by publishing the GitHub release in the UI.
+- Main tip: d24187e (chore: release v1.23.0, #396)
+  Merged 2026-11-18: #390 (b16516e), #391 (43c6df4), #393 (afd8204),
+  #394 (acd84f9), #395 (a4a54ae), #396 (d24187e)
+- Latest release: v1.23.0, published 2026-11-18 16:20 UTC on d24187e.
+  Tag/release name is `1.23` (NOT `v1.23.0` like v1.22.7..v1.22.10) —
+  TE VERIFIEREN whether to retag; see v86.0 addendum.
+  Previous: v1.22.10 (tag v1.22.10 -> 91034f5, 2026-11-16).
 - Manifest / const.VERSION / pyproject: 1.23.0 (match)
-- Open PRs: #394 (hybrid EVLQ reference + aliases + COP floor, Part of #369/#392)
-  and the #288 bivalent PR (branch claude/288-bivalent-boiler-signals, includes
-  #394 + today's docs alignment)
+- Open PRs: none
 - Retired: run.py — never reference
 - Ruleset protect-main: id 24465625 — required-context count TE VERIFIEREN
 - CI workflows (.github/workflows, 8): ruff, hassfest, hacs, mypy, pylint,
@@ -47,27 +49,26 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
 - ESPAltherma checkout for alignment work: git clone --depth 1 --branch beta
   https://github.com/raomin/espaltherma (public; definitions/ + data/).
 
-## Trackers / open issues (2026-11-18, 18 open)
+## Trackers / open issues (2026-11-18 night, 16 open)
 
 Issue #66 (v1.9 tracker) is no longer the active tracker. Work is now
 tracked per issue; commits/PRs reference their own issue
 ("Part of #N" / "Fixes #N").
 
-- #392  p2 bug   Datasheet audit + ESPAltherma alignment — #393 merged; EPGA,
-                 EDLQ, EBLQ011-016, EPSK, ERRQ still unverified (Daikin tables JS-only)
-- #388  p2 bug   COP chain — #389 + #391 merged (COP-sensor gate, flagged
-                 samples excluded); open until release + prod confirmation
-- #369  p3 bug   Dashboards not working — root cause Dutch entity_ids, fixed
-                 by #390; hybrid follow-ups in #394. Reply draft not yet posted
+Closed with v1.23.0 (commented + update instructions): #347 (@JoHuTi),
+#369 (@MBGek), #288 phase 1 (@fransh47, Discussion #176), #388, #392.
+
+- #398  p1 enh   Bivalent phase 2: wizard section, binary_sensor
+                 bivalent_active, boiler energy sensors, BUH1 vs
+                 permission-signal disambiguation, 2 new alerts, datasheet
+                 EHBH08E6V + ERGA06EVH (follow-up of #288)
+- #397  p3 bug   Datasheet follow-up: verify EPGA, EDLQ, EBLQ011-016, EPSK,
+                 ERRQ (Daikin tables JS-only; follow-up of #392)
 - #368  enh      Universal Energy Balance Engine + Adaptive Floor Buffer
 - #353  bug      v1.22.8 runtime_compressor_today undercount + BUH-active advice guards
-- #347  bug      Broken dashboards — fixed by #390 (Part of; open until release)
 - #343  p1 enh   Subcooling-based refrigerant diagnostics (espaltherma)
 - #339  p2       Diagnostics v2 polish + tech-debt cleanup
 - #309           P1/P2 MQTT bridge as input
-- #288  p1 enh   Bivalent support — boiler signals trusted when `Bivalent
-                 Operation` is published (PR open). Wizard section, boiler
-                 sensors, BUH1 disambiguation, new alerts still open
 - #239  p1       [Tracker] RFI #127 thermodynamics + COP sanity gates
 - #221  p1       [Tracker] Altherma R Hybrid (EVLQ) — future analytics
 - #208  p3       HA dark mode
@@ -78,11 +79,10 @@ tracked per issue; commits/PRs reference their own issue
 - #175  p3       Per-model stooklijn defaults HT (blocked-external)
 - #88   epic     Rolling backlog tracker
 
-## Current state (v84.0 — 2026-11-18)
+## Current state (v86.0 — 2026-11-18)
 
-- Coverage: 100.00% (pyproject fail_under = 100)
-- Tests: README badge 6160 · 428 entries in tests/ · exact pass/skip
-  count TE VERIFIEREN (not runnable in cloud session without HA)
+- Coverage: 100.00% (pyproject fail_under = 100), CI green on d24187e
+- Tests: README badge 6649 (full local suite in cloud venv, 2026-11-18)
 - Pylint 10.00/10 · Ruff clean · Mypy strict 0 errors (CI, HA pin 2026.9.3)
 - Translations: en, nl, fr (+ icons.json)
 - Entities (README): 50 sensors · 17 binary sensors
@@ -586,3 +586,24 @@ dropped). All work is now pushed to origin after each batch to prevent recurrenc
   guards), MODEL_COMPATIBILITY coverage table (generated from datasheets.json).
 - Lessons: count-pin tests (EXPECTED_CANONICAL_COUNT) must be bumped when
   ALIAS_GROUPS grows (R365); never `git stash` while a background suite runs.
+
+### v86.0 addendum (2026-11-18 night)
+
+- Released v1.23.0: #394 + #395 merged, release PR #396 (version bump
+  only, PR #386 template, post-merge verification comment posted).
+- Release published by user with tag/name `1.23` on d24187e. Previous
+  convention is `vX.Y.Z`. Consequences: the compare link in the release
+  notes (v1.22.10...v1.23.0) and the `releases/tag/v1.23.0` links in the
+  closing comments on #347/#369/#288/#388/#392 return 404. Fix (user,
+  UI): edit release -> tag `v1.23.0` (create on publish, target d24187e,
+  same commit), title `v1.23.0`; optionally delete tag `1.23`.
+  TE VERIFIEREN.
+- Release notes source: logo, star badge, What's new (end-user), After
+  updating, Thank you (reporters by @handle), Docs, Technical, Follow-ups,
+  Tests, Changelog/compare, Support. Template = release 1.23.
+- Release procedure now documented under "Release procedure" (above).
+- Follow-ups opened: #397 (datasheets), #398 (bivalent phase 2).
+- Prod deployed version / HA Core: TE VERIFIEREN (expect 1.23.0 after
+  HACS update; R347 restart).
+- Lessons: markdown gate rejects indented `##` / 5+-space bullets even
+  inside 4-space code blocks — keep AGENTS.md templates as plain bullets.
