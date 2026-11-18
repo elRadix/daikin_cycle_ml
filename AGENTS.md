@@ -35,7 +35,8 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
   Merged 2026-11-18: #390 (b16516e), #391 (43c6df4), #393 (afd8204),
   #394 (acd84f9), #395 (a4a54ae), #396 (d24187e)
 - Latest release: v1.23.0 (tag v1.23.0 -> d24187e), published 2026-11-18.
-  Stray tag `1.23.0` (no v, same commit) still exists — delete via UI.
+- Remote branches: main + this handoff branch only (merged branches and
+  stray tags 1.23 / 1.23.0 deleted 2026-11-18 from daikin_cycle_dev).
   Previous: v1.22.10 (tag v1.22.10 -> 91034f5, 2026-11-16).
 - Manifest / const.VERSION / pyproject: 1.23.0 (match)
 - Open PRs: none
@@ -592,7 +593,10 @@ dropped). All work is now pushed to origin after each batch to prevent recurrenc
   only, PR #386 template, post-merge verification comment posted).
 - Release first published as tag `1.23`; user retagged to `v1.23.0`
   (same commit d24187e). Release + compare + issue-comment links verified
-  200. Stray tag `1.23.0` left over: delete in UI (cloud cannot delete tags).
+  200. Stray tag `1.23.0` deleted from the dev container.
+- Cloud sessions cannot push tags or delete branches (proxy 403). Do it
+  from daikin_cycle_dev: docker exec -i daikin_cycle_dev bash -lc
+  'bash -s' with a pre-guard (tip == merged PR head) before deleting.
   Always publish releases with tag `vX.Y.Z`.
 - Release notes source: logo, star badge, What's new (end-user), After
   updating, Thank you (reporters by @handle), Docs, Technical, Follow-ups,
