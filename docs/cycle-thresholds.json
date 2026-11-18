@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "name": "daikin_cycle_ml cycle thresholds and sanity gates",
+  "issue": "https://github.com/elRadix/daikin_cycle_ml/issues/193",
+  "note": "Canonical defaults. tests/test_193_cycle_thresholds.py fails CI when this file and the code disagree. User options can override the cycle/pendulum defaults per install.",
+  "cycle_detection": {
+    "compressor_running_rps": 3,
+    "transient_max_duration_s": 120,
+    "fallback_power_threshold_w": 200
+  },
+  "pendulum": {
+    "short_run_min": 20,
+    "short_off_min": 5,
+    "cycles_per_hour": 4,
+    "cycles_per_day": 40
+  },
+  "quality": {
+    "good_run_min": 45,
+    "good_off_min": 20,
+    "good_dt_k": 5.0
+  },
+  "sanity_gates": {
+    "max_cop": 11.0,
+    "max_thermal_kw": 14.0,
+    "cop_floor_heating_dhw": 1.0
+  },
+  "carnot": {
+    "efficiency_factor": 0.65,
+    "accept_margin": 1.05,
+    "reject_multiplier": 1.5,
+    "bands": {
+      "accept": "cop <= carnot * efficiency_factor * accept_margin",
+      "flag": "accept limit < cop <= carnot * reject_multiplier (stored, excluded from aggregates)",
+      "reject": "cop > carnot * reject_multiplier (not stored)"
+    },
+    "source": "v1.19.9, Daikin expert answer (#123 / #127); was 0.55 before"
+  }
+}
