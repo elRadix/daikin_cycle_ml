@@ -435,6 +435,18 @@ Diagnostics endpoint: Settings -> Devices & Services -> Daikin Cycle ML
 - baseline summary (per-mode sample counts)
 - database counts (5 tables) + extra (daily_summary 7d, model_state keys)
 
+## Changelog policy (added 2026-11-18)
+
+- CHANGELOG.md is APPEND-ONLY. Add new items under ## [Unreleased]
+  using the existing section style (### Added / Changed / Fixed / ...).
+- Never restructure, reformat, regroup or re-link existing history.
+  A full Keep a Changelog reformat was tried (f140781) and reverted
+  (8d46d9f) on user instruction.
+- Fixes stay under [Unreleased] until the user decides to release;
+  no version bump or tag on your own initiative.
+- PRs for user-reported issues use "Part of #N" (not "Fixes #N") so the
+  issue stays open until the release ships and the reporter confirms.
+
 ## Release procedure
 
 For each release:
