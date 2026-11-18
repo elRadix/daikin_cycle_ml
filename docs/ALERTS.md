@@ -252,6 +252,8 @@ Action: check outdoor humidity (frequent defrosts on cold damp days is expected 
 
 Fires when backup heater runtime ratio exceeds 15% of total compressor runtime over 7 days.
 
+The ratio is BUH minutes (`runtime_acc.<day>`, same source as `runtime_buh_today`) divided by compressor minutes (`daily_summary.total_duration_s`). Before the fix it counted *cycles with any BUH*, so a 20 h run with 9 min of BUH counted as a full BUH day (prod-1: 0.444). Installs without stored BUH minutes fall back to the cycle ratio.
+
 BUH is meant as a supplement for cold starts and defrost recovery, not steady operation. A ratio > 15% suggests the heat pump is undersized, the outdoor temp is below the pump's working range, or defrosts are running long.
 
 Message: BUH ratio, threshold, BUH count (7d), mode, outdoor.
