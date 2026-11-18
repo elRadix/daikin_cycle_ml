@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Fixed
+- A run that is still going is now included in the per-day charts on
+  every day it covers (e.g. 22:00 -> now shows on both days after
+  midnight). Before, the daily summary showed nothing for it on either
+  day until the compressor stopped; the Today sensors were already
+  correct (#400)
+
+### Tests
+- `tests/test_open_cycle_live_rollup.py` - real detector run 22:00 ->
+  03:00 (no midnight split), daily summary at 01:00 and after close (#400)
+
 ## [1.23.1] - 2026-11-18
 
 ### Added
