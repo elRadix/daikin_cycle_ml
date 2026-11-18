@@ -31,9 +31,10 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
   requirements_test.txt + homeassistant + aiosqlite (CI uses 3.13 too).
 - Main tip: afd8204 (#393 datasheet audit + ESPAltherma beta alignment)
   Merged today: #390 dashboards (b16516e), #391 COP gate (43c6df4), #393 (afd8204)
-- Latest release/tag: v1.22.10 (2026-11-16). Everything since is under
-  CHANGELOG [Unreleased] — no version bump until the user decides.
-- Manifest / const.VERSION: 1.22.10 (match)
+- Latest release/tag: v1.23.0 (2026-11-18): #390 #391 #393 #394 #395
+  (dashboards any language, COP gates, datasheet audit, hybrid, bivalent).
+  Previous: v1.22.10 (2026-11-16).
+- Manifest / const.VERSION / pyproject: 1.23.0 (match)
 - Open PRs: #394 (hybrid EVLQ reference + aliases + COP floor, Part of #369/#392)
   and the #288 bivalent PR (branch claude/288-bivalent-boiler-signals, includes
   #394 + today's docs alignment)
