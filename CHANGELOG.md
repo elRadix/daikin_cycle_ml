@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+### Added
+- Diagnostics `coordinator.cop_cross_check`: COP in use vs measured
+  (flow x dT / power) vs ESPAltherma's estimate, so an external COP
+  sensor that reads high is visible (#408)
+
+### Fixed
+- Adaptive thresholds: the learned short-run threshold is never below
+  half of the configured value (prod-1 learned 2 min against 20 min, so
+  `short_run` never fired); `learned_thresholds` attribute
+  `short_run_effective_min` (#408)
+- One-time migration v30: COP samples stored before the COP gates
+  (above 11, or heating/DHW below 1.0) are flagged and their hours
+  rebuilt, so week/month COP no longer shows 0.47 / 16.5 (#408)
+- Daily summary `duration_min` uses the same within-day rule as
+  `duration_max` (never larger); all days are re-rolled once (#408)
+
+### Tests
+- `tests/test_408_diag_followups.py` - learned short-run floor, v30
+  outlier flagging + hourly/daily rebuild, min <= max, COP cross-check
+  with prod-1 values (#408)
+
 ## [1.23.2] - 2026-11-18
 
 ### Fixed

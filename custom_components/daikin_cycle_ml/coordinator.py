@@ -4058,7 +4058,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             learned = self.adaptive.suggest(mode)
         except Exception:
             return default
-        return int(learned.get(key, default))
+        value = int(learned.get(key, default))
+        if key == "short_run_threshold_min":
+            # #408 A: the learner takes p20 of this install's own run
+            # lengths, so frequent short runs teach it that short is
+            # normal (prod-1: 2 min vs configured 20) and short_run stops
+            # firing. Never go below half of the configured value.
+            value = max(value, (int(default) + 1) // 2)
+        return value
 
     def _resolve_adaptive_mode(self) -> str | None:
         """#245: Resolve mode for adaptive threshold lookups.

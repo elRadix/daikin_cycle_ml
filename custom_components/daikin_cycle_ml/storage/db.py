@@ -12,7 +12,8 @@ from typing import Any
 
 import aiosqlite
 
-from ..const import DAILY_SUMMARY_BACKFILL_KEY, MAX_THERMAL_KW
+from ..const import DAILY_SUMMARY_BACKFILL_KEY, MAX_COP, MAX_THERMAL_KW
+from ..engine.physics import COP_FLOOR
 from ..ml.features import VECTOR_LEN
 
 _LOGGER = logging.getLogger(__name__)
@@ -2295,6 +2296,69 @@ class CycleDB:
         return stats
 
 
+    async def async_migrate_to_v30(self) -> dict[str, Any]:
+        """#408 B/C: flag legacy COP outliers, rebuild affected hours and
+        every daily_summary day with the current semantics.
+
+        Samples stored before the #391 / #394 gates (COP > MAX_COP, or
+        heating / DHW below COP_FLOOR) were never flagged, so cop_hourly
+        kept hours with means of 0.47 or 16.5. Hours whose only samples
+        are flagged are deleted, the rest rebuilt. daily_summary is
+        re-rolled so older days get the #401 / #408 min/max rules.
+        """
+        marker = await self.async_get_model_state("data_migration_v30_completed")
+        if isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+        await self.async_ensure_cop_samples_table()
+        await self.async_create_cop_hourly_v14()
+        conn = self._require()
+        cur = await conn.execute(
+            "UPDATE cop_samples SET is_transition_artifact = 1 "
+            "WHERE COALESCE(is_transition_artifact, 0) = 0 AND ("
+            "cop > ? OR (COALESCE(mode, 'unknown') IN ('heating', 'dhw') "
+            "AND cop < ?))",
+            (float(MAX_COP), float(COP_FLOOR)),
+        )
+        flagged = int(cur.rowcount or 0)
+        await cur.close()
+        await conn.commit()
+        async with conn.execute(
+            "SELECT DISTINCT CAST(ts / 3600 AS INTEGER) FROM cop_samples "
+            "WHERE is_transition_artifact = 1"
+        ) as c2:
+            hours = [int(h[0]) for h in await c2.fetchall()]
+        for i in range(0, len(hours), 500):
+            chunk = hours[i:i + 500]
+            ph = ",".join("?" * len(chunk))
+            await conn.execute(
+                f"DELETE FROM cop_hourly WHERE ts_hour IN ({ph})", chunk
+            )
+            await conn.commit()
+            await self._rebuild_cop_hourly_for_hours(chunk)
+        await conn.commit()
+        days = await self._rebuild_all_daily_summary()
+        stats = {
+            "flagged_samples": flagged, "hours_rebuilt": len(hours),
+            "days_rebuilt": days, "completed": True,
+        }
+        await self.async_set_model_state("data_migration_v30_completed", stats)
+        _LOGGER.info("v30 migration: %s", stats)
+        return stats
+
+    async def _rebuild_all_daily_summary(self) -> int:
+        """DELETE + re-roll daily_summary for every day with cycles."""
+        conn = self._require()
+        await conn.execute("DELETE FROM daily_summary")
+        await conn.commit()
+        async with conn.execute(
+            "SELECT DISTINCT date(start_ts,'unixepoch','localtime') "
+            "FROM cycles WHERE start_ts IS NOT NULL"
+        ) as cur:
+            rows = await cur.fetchall()
+        for row in rows:
+            await self.async_rollup_day(row[0])  # bad day -> returns 0
+        return len(rows)
+
     async def async_migrate_cop_samples_mode_default_v15(self) -> int:
         # v1.6.5 R298: NULL mode -> 'unknown'. Idempotent.
         await self.async_ensure_cop_samples_table()
@@ -2518,10 +2582,10 @@ class CycleDB:
             if not starts_on_day or r is live:
                 continue
             a["cycles"] += 1
-            dur = r["duration_s"]
-            if isinstance(dur, (int, float)):
-                if a["duration_min"] is None or dur < a["duration_min"]:
-                    a["duration_min"] = int(dur)
+            # #408 C: same within-day semantics as duration_max, so
+            # duration_min <= duration_max also for cross-midnight runs.
+            if ov_s > 0 and (a["duration_min"] is None or ov_s < a["duration_min"]):
+                a["duration_min"] = ov_s
             q = r["quality_score"]
             if isinstance(q, (int, float)):
                 a["quality_sum"] += int(q)
