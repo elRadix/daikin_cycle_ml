@@ -809,6 +809,22 @@ DHW split and every 15 min while running, and read once before the first
 detection after a restart (#417). The payload carries `last_seen_ts`; a
 cycle is resumed when HA was down for at most 6 h, however long the run.
 
+### 7.x v32: runs lost on a restart (#419)
+
+Before #417 an HA restart during a run dropped the part before the
+restart: no cycle row, while COP samples kept being written. v32 uses the
+samples between two stored cycles that no cycle covers: samples at most
+15 min apart and of one mode form a run; a run of at least 10 min becomes
+a cycle with `is_reconstructed = 1` (cop_avg / cop_sample_count from the
+samples, no dT / rps). A run whose last sample is within 20 min of the
+next cycle continued into the restart and ends at that cycle's start. The
+days touched are re-rolled.
+
+**Idempotent:** marker `data_migration_v32_completed` (runs, minutes,
+days). Diagnostics `coordinator.runtime_check` compares today's runtime
+from the cycles (closed + open) with ESPAltherma's `Stats: Compressor run
+today (min)`.
+
 ## 8. Backup and recovery
 
 ### 8.1 Automatic HA backup

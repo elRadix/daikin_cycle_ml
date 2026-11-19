@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import datetime as _dt
 import json
 import logging
 import sqlite3
@@ -127,6 +128,52 @@ def _safe_boiler_mode(v: Any) -> str:
     if s in ("", "heat", "dhw", "both"):
         return s
     return ""
+
+
+# #419: rebuilding runs lost on a restart from the COP samples
+BACKFILL_CHAIN_GAP_S = 900.0     # samples of one run: <= 15 min apart
+BACKFILL_MIN_RUN_S = 600.0       # ignore fragments shorter than 10 min
+BACKFILL_EDGE_S = 1200.0         # last sample <= 20 min before next cycle
+
+
+def _lost_runs(
+    windows: list[tuple[float, float]],
+    samples: list[tuple[float, str, float]],
+) -> list[tuple[float, float, str, list[float]]]:
+    """Runs of uncovered samples between stored cycles (see v32)."""
+    if len(windows) < 2:
+        return []
+    merged: list[list[float]] = []
+    for st, en in sorted(windows):
+        if merged and st <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], en)
+        else:
+            merged.append([st, en])
+    runs: list[tuple[float, float, str, list[float]]] = []
+    for (_, prev_end), (next_start, _) in zip(merged, merged[1:]):
+        gap = [x for x in samples if prev_end < x[0] < next_start]
+        chain: list[tuple[float, str, float]] = []
+        for x in [*gap, None]:
+            mode = None if x is None else x[1]
+            known = {m for _, m, _ in chain if m != "unknown"}
+            if chain and (
+                x is None
+                or x[0] - chain[-1][0] > BACKFILL_CHAIN_GAP_S
+                or (mode != "unknown" and known and mode not in known)
+            ):
+                start, end = chain[0][0], chain[-1][0]
+                if next_start - end <= BACKFILL_EDGE_S and x is None:
+                    end = next_start
+                if end - start >= BACKFILL_MIN_RUN_S:
+                    runs.append((
+                        start, end,
+                        next(iter(known)) if known else "unknown",
+                        [c for _, _, c in chain],
+                    ))
+                chain = []
+            if x is not None:
+                chain.append(x)
+    return runs
 
 
 class CycleDB:
@@ -2349,6 +2396,62 @@ class CycleDB:
                  "completed": True}
         await self.async_set_model_state("data_migration_v31_completed", stats)
         _LOGGER.info("v31 migration: %s", stats)
+        return stats
+
+    async def async_migrate_to_v32(self) -> dict[str, Any]:
+        """#419: rebuild runs lost on an HA restart from the COP samples.
+
+        Before #417 an HA restart during a run dropped the part before the
+        restart: no cycle row, but COP samples kept being written while the
+        compressor ran (prod-1: 11-02, 11-15, 11-16, 11-18 up to 11 h). Only
+        samples BETWEEN two stored cycles and outside every cycle window
+        are used (a trailing run may still be open). Samples at most
+        BACKFILL_CHAIN_GAP_S apart and of one mode form a run; a run of at
+        least BACKFILL_MIN_RUN_S becomes a cycle with is_reconstructed = 1.
+        A run whose last sample is within BACKFILL_EDGE_S of the next cycle
+        continued into it (the restart) and ends there. The days touched
+        are re-rolled.
+        """
+        marker = await self.async_get_model_state("data_migration_v32_completed")
+        if isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+        await self.async_ensure_cop_samples_table()
+        conn = self._require()
+        async with conn.execute(
+            "SELECT start_ts, end_ts FROM cycles WHERE end_ts IS NOT NULL "
+            "ORDER BY start_ts"
+        ) as cur:
+            windows = [(float(r[0]), float(r[1])) for r in await cur.fetchall()]
+        async with conn.execute(
+            "SELECT ts, COALESCE(mode, 'unknown'), cop FROM cop_samples "
+            "WHERE cop > 0 ORDER BY ts"
+        ) as cur:
+            samples = [(float(r[0]), r[1], float(r[2])) for r in await cur.fetchall()]
+        runs = _lost_runs(windows, samples)
+        days: set[str] = set()
+        for start, end, mode, cops in runs:
+            await conn.execute(
+                "INSERT OR IGNORE INTO cycles (start_ts, end_ts, duration_s, "
+                "mode, cop_avg, cop_sample_count, is_transient, "
+                "is_reconstructed) VALUES (?, ?, ?, ?, ?, ?, 0, 1)",
+                (start, end, int(end - start), mode,
+                 sum(cops) / len(cops), len(cops)),
+            )
+            first = _dt.date.fromtimestamp(start)
+            last = _dt.date.fromtimestamp(end)
+            for n in range((last - first).days + 1):
+                days.add((first + _dt.timedelta(days=n)).isoformat())
+        await conn.commit()
+        for day in sorted(days):
+            await self.async_rollup_day(day)
+        stats = {
+            "runs_rebuilt": len(runs),
+            "minutes_rebuilt": round(sum(e - s for s, e, _, _ in runs) / 60.0, 1),
+            "days_rerolled": len(days),
+            "completed": True,
+        }
+        await self.async_set_model_state("data_migration_v32_completed", stats)
+        _LOGGER.info("v32 migration (lost runs): %s", stats)
         return stats
 
     async def async_cycle_off_gaps(self) -> dict[str, list[float]]:

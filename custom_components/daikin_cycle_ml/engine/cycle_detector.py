@@ -242,6 +242,11 @@ class CycleDetector:
         self._start_ts: float | None = None
         self._mode: str = "unknown"
         self._last_seen_ts: float | None = None
+        # #419: the compressor did not stop between the previous cycle and
+        # this one (heating <-> DHW split or the 48 h cap): no pause, and
+        # its length is a segment of a longer run, not a run of its own.
+        self._continued: bool = False
+        self._continue_next: bool = False
         self._rps_samples: list[float] = []
         self._dt_samples: list[float] = []
         self._outdoor_samples: list[float] = []
@@ -327,6 +332,7 @@ class CycleDetector:
             "state": self._state,
             "start_ts": self._start_ts,
             "last_seen_ts": self._last_seen_ts,
+            "continued": self._continued,
             "mode": self._mode,
             "rps_samples": list(self._rps_samples),
             "dt_samples": list(self._dt_samples),
@@ -370,6 +376,7 @@ class CycleDetector:
         self._state = STATE_RUNNING
         self._start_ts = float(start_ts)
         self._mode = str(payload.get("mode") or "unknown")
+        self._continued = payload.get("continued") is True
         self._rps_samples = _float_list(payload.get("rps_samples"))
         self._dt_samples = _float_list(payload.get("dt_samples"))
         self._outdoor_samples = _float_list(payload.get("outdoor_samples"))
@@ -468,7 +475,11 @@ class CycleDetector:
             "boiler_contribution_samples": self._boiler_samples,
             "boiler_heat_samples": self._boiler_heat_samples,
             "boiler_dhw_samples": self._boiler_dhw_samples,
+            "ended_by": "stop",
+            "continued": self._continued,
         }
+        self._continued = False
+        self._continue_next = False
         self._reset_running()
         return record
 
@@ -552,7 +563,10 @@ class CycleDetector:
                     "Cycle exceeded hard cap %.0fs (start=%s mode=%s); forcing close",
                     MAX_CYCLE_DURATION_S, self._start_ts, self._mode,
                 )
-                return self._close(now)
+                record = self._close(now)
+                record["ended_by"] = "cap"
+                self._continue_next = True
+                return record
 
         pump = attrs.get(ATTR_WATER_PUMP_OPERATION)
 
@@ -601,6 +615,8 @@ class CycleDetector:
             if on:
                 self._state = STATE_RUNNING
                 self._start_ts = now
+                self._continued = self._continue_next
+                self._continue_next = False
                 self._mode = self._classify_mode(attrs)
                 self._accumulate(attrs)
                 self._record_boiler_sample(
@@ -618,8 +634,10 @@ class CycleDetector:
             )
             if self._should_split(attrs, now):
                 record = self._close(now)
+                record["ended_by"] = "split"
                 self._state = STATE_RUNNING
                 self._start_ts = now
+                self._continued = True
                 self._mode = self._classify_mode(attrs)
                 self._accumulate(attrs)
                 return record

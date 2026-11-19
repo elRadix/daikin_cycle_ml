@@ -389,6 +389,14 @@ def score_and_count(
         off_s = store.off_time_since_last(_ref)
     except Exception:
         off_s = None
+    # #419: a cycle that continues a run (heating <-> DHW split, 48 h cap)
+    # had no pause; one that ends in a split is a segment of a longer run.
+    # Neither is a short off / short run of the compressor.
+    if record.get("continued"):
+        off_s = None
+    _segment = bool(record.get("continued")) or record.get("ended_by") in (
+        "split", "cap",
+    )
     if off_s is not None and isinstance(off_s, (int, float)):
         record["off_s"] = float(off_s)
 
@@ -401,7 +409,7 @@ def score_and_count(
     _opts = options or {}
     _sr_min = int(_opts.get("short_run_threshold_min", 20))
     _so_min = int(_opts.get("short_off_threshold_min", 5))
-    _dur = record.get("duration_s")
+    _dur = None if _segment else record.get("duration_s")
     if isinstance(_dur, (int, float)) and _dur < _sr_min * 60:
         try:
             store.record_short_run()
@@ -429,7 +437,7 @@ def score_and_count(
 
     try:
         record["quality_score"] = score_cycle(
-            record, options, off_time_s=off_s,
+            {**record, "duration_s": _dur}, options, off_time_s=off_s,
             short_cycle_ratio=_ratio_pct,
         )
     except Exception:
@@ -1217,7 +1225,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 snap.quality_live = None
                 snap.quality_live_duration_s = None
                 return
-            snap.quality_live = score_cycle(rec, self.options)
+            # #419: a running cycle is not finished. Its length and its
+            # dT_max can only grow, so neither can be judged yet (prod-1:
+            # 20 min, start-up dT 2.1 -> live 50 pulled quality_today to 70
+            # while every closed cycle scored 90+).
+            snap.quality_live = score_cycle(
+                {**rec, "duration_s": None, "dT_max": None}, self.options,
+            )
             snap.quality_live_duration_s = float(rec.get("duration_s") or 0)
         except Exception:
             _LOGGER.warning("live quality refresh failed", exc_info=True)
@@ -3026,9 +3040,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             mode = record.get("mode") or snap.mode or "unknown"
             if not record.get("is_transient"):
                 try:
+                    # #419: split / cap segments are not compressor runs
+                    _seg = bool(record.get("continued")) or record.get(
+                        "ended_by") in ("split", "cap")
                     self.adaptive.observe_cycle(
                         mode,
-                        record.get("duration_s"),
+                        None if _seg else record.get("duration_s"),
                         record.get("off_s"),
                     )
                 except Exception:

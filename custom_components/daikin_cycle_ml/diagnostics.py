@@ -425,6 +425,51 @@ def _cop_cross_check(coord: Any, snap: Any) -> dict[str, Any]:
     }
 
 
+def _runtime_check(coord: Any, snap: Any, now: float | None = None) -> dict[str, Any]:
+    """#419: today's runtime from the cycles vs ESPAltherma's own counter.
+
+    Cycles = closed cycles' portions since local midnight + the open
+    cycle's portion. A heat pump running 24/7 should show close to 100 %
+    of the native ``Stats: Compressor run today (min)``; a shortfall
+    means runs were not captured (prod-1 before #417: lost on restart).
+    """
+    t = time.time() if now is None else float(now)
+    lt = time.localtime(t)
+    midnight = time.mktime(
+        (lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1)
+    )
+    closed = 0.0
+    try:
+        for cy in coord.store.cycles_intersecting(midnight, t) or ():
+            st, en = _num(cy.get("start_ts")), _num(cy.get("end_ts"))
+            if st is not None and en is not None:
+                closed += max(0.0, min(en, t) - max(st, midnight))
+    except Exception:
+        closed = 0.0
+    open_s = 0.0
+    try:
+        det = coord.detector.snapshot()
+        start = _num(det.get("start_ts"))
+        if det.get("state") == "running" and start is not None:
+            open_s = max(0.0, t - max(start, midnight))
+    except Exception:
+        open_s = 0.0
+    attrs = getattr(snap, "attrs", None) or {}
+    native = _num(attrs.get("Stats: Compressor run today (min)"))
+    cycles_min = round((closed + open_s) / 60.0, 1)
+    return {
+        "elapsed_min": round((t - midnight) / 60.0, 1),
+        "cycles_min": cycles_min,
+        "closed_min": round(closed / 60.0, 1),
+        "open_cycle_min": round(open_s / 60.0, 1),
+        "native_min": native,
+        "diff_min": round(cycles_min - native, 1) if native is not None else None,
+        "coverage_pct": (
+            round(cycles_min / native * 100.0, 1) if native else None
+        ),
+    }
+
+
 def _int_or_zero(v: Any) -> int:
     """#353: tolerate mocks / missing attributes in diagnostics."""
     return int(v) if isinstance(v, int) and not isinstance(v, bool) else 0
@@ -613,6 +658,7 @@ async def async_get_config_entry_diagnostics(
             # v1.20.0 #281: COP source transparency (was dead; now surfaced)
             "cop_source": str(getattr(snap, "cop_source", "none")),
             "cop_cross_check": _cop_cross_check(coord, snap),
+            "runtime_check": _runtime_check(coord, snap),
             "dhw_present": getattr(coord, "dhw_present", None),
             "dhw_present_source": getattr(coord, "_dhw_present_source", "unresolved"),
             "dhw_present_resolved": getattr(coord, "_dhw_present_resolved", False),
