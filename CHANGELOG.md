@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Fixed
+- Pattern analysis card: touch did nothing (tabs could not be switched,
+  no pop-ups). button-card calls preventDefault on touchend, so a touch
+  never produces a click; taps are now handled on pointerup, with a
+  scroll guard (#431)
+- Heating curve card: tapping a bucket point opens a pop-up (bucket, COP,
+  average LWT, samples, current bucket), also on touch; the plot accepted
+  no taps before (#431)
+
+### Tests
+- `tests/test_427_cards_live_states.py`: pointerup handling in pattern
+  analysis, one pop-up per heating-curve point (EN / FR / dark) (#431)
+
 ## [1.24.0] - 2026-11-19
 
 ### Added

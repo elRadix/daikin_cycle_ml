@@ -236,7 +236,7 @@ Each point represents a **bucket** of outdoor temperatures:
 |---|---|
 | **Position** | Outdoor bucket centre × average LWT |
 | **Color** | COP quality: 🟢 ≥ 4 · 🟠 2.5-4 · 🔴 < 2.5 |
-| **Tooltip** (hover / long-press) | Bucket range, average COP, LWT and sample count |
+| **Pop-up** (tap or click) | Bucket range, average COP, LWT, sample count and whether it is the current bucket; closes on a tap or after 6 s |
 
 ### The live dot
 

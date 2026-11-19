@@ -1,5 +1,12 @@
 # Changelog — Heating Curve Card
 
+## [1.1.1] — 2026-11-19
+
+### Added
+- Tap a bucket point for a pop-up: bucket, COP, average LWT, samples and
+  whether it is the current bucket. Works on touch; closes on a tap or
+  after 6 s and stays open when the card refreshes (#431)
+
 ## [1.1.0] — 2026-11-19
 
 ### Changed (all cards, #427)
