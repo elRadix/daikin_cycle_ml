@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.24.1] - 2026-11-19
+
 ### Fixed
 - Pattern analysis card: touch did nothing (tabs could not be switched,
   no pop-ups). button-card calls preventDefault on touchend, so a touch
