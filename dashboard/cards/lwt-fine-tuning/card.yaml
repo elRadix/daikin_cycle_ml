@@ -1,76 +1,118 @@
 type: custom:stack-in-card
-variables:
-  lang_override: 'en' # Forceer 'en' (default) of 'nl'
-  default_tab: 'advice' # 'advice', 'buckets', 'analysis', of 'live'
-  show_help: true # Zet op false om de adviesblokken te verbergen
 card_mod:
   style: |
     ha-card {
-      border: 3px solid #0097E0;
+      border: 2px solid #0097E0;
       border-radius: 16px;
-      background: linear-gradient(180deg, #F5FAFD 0%, #E6F4FB 50%, #D6ECF7 100%);
-      box-shadow: 0 8px 24px rgba(0, 151, 224, 0.25);
+      background: var(--ha-card-background, var(--card-background-color, #FFFFFF));
+      box-shadow: 0 8px 24px rgba(0, 151, 224, 0.18);
       overflow: visible;
     }
 cards:
-  # --- HEADER (Left-aligned) ---
+  # --- HEADER: the same for every Daikin Cycle ML card (#427) ---
   - type: custom:button-card
+    variables: &dcm
+      lang_override: ''         # '' = auto (HA language, then integration language) | en | nl | fr
+      theme_override: auto      # auto (follows the HA dark mode) | light | dark
+      show_help: true           # false = hide the explanation notes
+      default_tab: advice       # advice | buckets | analysis | live
     show_name: false
     show_icon: false
+    triggers_update: all
     styles:
       card:
-        - background: linear-gradient(135deg,#E3F2FD 0%,#BBDEFB 100%)
-        - border-bottom: 3px solid #0097E0
-        - border-radius: 16px 16px 0 0
-        - padding: 16px 20px
+        - background: none
         - box-shadow: none
+        - border: none
+        - border-radius: 14px 14px 0 0
+        - padding: 0
       grid:
         - grid-template-areas: '"content"'
         - grid-template-columns: 1fr
-        - justify-items: start
+      custom_fields:
+        content:
+          - width: 100%
     custom_fields:
       content: |
         [[[
-          var CFG = (typeof variables !== 'undefined' && variables) ? variables : {};
-          var cfgLangOvr = String(CFG.lang_override || '').toLowerCase();
-          var haLang = (typeof hass !== 'undefined' && hass && hass.language) ? String(hass.language).toLowerCase() : '';
-          var _cl = '';
-          try { for (var _k in states) { if (states[_k] && states[_k].attributes && states[_k].attributes.configured_language && (_k.endsWith('_cycle_state') || _k.endsWith('_cyclus_status') || _k.endsWith('_etat_du_cycle'))) { _cl = String(states[_k].attributes.configured_language).toLowerCase(); break; } } } catch(e) {}
-          var LANG = 'en';
-          if (cfgLangOvr === 'nl' || cfgLangOvr === 'en' || cfgLangOvr === 'fr') LANG = cfgLangOvr;
-          else if (haLang.indexOf('nl') === 0) LANG = 'nl';
-          else if (haLang.indexOf('fr') === 0) LANG = 'fr';
-          else if (_cl === 'nl') LANG = 'nl';
-          else if (_cl === 'fr') LANG = 'fr';
-
-          var specs = null;
-          var keys = Object.keys(states);
-          for (var k = 0; k < keys.length; k++) {
-            if (keys[k].indexOf('sensor.') === 0 && (keys[k].endsWith('_hp_specs') || keys[k].endsWith('_wp_specs') || keys[k].endsWith('_caracteristiques_de_la_pac'))) {
-              specs = states[keys[k]]; break;
-            }
-          }
-          var _sEnts = (typeof hass !== 'undefined' && hass && hass.entities) ? hass.entities : null; /* #347: renamed entity ids */
-          if (!specs && _sEnts) { for (var _sId in _sEnts) { var _sE = _sEnts[_sId]; if (_sE && _sE.platform === 'daikin_cycle_ml' && _sE.translation_key === 'hp_specs' && states[_sId]) { specs = states[_sId]; break; } } }
-          var model = (specs && specs.attributes && specs.attributes.model) ? String(specs.attributes.model).toUpperCase() : '';
-          var title = '⚙️ LWT FINE-TUNING' + (model ? ' · ' + model : '');
-          var subtitle = LANG === 'nl' ? 'Stooklijn · Rendement · COP Analyse' : (LANG === 'fr' ? "Loi d'eau · Rendement · Analyse COP" : 'Heating Curve · Efficiency · COP Analysis');
-          
-          return `
-            <div style="display:flex; align-items:center; justify-content:flex-start; gap:12px; text-align:left; width:100%;">
-              <div style="background:#0097E0; color:white; padding:8px; border-radius:10px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(0,151,224,0.3); flex-shrink:0;">
-                <svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:white;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-              </div>
-              <div style="text-align:left;">
-                <div style="font-size:1.05em; font-weight:900; color:#0D47A1; text-transform:uppercase; letter-spacing:0.8px; text-align:left;">${title}</div>
-                <div style="font-size:0.85em; font-weight:800; color:#1565C0; text-align:left;">${subtitle}</div>
-              </div>
-            </div>
-          `;
+          /* DCM-COMMON-BEGIN (#427) shared by every Daikin Cycle ML card: language, theme, header.
+             Do not edit in a card: edit tools/card_common.js and run tools/sync_card_common.py */
+          var DCM = (function () {
+            var V = (typeof variables !== 'undefined' && variables) ? variables : {};
+            var H = (typeof hass !== 'undefined' && hass) ? hass : {};
+            var S = (typeof states !== 'undefined' && states) ? states : {};
+            var find = function (tk, sfx) {
+              var ids = Object.keys(S), i, j, k, E = H.entities || {};
+              for (i = 0; i < ids.length; i++) {
+                if (ids[i].indexOf('sensor.') !== 0) continue;
+                for (j = 0; j < sfx.length; j++) { if (ids[i].slice(-sfx[j].length - 1) === '_' + sfx[j]) return ids[i]; }
+              }
+              for (k in E) { if (E[k] && E[k].platform === 'daikin_cycle_ml' && E[k].translation_key === tk && S[k]) return k; }
+              return null;
+            };
+            var A = function (id) { return (id && S[id] && S[id].attributes) ? S[id].attributes : {}; };
+            var csA = A(find('cycle_state', ['cycle_state', 'cyclus_status', 'etat_du_cycle']));
+            var spA = A(find('hp_specs', ['hp_specs', 'wp_specs', 'caracteristiques_de_la_pac']));
+            /* language: lang_override, then the HA language, then the integration language, then English */
+            var LS = ['en', 'nl', 'fr'];
+            var ov = String(V.lang_override || '').toLowerCase();
+            var ha = String(H.language || '').toLowerCase().slice(0, 2);
+            var cl = String(csA.configured_language || '').toLowerCase();
+            var lang = LS.indexOf(ov) >= 0 ? ov : (LS.indexOf(ha) >= 0 ? ha : (LS.indexOf(cl) >= 0 ? cl : 'en'));
+            /* theme: auto follows the HA dark mode; light / dark force it */
+            var th = String(V.theme_override || 'auto').toLowerCase();
+            var dark = th === 'dark' ? true : (th === 'light' ? false : !!(H.themes && H.themes.darkMode));
+            var P = dark
+              ? { bg: '#1B1F24', bg2: '#232A33', bg3: '#1E3448', hd1: '#1E3448', hd2: '#15283A', text: '#E6F0FA', text2: '#90CAF9',
+                  muted: '#B0BEC5', border: 'rgba(79,195,247,0.35)', accent: '#4FC3F7', good: '#66BB6A', warn: '#FFA726', bad: '#EF5350' }
+              : { bg: '#FFFFFF', bg2: '#F5FAFD', bg3: '#E3F2FD', hd1: '#E3F2FD', hd2: '#BBDEFB', text: '#0D47A1', text2: '#1565C0',
+                  muted: '#546E7A', border: 'rgba(0,151,224,0.25)', accent: '#0097E0', good: '#2E7D32', warn: '#E65100', bad: '#C62828' };
+            /* light colours of the cards -> dark mode (light backgrounds dark, dark text light) */
+            var MAP = {
+              '#FFFFFF': P.bg, '#F5FAFD': P.bg2, '#F5FAFE': P.bg2, '#E6F4FB': P.bg2, '#E8F2FB': P.bg2, '#EAF2F8': P.bg2,
+              '#E3F2FD': P.bg3, '#D6ECF7': P.bg3, '#DCEBFA': P.bg3, '#BBDEFB': '#1F4A6B', '#D6EAF8': P.bg3, '#E1F5FE': P.bg3, '#AED6F1': '#1F4A6B',
+              '#FFF3E0': '#3A2A12', '#FFF8EC': '#3A2A12', '#FDEAD0': '#3A2A12', '#FFEBEE': '#3A1D1D', '#FDECEA': '#3A1D1D', '#FBD0C8': '#3A1D1D',
+              '#E8F5E9': '#1C3324', '#EAFAF1': '#1C3324', '#D5F5E3': '#1C3324', '#F3E5F5': '#2E2236',
+              '#0D47A1': P.text, '#003366': P.text, '#001B3D': P.text, '#003A70': P.text, '#00539F': '#BBDEFB', '#005A9C': '#BBDEFB',
+              '#1565C0': P.text2, '#1976D2': '#64B5F6', '#546E7A': P.muted, '#5D6D7E': P.muted, '#7F8C8D': '#9EADB5', '#95A5A6': '#9EADB5',
+              '#37474F': '#CFD8DC', '#444444': '#CFD8DC', '#000000': '#ECEFF1', '#94A3B8': '#78909C', '#6A1B9A': '#CE93D8',
+              '#2E7D32': '#4CAF50', '#1E8449': '#81C784', '#C62828': '#E53935', '#E65100': '#FB8C00', '#7D4F00': '#FFCC80',
+              '#8B1A1A': '#EF9A9A', '#7A0008': '#EF9A9A'
+            };
+            var paint = function (html) {
+              if (!dark || typeof html !== 'string') return html;
+              return html
+                .replace(/(background(?:-color)?\s*:\s*)(#fff\b|white\b)/gi, '$1' + P.bg)
+                .replace(/(<(?:rect|circle|ellipse|path)\b[^>]*?\sfill=")(white|#fff|#ffffff)(")/gi, '$1' + P.bg2 + '$3')
+                .replace(/rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*([0-9.]+)\s*\)/g, function (m, a) { return 'rgba(255,255,255,' + Math.min(0.08, parseFloat(a) * 0.1).toFixed(3) + ')'; })
+                .replace(/#[0-9a-fA-F]{6}\b/g, function (m) { return MAP[m.toUpperCase()] || m; });
+            };
+            var T3 = function (o) { return (o && typeof o === 'object') ? (o[lang] || o.en || '') : String(o || ''); };
+            var model = spA.model ? String(spA.model).toUpperCase() : '';
+            var meta = [spA.family, spA.kw ? spA.kw + ' kW' : '', spA.refrigerant].filter(function (x) { return x && String(x) !== 'None'; }).join(' · ');
+            /* one header for every card: icon, title + model, subtitle + family / kW / refrigerant */
+            var header = function (icon, title, sub) {
+              return '<div class="dcm-header" style="display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;padding:14px 16px;'
+                + 'border-radius:14px 14px 0 0;background:linear-gradient(135deg,' + P.hd1 + ' 0%,' + P.hd2 + ' 100%);border-bottom:3px solid ' + P.accent + ';text-align:left;">'
+                + '<div style="background:' + P.accent + ';width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;'
+                + 'font-size:20px;line-height:1;flex-shrink:0;box-shadow:0 4px 10px rgba(0,151,224,0.3);">' + icon + '</div>'
+                + '<div style="min-width:0;flex:1;">'
+                + '<div style="font-size:1.05em;font-weight:900;color:' + P.text + ';text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+                + T3(title) + (model ? ' · ' + model : '') + '</div>'
+                + '<div style="font-size:0.82em;font-weight:800;color:' + P.text2 + ';white-space:normal;">' + T3(sub) + (meta ? ' · ' + meta : '') + '</div>'
+                + '</div></div>';
+            };
+            return { lang: lang, dark: dark, P: P, paint: paint, header: header, T3: T3, V: V, model: model,
+                     showHelp: V.show_help !== false && V.show_hints !== false };
+          })();
+          /* DCM-COMMON-END */
+          return DCM.header("⚙️",
+            {en: "LWT fine-tuning", nl: "LWT fine-tuning", fr: "Réglage fin du départ"},
+            {en: "Heating curve · efficiency · COP analysis", nl: "Stooklijn · rendement · COP-analyse", fr: "Loi d'eau · rendement · analyse COP"});
         ]]]
-
   # --- MAIN CONTENT ---
   - type: custom:button-card
+    variables: *dcm
     show_name: false
     show_icon: false
     triggers_update: all
@@ -89,6 +131,7 @@ cards:
               var a = el.dataset.evAction;
               if (a === 'view') {
                 var arg = el.dataset.evArg;
+                window.__lwtView = arg; /* keep the tab over re-renders */
                 hub.setAttribute('data-view', arg);
                 root.querySelectorAll('.lwt-btn').forEach(function(b){
                   b.classList.toggle('lwt-btn-active', b.dataset.evArg === arg);
@@ -96,7 +139,7 @@ cards:
                 window.__lwtHidePop && window.__lwtHidePop(hub);
                 return;
               }
-              if (a === 'pop' && el.dataset.evPid) { window.__lwtShowPop(hub, el); return; }
+              if (a === 'pop' && el.dataset.evPid) { window.__lwtShowPop(hub, el, 6000); return; }
               if (a === 'close') { window.__lwtHidePop && window.__lwtHidePop(hub); return; }
             }
           } catch(e) { console.warn('[LWTHub]', e); }
@@ -122,28 +165,94 @@ cards:
     custom_fields:
       content: |
         [[[
+          /* DCM-COMMON-BEGIN (#427) shared by every Daikin Cycle ML card: language, theme, header.
+             Do not edit in a card: edit tools/card_common.js and run tools/sync_card_common.py */
+          var DCM = (function () {
+            var V = (typeof variables !== 'undefined' && variables) ? variables : {};
+            var H = (typeof hass !== 'undefined' && hass) ? hass : {};
+            var S = (typeof states !== 'undefined' && states) ? states : {};
+            var find = function (tk, sfx) {
+              var ids = Object.keys(S), i, j, k, E = H.entities || {};
+              for (i = 0; i < ids.length; i++) {
+                if (ids[i].indexOf('sensor.') !== 0) continue;
+                for (j = 0; j < sfx.length; j++) { if (ids[i].slice(-sfx[j].length - 1) === '_' + sfx[j]) return ids[i]; }
+              }
+              for (k in E) { if (E[k] && E[k].platform === 'daikin_cycle_ml' && E[k].translation_key === tk && S[k]) return k; }
+              return null;
+            };
+            var A = function (id) { return (id && S[id] && S[id].attributes) ? S[id].attributes : {}; };
+            var csA = A(find('cycle_state', ['cycle_state', 'cyclus_status', 'etat_du_cycle']));
+            var spA = A(find('hp_specs', ['hp_specs', 'wp_specs', 'caracteristiques_de_la_pac']));
+            /* language: lang_override, then the HA language, then the integration language, then English */
+            var LS = ['en', 'nl', 'fr'];
+            var ov = String(V.lang_override || '').toLowerCase();
+            var ha = String(H.language || '').toLowerCase().slice(0, 2);
+            var cl = String(csA.configured_language || '').toLowerCase();
+            var lang = LS.indexOf(ov) >= 0 ? ov : (LS.indexOf(ha) >= 0 ? ha : (LS.indexOf(cl) >= 0 ? cl : 'en'));
+            /* theme: auto follows the HA dark mode; light / dark force it */
+            var th = String(V.theme_override || 'auto').toLowerCase();
+            var dark = th === 'dark' ? true : (th === 'light' ? false : !!(H.themes && H.themes.darkMode));
+            var P = dark
+              ? { bg: '#1B1F24', bg2: '#232A33', bg3: '#1E3448', hd1: '#1E3448', hd2: '#15283A', text: '#E6F0FA', text2: '#90CAF9',
+                  muted: '#B0BEC5', border: 'rgba(79,195,247,0.35)', accent: '#4FC3F7', good: '#66BB6A', warn: '#FFA726', bad: '#EF5350' }
+              : { bg: '#FFFFFF', bg2: '#F5FAFD', bg3: '#E3F2FD', hd1: '#E3F2FD', hd2: '#BBDEFB', text: '#0D47A1', text2: '#1565C0',
+                  muted: '#546E7A', border: 'rgba(0,151,224,0.25)', accent: '#0097E0', good: '#2E7D32', warn: '#E65100', bad: '#C62828' };
+            /* light colours of the cards -> dark mode (light backgrounds dark, dark text light) */
+            var MAP = {
+              '#FFFFFF': P.bg, '#F5FAFD': P.bg2, '#F5FAFE': P.bg2, '#E6F4FB': P.bg2, '#E8F2FB': P.bg2, '#EAF2F8': P.bg2,
+              '#E3F2FD': P.bg3, '#D6ECF7': P.bg3, '#DCEBFA': P.bg3, '#BBDEFB': '#1F4A6B', '#D6EAF8': P.bg3, '#E1F5FE': P.bg3, '#AED6F1': '#1F4A6B',
+              '#FFF3E0': '#3A2A12', '#FFF8EC': '#3A2A12', '#FDEAD0': '#3A2A12', '#FFEBEE': '#3A1D1D', '#FDECEA': '#3A1D1D', '#FBD0C8': '#3A1D1D',
+              '#E8F5E9': '#1C3324', '#EAFAF1': '#1C3324', '#D5F5E3': '#1C3324', '#F3E5F5': '#2E2236',
+              '#0D47A1': P.text, '#003366': P.text, '#001B3D': P.text, '#003A70': P.text, '#00539F': '#BBDEFB', '#005A9C': '#BBDEFB',
+              '#1565C0': P.text2, '#1976D2': '#64B5F6', '#546E7A': P.muted, '#5D6D7E': P.muted, '#7F8C8D': '#9EADB5', '#95A5A6': '#9EADB5',
+              '#37474F': '#CFD8DC', '#444444': '#CFD8DC', '#000000': '#ECEFF1', '#94A3B8': '#78909C', '#6A1B9A': '#CE93D8',
+              '#2E7D32': '#4CAF50', '#1E8449': '#81C784', '#C62828': '#E53935', '#E65100': '#FB8C00', '#7D4F00': '#FFCC80',
+              '#8B1A1A': '#EF9A9A', '#7A0008': '#EF9A9A'
+            };
+            var paint = function (html) {
+              if (!dark || typeof html !== 'string') return html;
+              return html
+                .replace(/(background(?:-color)?\s*:\s*)(#fff\b|white\b)/gi, '$1' + P.bg)
+                .replace(/(<(?:rect|circle|ellipse|path)\b[^>]*?\sfill=")(white|#fff|#ffffff)(")/gi, '$1' + P.bg2 + '$3')
+                .replace(/rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*([0-9.]+)\s*\)/g, function (m, a) { return 'rgba(255,255,255,' + Math.min(0.08, parseFloat(a) * 0.1).toFixed(3) + ')'; })
+                .replace(/#[0-9a-fA-F]{6}\b/g, function (m) { return MAP[m.toUpperCase()] || m; });
+            };
+            var T3 = function (o) { return (o && typeof o === 'object') ? (o[lang] || o.en || '') : String(o || ''); };
+            var model = spA.model ? String(spA.model).toUpperCase() : '';
+            var meta = [spA.family, spA.kw ? spA.kw + ' kW' : '', spA.refrigerant].filter(function (x) { return x && String(x) !== 'None'; }).join(' · ');
+            /* one header for every card: icon, title + model, subtitle + family / kW / refrigerant */
+            var header = function (icon, title, sub) {
+              return '<div class="dcm-header" style="display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;padding:14px 16px;'
+                + 'border-radius:14px 14px 0 0;background:linear-gradient(135deg,' + P.hd1 + ' 0%,' + P.hd2 + ' 100%);border-bottom:3px solid ' + P.accent + ';text-align:left;">'
+                + '<div style="background:' + P.accent + ';width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;'
+                + 'font-size:20px;line-height:1;flex-shrink:0;box-shadow:0 4px 10px rgba(0,151,224,0.3);">' + icon + '</div>'
+                + '<div style="min-width:0;flex:1;">'
+                + '<div style="font-size:1.05em;font-weight:900;color:' + P.text + ';text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+                + T3(title) + (model ? ' · ' + model : '') + '</div>'
+                + '<div style="font-size:0.82em;font-weight:800;color:' + P.text2 + ';white-space:normal;">' + T3(sub) + (meta ? ' · ' + meta : '') + '</div>'
+                + '</div></div>';
+            };
+            return { lang: lang, dark: dark, P: P, paint: paint, header: header, T3: T3, V: V, model: model,
+                     showHelp: V.show_help !== false && V.show_hints !== false };
+          })();
+          /* DCM-COMMON-END */
+          return DCM.paint((function () {
+          var _DEC = (function(){ try { var _lc = (typeof hass !== 'undefined' && hass && hass.locale) ? hass.locale : {}; var _nf = _lc.number_format; if (_nf === 'comma_decimal' || _nf === 'none') return '.'; if (_nf === 'decimal_comma' || _nf === 'space_comma') return ','; var _l = String(_lc.language || (typeof hass !== 'undefined' && hass && hass.language) || 'en'); return (1.5).toLocaleString(_l).indexOf(',') >= 0 ? ',' : '.'; } catch (e) { return '.'; } })(); /* #427: decimal separator from the HA number format */
           try {
             /* ═══ 1. CONFIG & LANGUAGE ═══ */
             var CFG = (typeof variables !== 'undefined' && variables) ? variables : {};
             var cfgLangOvr = String(CFG.lang_override || '').toLowerCase();
-            var defaultTab = CFG.default_tab || 'advice';
-            var showHelp = CFG.show_help !== false;
+            var _views = ['advice', 'buckets', 'analysis', 'live'];
+            /* the card re-renders on every state change (triggers_update: all):
+               keep the tab the user picked instead of default_tab */
+            var defaultTab = (_views.indexOf(window.__lwtView) >= 0) ? window.__lwtView
+              : (_views.indexOf(CFG.default_tab) >= 0 ? CFG.default_tab : 'advice');
+            var showHelp = DCM.showHelp;
             
             var haLang = (typeof hass !== 'undefined' && hass && hass.language) ? String(hass.language).toLowerCase() : '';
             var _cl = '';
             try { for (var _k in states) { if (states[_k] && states[_k].attributes && states[_k].attributes.configured_language && (_k.endsWith('_cycle_state') || _k.endsWith('_cyclus_status') || _k.endsWith('_etat_du_cycle'))) { _cl = String(states[_k].attributes.configured_language).toLowerCase(); break; } } } catch(e) {}
-            var LANG = 'en';
-            if (cfgLangOvr === 'nl' || cfgLangOvr === 'en' || cfgLangOvr === 'fr') {
-              LANG = cfgLangOvr;
-            } else if (haLang.indexOf('nl') === 0) {
-              LANG = 'nl';
-            } else if (haLang.indexOf('fr') === 0) {
-              LANG = 'fr';
-            } else if (_cl === 'nl') {
-              LANG = 'nl';
-            } else if (_cl === 'fr') {
-              LANG = 'fr';
-            }
+            var LANG = DCM.lang; /* #427: shared language rule */
 
             /* ═══ 2. ENTITY REGISTRY ═══ */
             var REGISTRY = {
@@ -179,7 +288,7 @@ cards:
 
             /* ═══ 3. HELPERS ═══ */
             var hasV = function(v) { return v !== null && v !== undefined && v !== '' && String(v) !== 'None' && String(v) !== 'unknown' && String(v) !== 'unavailable' && parseFloat(v) !== 0; };
-            var nf = function(v, d) { if (!hasV(v) || isNaN(v)) return '—'; return Number(v).toFixed(d).replace('.', ','); };
+            var nf = function(v, d) { if (!hasV(v) || isNaN(v)) return '—'; return Number(v).toFixed(d).replace('.', _DEC); };
             
             var e = ADVICE ? states[ADVICE] : null;
             var hasData = e && e.attributes && e.attributes.bucket;
@@ -270,12 +379,13 @@ cards:
 
             /* ═══ 5. POPUP SYSTEM ═══ */
             if (!window.__lwtReg) window.__lwtReg = {};
-            if (!window.__lwtSeq) window.__lwtSeq = 0;
-            if (window.__lwtSeq > 2000) { window.__lwtReg = {}; window.__lwtSeq = 0; }
+            /* same ids on every render (counter restarts), so an open pop-up
+               can be found again after a re-render; payloads get fresh values */
+            window.__lwtSeq = 0;
             var reg = function(payload){ window.__lwtSeq++; var id = 'lwt' + window.__lwtSeq; window.__lwtReg[id] = payload; return id; };
 
             if (!window.__lwtShowPop) {
-              window.__lwtShowPop = function(hub, el){
+              window.__lwtShowPop = function(hub, el, ms){
                 try {
                   var host = hub.querySelector('.lwt-pop-host');
                   if (!host) return;
@@ -332,7 +442,9 @@ cards:
                   pop.style.left = left + 'px';
                   pop.style.top = top + 'px';
                   pop.style.visibility = 'visible';
-                  hub.__popTimer = setTimeout(function(){ window.__lwtHidePop(hub); }, 6000);
+                  var left_ms = ms || 6000;
+                  window.__lwtOpenPop = { pid: pid, until: Date.now() + left_ms };
+                  hub.__popTimer = setTimeout(function(){ window.__lwtHidePop(hub); }, left_ms);
                 } catch(e){ console.warn('[LWTHub pop]', e); }
               };
               window.__lwtHidePop = function(hub){
@@ -342,6 +454,7 @@ cards:
                   var pop = host.querySelector('.lwt-pop');
                   if (pop && pop.parentNode) pop.parentNode.removeChild(pop);
                   if (hub.__popTimer) { clearTimeout(hub.__popTimer); hub.__popTimer = null; }
+                  window.__lwtOpenPop = null;
                 } catch(e){}
               };
             }
@@ -359,13 +472,13 @@ cards:
             var buildNoteAdvies = function() {
               if (delta < -0.5) {
                 var msg = LANG === 'nl' 
-                  ? `Je setpoint staat momenteel <b>${Math.abs(delta).toFixed(1)}°C te hoog</b> voor deze buitentemperatuur. Door deze te verlagen bespaar je <b>${Math.abs(savings).toFixed(1)}%</b> aan COP-rendement.<br><br><b>Advies:</b> Verlaag je stooklijn (Offset) met ${Math.abs(delta).toFixed(1)}°C om het optimum te bereiken.`
-                  : LANG === 'fr' ? `Votre consigne est actuellement <b>${Math.abs(delta).toFixed(1)}°C trop élevée</b> pour cette température extérieure. En la réduisant, vous économisez <b>${Math.abs(savings).toFixed(1)}%</b> en efficacité COP.<br><br><b>Conseil :</b> Réduisez votre loi d'eau (décalage) de ${Math.abs(delta).toFixed(1)}°C pour atteindre l'optimum.` : `Your setpoint is currently <b>${Math.abs(delta).toFixed(1)}°C too high</b> for this outdoor temperature. Lowering it will save you <b>${Math.abs(savings).toFixed(1)}%</b> in COP efficiency.<br><br><b>Advice:</b> Lower your heating curve (Offset) by ${Math.abs(delta).toFixed(1)}°C to reach the optimum.`;
+                  ? `Je setpoint staat momenteel <b>${Math.abs(delta).toFixed(1).replace('.', _DEC)}°C te hoog</b> voor deze buitentemperatuur. Door deze te verlagen bespaar je <b>${Math.abs(savings).toFixed(1).replace('.', _DEC)}%</b> aan COP-rendement.<br><br><b>Advies:</b> Verlaag je stooklijn (Offset) met ${Math.abs(delta).toFixed(1).replace('.', _DEC)}°C om het optimum te bereiken.`
+                  : LANG === 'fr' ? `Votre consigne est actuellement <b>${Math.abs(delta).toFixed(1).replace('.', _DEC)}°C trop élevée</b> pour cette température extérieure. En la réduisant, vous économisez <b>${Math.abs(savings).toFixed(1).replace('.', _DEC)}%</b> en efficacité COP.<br><br><b>Conseil :</b> Réduisez votre loi d'eau (décalage) de ${Math.abs(delta).toFixed(1).replace('.', _DEC)}°C pour atteindre l'optimum.` : `Your setpoint is currently <b>${Math.abs(delta).toFixed(1).replace('.', _DEC)}°C too high</b> for this outdoor temperature. Lowering it will save you <b>${Math.abs(savings).toFixed(1).replace('.', _DEC)}%</b> in COP efficiency.<br><br><b>Advice:</b> Lower your heating curve (Offset) by ${Math.abs(delta).toFixed(1).replace('.', _DEC)}°C to reach the optimum.`;
                 return noteHelper(msg);
               } else if (delta > 0.5) {
                 var msg = LANG === 'nl'
-                  ? `Je setpoint staat momenteel <b>${delta.toFixed(1)}°C te laag</b>. Dit kan ten koste gaan van je comfort.<br><br><b>Advies:</b> Verhoog je stooklijn of Offset met ${delta.toFixed(1)}°C om de woning comfortabel te houden.`
-                  : LANG === 'fr' ? `Votre consigne est actuellement <b>${delta.toFixed(1)}°C trop basse</b>. Cela peut impacter votre confort.<br><br><b>Conseil :</b> Augmentez votre loi d'eau ou décalage de ${delta.toFixed(1)}°C pour garder la maison confortable.` : `Your setpoint is currently <b>${delta.toFixed(1)}°C too low</b>. This may impact your comfort.<br><br><b>Advice:</b> Increase your heating curve or Offset by ${delta.toFixed(1)}°C to keep the house comfortable.`;
+                  ? `Je setpoint staat momenteel <b>${delta.toFixed(1).replace('.', _DEC)}°C te laag</b>. Dit kan ten koste gaan van je comfort.<br><br><b>Advies:</b> Verhoog je stooklijn of Offset met ${delta.toFixed(1).replace('.', _DEC)}°C om de woning comfortabel te houden.`
+                  : LANG === 'fr' ? `Votre consigne est actuellement <b>${delta.toFixed(1).replace('.', _DEC)}°C trop basse</b>. Cela peut impacter votre confort.<br><br><b>Conseil :</b> Augmentez votre loi d'eau ou décalage de ${delta.toFixed(1).replace('.', _DEC)}°C pour garder la maison confortable.` : `Your setpoint is currently <b>${delta.toFixed(1).replace('.', _DEC)}°C too low</b>. This may impact your comfort.<br><br><b>Advice:</b> Increase your heating curve or Offset by ${delta.toFixed(1).replace('.', _DEC)}°C to keep the house comfortable.`;
                 return warnHelper(msg);
               } else {
                 var msg = LANG === 'nl'
@@ -376,7 +489,8 @@ cards:
             };
 
             var buildNoteBuckets = function() {
-              var conf = samples > 50 ? (LANG==='nl'?'zeer betrouwbaar':'very reliable') : (samples > 10 ? (LANG==='nl'?'betrouwbaar':'reliable') : (LANG==='nl'?'nog onvoldoende data':'not enough data yet'));
+              var _l3 = function(nl, en, fr){ return LANG==='nl' ? nl : (LANG==='fr' ? fr : en); };
+              var conf = samples > 50 ? _l3('zeer betrouwbaar','very reliable','très fiable') : (samples > 10 ? _l3('betrouwbaar','reliable','fiable') : _l3('nog onvoldoende data','not enough data yet','pas encore assez de données'));
               return noteHelper(
                 LANG === 'nl'
                   ? `De grafiek toont de beste LWT per buitentemperatuur. Jouw huidige bucket (<b>${bucket}°C</b>) heeft <b>${samples} samples</b> en is <b>${conf}</b>.<br><br><b>Tip:</b> Zie je een 'dip' in de lijn? Dan presteert je woning bij die specifieke temperatuur minder efficiënt. Klik op de stippen om de exacte COP-cijfers te bekijken.`
@@ -385,15 +499,19 @@ cards:
             };
 
             var buildNoteAnalyse = function() {
-              if (Math.abs(track) > 2) {
+              var _noTrack = (d.tracking_error === null || d.tracking_error === undefined);
+              var _okNl = _noTrack ? 'Nog geen gegevens: er is nog geen doel-setpoint om mee te vergelijken.' : 'Zeer goed. De stooklijn volgt het setpoint bijna perfect.';
+              var _okFr = _noTrack ? 'Pas encore de données : aucune consigne cible pour comparer.' : 'Très bon. La loi d\'eau suit presque parfaitement la consigne.';
+              var _okEn = _noTrack ? 'No data yet: there is no target setpoint to compare with.' : 'Very good. The curve tracks the setpoint almost perfectly.';
+              if (!_noTrack && Math.abs(track) > 2) {
                 var msg = LANG === 'nl'
                   ? `<b>Tracking Fout (${nf(track,1)}°C):</b> Dit is vrij hoog. De warmtepomp heeft moeite om het setpoint te bereiken.<br><br><b>Oplossing:</b> Dit komt vaak door een defrost, een te lage waterflow (verhoog de pompstand) of een te agressieve stooklijn.`
                   : LANG === 'fr' ? `<b>Erreur de suivi (${nf(track,1)}°C) :</b> Ceci est assez élevé. La PAC peine à atteindre la consigne.<br><br><b>Solution :</b> Souvent causé par un cycle de dégivrage, un débit d'eau faible (augmentez la vitesse pompe), ou une loi d'eau trop agressive.` : `<b>Tracking Error (${nf(track,1)}°C):</b> This is quite high. The heat pump struggles to reach the setpoint.<br><br><b>Solution:</b> Often caused by a defrost cycle, low water flow (increase pump speed), or an aggressive heating curve.`;
                 return warnHelper(msg);
               } else {
                 var msg = LANG === 'nl'
-                  ? `<b>Tracking Fout (${nf(track,1)}°C):</b> Zeer goed. De stooklijn volgt het setpoint bijna perfect.<br><br><b>Uitleg:</b> De <b>Slope</b> bepaalt hoe snel de temperatuur stijgt als het kouder wordt. De <b>Offset</b> is het vaste verschil dat je handmatig toevoegt om het huis net dat beetje extra warmte te geven.`
-                  : LANG === 'fr' ? `<b>Erreur de suivi (${nf(track,1)}°C) :</b> Très bon. La loi d'eau suit presque parfaitement la consigne.<br><br><b>Explication :</b> La <b>Pente</b> détermine à quelle vitesse la température monte quand il fait plus froid. Le <b>Décalage</b> est la différence fixe que vous ajoutez manuellement pour donner un peu de chaleur en plus.` : `<b>Tracking Error (${nf(track,1)}°C):</b> Very good. The curve tracks the setpoint almost perfectly.<br><br><b>Explanation:</b> The <b>Slope</b> determines how fast the temperature rises when it gets colder. The <b>Offset</b> is the fixed difference you manually add to give the house that little bit of extra heat.`;
+                  ? `<b>Tracking Fout (${nf(track,1)}°C):</b> ${_okNl}<br><br><b>Uitleg:</b> De <b>Slope</b> bepaalt hoe snel de temperatuur stijgt als het kouder wordt. De <b>Offset</b> is het vaste verschil dat je handmatig toevoegt om het huis net dat beetje extra warmte te geven.`
+                  : LANG === 'fr' ? `<b>Erreur de suivi (${nf(track,1)}°C) :</b> ${_okFr}<br><br><b>Explication :</b> La <b>Pente</b> détermine à quelle vitesse la température monte quand il fait plus froid. Le <b>Décalage</b> est la différence fixe que vous ajoutez manuellement pour donner un peu de chaleur en plus.` : `<b>Tracking Error (${nf(track,1)}°C):</b> ${_okEn}<br><br><b>Explanation:</b> The <b>Slope</b> determines how fast the temperature rises when it gets colder. The <b>Offset</b> is the fixed difference you manually add to give the house that little bit of extra heat.`;
                 return noteHelper(msg);
               }
             };
@@ -402,11 +520,13 @@ cards:
             
             var buildAdvies = function() {
               var icon = `<svg viewBox="0 0 24 24" style="width:36px;height:36px;fill:#0097E0;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
-              var adviceColor = '#0097E0';
-              var adviceBg = 'rgba(0,151,224,0.1)';
+              /* optimal = green, lower LWT = blue, raise LWT = red */
+              var adviceColor = '#2E7D32';
+              var adviceBg = 'rgba(46,125,50,0.1)';
+              icon = `<svg viewBox="0 0 24 24" style="width:36px;height:36px;fill:${adviceColor};"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`;
               
               if (delta < -0.5) {
-                adviceColor = '#2E7D32'; adviceBg = 'rgba(46,125,50,0.1)';
+                adviceColor = '#0097E0'; adviceBg = 'rgba(0,151,224,0.1)';
                 icon = `<svg viewBox="0 0 24 24" style="width:36px;height:36px;fill:${adviceColor};"><path d="M12 22l10-12H2l10 12z"/></svg>`;
               } else if (delta > 0.5) {
                 adviceColor = '#C62828'; adviceBg = 'rgba(198,40,40,0.1)';
@@ -441,15 +561,15 @@ cards:
                 <div class="lwt-cop-grid">
                   <div class="lwt-cop-item">
                     <div class="lwt-cop-lbl">${t('current_cop')}</div>
-                    <div class="lwt-cop-val" style="color:#1565C0">${currentCop > 0 ? currentCop.toFixed(2) : '—'}</div>
+                    <div class="lwt-cop-val" style="color:#1565C0">${currentCop > 0 ? currentCop.toFixed(2).replace('.', _DEC) : '—'}</div>
                   </div>
                   <div class="lwt-cop-item">
                     <div class="lwt-cop-lbl">${t('target_cop')}</div>
-                    <div class="lwt-cop-val" style="color:#2E7D32">${targetCop > 0 ? targetCop.toFixed(2) : '—'}</div>
+                    <div class="lwt-cop-val" style="color:#2E7D32">${targetCop > 0 ? targetCop.toFixed(2).replace('.', _DEC) : '—'}</div>
                   </div>
                   <div class="lwt-cop-item">
                     <div class="lwt-cop-lbl">${t('impact')}</div>
-                    <div class="lwt-cop-val" style="color:${savings >= 0 ? '#2E7D32' : '#C62828'}">${savings >= 0 ? '+' : ''}${savings.toFixed(1)}%</div>
+                    <div class="lwt-cop-val" style="color:${savings >= 0 ? '#2E7D32' : '#C62828'}">${savings >= 0 ? '+' : ''}${savings.toFixed(1).replace('.', _DEC)}%</div>
                   </div>
                 </div>
 
@@ -578,7 +698,7 @@ cards:
 
             var buildAnalyse = function() {
               var oText = offset === 0 ? t('keep_offset') : (offset > 0 ? t('increase') + ' +' + offset + '°' : t('decrease') + ' ' + offset + '°');
-              var oCol = offset === 0 ? '#2E7D32' : (offset > 0 ? '#C62828' : '#2E7D32');
+              var oCol = offset === 0 ? '#2E7D32' : (offset > 0 ? '#C62828' : '#0097E0');
               
               return `
                 <div class="lwt-card">
@@ -679,9 +799,9 @@ cards:
 
               // Scale Labels
               svg += `<text x="${pX}" y="105" font-size="9" fill="#94a3b8" font-weight="bold">${minV}°</text>`;
-              svg += `<text x="${pX + pW/4}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.25).toFixed(1)}°</text>`;
-              svg += `<text x="${pX + pW/2}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.5).toFixed(1)}°</text>`;
-              svg += `<text x="${pX + pW*0.75}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.75).toFixed(1)}°</text>`;
+              svg += `<text x="${pX + pW/4}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.25).toFixed(1).replace('.', _DEC)}°</text>`;
+              svg += `<text x="${pX + pW/2}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.5).toFixed(1).replace('.', _DEC)}°</text>`;
+              svg += `<text x="${pX + pW*0.75}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.75).toFixed(1).replace('.', _DEC)}°</text>`;
               svg += `<text x="${pX + pW}" y="105" font-size="9" fill="#94a3b8" text-anchor="end" font-weight="bold">${maxV}°</text>`;
 
               svg += `</svg>`;
@@ -808,9 +928,26 @@ cards:
             
             out += '<div class="lwt-pop-host"></div>';
             out += '</div>';
+            /* a pop-up that was open before this re-render: show it again
+               (fresh values) for the rest of its time */
+            var _open = window.__lwtOpenPop;
+            if (_open && _open.until > Date.now()) {
+              var _self = this;
+              setTimeout(function(){
+                try {
+                  var _root = (_self && _self.shadowRoot) ? _self.shadowRoot : null;
+                  var _hub = _root ? _root.querySelector('.lwt-hub') : null;
+                  var _el = _hub ? _hub.querySelector('[data-ev-pid="' + _open.pid + '"]') : null;
+                  if (_hub && _el && !_hub.querySelector('.lwt-pop')) {
+                    window.__lwtShowPop(_hub, _el, Math.max(500, _open.until - Date.now()));
+                  }
+                } catch(e) {}
+              }, 0);
+            }
             return out;
 
           } catch(err) {
             return '<div style="padding:16px;color:#C62828;font-family:monospace;font-size:12px;font-weight:bold;">⚠️ Error: ' + (err.message || err) + '</div>';
           }
+          }).call(this));
         ]]]

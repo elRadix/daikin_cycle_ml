@@ -8,9 +8,7 @@ Live COP monitoring card for Daikin Cycle ML. Radial SPF hero gauge, per-mode CO
 - [What it shows](#what-it-shows)
 - [Requirements](#requirements)
 - [Installation](#installation)
-- [Variables](#variables)
-- [Themes](#themes)
-- [Language detection](#language-detection)
+- [Variables, language and theme](#variables-language-and-theme)
 - [Section breakdown](#section-breakdown)
 - [Entity reference](#entity-reference)
 - [Custom entry names](#custom-entry-names)
@@ -44,7 +42,6 @@ Live COP monitoring card for Daikin Cycle ML. Radial SPF hero gauge, per-mode CO
 | Card | Repo | Purpose |
 |---|---|---|
 | **stack-in-card** | [custom-cards/stack-in-card](https://github.com/custom-cards/stack-in-card) | Outer container |
-| **mushroom-template-card** | [piitaya/lovelace-mushroom](https://github.com/piitaya/lovelace-mushroom) | Header with icon + title |
 | **button-card** | [custom-cards/button-card](https://github.com/custom-cards/button-card) | Body renderer (HTML + SVG) |
 | **card-mod** | [thomasloven/lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod) | Outer border + shadow + theme sync |
 
@@ -54,111 +51,44 @@ Live COP monitoring card for Daikin Cycle ML. Radial SPF hero gauge, per-mode CO
 
 ## Installation
 
-1. Install the 4 HACS frontend cards (see above).
+1. Install the 3 HACS frontend cards (see above).
 2. Restart Home Assistant.
 3. Hard-refresh browser (`Ctrl`+`Shift`+`R`).
 4. Open Lovelace → Edit dashboard → `+ Add Card` → Manual.
 5. Open `cop-energy.yaml` (click **Raw** → copy, or right-click → **Save link as**) and copy the entire YAML.
 6. Paste it into the manual card editor.
-7. *(Optional)* Add a `variables:` block at the top — see [Variables](#variables).
+7. *(Optional)* Edit the `variables:` in the header — see [Variables, language and theme](#variables-language-and-theme).
 8. Save.
 
 The card auto-detects your HP model, HA language, and entity names. No manual entity-ID edits required if your integration uses the default prefix.
 
 ---
 
-## Variables
+## Variables, language and theme
 
-All variables are optional. Add them at the top of the YAML, before `type:`:
+The variables are in the header of the card (the first button-card,
+`variables: &dcm`); the other parts of the card reuse them with
+`variables: *dcm`. Edit them there; a `variables:` block on the outer
+`stack-in-card` has no effect.
 
-```yaml
-type: custom:stack-in-card
-variables:
-  theme_override: light
-  lang_override: ''
-```
+    - type: custom:button-card
+      variables: &dcm
+        lang_override: ''
+        theme_override: auto
+        show_help: true
 
-| Variable | Type | Default | Description |
+| Variable | Default | Values | Effect |
 |---|---|---|---|
-| `theme_override` | string | `light` | Force theme: `light`, `dark`, or `auto` (follows OS) |
-| `lang_override` | string | `''` | Force language: empty (auto from HA), `en`, or `nl` |
+| `lang_override` | `''` | `''`, `en`, `nl`, `fr` | Force the language; empty = HA UI language, then the integration language, then English |
+| `theme_override` | `auto` | `auto`, `light`, `dark` | `auto` follows the Home Assistant dark mode |
+| `show_help` | `true` | `true`, `false` | Show the hint / explanation notes |
 
-### Examples
-
-**Dark theme:**
-```yaml
-type: custom:stack-in-card
-variables:
-  theme_override: dark
-```
-
-**Force English labels:**
-```yaml
-type: custom:stack-in-card
-variables:
-  lang_override: en
-```
-
-**Both:**
-```yaml
-type: custom:stack-in-card
-variables:
-  theme_override: dark
-  lang_override: en
-```
-
----
-
-## Themes
-
-### Light (default)
-
-| Property | Value |
-|---|---|
-| **Background** | Soft blue radial `#F5FAFE` → `#DCEBFA` |
-| **Primary text** | `#000000` (pure black) |
-| **Secondary text**| `#444444` |
-| **Border** | 3px solid `#1976D2` |
-
-### Dark (opt-in)
-*Set `theme_override: dark` in variables.*
-
-| Property | Value |
-|---|---|
-| **Background** | Deep navy radial `#001B3D` → `#005a9c` |
-| **Primary text** | `#FFFFFF` (pure white) |
-| **Secondary text**| `#B0C4DE` |
-| **Border** | 3px solid `#00A0E9` |
-
-> The `data-dk-theme` attribute is set on `<html>` by the card's JS, so outer `card-mod` rules match the inner palette immediately — no flash of wrong theme on load.
-
-### Auto
-Set `theme_override: auto` to follow `prefers-color-scheme` and HA's `themes.darkMode` setting.
-
----
-
-## Language detection
-
-**Priority order:**
-1. `variables.lang_override` (if `en` or `nl`)
-2. `hass.language` (starts with `nl` → Dutch)
-3. Default: `en`
-
-| EN | NL (Dutch Translation) |
-|---|---|
-| HEATING | VERWARMING |
-| COOLING | KOELING |
-| RUNNING | ACTIEF |
-| STANDBY | STANDBY |
-| Compressor off | Compressor uit |
-| Last | Laatste |
-| ENERGY TODAY | ENERGIE VANDAAG |
-| THERMAL SPLIT | VERDELING THERMISCH |
-| ELECTRICAL | ELEKTRISCH |
-| THERMAL | THERMISCH |
-| IN | IN |
-| OUT | UIT |
-| vs datasheet | vs datablad |
+Language: English, Dutch or French; without `lang_override` the HA UI
+language, then the integration language (`configured_language`), then
+English. Numbers use the decimal separator of your HA number format.
+Theme: one palette for all cards, dark backgrounds and light text in dark
+mode. The header shows the heat pump model, family and power. Details:
+[shared card settings](../README.md).
 
 ---
 

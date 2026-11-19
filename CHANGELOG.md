@@ -16,6 +16,21 @@
 - One-time migration v32 rebuilds runs lost on an HA restart before #417
   from the COP samples between stored cycles (`is_reconstructed = 1`) and
   re-rolls those days (#419)
+- Documentation index `docs/README.md`: common questions mapped to the
+  right page, and every guide, reference page and data file described;
+  linked from the README (#427)
+- All dashboard cards unified (#427):
+  - one header on every card with the heat pump model, family, power and
+    refrigerant (button-card; mushroom-template-card is no longer needed)
+  - one `variables:` block in the header, reused by every part of the
+    card: `lang_override`, `theme_override`, `show_help` (+ the card's
+    own). Variables on the outer stack-in-card never reached the cards,
+    so `lang_override`, `default_tab` etc. had no effect before
+  - one language rule (override, HA UI language, integration language,
+    English) and one palette with dark mode for all cards
+  - shared code in `tools/card_common.js`, copied into every card by
+    `tools/sync_card_common.py`; `dashboard/cards/README.md` documents
+    the shared settings, every card folder has a CHANGELOG
 
 ### Changed
 - ESPAltherma v2 side names: v2 publishes a name that exists on both
@@ -38,6 +53,45 @@
   catalog snapshot includes the DIII `E0:` / `63:` and `RAM:` values (#423)
 
 ### Fixed
+- Heating curve and LWT cards went empty while DHW (or the backup
+  heater) ran: the advice is still suppressed, but the measured buckets
+  and LWT values of the last computation are kept, and `suppressed_by`
+  is also set for DHW (#427)
+- Heating curve card: buckets are points only (no halo bubbles), the
+  live point blinks (#427)
+- Pattern analysis card: the first tab could be highlighted while
+  another tab was shown; clicks are now taken from the clicked element
+  and the tab is kept per card (#427)
+- LWT fine-tuning card: a state change no longer jumps back to the
+  first tab or closes an open pop-up (the card re-renders on every state
+  change); colours now read optimal = green, lower LWT = blue, raise LWT
+  = red (#427)
+- Sensor `daily_summary_recent` now exposes `events_by_day` (real
+  defrost events and BUH minutes per day, #400). The coordinator built it
+  but the sensor never published it, so the event charts of the cards fell
+  back to "cycles with a defrost" (#427)
+- Dashboard cards checked against the states the integration writes, in
+  English, Dutch and French (#427):
+  - simple-card: ΔT of the last cycle was always "—" (read `avg_dt_k`
+    instead of `dt_avg_k`); "Q" and "Quality" now show today's quality
+    score instead of the share of good cycles; cycle state, mode and
+    heating-curve advice are translated (were `running` / `heating` /
+    `keep`); the last-cycle header shows its score when there is no
+    cluster
+  - daily-summary: was always Dutch; it now follows the integration
+    language (or `LANG_OVERRIDE`), has French, a translated header, full
+    mode labels instead of "Verwa" / "Heati", and per-day defrost events
+    from `events_by_day`
+  - pattern-analysis: durations read "1u48" in every language ("1h48"
+    outside Dutch); the distribution buckets were Dutch in English; the
+    COP tab section titles and mode labels are translated
+  - daily-summary-tabbed: "cycli" in English, untranslated Today tiles
+    in French
+  - LWT fine-tuning: "very reliable" in French; the tracking error said
+    "very good" when there is no data yet
+  - heating-curve: the advice state is translated; cop-energy: "Flow"
+  - all cards: numbers use the decimal separator of the Home Assistant
+    number format (`5.27` in English, `5,27` in Dutch and French)
 - Installations without a DHW tank logged every cycle as heating,
   cooling included: cooling runs are now classified as cooling (#413)
 - Operation modes `Auto Cool`, `Cooling Storage`, `Auto Heat` and
@@ -114,6 +168,16 @@
 - `tests/test_423_data_polish.py`: "0" / "1" as numbers (monolithic and
   v2), dT and COP-sample LWT from R1T, `learned_thresholds` state, log on
   change, alias copies, catalog HaSensor tables, the bounded write
+- `tests/test_427_lwt_card_state.py`: LWT card under Node: tab kept
+  over re-renders, open pop-up shown again, stable pop-up ids, colours
+- `tests/test_427_cards_live_states.py`: every card rendered under Node
+  in EN / NL / FR from `tests/fixtures/card_states_427.json` (states of
+  the real integration after ~38 h of simulated operation; opt-in
+  generator in the same file): no errors, no words of another language,
+  decimal separator, the data fixes above, `events_by_day` in the sensor
+  ; plus the shared header with the model in every card and language,
+  dark mode without light backgrounds, the shared block in sync, heating
+  curve points and DHW rendering, per-card clicks in pattern analysis
 
 ## [1.23.3] - 2026-11-18
 

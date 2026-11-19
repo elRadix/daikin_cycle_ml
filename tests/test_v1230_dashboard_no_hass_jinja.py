@@ -40,11 +40,14 @@ def test_no_jinja_hass_reference_in_dashboard_cards():
 
 
 def test_daily_summary_tabbed_uses_configured_language():
-    """#322: template must fall back to configured_language, not hass."""
+    """#322: the language falls back to configured_language, not Jinja hass.
+
+    #427: the headers are no longer Jinja; every card carries the shared
+    DCM block (tools/card_common.js), which reads configured_language from
+    the cycle-state sensor after lang_override and the HA language.
+    """
     src = Path(
         "dashboard/cards/daily-summary-tabbed/daily-summary-tabbed.yaml"
     ).read_text()
-    assert (
-        "{% set l = state_attr(ns.state, 'configured_language') or 'en' -%}"
-        in src
-    ), "daily-summary-tabbed template not updated"
+    assert "{%" not in src and "{{" not in src
+    assert "var cl = String(csA.configured_language || '').toLowerCase();" in src

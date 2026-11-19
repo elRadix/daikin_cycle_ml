@@ -119,7 +119,7 @@ Four-tab advisor: **Advice** (Lower/Raise/Optimal + COP impact), **Buckets** (in
 | [![Daikin Cycle ML - Simple Card](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/simple-card/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/simple-card) | [![Daikin Cycle ML - Heating Curve](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/heating-curve/preview.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/heating-curve) | [![Daikin Cycle ML - Daily Summary](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daily-summary) | [![Daikin Cycle ML - COP & Energie](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/cop-energy/showcase.png)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/cop-energy) | [![Daikin Cycle ML - Pattern Analysis](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/pattern-analysis/showcase.gif)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/pattern-analysis) | [![Daikin Cycle ML - LWT Fine-Tuning](https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/lwt-fine-tuning/showcase.gif)](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/lwt-fine-tuning) |
 | *One-glance overview* | *LWT vs outdoor* | *8-day cycle history* | *Live COP + SPF gauge* | *Distribution / Scatter / COP* | *4-tab LWT advisor* |
 
-*All Lovelace dashboard cards — see [dashboard/](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard) for installation.*
+*All Lovelace dashboard cards — see [dashboard/](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard) for installation. Every card shows your heat pump model in the header, speaks English, Dutch and French, and has a dark mode ([shared card settings](https://github.com/elRadix/daikin_cycle_ml/blob/main/dashboard/cards/README.md)).*
 
 ---
 
@@ -195,7 +195,7 @@ The new `sensor.daikin_cycle_ml_electrical_power_estimated` shows the live estim
 
 ## Documentation
 
-Complete, per-topic guides are in `docs/`:
+Complete, per-topic guides are in `docs/`. **Start at the [documentation index](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/README.md)**: it maps common questions to the right page and describes every guide, reference page and data file.
 
 | Doc | What it covers |
 |---|---|

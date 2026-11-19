@@ -2,30 +2,115 @@ type: custom:stack-in-card
 card_mod:
   style: |
     ha-card {
-      border: 3px solid #0097E0;
+      border: 2px solid #0097E0;
       border-radius: 16px;
-      background: linear-gradient(180deg, #F5FAFD 0%, #E6F4FB 50%, #D6ECF7 100%);
-      box-shadow: 0 8px 24px rgba(0, 151, 224, 0.25);
+      background: var(--ha-card-background, var(--card-background-color, #FFFFFF));
+      box-shadow: 0 8px 24px rgba(0, 151, 224, 0.18);
       overflow: visible;
     }
 cards:
-  - type: custom:mushroom-template-card
-    primary: 📅 DAIKIN CYCLE ML — SUMMARY
-    secondary: Cycli · duur · kwaliteit · events
-    icon: mdi:calendar-range
-    icon_color: blue
-    multiline_secondary: true
-    card_mod:
-      style: >
-        ha-card { background: linear-gradient(135deg,#E3F2FD 0%,#BBDEFB 100%) !important; box-shadow: none; border-bottom: 3px solid #0097E0; border-radius: 0; padding: 12px 16px; }
-
-        .primary { color: #0D47A1 !important; font-weight: 900 !important;
-        font-size: 1.1em !important; text-transform: uppercase; letter-spacing:
-        0.8px; }
-
-        .secondary { color: #1565C0 !important; font-size: 0.9em !important;
-        font-weight: 800 !important; }
+  # --- HEADER: the same for every Daikin Cycle ML card (#427) ---
   - type: custom:button-card
+    variables: &dcm
+      lang_override: ''         # '' = auto (HA language, then integration language) | en | nl | fr
+      theme_override: auto      # auto (follows the HA dark mode) | light | dark
+      show_help: true           # false = hide the explanation notes
+    show_name: false
+    show_icon: false
+    triggers_update: all
+    styles:
+      card:
+        - background: none
+        - box-shadow: none
+        - border: none
+        - border-radius: 14px 14px 0 0
+        - padding: 0
+      grid:
+        - grid-template-areas: '"content"'
+        - grid-template-columns: 1fr
+      custom_fields:
+        content:
+          - width: 100%
+    custom_fields:
+      content: |
+        [[[
+          /* DCM-COMMON-BEGIN (#427) shared by every Daikin Cycle ML card: language, theme, header.
+             Do not edit in a card: edit tools/card_common.js and run tools/sync_card_common.py */
+          var DCM = (function () {
+            var V = (typeof variables !== 'undefined' && variables) ? variables : {};
+            var H = (typeof hass !== 'undefined' && hass) ? hass : {};
+            var S = (typeof states !== 'undefined' && states) ? states : {};
+            var find = function (tk, sfx) {
+              var ids = Object.keys(S), i, j, k, E = H.entities || {};
+              for (i = 0; i < ids.length; i++) {
+                if (ids[i].indexOf('sensor.') !== 0) continue;
+                for (j = 0; j < sfx.length; j++) { if (ids[i].slice(-sfx[j].length - 1) === '_' + sfx[j]) return ids[i]; }
+              }
+              for (k in E) { if (E[k] && E[k].platform === 'daikin_cycle_ml' && E[k].translation_key === tk && S[k]) return k; }
+              return null;
+            };
+            var A = function (id) { return (id && S[id] && S[id].attributes) ? S[id].attributes : {}; };
+            var csA = A(find('cycle_state', ['cycle_state', 'cyclus_status', 'etat_du_cycle']));
+            var spA = A(find('hp_specs', ['hp_specs', 'wp_specs', 'caracteristiques_de_la_pac']));
+            /* language: lang_override, then the HA language, then the integration language, then English */
+            var LS = ['en', 'nl', 'fr'];
+            var ov = String(V.lang_override || '').toLowerCase();
+            var ha = String(H.language || '').toLowerCase().slice(0, 2);
+            var cl = String(csA.configured_language || '').toLowerCase();
+            var lang = LS.indexOf(ov) >= 0 ? ov : (LS.indexOf(ha) >= 0 ? ha : (LS.indexOf(cl) >= 0 ? cl : 'en'));
+            /* theme: auto follows the HA dark mode; light / dark force it */
+            var th = String(V.theme_override || 'auto').toLowerCase();
+            var dark = th === 'dark' ? true : (th === 'light' ? false : !!(H.themes && H.themes.darkMode));
+            var P = dark
+              ? { bg: '#1B1F24', bg2: '#232A33', bg3: '#1E3448', hd1: '#1E3448', hd2: '#15283A', text: '#E6F0FA', text2: '#90CAF9',
+                  muted: '#B0BEC5', border: 'rgba(79,195,247,0.35)', accent: '#4FC3F7', good: '#66BB6A', warn: '#FFA726', bad: '#EF5350' }
+              : { bg: '#FFFFFF', bg2: '#F5FAFD', bg3: '#E3F2FD', hd1: '#E3F2FD', hd2: '#BBDEFB', text: '#0D47A1', text2: '#1565C0',
+                  muted: '#546E7A', border: 'rgba(0,151,224,0.25)', accent: '#0097E0', good: '#2E7D32', warn: '#E65100', bad: '#C62828' };
+            /* light colours of the cards -> dark mode (light backgrounds dark, dark text light) */
+            var MAP = {
+              '#FFFFFF': P.bg, '#F5FAFD': P.bg2, '#F5FAFE': P.bg2, '#E6F4FB': P.bg2, '#E8F2FB': P.bg2, '#EAF2F8': P.bg2,
+              '#E3F2FD': P.bg3, '#D6ECF7': P.bg3, '#DCEBFA': P.bg3, '#BBDEFB': '#1F4A6B', '#D6EAF8': P.bg3, '#E1F5FE': P.bg3, '#AED6F1': '#1F4A6B',
+              '#FFF3E0': '#3A2A12', '#FFF8EC': '#3A2A12', '#FDEAD0': '#3A2A12', '#FFEBEE': '#3A1D1D', '#FDECEA': '#3A1D1D', '#FBD0C8': '#3A1D1D',
+              '#E8F5E9': '#1C3324', '#EAFAF1': '#1C3324', '#D5F5E3': '#1C3324', '#F3E5F5': '#2E2236',
+              '#0D47A1': P.text, '#003366': P.text, '#001B3D': P.text, '#003A70': P.text, '#00539F': '#BBDEFB', '#005A9C': '#BBDEFB',
+              '#1565C0': P.text2, '#1976D2': '#64B5F6', '#546E7A': P.muted, '#5D6D7E': P.muted, '#7F8C8D': '#9EADB5', '#95A5A6': '#9EADB5',
+              '#37474F': '#CFD8DC', '#444444': '#CFD8DC', '#000000': '#ECEFF1', '#94A3B8': '#78909C', '#6A1B9A': '#CE93D8',
+              '#2E7D32': '#4CAF50', '#1E8449': '#81C784', '#C62828': '#E53935', '#E65100': '#FB8C00', '#7D4F00': '#FFCC80',
+              '#8B1A1A': '#EF9A9A', '#7A0008': '#EF9A9A'
+            };
+            var paint = function (html) {
+              if (!dark || typeof html !== 'string') return html;
+              return html
+                .replace(/(background(?:-color)?\s*:\s*)(#fff\b|white\b)/gi, '$1' + P.bg)
+                .replace(/(<(?:rect|circle|ellipse|path)\b[^>]*?\sfill=")(white|#fff|#ffffff)(")/gi, '$1' + P.bg2 + '$3')
+                .replace(/rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*([0-9.]+)\s*\)/g, function (m, a) { return 'rgba(255,255,255,' + Math.min(0.08, parseFloat(a) * 0.1).toFixed(3) + ')'; })
+                .replace(/#[0-9a-fA-F]{6}\b/g, function (m) { return MAP[m.toUpperCase()] || m; });
+            };
+            var T3 = function (o) { return (o && typeof o === 'object') ? (o[lang] || o.en || '') : String(o || ''); };
+            var model = spA.model ? String(spA.model).toUpperCase() : '';
+            var meta = [spA.family, spA.kw ? spA.kw + ' kW' : '', spA.refrigerant].filter(function (x) { return x && String(x) !== 'None'; }).join(' · ');
+            /* one header for every card: icon, title + model, subtitle + family / kW / refrigerant */
+            var header = function (icon, title, sub) {
+              return '<div class="dcm-header" style="display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;padding:14px 16px;'
+                + 'border-radius:14px 14px 0 0;background:linear-gradient(135deg,' + P.hd1 + ' 0%,' + P.hd2 + ' 100%);border-bottom:3px solid ' + P.accent + ';text-align:left;">'
+                + '<div style="background:' + P.accent + ';width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;'
+                + 'font-size:20px;line-height:1;flex-shrink:0;box-shadow:0 4px 10px rgba(0,151,224,0.3);">' + icon + '</div>'
+                + '<div style="min-width:0;flex:1;">'
+                + '<div style="font-size:1.05em;font-weight:900;color:' + P.text + ';text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+                + T3(title) + (model ? ' · ' + model : '') + '</div>'
+                + '<div style="font-size:0.82em;font-weight:800;color:' + P.text2 + ';white-space:normal;">' + T3(sub) + (meta ? ' · ' + meta : '') + '</div>'
+                + '</div></div>';
+            };
+            return { lang: lang, dark: dark, P: P, paint: paint, header: header, T3: T3, V: V, model: model,
+                     showHelp: V.show_help !== false && V.show_hints !== false };
+          })();
+          /* DCM-COMMON-END */
+          return DCM.header("📅",
+            {en: "Summary", nl: "Samenvatting", fr: "Résumé"},
+            {en: "Cycles · duration · quality · events", nl: "Cycli · duur · kwaliteit · events", fr: "Cycles · durée · qualité · événements"});
+        ]]]
+  - type: custom:button-card
+    variables: *dcm
     show_name: false
     show_icon: false
     styles:
@@ -46,6 +131,79 @@ cards:
     custom_fields:
       content: |
         [[[
+          /* DCM-COMMON-BEGIN (#427) shared by every Daikin Cycle ML card: language, theme, header.
+             Do not edit in a card: edit tools/card_common.js and run tools/sync_card_common.py */
+          var DCM = (function () {
+            var V = (typeof variables !== 'undefined' && variables) ? variables : {};
+            var H = (typeof hass !== 'undefined' && hass) ? hass : {};
+            var S = (typeof states !== 'undefined' && states) ? states : {};
+            var find = function (tk, sfx) {
+              var ids = Object.keys(S), i, j, k, E = H.entities || {};
+              for (i = 0; i < ids.length; i++) {
+                if (ids[i].indexOf('sensor.') !== 0) continue;
+                for (j = 0; j < sfx.length; j++) { if (ids[i].slice(-sfx[j].length - 1) === '_' + sfx[j]) return ids[i]; }
+              }
+              for (k in E) { if (E[k] && E[k].platform === 'daikin_cycle_ml' && E[k].translation_key === tk && S[k]) return k; }
+              return null;
+            };
+            var A = function (id) { return (id && S[id] && S[id].attributes) ? S[id].attributes : {}; };
+            var csA = A(find('cycle_state', ['cycle_state', 'cyclus_status', 'etat_du_cycle']));
+            var spA = A(find('hp_specs', ['hp_specs', 'wp_specs', 'caracteristiques_de_la_pac']));
+            /* language: lang_override, then the HA language, then the integration language, then English */
+            var LS = ['en', 'nl', 'fr'];
+            var ov = String(V.lang_override || '').toLowerCase();
+            var ha = String(H.language || '').toLowerCase().slice(0, 2);
+            var cl = String(csA.configured_language || '').toLowerCase();
+            var lang = LS.indexOf(ov) >= 0 ? ov : (LS.indexOf(ha) >= 0 ? ha : (LS.indexOf(cl) >= 0 ? cl : 'en'));
+            /* theme: auto follows the HA dark mode; light / dark force it */
+            var th = String(V.theme_override || 'auto').toLowerCase();
+            var dark = th === 'dark' ? true : (th === 'light' ? false : !!(H.themes && H.themes.darkMode));
+            var P = dark
+              ? { bg: '#1B1F24', bg2: '#232A33', bg3: '#1E3448', hd1: '#1E3448', hd2: '#15283A', text: '#E6F0FA', text2: '#90CAF9',
+                  muted: '#B0BEC5', border: 'rgba(79,195,247,0.35)', accent: '#4FC3F7', good: '#66BB6A', warn: '#FFA726', bad: '#EF5350' }
+              : { bg: '#FFFFFF', bg2: '#F5FAFD', bg3: '#E3F2FD', hd1: '#E3F2FD', hd2: '#BBDEFB', text: '#0D47A1', text2: '#1565C0',
+                  muted: '#546E7A', border: 'rgba(0,151,224,0.25)', accent: '#0097E0', good: '#2E7D32', warn: '#E65100', bad: '#C62828' };
+            /* light colours of the cards -> dark mode (light backgrounds dark, dark text light) */
+            var MAP = {
+              '#FFFFFF': P.bg, '#F5FAFD': P.bg2, '#F5FAFE': P.bg2, '#E6F4FB': P.bg2, '#E8F2FB': P.bg2, '#EAF2F8': P.bg2,
+              '#E3F2FD': P.bg3, '#D6ECF7': P.bg3, '#DCEBFA': P.bg3, '#BBDEFB': '#1F4A6B', '#D6EAF8': P.bg3, '#E1F5FE': P.bg3, '#AED6F1': '#1F4A6B',
+              '#FFF3E0': '#3A2A12', '#FFF8EC': '#3A2A12', '#FDEAD0': '#3A2A12', '#FFEBEE': '#3A1D1D', '#FDECEA': '#3A1D1D', '#FBD0C8': '#3A1D1D',
+              '#E8F5E9': '#1C3324', '#EAFAF1': '#1C3324', '#D5F5E3': '#1C3324', '#F3E5F5': '#2E2236',
+              '#0D47A1': P.text, '#003366': P.text, '#001B3D': P.text, '#003A70': P.text, '#00539F': '#BBDEFB', '#005A9C': '#BBDEFB',
+              '#1565C0': P.text2, '#1976D2': '#64B5F6', '#546E7A': P.muted, '#5D6D7E': P.muted, '#7F8C8D': '#9EADB5', '#95A5A6': '#9EADB5',
+              '#37474F': '#CFD8DC', '#444444': '#CFD8DC', '#000000': '#ECEFF1', '#94A3B8': '#78909C', '#6A1B9A': '#CE93D8',
+              '#2E7D32': '#4CAF50', '#1E8449': '#81C784', '#C62828': '#E53935', '#E65100': '#FB8C00', '#7D4F00': '#FFCC80',
+              '#8B1A1A': '#EF9A9A', '#7A0008': '#EF9A9A'
+            };
+            var paint = function (html) {
+              if (!dark || typeof html !== 'string') return html;
+              return html
+                .replace(/(background(?:-color)?\s*:\s*)(#fff\b|white\b)/gi, '$1' + P.bg)
+                .replace(/(<(?:rect|circle|ellipse|path)\b[^>]*?\sfill=")(white|#fff|#ffffff)(")/gi, '$1' + P.bg2 + '$3')
+                .replace(/rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*([0-9.]+)\s*\)/g, function (m, a) { return 'rgba(255,255,255,' + Math.min(0.08, parseFloat(a) * 0.1).toFixed(3) + ')'; })
+                .replace(/#[0-9a-fA-F]{6}\b/g, function (m) { return MAP[m.toUpperCase()] || m; });
+            };
+            var T3 = function (o) { return (o && typeof o === 'object') ? (o[lang] || o.en || '') : String(o || ''); };
+            var model = spA.model ? String(spA.model).toUpperCase() : '';
+            var meta = [spA.family, spA.kw ? spA.kw + ' kW' : '', spA.refrigerant].filter(function (x) { return x && String(x) !== 'None'; }).join(' · ');
+            /* one header for every card: icon, title + model, subtitle + family / kW / refrigerant */
+            var header = function (icon, title, sub) {
+              return '<div class="dcm-header" style="display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;padding:14px 16px;'
+                + 'border-radius:14px 14px 0 0;background:linear-gradient(135deg,' + P.hd1 + ' 0%,' + P.hd2 + ' 100%);border-bottom:3px solid ' + P.accent + ';text-align:left;">'
+                + '<div style="background:' + P.accent + ';width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;'
+                + 'font-size:20px;line-height:1;flex-shrink:0;box-shadow:0 4px 10px rgba(0,151,224,0.3);">' + icon + '</div>'
+                + '<div style="min-width:0;flex:1;">'
+                + '<div style="font-size:1.05em;font-weight:900;color:' + P.text + ';text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+                + T3(title) + (model ? ' · ' + model : '') + '</div>'
+                + '<div style="font-size:0.82em;font-weight:800;color:' + P.text2 + ';white-space:normal;">' + T3(sub) + (meta ? ' · ' + meta : '') + '</div>'
+                + '</div></div>';
+            };
+            return { lang: lang, dark: dark, P: P, paint: paint, header: header, T3: T3, V: V, model: model,
+                     showHelp: V.show_help !== false && V.show_hints !== false };
+          })();
+          /* DCM-COMMON-END */
+          return DCM.paint((function () {
+          var _DEC = (function(){ try { var _lc = (typeof hass !== 'undefined' && hass && hass.locale) ? hass.locale : {}; var _nf = _lc.number_format; if (_nf === 'comma_decimal' || _nf === 'none') return '.'; if (_nf === 'decimal_comma' || _nf === 'space_comma') return ','; var _l = String(_lc.language || (typeof hass !== 'undefined' && hass && hass.language) || 'en'); return (1.5).toLocaleString(_l).indexOf(',') >= 0 ? ',' : '.'; } catch (e) { return '.'; } })(); /* #427: decimal separator from the HA number format */
           /* #347 entity resolver (EN id -> [translation_key, nl, fr]) */
           var _dcmA = {"sensor.daikin_cycle_ml_daily_summary_recent":["daily_summary_recent","daikin_cycle_ml_recent_dagoverzicht","daikin_cycle_ml_resume_des_derniers_jours"],"sensor.daikin_cycle_ml_hp_specs":["hp_specs","daikin_cycle_ml_wp_specs","daikin_cycle_ml_caracteristiques_de_la_pac"]};
           var _dcmC = {};
@@ -54,7 +212,7 @@ cards:
             /* ============================================================
                LANGUAGE
                ============================================================ */
-            var LANG = 'nl';
+            var LANG = DCM.lang; /* #427: lang_override, HA language, integration language */
 
             /* ============================================================
                i18n
@@ -80,7 +238,8 @@ cards:
                 tooltip_defrost: 'Defrost',
                 avg: 'gem', spark_quality: 'Kwaliteit',
                 spark_cycles: 'Cycli/dag', spark_duration: 'Duur/dag',
-                q_good: 'Goed ≥70', q_mid: 'Midden 40-70', q_low: 'Laag <40'
+                q_good: 'Goed ≥70', q_mid: 'Midden 40-70', q_low: 'Laag <40',
+                heat_short: 'Verw.', cool_short: 'Koel', per_day_short: '/d'
               },
               en: {
                 summary: 'SUMMARY', days: 'days', cycles: 'cycles',
@@ -102,11 +261,35 @@ cards:
                 tooltip_defrost: 'Defrost',
                 avg: 'avg', spark_quality: 'Quality',
                 spark_cycles: 'Cycles/day', spark_duration: 'Duration/day',
-                q_good: 'Good ≥70', q_mid: 'Mid 40-70', q_low: 'Low <40'
+                q_good: 'Good ≥70', q_mid: 'Mid 40-70', q_low: 'Low <40',
+                heat_short: 'Heat', cool_short: 'Cool', per_day_short: '/d'
+              },
+              fr: {
+                summary: 'RÉSUMÉ', days: 'jours', cycles: 'cycles',
+                quality: 'QUAL', heating: 'Chauffage', dhw: 'ECS', cooling: 'Froid',
+                best_day: 'Meilleur jour', worst_day: 'Pire jour',
+                sparklines: 'Tendances', quality_chart: 'Qualité par jour',
+                cycles_chart: 'Cycles par jour', duration_chart: 'Durée par jour',
+                events_chart: 'Événements par jour', events: 'Événements',
+                clipped: 'tronqué', total: 'total', cap: 'max',
+                today: 'aujourd\'hui', yesterday: 'hier', days_ago: ' j avant',
+                future: 'futur', no_data: 'Pas de données',
+                legend_heat: 'Chauffage', legend_dhw: 'ECS',
+                legend_cool: 'Froid', legend_gem_line: 'moy.',
+                legend_buh: 'Appoint', legend_defrost: 'Dégivrage',
+                outlier_warn: 'jour >24 h — vérifier les données',
+                threshold_legend: 'seuil',
+                tooltip_heating: 'Chauffage', tooltip_dhw: 'ECS',
+                tooltip_cooling: 'Froid', tooltip_buh: 'Appoint',
+                tooltip_defrost: 'Dégivrage',
+                avg: 'moy.', spark_quality: 'Qualité',
+                spark_cycles: 'Cycles/jour', spark_duration: 'Durée/jour',
+                q_good: 'Bon ≥70', q_mid: 'Moyen 40-70', q_low: 'Faible <40',
+                heat_short: 'Chauf.', cool_short: 'Froid', per_day_short: '/j'
               }
             };
             var t = function(k){ return (STR[LANG] && STR[LANG][k]) || (STR.en && STR.en[k]) || k; };
-            var locale = LANG === 'nl' ? 'nl-NL' : 'en-GB';
+            var locale = LANG === 'nl' ? 'nl-NL' : (LANG === 'fr' ? 'fr-FR' : 'en-GB');
 
             /* ============================================================
                COLORS
@@ -131,8 +314,8 @@ cards:
                ============================================================ */
             var stStr = function(s,d){ if(d===undefined)d='—'; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='none'||x.state==='')return d; return x.state; };
             var hasV = function(v){ return v!==null && v!==undefined && v!=='' && String(v)!=='None' && String(v)!=='unknown' && String(v)!=='unavailable'; };
-            var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.',','); };
-            var v2 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(2).replace('.',','); };
+            var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.', _DEC); };
+            var v2 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(2).replace('.', _DEC); };
             var vI = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Math.round(parseFloat(v)).toString(); };
             var attr = function(id,n,d){ try{ var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
             var aN = function(id,n,d){ var v=attr(id,n,null); if(v===null)return d; var x=parseFloat(v); return isNaN(x)?d:x; };
@@ -140,9 +323,9 @@ cards:
             var fmtBigNum = function(v){
               if(!hasV(v)||isNaN(parseFloat(v))) return '—';
               var n = Number(v); var neg = n < 0; n = Math.abs(n); var s;
-              if(n >= 1000000) s = (n/1000000).toFixed(1).replace('.',',')+'M';
+              if(n >= 1000000) s = (n/1000000).toFixed(1).replace('.', _DEC)+'M';
               else if(n >= 10000) s = Math.round(n/1000)+'k';
-              else if(n >= 1000) s = (n/1000).toFixed(1).replace('.',',')+'k';
+              else if(n >= 1000) s = (n/1000).toFixed(1).replace('.', _DEC)+'k';
               else s = String(Math.round(n));
               return neg ? '-'+s : s;
             };
@@ -152,7 +335,7 @@ cards:
               if(n >= 24*7) return Math.round(n/24)+'d';
               if(n >= 24) return Math.round(n)+'h';
               if(n >= 10) return n.toFixed(0)+'h';
-              if(n >= 1) return n.toFixed(1).replace('.',',')+'h';
+              if(n >= 1) return n.toFixed(1).replace('.', _DEC)+'h';
               return Math.round(n*60)+'m';
             };
             var fmtBigMin = function(m){
@@ -160,7 +343,7 @@ cards:
               var n = Number(m);
               if(n >= 1440) return Math.round(n/1440)+'d';
               if(n >= 120) return Math.round(n/60)+'h';
-              if(n >= 60) return (n/60).toFixed(1).replace('.',',')+'h';
+              if(n >= 60) return (n/60).toFixed(1).replace('.', _DEC)+'h';
               return Math.round(n)+'m';
             };
 
@@ -252,9 +435,18 @@ cards:
                 e.modes[mkey].dur += (rd.dur_min || 0);
               }
             }
+            /* #427: real per-day defrost events / BUH use (runtime_acc, #400),
+               the same source as the Today block; cycle counts stay the fallback */
+            var _evByDay = {};
+            try { _evByDay = (states[SUMMARY] && states[SUMMARY].attributes && states[SUMMARY].attributes.events_by_day) || {}; } catch (e) {}
             var daysArr = Object.keys(byDate).map(function(k){
               var e = byDate[k];
               e.quality_avg = e.quality_n > 0 ? e.quality_sum / e.quality_n : null;
+              var evD = _evByDay[e.day];
+              if (evD) {
+                if (hasV(evD.defrost_events) && parseFloat(evD.defrost_events) > e.defrost) e.defrost = parseFloat(evD.defrost_events);
+                if (hasV(evD.buh_min) && parseFloat(evD.buh_min) > 0 && e.buh < 1) e.buh = 1;
+              }
               return e;
             }).sort(function(a,b){ return a.day < b.day ? -1 : 1; });
 
@@ -368,7 +560,7 @@ cards:
               { title: t('spark_duration'), color: C.cooling, bg: CBG.cooling,
                 data: daysArr.map(function(d){ return d.dur_min / 60; }),
                 yMin: 0, yMax: null,
-                fmt: function(v){ return v < 10 ? v.toFixed(1).replace('.',',')+'h' : Math.round(v)+'h'; } }
+                fmt: function(v){ return v < 10 ? v.toFixed(1).replace('.', _DEC)+'h' : Math.round(v)+'h'; } }
             ];
 
             var spark = '<svg viewBox="0 0 '+sparkW+' '+sparkH+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">';
@@ -589,7 +781,7 @@ cards:
             for(var yi2 = 0; yi2 <= c2StepCount; yi2++){
               var v2h = c2StepVal * yi2;
               var yy2 = c2y(v2h);
-              var lbl = v2h < 1 ? v2h.toFixed(1).replace('.',',') : Math.round(v2h).toString();
+              var lbl = v2h < 1 ? v2h.toFixed(1).replace('.', _DEC) : Math.round(v2h).toString();
               c2 += '<line x1="'+c2PadL+'" y1="'+yy2+'" x2="'+(c2PadL+c2PlotW)+'" y2="'+yy2+'" stroke="rgba(13,71,161,0.08)" stroke-width="1"/>';
               c2 += '<text x="'+(c2PadL-4)+'" y="'+(yy2+4)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="#0D47A1">'+lbl+'h</text>';
             }
@@ -613,7 +805,7 @@ cards:
                 c2 += '<line x1="'+(x2-2)+'" y1="'+(yBase2-hCh2)+'" x2="'+(x2+c2BarW+2)+'" y2="'+(yBase2-hCh2)+'" stroke="'+QLOW+'" stroke-width="2.5"><title>'+t('clipped')+' — '+v1(hours)+'h</title></line>';
               }
               if(numDays <= 21){
-                var label = hours < 1 ? vI(hours*60)+'m' : hours.toFixed(1).replace('.',',')+'h';
+                var label = hours < 1 ? vI(hours*60)+'m' : hours.toFixed(1).replace('.', _DEC)+'h';
                 var lc = clipped ? QLOW : '#0D47A1';
                 var prefix = clipped ? '⚠' : '';
                 c2 += '<text x="'+(x2+c2BarW/2)+'" y="'+(yBase2-hCh2-6)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+lc+'">'+prefix+label+'</text>';
@@ -757,9 +949,9 @@ cards:
                   +'<div style="font-family:ui-monospace,monospace;font-size:1.05em;font-weight:900;color:'+color+';line-height:1;margin-top:2px;">'+val+'</div>'
                   +'</div>';
               };
-              if(hasHeating) r += miniTile('🔥', t('heating').substring(0,5), fmtBigNum(heating.cycles), C.heating, CBG.heating);
+              if(hasHeating) r += miniTile('🔥', t('heat_short'), fmtBigNum(heating.cycles), C.heating, CBG.heating);
               if(hasDHW) r += miniTile('🚿', t('dhw'), fmtBigNum(dhw.cycles), C.dhw, CBG.dhw);
-              if(hasCooling) r += miniTile('🧊', t('cooling').substring(0,5), fmtBigNum(cooling.cycles), C.cooling, CBG.cooling);
+              if(hasCooling) r += miniTile('🧊', t('cool_short'), fmtBigNum(cooling.cycles), C.cooling, CBG.cooling);
               r += '</div>';
             }
             if(hasOutliers){
@@ -812,7 +1004,7 @@ cards:
 
             /* ===== CYCLES CHART ===== */
             r += '<div class="d-sec">';
-            r += '<div class="d-hdr"><span>🔄 '+t('cycles_chart')+'</span><span>'+t('avg')+' '+v1(avgCyclesPerDay)+'/d</span></div>';
+            r += '<div class="d-hdr"><span>🔄 '+t('cycles_chart')+'</span><span>'+t('avg')+' '+v1(avgCyclesPerDay)+t('per_day_short')+'</span></div>';
             r += c1;
             var cyclesChips = [];
             if(hasHeating) cyclesChips.push({col:C.heating, bg:CBG.heating, label:t('legend_heat')});
@@ -851,4 +1043,5 @@ cards:
             var errMsg = (e && e.message) ? e.message : String(e);
             return '<div style="padding:16px;color:#C62828;font-family:monospace;font-weight:800;font-size:0.75em;">⚠️ Summary error: ' + errMsg + '</div>';
           }
+          }).call(this));
         ]]]
