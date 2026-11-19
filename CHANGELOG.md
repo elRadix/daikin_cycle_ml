@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.24.0] - 2026-11-19
+
 ### Added
 - ESPAltherma v2 catalog: `docs/ESPALTHERMA_V2_CATALOG.json`, a pinned
   snapshot of ESPAltherma's `data/catalog_names.txt` (the v2 MQTT keys
