@@ -610,6 +610,32 @@ def _compute_daily_summary_recent(
     }
 
 
+# #427: measured heating-curve data kept while the advice is suppressed
+# (DHW / BUH), so the cards keep showing the curve, buckets and LWT.
+_STOOKLIJN_KEEP_KEYS = (
+    "huidige_lwt", "optimale_lwt", "betrouwbaarheid", "bucket", "samples",
+    "buckets", "setpoint_lwt", "doel_setpoint", "tracking_error",
+    "comfort_cap", "slope_delta",
+)
+
+
+def _suppressed_stooklijn(
+    base: dict[str, Any], previous: Any,
+) -> dict[str, Any]:
+    """Suppressed advice ``base`` plus the measured data of ``previous``.
+
+    The advice itself (state, step, delta, savings) stays suppressed; the
+    buckets and LWT values of the last real computation are kept (#427).
+    A previous result that was itself suppressed is used as is.
+    """
+    out = dict(base)
+    if isinstance(previous, dict):
+        for key in _STOOKLIJN_KEEP_KEYS:
+            if previous.get(key) not in (None, "", {}):
+                out[key] = previous[key]
+    return out
+
+
 def _as_opt_float(v: object) -> float | None:
     """v1.19.9 R643: defensive cast to float|None.
 
@@ -3653,7 +3679,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if _buh_on:
             _cache = getattr(self, '_stooklijn_cache', {})
             if _cache.get('reason') != 'buh_active':
-                self._stooklijn_cache = {
+                self._stooklijn_cache = _suppressed_stooklijn({
                     'state': 'keep', 'reason': 'buh_active',
                     'huidige_lwt': None, 'optimale_lwt': None,
                     'besparing_cop_pct': 0.0, 'comfort_impact': 0.0,
@@ -3662,7 +3688,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     'step_c': 0, 'delta_c': 0.0, 'tracking_error': None,
                     'err_indoor': None, 'urgency': 0.0, 'comfort_cap': None,
                     'offset_delta_c': 0.0, 'slope_delta': None,
-                }
+                }, _cache)
                 self._stooklijn_cache_ts = now
             return
         # A2 (v1.22.8): BUH-off transitie -- forceer herberekening
@@ -3677,7 +3703,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             if _mode == 'dhw':
                 cache = getattr(self, '_stooklijn_cache', {})
                 if cache.get('reason') != 'dhw_active':
-                    self._stooklijn_cache = {
+                    self._stooklijn_cache = _suppressed_stooklijn({
                         'state': 'no_data',
                         'reason': 'dhw_active',
                         'huidige_lwt': None,
@@ -3696,7 +3722,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                         'err_indoor': None,
                         'urgency': 0.0,
                         'comfort_cap': None,
-                    }
+                    }, cache)
                     self._stooklijn_cache_ts = now
                 return
         cache_ts = getattr(self, '_stooklijn_cache_ts', 0.0)

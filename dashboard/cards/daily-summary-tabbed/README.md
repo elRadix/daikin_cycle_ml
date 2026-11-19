@@ -36,7 +36,6 @@ Multi-tab Lovelace dashboard card for **Daikin Cycle ML** with 5 views — Overv
 | Card | Repo | Purpose |
 |---|---|---|
 | `stack-in-card` | custom-cards/stack-in-card | Wrapper |
-| `mushroom-template-card` | piitaya/lovelace-mushroom | Header |
 | `button-card` | custom-cards/button-card | Content renderer |
 | `card-mod` | thomasloven/lovelace-card-mod | Border + shadow styling |
 
@@ -52,32 +51,44 @@ Install each via **HACS → Frontend → Explore & Download Repositories**. Rest
 4. Open **Lovelace → Edit dashboard → + Add Card → Manual**.
 5. Open [`daily-summary-tabbed.yaml`](daily-summary-tabbed.yaml) (click **Raw** → copy, or right-click → **Save link as**) and copy the entire YAML.
 6. Paste it into the manual card editor.
-7. (Optional) Add a `variables:` block at the top — see Variables section.
+7. (Optional) Edit the `variables:` in the header — see Variables, language and theme.
 8. **Save.**
 
 The card auto-detects your HP model, HA language, and entity names. No manual entity-ID edits required if your integration uses the default prefix.
 
 ---
 
-## Variables
+## Variables, language and theme
 
-All variables are optional. Add them at the **top** of the YAML, before `type:`:
+The variables are in the header of the card (the first button-card,
+`variables: &dcm`); the other parts of the card reuse them with
+`variables: *dcm`. Edit them there; a `variables:` block on the outer
+`stack-in-card` has no effect.
 
-    type: custom:stack-in-card
-    variables:
-      lang_override: ''
-      default_tab: 'overview'
-      default_window: 7
-      chart_height: 280
-      show_hints: true
+    - type: custom:button-card
+      variables: &dcm
+        lang_override: ''
+        theme_override: auto
+        show_help: true
+        default_tab: overview
+        default_window: 7
+        chart_height: 280
 
-| Variable | Type | Default | Description |
+| Variable | Default | Values | Effect |
 |---|---|---|---|
-| `lang_override` | string | '' | Force language: empty (auto), `nl`, `en` or `fr` |
-| `default_tab` | string | 'overview' | Initial tab: `overview`, `quality`, `cycles`, `duration`, `events` |
-| `default_window` | int | 7 | Initial window: 7, 15, or 30 days |
-| `chart_height` | int | 280 | Chart height in pixels |
-| `show_hints` | bool | true | Show "tap for details" hint notes |
+| `lang_override` | `''` | `''`, `en`, `nl`, `fr` | Force the language; empty = HA UI language, then the integration language, then English |
+| `theme_override` | `auto` | `auto`, `light`, `dark` | `auto` follows the Home Assistant dark mode |
+| `show_help` | `true` | `true`, `false` | Show the hint / explanation notes |
+| `default_tab` | `overview` | `overview`, `quality`, `cycles`, `duration`, `events` | Tab shown first |
+| `default_window` | `7` | `7`, `15`, `30` | Days shown first |
+| `chart_height` | `280` | pixels | Chart height |
+
+Language: English, Dutch or French; without `lang_override` the HA UI
+language, then the integration language (`configured_language`), then
+English. Numbers use the decimal separator of your HA number format.
+Theme: one palette for all cards, dark backgrounds and light text in dark
+mode. The header shows the heat pump model, family and power. Details:
+[shared card settings](../README.md).
 
 ---
 
@@ -113,19 +124,6 @@ Popup auto-dismisses after 4 seconds. Click to close immediately.
 
 ---
 
-## Language detection
-
-Priority order:
-
-1. `variables.lang_override` (if set)
-2. `hass.language` (HA UI setting)
-3. `configured_language` (integration setting)
-4. Default: `en`
-
-**Mixed system?** If HA UI is EN but entities are Dutch, force NL labels with `lang_override: 'nl'`.
-
----
-
 ## Entity compatibility
 
 The card resolves entities via suffix matching. Supported variants:
@@ -157,19 +155,18 @@ Expected: 3 entities (summary, specs, state). All 3 present = card will work.
 
 ## Customization examples
 
-Dutch labels on mixed EN UI + NL entities:
+Dutch labels, quality tab and 30 days first (in the header variables):
 
-    type: custom:stack-in-card
-    variables:
+    variables: &dcm
       lang_override: 'nl'
+      theme_override: auto
+      show_help: true
       default_tab: 'quality'
       default_window: 30
+      chart_height: 280
 
-Larger charts for tablets or wall-mounted displays:
-
-    variables:
-      chart_height: 400
-      show_hints: false
+Larger charts for tablets or wall-mounted displays, without hints:
+`chart_height: 400` and `show_help: false`.
 
 ---
 

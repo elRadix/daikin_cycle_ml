@@ -31,7 +31,6 @@ Multi-tab Lovelace dashboard card for **Daikin Cycle ML** with 3 views — Distr
 | Card | Repo | Purpose |
 |---|---|---|
 | stack-in-card | [custom-cards/stack-in-card](https://github.com/custom-cards/stack-in-card) | Wrapper |
-| mushroom-template-card | [piitaya/lovelace-mushroom](https://github.com/piitaya/lovelace-mushroom) | Header |
 | button-card | [custom-cards/button-card](https://github.com/custom-cards/button-card) | Content renderer |
 | card-mod | [thomasloven/lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod) | Border + shadow styling |
 
@@ -54,42 +53,37 @@ The card auto-detects your HP model, HA language, and entity names. No manual en
 
 ---
 
-## Variables
+## Variables, language and theme
 
-All variables are optional. Add them at the top of the YAML, before the type field:
+The variables are in the header of the card (the first button-card,
+`variables: &dcm`); the other parts of the card reuse them with
+`variables: *dcm`. Edit them there; a `variables:` block on the outer
+`stack-in-card` has no effect.
 
-    type: custom:stack-in-card
-    variables:
-      lang_override: ''
-      default_tab: 'dist'
-      default_window: 7
-      chart_height: 280
-      show_hints: true
+    - type: custom:button-card
+      variables: &dcm
+        lang_override: ''
+        theme_override: auto
+        show_help: true
+        default_tab: dist
+        default_window: 7
+        chart_height: 280
 
-| Variable | Type | Default | Description |
+| Variable | Default | Values | Effect |
 |---|---|---|---|
-| lang_override | string | (empty) | Force language: empty (auto from HA), nl, en or fr |
-| default_tab | string | dist | Initial tab on load: dist, scatter, or cop |
-| default_window | int | 7 | Initial time window: 7, 15, or 30 days |
-| chart_height | int | 280 | Chart height hint (px). SVG auto-scales to full card width |
-| show_hints | bool | true | Show the "tap for details" hint notes below each chart |
+| `lang_override` | `''` | `''`, `en`, `nl`, `fr` | Force the language; empty = HA UI language, then the integration language, then English |
+| `theme_override` | `auto` | `auto`, `light`, `dark` | `auto` follows the Home Assistant dark mode |
+| `show_help` | `true` | `true`, `false` | Show the hint / explanation notes |
+| `default_tab` | `dist` | `dist`, `scatter`, `cop` | Tab shown first; after a click the card keeps the tab you picked |
+| `default_window` | `7` | `7`, `15`, `30` | Days shown first |
+| `chart_height` | `280` | pixels | Chart height hint (the SVG scales to the card width) |
 
-### Examples
-
-**Force Dutch labels + COP tab on load:**
-
-    type: custom:stack-in-card
-    variables:
-      lang_override: 'nl'
-      default_tab: 'cop'
-      default_window: 30
-
-**Compact view without hint notes:**
-
-    type: custom:stack-in-card
-    variables:
-      show_hints: false
-      chart_height: 240
+Language: English, Dutch or French; without `lang_override` the HA UI
+language, then the integration language (`configured_language`), then
+English. Numbers use the decimal separator of your HA number format.
+Theme: one palette for all cards, dark backgrounds and light text in dark
+mode. The header shows the heat pump model, family and power. Details:
+[shared card settings](../README.md).
 
 ---
 
@@ -166,19 +160,6 @@ Contextual assessment based on prioritised checks:
 4. SPF at or above 3.5 → success
 5. COP above datasheet → success
 6. Default: "System performing normally"
-
----
-
-## Language detection
-
-**Priority order:**
-
-1. lang_override variable (if en or nl)
-2. hass.language (starts with nl → Dutch)
-3. configured_language attribute on cycle_state
-4. Default: en
-
-**Mixed system?** If HA UI is EN but your entities are Dutch, force NL labels with lang_override nl.
 
 ---
 

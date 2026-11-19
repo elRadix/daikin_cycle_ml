@@ -2,36 +2,115 @@ type: custom:stack-in-card
 card_mod:
   style: |
     ha-card {
-      border: 3px solid #0097E0;
+      border: 2px solid #0097E0;
       border-radius: 16px;
-      background: linear-gradient(180deg, #F5FAFD 0%, #E6F4FB 50%, #D6ECF7 100%);
-      box-shadow: 0 8px 24px rgba(0, 151, 224, 0.25);
-      overflow: hidden;
+      background: var(--ha-card-background, var(--card-background-color, #FFFFFF));
+      box-shadow: 0 8px 24px rgba(0, 151, 224, 0.18);
+      overflow: visible;
     }
 cards:
-  - type: custom:mushroom-template-card
-    primary: 🔵 DAIKIN CYCLE ML
-    secondary: >-
-      {% set l =
-      state_attr(((integration_entities('daikin_cycle_ml') | select('match', 'sensor[.].*_(cycle_state|cyclus_status|etat_du_cycle)$') | list) + ['sensor.daikin_cycle_ml_cycle_state']) | first,'configured_language') or
-      'en' -%} {% if l == 'nl' %}📈 Stooklijn — LWT vs buiten · heatmap · modes
-      · balans{% elif l == 'fr' %}📈 Loi d'eau — départ / extérieur · carte COP · modes · bilan{% else %}📈 Heating curve — LWT vs outdoor · heatmap · modes ·
-      balance{% endif %}
-    icon: mdi:heat-pump
-    icon_color: blue
-    multiline_secondary: true
-    card_mod:
-      style: >
-        ha-card { background: none; box-shadow: none; border-bottom: 3px solid
-        #0097E0; border-radius: 0; padding: 12px 18px; }
-
-        .primary { color: #003366 !important; font-weight: 900 !important;
-        font-size: 1.15em !important; text-transform: uppercase; letter-spacing:
-        0.6px; }
-
-        .secondary { color: #00539F !important; font-size: 0.92em !important;
-        font-weight: 700 !important; }
+  # --- HEADER: the same for every Daikin Cycle ML card (#427) ---
   - type: custom:button-card
+    variables: &dcm
+      lang_override: ''         # '' = auto (HA language, then integration language) | en | nl | fr
+      theme_override: auto      # auto (follows the HA dark mode) | light | dark
+      show_help: true           # false = hide the explanation notes
+    show_name: false
+    show_icon: false
+    triggers_update: all
+    styles:
+      card:
+        - background: none
+        - box-shadow: none
+        - border: none
+        - border-radius: 14px 14px 0 0
+        - padding: 0
+      grid:
+        - grid-template-areas: '"content"'
+        - grid-template-columns: 1fr
+      custom_fields:
+        content:
+          - width: 100%
+    custom_fields:
+      content: |
+        [[[
+          /* DCM-COMMON-BEGIN (#427) shared by every Daikin Cycle ML card: language, theme, header.
+             Do not edit in a card: edit tools/card_common.js and run tools/sync_card_common.py */
+          var DCM = (function () {
+            var V = (typeof variables !== 'undefined' && variables) ? variables : {};
+            var H = (typeof hass !== 'undefined' && hass) ? hass : {};
+            var S = (typeof states !== 'undefined' && states) ? states : {};
+            var find = function (tk, sfx) {
+              var ids = Object.keys(S), i, j, k, E = H.entities || {};
+              for (i = 0; i < ids.length; i++) {
+                if (ids[i].indexOf('sensor.') !== 0) continue;
+                for (j = 0; j < sfx.length; j++) { if (ids[i].slice(-sfx[j].length - 1) === '_' + sfx[j]) return ids[i]; }
+              }
+              for (k in E) { if (E[k] && E[k].platform === 'daikin_cycle_ml' && E[k].translation_key === tk && S[k]) return k; }
+              return null;
+            };
+            var A = function (id) { return (id && S[id] && S[id].attributes) ? S[id].attributes : {}; };
+            var csA = A(find('cycle_state', ['cycle_state', 'cyclus_status', 'etat_du_cycle']));
+            var spA = A(find('hp_specs', ['hp_specs', 'wp_specs', 'caracteristiques_de_la_pac']));
+            /* language: lang_override, then the HA language, then the integration language, then English */
+            var LS = ['en', 'nl', 'fr'];
+            var ov = String(V.lang_override || '').toLowerCase();
+            var ha = String(H.language || '').toLowerCase().slice(0, 2);
+            var cl = String(csA.configured_language || '').toLowerCase();
+            var lang = LS.indexOf(ov) >= 0 ? ov : (LS.indexOf(ha) >= 0 ? ha : (LS.indexOf(cl) >= 0 ? cl : 'en'));
+            /* theme: auto follows the HA dark mode; light / dark force it */
+            var th = String(V.theme_override || 'auto').toLowerCase();
+            var dark = th === 'dark' ? true : (th === 'light' ? false : !!(H.themes && H.themes.darkMode));
+            var P = dark
+              ? { bg: '#1B1F24', bg2: '#232A33', bg3: '#1E3448', hd1: '#1E3448', hd2: '#15283A', text: '#E6F0FA', text2: '#90CAF9',
+                  muted: '#B0BEC5', border: 'rgba(79,195,247,0.35)', accent: '#4FC3F7', good: '#66BB6A', warn: '#FFA726', bad: '#EF5350' }
+              : { bg: '#FFFFFF', bg2: '#F5FAFD', bg3: '#E3F2FD', hd1: '#E3F2FD', hd2: '#BBDEFB', text: '#0D47A1', text2: '#1565C0',
+                  muted: '#546E7A', border: 'rgba(0,151,224,0.25)', accent: '#0097E0', good: '#2E7D32', warn: '#E65100', bad: '#C62828' };
+            /* light colours of the cards -> dark mode (light backgrounds dark, dark text light) */
+            var MAP = {
+              '#FFFFFF': P.bg, '#F5FAFD': P.bg2, '#F5FAFE': P.bg2, '#E6F4FB': P.bg2, '#E8F2FB': P.bg2, '#EAF2F8': P.bg2,
+              '#E3F2FD': P.bg3, '#D6ECF7': P.bg3, '#DCEBFA': P.bg3, '#BBDEFB': '#1F4A6B', '#D6EAF8': P.bg3, '#E1F5FE': P.bg3, '#AED6F1': '#1F4A6B',
+              '#FFF3E0': '#3A2A12', '#FFF8EC': '#3A2A12', '#FDEAD0': '#3A2A12', '#FFEBEE': '#3A1D1D', '#FDECEA': '#3A1D1D', '#FBD0C8': '#3A1D1D',
+              '#E8F5E9': '#1C3324', '#EAFAF1': '#1C3324', '#D5F5E3': '#1C3324', '#F3E5F5': '#2E2236',
+              '#0D47A1': P.text, '#003366': P.text, '#001B3D': P.text, '#003A70': P.text, '#00539F': '#BBDEFB', '#005A9C': '#BBDEFB',
+              '#1565C0': P.text2, '#1976D2': '#64B5F6', '#546E7A': P.muted, '#5D6D7E': P.muted, '#7F8C8D': '#9EADB5', '#95A5A6': '#9EADB5',
+              '#37474F': '#CFD8DC', '#444444': '#CFD8DC', '#000000': '#ECEFF1', '#94A3B8': '#78909C', '#6A1B9A': '#CE93D8',
+              '#2E7D32': '#4CAF50', '#1E8449': '#81C784', '#C62828': '#E53935', '#E65100': '#FB8C00', '#7D4F00': '#FFCC80',
+              '#8B1A1A': '#EF9A9A', '#7A0008': '#EF9A9A'
+            };
+            var paint = function (html) {
+              if (!dark || typeof html !== 'string') return html;
+              return html
+                .replace(/(background(?:-color)?\s*:\s*)(#fff\b|white\b)/gi, '$1' + P.bg)
+                .replace(/(<(?:rect|circle|ellipse|path)\b[^>]*?\sfill=")(white|#fff|#ffffff)(")/gi, '$1' + P.bg2 + '$3')
+                .replace(/rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*([0-9.]+)\s*\)/g, function (m, a) { return 'rgba(255,255,255,' + Math.min(0.08, parseFloat(a) * 0.1).toFixed(3) + ')'; })
+                .replace(/#[0-9a-fA-F]{6}\b/g, function (m) { return MAP[m.toUpperCase()] || m; });
+            };
+            var T3 = function (o) { return (o && typeof o === 'object') ? (o[lang] || o.en || '') : String(o || ''); };
+            var model = spA.model ? String(spA.model).toUpperCase() : '';
+            var meta = [spA.family, spA.kw ? spA.kw + ' kW' : '', spA.refrigerant].filter(function (x) { return x && String(x) !== 'None'; }).join(' · ');
+            /* one header for every card: icon, title + model, subtitle + family / kW / refrigerant */
+            var header = function (icon, title, sub) {
+              return '<div class="dcm-header" style="display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;padding:14px 16px;'
+                + 'border-radius:14px 14px 0 0;background:linear-gradient(135deg,' + P.hd1 + ' 0%,' + P.hd2 + ' 100%);border-bottom:3px solid ' + P.accent + ';text-align:left;">'
+                + '<div style="background:' + P.accent + ';width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;'
+                + 'font-size:20px;line-height:1;flex-shrink:0;box-shadow:0 4px 10px rgba(0,151,224,0.3);">' + icon + '</div>'
+                + '<div style="min-width:0;flex:1;">'
+                + '<div style="font-size:1.05em;font-weight:900;color:' + P.text + ';text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+                + T3(title) + (model ? ' · ' + model : '') + '</div>'
+                + '<div style="font-size:0.82em;font-weight:800;color:' + P.text2 + ';white-space:normal;">' + T3(sub) + (meta ? ' · ' + meta : '') + '</div>'
+                + '</div></div>';
+            };
+            return { lang: lang, dark: dark, P: P, paint: paint, header: header, T3: T3, V: V, model: model,
+                     showHelp: V.show_help !== false && V.show_hints !== false };
+          })();
+          /* DCM-COMMON-END */
+          return DCM.header("📈",
+            {en: "Heating curve", nl: "Stooklijn", fr: "Loi d'eau"},
+            {en: "LWT vs outdoor · heatmap · modes · balance", nl: "LWT vs buiten · heatmap · modi · balans", fr: "Départ / extérieur · carte COP · modes · bilan"});
+        ]]]
+  - type: custom:button-card
+    variables: *dcm
     show_name: false
     show_icon: false
     styles:
@@ -46,6 +125,78 @@ cards:
     custom_fields:
       content: |
         [[[
+          /* DCM-COMMON-BEGIN (#427) shared by every Daikin Cycle ML card: language, theme, header.
+             Do not edit in a card: edit tools/card_common.js and run tools/sync_card_common.py */
+          var DCM = (function () {
+            var V = (typeof variables !== 'undefined' && variables) ? variables : {};
+            var H = (typeof hass !== 'undefined' && hass) ? hass : {};
+            var S = (typeof states !== 'undefined' && states) ? states : {};
+            var find = function (tk, sfx) {
+              var ids = Object.keys(S), i, j, k, E = H.entities || {};
+              for (i = 0; i < ids.length; i++) {
+                if (ids[i].indexOf('sensor.') !== 0) continue;
+                for (j = 0; j < sfx.length; j++) { if (ids[i].slice(-sfx[j].length - 1) === '_' + sfx[j]) return ids[i]; }
+              }
+              for (k in E) { if (E[k] && E[k].platform === 'daikin_cycle_ml' && E[k].translation_key === tk && S[k]) return k; }
+              return null;
+            };
+            var A = function (id) { return (id && S[id] && S[id].attributes) ? S[id].attributes : {}; };
+            var csA = A(find('cycle_state', ['cycle_state', 'cyclus_status', 'etat_du_cycle']));
+            var spA = A(find('hp_specs', ['hp_specs', 'wp_specs', 'caracteristiques_de_la_pac']));
+            /* language: lang_override, then the HA language, then the integration language, then English */
+            var LS = ['en', 'nl', 'fr'];
+            var ov = String(V.lang_override || '').toLowerCase();
+            var ha = String(H.language || '').toLowerCase().slice(0, 2);
+            var cl = String(csA.configured_language || '').toLowerCase();
+            var lang = LS.indexOf(ov) >= 0 ? ov : (LS.indexOf(ha) >= 0 ? ha : (LS.indexOf(cl) >= 0 ? cl : 'en'));
+            /* theme: auto follows the HA dark mode; light / dark force it */
+            var th = String(V.theme_override || 'auto').toLowerCase();
+            var dark = th === 'dark' ? true : (th === 'light' ? false : !!(H.themes && H.themes.darkMode));
+            var P = dark
+              ? { bg: '#1B1F24', bg2: '#232A33', bg3: '#1E3448', hd1: '#1E3448', hd2: '#15283A', text: '#E6F0FA', text2: '#90CAF9',
+                  muted: '#B0BEC5', border: 'rgba(79,195,247,0.35)', accent: '#4FC3F7', good: '#66BB6A', warn: '#FFA726', bad: '#EF5350' }
+              : { bg: '#FFFFFF', bg2: '#F5FAFD', bg3: '#E3F2FD', hd1: '#E3F2FD', hd2: '#BBDEFB', text: '#0D47A1', text2: '#1565C0',
+                  muted: '#546E7A', border: 'rgba(0,151,224,0.25)', accent: '#0097E0', good: '#2E7D32', warn: '#E65100', bad: '#C62828' };
+            /* light colours of the cards -> dark mode (light backgrounds dark, dark text light) */
+            var MAP = {
+              '#FFFFFF': P.bg, '#F5FAFD': P.bg2, '#F5FAFE': P.bg2, '#E6F4FB': P.bg2, '#E8F2FB': P.bg2, '#EAF2F8': P.bg2,
+              '#E3F2FD': P.bg3, '#D6ECF7': P.bg3, '#DCEBFA': P.bg3, '#BBDEFB': '#1F4A6B', '#D6EAF8': P.bg3, '#E1F5FE': P.bg3, '#AED6F1': '#1F4A6B',
+              '#FFF3E0': '#3A2A12', '#FFF8EC': '#3A2A12', '#FDEAD0': '#3A2A12', '#FFEBEE': '#3A1D1D', '#FDECEA': '#3A1D1D', '#FBD0C8': '#3A1D1D',
+              '#E8F5E9': '#1C3324', '#EAFAF1': '#1C3324', '#D5F5E3': '#1C3324', '#F3E5F5': '#2E2236',
+              '#0D47A1': P.text, '#003366': P.text, '#001B3D': P.text, '#003A70': P.text, '#00539F': '#BBDEFB', '#005A9C': '#BBDEFB',
+              '#1565C0': P.text2, '#1976D2': '#64B5F6', '#546E7A': P.muted, '#5D6D7E': P.muted, '#7F8C8D': '#9EADB5', '#95A5A6': '#9EADB5',
+              '#37474F': '#CFD8DC', '#444444': '#CFD8DC', '#000000': '#ECEFF1', '#94A3B8': '#78909C', '#6A1B9A': '#CE93D8',
+              '#2E7D32': '#4CAF50', '#1E8449': '#81C784', '#C62828': '#E53935', '#E65100': '#FB8C00', '#7D4F00': '#FFCC80',
+              '#8B1A1A': '#EF9A9A', '#7A0008': '#EF9A9A'
+            };
+            var paint = function (html) {
+              if (!dark || typeof html !== 'string') return html;
+              return html
+                .replace(/(background(?:-color)?\s*:\s*)(#fff\b|white\b)/gi, '$1' + P.bg)
+                .replace(/(<(?:rect|circle|ellipse|path)\b[^>]*?\sfill=")(white|#fff|#ffffff)(")/gi, '$1' + P.bg2 + '$3')
+                .replace(/rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*([0-9.]+)\s*\)/g, function (m, a) { return 'rgba(255,255,255,' + Math.min(0.08, parseFloat(a) * 0.1).toFixed(3) + ')'; })
+                .replace(/#[0-9a-fA-F]{6}\b/g, function (m) { return MAP[m.toUpperCase()] || m; });
+            };
+            var T3 = function (o) { return (o && typeof o === 'object') ? (o[lang] || o.en || '') : String(o || ''); };
+            var model = spA.model ? String(spA.model).toUpperCase() : '';
+            var meta = [spA.family, spA.kw ? spA.kw + ' kW' : '', spA.refrigerant].filter(function (x) { return x && String(x) !== 'None'; }).join(' · ');
+            /* one header for every card: icon, title + model, subtitle + family / kW / refrigerant */
+            var header = function (icon, title, sub) {
+              return '<div class="dcm-header" style="display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;padding:14px 16px;'
+                + 'border-radius:14px 14px 0 0;background:linear-gradient(135deg,' + P.hd1 + ' 0%,' + P.hd2 + ' 100%);border-bottom:3px solid ' + P.accent + ';text-align:left;">'
+                + '<div style="background:' + P.accent + ';width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;'
+                + 'font-size:20px;line-height:1;flex-shrink:0;box-shadow:0 4px 10px rgba(0,151,224,0.3);">' + icon + '</div>'
+                + '<div style="min-width:0;flex:1;">'
+                + '<div style="font-size:1.05em;font-weight:900;color:' + P.text + ';text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+                + T3(title) + (model ? ' · ' + model : '') + '</div>'
+                + '<div style="font-size:0.82em;font-weight:800;color:' + P.text2 + ';white-space:normal;">' + T3(sub) + (meta ? ' · ' + meta : '') + '</div>'
+                + '</div></div>';
+            };
+            return { lang: lang, dark: dark, P: P, paint: paint, header: header, T3: T3, V: V, model: model,
+                     showHelp: V.show_help !== false && V.show_hints !== false };
+          })();
+          /* DCM-COMMON-END */
+          return DCM.paint((function () {
           var _DEC = (function(){ try { var _lc = (typeof hass !== 'undefined' && hass && hass.locale) ? hass.locale : {}; var _nf = _lc.number_format; if (_nf === 'comma_decimal' || _nf === 'none') return '.'; if (_nf === 'decimal_comma' || _nf === 'space_comma') return ','; var _l = String(_lc.language || (typeof hass !== 'undefined' && hass && hass.language) || 'en'); return (1.5).toLocaleString(_l).indexOf(',') >= 0 ? ',' : '.'; } catch (e) { return '.'; } })(); /* #427: decimal separator from the HA number format */
           /* #347 entity resolver (EN id -> [translation_key, nl, fr]) */
           var _dcmA = {"binary_sensor.daikin_cycle_ml_buh_active":["buh_active","daikin_cycle_ml_buh_actief","daikin_cycle_ml_appoint_en_marche"],"binary_sensor.daikin_cycle_ml_compressor_running":["compressor_running","daikin_cycle_ml_compressor_actief","daikin_cycle_ml_compresseur_en_marche"],"binary_sensor.daikin_cycle_ml_defrost_active":["defrost_active","daikin_cycle_ml_defrost_actief","daikin_cycle_ml_degivrage_en_cours"],"sensor.daikin_cycle_ml_cop_curve_recent":["cop_curve_recent","daikin_cycle_ml_cop_curve_recent","daikin_cycle_ml_courbe_de_cop_recente"],"sensor.daikin_cycle_ml_cop_mean_day":["cop_mean_day","daikin_cycle_ml_cop_gemiddelde_dag","daikin_cycle_ml_cop_moyen_du_jour"],"sensor.daikin_cycle_ml_cop_mean_week":["cop_mean_week","daikin_cycle_ml_cop_gemiddelde_week","daikin_cycle_ml_cop_moyen_de_la_semaine"],"sensor.daikin_cycle_ml_cop_today":["cop_today","daikin_cycle_ml_cop_vandaag","daikin_cycle_ml_cop_chauffage_du_jour"],"sensor.daikin_cycle_ml_current_cycle":["current_cycle","daikin_cycle_ml_huidige_cyclus","daikin_cycle_ml_cycle_en_cours"],"sensor.daikin_cycle_ml_cycle_state":["cycle_state","daikin_cycle_ml_cyclus_status","daikin_cycle_ml_etat_du_cycle"],"sensor.daikin_cycle_ml_heating_curve_advice":["heating_curve_advice","daikin_cycle_ml_stooklijn_advies","daikin_cycle_ml_conseil_de_loi_d_eau"],"sensor.daikin_cycle_ml_hp_specs":["hp_specs","daikin_cycle_ml_wp_specs","daikin_cycle_ml_caracteristiques_de_la_pac"],"sensor.daikin_cycle_ml_last_cycle":["last_cycle","daikin_cycle_ml_laatste_cyclus","daikin_cycle_ml_dernier_cycle"],"sensor.daikin_cycle_ml_thermal_power_live":["thermal_power_live","daikin_cycle_ml_thermisch_vermogen_live","daikin_cycle_ml_puissance_thermique_instantanee"]};
@@ -132,7 +283,7 @@ cards:
           /* ============ AUTO-DISCOVERY ============ */
           var S_STATE = _dcmR('sensor.daikin_cycle_ml_cycle_state');
           var cfgLang = String(attr(S_STATE,'configured_language','en')).toLowerCase();
-          var LANG = (cfgLang === 'nl') ? 'nl' : (cfgLang === 'fr' ? 'fr' : 'en');
+          var LANG = DCM.lang; /* #427: shared language rule */
           var cfgModel = String(attr(S_STATE,'configured_model','')).toLowerCase();
           var cfgSource = attr(S_STATE,'configured_source_sensor',null);
           var cfgPower  = attr(S_STATE,'configured_power_sensor',null);
@@ -504,28 +655,10 @@ cards:
             var col = p.cop >= 4 ? '#4CAF50' : p.cop >= 2.5 ? '#F5A623' : DK_RED;
             var delay = (bi * 0.12).toFixed(2);
 
-            s += '<g opacity="0">';
-            s += '<animate attributeName="opacity" from="0" to="1" dur="0.7s" begin="'+delay+'s" fill="freeze"/>';
-            s += '<circle cx="'+bx+'" cy="'+by+'" r="'+(rad+6)+'" fill="'+col+'" opacity="0.18"><animate attributeName="r" values="'+(rad+6)+';'+(rad+10)+';'+(rad+6)+'" dur="3s" repeatCount="indefinite" begin="'+(parseFloat(delay)+0.7).toFixed(2)+'s"/></circle>';
-            s += '<circle cx="'+bx+'" cy="'+by+'" r="'+(rad+1)+'" fill="white" opacity="0.55"/>';
-            s += '<circle cx="'+bx+'" cy="'+by+'" r="'+rad+'" fill="'+col+'" fill-opacity="0.55" stroke="'+col+'" stroke-width="2.2" filter="url(#hc-soft)"/>';
-            s += '<circle cx="'+bx+'" cy="'+by+'" r="3.5" fill="'+col+'"/>';
-            s += '<text x="'+bx+'" y="'+(by+3)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.5" font-weight="900" fill="white">'+p.n+'</text>';
-            s += '</g>';
-
-            var copLblY = by - rad - 8;
-            s += '<g opacity="0">';
-            s += '<animate attributeName="opacity" from="0" to="1" dur="0.7s" begin="'+(parseFloat(delay)+0.15).toFixed(2)+'s" fill="freeze"/>';
-            s += '<rect x="'+(bx-28)+'" y="'+(copLblY-11)+'" width="56" height="15" rx="7" fill="'+col+'" opacity="0.88" stroke="white" stroke-width="1" stroke-opacity="0.7"/>';
-            s += '<text x="'+bx+'" y="'+copLblY+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.5" font-weight="900" fill="white">COP '+v2(p.cop)+'</text>';
-            s += '</g>';
-
-            var sideSign = (bi % 2 === 0) ? 1 : -1;
-            var rlblX = bx + sideSign * (rad + 6);
-            var rlblAnchor = sideSign > 0 ? 'start' : 'end';
-            s += '<g opacity="0">';
-            s += '<animate attributeName="opacity" from="0" to="1" dur="0.7s" begin="'+(parseFloat(delay)+0.25).toFixed(2)+'s" fill="freeze"/>';
-            s += '<text x="'+rlblX+'" y="'+(by+3)+'" text-anchor="'+rlblAnchor+'" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="'+col+'" '+txtHalo+'>'+p.key+'°C</text>';
+            /* #427: points only (no halo bubbles); details in the tooltip */
+            s += '<g opacity="0"><animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="'+delay+'s" fill="freeze"/>';
+            s += '<circle cx="'+bx+'" cy="'+by+'" r="4.5" fill="'+col+'" stroke="white" stroke-width="1.5">'
+              + '<title>'+p.key+'°C · COP '+v2(p.cop)+' · LWT '+v1(p.y)+'° · n '+p.n+'</title></circle>';
             s += '</g>';
           }
 
@@ -533,10 +666,9 @@ cards:
           if (liveOut !== null && stookLwtNow !== null) {
             var lx = xS(liveOut), ly = yS(stookLwtNow);
 
-            s += '<circle cx="'+lx+'" cy="'+ly+'" r="20" fill="url(#hc-live-glow)"><animate attributeName="r" values="14;26;14" dur="2.2s" repeatCount="indefinite"/></circle>';
-            s += '<circle cx="'+lx+'" cy="'+ly+'" r="11" fill="none" stroke="'+DK_BLUE+'" stroke-width="2" opacity="0.6"><animate attributeName="r" values="11;18;11" dur="2.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0;0.6" dur="2.2s" repeatCount="indefinite"/></circle>';
-            s += '<circle cx="'+lx+'" cy="'+ly+'" r="9" fill="'+DK_BLUE+'" stroke="white" stroke-width="2.5" filter="url(#hc-drop)"/>';
-            s += '<text x="'+lx+'" y="'+(ly+2.5)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="7" font-weight="900" fill="white">LIVE</text>';
+            /* #427: the live point blinks */
+            s += '<circle cx="'+lx+'" cy="'+ly+'" r="6" fill="'+DK_BLUE+'" stroke="white" stroke-width="2">'
+              + '<animate attributeName="opacity" values="1;0.15;1" dur="1.2s" repeatCount="indefinite"/></circle>';
 
             var callW = 100, callH = 42;
             var obstacles = [];
@@ -772,8 +904,10 @@ cards:
           s += '</svg>';
 
           return '<div style="width:100%;box-sizing:border-box;">' + s + '</div>';
+          }).call(this));
         ]]]
   - type: custom:button-card
+    variables: *dcm
     show_name: false
     show_icon: false
     styles:
@@ -788,6 +922,78 @@ cards:
     custom_fields:
       content: |
         [[[
+          /* DCM-COMMON-BEGIN (#427) shared by every Daikin Cycle ML card: language, theme, header.
+             Do not edit in a card: edit tools/card_common.js and run tools/sync_card_common.py */
+          var DCM = (function () {
+            var V = (typeof variables !== 'undefined' && variables) ? variables : {};
+            var H = (typeof hass !== 'undefined' && hass) ? hass : {};
+            var S = (typeof states !== 'undefined' && states) ? states : {};
+            var find = function (tk, sfx) {
+              var ids = Object.keys(S), i, j, k, E = H.entities || {};
+              for (i = 0; i < ids.length; i++) {
+                if (ids[i].indexOf('sensor.') !== 0) continue;
+                for (j = 0; j < sfx.length; j++) { if (ids[i].slice(-sfx[j].length - 1) === '_' + sfx[j]) return ids[i]; }
+              }
+              for (k in E) { if (E[k] && E[k].platform === 'daikin_cycle_ml' && E[k].translation_key === tk && S[k]) return k; }
+              return null;
+            };
+            var A = function (id) { return (id && S[id] && S[id].attributes) ? S[id].attributes : {}; };
+            var csA = A(find('cycle_state', ['cycle_state', 'cyclus_status', 'etat_du_cycle']));
+            var spA = A(find('hp_specs', ['hp_specs', 'wp_specs', 'caracteristiques_de_la_pac']));
+            /* language: lang_override, then the HA language, then the integration language, then English */
+            var LS = ['en', 'nl', 'fr'];
+            var ov = String(V.lang_override || '').toLowerCase();
+            var ha = String(H.language || '').toLowerCase().slice(0, 2);
+            var cl = String(csA.configured_language || '').toLowerCase();
+            var lang = LS.indexOf(ov) >= 0 ? ov : (LS.indexOf(ha) >= 0 ? ha : (LS.indexOf(cl) >= 0 ? cl : 'en'));
+            /* theme: auto follows the HA dark mode; light / dark force it */
+            var th = String(V.theme_override || 'auto').toLowerCase();
+            var dark = th === 'dark' ? true : (th === 'light' ? false : !!(H.themes && H.themes.darkMode));
+            var P = dark
+              ? { bg: '#1B1F24', bg2: '#232A33', bg3: '#1E3448', hd1: '#1E3448', hd2: '#15283A', text: '#E6F0FA', text2: '#90CAF9',
+                  muted: '#B0BEC5', border: 'rgba(79,195,247,0.35)', accent: '#4FC3F7', good: '#66BB6A', warn: '#FFA726', bad: '#EF5350' }
+              : { bg: '#FFFFFF', bg2: '#F5FAFD', bg3: '#E3F2FD', hd1: '#E3F2FD', hd2: '#BBDEFB', text: '#0D47A1', text2: '#1565C0',
+                  muted: '#546E7A', border: 'rgba(0,151,224,0.25)', accent: '#0097E0', good: '#2E7D32', warn: '#E65100', bad: '#C62828' };
+            /* light colours of the cards -> dark mode (light backgrounds dark, dark text light) */
+            var MAP = {
+              '#FFFFFF': P.bg, '#F5FAFD': P.bg2, '#F5FAFE': P.bg2, '#E6F4FB': P.bg2, '#E8F2FB': P.bg2, '#EAF2F8': P.bg2,
+              '#E3F2FD': P.bg3, '#D6ECF7': P.bg3, '#DCEBFA': P.bg3, '#BBDEFB': '#1F4A6B', '#D6EAF8': P.bg3, '#E1F5FE': P.bg3, '#AED6F1': '#1F4A6B',
+              '#FFF3E0': '#3A2A12', '#FFF8EC': '#3A2A12', '#FDEAD0': '#3A2A12', '#FFEBEE': '#3A1D1D', '#FDECEA': '#3A1D1D', '#FBD0C8': '#3A1D1D',
+              '#E8F5E9': '#1C3324', '#EAFAF1': '#1C3324', '#D5F5E3': '#1C3324', '#F3E5F5': '#2E2236',
+              '#0D47A1': P.text, '#003366': P.text, '#001B3D': P.text, '#003A70': P.text, '#00539F': '#BBDEFB', '#005A9C': '#BBDEFB',
+              '#1565C0': P.text2, '#1976D2': '#64B5F6', '#546E7A': P.muted, '#5D6D7E': P.muted, '#7F8C8D': '#9EADB5', '#95A5A6': '#9EADB5',
+              '#37474F': '#CFD8DC', '#444444': '#CFD8DC', '#000000': '#ECEFF1', '#94A3B8': '#78909C', '#6A1B9A': '#CE93D8',
+              '#2E7D32': '#4CAF50', '#1E8449': '#81C784', '#C62828': '#E53935', '#E65100': '#FB8C00', '#7D4F00': '#FFCC80',
+              '#8B1A1A': '#EF9A9A', '#7A0008': '#EF9A9A'
+            };
+            var paint = function (html) {
+              if (!dark || typeof html !== 'string') return html;
+              return html
+                .replace(/(background(?:-color)?\s*:\s*)(#fff\b|white\b)/gi, '$1' + P.bg)
+                .replace(/(<(?:rect|circle|ellipse|path)\b[^>]*?\sfill=")(white|#fff|#ffffff)(")/gi, '$1' + P.bg2 + '$3')
+                .replace(/rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*([0-9.]+)\s*\)/g, function (m, a) { return 'rgba(255,255,255,' + Math.min(0.08, parseFloat(a) * 0.1).toFixed(3) + ')'; })
+                .replace(/#[0-9a-fA-F]{6}\b/g, function (m) { return MAP[m.toUpperCase()] || m; });
+            };
+            var T3 = function (o) { return (o && typeof o === 'object') ? (o[lang] || o.en || '') : String(o || ''); };
+            var model = spA.model ? String(spA.model).toUpperCase() : '';
+            var meta = [spA.family, spA.kw ? spA.kw + ' kW' : '', spA.refrigerant].filter(function (x) { return x && String(x) !== 'None'; }).join(' · ');
+            /* one header for every card: icon, title + model, subtitle + family / kW / refrigerant */
+            var header = function (icon, title, sub) {
+              return '<div class="dcm-header" style="display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;padding:14px 16px;'
+                + 'border-radius:14px 14px 0 0;background:linear-gradient(135deg,' + P.hd1 + ' 0%,' + P.hd2 + ' 100%);border-bottom:3px solid ' + P.accent + ';text-align:left;">'
+                + '<div style="background:' + P.accent + ';width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;'
+                + 'font-size:20px;line-height:1;flex-shrink:0;box-shadow:0 4px 10px rgba(0,151,224,0.3);">' + icon + '</div>'
+                + '<div style="min-width:0;flex:1;">'
+                + '<div style="font-size:1.05em;font-weight:900;color:' + P.text + ';text-transform:uppercase;letter-spacing:0.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+                + T3(title) + (model ? ' · ' + model : '') + '</div>'
+                + '<div style="font-size:0.82em;font-weight:800;color:' + P.text2 + ';white-space:normal;">' + T3(sub) + (meta ? ' · ' + meta : '') + '</div>'
+                + '</div></div>';
+            };
+            return { lang: lang, dark: dark, P: P, paint: paint, header: header, T3: T3, V: V, model: model,
+                     showHelp: V.show_help !== false && V.show_hints !== false };
+          })();
+          /* DCM-COMMON-END */
+          return DCM.paint((function () {
           var _DEC = (function(){ try { var _lc = (typeof hass !== 'undefined' && hass && hass.locale) ? hass.locale : {}; var _nf = _lc.number_format; if (_nf === 'comma_decimal' || _nf === 'none') return '.'; if (_nf === 'decimal_comma' || _nf === 'space_comma') return ','; var _l = String(_lc.language || (typeof hass !== 'undefined' && hass && hass.language) || 'en'); return (1.5).toLocaleString(_l).indexOf(',') >= 0 ? ',' : '.'; } catch (e) { return '.'; } })(); /* #427: decimal separator from the HA number format */
           /* #347 entity resolver (EN id -> [translation_key, nl, fr]) */
           var _dcmA = {"sensor.daikin_cycle_ml_cop_mean_day":["cop_mean_day","daikin_cycle_ml_cop_gemiddelde_dag","daikin_cycle_ml_cop_moyen_du_jour"],"sensor.daikin_cycle_ml_cop_mean_week":["cop_mean_week","daikin_cycle_ml_cop_gemiddelde_week","daikin_cycle_ml_cop_moyen_de_la_semaine"],"sensor.daikin_cycle_ml_cycle_state":["cycle_state","daikin_cycle_ml_cyclus_status","daikin_cycle_ml_etat_du_cycle"],"sensor.daikin_cycle_ml_heating_curve_advice":["heating_curve_advice","daikin_cycle_ml_stooklijn_advies","daikin_cycle_ml_conseil_de_loi_d_eau"]};
@@ -804,7 +1010,7 @@ cards:
 
           var S_STATE = _dcmR('sensor.daikin_cycle_ml_cycle_state');
           var cfgLang = String(attr(S_STATE,'configured_language','en')).toLowerCase();
-          var LANG = (cfgLang === 'nl') ? 'nl' : (cfgLang === 'fr' ? 'fr' : 'en');
+          var LANG = DCM.lang; /* #427: shared language rule */
           var T = {
             nl: { lwtNow:'LWT NU', lwtOpt:'LWT OPT', sav:'BESPARING', trend:'COP TREND' },
             en: { lwtNow:'LWT NOW', lwtOpt:'LWT OPT', sav:'SAVINGS', trend:'COP TREND' }
@@ -848,4 +1054,5 @@ cards:
           r += tile('mdi:trending-up',               t('trend'),  trendTxt, trendCol);
           r += '</div>';
           return r;
+          }).call(this));
         ]]]

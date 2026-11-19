@@ -13,7 +13,7 @@ HP-spec-aware hero, fully bilingual (NL / EN).
 > you rename it, via the entity registry (#347, #369).
 
 **Requires:** Daikin Cycle ML `>= v1.7.1`
-**Frontend deps:** `stack-in-card`, `mushroom-template-card`, `button-card`, `card_mod`
+**Frontend deps:** `stack-in-card`, `button-card`, `card_mod`
 **HA Core:** 2026.9+
 
 ---
@@ -126,18 +126,31 @@ open it full-size.
 
 ---
 
-## Language switch
+## Variables, language and theme
 
-The card follows the language of the integration (`configured_language`
-on the cycle-state sensor): English, Dutch or French. To force a language,
-set one line at the top of the JS template:
+The variables are in the header of the card (the first button-card,
+`variables: &dcm`); the other parts of the card reuse them with
+`variables: *dcm`. Edit them there; a `variables:` block on the outer
+`stack-in-card` has no effect.
 
-```js
-var LANG_OVERRIDE = '';   /* '' = auto | 'nl' | 'en' | 'fr' */
-```
+    - type: custom:button-card
+      variables: &dcm
+        lang_override: ''
+        theme_override: auto
+        show_help: true
 
-The header has its own `{% set lang_override = '' -%}` in both Jinja
-templates (title and subtitle).
+| Variable | Default | Values | Effect |
+|---|---|---|---|
+| `lang_override` | `''` | `''`, `en`, `nl`, `fr` | Force the language; empty = HA UI language, then the integration language, then English |
+| `theme_override` | `auto` | `auto`, `light`, `dark` | `auto` follows the Home Assistant dark mode |
+| `show_help` | `true` | `true`, `false` | Show the hint / explanation notes |
+
+Language: English, Dutch or French; without `lang_override` the HA UI
+language, then the integration language (`configured_language`), then
+English. Numbers use the decimal separator of your HA number format.
+Theme: one palette for all cards, dark backgrounds and light text in dark
+mode. The header shows the heat pump model, family and power. Details:
+[shared card settings](../README.md).
 
 | Element | NL | EN | FR |
 |---|---|---|---|
@@ -145,10 +158,6 @@ templates (title and subtitle).
 | Sections | `Cycli per dag` | `Cycles per day` | `Cycles par jour` |
 | Legend | `Verwarming / DHW` | `Heating / DHW` | `Chauffage / ECS` |
 | Relative time | `2d geleden` | `2d ago` | `2 j avant` |
-| Chips | `Goed >= 70` | `Good >= 70` | `Bon >= 70` |
-
-Numbers use the decimal separator of your Home Assistant number format
-(`5.27` in English, `5,27` in Dutch and French).
 
 ---
 
@@ -161,7 +170,6 @@ HACS frontend cards (install via **HACS → Frontend**):
 | Card | Purpose |
 |---|---|
 | `stack-in-card` | Wrapper for the cards (border, gradient) |
-| `mushroom-template-card` | Header |
 | `button-card` | Body with `custom_fields` for the JS template |
 | `card_mod` | CSS styling (border, gradients, colors) |
 
@@ -176,7 +184,6 @@ Integration:
 Via **HACS → Frontend → Explore & Download Repositories**:
 
 - `custom-cards/stack-in-card`
-- `piitaya/lovelace-mushroom`
 - `custom-cards/button-card`
 - `thomasloven/lovelace-card-mod`
 
@@ -197,13 +204,9 @@ under `views[].cards[]`.
 
 ### Step 3: Configure (optional)
 
-If you use different entity IDs, change them in the JS template:
-
-```js
-var SUMMARY = 'sensor.daikin_cycle_ml_daily_summary_recent';
-var SPECS   = 'sensor.daikin_cycle_ml_hp_specs';
-var LANG    = 'nl';
-```
+Entity ids are found automatically, in any language and after a rename
+(by translation key). Language, theme and hints are the header variables
+(see [Variables, language and theme](#variables-language-and-theme)).
 
 ---
 
@@ -219,6 +222,7 @@ The card is 100% read-only. It reads from:
 | `days_available` | Day count |
 | `latest_day`, `oldest_day` | Date range in the hero |
 | `days[]` | Per-day data: `cycles`, `dur_min`, `quality_avg`, `buh`, `defrost`, `mode` |
+| `events_by_day` | Real defrost events and BUH minutes per day (preferred over the per-cycle counts) |
 | `totals_by_mode` | Heating / DHW / Cooling totals |
 
 ### `sensor.daikin_cycle_ml_hp_specs`
@@ -318,7 +322,8 @@ var STR = {
 };
 ```
 
-Change `var LANG = 'de';` and the card switches immediately.
+Add `'de'` to the language list in `tools/card_common.js`, run
+`python3 tools/sync_card_common.py` and set `lang_override: 'de'`.
 
 ### Adjust the cap
 

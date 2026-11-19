@@ -74,7 +74,6 @@ Ready-to-use Lovelace dashboard cards for the **Daikin Cycle ML** integration.
 | Card | Repo | Purpose |
 |---|---|---|
 | `stack-in-card` | [custom-cards/stack-in-card](https://github.com/custom-cards/stack-in-card) | Wrapper |
-| `mushroom-template-card` | [piitaya/lovelace-mushroom](https://github.com/piitaya/lovelace-mushroom) | Header |
 | `button-card` | [custom-cards/button-card](https://github.com/custom-cards/button-card) | SVG content |
 | `card-mod` | [thomasloven/lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod) | Border + shadow styling |
 
@@ -85,7 +84,7 @@ Restart Home Assistant after installing a new frontend card.
 
 ## Installation
 
-1. Install the four HACS frontend cards (see above).
+1. Install the three HACS frontend cards (see above).
 2. Restart Home Assistant.
 3. Hard-refresh the browser (`Ctrl+Shift+R`).
 4. Open **Lovelace → Edit dashboard → + Add Card → Manual**.
@@ -107,8 +106,8 @@ manual entity-ID edits required if your integration uses the default
 - **COP heatmap** — 2D Carnot-based grid behind the plot (red → yellow → green)
 - **HP spec-aware axes** — Y-axis auto-scales to your heat pump's LWT range
 - **Auto-zoom** — X-axis focuses on bucket spread when data is available
-- **Live dot** — Pulsing last-cycle outdoor × current LWT position with animated ring
-- **Bucket bubbles** — Size = sample count · Color = COP quality · Labels = n + COP
+- **Live point** — Blinking last-cycle outdoor × current LWT position
+- **Bucket points** — One point per outdoor bucket · Color = COP quality · details in the tooltip
 - **Regression curve** — Linear fit through buckets with formula label
 - **Zone overlays** — Defrost (hachure), warm tint, heating OFF, BUH assist band
 - **Hydraulic loop** *(Simple Card)* — Animated supply/return, live rps fan, ΔT bubble
@@ -119,11 +118,12 @@ manual entity-ID edits required if your integration uses the default
 - Reads `configured_*` sensors for the config footer
 - Graceful fallbacks when attributes are missing
 
-### 🌐 Bilingual (NL / EN)
+### 🌐 Header, language and theme (all cards)
 
-- Language detected from the `configured_language` attribute
-- All labels translated via the internal `t('key')` helper
-- Fallback to English when the attribute is missing or unknown
+- Same header on every card: title + heat pump model, family, power, refrigerant
+- English, Dutch and French: `lang_override`, else the HA UI language, else the integration language
+- Dark mode: `theme_override: auto` follows the HA dark mode (`light` / `dark` force it)
+- One `variables:` block in the card header — see [shared card settings](cards/README.md)
 
 ### 📐 Info panels
 
@@ -160,74 +160,20 @@ Each bucket value is `{ cop: float, n: int, lwt: float|None }`.
 `_attrs_current_cycle` does not expose `outdoor_temp` in v1.4.x — the live dot
 therefore reads `outdoor_temp` from `sensor.daikin_cycle_ml_last_cycle`.
 
-### Not yet available
+### During DHW
 
-DHW and historical overlays are **not** in this release — the integration does
-not expose `dhw_buckets` / `history_buckets` yet.
+While DHW (or the backup heater) runs, the heating-curve advice is
+suppressed (`suppressed_by`), but the measured buckets and LWT values stay,
+so the Heating Curve and LWT cards keep rendering their data.
 
 ---
 
 ## Customization
 
-### Simple Card — change language
+### Language, theme and hints
 
-The Simple Card has **three language modes**, controlled by two variables that
-must be kept in sync:
-
-| Variable | Location | Values |
-|---|---|---|
-| `lang_override` | `mushroom-template-card` block (Jinja) | `''` / `'nl'` / `'en'` |
-| `LANG_OVERRIDE` | `button-card` block (JS) | `''` / `'nl'` / `'en'` |
-
-- `''` — **auto** (follow `configured_language` from the integration)
-- `'nl'` — **force Dutch**
-- `'en'` — **force English**
-
-To force a language, set both variables to the same value. Example — force Dutch:
-
-```jinja
-{% set lang_override = 'nl' -%}
-```
-
-```js
-var LANG_OVERRIDE = 'nl';
-```
-
-If the two variables differ, the header and body will show different
-languages. Keep them identical.
-
-### Heating Curve — change language
-
-The Heating Curve card resolves language automatically from the integration's
-`configured_language` attribute. To force a specific language, find this
-line inside the card's `custom_fields.content` JS block:
-
-```js
-var cfgLang = String(attr(S_STATE,'configured_language','en')).toLowerCase();
-var LANG = (cfgLang === 'nl') ? 'nl' : 'en';
-```
-
-Replace the second line with a hardcoded value:
-
-```js
-var LANG = 'en';   /* or 'nl' */
-```
-
-### Theme colours
-
-All colours are defined inline in each card's YAML. Key palette:
-
-| Element | Colour | Hex |
-|---|---|---|
-| Primary (Daikin blue) | Border, accents | `#0097E0` |
-| Dark blue | Headers | `#003366` |
-| Mid blue | Secondary text | `#00539F` |
-| Daikin red | Heating, critical alerts | `#E60012` |
-| Amber | Warnings | `#F5A623` |
-| Green | Success, OK state | `#4CAF50` |
-| Purple | DHW phase | `#9b59b6` |
-
-Search-and-replace any hex in the YAML to change the palette.
+All cards use the same variables in their header (`lang_override`,
+`theme_override`, `show_help`) — see [shared card settings](cards/README.md).
 
 ### Entity IDs
 

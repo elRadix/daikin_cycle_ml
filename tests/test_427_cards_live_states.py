@@ -27,6 +27,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+import yaml
 
 from custom_components.daikin_cycle_ml import sensor as s_mod
 from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
@@ -50,7 +51,7 @@ const out = {};
 for (const [name, blocks] of Object.entries(D.cards)) {
   out[name] = blocks.map((body) => {
     const hass = { language: D.lang, locale: { language: D.lang }, states: D.states, entities: D.entities,
-                   user: { name: 'u', is_admin: true }, themes: { darkMode: false } };
+                   user: { name: 'u', is_admin: true }, themes: { darkMode: !!D.dark } };
     const FD = class extends Date { constructor(...a) { if (a.length) super(...a); else super(NOW); }
                                     static now() { return NOW; } };
     const ctx = vm.createContext({ Date: FD, Math, JSON, Object, Array, String, Number, parseFloat, parseInt,
@@ -59,7 +60,7 @@ for (const [name, blocks] of Object.entries(D.cards)) {
       console: { log() {}, warn() {}, error() {} }, window: {} });
     const fn = vm.runInContext('(function(hass,states,entity,user,variables,html,helpers){' + body + '\n})', ctx);
     try {
-      const o = fn.call({ _config: {} }, hass, D.states, undefined, hass.user, {},
+      const o = fn.call({ _config: {} }, hass, D.states, undefined, hass.user, D.vars[name] || {},
                         (s, ...v) => s.map((x, i) => x + (i < v.length ? v[i] : '')).join(''), {});
       return typeof o === 'string' ? o : JSON.stringify(o);
     } catch (e) { return 'THROW: ' + e.message; }
@@ -92,6 +93,28 @@ def _localized(dump: dict, lang: str) -> dict:
     return {"now": dump["now"], "states": states, "entities": ents}
 
 
+def _variables() -> dict[str, dict]:
+    """The card's own variables (header ``&dcm`` anchor, shared by every button-card)."""
+    return {c.parent.name: yaml.safe_load(c.read_text(encoding="utf-8"))["cards"][0]["variables"] for c in CARDS}
+
+
+def _render(dump: dict, lang: str, dark: bool = False, states: dict | None = None) -> dict[str, list[str]]:
+    cards = {
+        c.parent.name: re.findall(r"\[\[\[(.*?)\]\]\]", c.read_text(encoding="utf-8"), re.S)
+        for c in CARDS
+    }
+    loc = _localized(dump, lang)
+    if states is not None:
+        loc["states"] = states
+    payload = {**loc, "lang": lang, "dark": dark, "cards": cards, "vars": _variables()}
+    proc = subprocess.run(
+        ["node", "-e", RUNNER], input=json.dumps(payload), capture_output=True,
+        text=True, timeout=120, check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)
+
+
 def _text(out: str) -> str:
     t = re.sub(r"<style.*?</style>", "", out, flags=re.S)
     t = re.sub(r"<[^>]+>", " ", t)
@@ -103,19 +126,8 @@ def rendered() -> dict[str, dict[str, list[str]]]:
     if not shutil.which("node"):
         pytest.skip("node not installed")
     dump = json.loads(FIXTURE.read_text(encoding="utf-8"))
-    cards = {
-        c.parent.name: re.findall(r"\[\[\[(.*?)\]\]\]", c.read_text(encoding="utf-8"), re.S)
-        for c in CARDS
-    }
-    res = {}
-    for lang in LANGS:
-        payload = {**_localized(dump, lang), "lang": lang, "cards": cards}
-        proc = subprocess.run(
-            ["node", "-e", RUNNER], input=json.dumps(payload), capture_output=True,
-            text=True, timeout=120, check=False,
-        )
-        assert proc.returncode == 0, proc.stderr
-        res[lang] = json.loads(proc.stdout)
+    res = {lang: _render(dump, lang) for lang in LANGS}
+    res["dark"] = _render(dump, "en", dark=True)
     return res
 
 
@@ -134,7 +146,7 @@ def test_fixture_is_real_integration_output():
 BAD = re.compile(r"undefined|NaN|\[object Object\]|THROW|Infinity|Error:")
 
 
-@pytest.mark.parametrize("lang", LANGS)
+@pytest.mark.parametrize("lang", (*LANGS, "dark"))
 def test_cards_render_without_errors(rendered, lang):
     for card, outs in rendered[lang].items():
         for i, out in enumerate(outs):
@@ -205,6 +217,108 @@ def test_event_charts_use_events_by_day(rendered):
 def test_lwt_card_tracking_without_data(rendered):
     text = _card_text(rendered, "en", "lwt-fine-tuning")
     assert "No data yet" in text and "Very good" not in text
+
+
+# --------------------------------------------------------------------------
+# Unified header, theme, variables (#427)
+# --------------------------------------------------------------------------
+
+TITLES = {
+    "en": ["DAIKIN CYCLE ML", "COP & ENERGY", "SUMMARY", "DAILY SUMMARY", "HEATING CURVE", "LWT FINE-TUNING", "PATTERN ANALYSIS"],
+    "nl": ["SAMENVATTING", "DAGOVERZICHT", "STOOKLIJN", "PATROONANALYSE", "COP & ENERGIE"],
+    "fr": ["RÉSUMÉ", "RÉSUMÉ QUOTIDIEN", "LOI D'EAU", "ANALYSE DES CYCLES", "COP ET ÉNERGIE"],
+}
+
+
+@pytest.mark.parametrize("lang", LANGS)
+def test_every_card_header_shows_the_model(rendered, lang):
+    for card, outs in rendered[lang].items():
+        head = _text(outs[0])
+        assert "EPRA12EAV3" in head.upper() and "12 kW" in head, f"{card}: {head[:120]}"
+        assert 'class="dcm-header"' in outs[0], card
+    heads = " ".join(_text(o[0]).upper() for o in rendered[lang].values())
+    for title in TITLES[lang]:
+        assert title.upper() in heads, (lang, title)
+
+
+def test_every_card_uses_the_shared_variables_and_block():
+    from tools.sync_card_common import sync_text
+
+    for card in CARDS:
+        text = card.read_text(encoding="utf-8")
+        assert sync_text(text) == (text, sync_text(text)[1]) and sync_text(text)[1] >= 2, card
+        data = yaml.safe_load(text)
+        v = data["cards"][0]["variables"]
+        assert v["lang_override"] == "" and v["theme_override"] == "auto" and v["show_help"] is True
+        for child in data["cards"]:
+            assert child["type"] == "custom:button-card"
+            assert child["variables"] == v, card               # *dcm alias on every child
+        assert "variables" not in data                        # stack-in-card ignores them
+        assert "{{" not in text and "{%" not in text          # no Jinja headers left
+
+
+LIGHT_BG = ("#F5FAFD", "#E3F2FD", "#E6F4FB", "#FFF3E0", "#E8F5E9", "#FFEBEE")
+DARK_TEXT = ("#0D47A1", "#003366", "#00539F", "#546E7A")
+
+
+def test_dark_mode_leaves_no_light_backgrounds(rendered):
+    for card, outs in rendered["dark"].items():
+        if card in ("cop-energy", "pattern-analysis"):      # own dark palette
+            continue
+        html = " ".join(o for o in outs if isinstance(o, str)).upper()
+        left = [c for c in (*LIGHT_BG, *DARK_TEXT) if c in html]
+        assert not left, f"{card}: {left}"
+        assert "#1B1F24" in html or "#232A33" in html or "#1E3448" in html, card
+    assert "#4FC3F7" in rendered["dark"]["cop-energy"][0].upper()
+
+
+def test_heating_curve_points_and_blinking_live_point(rendered):
+    hc = " ".join(o for o in rendered["en"]["heating-curve"] if isinstance(o, str))
+    assert "<title>4-6°C · COP" in hc                      # one point per bucket, details in the tooltip
+    assert 'r="4.5"' in hc and "hc-live-glow)\">" not in hc
+    assert 'values="1;0.15;1"' in hc                       # live point blinks
+
+
+def test_heating_curve_renders_during_dhw():
+    """The advice is suppressed during DHW, the measured data stays."""
+    dump = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    st = json.loads(json.dumps(dump["states"]))
+    adv = st["sensor.daikin_cycle_ml_heating_curve_advice"]
+    adv["state"] = "no_data"
+    adv["attributes"].update({"reason": "dhw_active", "suppressed_by": "dhw_active", "step_c": 0, "delta_c": 0.0})
+    st["binary_sensor.daikin_cycle_ml_dhw_active"]["state"] = "on"
+    out = _render({**dump, "states": st}, "en")
+    hc = " ".join(_text(o) for o in out["heating-curve"] if isinstance(o, str))
+    raw = " ".join(o for o in out["heating-curve"] if isinstance(o, str))
+    assert "LWT NOW 33.0°" in hc and raw.count("<title>") >= 4
+    lwt = " ".join(_text(o) for o in out["lwt-fine-tuning"] if isinstance(o, str))
+    assert "Bucket" in lwt and "samples" in lwt
+
+
+def test_pattern_analysis_clicks_per_card():
+    src = (ROOT / "dashboard/cards/pattern-analysis/pattern-analysis.yaml").read_text(encoding="utf-8")
+    data = yaml.safe_load(src)
+    assert data["cards"][1]["tap_action"]["action"] == "none"
+    assert "window.__paTab" not in src and "card.__paTab || cfgTab" in src
+    assert "t.closest('[data-pa-action]')" in src
+
+
+def test_stooklijn_suppression_keeps_measured_data():
+    from custom_components.daikin_cycle_ml.coordinator import _suppressed_stooklijn
+
+    prev = {"state": "lower_lwt", "buckets": {"4-6": {"n": 3}}, "bucket": "4-6", "samples": 3,
+            "huidige_lwt": 33.0, "optimale_lwt": 31.0, "delta_c": -2.0, "tracking_error": None}
+    out = _suppressed_stooklijn({"state": "no_data", "reason": "dhw_active", "buckets": {}, "bucket": "",
+                                 "samples": 0, "huidige_lwt": None, "delta_c": 0.0}, prev)
+    assert out["state"] == "no_data" and out["reason"] == "dhw_active" and out["delta_c"] == 0.0
+    assert out["buckets"] == prev["buckets"] and out["huidige_lwt"] == 33.0 and out["samples"] == 3
+    assert _suppressed_stooklijn({"state": "keep"}, None) == {"state": "keep"}
+    c = MagicMock()
+    c.options = {}
+    for reason in ("dhw_active", "buh_active"):
+        snap = DataSnapshot()
+        snap.stooklijn_advies = {"state": "no_data", "reason": reason}
+        assert s_mod._attrs_stooklijn(snap, c)["suppressed_by"] == reason
 
 
 # --------------------------------------------------------------------------

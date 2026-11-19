@@ -189,13 +189,27 @@ async def test_jinja_header_language_independent(hass: HomeAssistant, card: Path
 
 
 async def test_jinja_header_resolves_french_language(hass: HomeAssistant):
-    """Sanity: resolved cycle_state attr actually reaches the template."""
+    """Sanity: resolved cycle_state attr actually reaches the header.
+
+    #427: the header is the shared JS header (no Jinja left); with a Dutch
+    entity id and configured_language "fr" it renders French + the model.
+    """
+    if not shutil.which("node"):
+        pytest.skip("node not installed")
     card = ROOT / "dashboard/cards/pattern-analysis/pattern-analysis.yaml"
-    tpl = next(s for s in _jinja_strings(card) if "ANALYSE DES CYCLES" in s)
-    _register(hass, "nl", model="evlq08cv3")
-    await hass.async_block_till_done()
-    rendered = Template(tpl, hass).async_render(parse_result=False)
-    assert "ANALYSE DES CYCLES" in rendered and "EVLQ08CV3" in rendered
+    assert not _jinja_strings(card)
+    header = _js_blocks(card)[0]
+    st = {
+        "sensor.daikin_cycle_ml_cyclus_status": {"state": "idle", "attributes": {"configured_language": "fr"}},
+        "sensor.daikin_cycle_ml_wp_specs": {"state": "evlq08cv3", "attributes": {"model": "evlq08cv3"}},
+    }
+    js = ("const vm=require('vm');const D=JSON.parse(require('fs').readFileSync(0,'utf8'));"
+          "const f=vm.runInNewContext('(function(hass,states,entity,user,variables){'+D.b+'\\n})',{});"
+          "process.stdout.write(f({language:'',themes:{}},D.s,undefined,{},{}));")
+    proc = subprocess.run(["node", "-e", js], input=json.dumps({"b": header, "s": st}),
+                          capture_output=True, text=True, timeout=60, check=False)
+    assert proc.returncode == 0, proc.stderr
+    assert "Analyse des cycles · EVLQ08CV3" in proc.stdout
 
 
 # --------------------------------------------------------------------------

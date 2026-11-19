@@ -59,9 +59,9 @@ failures produce a clear error message there.
 - **COP heatmap** — 2D Carnot-based grid behind the plot (red → yellow → green)
 - **Heating curve** — HP spec-aware linear regression through bucket data
 - **Running average** — weighted moving average overlay (dashed blue)
-- **Bucket bubbles** — size = sample count · color = COP quality · labels = n + COP
+- **Bucket points** — one point per outdoor bucket · color = COP quality · details in the tooltip
 - **Zone overlays** — defrost (hachure), warm tint, heating OFF, BUH assist band
-- **Live dot** — pulsing current outdoor × LWT position with animated ring
+- **Live point** — blinking current outdoor × LWT position
 - **Collision-aware callout** — auto-positions across 12 candidates to avoid overlapping data
 - **Animated buckets** — staggered fade-in on load (0.12s between buckets)
 
@@ -127,7 +127,6 @@ Install **all four** via HACS → Frontend:
 | Card | Repository | Required |
 |---|---|---|
 | `stack-in-card` | [custom-cards/stack-in-card](https://github.com/custom-cards/stack-in-card) | ✅ |
-| `mushroom-template-card` | [piitaya/lovelace-mushroom](https://github.com/piitaya/lovelace-mushroom) | ✅ |
 | `button-card` | [custom-cards/button-card](https://github.com/custom-cards/button-card) | ✅ |
 | `card-mod` | [thomasloven/lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod) | ✅ |
 
@@ -206,7 +205,7 @@ reordering causes `ButtonCardJSTemplateError`.
 ### The plot
 
 Main plot shows the **relationship between outdoor temperature and supply
-water temperature** (LWT). Each bubble is a **bucket** — a range of outdoor
+water temperature** (LWT). Each point is a **bucket** — a range of outdoor
 temperatures where the heat pump has accumulated samples.
 
 **Reading the plot:**
@@ -217,7 +216,7 @@ temperatures where the heat pump has accumulated samples.
 | **Y-axis** | Supply water temperature / LWT (°C) |
 | **Red gradient line** | HP spec limit (datasheet curve) |
 | **Blue dashed line** | Running average through buckets |
-| **Bubbles** | Observed operating points |
+| **Points** | Observed operating points (one per bucket) |
 | **Live dot** | Current outdoor × LWT position |
 
 ### The zones
@@ -229,21 +228,19 @@ temperatures where the heat pump has accumulated samples.
 | **Warm** | Subtle blue tint | Mild weather (12-20°C) — efficient zone |
 | **HEATING OFF** | Grey, right | Outdoor > +20°C — no heating demand |
 
-### The bubbles
+### The points
 
-Each bubble represents a **bucket** of outdoor temperatures:
+Each point represents a **bucket** of outdoor temperatures:
 
-| Bubble element | Meaning |
+| Point element | Meaning |
 |---|---|
-| **Size** | Sample count (bigger = more data) |
+| **Position** | Outdoor bucket centre × average LWT |
 | **Color** | COP quality: 🟢 ≥ 4 · 🟠 2.5-4 · 🔴 < 2.5 |
-| **Number inside** | Exact sample count |
-| **COP label above** | Average COP for this bucket |
-| **Range label** | Outdoor range (e.g., `12-14°C`) |
+| **Tooltip** (hover / long-press) | Bucket range, average COP, LWT and sample count |
 
 ### The live dot
 
-When the heat pump is active, a pulsing **blue dot** shows the **current**
+When the heat pump is active, a blinking **blue point** shows the **current**
 operating point.
 
 **Callout contents:**
@@ -253,7 +250,7 @@ operating point.
 - `X,XX kW` — live thermal power (if available)
 
 The callout **auto-positions** across 12 candidate locations to avoid
-overlapping with bubbles and pills. A **dashed leader line** appears when the
+overlapping with the points. A **dashed leader line** appears when the
 callout is far from the dot (> 50px).
 
 ### The BUH/Defrost strip
@@ -310,77 +307,31 @@ Bottom row shows:
 
 ---
 
-## 🌐 Language settings
+## Variables, language and theme
 
-### Automatic detection
+The variables are in the header of the card (the first button-card,
+`variables: &dcm`); the other parts of the card reuse them with
+`variables: *dcm`. Edit them there; a `variables:` block on the outer
+`stack-in-card` has no effect.
 
-The card **automatically detects** language from your integration settings.
+    - type: custom:button-card
+      variables: &dcm
+        lang_override: ''
+        theme_override: auto
+        show_help: true
 
-**How it works:**
+| Variable | Default | Values | Effect |
+|---|---|---|---|
+| `lang_override` | `''` | `''`, `en`, `nl`, `fr` | Force the language; empty = HA UI language, then the integration language, then English |
+| `theme_override` | `auto` | `auto`, `light`, `dark` | `auto` follows the Home Assistant dark mode |
+| `show_help` | `true` | `true`, `false` | Show the hint / explanation notes |
 
-1. You set language in the integration OptionsFlow:
-```
-   Settings → Devices & Services → Daikin Cycle ML → Configure
-     → Notification language: [nl] [en]
-```
-
-2. Integration exposes `configured_language` attribute on
-   `sensor.daikin_cycle_ml_cycle_state`
-
-3. Card reads this attribute and switches all labels
-
-**No manual switch needed** — change integration language and card follows
-within one state-refresh (~30s).
-
-### Fallback behavior
-
-| Scenario | Result |
-|---|---|
-| Integration on `nl`, attribute present | 🇳🇱 Nederlands |
-| Integration on `en`, attribute present | 🇬🇧 English |
-| Attribute missing (v1.2.0) | 🇬🇧 English (fallback) |
-| Attribute is `null` | 🇬🇧 English |
-| Unknown value (e.g., `"fr"`) | 🇬🇧 English |
-| Attribute is `"NL"` (uppercase) | 🇳🇱 Nederlands (normalized) |
-
-### Force language manually
-
-If you want the card in a **different language** than the integration, edit
-the YAML.
-
-**Find in the JS:**
-```js
-var cfgLang = String(attr(S_STATE,'configured_language','en')).toLowerCase();
-var LANG = (cfgLang === 'nl') ? 'nl' : 'en';
-```
-
-**Replace with:**
-```js
-var LANG = 'nl';   // ← forced Dutch
-```
-
-⚠️ **Downside:** you lose auto-detection. The card ignores integration
-settings.
-
-### Adding a new language
-
-1. Add a new key to the `STR` object in JS:
-```js
-   var STR = {
-     nl: { ... },
-     en: { ... },
-     fr: {                              // ← new
-       defrost:'❄ DÉGIVRAGE',
-       heatingOff:'CHAUFFAGE OFF',
-       // ... all keys
-     }
-   };
-```
-
-2. Update detection logic:
-```js
-   var LANG = (STR[cfgLang] ? cfgLang : 'en');
-```
+Language: English, Dutch or French; without `lang_override` the HA UI
+language, then the integration language (`configured_language`), then
+English. Numbers use the decimal separator of your HA number format.
+Theme: one palette for all cards, dark backgrounds and light text in dark
+mode. The header shows the heat pump model, family and power. Details:
+[shared card settings](../README.md).
 
 ---
 
@@ -501,8 +452,6 @@ The SVG canvas auto-sizes to available data. Sections **hide** when empty:
 |---|---|---|
 | Heatmap | 0.18 | Search `opacity="0.18"` in heatmap group |
 | Callout box | 0.82 | Search `fill-opacity="0.82"` in callout |
-| Bucket bubble | 0.55 | Search `fill-opacity="0.55"` in bucket loop |
-| COP pill | 0.88 | Search `opacity="0.88"` in COP pill |
 
 **Common adjustment:** make the callout more transparent by changing
 `fill-opacity="0.82"` to `0.65` or `0.5`.
@@ -853,6 +802,8 @@ The integration does not currently support multi-instance discovery.
 ---
 
 ## 📝 Changelog
+
+Current changes are in [CHANGELOG.md](CHANGELOG.md) in this folder.
 
 ### v1.0.0 — Initial release
 - Heating curve with HP spec-aware visuals

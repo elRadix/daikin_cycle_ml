@@ -127,7 +127,6 @@ No HACS resource install needed — the card bundles its own CSS/JS via `card_mo
 ### Required HACS frontend cards
 
 - `stack-in-card`
-- `mushroom-template-card`
 - `button-card`
 - `card-mod`
 
@@ -135,14 +134,33 @@ If any is missing, the card will render empty or with a config error.
 
 ---
 
-## Configuration
+## Variables, language and theme
 
-The card accepts one optional variable:
+The variables are in the header of the card (the first button-card,
+`variables: &dcm`); the other parts of the card reuse them with
+`variables: *dcm`. Edit them there; a `variables:` block on the outer
+`stack-in-card` has no effect.
 
-    variables:
-      lang_override: 'nl'   # 'nl', 'en', or '' (auto-detect from hass.language)
+    - type: custom:button-card
+      variables: &dcm
+        lang_override: ''
+        theme_override: auto
+        show_help: true
+        default_tab: advice
 
-Set `lang_override: ''` (default) to auto-follow the Home Assistant UI language.
+| Variable | Default | Values | Effect |
+|---|---|---|---|
+| `lang_override` | `''` | `''`, `en`, `nl`, `fr` | Force the language; empty = HA UI language, then the integration language, then English |
+| `theme_override` | `auto` | `auto`, `light`, `dark` | `auto` follows the Home Assistant dark mode |
+| `show_help` | `true` | `true`, `false` | Show the hint / explanation notes |
+| `default_tab` | `advice` | `advice`, `buckets`, `analysis`, `live` | Tab shown first; after a click the card keeps the tab you picked |
+
+Language: English, Dutch or French; without `lang_override` the HA UI
+language, then the integration language (`configured_language`), then
+English. Numbers use the decimal separator of your HA number format.
+Theme: one palette for all cards, dark backgrounds and light text in dark
+mode. The header shows the heat pump model, family and power. Details:
+[shared card settings](../README.md).
 
 ---
 
@@ -282,11 +300,7 @@ Normal during: defrost (5-15 min), DHW heating, cold start. Gap should close wit
 
 ### Configuration changes
 
-Three variables (edit card config):
-
-- `lang_override` — 'en', 'nl' or 'fr' (default: auto-detect)
-- `default_tab` — 'advice' | 'buckets' | 'analysis' | 'live' (first render only; after a click the card keeps the tab you picked over state updates)
-- `show_help` — false to hide explanation notes
+See [Variables, language and theme](#variables-language-and-theme).
 
 ---
 

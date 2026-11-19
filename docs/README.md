@@ -15,7 +15,7 @@ have; every page has its own table of contents at the top.
 | Fix something that doesn't work (no cycles, wrong COP, empty cards) | [Troubleshooting](TROUBLESHOOTING.md) |
 | Know what changes when I update | [Upgrade Guide](UPGRADE.md) and the [CHANGELOG](../CHANGELOG.md) |
 | Query or back up the database | [Database](DATABASE.md) |
-| Add a dashboard card | [`dashboard/cards/`](../dashboard/cards/), one folder per card with its own README |
+| Add a dashboard card | [Shared card settings](../dashboard/cards/README.md) (header, language, dark mode, variables), then the card's own folder in [`dashboard/cards/`](../dashboard/cards/) (README + CHANGELOG) |
 | Contribute code or run the tests | [Development](DEVELOPMENT.md) |
 
 ## User guides

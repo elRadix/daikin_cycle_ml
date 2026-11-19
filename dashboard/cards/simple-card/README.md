@@ -34,7 +34,6 @@ Install each via **HACS -> Frontend -> Explore & Download Repositories**:
 | Card | Purpose | HACS repo |
 |---|---|---|
 | `stack-in-card` | Outer container that vertically stacks the cards | `custom-cards/stack-in-card` |
-| `mushroom-template-card` | Header with icon + title + subtitle | `piitaya/lovelace-mushroom` |
 | `button-card` | Dynamic HTML render (the entire body) | `custom-cards/button-card` |
 | `card-mod` | Inline CSS (border + gradient on the outer frame) | `thomasloven/lovelace-card-mod` |
 
@@ -44,7 +43,7 @@ Install each via **HACS -> Frontend -> Explore & Download Repositories**:
 
 ## Installation
 
-1. **Install the four dependencies** (see above) via HACS.
+1. **Install the three dependencies** (see above) via HACS.
 2. **Restart Home Assistant** - required after installing a new frontend card.
 3. Hard-refresh the browser (Ctrl+Shift+R).
 4. Open a dashboard in edit mode, click **+ Add Card**.
@@ -56,74 +55,38 @@ If the card looks unstyled or empty:
 
 - Hard-refresh the browser again.
 - Open **Developer Tools -> Console** in the browser for JS errors.
-- Verify all four frontend cards are listed under
+- Verify all three frontend cards are listed under
   **Settings -> Dashboards -> Resources**.
 
 ---
 
 ## Configuration
 
-### Language
+### Variables, language and theme
 
-The card has **three language modes**, controlled by two variables that
-must always be kept in sync:
+The variables are in the header of the card (the first button-card,
+`variables: &dcm`); the other parts of the card reuse them with
+`variables: *dcm`. Edit them there; a `variables:` block on the outer
+`stack-in-card` has no effect.
 
-| Variable | Location | Purpose |
-|---|---|---|
-| `lang_override` | `mushroom-template-card` block (Jinja) | Controls the header subtitle |
-| `LANG_OVERRIDE` | `button-card` block (JavaScript) | Controls the entire body |
+    - type: custom:button-card
+      variables: &dcm
+        lang_override: ''
+        theme_override: auto
+        show_help: true
 
-Both accept the same values:
+| Variable | Default | Values | Effect |
+|---|---|---|---|
+| `lang_override` | `''` | `''`, `en`, `nl`, `fr` | Force the language; empty = HA UI language, then the integration language, then English |
+| `theme_override` | `auto` | `auto`, `light`, `dark` | `auto` follows the Home Assistant dark mode |
+| `show_help` | `true` | `true`, `false` | Show the hint / explanation notes |
 
-| Value | Behaviour |
-|---|---|
-| `''` (empty string) | **Auto** - follow `configured_language` from the integration |
-| `'nl'` | **Force Dutch** - ignore integration setting |
-| `'en'` | **Force English** - ignore integration setting |
-
-**Example - force Dutch:**
-
-In the mushroom block:
-
-```jinja
-{% set lang_override = 'nl' -%}
-```
-
-In the button-card JS block:
-
-```js
-var LANG_OVERRIDE = 'nl';
-```
-
-**Warning:** if the two variables are set to different values, the header
-and body will display in different languages. Keep them identical.
-
-**Supported languages:** `nl` (Nederlands), `en` (English).
-
-**To add a new language:**
-
-1. Copy the `en` block inside the `STR` object (in the JS) and rename the
-   key to your language code (e.g. `de`).
-2. Translate every value in the copied block.
-3. Extend the `LANG` resolution so it recognises your new code:
-   `(LANG_OVERRIDE === 'de' || ...) ? LANG_OVERRIDE : (...)`
-4. Add the same language branch to the Jinja subtitle in the mushroom block.
-
-### Theme colours
-
-All colours are defined inline in the YAML. Key palette:
-
-| Element | Colour | Hex |
-|---|---|---|
-| Primary (Daikin blue) | Border, accents | `#0097E0` |
-| Dark blue | Headers | `#003366` |
-| Mid blue | Secondary text | `#00539F` |
-| Daikin red | Heating, critical alerts | `#E60012` |
-| Amber | Warnings | `#F5A623` |
-| Green | Success, OK state | `#4CAF50` |
-| Purple | DHW phase | `#9b59b6` |
-
-Search-and-replace any hex in the YAML to change the palette.
+Language: English, Dutch or French; without `lang_override` the HA UI
+language, then the integration language (`configured_language`), then
+English. Numbers use the decimal separator of your HA number format.
+Theme: one palette for all cards, dark backgrounds and light text in dark
+mode. The header shows the heat pump model, family and power. Details:
+[shared card settings](../README.md).
 
 ### Entity IDs
 

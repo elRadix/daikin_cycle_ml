@@ -681,8 +681,10 @@ def _attrs_stooklijn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, 
         "buckets": data.get("buckets") or {},
         "offset_delta_c": data.get("offset_delta_c"),
         "slope_delta": data.get("slope_delta"),
+        # #427: DHW too; the measured data stays (buckets, LWT)
         "suppressed_by": (
-            data.get("reason") if data.get("reason") == "buh_active" else None
+            data.get("reason")
+            if data.get("reason") in ("buh_active", "dhw_active") else None
         ),
     }
 
