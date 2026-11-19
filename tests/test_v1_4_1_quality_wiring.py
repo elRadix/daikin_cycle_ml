@@ -112,13 +112,19 @@ def test_score_and_count_bad_cycle():
     rec = {"duration_s": 60, "dT_max": 1.0, "buh_used": True}
     s = _StoreStub()
     score_and_count(rec, None, s, 0.0)
-    assert rec["quality_score"] == 40
+    # #421: 1 min run 29.3 + dT 1 of 5 16 + BUH (whole run) 20 + ratio 10
+    assert rec["quality_score"] == 25
+    assert rec["quality_penalties"] == {
+        "short_run": 29.3, "low_dt": 16.0, "short_off": 0.0,
+        "short_ratio": 10.0, "buh": 20.0, "defrost": 0.0,
+    }
     assert s._counters.get("bad_cycles_today") == 1
     assert "good_cycles_today" not in s._counters
 
 
 def test_score_and_count_boundary_70_is_good():
-    rec = {"duration_s": 60}
+    # #421: 30 min of 45 (10) + dT 0 (20) -> exactly 70, not a short run
+    rec = {"duration_s": 1800, "dT_max": 0.0}
     s = _StoreStub()
     score_and_count(rec, None, s, 0.0)
     assert rec["quality_score"] == 70

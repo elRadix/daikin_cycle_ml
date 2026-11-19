@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS cycles (
     boiler_heat_samples INTEGER DEFAULT 0,
     boiler_dhw_samples INTEGER DEFAULT 0,
     dhw_tank_temp REAL,
+    buh_s REAL,
+    defrost_s REAL,
     UNIQUE(start_ts)
 );
 

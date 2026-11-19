@@ -52,6 +52,8 @@ def _safe_float(value: Any) -> float | None:
 
 
 MAX_RESUME_GAP_S: float = 6 * 3600.0
+# #421: a sample counts for the time since the previous one, at most 5 min
+MAX_TICK_GAP_S: float = 300.0
 """Maximum gap (seconds) at which a RUNNING detector state may be resumed."""
 
 
@@ -251,6 +253,9 @@ class CycleDetector:
         self._dt_samples: list[float] = []
         self._outdoor_samples: list[float] = []
         self._buh_used = False
+        self._buh_s: float = 0.0  # #421: step-weighted BUH seconds
+        self._tick_dt: float = 0.0
+        self._defrost_s: float = 0.0  # #421: defrost seconds in the cycle
         self._defrost_used = False
         self._thermal_kw_samples: list[float] = []
         self._pump_off_count: int = 0
@@ -338,6 +343,8 @@ class CycleDetector:
             "dt_samples": list(self._dt_samples),
             "outdoor_samples": list(self._outdoor_samples),
             "buh_used": self._buh_used,
+            "buh_s": self._buh_s,
+            "defrost_s": self._defrost_s,
             "defrost_used": self._defrost_used,
             "thermal_kw_samples": list(self._thermal_kw_samples),
             "pending_mode": self._pending_mode,
@@ -381,6 +388,16 @@ class CycleDetector:
         self._dt_samples = _float_list(payload.get("dt_samples"))
         self._outdoor_samples = _float_list(payload.get("outdoor_samples"))
         self._buh_used = bool(payload.get("buh_used", False))
+        _bs = payload.get("buh_s")
+        self._buh_s = (
+            float(_bs) if isinstance(_bs, (int, float)) and not isinstance(_bs, bool)
+            else 0.0
+        )
+        _ds = payload.get("defrost_s")
+        self._defrost_s = (
+            float(_ds) if isinstance(_ds, (int, float)) and not isinstance(_ds, bool)
+            else 0.0
+        )
         self._defrost_used = bool(payload.get("defrost_used", False))
         self._thermal_kw_samples = _float_list(payload.get("thermal_kw_samples"))
         _pm = payload.get("pending_mode")
@@ -412,6 +429,8 @@ class CycleDetector:
         self._dt_samples = []
         self._outdoor_samples = []
         self._buh_used = False
+        self._buh_s = 0.0
+        self._defrost_s = 0.0
         self._defrost_used = False
         self._thermal_kw_samples = []
         self._pump_off_count = 0
@@ -431,10 +450,14 @@ class CycleDetector:
         out = _safe_float(attrs.get(ATTR_OUTDOOR_AIR_R1T))
         if out is not None:
             self._outdoor_samples.append(out)
-        if _is_on(attrs, ATTR_BUH_STEP1) or _is_on(attrs, ATTR_BUH_STEP2):
+        steps = int(_is_on(attrs, ATTR_BUH_STEP1)) + int(_is_on(attrs, ATTR_BUH_STEP2))
+        if steps:
             self._buh_used = True
+            # #421: BUH time per cycle, step 2 counts double (2 x 3 kW)
+            self._buh_s += self._tick_dt * steps
         if _is_on(attrs, ATTR_DEFROST_OPERATION):
             self._defrost_used = True
+            self._defrost_s += self._tick_dt
         flow = _safe_float(attrs.get(ATTR_FLOW_SENSOR))
         if flow is not None and dt is not None and dt > 0:
             # P = m_dot * cp * dT ; m_dot = flow_lmin/60 kg/s ; cp = 4.18 kJ/kgK
@@ -471,6 +494,8 @@ class CycleDetector:
             "dT_avg": dt_avg,
             "outdoor_temp": outdoor,
             "buh_used": self._buh_used,
+            "buh_s": round(self._buh_s, 1),
+            "defrost_s": round(self._defrost_s, 1),
             "defrost_used": self._defrost_used,
             "boiler_contribution_samples": self._boiler_samples,
             "boiler_heat_samples": self._boiler_heat_samples,
@@ -545,7 +570,11 @@ class CycleDetector:
         boiler_dhw_active: bool = False,
     ) -> dict[str, Any] | None:
         attrs = build_compat_view(attrs)
+        prev_seen = self._last_seen_ts
         self._last_seen_ts = now  # #417: resume gap = downtime, not run age
+        # #421: time this sample stands for (a gap > 5 min counts nothing)
+        gap = now - prev_seen if prev_seen is not None else 0.0
+        self._tick_dt = gap if 0.0 < gap <= MAX_TICK_GAP_S else 0.0
         """Process one sample. Returns cycle record on close, else None.
 
         R307: pump=OFF in RUNNING state is a soft signal, not a hard stop,

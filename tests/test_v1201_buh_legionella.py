@@ -91,7 +91,8 @@ def test_buh_penalty_applied_dhw_below_60():
     r["mode"] = "dhw"
     r["dhw_tank_temp"] = 55.0
     r["buh_used"] = 1
-    assert score_cycle(r, off_time_s=3600) == 100 - PENALTY_BUH
+    # #421: BUH time unknown -> 5 min of 60 min -> 8.3 points
+    assert score_cycle(r, off_time_s=3600) == 92
 
 
 def test_buh_penalty_applied_heating():
@@ -99,6 +100,8 @@ def test_buh_penalty_applied_heating():
     r = _good_record()
     r["mode"] = "heating"
     r["buh_used"] = 1
+    assert score_cycle(r, off_time_s=3600) == 92        # #421 proportional
+    r["buh_s"] = 3600.0
     assert score_cycle(r, off_time_s=3600) == 100 - PENALTY_BUH
 
 
@@ -107,7 +110,7 @@ def test_buh_penalty_applied_no_tank_temp():
     r = _good_record()
     r["mode"] = "dhw"
     r["buh_used"] = 1
-    assert score_cycle(r, off_time_s=3600) == 100 - PENALTY_BUH
+    assert score_cycle(r, off_time_s=3600) == 92        # #421 proportional
 
 
 # --- Hypothesis fuzz (R676: ≥200 cases) -----------------------------------
@@ -197,12 +200,21 @@ def test_fuzz_buh_penalty_invariants():
                     f"waiver mismatch: {s} != {s_no_buh} for {base}"
                 )
             else:
-                # Invariant 4: penalty applied
-                # s_no_buh could be <10, so score floors at 0
-                expected = max(0, s_no_buh - 10)
-                assert s == expected, (
-                    f"penalty mismatch: {s} != {expected} for {base}"
-                )
+                # Invariant 4 (#421): proportional to the BUH share of the
+                # run (unknown BUH time = 5 min), capped at PENALTY_BUH; no
+                # duration -> no share -> no penalty
+                ok_dur = isinstance(dur, (int, float)) and not isinstance(dur, bool)
+                if ok_dur and dur > 0:
+                    pen = min(PENALTY_BUH, 100.0 * 300.0 / dur)
+                    assert s <= s_no_buh, f"penalty missing for {base}"
+                    assert s_no_buh - s <= round(pen) + 1, (
+                        f"penalty mismatch: {s_no_buh - s} vs {pen} for {base}"
+                    )
+                    assert s_no_buh - s >= max(0, min(round(pen), s_no_buh) - 1), (
+                        f"penalty too small: {s_no_buh - s} vs {pen} for {base}"
+                    )
+                else:
+                    assert s == s_no_buh, f"no-duration penalty for {base}"
 
     _prop()
 

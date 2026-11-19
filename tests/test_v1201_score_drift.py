@@ -53,13 +53,15 @@ def test_cycle_321_scores_100_with_user_options():
 
 
 def test_cycle_321_scores_50_with_stale_options():
-    """With hypothesized stale opts (60/5.0), cycle 321 scores 50 (== prod stored)."""
+    """With hypothesized stale opts (60/5.0), cycle 321 scored 50 (== prod
+    stored) under the fixed penalties. #421: proportional, 49 of 60 min and
+    dT 4.3 of 5.0 cost 5.5 + 2.8 -> 92."""
     score = score_cycle(
         CYCLE_321, STALE_OPTIONS,
         off_time_s=42456.0,
         short_cycle_ratio=0.0,
     )
-    assert score == 50, "confirms stale-options hypothesis produces stored prod value"
+    assert score == 92
 
 
 def test_score_cycle_uses_options_not_defaults():
@@ -68,7 +70,7 @@ def test_score_cycle_uses_options_not_defaults():
     user_score = score_cycle(record, USER_OPTIONS, off_time_s=10000.0, short_cycle_ratio=0.0)
     default_score = score_cycle(record, None, off_time_s=10000.0, short_cycle_ratio=0.0)
     assert user_score == 100
-    assert default_score == 80
+    assert default_score == 97          # #421: dT 4.3 of 5.0 -> 2.8 points
     assert user_score > default_score
 
 

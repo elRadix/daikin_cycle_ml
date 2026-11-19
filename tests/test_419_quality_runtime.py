@@ -104,7 +104,9 @@ def test_real_short_run_and_pause_still_penalised():
     score_and_count(rec, {}, store, 1320.0)
     assert rec["off_s"] == 120.0
     assert store.get("short_offs_today") == store.get("short_runs_today") == 1
-    assert rec["quality_score"] == 100 - 30 - 20        # short run + short off
+    # #421 proportional: 10 of 45 min (23.3) + 2 of 20 min pause (18)
+    # + 1 short of 2 cycles = 50 % ratio (10)
+    assert rec["quality_score"] == 49
 
 
 def test_cap_close_continues_next_cycle(monkeypatch):
@@ -146,7 +148,7 @@ def _live_coord(rec: dict[str, Any]) -> DaikinCycleMLCoordinator:
 @pytest.mark.parametrize("dur,dt,buh,expected", [
     (1200, 2.1, False, 100),          # prod-1 06:42: 20 min, dT 2.1 (was 50)
     (STEADY_RUN_S * 4, 2.1, False, 100),  # dT_max can still grow
-    (1200, 6.5, True, 90),            # BUH already used: final
+    (1200, 6.5, True, 80),            # BUH, time unknown: 5 of 20 min -> cap 20
 ])
 async def test_live_score_running_cycle(dur, dt, buh, expected):
     rec = {"start_ts": 0.0, "end_ts": float(dur), "duration_s": dur,

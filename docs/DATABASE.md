@@ -809,6 +809,15 @@ DHW split and every 15 min while running, and read once before the first
 detection after a restart (#417). The payload carries `last_seen_ts`; a
 cycle is resumed when HA was down for at most 6 h, however long the run.
 
+### 7.x Quality rescore + BUH / defrost seconds (#421)
+
+`cycles.buh_s` (backup-heater seconds, step 2 counted double) and
+`cycles.defrost_s` (defrost seconds) feed the proportional quality
+penalties (docs/ML.md). Added by ALTER on existing databases; older rows
+stay NULL. Every stored cycle is rescored once (marker
+`data_migration_quality_v2_completed` with cycles / changed / days) and
+`daily_summary` is re-rolled.
+
 ### 7.x v32: runs lost on a restart (#419)
 
 Before #417 an HA restart during a run dropped the part before the

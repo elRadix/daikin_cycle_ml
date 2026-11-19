@@ -22,6 +22,13 @@
   the outdoor and the indoor unit as `I/U <name>` / `O/U <name>`. The
   v2 resolver and the attribute compat view now fall back to these names
   (indoor first) after the label and its aliases (#413)
+- Quality score penalties are proportional instead of all-or-nothing
+  (docs/ML.md): short run, low dT and short pause scale with the
+  shortfall; the short-run ratio from half the threshold; backup heater
+  1 point per % of the run time (step 2 double, max 20, was a flat 10);
+  defrost (new) 1 point per % above 5 % of the run time (max 10). The
+  `last_cycle` sensor shows `quality_penalties`, `buh_min`, `defrost_min`.
+  All stored cycles are rescored once and the days re-rolled (#421)
 
 ### Fixed
 - Installations without a DHW tank logged every cycle as heating,
@@ -81,6 +88,11 @@
 - `tests/test_419_quality_runtime.py`: split / cap segments in the
   detector and scoring, the live score, `runtime_check` on the prod-1
   morning, lost-run rebuild rules and v32 on a real database
+- `tests/test_421_proportional_quality.py`: penalty formulas and caps,
+  BUH / defrost seconds in the detector, rescoring stored cycles (splits,
+  BUH shared by day minutes, rebuilt cycles), the rescore on a real
+  database, old-database columns, the last-cycle breakdown; scoring tests
+  updated to the proportional values
 
 ## [1.23.3] - 2026-11-18
 

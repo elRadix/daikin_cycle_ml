@@ -381,6 +381,11 @@ def _attrs_alerts_today(
     return out
 
 
+def _round_min(seconds: Any) -> float | None:
+    v = _safe_float(seconds)
+    return round(v / 60.0, 1) if v is not None else None
+
+
 def _attrs_last_cycle(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     r = _last(c)
     dur = _safe_float(r.get("duration_s"))
@@ -394,6 +399,13 @@ def _attrs_last_cycle(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str,
         "outdoor_temp": _safe_float(r.get("outdoor_temp")),
         "buh_used": bool(r.get("buh_used")),
         "defrost_used": bool(r.get("defrost_used")),
+        # #421: what the quality score lost, per criterion
+        "buh_min": _round_min(r.get("buh_s")),
+        "defrost_min": _round_min(r.get("defrost_s")),
+        "quality_penalties": (
+            dict(r["quality_penalties"])
+            if isinstance(r.get("quality_penalties"), dict) else None
+        ),
         "start_ts": _safe_float(r.get("start_ts")),
         "end_ts": _safe_float(r.get("end_ts")),
         "cluster": _cluster_label(s, c),

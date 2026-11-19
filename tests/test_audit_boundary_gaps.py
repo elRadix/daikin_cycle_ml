@@ -52,23 +52,27 @@ from custom_components.daikin_cycle_ml.ml.features import is_valid_record
 
 
 def test_quality_duration_exactly_at_threshold():
-    """duration == good_run_min*60 → NO penalty (uses <)."""
+    """#421: proportional; no penalty at the threshold, full at 0 s."""
     exact = DEFAULT_GOOD_RUN_MIN * 60
     assert score_cycle({"duration_s": exact}) == 100
-    assert score_cycle({"duration_s": exact - 1}) == 100 - PENALTY_SHORT_RUN
+    assert score_cycle({"duration_s": exact - 60}) == 99      # 1 min short
+    assert score_cycle({"duration_s": exact / 2}) == 85       # half
+    assert score_cycle({"duration_s": 0}) == 100 - PENALTY_SHORT_RUN
 
 
 def test_quality_dt_exactly_at_threshold():
-    """dT_max == good_dt_k → NO penalty (uses <)."""
+    """#421: proportional; no penalty at the threshold."""
     assert score_cycle({"dT_max": DEFAULT_GOOD_DT_K}) == 100
-    assert score_cycle({"dT_max": DEFAULT_GOOD_DT_K - 0.01}) < 100
+    assert score_cycle({"dT_max": DEFAULT_GOOD_DT_K - 0.5}) == 98
+    assert score_cycle({"dT_max": DEFAULT_GOOD_DT_K / 2}) == 90
 
 
 def test_quality_off_time_exactly_at_threshold():
-    """off_time_s == good_off_min*60 → NO penalty (uses <)."""
+    """#421: proportional; no penalty at the threshold."""
     exact = DEFAULT_GOOD_OFF_MIN * 60
     assert score_cycle({}, None, off_time_s=exact) == 100
-    assert score_cycle({}, None, off_time_s=exact - 1) < 100
+    assert score_cycle({}, None, off_time_s=exact - 60) == 99
+    assert score_cycle({}, None, off_time_s=exact / 4) == 85
 
 
 # ── thermal boundaries ───────────────────────────────────────────────

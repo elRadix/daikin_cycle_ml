@@ -44,11 +44,13 @@ def _prod1_cycle_261() -> dict:
 
 
 def test_cycle_263_current_score_is_70_not_zero():
-    assert score_cycle(_prod1_cycle_263(), PROD1_OPTIONS) == 70
+    # #421 proportional: dT 3 of 5 (8) + BUH ~5 of 664 min (0.8) -> 91 (was 70)
+    assert score_cycle(_prod1_cycle_263(), PROD1_OPTIONS) == 91
 
 
 def test_cycle_261_current_score_is_40_not_zero():
-    assert score_cycle(_prod1_cycle_261(), PROD1_OPTIONS) == 40
+    # #421: 2 min run (28.7) + dT 1.4 (14.4) + BUH whole run (20) -> 37 (was 40)
+    assert score_cycle(_prod1_cycle_261(), PROD1_OPTIONS) == 37
 
 
 # --- backfill integration ---
@@ -91,7 +93,7 @@ async def test_backfill_rescores_zero_quality_cycles(tmp_path: Path) -> None:
         ) as cur:
             rows = await cur.fetchall()
         scores = dict(rows)
-        assert scores[id_263] == 70, f"cycle #263 (db id={id_263}) expected 70, got {scores[id_263]}"
-        assert scores[id_261] == 40, f"cycle #261 (db id={id_261}) expected 40, got {scores[id_261]}"
+        assert scores[id_263] == 91, f"cycle #263 (db id={id_263}) expected 91, got {scores[id_263]}"
+        assert scores[id_261] == 37, f"cycle #261 (db id={id_261}) expected 37, got {scores[id_261]}"
     finally:
         await db.async_close()

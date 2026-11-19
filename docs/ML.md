@@ -52,17 +52,38 @@ The ML in this integration learns **your** installation's normal behaviour. Ther
 
 ML is only for **anomaly detection** and **adaptive fallback**, not for the primary alert triggers.
 
-#### Quality score (fixed formula)
+#### Quality score (proportional penalties, #421)
 
-Starts at 100 per closed cycle, then subtracts:
+Starts at 100 per closed cycle; every penalty grows with how far the
+cycle is from good, up to its maximum. Score = 100 minus the sum, rounded,
+0..100. The `last_cycle` sensor shows the breakdown in attribute
+`quality_penalties` (points per criterion) plus `buh_min` / `defrost_min`.
 
-| Penalty | Points | When |
-|---|---|---|
-| Short run | 30 | run shorter than `good_run_threshold_min` (45 min) |
-| Low dT | 20 | `dT_max` below `good_dt_threshold_k` |
-| Short off | 20 | pause before the cycle shorter than `good_off_threshold_min` (20 min) |
-| High short-run ratio | 20 | more than 50 % of today's cycles are short runs |
-| Backup heater | 10 | BUH used (waived for a DHW legionella run with tank >= 60 °C) |
+| Penalty | Max | Formula | Example |
+|---|---|---|---|
+| Short run | 30 | 30 x (good_run - run) / good_run | good_run 45 min: 40 min -> 3.3, 10 min -> 23.3 |
+| Low dT | 20 | 20 x (good_dT - dT_max) / good_dT | good_dT 5 K: 4 K -> 4, 2.5 K -> 10 |
+| Short pause | 20 | 20 x (good_off - pause) / good_off | good_off 20 min: 15 min -> 5, 2 min -> 18 |
+| Short-run ratio | 20 | 0 up to threshold / 2, linear to 20 at 1.5 x threshold | threshold 50 %: 25 % -> 0, 50 % -> 10, 75 % -> 20 |
+| Backup heater | 20 | 1 point per % of the run time; step 2 counts double | 2 of 300 min -> 0.7, 8 of 300 min -> 2.7, 30 of 300 min -> 10 |
+| Defrost | 10 | 1 point per % of the run time above 5 % | 6 of 300 min -> 0, 30 of 300 min -> 5 |
+
+- good_run / good_dT / good_off / threshold are the options
+  `good_run_threshold_min`, `good_dt_threshold_k`, `good_off_threshold_min`,
+  `short_cycle_ratio_threshold`.
+- Missing data gives no penalty (no dT -> no dT penalty, no run length ->
+  no BUH / defrost share). BUH used but its time not recorded (cycles
+  before #421) counts as 5 min; defrost used but not timed as 6 min.
+- Backup heater on a DHW legionella run (tank >= 60 °C) is waived (#289).
+- Before #421 every penalty was all-or-nothing (30 / 20 / 20 / 20 / 10,
+  no defrost): a 2 min and an 8 min backup-heater run both cost 10.
+
+**Rescore (#421).** On the first start after updating, every stored cycle
+is rescored once with this formula. The pause, split segments and the
+day's short-run ratio are rebuilt from the cycle order (cycles less than
+90 s apart are one run); BUH time of older cycles is the day's recorded
+BUH minutes shared over that day's BUH cycles by length. Cycles rebuilt
+from COP samples (v32) keep no score. Daily summaries are re-rolled.
 
 **Segments (#419).** A heating <-> DHW split or the 48 h cap closes one
 cycle and opens the next on the same tick: the compressor did not stop.
