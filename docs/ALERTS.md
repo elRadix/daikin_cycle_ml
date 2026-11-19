@@ -192,7 +192,7 @@ Action: raise minimum run time (usually via heat curve or setback) or lower LWT 
 
 Fires when the compressor has been off for less than `short_off_threshold_min` (default 5 min).
 
-The off-time is the pause before the cycle: its start minus the previous cycle's end. Before #415 it also included the cycle's own run time, so the alert almost never fired.
+The off-time is the pause before the cycle: its start minus the previous cycle's end. Before #415 it also included the cycle's own run time, so the alert almost never fired. A cycle that continues a run (heating <-> DHW split, 48 h cap) has no pause and never counts as a short off (#419).
 
 Message fields: off-time, threshold, LWT setpoint, indoor temp, flow, outdoor.
 

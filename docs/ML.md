@@ -52,6 +52,32 @@ The ML in this integration learns **your** installation's normal behaviour. Ther
 
 ML is only for **anomaly detection** and **adaptive fallback**, not for the primary alert triggers.
 
+#### Quality score (fixed formula)
+
+Starts at 100 per closed cycle, then subtracts:
+
+| Penalty | Points | When |
+|---|---|---|
+| Short run | 30 | run shorter than `good_run_threshold_min` (45 min) |
+| Low dT | 20 | `dT_max` below `good_dt_threshold_k` |
+| Short off | 20 | pause before the cycle shorter than `good_off_threshold_min` (20 min) |
+| High short-run ratio | 20 | more than 50 % of today's cycles are short runs |
+| Backup heater | 10 | BUH used (waived for a DHW legionella run with tank >= 60 °C) |
+
+**Segments (#419).** A heating <-> DHW split or the 48 h cap closes one
+cycle and opens the next on the same tick: the compressor did not stop.
+The continuing cycle has no pause (no short-off penalty, no `off_s`), and
+a cycle that ends in or continues from a split / cap is a segment of a
+longer run, so it gets no short-run penalty and is not counted in
+`short_runs_today` or the adaptive short-run learner. Records carry
+`ended_by` (`stop` / `split` / `cap`) and `continued`.
+
+**Live score (#419).** `quality_today` averages today's closed cycles and
+the open cycle's live score. Length and `dT_max` of a running cycle can
+only grow, so the live score does not judge them (prod-1: a 20 min run
+with start-up dT 2.1 scored 50 and pulled `quality_today` to 70 while
+every closed cycle scored 90 or more).
+
 ---
 
 ## 2. Feature vector

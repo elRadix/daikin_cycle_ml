@@ -10,6 +10,12 @@
   its commit; the weekly drift issue now lists v2 names removed upstream,
   the ones the integration reads first. v1 keeps the definition names
   (`MODEL_ATTRIBUTES.json`) (#413)
+- Diagnostics `coordinator.runtime_check`: today's runtime from the
+  cycles (closed + open cycle) against ESPAltherma's `Stats: Compressor
+  run today (min)`, with `coverage_pct` (#419)
+- One-time migration v32 rebuilds runs lost on an HA restart before #417
+  from the COP samples between stored cycles (`is_reconstructed = 1`) and
+  re-rolls those days (#419)
 
 ### Changed
 - ESPAltherma v2 side names: v2 publishes a name that exists on both
@@ -52,6 +58,16 @@
   saved every 15 min while running. The 6 h resume limit now counts the
   time HA was down, not the run's age (a restart late in an 11 h run
   dropped the whole run) (#417)
+- Quality score and counters treated a heating <-> DHW split (and the
+  48 h cap) as a compressor stop: since the `off_s` fix the continuing
+  cycle had a ~0 s pause (short-off penalty, `short_offs_today`,
+  `short_off` alert on every DHW switch) and the segments counted as short
+  runs. Cycles now carry `ended_by` / `continued`; segments get no
+  short-run or short-off penalty and do not feed the short-run counters or
+  learner (#419)
+- `quality_today` included a live score that penalised a running cycle's
+  length and start-up dT (prod-1: 70 while every closed cycle scored 90+);
+  the live score no longer judges values that can still grow (#419)
 
 ### Tests
 - `tests/test_413_v2_catalog.py`: v2 contract against the catalog
@@ -62,6 +78,9 @@
   p10 / p90, same-moment curve tracking and the steady datasheet window
 - `tests/test_417_restart_restore.py`: real detector + database restart
   (prod-1 23:00 -> 23:34), split and periodic persistence
+- `tests/test_419_quality_runtime.py`: split / cap segments in the
+  detector and scoring, the live score, `runtime_check` on the prod-1
+  morning, lost-run rebuild rules and v32 on a real database
 
 ## [1.23.3] - 2026-11-18
 
