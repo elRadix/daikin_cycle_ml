@@ -609,6 +609,8 @@ MODEL_STATE_ADAPTIVE = "adaptive_thresholds"
 # #415: off-time samples relearned once with off_s from the cycle start
 OFF_RELEARN_MARKER = "data_migration_off_s_relearn_completed"
 DETECTOR_STATE_KEY = "cycle_detector_state"
+# #417: persist a running cycle at least this often (restore keeps samples)
+DETECTOR_PERSIST_S = 900.0
 
 DEFAULT_SETPOINT_OSC_WINDOW_MIN = 30
 

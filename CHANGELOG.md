@@ -43,6 +43,15 @@
   steady heating (#415)
 - Day / week / month COP `cop_p10` / `cop_p90` are the sample-weighted
   mean of the hourly values instead of the lowest / highest hour (#415)
+- An HA restart during a run dropped the part of the cycle before the
+  restart: the detector state was restored after the first update, whose
+  tick had already opened (and saved) a new cycle. prod-1 lost 23:00-23:34
+  on 2026-11-18 and up to 11 h on other restart days (runtime per day
+  44-84 % on a heat pump running 24/7). The running cycle is now restored
+  before the first detection, saved after a heating <-> DHW split, and
+  saved every 15 min while running. The 6 h resume limit now counts the
+  time HA was down, not the run's age (a restart late in an 11 h run
+  dropped the whole run) (#417)
 
 ### Tests
 - `tests/test_413_v2_catalog.py`: v2 contract against the catalog
@@ -51,6 +60,8 @@
 - `tests/test_415_prod1_diag.py`: prod-1 v1.23.3 numbers for `off_s`,
   off-time relearn, v31 on a real database, the read guard, weighted
   p10 / p90, same-moment curve tracking and the steady datasheet window
+- `tests/test_417_restart_restore.py`: real detector + database restart
+  (prod-1 23:00 -> 23:34), split and periodic persistence
 
 ## [1.23.3] - 2026-11-18
 

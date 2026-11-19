@@ -241,6 +241,7 @@ class CycleDetector:
         self._state = STATE_IDLE
         self._start_ts: float | None = None
         self._mode: str = "unknown"
+        self._last_seen_ts: float | None = None
         self._rps_samples: list[float] = []
         self._dt_samples: list[float] = []
         self._outdoor_samples: list[float] = []
@@ -325,6 +326,7 @@ class CycleDetector:
         return {
             "state": self._state,
             "start_ts": self._start_ts,
+            "last_seen_ts": self._last_seen_ts,
             "mode": self._mode,
             "rps_samples": list(self._rps_samples),
             "dt_samples": list(self._dt_samples),
@@ -348,7 +350,17 @@ class CycleDetector:
         start_ts = payload.get("start_ts")
         if isinstance(start_ts, bool) or not isinstance(start_ts, (int, float)):
             return
-        gap = now - float(start_ts)
+        # #417: the gap is the time the detector did not see the cycle
+        # (HA down), not the run's age: prod-1 runs last up to 11 h, and a
+        # restart late in a run dropped all of it. Payloads written before
+        # #417 have no last_seen_ts and fall back to start_ts.
+        seen = payload.get("last_seen_ts")
+        ref = (
+            float(seen)
+            if isinstance(seen, (int, float)) and not isinstance(seen, bool)
+            else float(start_ts)
+        )
+        gap = now - ref
         if gap > MAX_RESUME_GAP_S:
             _LOGGER.warning(
                 "Detector resume gap %.0fs exceeds max %.0fs; abandoning cycle",
@@ -522,6 +534,7 @@ class CycleDetector:
         boiler_dhw_active: bool = False,
     ) -> dict[str, Any] | None:
         attrs = build_compat_view(attrs)
+        self._last_seen_ts = now  # #417: resume gap = downtime, not run age
         """Process one sample. Returns cycle record on close, else None.
 
         R307: pump=OFF in RUNNING state is a soft signal, not a hard stop,
