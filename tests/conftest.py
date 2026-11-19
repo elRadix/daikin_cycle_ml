@@ -51,3 +51,16 @@ def patched_compat(monkeypatch):
             return a.get("__test_attrs__", a)
         return {}
     monkeypatch.setattr(coord_mod, "build_compat_view", _fake_build_compat)
+
+import pytest
+
+from homeassistant.core import HomeAssistant
+
+
+@pytest.fixture(autouse=True)
+def mock_frontend_dependency(hass: HomeAssistant):
+    """Mock frontend component for tests that setup the integration."""
+    hass.config.components.add("frontend")
+    # Mock the data structure used by add_extra_js_url
+    if "frontend_extra_module_url" not in hass.data:
+        hass.data["frontend_extra_module_url"] = set()
