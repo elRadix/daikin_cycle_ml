@@ -111,15 +111,21 @@ def _slug_variants(label: str) -> list[str]:
     return slugs
 
 
-def _read_entity_state(hass: HomeAssistant, entity_id: str) -> Any:
-    """Return normalized value for one v2 entity, or None if absent."""
+def _read_entity_state(
+    hass: HomeAssistant, entity_id: str, label: str | None = None,
+) -> Any:
+    """Return normalized value for one v2 entity, or None if absent.
+
+    ``label`` (#423): the canonical label, so numeric values "0" / "1"
+    are read as numbers, not ON / OFF.
+    """
     state = hass.states.get(entity_id)
     if state is None:
         return None
     raw = state.state
     if raw is None:
         return None
-    return _normalize(raw)
+    return _normalize(raw, label)
 
 
 def resolve_attrs(
@@ -182,7 +188,7 @@ def resolve_attrs(
                 continue
             entity_id = index.get(slug)
             if entity_id is not None:
-                value = _read_entity_state(hass, entity_id)
+                value = _read_entity_state(hass, entity_id, label)
                 if value is not None:
                     attrs[label] = value
                     resolved = True

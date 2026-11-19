@@ -6,7 +6,22 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from ..const import REQUIRED_ATTRIBUTES
+from ..const import (
+    ATTR_BE_COP,
+    ATTR_COP,
+    ATTR_DHW_TANK_TEMP,
+    ATTR_FLOW_SENSOR,
+    ATTR_INDOOR_AMBIENT_R1T,
+    ATTR_INLET_WATER_R4T,
+    ATTR_INV_FREQUENCY_2_RPS,
+    ATTR_INV_FREQUENCY_RPS,
+    ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_LEAVING_WATER_BEFORE_BUH,
+    ATTR_LW_SETPOINT,
+    ATTR_OUTDOOR_AIR_R1T,
+    ATTR_TARGET_COND_TEMP,
+    REQUIRED_ATTRIBUTES,
+)
 from .attribute_compat import build_compat_view
 
 _LOGGER = logging.getLogger(__name__)
@@ -19,6 +34,26 @@ _NULL_STRINGS = {
 }
 _TRUE_STRINGS = {"on", "true", "yes", "1"}
 _FALSE_STRINGS = {"off", "false", "no", "0"}
+
+# #423: values that are numbers. ESPAltherma v2 delivers every state as
+# text, and "0" / "1" were read as False / True before the number check,
+# so a counter or measurement of exactly 0 or 1 was lost ("Stats: Defrosts
+# today" = "1" -> True -> rejected by the native readers).
+NUMERIC_PREFIXES: tuple[str, ...] = ("Stats: ", "Unit meter: ")
+NUMERIC_ATTRIBUTES: frozenset[str] = frozenset({
+    ATTR_BE_COP, ATTR_COP, ATTR_DHW_TANK_TEMP, ATTR_FLOW_SENSOR,
+    ATTR_INDOOR_AMBIENT_R1T, ATTR_INLET_WATER_R4T, ATTR_INV_FREQUENCY_2_RPS,
+    ATTR_INV_FREQUENCY_RPS, ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_LEAVING_WATER_BEFORE_BUH, ATTR_LW_SETPOINT, ATTR_OUTDOOR_AIR_R1T,
+    ATTR_TARGET_COND_TEMP, "INV primary current (A)", "Water pressure",
+})
+
+
+def is_numeric_key(key: Any) -> bool:
+    """#423: True for attributes whose value is a number."""
+    return isinstance(key, str) and (
+        key in NUMERIC_ATTRIBUTES or key.startswith(NUMERIC_PREFIXES)
+    )
 
 
 def _clean_raw(value: str) -> str | None:
@@ -55,12 +90,13 @@ def _to_float(value: Any) -> float | None:
         return None
 
 
-def _normalize(value: Any) -> float | bool | str | None:
+def _normalize(value: Any, key: str | None = None) -> float | bool | str | None:
     """Normalize a raw ESPAltherma attribute.
 
     Returns float | bool | str | None. Strings survive for non-numeric
     attributes (mode names, valve states). Template garbage and
-    placeholders are filtered to None.
+    placeholders are filtered to None. For a numeric ``key`` (#423) a
+    number is read before ON/OFF, so "0" / "1" stay 0.0 / 1.0.
     """
     if value is None or isinstance(value, bool):
         return value
@@ -71,6 +107,10 @@ def _normalize(value: Any) -> float | bool | str | None:
     cleaned = _clean_raw(value)
     if cleaned is None:
         return None
+    if is_numeric_key(key):
+        num = _to_float(cleaned)
+        if num is not None:
+            return num
     b = _coerce_bool(cleaned)
     if b is not None:
         return b
@@ -96,7 +136,7 @@ def read(
     if not isinstance(raw, Mapping):
         return {}
     compat = build_compat_view(raw)
-    result = {key: _normalize(val) for key, val in compat.items()}
+    result = {key: _normalize(val, key) for key, val in compat.items()}
 
     if custom_map:
         for standard, actual in custom_map.items():

@@ -16,6 +16,7 @@ from ..const import (
     ATTR_INV_FREQUENCY_RPS,
     ATTR_IU_OPERATION_MODE,
     ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_LEAVING_WATER_BEFORE_BUH,
     ATTR_OPERATION_MODE,
     ATTR_OUTDOOR_AIR_R1T,
     ATTR_WATER_PUMP_OPERATION,
@@ -196,8 +197,15 @@ def _mode_from_text(raw: str) -> str:
 
 
 def _compute_dt(attrs: Mapping[str, Any]) -> float | None:
-    """Magnitude of leaving-minus-inlet water temperature, abs."""
-    leaving = _safe_float(attrs.get(ATTR_LEAVING_WATER_AFTER_BUH))
+    """Magnitude of leaving-minus-inlet water temperature, abs.
+
+    #423: leaving = R1T (before the BUH), the heat pump's own leaving
+    temperature; R2T (after the BUH) only as fallback. With R2T the BUH's
+    heat inflated dT while it ran.
+    """
+    leaving = _safe_float(attrs.get(ATTR_LEAVING_WATER_BEFORE_BUH))
+    if leaving is None:
+        leaving = _safe_float(attrs.get(ATTR_LEAVING_WATER_AFTER_BUH))
     inlet = _safe_float(attrs.get(ATTR_INLET_WATER_R4T))
     if leaving is None or inlet is None:
         return None

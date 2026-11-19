@@ -611,6 +611,8 @@ OFF_RELEARN_MARKER = "data_migration_off_s_relearn_completed"
 DETECTOR_STATE_KEY = "cycle_detector_state"
 # #417: persist a running cycle at least this often (restore keeps samples)
 DETECTOR_PERSIST_S = 900.0
+# #423: longest the tick waits for the accumulator write (rest in background)
+PERSIST_TICK_BUDGET_S = 2.0
 
 DEFAULT_SETPOINT_OSC_WINDOW_MIN = 30
 

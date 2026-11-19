@@ -9,7 +9,7 @@ import math
 import time
 import traceback
 from collections import deque
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable, Coroutine, Mapping
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Concatenate, ParamSpec, TypeVar, cast
@@ -53,6 +53,7 @@ from .const import (
     COP_SENSOR_ENTITY,
     COP_DS_MIN_SAMPLES,
     DETECTOR_PERSIST_S,
+    PERSIST_TICK_BUDGET_S,
     COP_DS_WINDOW_S,
     COP_VS_DATASHEET_LOW_PCT,
     DEFAULT_ALERT_RETENTION_DAYS,
@@ -357,6 +358,24 @@ def _wire_dhw_tank_temp(
     tank = _dhw_tank_temp_from_attrs(attrs)
     if tank is not None:
         record["dhw_tank_temp"] = float(tank)
+
+
+def _alias_copies(attrs: Mapping[str, Any]) -> frozenset[str]:
+    """#423: alias keys the compat view copied from their canonical label.
+
+    An alias that is the real source key (prod-1 mono: "R1T-Outdoor air
+    temp.") is kept; only the copy next to its canonical value is dropped.
+    """
+    from .engine.attribute_compat import ALIAS_GROUPS  # noqa: PLC0415
+
+    out: set[str] = set()
+    for canonical, aliases in ALIAS_GROUPS.items():
+        if canonical not in attrs:
+            continue
+        for alias in aliases:
+            if alias in attrs and attrs[alias] == attrs[canonical]:
+                out.add(alias)
+    return frozenset(out)
 
 
 def _window_mean(window: Any, min_samples: int) -> float | None:
@@ -2221,7 +2240,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 power_w=snap.power_w,
                 cop=snap.cop,
             )
-            await self._maybe_persist_accumulators(now)
+            await self._persist_accumulators_bounded(now)
             self._tick_mark("persist_acc")
             await self._maybe_collect_cop_sample(now)
             self._tick_mark("cop_sample")
@@ -2664,6 +2683,24 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("energy_acc restore failed")
             return False
+
+    async def _persist_accumulators_bounded(self, now: float) -> None:
+        """#423: the accumulator write may hold the tick PERSIST_TICK_BUDGET_S.
+
+        prod-1 had 3-10 s ticks every night (02:30-04:00) waiting on this
+        write (host disk I/O). A slower write finishes in the background; a
+        new one is skipped while it is still pending.
+        """
+        pending = getattr(self, "_persist_task", None)
+        if pending is not None and not pending.done():
+            return
+        task = asyncio.ensure_future(self._maybe_persist_accumulators(now))
+        self._persist_task = task
+        try:
+            await asyncio.wait_for(asyncio.shield(task), PERSIST_TICK_BUDGET_S)
+        except TimeoutError:
+            _LOGGER.debug("accumulator write slower than %.0fs; tick continues",
+                          PERSIST_TICK_BUDGET_S)
 
     async def _maybe_persist_accumulators(self, now: float) -> None:
         """Persist runtime + energy accumulators throttled at 30s.
@@ -3556,10 +3593,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "updated_ts": now,
         }
         if ds is None or cop_meas is None or lwt_now is None or t_out is None:
-            _LOGGER.debug(
-                "v1.22.11 #388 gate-1 null: ds=%s cop=%s lwt=%s t_out=%s",
-                ds is not None, cop_meas, lwt_now, t_out,
-            )
+            # #423: log when the missing inputs change, not on every tick
+            _missing = (ds is None, cop_meas is None, lwt_now is None, t_out is None)
+            if getattr(self, "_gate1_logged", None) != _missing:
+                self._gate1_logged = _missing
+                _LOGGER.debug(
+                    "v1.22.11 #388 gate-1 null: ds=%s cop=%s lwt=%s t_out=%s",
+                    ds is not None, cop_meas, lwt_now, t_out,
+                )
             self._datasheet_cache = out
             return
         ref = next(
@@ -3956,7 +3997,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         attrs = getattr(getattr(self, "data", None), "attrs", {}) or {}
         non_num: list[str] = []
         nulls: list[str] = []
+        # #423: names the compat view adds (aliases) are not source values
+        _aliases = _alias_copies(attrs)
         for k, v in attrs.items():
+            if k in _aliases:
+                continue
             if v is None:
                 nulls.append(k)
             elif not isinstance(v, (int, float, bool)):
@@ -4121,10 +4166,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _r1t_before = compat.get(
                 'Leaving water temp. before BUH (R1T)'
             )
-            _lwt = (
-                compat.get('Leaving water temp. after BUH (R2T)')
-                or compat.get('Leaving water temp. before BUH (R1T)')
-            )
+            # #423: R1T (before the BUH) is the heat pump's own LWT; the
+            # curve advice learned R2T, which the BUH raises while it runs
+            _lwt = compat.get('Leaving water temp. before BUH (R1T)')
+            if _lwt is None:
+                _lwt = compat.get('Leaving water temp. after BUH (R2T)')
             if _lwt is not None:
                 mapped['leaving_temp'] = _lwt
             _inlet = compat.get('Inlet water temp.(R4T)')
@@ -4349,6 +4395,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         (R378 pattern). Idempotent — safe to call twice if both the
         stop event and entry unload fire during shutdown.
         """
+        # #423: let a background accumulator write finish first
+        pending = getattr(self, "_persist_task", None)
+        if pending is not None and not pending.done():
+            with contextlib.suppress(Exception):
+                await pending
         for _name in (
             "_persist_runtime_acc",
             "_persist_energy_acc",
