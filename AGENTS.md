@@ -22,7 +22,7 @@ Do not add triple-backtick fences when editing this file.
 NOTE: DEEPSEEK.md is local-only, gitignored. Read it from the dev
 container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
 
-## Project identity (v87.0 — updated 2026-11-18 late night)
+## Project identity (v88.0 — updated 2026-11-19 morning)
 
 - GitHub: elRadix/daikin_cycle_ml · default branch main · HACS custom repo
 - Dev container: /workspace/daikin_cycle_ml (daikin_cycle_dev, image python:3.14)
@@ -32,12 +32,15 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
   Cloud sessions can push branches but NOT tags and cannot delete remote
   branches (proxy 403). Tags + branch deletion run from daikin_cycle_dev
   via docker exec with a pre-guard (see v87.0 addendum).
-- Main tip: 143f9cf (chore: release v1.23.3, #411)
+- Main tip: 53dd935 (fix #423, PR #424). Unreleased on main: #414 #416
+  #418 #420 #422 #424 (target v1.24.0)
 - Latest release: v1.23.3 (tag v1.23.3 -> 143f9cf), published 2026-11-18.
   Same day: v1.23.0 (d24187e), v1.23.1 (900e048), v1.23.2 (02b519f).
   Previous: v1.22.10 (tag v1.22.10 -> 91034f5, 2026-11-16).
 - Manifest / const.VERSION / pyproject: 1.23.3 (match)
-- Open PRs: none. Remote branches: main only (cleaned 2026-11-18).
+- Open PRs: none after #424 (release PR v1.24.0 next). Remote branches:
+  main + the session branch claude/espaltherma-handoff-update-vg30ys
+  (cloud cannot delete it; clean up from daikin_cycle_dev).
 - Dev container working tree is DIRTY on old commit c9ba74c: modified
   binary_sensor.py, const.py, coordinator.py, scripts/resolve_issue.py +
   untracked tests/test_v12211_cop_flag_visibility.py,
@@ -47,12 +50,15 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
 - Ruleset protect-main: id 24465625 — required-context count TE VERIFIEREN
 - CI workflows (.github/workflows, 8): ruff, hassfest, hacs, mypy, pylint,
   coverage, markdown, model-compat. Plus CodeQL (dynamic, "Push on main").
-- Model compat: pinned to ESPAltherma beta b613d10 (#393). The daily drift
-  job failed on a missing `model-compat` label; it now creates it.
+- Model compat: v1 definitions pinned to ESPAltherma beta b613d10 (#393,
+  docs/MODEL_ATTRIBUTES.json). v2 catalog names pinned to beta 3548ea2
+  (#413, docs/ESPALTHERMA_V2_CATALOG.json, tools/parse_espaltherma_catalog.py);
+  the PR gate regenerates the snapshot at its pin, the weekly drift issue
+  lists removed v2 names (consumed ones first).
 - ESPAltherma checkout for alignment work: git clone --depth 1 --branch beta
   https://github.com/raomin/espaltherma (public; definitions/ + data/).
 
-## Trackers / open issues (2026-11-18 late night, 14 open)
+## Trackers / open issues (2026-11-19 morning)
 
 Issue #66 (v1.9 tracker) is no longer the active tracker. Work is now
 tracked per issue; commits/PRs reference their own issue
@@ -61,6 +67,11 @@ tracked per issue; commits/PRs reference their own issue
 Closed 2026-11-18 (solution comment + release link): #347 (@JoHuTi),
 #369 (@MBGek), #288 phase 1 (@fransh47), #388, #392 (v1.23.0); #193,
 #353, #400 (CuttingStorm, Tweakers), #408 (v1.23.1-v1.23.3).
+
+Open until v1.24.0 ships (fix merged, "Part of"): #413 v2 catalog names,
+#415 prod-1 v1.23.3 diagnostics, #417 restart drops run, #419 split
+scoring + runtime check + lost-run rebuild, #421 proportional quality,
+#423 data polish. New: #425 p3 ux alerts card (Tweakers feedback).
 
 - #398  p1 enh   Bivalent phase 2: wizard section, binary_sensor
                  bivalent_active, boiler energy sensors, BUH1 vs
@@ -80,14 +91,18 @@ Closed 2026-11-18 (solution comment + release link): #347 (@JoHuTi),
 - #175  p3       Per-model stooklijn defaults HT (blocked-external)
 - #88   epic     Rolling backlog tracker
 
-Not yet an issue (user feedback, Tweakers): alerts are not shown in any
-dashboard card; users read sensor.daikin_cycle_ml_alerts_today (NL:
-..._alerts_vandaag) or a markdown card with ha-alert blocks.
+Tweakers feedback "alerts not shown in any card" is now #425.
 
-## Current state (v87.0 — 2026-11-18)
+## Current state (v88.0 — 2026-11-19)
 
-- Coverage: 100.00% (pyproject fail_under = 100), CI green on 143f9cf
-- Tests: README badge 6774 (collected, cloud venv 2026-11-18)
+- Coverage: 100.00% (pyproject fail_under = 100), CI green on 53dd935
+- Tests: 6962 collected (cloud venv 2026-11-19); README badge still 6774
+  until the v1.24.0 release PR
+- DB data migrations v31 (#415 stale cop_hourly rows), v32 (#419 runs lost
+  on restart rebuilt from cop_samples, is_reconstructed = 1), quality
+  rescore (#421, marker data_migration_quality_v2_completed), off-time
+  relearn (#415, marker data_migration_off_s_relearn_completed);
+  cycles.buh_s / cycles.defrost_s columns (#421)
 - DB data migration v30 (#408): flags pre-gate COP outliers, rebuilds
   cop_hourly hours + all daily_summary days once (marker
   data_migration_v30_completed)
@@ -102,7 +117,9 @@ dashboard card; users read sensor.daikin_cycle_ml_alerts_today (NL:
 - DB: daikin_cycle_ml.db schema v16 (v1.12.0 migration, #105/#107) ·
   HA Store alerts v1 · user datasheet store v1
 - IQS: Bronze + Silver + Gold (README badge)
-- Prod deployed version / HA Core: TE VERIFIEREN
+- prod-1: v1.23.3 on HA 2026.11.1 (diagnostics 2026-11-19 06:42); after
+  v1.24.0 TE VERIFIEREN: SQL section A (~100 % per day), runtime_check,
+  cop_cross_check, rescored quality
 - QA scripts: scripts/bootstrap.sh, scripts/ci-local.sh, scripts/pre-push,
   scripts/check-markdown.sh, scripts/create_issue.py, update_issue.py,
   resolve_issue.py, git_safe.py
@@ -667,3 +684,37 @@ dropped). All work is now pushed to origin after each batch to prevent recurrenc
     patches OptionsFlow.config_entry: pin it with monkeypatch.
   - A test that injects data production never writes (hand-made open
     cycle row, last_record + raw mono key) hides real gaps (#405, #407).
+
+### v88.0 addendum (2026-11-19)
+
+- Merged (unreleased): #414 (v2 catalog names, I/U O/U side names,
+  cooling for no-DHW installs and "Auto Cool"), #416 (off_s = start -
+  previous end, v31 stale cop_hourly, curve tracking same-moment,
+  cop_vs_datasheet_low on a steady 1 h mean, weighted p10/p90), #418
+  (restore before the first tick, persist on split + every 15 min, resume
+  gap = downtime), #420 (ended_by / continued, split segments not short,
+  live score, diagnostics runtime_check, v32 lost-run rebuild), #422
+  (proportional penalties incl. BUH time and defrost, rescore of all
+  cycles), #424 ("0"/"1" as numbers, dT from R1T, bounded accumulator
+  write, learned_thresholds state = value in use, log on change).
+- Root causes found on prod-1 (runs 24/7): restart restored the detector
+  after the first tick (44-84 % runtime on restart days); off_s measured
+  at close; heating <-> DHW split treated as a stop; live score judged
+  an open run; ESPAltherma v2 "0"/"1" read as booleans.
+- SQL check for daily runtime (local days, cycles split at midnight) and
+  lost runs: see the session transcript / issue #417; prod-1 DB at
+  /config/.storage/daikin_cycle_ml_01M57X8B5FM4PVFEN8JV9ZKH5V.db
+  (sqlite3 -readonly from the Advanced SSH add-on). HA OS has no
+  home-assistant.log; `ha core logs` shows only the recent window.
+- Quality score formula is documented in docs/ML.md (penalty table);
+  tests pin values with the arithmetic in a "#421" comment.
+- Lessons:
+  - A test pinning a contract (fixed penalties, cache-first LWT, raw
+    learned state) is updated with the new arithmetic in a comment, never
+    deleted.
+  - Always pass the full head SHA from git ls-remote to merge (a typed
+    SHA was refused with 409).
+  - Run detector tests with power_w and an explicit "off" sample (COP and
+    flow alone keep the compressor "on").
+  - A startup step on the coordinator goes through a guarded module
+    helper: setup tests use a MagicMock coordinator.
