@@ -73,7 +73,7 @@ All variables are optional. Add them at the **top** of the YAML, before `type:`:
 
 | Variable | Type | Default | Description |
 |---|---|---|---|
-| `lang_override` | string | '' | Force language: empty (auto), `nl`, or `en` |
+| `lang_override` | string | '' | Force language: empty (auto), `nl`, `en` or `fr` |
 | `default_tab` | string | 'overview' | Initial tab: `overview`, `quality`, `cycles`, `duration`, `events` |
 | `default_window` | int | 7 | Initial window: 7, 15, or 30 days |
 | `chart_height` | int | 280 | Chart height in pixels |

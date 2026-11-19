@@ -45,6 +45,32 @@
   first tab or closes an open pop-up (the card re-renders on every state
   change); colours now read optimal = green, lower LWT = blue, raise LWT
   = red (#427)
+- Sensor `daily_summary_recent` now exposes `events_by_day` (real
+  defrost events and BUH minutes per day, #400). The coordinator built it
+  but the sensor never published it, so the event charts of the cards fell
+  back to "cycles with a defrost" (#427)
+- Dashboard cards checked against the states the integration writes, in
+  English, Dutch and French (#427):
+  - simple-card: ΔT of the last cycle was always "—" (read `avg_dt_k`
+    instead of `dt_avg_k`); "Q" and "Quality" now show today's quality
+    score instead of the share of good cycles; cycle state, mode and
+    heating-curve advice are translated (were `running` / `heating` /
+    `keep`); the last-cycle header shows its score when there is no
+    cluster
+  - daily-summary: was always Dutch; it now follows the integration
+    language (or `LANG_OVERRIDE`), has French, a translated header, full
+    mode labels instead of "Verwa" / "Heati", and per-day defrost events
+    from `events_by_day`
+  - pattern-analysis: durations read "1u48" in every language ("1h48"
+    outside Dutch); the distribution buckets were Dutch in English; the
+    COP tab section titles and mode labels are translated
+  - daily-summary-tabbed: "cycli" in English, untranslated Today tiles
+    in French
+  - LWT fine-tuning: "very reliable" in French; the tracking error said
+    "very good" when there is no data yet
+  - heating-curve: the advice state is translated; cop-energy: "Flow"
+  - all cards: numbers use the decimal separator of the Home Assistant
+    number format (`5.27` in English, `5,27` in Dutch and French)
 - Installations without a DHW tank logged every cycle as heating,
   cooling included: cooling runs are now classified as cooling (#413)
 - Operation modes `Auto Cool`, `Cooling Storage`, `Auto Heat` and
@@ -123,6 +149,11 @@
   change, alias copies, catalog HaSensor tables, the bounded write
 - `tests/test_427_lwt_card_state.py`: LWT card under Node: tab kept
   over re-renders, open pop-up shown again, stable pop-up ids, colours
+- `tests/test_427_cards_live_states.py`: every card rendered under Node
+  in EN / NL / FR from `tests/fixtures/card_states_427.json` (states of
+  the real integration after ~38 h of simulated operation; opt-in
+  generator in the same file): no errors, no words of another language,
+  decimal separator, the data fixes above, `events_by_day` in the sensor
 
 ## [1.23.3] - 2026-11-18
 

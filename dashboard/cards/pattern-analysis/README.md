@@ -68,7 +68,7 @@ All variables are optional. Add them at the top of the YAML, before the type fie
 
 | Variable | Type | Default | Description |
 |---|---|---|---|
-| lang_override | string | (empty) | Force language: empty (auto from HA), nl, or en |
+| lang_override | string | (empty) | Force language: empty (auto from HA), nl, en or fr |
 | default_tab | string | dist | Initial tab on load: dist, scatter, or cop |
 | default_window | int | 7 | Initial time window: 7, 15, or 30 days |
 | chart_height | int | 280 | Chart height hint (px). SVG auto-scales to full card width |

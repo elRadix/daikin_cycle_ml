@@ -123,6 +123,7 @@ cards:
     custom_fields:
       content: |
         [[[
+          var _DEC = (function(){ try { var _lc = (typeof hass !== 'undefined' && hass && hass.locale) ? hass.locale : {}; var _nf = _lc.number_format; if (_nf === 'comma_decimal' || _nf === 'none') return '.'; if (_nf === 'decimal_comma' || _nf === 'space_comma') return ','; var _l = String(_lc.language || (typeof hass !== 'undefined' && hass && hass.language) || 'en'); return (1.5).toLocaleString(_l).indexOf(',') >= 0 ? ',' : '.'; } catch (e) { return '.'; } })(); /* #427: decimal separator from the HA number format */
           try {
             /* ═══ 1. CONFIG & LANGUAGE ═══ */
             var CFG = (typeof variables !== 'undefined' && variables) ? variables : {};
@@ -184,7 +185,7 @@ cards:
 
             /* ═══ 3. HELPERS ═══ */
             var hasV = function(v) { return v !== null && v !== undefined && v !== '' && String(v) !== 'None' && String(v) !== 'unknown' && String(v) !== 'unavailable' && parseFloat(v) !== 0; };
-            var nf = function(v, d) { if (!hasV(v) || isNaN(v)) return '—'; return Number(v).toFixed(d).replace('.', ','); };
+            var nf = function(v, d) { if (!hasV(v) || isNaN(v)) return '—'; return Number(v).toFixed(d).replace('.', _DEC); };
             
             var e = ADVICE ? states[ADVICE] : null;
             var hasData = e && e.attributes && e.attributes.bucket;
@@ -368,13 +369,13 @@ cards:
             var buildNoteAdvies = function() {
               if (delta < -0.5) {
                 var msg = LANG === 'nl' 
-                  ? `Je setpoint staat momenteel <b>${Math.abs(delta).toFixed(1)}°C te hoog</b> voor deze buitentemperatuur. Door deze te verlagen bespaar je <b>${Math.abs(savings).toFixed(1)}%</b> aan COP-rendement.<br><br><b>Advies:</b> Verlaag je stooklijn (Offset) met ${Math.abs(delta).toFixed(1)}°C om het optimum te bereiken.`
-                  : LANG === 'fr' ? `Votre consigne est actuellement <b>${Math.abs(delta).toFixed(1)}°C trop élevée</b> pour cette température extérieure. En la réduisant, vous économisez <b>${Math.abs(savings).toFixed(1)}%</b> en efficacité COP.<br><br><b>Conseil :</b> Réduisez votre loi d'eau (décalage) de ${Math.abs(delta).toFixed(1)}°C pour atteindre l'optimum.` : `Your setpoint is currently <b>${Math.abs(delta).toFixed(1)}°C too high</b> for this outdoor temperature. Lowering it will save you <b>${Math.abs(savings).toFixed(1)}%</b> in COP efficiency.<br><br><b>Advice:</b> Lower your heating curve (Offset) by ${Math.abs(delta).toFixed(1)}°C to reach the optimum.`;
+                  ? `Je setpoint staat momenteel <b>${Math.abs(delta).toFixed(1).replace('.', _DEC)}°C te hoog</b> voor deze buitentemperatuur. Door deze te verlagen bespaar je <b>${Math.abs(savings).toFixed(1).replace('.', _DEC)}%</b> aan COP-rendement.<br><br><b>Advies:</b> Verlaag je stooklijn (Offset) met ${Math.abs(delta).toFixed(1).replace('.', _DEC)}°C om het optimum te bereiken.`
+                  : LANG === 'fr' ? `Votre consigne est actuellement <b>${Math.abs(delta).toFixed(1).replace('.', _DEC)}°C trop élevée</b> pour cette température extérieure. En la réduisant, vous économisez <b>${Math.abs(savings).toFixed(1).replace('.', _DEC)}%</b> en efficacité COP.<br><br><b>Conseil :</b> Réduisez votre loi d'eau (décalage) de ${Math.abs(delta).toFixed(1).replace('.', _DEC)}°C pour atteindre l'optimum.` : `Your setpoint is currently <b>${Math.abs(delta).toFixed(1).replace('.', _DEC)}°C too high</b> for this outdoor temperature. Lowering it will save you <b>${Math.abs(savings).toFixed(1).replace('.', _DEC)}%</b> in COP efficiency.<br><br><b>Advice:</b> Lower your heating curve (Offset) by ${Math.abs(delta).toFixed(1).replace('.', _DEC)}°C to reach the optimum.`;
                 return noteHelper(msg);
               } else if (delta > 0.5) {
                 var msg = LANG === 'nl'
-                  ? `Je setpoint staat momenteel <b>${delta.toFixed(1)}°C te laag</b>. Dit kan ten koste gaan van je comfort.<br><br><b>Advies:</b> Verhoog je stooklijn of Offset met ${delta.toFixed(1)}°C om de woning comfortabel te houden.`
-                  : LANG === 'fr' ? `Votre consigne est actuellement <b>${delta.toFixed(1)}°C trop basse</b>. Cela peut impacter votre confort.<br><br><b>Conseil :</b> Augmentez votre loi d'eau ou décalage de ${delta.toFixed(1)}°C pour garder la maison confortable.` : `Your setpoint is currently <b>${delta.toFixed(1)}°C too low</b>. This may impact your comfort.<br><br><b>Advice:</b> Increase your heating curve or Offset by ${delta.toFixed(1)}°C to keep the house comfortable.`;
+                  ? `Je setpoint staat momenteel <b>${delta.toFixed(1).replace('.', _DEC)}°C te laag</b>. Dit kan ten koste gaan van je comfort.<br><br><b>Advies:</b> Verhoog je stooklijn of Offset met ${delta.toFixed(1).replace('.', _DEC)}°C om de woning comfortabel te houden.`
+                  : LANG === 'fr' ? `Votre consigne est actuellement <b>${delta.toFixed(1).replace('.', _DEC)}°C trop basse</b>. Cela peut impacter votre confort.<br><br><b>Conseil :</b> Augmentez votre loi d'eau ou décalage de ${delta.toFixed(1).replace('.', _DEC)}°C pour garder la maison confortable.` : `Your setpoint is currently <b>${delta.toFixed(1).replace('.', _DEC)}°C too low</b>. This may impact your comfort.<br><br><b>Advice:</b> Increase your heating curve or Offset by ${delta.toFixed(1).replace('.', _DEC)}°C to keep the house comfortable.`;
                 return warnHelper(msg);
               } else {
                 var msg = LANG === 'nl'
@@ -385,7 +386,8 @@ cards:
             };
 
             var buildNoteBuckets = function() {
-              var conf = samples > 50 ? (LANG==='nl'?'zeer betrouwbaar':'very reliable') : (samples > 10 ? (LANG==='nl'?'betrouwbaar':'reliable') : (LANG==='nl'?'nog onvoldoende data':'not enough data yet'));
+              var _l3 = function(nl, en, fr){ return LANG==='nl' ? nl : (LANG==='fr' ? fr : en); };
+              var conf = samples > 50 ? _l3('zeer betrouwbaar','very reliable','très fiable') : (samples > 10 ? _l3('betrouwbaar','reliable','fiable') : _l3('nog onvoldoende data','not enough data yet','pas encore assez de données'));
               return noteHelper(
                 LANG === 'nl'
                   ? `De grafiek toont de beste LWT per buitentemperatuur. Jouw huidige bucket (<b>${bucket}°C</b>) heeft <b>${samples} samples</b> en is <b>${conf}</b>.<br><br><b>Tip:</b> Zie je een 'dip' in de lijn? Dan presteert je woning bij die specifieke temperatuur minder efficiënt. Klik op de stippen om de exacte COP-cijfers te bekijken.`
@@ -394,15 +396,19 @@ cards:
             };
 
             var buildNoteAnalyse = function() {
-              if (Math.abs(track) > 2) {
+              var _noTrack = (d.tracking_error === null || d.tracking_error === undefined);
+              var _okNl = _noTrack ? 'Nog geen gegevens: er is nog geen doel-setpoint om mee te vergelijken.' : 'Zeer goed. De stooklijn volgt het setpoint bijna perfect.';
+              var _okFr = _noTrack ? 'Pas encore de données : aucune consigne cible pour comparer.' : 'Très bon. La loi d\'eau suit presque parfaitement la consigne.';
+              var _okEn = _noTrack ? 'No data yet: there is no target setpoint to compare with.' : 'Very good. The curve tracks the setpoint almost perfectly.';
+              if (!_noTrack && Math.abs(track) > 2) {
                 var msg = LANG === 'nl'
                   ? `<b>Tracking Fout (${nf(track,1)}°C):</b> Dit is vrij hoog. De warmtepomp heeft moeite om het setpoint te bereiken.<br><br><b>Oplossing:</b> Dit komt vaak door een defrost, een te lage waterflow (verhoog de pompstand) of een te agressieve stooklijn.`
                   : LANG === 'fr' ? `<b>Erreur de suivi (${nf(track,1)}°C) :</b> Ceci est assez élevé. La PAC peine à atteindre la consigne.<br><br><b>Solution :</b> Souvent causé par un cycle de dégivrage, un débit d'eau faible (augmentez la vitesse pompe), ou une loi d'eau trop agressive.` : `<b>Tracking Error (${nf(track,1)}°C):</b> This is quite high. The heat pump struggles to reach the setpoint.<br><br><b>Solution:</b> Often caused by a defrost cycle, low water flow (increase pump speed), or an aggressive heating curve.`;
                 return warnHelper(msg);
               } else {
                 var msg = LANG === 'nl'
-                  ? `<b>Tracking Fout (${nf(track,1)}°C):</b> Zeer goed. De stooklijn volgt het setpoint bijna perfect.<br><br><b>Uitleg:</b> De <b>Slope</b> bepaalt hoe snel de temperatuur stijgt als het kouder wordt. De <b>Offset</b> is het vaste verschil dat je handmatig toevoegt om het huis net dat beetje extra warmte te geven.`
-                  : LANG === 'fr' ? `<b>Erreur de suivi (${nf(track,1)}°C) :</b> Très bon. La loi d'eau suit presque parfaitement la consigne.<br><br><b>Explication :</b> La <b>Pente</b> détermine à quelle vitesse la température monte quand il fait plus froid. Le <b>Décalage</b> est la différence fixe que vous ajoutez manuellement pour donner un peu de chaleur en plus.` : `<b>Tracking Error (${nf(track,1)}°C):</b> Very good. The curve tracks the setpoint almost perfectly.<br><br><b>Explanation:</b> The <b>Slope</b> determines how fast the temperature rises when it gets colder. The <b>Offset</b> is the fixed difference you manually add to give the house that little bit of extra heat.`;
+                  ? `<b>Tracking Fout (${nf(track,1)}°C):</b> ${_okNl}<br><br><b>Uitleg:</b> De <b>Slope</b> bepaalt hoe snel de temperatuur stijgt als het kouder wordt. De <b>Offset</b> is het vaste verschil dat je handmatig toevoegt om het huis net dat beetje extra warmte te geven.`
+                  : LANG === 'fr' ? `<b>Erreur de suivi (${nf(track,1)}°C) :</b> ${_okFr}<br><br><b>Explication :</b> La <b>Pente</b> détermine à quelle vitesse la température monte quand il fait plus froid. Le <b>Décalage</b> est la différence fixe que vous ajoutez manuellement pour donner un peu de chaleur en plus.` : `<b>Tracking Error (${nf(track,1)}°C):</b> ${_okEn}<br><br><b>Explanation:</b> The <b>Slope</b> determines how fast the temperature rises when it gets colder. The <b>Offset</b> is the fixed difference you manually add to give the house that little bit of extra heat.`;
                 return noteHelper(msg);
               }
             };
@@ -451,15 +457,15 @@ cards:
                 <div class="lwt-cop-grid">
                   <div class="lwt-cop-item">
                     <div class="lwt-cop-lbl">${t('current_cop')}</div>
-                    <div class="lwt-cop-val" style="color:#1565C0">${currentCop > 0 ? currentCop.toFixed(2) : '—'}</div>
+                    <div class="lwt-cop-val" style="color:#1565C0">${currentCop > 0 ? currentCop.toFixed(2).replace('.', _DEC) : '—'}</div>
                   </div>
                   <div class="lwt-cop-item">
                     <div class="lwt-cop-lbl">${t('target_cop')}</div>
-                    <div class="lwt-cop-val" style="color:#2E7D32">${targetCop > 0 ? targetCop.toFixed(2) : '—'}</div>
+                    <div class="lwt-cop-val" style="color:#2E7D32">${targetCop > 0 ? targetCop.toFixed(2).replace('.', _DEC) : '—'}</div>
                   </div>
                   <div class="lwt-cop-item">
                     <div class="lwt-cop-lbl">${t('impact')}</div>
-                    <div class="lwt-cop-val" style="color:${savings >= 0 ? '#2E7D32' : '#C62828'}">${savings >= 0 ? '+' : ''}${savings.toFixed(1)}%</div>
+                    <div class="lwt-cop-val" style="color:${savings >= 0 ? '#2E7D32' : '#C62828'}">${savings >= 0 ? '+' : ''}${savings.toFixed(1).replace('.', _DEC)}%</div>
                   </div>
                 </div>
 
@@ -689,9 +695,9 @@ cards:
 
               // Scale Labels
               svg += `<text x="${pX}" y="105" font-size="9" fill="#94a3b8" font-weight="bold">${minV}°</text>`;
-              svg += `<text x="${pX + pW/4}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.25).toFixed(1)}°</text>`;
-              svg += `<text x="${pX + pW/2}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.5).toFixed(1)}°</text>`;
-              svg += `<text x="${pX + pW*0.75}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.75).toFixed(1)}°</text>`;
+              svg += `<text x="${pX + pW/4}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.25).toFixed(1).replace('.', _DEC)}°</text>`;
+              svg += `<text x="${pX + pW/2}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.5).toFixed(1).replace('.', _DEC)}°</text>`;
+              svg += `<text x="${pX + pW*0.75}" y="105" font-size="9" fill="#94a3b8" text-anchor="middle">${(minV + (maxV-minV)*0.75).toFixed(1).replace('.', _DEC)}°</text>`;
               svg += `<text x="${pX + pW}" y="105" font-size="9" fill="#94a3b8" text-anchor="end" font-weight="bold">${maxV}°</text>`;
 
               svg += `</svg>`;

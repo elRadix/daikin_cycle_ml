@@ -81,7 +81,7 @@ variables:
 | Variable | Type | Default | Description |
 |---|---|---|---|
 | `theme_override` | string | `light` | Force theme: `light`, `dark`, or `auto` (follows OS) |
-| `lang_override` | string | `''` | Force language: empty (auto from HA), `en`, or `nl` |
+| `lang_override` | string | `''` | Force language: empty (auto from HA), `en`, `nl` or `fr` |
 
 ### Examples
 

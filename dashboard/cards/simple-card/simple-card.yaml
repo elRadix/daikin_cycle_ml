@@ -50,6 +50,7 @@ cards:
     custom_fields:
       content: |
         [[[
+          var _DEC = (function(){ try { var _lc = (typeof hass !== 'undefined' && hass && hass.locale) ? hass.locale : {}; var _nf = _lc.number_format; if (_nf === 'comma_decimal' || _nf === 'none') return '.'; if (_nf === 'decimal_comma' || _nf === 'space_comma') return ','; var _l = String(_lc.language || (typeof hass !== 'undefined' && hass && hass.language) || 'en'); return (1.5).toLocaleString(_l).indexOf(',') >= 0 ? ',' : '.'; } catch (e) { return '.'; } })(); /* #427: decimal separator from the HA number format */
           /* #347 entity resolver (EN id -> [translation_key, nl, fr]) */
           var _dcmA = {"binary_sensor.daikin_cycle_ml_buh_active":["buh_active","daikin_cycle_ml_buh_actief","daikin_cycle_ml_appoint_en_marche"],"binary_sensor.daikin_cycle_ml_compressor_running":["compressor_running","daikin_cycle_ml_compressor_actief","daikin_cycle_ml_compresseur_en_marche"],"binary_sensor.daikin_cycle_ml_cooling_active":["cooling_active","daikin_cycle_ml_koeling_actief","daikin_cycle_ml_rafraichissement_en_cours"],"binary_sensor.daikin_cycle_ml_defrost_active":["defrost_active","daikin_cycle_ml_defrost_actief","daikin_cycle_ml_degivrage_en_cours"],"binary_sensor.daikin_cycle_ml_dhw_active":["dhw_active","daikin_cycle_ml_sww_actief","daikin_cycle_ml_eau_chaude_en_cours"],"binary_sensor.daikin_cycle_ml_dhw_pendulum":["dhw_pendulum","daikin_cycle_ml_sww_pendelen","daikin_cycle_ml_cycles_d_eau_chaude_trop_frequents"],"binary_sensor.daikin_cycle_ml_heating_active":["heating_active","daikin_cycle_ml_verwarming_actief","daikin_cycle_ml_chauffage_en_cours"],"binary_sensor.daikin_cycle_ml_high_cycle_rate":["high_cycle_rate","daikin_cycle_ml_hoge_cyclusfrequentie","daikin_cycle_ml_frequence_de_cycles_elevee"],"binary_sensor.daikin_cycle_ml_missing_attributes":["missing_attrs","daikin_cycle_ml_ontbrekende_attributen","daikin_cycle_ml_valeurs_manquantes"],"binary_sensor.daikin_cycle_ml_pendulum_daily":["pendulum_daily","daikin_cycle_ml_pendelen_per_dag","daikin_cycle_ml_cycles_trop_frequents_jour"],"binary_sensor.daikin_cycle_ml_pendulum_hourly":["pendulum_hourly","daikin_cycle_ml_pendelen_per_uur","daikin_cycle_ml_cycles_trop_frequents_heure"],"binary_sensor.daikin_cycle_ml_setpoint_oscillating":["setpoint_oscillating","daikin_cycle_ml_setpoint_oscilleert","daikin_cycle_ml_consigne_instable"],"binary_sensor.daikin_cycle_ml_short_off":["short_off","daikin_cycle_ml_korte_off_tijd","daikin_cycle_ml_arret_court"],"binary_sensor.daikin_cycle_ml_short_run":["short_run","daikin_cycle_ml_korte_run","daikin_cycle_ml_marche_courte"],"binary_sensor.daikin_cycle_ml_source_stale":["source_stale","daikin_cycle_ml_bron_verouderd","daikin_cycle_ml_source_muette"],"sensor.daikin_cycle_ml_cop_today":["cop_today","daikin_cycle_ml_cop_vandaag","daikin_cycle_ml_cop_chauffage_du_jour"],"sensor.daikin_cycle_ml_current_cycle":["current_cycle","daikin_cycle_ml_huidige_cyclus","daikin_cycle_ml_cycle_en_cours"],"sensor.daikin_cycle_ml_cycle_state":["cycle_state","daikin_cycle_ml_cyclus_status","daikin_cycle_ml_etat_du_cycle"],"sensor.daikin_cycle_ml_cycles_today":["cycles_today","daikin_cycle_ml_cycli_vandaag","daikin_cycle_ml_cycles_aujourd_hui"],"sensor.daikin_cycle_ml_heating_curve_advice":["heating_curve_advice","daikin_cycle_ml_stooklijn_advies","daikin_cycle_ml_conseil_de_loi_d_eau"],"sensor.daikin_cycle_ml_last_cycle":["last_cycle","daikin_cycle_ml_laatste_cyclus","daikin_cycle_ml_dernier_cycle"],"sensor.daikin_cycle_ml_learned_thresholds":["learned_thresholds","daikin_cycle_ml_geleerde_drempels","daikin_cycle_ml_seuils_appris"],"sensor.daikin_cycle_ml_quality_today":["quality_today","daikin_cycle_ml_kwaliteit_vandaag","daikin_cycle_ml_qualite_du_jour"],"sensor.daikin_cycle_ml_source_health":["source_health","daikin_cycle_ml_bron_gezondheid","daikin_cycle_ml_fraicheur_de_la_source"]};
           var _dcmC = {};
@@ -59,8 +60,8 @@ cards:
           var stStr = function(s,d){ if(d===undefined)d='—'; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='none'||x.state==='')return d; return x.state; };
           var isOn = function(s){ var x=states[s]; if(!x||!x.state)return false; var v=String(x.state).toLowerCase(); return v==='on'||v==='true'||v==='1'; };
           var hasV = function(v){ return v!==null && v!==undefined && v!=='' && String(v)!=='None'; };
-          var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.',','); };
-          var v2 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(2).replace('.',','); };
+          var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.', _DEC); };
+          var v2 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(2).replace('.', _DEC); };
           var vI = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Math.round(parseFloat(v)).toString(); };
           var attr = function(id,n,d){ try{ var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
           var aN = function(id,n,d){ var v=attr(id,n,null); if(v===null)return d; var x=parseFloat(v); return isNaN(x)?d:x; };
@@ -83,10 +84,10 @@ cards:
               sub:'Live cyclus · COP · kwaliteit · alerts',
               phase:'Fase', cop:'COP', runs:'Runs', q:'Kwaliteit', src:'Bron',
               today:'📅 Vandaag', last:'⏮️ Laatste cyclus',
-              dur:'Duur', avgDur:'Gem duur', avgOff:'Gem off', longest:'Langste',
-              ratio:'Good ratio', sr:'Short runs', mode:'Modus', outdoor:'Buiten',
+              dur:'Duur', avgDur:'Gem. duur', avgOff:'Gem. pauze', longest:'Langste',
+              ratio:'Goede cycli', sr:'Korte runs', mode:'Modus', outdoor:'Buiten',
               dt:'ΔT', rps:'RPS', kw:'Vermogen', defrost:'Defrost', buh:'BUH',
-              stooklijn:'📈 Stooklijn advies', state:'State', bucket:'Bucket',
+              stooklijn:'📈 Stooklijn advies', state:'Status', bucket:'Bucket',
               savings:'Besparing', comfort:'Comfort', reliability:'Betrouwbaar',
               explain:'💡 COP hoger = beter · Q = kwaliteit 0-100 · Alerts bovenaan = actie',
               noAlert:'✅ Systeem OK — geen actieve waarschuwingen',
@@ -96,7 +97,10 @@ cards:
               supplyLabel:'🔥 AANVOER →', returnLabel:'← 💧 RETOUR',
               lvlCrit:'ACTIE VEREIST', lvlWarn:'AANDACHT', lvlInfo:'INFO',
               phases:{ idle:'IDLE', defrost:'DEFROST', buh:'BUH', dhw:'SWW',
-                       heating:'VERWARMEN', cooling:'KOELEN', running:'COMPRESSOR' }
+                       heating:'VERWARMEN', cooling:'KOELEN', running:'COMPRESSOR' },
+              cstate:{ idle:'stil', running:'draait' },
+              modes:{ heating:'verwarmen', dhw:'SWW', cooling:'koelen', unknown:'onbekend' },
+              advice:{ keep:'Behouden', lower_lwt:'Verlaag LWT', raise_lwt:'Verhoog LWT', no_data:'Geen data', unknown:'Onbekend' }
             },
             en: {
               sub:'Live cycle · COP · quality · alerts',
@@ -115,7 +119,10 @@ cards:
               supplyLabel:'🔥 SUPPLY →', returnLabel:'← 💧 RETURN',
               lvlCrit:'ACTION REQUIRED', lvlWarn:'ATTENTION', lvlInfo:'INFO',
               phases:{ idle:'IDLE', defrost:'DEFROST', buh:'BUH', dhw:'DHW',
-                       heating:'HEATING', cooling:'COOLING', running:'COMPRESSOR' }
+                       heating:'HEATING', cooling:'COOLING', running:'COMPRESSOR' },
+              cstate:{ idle:'idle', running:'running' },
+              modes:{ heating:'heating', dhw:'DHW', cooling:'cooling', unknown:'unknown' },
+              advice:{ keep:'Keep', lower_lwt:'Lower LWT', raise_lwt:'Raise LWT', no_data:'No data', unknown:'Unknown' }
             }
           };
           /* FR-I18N (azsono03) */
@@ -123,6 +130,10 @@ cards:
           var FR=function(x){ return (LANG==='fr' && typeof x==='string' && Object.prototype.hasOwnProperty.call(FRM,x)) ? FRM[x] : x; };
           var FRO=function(o){ if(typeof o==='string') return Object.prototype.hasOwnProperty.call(FRM,o)?FRM[o]:o; if(o&&typeof o==='object'){ var r=Array.isArray(o)?[]:{}; for(var k in o){ r[k]=FRO(o[k]); } return r; } return o; };
           STR.fr = FRO(STR.en);
+          STR.fr.cstate = { idle:'à l\'arrêt', running:'en marche' };
+          STR.fr.modes = { heating:'chauffage', dhw:'ECS', cooling:'froid', unknown:'inconnu' };
+          STR.fr.advice = { keep:'Garder', lower_lwt:'Baisser le départ', raise_lwt:'Monter le départ', no_data:'Pas de données', unknown:'Inconnu' };
+          var tm = function(group, k){ var g = t(group); return (g && typeof g === 'object' && g[k]) ? g[k] : k; };
           var t = function(k){ return (STR[LANG] && STR[LANG][k]) || (STR.en && STR.en[k]) || k; };
 
           /* ============ entities ============ */
@@ -166,12 +177,13 @@ cards:
           var isStale = aB(S.health,'is_stale',false);
 
           var curDur=aN(S.cur,'duration_min',null), curDt=aN(S.cur,'dt_k',null), curRps=aN(S.cur,'rps',0);
-          var lastDur=aN(S.last,'duration_min',null), lastDt=aN(S.last,'avg_dt_k',null);
+          var lastDur=aN(S.last,'duration_min',null), lastDt=aN(S.last,'dt_avg_k',aN(S.last,'dt_max_k',null));
           var lastRps=aN(S.last,'rps_avg',null), lastKw=aN(S.last,'thermal_kw_avg',null);
           var lastMode=attr(S.last,'mode',null);
           var lastOut=aN(S.last,'outdoor_temp',null);
           var lastBuh=aB(S.last,'buh_used',false), lastDefr=aB(S.last,'defrost_used',false);
           var lastClus=attr(S.last,'cluster',null);
+          var lastQ=st(S.last,null);
           var avgDur=aN(S.today,'avg_duration_min',null), avgOff=aN(S.today,'avg_off_time_min',null);
           var longDur=aN(S.today,'longest_cycle_min',null), shortRuns=aN(S.today,'short_runs',0);
 
@@ -241,7 +253,10 @@ cards:
 
           /* ============ colors ============ */
           var copColor = copV===null?'#7f8c8d':(copV>=4?'#4CAF50':copV>=2.5?'#F5A623':'#E60012');
-          var qColor = ratio===null?'#7f8c8d':(ratio>=70?'#4CAF50':ratio>=40?'#F5A623':'#E60012');
+          /* #427: Q = the quality score (0-100) of today, as the footer explains;
+             the good-cycle ratio only when no score exists yet */
+          var qToday = st(S.q,null); if (qToday===null) qToday = ratio;
+          var qColor = qToday===null?'#7f8c8d':(qToday>=70?'#4CAF50':qToday>=40?'#F5A623':'#E60012');
           var ageColor = age===null?'#7f8c8d':(age<120?'#4CAF50':age<600?'#F5A623':'#E60012');
           var liveDt = curDt!==null ? curDt : (lastDt||0);
           var liveKw = lastKw;
@@ -334,14 +349,14 @@ cards:
           r+=(useFan && fanDur(liveRps)) ? fanHtml(liveRps,32,phColor) : '<span style="font-size:28px;line-height:1;">'+phIcon+'</span>';
           r+='</div>';
           r+='<div style="min-width:0;">';
-          r+='<div style="font-size:0.55em;color:#5d6d7e;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;">'+t('phase')+' · '+stStr(S.state,'idle')+'</div>';
+          r+='<div style="font-size:0.55em;color:#5d6d7e;font-weight:900;text-transform:uppercase;letter-spacing:0.5px;">'+t('phase')+' · '+tm('cstate', stStr(S.state,'idle'))+'</div>';
           r+='<div style="font-size:1.2em;color:'+phColor+';font-weight:900;letter-spacing:0.6px;line-height:1.1;">'+phLabel+'</div>';
           r+='<div style="font-size:0.7em;color:#00539F;font-weight:800;font-family:ui-monospace,monospace;margin-top:2px;">'+vI(liveRps)+' rps</div>';
           r+='</div></div>';
           r+='<div style="text-align:right;flex-shrink:0;">';
           r+='<div style="font-size:0.55em;color:#5d6d7e;font-weight:900;text-transform:uppercase;">'+t('cop')+'</div>';
           r+='<div style="font-family:ui-monospace,monospace;font-size:1.3em;color:'+copColor+';font-weight:900;line-height:1;">'+(copV===null?'—':v2(copV))+'</div>';
-          r+='<div style="font-family:ui-monospace,monospace;font-size:0.8em;color:'+qColor+';font-weight:900;line-height:1;margin-top:3px;">Q '+vI(ratio)+'%</div>';
+          r+='<div style="font-family:ui-monospace,monospace;font-size:0.8em;color:'+qColor+';font-weight:900;line-height:1;margin-top:3px;">Q '+vI(qToday)+'</div>';
           r+='</div></div>';
 
           if(alerts.length>0){
@@ -393,7 +408,7 @@ cards:
           };
           r+=tile('📈',t('cop'), copV===null?'—':v2(copV), copColor);
           r+=tile('🔄',t('runs'), vI(cyc)+(target?'/'+vI(target):''), (target && cyc<=target) ? '#4CAF50' : '#E60012');
-          r+=tile('⭐',t('q'), vI(ratio)+'%', qColor);
+          r+=tile('⭐',t('q'), vI(qToday), qColor);
           r+=tile('🩺',t('src'), age===null?'—':vI(age)+'s', ageColor);
           r+='</div>';
 
@@ -406,22 +421,24 @@ cards:
           r+='<div class="d-row"><span class="d-k">'+t('sr')+'</span><span class="d-v" style="color:'+(shortRuns>0?'#E60012':'#4CAF50')+'">'+vI(shortRuns)+'</span></div>';
           r+='</div>';
           r+='<div class="d-sec" style="margin:0;">';
-          r+='<div class="d-hdr"><span>'+t('last')+'</span><span>'+tr(lastClus,10)+'</span></div>';
+          r+='<div class="d-hdr"><span>'+t('last')+'</span><span>'+((hasV(lastClus) && String(lastClus)!=='unknown') ? tr(lastClus,10) : (lastQ===null ? '—' : 'Q '+vI(lastQ)))+'</span></div>';
           r+='<div class="d-row"><span class="d-k">'+t('dur')+'</span><span class="d-v">'+(lastDur===null?'—':v1(lastDur)+"'")+'</span></div>';
           r+='<div class="d-row"><span class="d-k">'+t('dt')+'</span><span class="d-v">'+(lastDt===null?'—':v1(lastDt)+'K')+'</span></div>';
           r+='<div class="d-row"><span class="d-k">'+t('rps')+'</span><span class="d-v">'+(lastRps===null?'—':vI(lastRps))+'</span></div>';
-          r+='<div class="d-row"><span class="d-k">'+t('mode')+'</span><span class="d-v" style="font-size:0.85em;">'+tr(lastMode||'—',9)+'</span></div>';
+          r+='<div class="d-row"><span class="d-k">'+t('mode')+'</span><span class="d-v" style="font-size:0.85em;">'+tr(lastMode ? tm('modes', lastMode) : '—',9)+'</span></div>';
           r+='</div>';
           r+='</div>';
 
-          var stCol = stookState==='ok'?'#4CAF50':stookState==='unknown'?'#7f8c8d':'#E60012';
+          var stKey = stookState.replace(/_\d+c$/, '');
+          var stCol = (stKey==='keep'||stKey==='ok')?'#4CAF50':(stKey==='unknown'||stKey==='no_data')?'#7f8c8d':'#F5A623';
+          var stLbl = tm('advice', stKey);
           var svCol = (stookSav && stookSav>0)?'#4CAF50':'#7f8c8d';
           var rlCol = stookRel===null?'#7f8c8d':(stookRel>=0.6?'#4CAF50':stookRel>=0.3?'#F5A623':'#E60012');
           r+='<div class="d-sec">';
-          r+='<div class="d-hdr"><span>'+t('stooklijn')+'</span><span>'+stookState+'</span></div>';
+          r+='<div class="d-hdr"><span>'+t('stooklijn')+'</span><span>'+stLbl+'</span></div>';
           r+='<div class="d-g2">';
           r+='<div>'
-            +'<div class="d-row"><span class="d-k">'+t('state')+'</span><span class="d-v" style="color:'+stCol+'">'+tr(stookState,10)+'</span></div>'
+            +'<div class="d-row"><span class="d-k">'+t('state')+'</span><span class="d-v" style="color:'+stCol+'">'+tr(stLbl,16)+'</span></div>'
             +'<div class="d-row"><span class="d-k">'+t('bucket')+'</span><span class="d-v">'+tr(stookBucket||'—',10)+'</span></div>'
             +'</div>';
           r+='<div>'

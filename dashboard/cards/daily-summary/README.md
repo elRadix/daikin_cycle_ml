@@ -128,23 +128,27 @@ open it full-size.
 
 ## Language switch
 
-One line at the top of the JS template controls the language:
+The card follows the language of the integration (`configured_language`
+on the cycle-state sensor): English, Dutch or French. To force a language,
+set one line at the top of the JS template:
 
 ```js
-var LANG = 'nl';   /* 'nl' | 'en' */
+var LANG_OVERRIDE = '';   /* '' = auto | 'nl' | 'en' | 'fr' */
 ```
 
-| Element | NL | EN |
-|---|---|---|
-| Date format | `7 okt · wo` | `7 Oct · Wed` |
-| Sections | `Cycli per dag` | `Cycles per day` |
-| Legend | `Verwarming / DHW` | `Heating / DHW` |
-| Relative time | `2d geleden` | `2d ago` |
-| Chips | `Goed >= 70` | `Good >= 70` |
-| Tooltips | `Verwarming 3x` | `Heating 3x` |
+The header has its own `{% set lang_override = '' -%}` in both Jinja
+templates (title and subtitle).
 
-To change: open the card in Lovelace edit-mode, find `var LANG = 'nl';`,
-change to `'en'`, save. The card switches immediately.
+| Element | NL | EN | FR |
+|---|---|---|---|
+| Date format | `7 okt · wo` | `7 Oct · Wed` | `7 oct. · mer.` |
+| Sections | `Cycli per dag` | `Cycles per day` | `Cycles par jour` |
+| Legend | `Verwarming / DHW` | `Heating / DHW` | `Chauffage / ECS` |
+| Relative time | `2d geleden` | `2d ago` | `2 j avant` |
+| Chips | `Goed >= 70` | `Good >= 70` | `Bon >= 70` |
+
+Numbers use the decimal separator of your Home Assistant number format
+(`5.27` in English, `5,27` in Dutch and French).
 
 ---
 

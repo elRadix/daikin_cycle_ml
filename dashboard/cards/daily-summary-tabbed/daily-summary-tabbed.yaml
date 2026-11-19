@@ -142,6 +142,7 @@ cards:
     custom_fields:
       content: |
         [[[
+          var _DEC = (function(){ try { var _lc = (typeof hass !== 'undefined' && hass && hass.locale) ? hass.locale : {}; var _nf = _lc.number_format; if (_nf === 'comma_decimal' || _nf === 'none') return '.'; if (_nf === 'decimal_comma' || _nf === 'space_comma') return ','; var _l = String(_lc.language || (typeof hass !== 'undefined' && hass && hass.language) || 'en'); return (1.5).toLocaleString(_l).indexOf(',') >= 0 ? ',' : '.'; } catch (e) { return '.'; } })(); /* #427: decimal separator from the HA number format */
           try {
             var card = this;
             card.__paRegistry = card.__paRegistry || {};
@@ -214,7 +215,7 @@ cards:
             }
 
             var hasV = function(v){ return v!==null && v!==undefined && v!=='' && String(v)!=='None' && String(v)!=='unknown' && String(v)!=='unavailable'; };
-            var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.',','); };
+            var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.', _DEC); };
             var vI = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Math.round(parseFloat(v)).toString(); };
             var attr = function(id,n,d){ try{ if(!id)return d; var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
             var aN = function(id,n,d){ var v=attr(id,n,null); if(v===null)return d; var x=parseFloat(v); return isNaN(x)?d:x; };
@@ -225,7 +226,7 @@ cards:
               if(!hasV(m)) return '—'; var n = Number(m);
               if(n >= 1440) return Math.round(n/1440)+(LANG==='fr'?' j':'d');
               if(n >= 120) return Math.round(n/60)+'h';
-              if(n >= 60) return (n/60).toFixed(1).replace('.',',')+'h';
+              if(n >= 60) return (n/60).toFixed(1).replace('.', _DEC)+'h';
               return Math.round(n)+'m';
             };
             var fmtBigHours = function(h){
@@ -233,7 +234,7 @@ cards:
               if(n >= 24*7) return Math.round(n/24)+(LANG==='fr'?' j':'d');
               if(n >= 24) return Math.round(n)+'h';
               if(n >= 10) return n.toFixed(0)+'h';
-              if(n >= 1) return n.toFixed(1).replace('.',',')+'h';
+              if(n >= 1) return n.toFixed(1).replace('.', _DEC)+'h';
               return Math.round(n*60)+'m';
             };
             var fmtSec = function(s){
@@ -241,7 +242,7 @@ cards:
               if (s < 60) return Math.round(s)+'s';
               var m = Math.round(s/60);
               if (m < 60) return m+'m';
-              return (m/60).toFixed(1).replace('.',',')+'h';
+              return (m/60).toFixed(1).replace('.', _DEC)+'h';
             };
             var qColor = function(q){ return q===null||q===undefined?'var(--secondary-text-color, #546E7A)':(q>=70?'#2E7D32':q>=40?'#E65100':'#C62828'); };
             var TXT_HALO = 'paint-order="stroke fill" stroke="white" stroke-width="2.5" stroke-opacity="0.9" stroke-linejoin="round"';
@@ -274,7 +275,7 @@ cards:
               qual_chart:  {nl:'Kwaliteit per dag', en:'Quality per day'},
               cycles_chart:{nl:'Cycli per dag', en:'Cycles per day'},
               dur_chart:   {nl:'Duur per dag', en:'Duration per day'},
-              ev_chart:    {nl:'Event counts per dag', en:'Event counts per day'},
+              ev_chart:    {nl:'Events per dag', en:'Event counts per day'},
               ev_ratio:    {nl:'Event-ratio per dag', en:'Event ratio per day'},
               q_good: {nl:'≥70 goed', en:'≥70 good'},
               q_mid:  {nl:'40-70 midden', en:'40-70 mid'},
@@ -313,7 +314,7 @@ cards:
               r_totaldef:{nl:'Tot defrost', en:'Total defrost'},
               r_avgratio:{nl:'Gem ratio', en:'Avg ratio'},
               r_lastdef: {nl:'Laatste defrost', en:'Last defrost'},
-              r_duty:    {nl:'Duty', en:'Duty'},
+              r_duty:    {nl:'Bedrijfstijd', en:'Duty'},
               r_range:   {nl:'Periode', en:'Range'},
               r_worst:   {nl:'Slechtste dag', en:'Worst day'},
               r_best:    {nl:'Beste dag', en:'Best day'},
@@ -635,7 +636,7 @@ cards:
               h += '<div class="pa-hero-ring">'+ringSvg+'</div>';
               h += '</div>';
               h += '<div class="pa-hero-foot">';
-              h += '<span class="pa-hero-stat">'+String(wTotCycles)+(LANG==='fr'?' cycles · ':' cycli · ')+fmtBigHours(wHours)+'</span>';
+              h += '<span class="pa-hero-stat">'+String(wTotCycles)+(LANG==='nl'?' cycli · ':' cycles · ')+fmtBigHours(wHours)+'</span>';
               h += '<span class="pa-hero-dates">'+fmtDay(sub[0].day)+' → '+fmtDay(sub[sub.length-1].day)+'</span>';
               h += '</div>';
               if (barHtml) h += '<div class="pa-hero-split">'+barHtml+'</div>';
@@ -679,7 +680,7 @@ cards:
                   fmt:function(v){ return String(Math.round(v)); } },
                 { title:(LANG==='nl'?'DUUR/DAG':FR('DURATION/DAY')), color:C.cooling, bg:CBG.cooling,
                   data:sub.map(function(d){ return d.dur_min/60; }), yMin:0, yMax:null,
-                  fmt:function(v){ return v<10 ? v.toFixed(1).replace('.',',')+'h' : Math.round(v)+'h'; } }
+                  fmt:function(v){ return v<10 ? v.toFixed(1).replace('.', _DEC)+'h' : Math.round(v)+'h'; } }
               ];
               var s = '<svg viewBox="0 0 '+sparkW+' '+sparkH+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">';
               for (var pi=0; pi<data.length; pi++){
@@ -900,7 +901,7 @@ cards:
               var s = '<svg viewBox="0 0 '+cW+' '+cH+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">';
               for (var gi=0; gi<=4; gi++){
                 var gv = cap*gi/4, gy = yAt(gv);
-                var lbl = gv<1 ? gv.toFixed(1).replace('.',',') : Math.round(gv).toString();
+                var lbl = gv<1 ? gv.toFixed(1).replace('.', _DEC) : Math.round(gv).toString();
                 s += '<line x1="'+cPadL+'" y1="'+gy+'" x2="'+(cPadL+plotW)+'" y2="'+gy+'" stroke="var(--divider-color, rgba(13,71,161,0.10))"/>';
                 s += '<text x="'+(cPadL-6)+'" y="'+(gy+4)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" font-weight="900" fill="var(--primary-text-color, #0D47A1)">'+lbl+'h</text>';
               }
@@ -928,7 +929,7 @@ cards:
                 if (clipped) s += '<line x1="'+(x-3)+'" y1="'+(yBase-hTotal)+'" x2="'+(x+barW+3)+'" y2="'+(yBase-hTotal)+'" stroke="'+QLOW+'" stroke-width="2.5" pointer-events="none"/>';
                 s += '</g>';
                 if (numDays<=21 && hours>0){
-                  var ltxt = hours<1 ? vI(hours*60)+'m' : hours.toFixed(1).replace('.',',')+'h';
+                  var ltxt = hours<1 ? vI(hours*60)+'m' : hours.toFixed(1).replace('.', _DEC)+'h';
                   s += '<text x="'+(x+barW/2)+'" y="'+(yBase-hTotal-6)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="'+(clipped?QLOW:'var(--primary-text-color, #0D47A1)')+'" pointer-events="none">'+(clipped?'⚠':'')+ltxt+'</text>';
                 }
                 if (i % labelEvery === 0 || i === numDays-1){
@@ -994,7 +995,7 @@ cards:
                 ]
               });
               var defPid = registerPayload({
-                title: '❄ Defrost · '+(LANG==='nl'?'vandaag':FR('today')),
+                title: '❄ '+FR('Defrost')+' · '+(LANG==='nl'?'vandaag':FR('today')),
                 items: [
                   { k:t('r_cycles'), v:defCnt+'×', c:C.defrost, hl:true },
                   { k:t('r_avgdur2'), v:fmtSec(defAvg) },
@@ -1002,7 +1003,7 @@ cards:
                 ]
               });
               var dutyPid = registerPayload({
-                title: '⚙ Duty · '+(LANG==='nl'?'vandaag':FR('today')),
+                title: '⚙ '+t('r_duty')+' · '+(LANG==='nl'?'vandaag':FR('today')),
                 items: [
                   { k:t('r_duty'), v:v1(dutyPct)+'%', c:dutyCol, hl:true },
                   { k:t('p_band'), v:dutyLabel, c:dutyCol },
@@ -1030,9 +1031,9 @@ cards:
               var today = '<div class="pa-block">';
               today += '<div class="pa-block-hdr"><span>🔥 '+(LANG==='nl'?'Vandaag':FR('Today'))+'</span><span>live</span></div>';
               today += '<div class="pa-event-tiles">';
-              today += tile('⚡', 'BUH', fmtSec(buhSec), buhSub + ' · ' + v1(buhKwh)+' kWh', buhCol, buhPid);
-              today += tile('❄', 'Defrost', defCnt+'×', defSub, defCol, defPid);
-              today += tile('⚙', 'Duty', v1(dutyPct)+'%', dutyLabel, dutyCol, dutyPid);
+              today += tile('⚡', FR('BUH'), fmtSec(buhSec), buhSub + ' · ' + v1(buhKwh)+' kWh', buhCol, buhPid);
+              today += tile('❄', FR('Defrost'), defCnt+'×', defSub, defCol, defPid);
+              today += tile('⚙', t('r_duty'), v1(dutyPct)+'%', dutyLabel, dutyCol, dutyPid);
               today += tile('🔄', FR('Starts'), String(startsT), LANG==='nl'?'vandaag':FR('today'), startsT > 0 ? 'var(--secondary-text-color, #1565C0)' : 'var(--disabled-text-color, #94a3b8)', startsPid);
               if (IS_HYBRID) {
                 var boilerPct = BOILER_CONTRIB ? (parseFloat((states[BOILER_CONTRIB] || {}).state) || 0) : 0;

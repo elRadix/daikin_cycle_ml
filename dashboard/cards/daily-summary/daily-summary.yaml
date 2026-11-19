@@ -10,8 +10,17 @@ card_mod:
     }
 cards:
   - type: custom:mushroom-template-card
-    primary: 📅 DAIKIN CYCLE ML — SUMMARY
-    secondary: Cycli · duur · kwaliteit · events
+    primary: >-
+      {% set lang_override = '' -%} {% set l = (lang_override if lang_override
+      in ['nl','en','fr'] else
+      (state_attr(((integration_entities('daikin_cycle_ml') | select('match', 'sensor[.].*_(cycle_state|cyclus_status|etat_du_cycle)$') | list) + ['sensor.daikin_cycle_ml_cycle_state']) | first,'configured_language') or
+      'en')) -%} 📅 DAIKIN CYCLE ML — {% if l == 'nl' %}SAMENVATTING{% elif l == 'fr' %}RÉSUMÉ{% else %}SUMMARY{% endif %}
+    secondary: >-
+      {% set lang_override = '' -%} {% set l = (lang_override if lang_override
+      in ['nl','en','fr'] else
+      (state_attr(((integration_entities('daikin_cycle_ml') | select('match', 'sensor[.].*_(cycle_state|cyclus_status|etat_du_cycle)$') | list) + ['sensor.daikin_cycle_ml_cycle_state']) | first,'configured_language') or
+      'en')) -%} {% if l == 'nl' %}Cycli · duur · kwaliteit · events{% elif l == 'fr' %}Cycles · durée · qualité · événements{% else
+      %}Cycles · duration · quality · events{% endif %}
     icon: mdi:calendar-range
     icon_color: blue
     multiline_secondary: true
@@ -46,6 +55,7 @@ cards:
     custom_fields:
       content: |
         [[[
+          var _DEC = (function(){ try { var _lc = (typeof hass !== 'undefined' && hass && hass.locale) ? hass.locale : {}; var _nf = _lc.number_format; if (_nf === 'comma_decimal' || _nf === 'none') return '.'; if (_nf === 'decimal_comma' || _nf === 'space_comma') return ','; var _l = String(_lc.language || (typeof hass !== 'undefined' && hass && hass.language) || 'en'); return (1.5).toLocaleString(_l).indexOf(',') >= 0 ? ',' : '.'; } catch (e) { return '.'; } })(); /* #427: decimal separator from the HA number format */
           /* #347 entity resolver (EN id -> [translation_key, nl, fr]) */
           var _dcmA = {"sensor.daikin_cycle_ml_daily_summary_recent":["daily_summary_recent","daikin_cycle_ml_recent_dagoverzicht","daikin_cycle_ml_resume_des_derniers_jours"],"sensor.daikin_cycle_ml_hp_specs":["hp_specs","daikin_cycle_ml_wp_specs","daikin_cycle_ml_caracteristiques_de_la_pac"]};
           var _dcmC = {};
@@ -54,7 +64,13 @@ cards:
             /* ============================================================
                LANGUAGE
                ============================================================ */
-            var LANG = 'nl';
+            /* '' = auto from the integration language (configured_language),
+               'nl' / 'en' / 'fr' = force (#427) */
+            var LANG_OVERRIDE = '';
+            var _cfgL = '';
+            try { for (var _k in states) { if (/^sensor\..*_(cycle_state|cyclus_status|etat_du_cycle)$/.test(_k) && states[_k].attributes && states[_k].attributes.configured_language) { _cfgL = String(states[_k].attributes.configured_language).toLowerCase(); break; } } } catch (e) {}
+            var LANG = ['nl', 'en', 'fr'].indexOf(LANG_OVERRIDE) >= 0 ? LANG_OVERRIDE
+              : (['nl', 'en', 'fr'].indexOf(_cfgL) >= 0 ? _cfgL : 'en');
 
             /* ============================================================
                i18n
@@ -80,7 +96,8 @@ cards:
                 tooltip_defrost: 'Defrost',
                 avg: 'gem', spark_quality: 'Kwaliteit',
                 spark_cycles: 'Cycli/dag', spark_duration: 'Duur/dag',
-                q_good: 'Goed ≥70', q_mid: 'Midden 40-70', q_low: 'Laag <40'
+                q_good: 'Goed ≥70', q_mid: 'Midden 40-70', q_low: 'Laag <40',
+                heat_short: 'Verw.', cool_short: 'Koel', per_day_short: '/d'
               },
               en: {
                 summary: 'SUMMARY', days: 'days', cycles: 'cycles',
@@ -102,11 +119,35 @@ cards:
                 tooltip_defrost: 'Defrost',
                 avg: 'avg', spark_quality: 'Quality',
                 spark_cycles: 'Cycles/day', spark_duration: 'Duration/day',
-                q_good: 'Good ≥70', q_mid: 'Mid 40-70', q_low: 'Low <40'
+                q_good: 'Good ≥70', q_mid: 'Mid 40-70', q_low: 'Low <40',
+                heat_short: 'Heat', cool_short: 'Cool', per_day_short: '/d'
+              },
+              fr: {
+                summary: 'RÉSUMÉ', days: 'jours', cycles: 'cycles',
+                quality: 'QUAL', heating: 'Chauffage', dhw: 'ECS', cooling: 'Froid',
+                best_day: 'Meilleur jour', worst_day: 'Pire jour',
+                sparklines: 'Tendances', quality_chart: 'Qualité par jour',
+                cycles_chart: 'Cycles par jour', duration_chart: 'Durée par jour',
+                events_chart: 'Événements par jour', events: 'Événements',
+                clipped: 'tronqué', total: 'total', cap: 'max',
+                today: 'aujourd\'hui', yesterday: 'hier', days_ago: ' j avant',
+                future: 'futur', no_data: 'Pas de données',
+                legend_heat: 'Chauffage', legend_dhw: 'ECS',
+                legend_cool: 'Froid', legend_gem_line: 'moy.',
+                legend_buh: 'Appoint', legend_defrost: 'Dégivrage',
+                outlier_warn: 'jour >24 h — vérifier les données',
+                threshold_legend: 'seuil',
+                tooltip_heating: 'Chauffage', tooltip_dhw: 'ECS',
+                tooltip_cooling: 'Froid', tooltip_buh: 'Appoint',
+                tooltip_defrost: 'Dégivrage',
+                avg: 'moy.', spark_quality: 'Qualité',
+                spark_cycles: 'Cycles/jour', spark_duration: 'Durée/jour',
+                q_good: 'Bon ≥70', q_mid: 'Moyen 40-70', q_low: 'Faible <40',
+                heat_short: 'Chauf.', cool_short: 'Froid', per_day_short: '/j'
               }
             };
             var t = function(k){ return (STR[LANG] && STR[LANG][k]) || (STR.en && STR.en[k]) || k; };
-            var locale = LANG === 'nl' ? 'nl-NL' : 'en-GB';
+            var locale = LANG === 'nl' ? 'nl-NL' : (LANG === 'fr' ? 'fr-FR' : 'en-GB');
 
             /* ============================================================
                COLORS
@@ -131,8 +172,8 @@ cards:
                ============================================================ */
             var stStr = function(s,d){ if(d===undefined)d='—'; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='none'||x.state==='')return d; return x.state; };
             var hasV = function(v){ return v!==null && v!==undefined && v!=='' && String(v)!=='None' && String(v)!=='unknown' && String(v)!=='unavailable'; };
-            var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.',','); };
-            var v2 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(2).replace('.',','); };
+            var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.', _DEC); };
+            var v2 = function(v){ if(!hasV(v)||isNaN(parseFloat(v))||!isFinite(parseFloat(v)))return '—'; return Number(v).toFixed(2).replace('.', _DEC); };
             var vI = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Math.round(parseFloat(v)).toString(); };
             var attr = function(id,n,d){ try{ var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
             var aN = function(id,n,d){ var v=attr(id,n,null); if(v===null)return d; var x=parseFloat(v); return isNaN(x)?d:x; };
@@ -140,9 +181,9 @@ cards:
             var fmtBigNum = function(v){
               if(!hasV(v)||isNaN(parseFloat(v))) return '—';
               var n = Number(v); var neg = n < 0; n = Math.abs(n); var s;
-              if(n >= 1000000) s = (n/1000000).toFixed(1).replace('.',',')+'M';
+              if(n >= 1000000) s = (n/1000000).toFixed(1).replace('.', _DEC)+'M';
               else if(n >= 10000) s = Math.round(n/1000)+'k';
-              else if(n >= 1000) s = (n/1000).toFixed(1).replace('.',',')+'k';
+              else if(n >= 1000) s = (n/1000).toFixed(1).replace('.', _DEC)+'k';
               else s = String(Math.round(n));
               return neg ? '-'+s : s;
             };
@@ -152,7 +193,7 @@ cards:
               if(n >= 24*7) return Math.round(n/24)+'d';
               if(n >= 24) return Math.round(n)+'h';
               if(n >= 10) return n.toFixed(0)+'h';
-              if(n >= 1) return n.toFixed(1).replace('.',',')+'h';
+              if(n >= 1) return n.toFixed(1).replace('.', _DEC)+'h';
               return Math.round(n*60)+'m';
             };
             var fmtBigMin = function(m){
@@ -160,7 +201,7 @@ cards:
               var n = Number(m);
               if(n >= 1440) return Math.round(n/1440)+'d';
               if(n >= 120) return Math.round(n/60)+'h';
-              if(n >= 60) return (n/60).toFixed(1).replace('.',',')+'h';
+              if(n >= 60) return (n/60).toFixed(1).replace('.', _DEC)+'h';
               return Math.round(n)+'m';
             };
 
@@ -252,9 +293,18 @@ cards:
                 e.modes[mkey].dur += (rd.dur_min || 0);
               }
             }
+            /* #427: real per-day defrost events / BUH use (runtime_acc, #400),
+               the same source as the Today block; cycle counts stay the fallback */
+            var _evByDay = {};
+            try { _evByDay = (states[SUMMARY] && states[SUMMARY].attributes && states[SUMMARY].attributes.events_by_day) || {}; } catch (e) {}
             var daysArr = Object.keys(byDate).map(function(k){
               var e = byDate[k];
               e.quality_avg = e.quality_n > 0 ? e.quality_sum / e.quality_n : null;
+              var evD = _evByDay[e.day];
+              if (evD) {
+                if (hasV(evD.defrost_events) && parseFloat(evD.defrost_events) > e.defrost) e.defrost = parseFloat(evD.defrost_events);
+                if (hasV(evD.buh_min) && parseFloat(evD.buh_min) > 0 && e.buh < 1) e.buh = 1;
+              }
               return e;
             }).sort(function(a,b){ return a.day < b.day ? -1 : 1; });
 
@@ -368,7 +418,7 @@ cards:
               { title: t('spark_duration'), color: C.cooling, bg: CBG.cooling,
                 data: daysArr.map(function(d){ return d.dur_min / 60; }),
                 yMin: 0, yMax: null,
-                fmt: function(v){ return v < 10 ? v.toFixed(1).replace('.',',')+'h' : Math.round(v)+'h'; } }
+                fmt: function(v){ return v < 10 ? v.toFixed(1).replace('.', _DEC)+'h' : Math.round(v)+'h'; } }
             ];
 
             var spark = '<svg viewBox="0 0 '+sparkW+' '+sparkH+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">';
@@ -589,7 +639,7 @@ cards:
             for(var yi2 = 0; yi2 <= c2StepCount; yi2++){
               var v2h = c2StepVal * yi2;
               var yy2 = c2y(v2h);
-              var lbl = v2h < 1 ? v2h.toFixed(1).replace('.',',') : Math.round(v2h).toString();
+              var lbl = v2h < 1 ? v2h.toFixed(1).replace('.', _DEC) : Math.round(v2h).toString();
               c2 += '<line x1="'+c2PadL+'" y1="'+yy2+'" x2="'+(c2PadL+c2PlotW)+'" y2="'+yy2+'" stroke="rgba(13,71,161,0.08)" stroke-width="1"/>';
               c2 += '<text x="'+(c2PadL-4)+'" y="'+(yy2+4)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="#0D47A1">'+lbl+'h</text>';
             }
@@ -613,7 +663,7 @@ cards:
                 c2 += '<line x1="'+(x2-2)+'" y1="'+(yBase2-hCh2)+'" x2="'+(x2+c2BarW+2)+'" y2="'+(yBase2-hCh2)+'" stroke="'+QLOW+'" stroke-width="2.5"><title>'+t('clipped')+' — '+v1(hours)+'h</title></line>';
               }
               if(numDays <= 21){
-                var label = hours < 1 ? vI(hours*60)+'m' : hours.toFixed(1).replace('.',',')+'h';
+                var label = hours < 1 ? vI(hours*60)+'m' : hours.toFixed(1).replace('.', _DEC)+'h';
                 var lc = clipped ? QLOW : '#0D47A1';
                 var prefix = clipped ? '⚠' : '';
                 c2 += '<text x="'+(x2+c2BarW/2)+'" y="'+(yBase2-hCh2-6)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+lc+'">'+prefix+label+'</text>';
@@ -757,9 +807,9 @@ cards:
                   +'<div style="font-family:ui-monospace,monospace;font-size:1.05em;font-weight:900;color:'+color+';line-height:1;margin-top:2px;">'+val+'</div>'
                   +'</div>';
               };
-              if(hasHeating) r += miniTile('🔥', t('heating').substring(0,5), fmtBigNum(heating.cycles), C.heating, CBG.heating);
+              if(hasHeating) r += miniTile('🔥', t('heat_short'), fmtBigNum(heating.cycles), C.heating, CBG.heating);
               if(hasDHW) r += miniTile('🚿', t('dhw'), fmtBigNum(dhw.cycles), C.dhw, CBG.dhw);
-              if(hasCooling) r += miniTile('🧊', t('cooling').substring(0,5), fmtBigNum(cooling.cycles), C.cooling, CBG.cooling);
+              if(hasCooling) r += miniTile('🧊', t('cool_short'), fmtBigNum(cooling.cycles), C.cooling, CBG.cooling);
               r += '</div>';
             }
             if(hasOutliers){
@@ -812,7 +862,7 @@ cards:
 
             /* ===== CYCLES CHART ===== */
             r += '<div class="d-sec">';
-            r += '<div class="d-hdr"><span>🔄 '+t('cycles_chart')+'</span><span>'+t('avg')+' '+v1(avgCyclesPerDay)+'/d</span></div>';
+            r += '<div class="d-hdr"><span>🔄 '+t('cycles_chart')+'</span><span>'+t('avg')+' '+v1(avgCyclesPerDay)+t('per_day_short')+'</span></div>';
             r += c1;
             var cyclesChips = [];
             if(hasHeating) cyclesChips.push({col:C.heating, bg:CBG.heating, label:t('legend_heat')});

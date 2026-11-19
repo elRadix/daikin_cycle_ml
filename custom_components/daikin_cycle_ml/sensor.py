@@ -1192,15 +1192,27 @@ def _attrs_duty_cycle_today_pct(
 def _attrs_daily_summary_recent(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> dict[str, Any]:
-    """v1.7.1: attribute payload for the daily_summary_recent sensor."""
+    """v1.7.1: attribute payload for the daily_summary_recent sensor.
+
+    #427: ``events_by_day`` (real BUH minutes + defrost events per day,
+    #400) was built by the coordinator but never exposed, so the event
+    charts of the cards fell back to cycle counts. Only the days of the
+    summary window are exposed (runtime_acc keeps one key per day).
+    """
     payload = c.daily_summary_recent or {}
+    oldest = payload.get("oldest_day")
+    events = payload.get("events_by_day") or {}
     return {
         "days_available": payload.get("days_available", 0),
         "days_count": payload.get("days_count", 0),
         "latest_day": payload.get("latest_day"),
-        "oldest_day": payload.get("oldest_day"),
+        "oldest_day": oldest,
         "days": payload.get("days", []),
         "totals_by_mode": payload.get("totals_by_mode", {}),
+        "events_by_day": {
+            day: ev for day, ev in sorted(events.items())
+            if oldest is None or str(day) >= str(oldest)
+        },
     }
 
 

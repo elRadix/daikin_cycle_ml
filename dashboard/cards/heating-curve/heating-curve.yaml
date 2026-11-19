@@ -46,6 +46,7 @@ cards:
     custom_fields:
       content: |
         [[[
+          var _DEC = (function(){ try { var _lc = (typeof hass !== 'undefined' && hass && hass.locale) ? hass.locale : {}; var _nf = _lc.number_format; if (_nf === 'comma_decimal' || _nf === 'none') return '.'; if (_nf === 'decimal_comma' || _nf === 'space_comma') return ','; var _l = String(_lc.language || (typeof hass !== 'undefined' && hass && hass.language) || 'en'); return (1.5).toLocaleString(_l).indexOf(',') >= 0 ? ',' : '.'; } catch (e) { return '.'; } })(); /* #427: decimal separator from the HA number format */
           /* #347 entity resolver (EN id -> [translation_key, nl, fr]) */
           var _dcmA = {"binary_sensor.daikin_cycle_ml_buh_active":["buh_active","daikin_cycle_ml_buh_actief","daikin_cycle_ml_appoint_en_marche"],"binary_sensor.daikin_cycle_ml_compressor_running":["compressor_running","daikin_cycle_ml_compressor_actief","daikin_cycle_ml_compresseur_en_marche"],"binary_sensor.daikin_cycle_ml_defrost_active":["defrost_active","daikin_cycle_ml_defrost_actief","daikin_cycle_ml_degivrage_en_cours"],"sensor.daikin_cycle_ml_cop_curve_recent":["cop_curve_recent","daikin_cycle_ml_cop_curve_recent","daikin_cycle_ml_courbe_de_cop_recente"],"sensor.daikin_cycle_ml_cop_mean_day":["cop_mean_day","daikin_cycle_ml_cop_gemiddelde_dag","daikin_cycle_ml_cop_moyen_du_jour"],"sensor.daikin_cycle_ml_cop_mean_week":["cop_mean_week","daikin_cycle_ml_cop_gemiddelde_week","daikin_cycle_ml_cop_moyen_de_la_semaine"],"sensor.daikin_cycle_ml_cop_today":["cop_today","daikin_cycle_ml_cop_vandaag","daikin_cycle_ml_cop_chauffage_du_jour"],"sensor.daikin_cycle_ml_current_cycle":["current_cycle","daikin_cycle_ml_huidige_cyclus","daikin_cycle_ml_cycle_en_cours"],"sensor.daikin_cycle_ml_cycle_state":["cycle_state","daikin_cycle_ml_cyclus_status","daikin_cycle_ml_etat_du_cycle"],"sensor.daikin_cycle_ml_heating_curve_advice":["heating_curve_advice","daikin_cycle_ml_stooklijn_advies","daikin_cycle_ml_conseil_de_loi_d_eau"],"sensor.daikin_cycle_ml_hp_specs":["hp_specs","daikin_cycle_ml_wp_specs","daikin_cycle_ml_caracteristiques_de_la_pac"],"sensor.daikin_cycle_ml_last_cycle":["last_cycle","daikin_cycle_ml_laatste_cyclus","daikin_cycle_ml_dernier_cycle"],"sensor.daikin_cycle_ml_thermal_power_live":["thermal_power_live","daikin_cycle_ml_thermisch_vermogen_live","daikin_cycle_ml_puissance_thermique_instantanee"]};
           var _dcmC = {};
@@ -54,8 +55,8 @@ cards:
           var st = function(s,d){ if(d===undefined)d=0; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='')return d; var v=parseFloat(x.state); return isNaN(v)?d:v; };
           var stv = function(s){ var x=states[s]; if(!x||!x.state)return null; if(x.state==='unknown'||x.state==='unavailable'||x.state==='')return null; var v=parseFloat(x.state); return isNaN(v)?null:v; };
           var hasV = function(v){ return v!==null && v!==undefined && v!=='' && String(v)!=='None'; };
-          var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.',','); };
-          var v2 = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Number(v).toFixed(2).replace('.',','); };
+          var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.', _DEC); };
+          var v2 = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Number(v).toFixed(2).replace('.', _DEC); };
           var tr = function(s,m){ if(!hasV(s)) return '—'; var t=String(s); return t.length>m ? t.slice(0,m-1)+'…' : t; };
           var attr = function(id,n,d){ try{ var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
           var aN = function(id,n,d){ var v=attr(id,n,null); if(v===null)return d; var x=parseFloat(v); return isNaN(x)?d:x; };
@@ -92,7 +93,8 @@ cards:
               specRegression:'📈 Regressie', specInsufficient:'onvoldoende buckets',
               specSamples:'samples', specBuckets:'buckets', specInBucket:'in bucket',
               specTrend:'📊 historisch', specTrendUp:'24u vs 7d',
-              specState:'state', specCfg:'🔍 auto-discovery',
+              specState:'status', specCfg:'🔍 auto-detectie',
+              adv:{ keep:'behouden', lower_lwt:'LWT omlaag', raise_lwt:'LWT omhoog', no_data:'geen data', unknown:'onbekend' },
               modeHeating:'VERWARMING', modeDhw:'DHW', modeCooling:'KOELING',
               modeCycles:'cycli', modeAvg:'gem', modeLast:'laatste',
               carnotTitle:'CARNOT REND.', carnotActual:'act', carnotMax:'max',
@@ -110,6 +112,7 @@ cards:
               specSamples:'samples', specBuckets:'buckets', specInBucket:'in bucket',
               specTrend:'📊 historical', specTrendUp:'24h vs 7d',
               specState:'state', specCfg:'🔍 auto-discovery',
+              adv:{ keep:'keep', lower_lwt:'lower LWT', raise_lwt:'raise LWT', no_data:'no data', unknown:'unknown' },
               modeHeating:'HEATING', modeDhw:'DHW', modeCooling:'COOLING',
               modeCycles:'cycles', modeAvg:'avg', modeLast:'last',
               carnotTitle:'CARNOT EFF.', carnotActual:'act', carnotMax:'max',
@@ -123,6 +126,7 @@ cards:
           var FR=function(x){ return (LANG==='fr' && typeof x==='string' && Object.prototype.hasOwnProperty.call(FRM,x)) ? FRM[x] : x; };
           var FRO=function(o){ if(typeof o==='string') return Object.prototype.hasOwnProperty.call(FRM,o)?FRM[o]:o; if(o&&typeof o==='object'){ var r=Array.isArray(o)?[]:{}; for(var k in o){ r[k]=FRO(o[k]); } return r; } return o; };
           STR.fr = FRO(STR.en);
+          STR.fr.adv = { keep:'garder', lower_lwt:'baisser le départ', raise_lwt:'monter le départ', no_data:'pas de données', unknown:'inconnu' };
           var t = function(k){ return (STR[LANG] && STR[LANG][k]) || (STR.en && STR.en[k]) || k; };
 
           /* ============ AUTO-DISCOVERY ============ */
@@ -761,7 +765,7 @@ cards:
             trendTxt = arrow + ' ' + (trendPct>0?'+':'') + trendPct.toFixed(1) + '% ('+t('specTrendUp')+')';
           }
           s += '<text x="24" y="'+(spY+86)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+trendCol+'">'+t('specTrend')+': '+trendTxt+'</text>';
-          s += '<text x="'+(W-24)+'" y="'+(spY+86)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_MD+'">'+t('specState')+': '+stookState+'</text>';
+          s += '<text x="'+(W-24)+'" y="'+(spY+86)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_MD+'">'+t('specState')+': '+((t('adv')||{})[stookState.replace(/_\d+c$/, '')] || stookState)+'</text>';
           var cfgLine = t('specCfg')+': '+tr(cfgSource,22)+' · '+tr(cfgPower,22)+' · '+tr(cfgCop,22)+' · '+tr(cfgInd,22);
           s += '<text x="24" y="'+(spY+104)+'" font-family="ui-monospace,monospace" font-size="8" font-weight="800" fill="#7f8c8d">'+cfgLine+'</text>';
 
@@ -784,13 +788,14 @@ cards:
     custom_fields:
       content: |
         [[[
+          var _DEC = (function(){ try { var _lc = (typeof hass !== 'undefined' && hass && hass.locale) ? hass.locale : {}; var _nf = _lc.number_format; if (_nf === 'comma_decimal' || _nf === 'none') return '.'; if (_nf === 'decimal_comma' || _nf === 'space_comma') return ','; var _l = String(_lc.language || (typeof hass !== 'undefined' && hass && hass.language) || 'en'); return (1.5).toLocaleString(_l).indexOf(',') >= 0 ? ',' : '.'; } catch (e) { return '.'; } })(); /* #427: decimal separator from the HA number format */
           /* #347 entity resolver (EN id -> [translation_key, nl, fr]) */
           var _dcmA = {"sensor.daikin_cycle_ml_cop_mean_day":["cop_mean_day","daikin_cycle_ml_cop_gemiddelde_dag","daikin_cycle_ml_cop_moyen_du_jour"],"sensor.daikin_cycle_ml_cop_mean_week":["cop_mean_week","daikin_cycle_ml_cop_gemiddelde_week","daikin_cycle_ml_cop_moyen_de_la_semaine"],"sensor.daikin_cycle_ml_cycle_state":["cycle_state","daikin_cycle_ml_cyclus_status","daikin_cycle_ml_etat_du_cycle"],"sensor.daikin_cycle_ml_heating_curve_advice":["heating_curve_advice","daikin_cycle_ml_stooklijn_advies","daikin_cycle_ml_conseil_de_loi_d_eau"]};
           var _dcmC = {};
           var _dcmR = function(id){ if (_dcmC[id]) return _dcmC[id]; var r = id, a = _dcmA[id], st = (typeof states !== 'undefined' && states) ? states : {}; if (!st[id] && a) { var dom = id.split('.')[0], i, k, ents = (typeof hass !== 'undefined' && hass && hass.entities) ? hass.entities : null; if (ents) { for (k in ents) { var e = ents[k]; if (e && e.platform === 'daikin_cycle_ml' && e.translation_key === a[0] && k.indexOf(dom + '.') === 0 && st[k]) { r = k; break; } } } if (r === id) { for (i = 1; i < a.length; i++) { if (st[dom + '.' + a[i]]) { r = dom + '.' + a[i]; break; } } } } _dcmC[id] = r; return r; };
           var st = function(s,d){ if(d===undefined)d=0; var x=states[s]; if(!x||!x.state)return d; if(x.state==='unknown'||x.state==='unavailable'||x.state==='')return d; var v=parseFloat(x.state); return isNaN(v)?d:v; };
           var hasV = function(v){ return v!==null && v!==undefined && v!=='' && String(v)!=='None'; };
-          var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.',','); };
+          var v1 = function(v){ if(!hasV(v)||isNaN(parseFloat(v)))return '—'; return Number(v).toFixed(1).replace('.', _DEC); };
           var attr = function(id,n,d){ try{ var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
           var aN = function(id,n,d){ var v=attr(id,n,null); if(v===null)return d; var x=parseFloat(v); return isNaN(x)?d:x; };
 

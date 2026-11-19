@@ -284,7 +284,7 @@ Normal during: defrost (5-15 min), DHW heating, cold start. Gap should close wit
 
 Three variables (edit card config):
 
-- `lang_override` — 'en' or 'nl' (default: auto-detect)
+- `lang_override` — 'en', 'nl' or 'fr' (default: auto-detect)
 - `default_tab` — 'advice' | 'buckets' | 'analysis' | 'live' (first render only; after a click the card keeps the tab you picked over state updates)
 - `show_help` — false to hide explanation notes
 

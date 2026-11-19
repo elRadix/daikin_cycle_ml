@@ -128,6 +128,7 @@ cards:
     custom_fields:
       content: |
         [[[
+          var _DEC = (function(){ try { var _lc = (typeof hass !== 'undefined' && hass && hass.locale) ? hass.locale : {}; var _nf = _lc.number_format; if (_nf === 'comma_decimal' || _nf === 'none') return '.'; if (_nf === 'decimal_comma' || _nf === 'space_comma') return ','; var _l = String(_lc.language || (typeof hass !== 'undefined' && hass && hass.language) || 'en'); return (1.5).toLocaleString(_l).indexOf(',') >= 0 ? ',' : '.'; } catch (e) { return '.'; } })(); /* #427: decimal separator from the HA number format */
           try {
             var card = this;
             card.__paRegistry = card.__paRegistry || {};
@@ -202,16 +203,18 @@ cards:
             var attr = function(id,n,d){ try{ if(!id)return d; var a=states[id] && states[id].attributes; if(!a)return d; var v=a[n]; if(v===undefined||v===null||String(v)==='None')return d; return v; } catch(e){ return d; } };
             var getState = function(eid){ try { var st = states[eid]; if (!st) return null; var v = parseFloat(st.state); return isFinite(v) ? v : null; } catch(e){ return null; } };
             var weekday = function(iso){ if(!iso) return ''; try{ var d = new Date(iso + 'T12:00:00'); return (LANG==='fr'?['dim','lun','mar','mer','jeu','ven','sam']:['zo','ma','di','wo','do','vr','za'])[d.getDay()]; }catch(e){ return ''; } };
+            var L3 = function(nl, en, fr){ return LANG==='nl' ? nl : (LANG==='fr' ? fr : en); };
             var fmtDay = function(iso){ if(!iso) return '—'; var p=String(iso).split('-'); return p.length>=3 ? p[2]+'/'+p[1] : iso; };
             var fmtMin = function(m){
               if(!hasV(m)||!isFinite(Number(m))) return '—';
               m = Number(m);
               if(m < 60) return Math.round(m)+'m';
               var h = Math.floor(m/60); var mm = Math.round(m - h*60);
-              return mm === 0 ? h+'u' : h+'u'+String(mm).padStart(2,'0');
+              var hu = LANG==='nl' ? 'u' : 'h'; /* #427: 'u' (uur) only in Dutch */
+              return mm === 0 ? h+hu : h+hu+String(mm).padStart(2,'0');
             };
-            var fmt1 = function(v){ return hasN(v) ? Number(v).toFixed(1).replace('.',',') : '—'; };
-            var pct  = function(v){ return hasN(v) ? (Number(v)>0?'+':'') + Number(v).toFixed(1).replace('.',',') + '%' : '—'; };
+            var fmt1 = function(v){ return hasN(v) ? Number(v).toFixed(1).replace('.', _DEC) : '—'; };
+            var pct  = function(v){ return hasN(v) ? (Number(v)>0?'+':'') + Number(v).toFixed(1).replace('.', _DEC) + '%' : '—'; };
             var arrow = function(v){ return !hasN(v) ? '' : (Number(v)>0?'▲':Number(v)<0?'▼':'●'); };
 
             /* THEME */
@@ -242,6 +245,7 @@ cards:
             var durCol = function(m){ return m<20?TH.red:m<60?TH.orange:m<180?TH.green:TH.blue; };
             var MODE_COL = { heating: TH.red, dhw: TH.blue, cooling: '#42A5F5' };
             var MODE_ICON = { heating: '🔥', dhw: '🚿', cooling: '🧊' };
+            var MODE_SHORT = function(mk){ return ({heating:L3('VERW','HEAT','CHAUF'), dhw:L3('SWW','DHW','ECS'), cooling:L3('KOEL','COOL','FROID')})[mk] || String(mk).toUpperCase().slice(0,4); };
 
             var T = function(x, y, text, o){
               o = o || {};
@@ -342,13 +346,13 @@ cards:
 
             var I18N = {
               hdr_dist: {nl:'📊 Verdeling cyclus-duur', en:'📊 Cycle duration distribution'},
-              hdr_scatter: {nl:'🎯 Cycles vs Duur', en:'🎯 Cycles vs Duration'},
+              hdr_scatter: {nl:'🎯 Cycli vs duur', en:'🎯 Cycles vs Duration'},
               hdr_cop: {nl:'🎯 COP Efficiëntie', en:'🎯 COP Efficiency'},
               cnt_perday: {nl:'per dag', en:'per day'},
               tab_dist: {nl:'📊 VERDELING', en:'📊 DISTRIBUTION'},
               tab_scatter: {nl:'🎯 SCATTER', en:'🎯 SCATTER'},
               tab_cop: {nl:'🎯 COP', en:'🎯 COP'},
-              axis_x_cyc: {nl:'CYCLES PER DAG', en:'CYCLES PER DAY'},
+              axis_x_cyc: {nl:'CYCLI PER DAG', en:'CYCLES PER DAY'},
               axis_y_dur: {nl:'GEM. DUUR', en:'AVG DURATION'},
               r_cycles: {nl:'Cycli', en:'Cycles'},
               r_avgdur: {nl:'Ø duur', en:'Ø duration'},
@@ -451,10 +455,10 @@ cards:
             var buildDistContent = function(sub, wkey){
               var windowSet = {}; sub.forEach(function(d){ windowSet[d.day]=true; });
               var dist = [
-                {label:(LANG==='fr'?'TROP COURT':'PENDEL'), sub:'<20m', col:TH.red, bg:DARK?'rgba(239,83,80,0.10)':'#FFEBEE', n:0, durSum:0, days:{}},
-                {label:(LANG==='fr'?'COURT':'KORT'), sub:'20-60m', col:TH.orange, bg:DARK?'rgba(255,167,38,0.10)':'#FFF3E0', n:0, durSum:0, days:{}},
-                {label:(LANG==='fr'?'BON':'GOED'), sub:'60-180m', col:TH.green, bg:DARK?'rgba(102,187,106,0.10)':'#E8F5E9', n:0, durSum:0, days:{}},
-                {label:(LANG==='fr'?'LONG':'LANG'), sub:'>180m', col:TH.blue, bg:DARK?'rgba(66,165,245,0.10)':'#E3F2FD', n:0, durSum:0, days:{}}
+                {label:L3('PENDEL','PENDULUM','TROP COURT'), sub:'<20m', col:TH.red, bg:DARK?'rgba(239,83,80,0.10)':'#FFEBEE', n:0, durSum:0, days:{}},
+                {label:L3('KORT','SHORT','COURT'), sub:'20-60m', col:TH.orange, bg:DARK?'rgba(255,167,38,0.10)':'#FFF3E0', n:0, durSum:0, days:{}},
+                {label:L3('GOED','GOOD','BON'), sub:'60-180m', col:TH.green, bg:DARK?'rgba(102,187,106,0.10)':'#E8F5E9', n:0, durSum:0, days:{}},
+                {label:L3('LANG','LONG','LONG'), sub:'>180m', col:TH.blue, bg:DARK?'rgba(66,165,245,0.10)':'#E3F2FD', n:0, durSum:0, days:{}}
               ];
               rawDays.forEach(function(rd){
                 if(!rd.day || !windowSet[rd.day] || !rd.cycles || rd.cycles <= 0) return;
@@ -693,10 +697,10 @@ cards:
 
               var s = '<defs><linearGradient id="'+gid('copg')+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+TH.accent+'" stop-opacity="0.30"/><stop offset="100%" stop-color="'+TH.accent+'" stop-opacity="0"/></linearGradient></defs>';
 
-              s += secTitle(10, 'COP PERFORMANCE');
-              s += secTitle(110, 'MODE BREAKDOWN');
-              s += secTitle(232, 'DURATION & CYCLES TREND');
-              s += secTitle(364, 'SYSTEM HEALTH');
+              s += secTitle(10, L3('COP-PRESTATIES','COP PERFORMANCE','PERFORMANCE COP'));
+              s += secTitle(110, L3('PER MODUS','MODE BREAKDOWN','PAR MODE'));
+              s += secTitle(232, L3('TREND DUUR & CYCLI','DURATION & CYCLES TREND','TENDANCE DURÉE & CYCLES'));
+              s += secTitle(364, L3('SYSTEEMSTATUS','SYSTEM HEALTH','ÉTAT DU SYSTÈME'));
 
               /* ROW 1: Header */
               var copHeaderItems = [
@@ -789,7 +793,7 @@ cards:
                   var gv2 = tMin + (tRng*gy/2);
                   var gyy2 = hy(gv2);
                   s += '<line x1="'+tPadL+'" y1="'+gyy2+'" x2="'+(tPadL+tPlotW)+'" y2="'+gyy2+'" stroke="'+TH.grid+'" stroke-width="0.8"/>';
-                  s += T(tPadL-3, gyy2+3, gv2.toFixed(1), {a:'end', s:7, w:800, f:TH.sub});
+                  s += T(tPadL-3, gyy2+3, gv2.toFixed(1).replace('.', _DEC), {a:'end', s:7, w:800, f:TH.sub});
                 }
                 ['heating','dhw','cooling'].forEach(function(mk){
                   var md = modeData[mk];
@@ -844,15 +848,15 @@ cards:
                 if (mc.stats) {
                   cardItems.push({t:'sep'});
                   if (hasN(mc.stats.n_samples)) cardItems.push({t:'kv', k:t('r_samples'), v:String(mc.stats.n_samples), c:TH.sub});
-                  if (hasN(mc.stats.cop_min) && hasN(mc.stats.cop_max)) cardItems.push({t:'kv', k:'Range', v:fmt1(mc.stats.cop_min)+'–'+fmt1(mc.stats.cop_max), c:TH.text});
+                  if (hasN(mc.stats.cop_min) && hasN(mc.stats.cop_max)) cardItems.push({t:'kv', k:L3('Bereik','Range','Plage'), v:fmt1(mc.stats.cop_min)+'–'+fmt1(mc.stats.cop_max), c:TH.text});
                   if (hasN(mc.stats.cop_p10) && hasN(mc.stats.cop_p90)) cardItems.push({t:'kv', k:'p10–p90', v:fmt1(mc.stats.cop_p10)+'–'+fmt1(mc.stats.cop_p90), c:TH.text});
                 }
-                var cardPop = popAttr({title:MODE_ICON[mk]+' '+mk.toUpperCase(), items:cardItems});
+                var cardPop = popAttr({title:MODE_ICON[mk]+' '+MODE_SHORT(mk), items:cardItems});
                 var dim = !hasN(mc.day);
                 s += '<g '+cardPop+' style="cursor:pointer;">';
                 s += '<rect x="'+cx2+'" y="'+cy2+'" width="'+CW+'" height="'+cardH+'" rx="8" fill="'+TH.bg2+'" stroke="'+TH.border+'" stroke-width="1" opacity="'+(dim?0.5:1)+'"/>';
                 s += '<text x="'+(cx2+6)+'" y="'+(cy2+14)+'" font-size="10">'+MODE_ICON[mk]+'</text>';
-                s += T(cx2+22, cy2+13, mk.toUpperCase().slice(0,4), {s:7, w:900, f:TH.sub});
+                s += T(cx2+22, cy2+13, MODE_SHORT(mk), {s:7, w:900, f:TH.sub});
                 if (hasN(mc.day) && hasN(mc.month) && mc.month !== 0) {
                   var trdPct = ((mc.day - mc.month) / mc.month * 100);
                   var trdCol = trdPct > 2 ? TH.green : trdPct < -2 ? TH.red : TH.sub;
@@ -892,7 +896,7 @@ cards:
               s += '<g '+combPop+' style="cursor:pointer;">';
               s += '<rect x="'+cxComb+'" y="'+cyComb+'" width="'+CW+'" height="'+cardH+'" rx="8" fill="'+TH.bg2+'" stroke="'+TH.border+'" stroke-width="1"/>';
               s += '<text x="'+(cxComb+6)+'" y="'+(cyComb+14)+'" font-size="10">⚡</text>';
-              s += T(cxComb+22, cyComb+13, 'COMB', {s:7, w:900, f:TH.sub});
+              s += T(cxComb+22, cyComb+13, L3('COMB','COMB','GLOB.'), {s:7, w:900, f:TH.sub});
               s += T(cxComb+6, cyComb+34, fmt1(copComb), {s:16, w:900, f:TH.accent, halo:1});
               s += '</g>';
 
@@ -1000,7 +1004,7 @@ cards:
               var stripDefs = [
                 {lbl:t('spf_season'), val:spf, txt:(hasN(spf)?fmt1(spf):'—'), col:TH.purple,
                   items:[{t:'hl', k:t('spf_season'), v:(hasN(spf)?fmt1(spf):'—'), c:TH.purple},{t:'sep'},{t:'kv',k:'Target',v:'≥3.5',c:TH.sub}]},
-                {lbl:t('week_trend'), val:degr, txt:(hasN(degr)?(degr>0?'+':'')+degr.toFixed(1).replace('.',',')+'%':'—'), col:(degr===null?TH.sub:(degr>=0?TH.green:TH.orange)),
+                {lbl:t('week_trend'), val:degr, txt:(hasN(degr)?(degr>0?'+':'')+degr.toFixed(1).replace('.', _DEC)+'%':'—'), col:(degr===null?TH.sub:(degr>=0?TH.green:TH.orange)),
                   items:[{t:'hl', k:t('week_trend'), v:(hasN(degr)?(degr>0?'+':'')+degr.toFixed(1)+'%':'—'), c:(degr===null?TH.sub:(degr>=0?TH.green:TH.orange))},{t:'sep'},{t:'kv',k:'Threshold',v:'-8%',c:TH.sub},{t:'kv',k:'Critical',v:'-15%',c:TH.sub}]},
                 {lbl:t('buh_impact'), val:buhRt, txt:(hasN(buhRt)?fmtMin(buhRt/60):'—'), col:TH.buh,
                   items:[{t:'hl', k:t('buh_impact'), v:(hasN(buhRt)?fmtMin(buhRt/60):'—'), c:TH.buh},{t:'sep'},{t:'kv',k:'Seconds',v:(hasN(buhRt)?String(Math.round(buhRt)):'—'),c:TH.text}]},
@@ -1028,7 +1032,7 @@ cards:
                 insight = {bad:true, text:(LANG==='nl'?'COP daalt '+degr.toFixed(1)+'% week':FR('COP dropping ')+degr.toFixed(1)+FR('% week')),
                   items:[{t:'hl', k:'Week trend', v:degr.toFixed(1)+'%', c:TH.red},{t:'kv',k:'Threshold',v:'-8%',c:TH.sub}]};
               } else if (cntVals.some(function(v){ return v > targetCycles * 1.5; })) {
-                insight = {bad:true, text:(LANG==='nl'?'Te veel cycli (target '+targetCycles+')':FR('Too many cycles (target ')+targetCycles+')'),
+                insight = {bad:true, text:(LANG==='nl'?'Te veel cycli (doel '+targetCycles+')':FR('Too many cycles (target ')+targetCycles+')'),
                   items:[{t:'hl', k:'Peak cycles', v:String(Math.max.apply(null, cntVals)), c:TH.red},{t:'kv',k:'Target',v:String(targetCycles),c:TH.sub}]};
               } else if (hasN(spf) && spf >= 3.5) {
                 insight = {bad:false, text:(LANG==='nl'?'SPF '+fmt1(spf)+' ruim boven doel':FR('SPF ')+fmt1(spf)+FR(' well above target')),
@@ -1118,14 +1122,14 @@ cards:
             };
             var legendDist = '<div class="pa-legend" data-tab-leg="dist">'
               + chip(TH.red, DARK?'rgba(239,83,80,0.10)':'#FFEBEE', (LANG==='nl'?'PENDEL <20m':FR('PENDULUM <20m')))
-              + chip(TH.orange, DARK?'rgba(255,167,38,0.10)':'#FFF3E0', FR('SHORT 20-60m'))
-              + chip(TH.green, DARK?'rgba(102,187,106,0.10)':'#E8F5E9', FR('GOOD 60-180m'))
-              + chip(TH.blue, DARK?'rgba(66,165,245,0.10)':'#E3F2FD', FR('LONG >180m'))
+              + chip(TH.orange, DARK?'rgba(255,167,38,0.10)':'#FFF3E0', L3('KORT 20-60m','SHORT 20-60m','COURT 20-60 min'))
+              + chip(TH.green, DARK?'rgba(102,187,106,0.10)':'#E8F5E9', L3('GOED 60-180m','GOOD 60-180m','BON 60-180 min'))
+              + chip(TH.blue, DARK?'rgba(66,165,245,0.10)':'#E3F2FD', L3('LANG >180m','LONG >180m','LONG >180 min'))
               + '</div>';
             var legendScatter = '<div class="pa-legend" data-tab-leg="scatter">'
-              + chip(TH.red, DARK?'rgba(239,83,80,0.10)':'#FFEBEE', '🚨 pendel')
-              + chip(TH.orange, DARK?'rgba(255,167,38,0.10)':'#FFF3E0', '⚠️ mixed')
-              + chip(TH.green, DARK?'rgba(102,187,106,0.10)':'#E8F5E9', '✅ ideaal')
+              + chip(TH.red, DARK?'rgba(239,83,80,0.10)':'#FFEBEE', '🚨 '+L3('pendel','pendulum','trop court'))
+              + chip(TH.orange, DARK?'rgba(255,167,38,0.10)':'#FFF3E0', '⚠️ '+L3('gemengd','mixed','mixte'))
+              + chip(TH.green, DARK?'rgba(102,187,106,0.10)':'#E8F5E9', '✅ '+L3('ideaal','ideal','idéal'))
               + '</div>';
             var tabDefs = [{id:'dist', label:t('tab_dist')}, {id:'scatter', label:t('tab_scatter')}, {id:'cop', label:t('tab_cop')}];
             var tabBar = '<div class="pa-tabbar">';

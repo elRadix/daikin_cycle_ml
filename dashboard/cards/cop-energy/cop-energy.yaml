@@ -46,6 +46,7 @@ cards:
     custom_fields:
       content: |
         [[[
+          var _DEC = (function(){ try { var _lc = (typeof hass !== 'undefined' && hass && hass.locale) ? hass.locale : {}; var _nf = _lc.number_format; if (_nf === 'comma_decimal' || _nf === 'none') return '.'; if (_nf === 'decimal_comma' || _nf === 'space_comma') return ','; var _l = String(_lc.language || (typeof hass !== 'undefined' && hass && hass.language) || 'en'); return (1.5).toLocaleString(_l).indexOf(',') >= 0 ? ',' : '.'; } catch (e) { return '.'; } })(); /* #427: decimal separator from the HA number format */
           /* #347 entity resolver (EN id -> [translation_key, nl, fr]) */
           var _dcmA = {"sensor.daikin_cycle_ml_cop_cooling_day":["cop_cooling_day","daikin_cycle_ml_cop_koeling_dag","daikin_cycle_ml_cop_rafraichissement_jour"],"sensor.daikin_cycle_ml_cop_curve_recent":["cop_curve_recent","daikin_cycle_ml_cop_curve_recent","daikin_cycle_ml_courbe_de_cop_recente"],"sensor.daikin_cycle_ml_cop_degradation_week_pct":["cop_degradation_week_pct","daikin_cycle_ml_cop_degradatie_week","daikin_cycle_ml_baisse_du_cop_sur_la_semaine"],"sensor.daikin_cycle_ml_cop_dhw_day":["cop_dhw_day","daikin_cycle_ml_cop_sww_dag","daikin_cycle_ml_cop_eau_chaude_jour"],"sensor.daikin_cycle_ml_cop_heating_day":["cop_heating_day","daikin_cycle_ml_cop_verwarming_dag","daikin_cycle_ml_cop_chauffage_jour"],"sensor.daikin_cycle_ml_cop_mean_day":["cop_mean_day","daikin_cycle_ml_cop_gemiddelde_dag","daikin_cycle_ml_cop_moyen_du_jour"],"sensor.daikin_cycle_ml_cop_mean_month":["cop_mean_month","daikin_cycle_ml_cop_gemiddelde_maand","daikin_cycle_ml_cop_moyen_du_mois"],"sensor.daikin_cycle_ml_cop_mean_week":["cop_mean_week","daikin_cycle_ml_cop_gemiddelde_week","daikin_cycle_ml_cop_moyen_de_la_semaine"],"sensor.daikin_cycle_ml_cop_trend_30d":["cop_trend_30d","daikin_cycle_ml_cop_trend_30d","daikin_cycle_ml_tendance_du_cop_30_j"],"sensor.daikin_cycle_ml_cop_vs_datasheet_pct":["cop_vs_datasheet_pct","daikin_cycle_ml_cop_vs_datasheet_pct","daikin_cycle_ml_cop_par_rapport_a_la_fiche"],"sensor.daikin_cycle_ml_current_cycle":["current_cycle","daikin_cycle_ml_huidige_cyclus","daikin_cycle_ml_cycle_en_cours"],"sensor.daikin_cycle_ml_cycle_state":["cycle_state","daikin_cycle_ml_cyclus_status","daikin_cycle_ml_etat_du_cycle"],"sensor.daikin_cycle_ml_electrical_power_estimated":["electrical_power_estimated","daikin_cycle_ml_elektrisch_vermogen_geschat","daikin_cycle_ml_puissance_electrique_estimee"],"sensor.daikin_cycle_ml_scop_running_365d":["scop_running_365d","daikin_cycle_ml_scop_rollend_365d","daikin_cycle_ml_scop_glissant_365_j"],"sensor.daikin_cycle_ml_spf_season":["spf_season","daikin_cycle_ml_spf_seizoen","daikin_cycle_ml_rendement_saisonnier_spf_saison"],"sensor.daikin_cycle_ml_spf_ytd":["spf_ytd","daikin_cycle_ml_spf_dit_jaar","daikin_cycle_ml_rendement_saisonnier_spf_depuis_janvier"],"sensor.daikin_cycle_ml_thermal_energy_heating_today":["thermal_energy_heating_today","daikin_cycle_ml_thermische_energie_verwarming_vandaag","daikin_cycle_ml_chaleur_produite_aujourd_hui"],"sensor.daikin_cycle_ml_thermal_power_live":["thermal_power_live","daikin_cycle_ml_thermisch_vermogen_live","daikin_cycle_ml_puissance_thermique_instantanee"]};
           var _dcmC = {};
@@ -69,10 +70,10 @@ cards:
                     :{a:'#1976D2',a2:'#29B6F6',ic:'#1565C0',tx:'#000000',mu:'#444444',gd:'#2E7D32',wn:'#E65100',bd:'#C62828',pu:'#6A1B9A',sf:'rgba(25,118,210,0.06)',sf2:'rgba(25,118,210,0.04)',b:'rgba(25,118,210,0.18)',b2:'rgba(25,118,210,0.10)',lv:'rgba(25,118,210,0.08)',lvb:'rgba(25,118,210,0.35)',hl:'#FFF'};
             var S=function(e,d){d=d||0;var x=states[e];if(!x||x.state==='unknown'||x.state==='unavailable')return d;var n=parseFloat(x.state);return isNaN(n)?d:n;};
             var A=function(e,k,d){var x=states[e];if(!x||!x.attributes)return d;var n=x.attributes[k];return(n==null||n==='None'||n==='unknown')?d:n;};
-            var f1=function(n){n=parseFloat(n);return isFinite(n)?n.toFixed(1).replace('.',','):'—';};
-            var f2=function(n){n=parseFloat(n);return isFinite(n)?n.toFixed(2).replace('.',','):'—';};
+            var f1=function(n){n=parseFloat(n);return isFinite(n)?n.toFixed(1).replace('.', _DEC):'—';};
+            var f2=function(n){n=parseFloat(n);return isFinite(n)?n.toFixed(2).replace('.', _DEC):'—';};
             var fi=function(n){n=parseFloat(n);return isFinite(n)?Math.round(n).toLocaleString(NL?'nl-BE':(LANG==='fr'?'fr-FR':'en-US')):'—';};
-            var fk=function(n){n=parseFloat(n);if(!isFinite(n))return '—';if(n>=1000)return (n/1000).toFixed(1).replace('.',',')+'k';return Math.round(n);};
+            var fk=function(n){n=parseFloat(n);if(!isFinite(n))return '—';if(n>=1000)return (n/1000).toFixed(1).replace('.', _DEC)+'k';return Math.round(n);};
             var pc=function(n){n=parseFloat(n);return isFinite(n)?(n>=0?'+':'')+f1(n)+'%':'—';};
             var gd=function(n){n=parseFloat(n);return n>=5.5?'A+++':n>=5?'A++':n>=4.5?'A+':n>=4?'A':n>=3.5?'B':n>=3?'C':n>0?'D':'—';};
             var gc=function(n){n=parseFloat(n);return n>=5.5?C.a:n>=5?'#29B6F6':n>=4.5?'#4FC3F7':n>=4?'#81D4FA':n>=3.5?C.wn:n>=3?'#FB923C':n>0?C.bd:C.mu;};
@@ -209,7 +210,7 @@ cards:
               p3+='<div style="text-align:center;margin-bottom:12px;position:relative"><span style="display:inline-flex;align-items:center;gap:8px;background:'+modeCol+';color:#fff;padding:6px 18px;border-radius:16px;font-size:14px;font-weight:900;box-shadow:0 3px 12px '+modeCol+'55">';
               p3+='<span style="opacity:0.9">'+T('COP','COP')+'</span><span class="dkN" style="font-size:18px">'+f2(iC)+'</span><span style="opacity:0.85;font-size:12px">· '+gd(iC)+'</span></span></div>';
               p3+='<div style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap;position:relative">';
-              p3+=chip('ΔT',f1(dtK)+'K')+chip('Flow',f1(fl)+' L/m')+chip('RPS',fi(rp))+'</div></div>';
+              p3+=chip('ΔT',f1(dtK)+'K')+chip(NL?'Debiet':(LANG==='fr'?'Débit':'Flow'),f1(fl)+' L/m')+chip('RPS',fi(rp))+'</div></div>';
               r+=p3;
             } else {
               var lastMode=cm&&cm!=='idle'?cm:null;
