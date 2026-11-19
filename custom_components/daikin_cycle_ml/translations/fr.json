@@ -205,13 +205,13 @@
             },
             "user": {
                 "title": "Daikin Cycle ML — famille de modèle",
-                "description": "Choisir la famille de votre Daikin Altherma : c'est le début de la référence du groupe extérieur (ex. ERGA, EPRA, EKHBRD). Le modèle exact se choisit à l'écran suivant.\n\n- **Profil de base** : réglages sûrs quand le modèle exact est inconnu.\n- **Personnalisé** : vous fournissez vos propres caractéristiques.\n\n**Détecté :** entité unique = {mono_found}, entités ESPAltherma v2 = {v2_count}.\n**Type de source conseillé :** `{suggestion}`.",
+                "description": "Choisir la famille de votre Daikin Altherma : c'est le début de la référence du groupe extérieur (ex. ERGA, EPRA, EKHBRD). Le modèle exact se choisit à l'écran suivant.\n\n- **Profil de base** : réglages sûrs quand le modèle exact est inconnu.\n- **Personnalisé** : vous fournissez vos propres caractéristiques.\n\n**Vous ne connaissez que l'unité intérieure ?** Saisissez sa référence (plaque signalétique ou application Daikin, ex. EHBX08EF6V) dans le champ famille. Si elle est vendue avec plusieurs groupes extérieurs, l'écran suivant ne propose que ceux-là.\n\n**Détecté :** entité unique = {mono_found}, entités ESPAltherma v2 = {v2_count}.\n**Type de source conseillé :** `{suggestion}`.",
                 "data": {
                     "family": "Famille de modèle",
                     "source_type": "Type de source ESPAltherma"
                 },
                 "data_description": {
-                    "family": "Début de la référence du groupe extérieur. Exemple : ERGA, EPRA, EKHBRD.",
+                    "family": "Choisir la famille du groupe extérieur (ERGA, EPRA, ...), ou saisir la référence connue : l'unité intérieure (ex. EHBX08EF6V), le groupe extérieur (ex. ERGA06EAV3) ou les deux.",
                     "source_type": "Façon dont ESPAltherma envoie ses données. « Entité unique » pour le capteur classique, « Entités séparées » pour ESPAltherma v2 (une entité par valeur). « Auto » détecte au démarrage."
                 }
             },
@@ -237,7 +237,9 @@
             "attribute_not_found": "Un ou plusieurs noms associés n'existent pas sur le capteur source.",
             "required_attrs_unmapped": "Une ou plusieurs valeurs obligatoires n'ont ni correspondance ni nom standard sur le capteur.",
             "source_offline": "Le capteur ESPAltherma est indisponible. Attendre 30 à 60 s qu'il revienne puis réessayer.",
-            "source_empty": "Le capteur ESPAltherma n'a pas encore de données. Attendre la prochaine mise à jour puis réessayer."
+            "source_empty": "Le capteur ESPAltherma n'a pas encore de données. Attendre la prochaine mise à jour puis réessayer.",
+            "model_unknown": "Référence « {code} » inconnue. Choisir une famille dans la liste, saisir la référence du groupe extérieur (ex. ERGA06EAV3) ou choisir le profil de base.",
+            "model_no_datasheet": "« {code} » est une unité {series}. Il n'existe pas encore de fiche technique : choisir le profil de base. L'analyse des cycles fonctionne ; la comparaison avec le COP de la fiche reste désactivée."
         },
         "abort": {
             "already_configured": "Déjà configuré",

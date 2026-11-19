@@ -265,8 +265,8 @@ async def test_auto_picks_monolithic_when_higher_coverage(monkeypatch) -> None:
         await c._async_update_data()
     # Mono wins because coverage 12/12 > 5/12
     assert c._source_resolution.get("chosen") == "monolithic"
-    assert c._source_resolution.get("mono_coverage") == 12
-    assert c._source_resolution.get("v2_coverage") == 5
+    assert c._source_resolution.get("mono_coverage") == 11  # #435: 11 required
+    assert c._source_resolution.get("v2_coverage") == 4  # #435: 11 - 7 missing
 
 
 

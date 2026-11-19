@@ -205,13 +205,13 @@
       },
       "user": {
         "title": "Daikin Cycle ML - kies modelfamilie",
-        "description": "Kies de modelfamilie van je Daikin Altherma unit. De familie is de prefix van de modelcode van de buitenunit (bijv. ERGA, EPRA, EKHBRD). Op het volgende scherm kies je het exacte model.\n\n- **Basic profile**: veilige standaardwaarden als je je exacte model niet weet.\n- **Custom**: lever je eigen attribuut-mapping aan.\n\n**Detected:** monolithic entity = {mono_found}, ESPAltherma v2 entities = {v2_count}.\n**Suggested source type:** `{suggestion}`.",
+        "description": "Kies de modelfamilie van je Daikin Altherma unit. De familie is de prefix van de modelcode van de buitenunit (bijv. ERGA, EPRA, EKHBRD). Op het volgende scherm kies je het exacte model.\n\n- **Basic profile**: veilige standaardwaarden als je je exacte model niet weet.\n- **Custom**: lever je eigen attribuut-mapping aan.\n\n**Ken je alleen je binnenunit?** Typ de code (op het typeplaatje of in de Daikin-app, bijv. EHBX08EF6V) in het familieveld. Wordt die met meerdere buitenunits verkocht, dan toont het volgende scherm alleen die.\n\n**Detected:** monolithic entity = {mono_found}, ESPAltherma v2 entities = {v2_count}.\n**Suggested source type:** `{suggestion}`.",
         "data": {
           "family": "Modelfamilie",
           "source_type": "ESPAltherma-brontype"
         },
         "data_description": {
-          "family": "Prefix van de modelcode van de buitenunit. Voorbeeld: ERGA, EPRA, EKHBRD.",
+          "family": "Kies de familie van je buitenunit (ERGA, EPRA, ...), of typ de modelcode die je kent: de binnenunit (bijv. EHBX08EF6V), de buitenunit (bijv. ERGA06EAV3) of allebei.",
           "source_type": "Hoe ESPAltherma gegevens naar Home Assistant publiceert. Kies Monolithic als je de klassieke enkele sensorentiteit gebruikt, of Individual als je ESPAltherma v2 bèta gebruikt (veel afzonderlijke entiteiten). Auto detecteert tijdens runtime."
         }
       },
@@ -237,7 +237,9 @@
       "attribute_not_found": "Een of meer gekoppelde attribuutnamen zijn niet gevonden op de bronsensor.",
       "required_attrs_unmapped": "Een of meer vereiste attributen hebben geen koppeling en geen canonieke match op de sensor.",
       "source_offline": "ESPAltherma sensor is momenteel niet beschikbaar. Wacht 30-60s tot deze weer online is en probeer opnieuw.",
-      "source_empty": "ESPAltherma sensor heeft nog geen data. Wacht op de volgende update en probeer opnieuw."
+      "source_empty": "ESPAltherma sensor heeft nog geen data. Wacht op de volgende update en probeer opnieuw.",
+      "model_unknown": "Modelcode \"{code}\" niet herkend. Kies een familie uit de lijst, typ de code van de buitenunit (bijv. ERGA06EAV3) of kies Basic profile.",
+      "model_no_datasheet": "\"{code}\" is een {series}-unit. Daarvoor is nog geen datasheet: kies Basic profile. De cyclusanalyse werkt; vergelijkingen met de datasheet-COP blijven uit."
     },
     "abort": {
       "already_configured": "Al geconfigureerd",

@@ -476,25 +476,27 @@ cards:
               var rd = rawDays[ri];
               if(!rd.day) continue;
               if(!byDate[rd.day]){
-                byDate[rd.day] = {day: rd.day, cycles:0, dur_total_min:0, dur_max_min:0, quality_sum:0, quality_weight:0, buh:0, defrost:0, transient:0,
-                  modes: {heating:{cycles:0,dur_total_min:0,dur_max_min:0,dt:null,rps:null,quality:null,buh:0,defrost:0},
-                          dhw:{cycles:0,dur_total_min:0,dur_max_min:0,dt:null,rps:null,quality:null,buh:0,defrost:0},
-                          cooling:{cycles:0,dur_total_min:0,dur_max_min:0,dt:null,rps:null,quality:null,buh:0,defrost:0}}};
+                byDate[rd.day] = {day: rd.day, cycles:0, runs:0, dur_total_min:0, dur_max_min:0, quality_sum:0, quality_weight:0, buh:0, defrost:0, transient:0,
+                  modes: {heating:{cycles:0,runs:0,dur_total_min:0,dur_max_min:0,dt:null,rps:null,quality:null,buh:0,defrost:0},
+                          dhw:{cycles:0,runs:0,dur_total_min:0,dur_max_min:0,dt:null,rps:null,quality:null,buh:0,defrost:0},
+                          cooling:{cycles:0,runs:0,dur_total_min:0,dur_max_min:0,dt:null,rps:null,quality:null,buh:0,defrost:0}}};
               }
               var e = byDate[rd.day];
               var cycN = rd.cycles || 0;
+              /* #436: runs with time on the day (open run, midnight crossings) */
+              var runN = hasN(rd.runs) ? parseFloat(rd.runs) : cycN;
               var dMin = rdDurMin(rd), dMax = rdDurMax(rd), buhV = rdBuh(rd), defrV = rdDefrost(rd);
               var qaV = hasN(rd.quality_avg) ? parseFloat(rd.quality_avg) : null;
               var dtV = hasN(rd.dt_max_avg) ? parseFloat(rd.dt_max_avg) : null;
               var rpsV = hasN(rd.rps_avg) ? parseFloat(rd.rps_avg) : null;
-              e.cycles += cycN; e.dur_total_min += dMin;
+              e.cycles += cycN; e.runs += runN; e.dur_total_min += dMin;
               if (dMax > e.dur_max_min) e.dur_max_min = dMax;
               e.buh += buhV; e.defrost += defrV; e.transient += (rd.transient_count||0);
               if (qaV !== null) { e.quality_sum += qaV*Math.max(1,cycN); e.quality_weight += Math.max(1,cycN); }
               var mkey = rd.mode || 'unknown';
               if(e.modes[mkey]){
                 var mm = e.modes[mkey];
-                mm.cycles += cycN; mm.dur_total_min += dMin;
+                mm.cycles += cycN; mm.runs += runN; mm.dur_total_min += dMin;
                 if (dMax > mm.dur_max_min) mm.dur_max_min = dMax;
                 if (dtV !== null) mm.dt = dtV;
                 if (rpsV !== null) mm.rps = rpsV;
@@ -507,10 +509,10 @@ cards:
               e.quality_avg = e.quality_weight > 0 ? e.quality_sum / e.quality_weight : null;
               var evD = EVENTS_BY_DAY[e.day]; /* #400: real per-day events (same source as Today block) */
               if (evD) { if (hasN(evD.defrost_events) && evD.defrost_events > e.defrost) e.defrost = parseFloat(evD.defrost_events); if (hasN(evD.buh_min) && evD.buh_min > 0 && e.buh < 1) e.buh = 1; e.buh_min = hasN(evD.buh_min) ? parseFloat(evD.buh_min) : null; }
-              e.dur_avg = e.cycles > 0 ? e.dur_total_min / e.cycles : 0;
+              e.dur_avg = e.runs > 0 ? e.dur_total_min / e.runs : 0;
               Object.keys(e.modes).forEach(function(mk){
                 var mm = e.modes[mk];
-                mm.avg_min = mm.cycles > 0 ? mm.dur_total_min / mm.cycles : 0;
+                mm.avg_min = mm.runs > 0 ? mm.dur_total_min / mm.runs : 0;
                 mm.total_min = mm.dur_total_min;
                 mm.dur = mm.total_min; mm.avg = mm.avg_min;
               });

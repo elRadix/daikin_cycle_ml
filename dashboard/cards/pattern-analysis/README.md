@@ -112,7 +112,8 @@ Buckets aggregated across all days in the selected window:
 ### 2. Scatter
 
 - **X-axis** — cycles per day
-- **Y-axis** — average duration (minutes)
+- **Y-axis** — average duration (minutes): the day's runtime divided by
+  the runs with time on that day, the open run included (#436)
 - **Dot colour** — quality score (green above 70, orange 40-69, red below 40)
 - **Dot size** — scales with cycles/day
 - **Today-highlight** — pulsing halo on the latest/today point

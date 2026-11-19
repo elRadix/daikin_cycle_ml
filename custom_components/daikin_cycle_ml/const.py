@@ -347,8 +347,27 @@ OPTIONAL_ATTRIBUTES = [
     ATTR_HYBRID_OP_MODE,
 ]
 
+# #435: structurally optional core labels. A unit without a DHW tank
+# (e.g. EHBX wall-mounted + ERGA) has no 3-way valve; ESPAltherma then
+# never publishes it. Absent = "no DHW", not a misconfiguration: it
+# stays consumed (DHW detection) but never raises a repair, never counts
+# against the wizard check and never freezes cycle detection.
+STRUCTURALLY_OPTIONAL_ATTRIBUTES = [ATTR_3WAY_VALVE]
+
 REQUIRED_ATTRIBUTES = [
-    a for a in CORE_ATTRIBUTES if a not in OPTIONAL_ATTRIBUTES
+    a for a in CORE_ATTRIBUTES
+    if a not in OPTIONAL_ATTRIBUTES
+    and a not in STRUCTURALLY_OPTIONAL_ATTRIBUTES
+]
+
+# #435: labels whose absence freezes cycle detection (the #109 guard for
+# partial publishes after a restart). Only what the detector needs to
+# open / close a run and classify its mode; BUH steps are tracked
+# per-tick by _tick_buh_and_defrost and do not drive detection, so a
+# model without a backup heater keeps detecting cycles.
+DETECTION_CRITICAL_ATTRIBUTES = [
+    a for a in REQUIRED_ATTRIBUTES
+    if a not in (ATTR_BUH_STEP1, ATTR_BUH_STEP2)
 ]
 
 # --- v1.20.0 #281: consumed attributes (runtime transparency contract) ---
@@ -357,7 +376,7 @@ REQUIRED_ATTRIBUTES = [
 # consumer: cycle detection, COP calculation, thermal power, DHW
 # classification, stooklijn advice, hybrid analytics, comfort analysis.
 #
-# REQUIRED_ATTRIBUTES (12) is the STRICT repair-triggering subset.
+# REQUIRED_ATTRIBUTES (11 since #435) is the STRICT repair-triggering subset.
 # CONSUMED_ATTRIBUTES (22) is a SUPERSET of REQUIRED, so any required
 # label is automatically also a consumed label. Missing consumed labels
 # are surfaced via resolver.missing_consumed, coordinator INFO logs,

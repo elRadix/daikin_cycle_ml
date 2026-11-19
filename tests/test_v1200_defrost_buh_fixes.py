@@ -80,7 +80,9 @@ async def test_freeze_gate_does_not_block_defrost_tick(monkeypatch):
     R681: fix is safe because no existing test asserts tick_buh is frozen.
     """
     c = _bare()
-    # Simulate non-BUH model: only BUH Step1/Step2 missing.
+    # Simulate a frozen tick (partial publish). #435: missing BUH steps
+    # alone no longer freeze (non-BUH models detect normally), so a
+    # detection-critical label is missing too.
     partial_attrs = {
         ATTR_DEFROST_OPERATION: True,
         "Operation Mode": "Heating",
@@ -88,7 +90,7 @@ async def test_freeze_gate_does_not_block_defrost_tick(monkeypatch):
     monkeypatch.setattr(f"{_COORD_MOD}.read", lambda *a, **kw: dict(partial_attrs))
     monkeypatch.setattr(
         f"{_COORD_MOD}.missing_required",
-        lambda a: [ATTR_BUH_STEP1, ATTR_BUH_STEP2],
+        lambda a: [ATTR_BUH_STEP1, ATTR_BUH_STEP2, "Water pump operation"],
     )
     c._last_runtime_tick_ts = 1000.0
     await c._async_update_data()
@@ -102,7 +104,7 @@ async def test_freeze_gate_still_blocks_detector_update(monkeypatch):
     """R600: freeze gate must still protect detector from partial attrs."""
     c = _bare()
     monkeypatch.setattr(f"{_COORD_MOD}.read", lambda *a, **kw: {})
-    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda a: ["rps"])
+    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda a: ["Water pump operation"])
     await c._async_update_data()
     c.detector.update.assert_not_called()
 

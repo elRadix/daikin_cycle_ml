@@ -268,6 +268,12 @@ class CycleDB:
                 "ALTER TABLE daily_summary ADD COLUMN "
                 "transient_count INTEGER NOT NULL DEFAULT 0"
             )
+        # #436: runs overlapping the day (filled by rollup; v33 re-rolls).
+        if "runs" not in ds_cols:
+            await conn.execute(
+                "ALTER TABLE daily_summary ADD COLUMN "
+                "runs INTEGER NOT NULL DEFAULT 0"
+            )
         # v1.20.1 #289: dhw_tank_temp column for legionella BUH
         # exemption. Historical cycles stay NULL (fallback to penalty).
         if "dhw_tank_temp" not in existing_cols:
@@ -2572,6 +2578,20 @@ class CycleDB:
         _LOGGER.info("v30 migration: %s", stats)
         return stats
 
+    async def async_migrate_to_v33(self) -> dict[str, Any]:
+        """#436: fill daily_summary.runs for every stored day (re-roll once).
+
+        Marker ``data_migration_v33_completed``.
+        """
+        marker = await self.async_get_model_state("data_migration_v33_completed")
+        if isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+        days = await self._rebuild_all_daily_summary()
+        stats = {"days_rebuilt": days, "completed": True}
+        await self.async_set_model_state("data_migration_v33_completed", stats)
+        _LOGGER.info("v33 migration (daily runs): %s", stats)
+        return stats
+
     async def _rebuild_all_daily_summary(self) -> int:
         """DELETE + re-roll daily_summary for every day with cycles."""
         conn = self._require()
@@ -2778,7 +2798,7 @@ class CycleDB:
                 "duration_min": None, "duration_max": None,
                 "quality_sum": 0, "dt_max_sum": 0.0, "rps_sum": 0.0,
                 "buh_count": 0, "defrost_count": 0,
-                "transient_count": 0,
+                "transient_count": 0, "runs": 0,
             })
             is_transient = int(r["is_transient"] or 0)
             starts_on_day = start_ts <= float(r["start_ts"]) < end_ts
@@ -2797,6 +2817,11 @@ class CycleDB:
             ov_end = min(float(c_end), end_ts)
             ov_s = int(max(0.0, ov_end - ov_start))
             a["total_duration_s"] += ov_s
+            # #436: every run with time on this day (incl. the open one and
+            # a run crossing midnight) divides the day's runtime; counting
+            # only runs started that day made the average exceed the longest.
+            if ov_s > 0:
+                a["runs"] += 1
             # #400: longest = longest within-day portion of any run that
             # overlaps the day, so duration_max <= total_duration_s even
             # for a run that crosses midnight.
@@ -2832,8 +2857,9 @@ class CycleDB:
                 """INSERT INTO daily_summary
                    (day, mode, cycles, total_duration_s, duration_min,
                     duration_max, quality_sum, dt_max_sum, rps_sum,
-                    buh_count, defrost_count, transient_count, updated_ts)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    buh_count, defrost_count, transient_count, updated_ts,
+                    runs)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                    ON CONFLICT(day, mode) DO UPDATE SET
                      cycles = excluded.cycles,
                      total_duration_s = excluded.total_duration_s,
@@ -2845,13 +2871,14 @@ class CycleDB:
                      buh_count = excluded.buh_count,
                      defrost_count = excluded.defrost_count,
                      transient_count = excluded.transient_count,
-                     updated_ts = excluded.updated_ts""",
+                     updated_ts = excluded.updated_ts,
+                     runs = excluded.runs""",
                 (
                     day, mode, a["cycles"], a["total_duration_s"],
                     a["duration_min"], a["duration_max"],
                     a["quality_sum"], a["dt_max_sum"], a["rps_sum"],
                     a["buh_count"], a["defrost_count"],
-                    a["transient_count"], now,
+                    a["transient_count"], now, a["runs"],
                 ),
             )
         await conn.commit()
@@ -3146,9 +3173,11 @@ class CycleDB:
         for r in rows:
             d = dict(r)
             n = d.get("cycles") or 0
+            runs = d.get("runs") or 0
             if n > 0:
+                # #436: runtime / runs on the day (rows before v33: cycles)
                 d["duration_avg"] = round(
-                    d["total_duration_s"] / n, 2
+                    d["total_duration_s"] / (runs or n), 2
                 )
                 d["quality_avg"] = round(d["quality_sum"] / n, 2)
                 d["dt_max_avg"] = round(d["dt_max_sum"] / n, 3)

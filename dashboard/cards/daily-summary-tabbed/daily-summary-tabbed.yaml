@@ -583,7 +583,7 @@ cards:
               if(!dayKey) continue;
               if(!byDate[dayKey]){
                 byDate[dayKey] = {
-                  day: dayKey, cycles:0, dur_min:0, dur_max:0,
+                  day: dayKey, cycles:0, runs:0, dur_min:0, dur_max:0,
                   quality_sum:0, quality_weight:0, buh:0, defrost:0,
                   modes:{
                     heating:{cycles:0,dur:0,quality:null},
@@ -594,6 +594,7 @@ cards:
               }
               var de = byDate[dayKey];
               de.cycles += (rd.cycles || 0);
+              de.runs += hasV(rd.runs) ? parseFloat(rd.runs) : (rd.cycles || 0); /* #436 */
               de.dur_min += (rd.dur_min || 0);
               if(hasV(rd.dur_max) && parseFloat(rd.dur_max) > de.dur_max) de.dur_max = parseFloat(rd.dur_max);
               if(hasV(rd.quality_avg)){
@@ -619,7 +620,7 @@ cards:
             var daysAll = Object.keys(byDate).map(function(k){
               var de = byDate[k];
               de.quality_avg = de.quality_weight > 0 ? de.quality_sum / de.quality_weight : null;
-              de.dur_avg = de.cycles > 0 ? de.dur_min / de.cycles : 0;
+              de.dur_avg = de.runs > 0 ? de.dur_min / de.runs : 0; /* #436: runs on the day */
               var evD = EVENTS_BY_DAY[de.day]; /* #400: real per-day events (same source as Today block) */
               if (evD) { if (hasV(evD.defrost_events) && evD.defrost_events > de.defrost) de.defrost = parseFloat(evD.defrost_events); if (hasV(evD.buh_min) && evD.buh_min > 0 && de.buh < 1) de.buh = 1; }
               return de;
@@ -681,11 +682,17 @@ cards:
               return s;
             };
 
+            /* #436: period quality = average score of all cycles (each day
+               weighted by its cycles), the same figure as the Daily summary */
+            var qWAvg = function(arr){
+              var sw = 0, sq = 0;
+              arr.forEach(function(d){ if(d.quality_avg !== null && d.quality_weight > 0){ sq += d.quality_avg * d.quality_weight; sw += d.quality_weight; } });
+              return sw > 0 ? sq / sw : null;
+            };
             var buildOverview = function(sub, winKey){
               var wTotCycles = sub.reduce(function(a,d){ return a+d.cycles; }, 0);
               var wHours = sub.reduce(function(a,d){ return a+d.dur_min; }, 0) / 60;
-              var qVals = sub.filter(function(d){ return d.quality_avg !== null; }).map(function(d){ return d.quality_avg; });
-              var wQ = qVals.length > 0 ? qVals.reduce(function(a,v){ return a+v; },0)/qVals.length : null;
+              var wQ = qWAvg(sub); /* #436: average of all cycles, as the Daily summary card */
 
               var byQ = sub.filter(function(d){ return d.quality_avg!==null; }).slice().sort(function(a,b){ return b.quality_avg - a.quality_avg; });
               var best = byQ.length > 0 ? byQ[0] : null;
@@ -875,7 +882,7 @@ cards:
             var buildQuality = function(sub){
               var numDays = sub.length;
               var qVals = sub.filter(function(d){ return d.quality_avg !== null; }).map(function(d){ return d.quality_avg; });
-              var avgQ = qVals.length > 0 ? qVals.reduce(function(a,v){ return a+v; },0)/qVals.length : null;
+              var avgQ = qWAvg(sub); /* #436: weighted by cycles per day */
               var minQ = qVals.length > 0 ? Math.min.apply(null, qVals) : 0;
               var yMin = minQ >= 70 ? 60 : (minQ >= 50 ? 40 : 0);
               var yMax = 100;

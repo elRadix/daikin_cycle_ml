@@ -334,6 +334,7 @@ CREATE TABLE daily_summary (
     defrost_count    INTEGER DEFAULT 0,
     updated_ts       REAL NOT NULL,
     transient_count  INTEGER DEFAULT 0,
+    runs             INTEGER DEFAULT 0,
     PRIMARY KEY (day, mode)
 );
 ```
@@ -352,6 +353,7 @@ CREATE TABLE daily_summary (
 | `buh_count` | Cycles with BUH active (cycle flag, start day; merged cycles keep the flag of every absorbed run since #400) |
 | `defrost_count` | Cycles with defrost active (same; real per-day defrost events and BUH minutes are in `daily_summary_recent.events_by_day`, from `model_state.runtime_acc.<day>`, #400) |
 | `transient_count` | Count of transient cycles **starting** on this day (disjoint from `cycles`) |
+| `runs` | Non-transient runs with time on this day: started that day, crossing midnight, or still open (#436). Average run on the day = `total_duration_s / runs` (`dur_min_avg` in `daily_summary_recent`), so it never exceeds `duration_max`. Rows rolled up before migration v33 fall back to `cycles` |
 
 **Index:** `idx_daily_summary_day` on `day`
 

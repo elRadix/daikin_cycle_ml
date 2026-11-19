@@ -173,8 +173,8 @@ async def test_both_full_v2_wins_on_tie(monkeypatch) -> None:
     with pytest.raises(_Reached):
         await c._async_update_data()
     assert c._source_resolution["chosen"] == "individual"
-    assert c._source_resolution["mono_coverage"] == 12
-    assert c._source_resolution["v2_coverage"] == 12
+    assert c._source_resolution["mono_coverage"] == 11  # #435: 11 required
+    assert c._source_resolution["v2_coverage"] == 11
 
 
 # ---------- Coverage comparison ----------
@@ -191,8 +191,8 @@ async def test_mono_full_v2_partial_mono_wins(monkeypatch) -> None:
     with pytest.raises(_Reached):
         await c._async_update_data()
     assert c._source_resolution["chosen"] == "monolithic"
-    assert c._source_resolution["mono_coverage"] == 12
-    assert c._source_resolution["v2_coverage"] == 5
+    assert c._source_resolution["mono_coverage"] == 11  # #435: 11 required
+    assert c._source_resolution["v2_coverage"] == 4  # 11 - 7 missing
 
 
 @pytest.mark.asyncio
@@ -207,8 +207,8 @@ async def test_mono_partial_v2_full_v2_wins(monkeypatch) -> None:
     with pytest.raises(_Reached):
         await c._async_update_data()
     assert c._source_resolution["chosen"] == "individual"
-    assert c._source_resolution["mono_coverage"] == 8
-    assert c._source_resolution["v2_coverage"] == 12
+    assert c._source_resolution["mono_coverage"] == 7  # #435: 11 - 4 missing
+    assert c._source_resolution["v2_coverage"] == 11
 
 
 @pytest.mark.asyncio
@@ -343,9 +343,9 @@ async def test_source_resolution_populated(monkeypatch) -> None:
         await c._async_update_data()
     res = c._source_resolution
     assert res["mode"] == "auto"
-    assert res["mono_coverage"] == 12
-    assert res["v2_coverage"] == 12
-    assert res["required_total"] == 12
+    assert res["mono_coverage"] == 11  # #435: 11 required
+    assert res["v2_coverage"] == 11
+    assert res["required_total"] == 11
     assert res["chosen"] == "individual"
     assert ">= " in res["reason"] or "> " in res["reason"]
 

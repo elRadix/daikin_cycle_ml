@@ -205,13 +205,13 @@
       },
       "user": {
         "title": "Daikin Cycle ML - select model family",
-        "description": "Select the model family of your Daikin Altherma unit. The family is the prefix of the outdoor unit model code (e.g. ERGA, EPRA, EKHBRD). You will pick the exact model on the next screen.\n\n- **Basic profile**: safe defaults when the exact model is unknown.\n- **Custom**: supply your own attribute map.\n\n**Detected:** monolithic entity = {mono_found}, ESPAltherma v2 entities = {v2_count}.\n**Suggested source type:** `{suggestion}`.",
+        "description": "Select the model family of your Daikin Altherma unit. The family is the prefix of the outdoor unit model code (e.g. ERGA, EPRA, EKHBRD). You will pick the exact model on the next screen.\n\n- **Basic profile**: safe defaults when the exact model is unknown.\n- **Custom**: supply your own attribute map.\n\n**Only know your indoor unit?** Type its code (on the unit's label or in the Daikin app, e.g. EHBX08EF6V) in the family field. If it is sold with several outdoor sizes, the next screen lists only those.\n\n**Detected:** monolithic entity = {mono_found}, ESPAltherma v2 entities = {v2_count}.\n**Suggested source type:** `{suggestion}`.",
         "data": {
           "family": "Model family",
           "source_type": "ESPAltherma source type"
         },
         "data_description": {
-          "family": "Prefix of the outdoor unit model code. Example: ERGA, EPRA, EKHBRD.",
+          "family": "Pick the family of your outdoor unit (ERGA, EPRA, ...), or type the model code you know: the indoor unit (e.g. EHBX08EF6V), the outdoor unit (e.g. ERGA06EAV3) or both.",
           "source_type": "How ESPAltherma publishes data to Home Assistant. Choose Monolithic if you use the classic single sensor entity, or Individual if you use ESPAltherma v2 beta (many separate entities). Auto detects at runtime."
         }
       },
@@ -237,7 +237,9 @@
       "attribute_not_found": "One or more mapped attribute names were not found on the source sensor.",
       "required_attrs_unmapped": "One or more required attributes have no mapping and no canonical match on the sensor.",
       "source_offline": "ESPAltherma sensor is currently unavailable. Wait 30-60s for it to come back online and try again.",
-      "source_empty": "ESPAltherma sensor has no data yet. Wait for the next update and try again."
+      "source_empty": "ESPAltherma sensor has no data yet. Wait for the next update and try again.",
+      "model_unknown": "Model code \"{code}\" not recognised. Pick a family from the list, type the outdoor unit code (e.g. ERGA06EAV3), or choose Basic profile.",
+      "model_no_datasheet": "\"{code}\" is a {series} unit. There is no datasheet for it yet: choose Basic profile. Cycle analytics work; datasheet COP comparisons stay off."
     },
     "abort": {
       "already_configured": "Already configured",

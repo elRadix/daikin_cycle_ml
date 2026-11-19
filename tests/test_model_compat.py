@@ -59,6 +59,8 @@ NON_HEATING_MODELS: frozenset[str] = frozenset(
 # Any change here must be justified by a re-analysis of the upstream
 # .h files; silently widening this dict hides regressions.
 PARTIAL_MODELS: dict[str, list[str]] = {
+    # #435: the 3-way valve is structurally optional (no DHW tank), no
+    # longer a REQUIRED label, so it is not listed as missing below.
     # v1.20.0 #281: EPSK and ECH2O models moved to FULL_COVERAGE after
     # ALIAS_GROUPS expansion:
     #   - EPSK: R4T resolves via "Inlet water temp. (water heat exchanger)"
@@ -70,7 +72,6 @@ PARTIAL_MODELS: dict[str, list[str]] = {
     # missing_attributes repair instead of failing.
     "Altherma(HT EKHBRD-ERRQ series 11-16kW protocol S).h": [
         "I/U operation mode",
-        "3way valve(On:DHW_Off:Space)",
         "Defrost Operation",
         "Leaving water temp. after BUH (R2T)",
         "Inlet water temp.(R4T)",
@@ -84,7 +85,6 @@ PARTIAL_MODELS: dict[str, list[str]] = {
     "Altherma(HT EKHBRD-ERRQ series 11-16kW).h": [
         "Operation Mode",
         "I/U operation mode",
-        "3way valve(On:DHW_Off:Space)",
         "Defrost Operation",
         "Leaving water temp. after BUH (R2T)",
         "Inlet water temp.(R4T)",
@@ -99,7 +99,6 @@ PARTIAL_MODELS: dict[str, list[str]] = {
     # no water-side sensors on the wire (inlet/flow/BUH/3-way/water pump).
     # Hydrobox-side labels live in the EKHBRD-ERRQ variants above.
     "Altherma(HT ERRQ-ERSQ outdoor unit 11-16kW).h": [
-        "3way valve(On:DHW_Off:Space)",
         "Leaving water temp. after BUH (R2T)",
         "Inlet water temp.(R4T)",
         "Flow sensor (l/min)",

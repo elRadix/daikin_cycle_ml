@@ -17,9 +17,9 @@ Multi-tab Lovelace dashboard card for **Daikin Cycle ML** with 5 views — Overv
 | Tab | Content |
 |---|---|
 | **Overview** | HP model hero, avg quality ring, mode split bar, best/worst day cards, 3 sparkline trends |
-| **Quality** | Adaptive Y-axis, quality-per-day line + dots, avg line, distribution counts |
+| **Quality** | Adaptive Y-axis, quality-per-day line + dots, avg line, distribution counts. Day = average of its cycles; average = all cycles of the period, the same figure as the Daily summary card (#436) |
 | **Cycles** | Per-mode stacked bars, day totals, avg/max/starts stats |
-| **Duration** | Per-mode stacked runtime bars, adaptive cap, clipped-day markers |
+| **Duration** | Per-mode stacked runtime bars, adaptive cap, clipped-day markers. Average run = runtime / runs on the day, the open run included (#436) |
 | **Events** | Live today tiles (BUH/Defrost/Duty/Starts), 3-row daily counts (BUH/Defrost/Total), ratio chart |
 
 *vs. the original Daily Summary card:* adds multi-tab navigation, adaptive chart scaling, persistent tab/window state, popup details on every element, and Dutch entity support.

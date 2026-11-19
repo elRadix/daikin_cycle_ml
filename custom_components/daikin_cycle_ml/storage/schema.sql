@@ -73,6 +73,9 @@ CREATE TABLE IF NOT EXISTS daily_summary (
     defrost_count INTEGER NOT NULL DEFAULT 0,
     transient_count INTEGER NOT NULL DEFAULT 0,
     updated_ts REAL NOT NULL,
+    -- #436: runs overlapping the day (closed, open, crossing midnight);
+    -- average run length = total_duration_s / runs
+    runs INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (day, mode)
 );
 
