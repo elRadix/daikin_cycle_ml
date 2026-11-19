@@ -22,7 +22,7 @@ Do not add triple-backtick fences when editing this file.
 NOTE: DEEPSEEK.md is local-only, gitignored. Read it from the dev
 container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
 
-## Project identity (v88.0 — updated 2026-11-19 morning)
+## Project identity (v89.0 — updated 2026-11-19 evening)
 
 - GitHub: elRadix/daikin_cycle_ml · default branch main · HACS custom repo
 - Dev container: /workspace/daikin_cycle_ml (daikin_cycle_dev, image python:3.14)
@@ -32,15 +32,14 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
   Cloud sessions can push branches but NOT tags and cannot delete remote
   branches (proxy 403). Tags + branch deletion run from daikin_cycle_dev
   via docker exec with a pre-guard (see v87.0 addendum).
-- Main tip: 53dd935 (fix #423, PR #424). Unreleased on main: #414 #416
-  #418 #420 #422 #424 (target v1.24.0)
-- Latest release: v1.23.3 (tag v1.23.3 -> 143f9cf), published 2026-11-18.
-  Same day: v1.23.0 (d24187e), v1.23.1 (900e048), v1.23.2 (02b519f).
-  Previous: v1.22.10 (tag v1.22.10 -> 91034f5, 2026-11-16).
-- Manifest / const.VERSION / pyproject: 1.23.3 (match)
-- Open PRs: none after #424 (release PR v1.24.0 next). Remote branches:
-  main + the session branch claude/espaltherma-handoff-update-vg30ys
-  (cloud cannot delete it; clean up from daikin_cycle_dev).
+- Main tip: d615af7 (release v1.24.1, PR #433). Nothing unreleased.
+- Latest release: v1.24.1 (tag v1.24.1 -> d615af7), 2026-11-19.
+  Same day: v1.24.0 (tag v1.24.0 -> 177ae8e, PR #429).
+  Before: v1.23.3 (143f9cf), v1.23.0-v1.23.2 (2026-11-18), v1.22.10 (91034f5).
+- Manifest / const.VERSION / pyproject: 1.24.1 (match)
+- Open PRs: none. GitHub deletes the head branch when a PR merges
+  (seen for #428 #429 #432 #433): restart the session branch from
+  origin/main and push normally, no force (R394).
 - Dev container working tree is DIRTY on old commit c9ba74c: modified
   binary_sensor.py, const.py, coordinator.py, scripts/resolve_issue.py +
   untracked tests/test_v12211_cop_flag_visibility.py,
@@ -58,7 +57,7 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
 - ESPAltherma checkout for alignment work: git clone --depth 1 --branch beta
   https://github.com/raomin/espaltherma (public; definitions/ + data/).
 
-## Trackers / open issues (2026-11-19 morning)
+## Trackers / open issues (2026-11-19 evening)
 
 Issue #66 (v1.9 tracker) is no longer the active tracker. Work is now
 tracked per issue; commits/PRs reference their own issue
@@ -68,10 +67,17 @@ Closed 2026-11-18 (solution comment + release link): #347 (@JoHuTi),
 #369 (@MBGek), #288 phase 1 (@fransh47), #388, #392 (v1.23.0); #193,
 #353, #400 (CuttingStorm, Tweakers), #408 (v1.23.1-v1.23.3).
 
-Open until v1.24.0 ships (fix merged, "Part of"): #413 v2 catalog names,
-#415 prod-1 v1.23.3 diagnostics, #417 restart drops run, #419 split
-scoring + runtime check + lost-run rebuild, #421 proportional quality,
-#423 data polish. New: #425 p3 ux alerts card (Tweakers feedback).
+Closed 2026-11-19 with v1.24.0 (solution comment + release link): #413,
+#415, #417, #419, #421, #423, #427.
+
+Open until v1.24.1 is confirmed published: #431 (pattern-analysis touch,
+heating-curve point pop-ups; fix in #432). Release published: TE
+VERIFIEREN, then comment + close #431.
+
+- #430  drift    "ESPAltherma upstream moved (beta)" (weekly model-compat
+                 drift issue, new 2026-11-19): review the diff, re-pin
+                 MODEL_ATTRIBUTES / V2 catalog if consumed names moved
+- #425  p3 ux    Show today's alerts in a card (Tweakers feedback)
 
 - #398  p1 enh   Bivalent phase 2: wizard section, binary_sensor
                  bivalent_active, boiler energy sensors, BUH1 vs
@@ -83,7 +89,8 @@ scoring + runtime check + lost-run rebuild, #421 proportional quality,
 - #309           P1/P2 MQTT bridge as input
 - #239  p1       [Tracker] RFI #127 thermodynamics + COP sanity gates
 - #221  p1       [Tracker] Altherma R Hybrid (EVLQ) — future analytics
-- #208  p3       HA dark mode
+- #208  p3       HA dark mode (all cards have dark mode since v1.24.0 #427:
+                 TE VERIFIEREN whether #208 can be closed)
 - #198  p2       Wizard dropdown -> full Daikin catalog via alias layer
 - #189  p1       HT attribute aliases (blocked-external)
 - #187  p2 epic  ESPAltherma collaboration (internal decision 2026-11-18:
@@ -93,11 +100,18 @@ scoring + runtime check + lost-run rebuild, #421 proportional quality,
 
 Tweakers feedback "alerts not shown in any card" is now #425.
 
-## Current state (v88.0 — 2026-11-19)
+## Current state (v89.0 — 2026-11-19 evening)
 
-- Coverage: 100.00% (pyproject fail_under = 100), CI green on 53dd935
-- Tests: 6962 collected (cloud venv 2026-11-19); README badge still 6774
-  until the v1.24.0 release PR
+- Coverage: 100.00% (pyproject fail_under = 100), CI green on d615af7
+- Tests: 6985 collected (README badge 6985)
+- Dashboard cards (7): one header with the model, shared variables
+  (lang_override / theme_override / show_help + card-specific), EN/NL/FR,
+  dark mode; shared block tools/card_common.js synced by
+  tools/sync_card_common.py; docs dashboard/cards/README.md; every card
+  folder has README + CHANGELOG (cards 1.1.x); screenshots of every card
+  and tab rendered from the integration's states (same filenames)
+- Sensor daily_summary_recent exposes events_by_day (#427); heating-curve
+  advice keeps measured buckets / LWT during DHW and BUH (suppressed_by)
 - DB data migrations v31 (#415 stale cop_hourly rows), v32 (#419 runs lost
   on restart rebuilt from cop_samples, is_reconstructed = 1), quality
   rescore (#421, marker data_migration_quality_v2_completed), off-time
@@ -117,9 +131,9 @@ Tweakers feedback "alerts not shown in any card" is now #425.
 - DB: daikin_cycle_ml.db schema v16 (v1.12.0 migration, #105/#107) ·
   HA Store alerts v1 · user datasheet store v1
 - IQS: Bronze + Silver + Gold (README badge)
-- prod-1: v1.23.3 on HA 2026.11.1 (diagnostics 2026-11-19 06:42); after
-  v1.24.0 TE VERIFIEREN: SQL section A (~100 % per day), runtime_check,
-  cop_cross_check, rescored quality
+- prod-1: v1.23.3 on HA 2026.11.1 (diagnostics 2026-11-19 06:42); update
+  to v1.24.1 + re-paste all cards TE VERIFIEREN; then check SQL section A
+  (~100 % per day), runtime_check, cop_cross_check, rescored quality
 - QA scripts: scripts/bootstrap.sh, scripts/ci-local.sh, scripts/pre-push,
   scripts/check-markdown.sh, scripts/create_issue.py, update_issue.py,
   resolve_issue.py, git_safe.py
@@ -197,6 +211,40 @@ Tweakers feedback "alerts not shown in any card" is now #425.
     R382  Ruff E702 semicolons in test files — split into separate lines.
     R383  CI poll timeout ≠ failure — diagnose via gh run list --commit $SHA before amending.
     R384  Heredoc delimiter mismatch = PS2-trap, nothing mutated. Ctrl+C → echo READY → re-paste identical.
+
+### Active rules added in v89.0 (2026-11-19)
+
+    R385  Release notes: ALWAYS give the full Markdown source in the chat
+          (one fenced markdown block, ready to paste), not only a file.
+          Gallery / image URLs point at the tag (raw.../vX.Y.Z/...);
+          the user tags before publishing.
+    R386  Merge via the GitHub MCP with the full 40-char head SHA from
+          git ls-remote (short or typed SHAs are refused).
+    R387  Card variables live on the header button-card (variables: &dcm)
+          and every other button-card has variables: *dcm. Variables on
+          the outer stack-in-card are ignored by button-card.
+    R388  Card taps: never rely on click. button-card calls preventDefault
+          on touchend (no click on touch) -> use pointerup with a
+          movement guard. A button-card without actions is disabled
+          (pointer-events: none) -> its content needs pointer-events: auto.
+          Test touch with a harness that reproduces both.
+    R389  Shared card block (DCM-COMMON): edit tools/card_common.js, run
+          tools/sync_card_common.py; never edit the block in a card
+          (tests fail on drift, --check).
+    R390  Card changes: render every card under Node in EN / NL / FR /
+          dark (tests/test_427_cards_live_states.py, fixture from the real
+          integration) and look at it in Chromium before merging.
+    R391  Every card change updates that card's CHANGELOG.md and README;
+          screenshots keep their filenames (main README and external
+          sites link to them) and every image is shown in its card README.
+    R392  pattern-analysis.yaml is CRLF: rewrite with CRLF kept; a huge
+          git diff --stat = line endings lost.
+    R393  Long in-container simulations: --timeout=0/N (pytest-timeout
+          default 120 s) and delete testing_config/.storage/daikin_cycle_ml*
+          first (the DB survives between runs; a restored detector from
+          a later run blocks every sample as clock skew).
+    R394  After a merge the remote head branch is gone: git checkout -B
+          <session branch> origin/main and push normally (never force).
 
 ## Historical rules (RETIRED)
 
@@ -293,6 +341,8 @@ per-regel recon + format-matching). Zie handoff v17.0 DEEL 15.1 #2.
 - Typo claim without grep -c / repr() evidence (R345)
 - Direct attr access in _build_alert_context / _alert_binary_states (R353)
 - Amending pushed commits (R91)
+- Merging a PR without the user's own ask ("merge when green" counts)
+- Publishing release notes without the Markdown source in the chat (R385)
 - Pushing branch with any PR G batch uncommitted
 
 
@@ -313,8 +363,10 @@ per-regel recon + format-matching). Zie handoff v17.0 DEEL 15.1 #2.
 5. Verify — full pytest + ruff + mypy.
 6. Review — pre-merge rule check.
 7. Plan-B live-fire — MANUAL: user triggers OptionsFlow Test-all.
-8. Merge — MANUAL: user runs gh pr merge --squash, no --admin.
-9. Tracker tick — MANUAL: gh issue edit 66 --body-file ...
+8. Merge — only on the user's ask ("merge when green" counts): squash via
+   the GitHub MCP with the full head SHA (R386); never --admin.
+9. Tracker tick — VERVALLEN (v89.0, #66 retired): comment on and close the
+   PR's issues after the release ships (release procedure step 7).
 
 
 ## Tracker rule (added 2026-10-08)
@@ -510,9 +562,14 @@ Release PR = version bump only, ONE commit, nothing else in it.
 5. After CI green + merge: comment on the PR
    "Post-merge verification: PR #N merged into main. vX.Y.Z release
    merged. CI green. Ready for tag."
-6. Tag vX.Y.Z on the merge commit, push tag, publish GitHub release
-   (template of previous releases: logo, star badge, end-user "What's
-   new" with issue links + "After updating", technical section, Support).
+6. Tag vX.Y.Z on the merge commit, push tag (user, from daikin_cycle_dev),
+   publish GitHub release (template of previous releases: logo, star
+   badge, end-user "What's new" with benefits for the heat pump and issue
+   links, "After updating" incl. which cards to re-paste, card gallery
+   with image URLs on the tag, Thank you, Manuals, technical section,
+   Support). ALWAYS hand over the full release-notes Markdown source in
+   the chat (R385). Optionally a Tweakers post (Dutch, UBB) in the same
+   reply.
 7. Comment on and close the issues in the release; reporters get update
    instructions (HACS update, restart, re-paste cards, model check).
 
@@ -718,3 +775,30 @@ dropped). All work is now pushed to origin after each batch to prevent recurrenc
     flow alone keep the compressor "on").
   - A startup step on the coordinator goes through a guarded module
     helper: setup tests use a MagicMock coordinator.
+
+### v89.0 addendum (2026-11-19 evening)
+
+- Released v1.24.0 (#429): #414 #416 #418 #420 #422 #424 + #428 (cards
+  unified: header with model, shared variables, EN/NL/FR, dark mode,
+  events_by_day, heating-curve points, DHW rendering, docs index).
+  Issues #413 #415 #417 #419 #421 #423 #427 closed with a solution comment.
+- Released v1.24.1 (#433): #432 (pattern-analysis touch via pointerup,
+  heating-curve point pop-ups, tiles fit narrow cards, new screenshots of
+  every card and tab). #431 closes once the release is published.
+- Root causes worth remembering:
+  - stack-in-card variables never reached button-card (R387): every
+    lang_override / default_tab / theme option was dead config before #428;
+  - click listeners in button-card fail on touch (R388);
+  - the stooklijn advice was wiped during DHW / BUH, emptying two cards;
+  - events_by_day was built (#400) but never exposed by the sensor: a
+    test that injects payloads skips the sensor layer, so the card test
+    now renders from states of the real integration.
+- Tooling: tools/card_common.js + tools/sync_card_common.py;
+  tests/test_427_cards_live_states.py (fixture generator inside, opt-in
+  with DCML_DUMP_CARD_STATES=1); screenshots are rendered with a
+  Playwright harness (button-card cards in shadow roots, ha-icon stand-in
+  with MDI paths, SVG animations frozen), not committed.
+- User preferences: release notes source always in chat (R385); clear
+  end-user language about the benefits for the heat pump and the request
+  to re-paste cards; galleries of all card screenshots in releases;
+  image filenames never change.
