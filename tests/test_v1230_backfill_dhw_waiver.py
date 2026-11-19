@@ -29,16 +29,17 @@ def test_dhw_legionella_waiver_applies_with_tank_62c():
 
 
 def test_dhw_buh_penalty_applies_with_tank_55c():
-    assert score_cycle(_dhw(55.0), OPTIONS) == 90
+    # #421: BUH time unknown -> 5 of 60 min -> 8.3 points
+    assert score_cycle(_dhw(55.0), OPTIONS) == 92
 
 
 def test_dhw_buh_penalty_applies_when_tank_temp_missing():
-    assert score_cycle(_dhw(None), OPTIONS) == 90
+    assert score_cycle(_dhw(None), OPTIONS) == 92
 
 
 def test_dhw_legionella_waiver_disabled():
     opts = dict(OPTIONS, buh_penalty_legionella_waived=0.0)
-    assert score_cycle(_dhw(62.0), opts) == 90
+    assert score_cycle(_dhw(62.0), opts) == 92
 
 
 # --- backfill integration: dhw_tank_temp is passed through ---

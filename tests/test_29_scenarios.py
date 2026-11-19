@@ -225,7 +225,10 @@ def test_scenario_buh_penalty_in_quality():
     s1 = score_cycle(rec_good, {})
     s2 = score_cycle(rec_buh, {})
     assert s1 > s2
-    assert s1 - s2 == 10  # PENALTY_BUH
+    # #421: BUH time unknown -> 5 min of a 60 min run = 8.3 points
+    assert s1 - s2 == 8
+    rec_buh["buh_s"] = 120.0                 # 2 min measured -> 3.3 points
+    assert s1 - score_cycle(rec_buh, {}) == 3
 
 
 # ================================================================

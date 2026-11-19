@@ -136,7 +136,7 @@ from .engine.notification_engine import (
     evaluate_alerts,
     passes_filters,
 )
-from .engine.quality_scorer import score_cycle
+from .engine.quality_scorer import rescore_history, score_breakdown, score_cycle
 from .engine.status_report import KMEANS_ADVICE_BY_REASON  # I2
 from .engine.thermal import (
     bivalent_present_from_attrs as _bivalent_present_from_attrs,
@@ -436,10 +436,13 @@ def score_and_count(
     _ratio_pct = round(100.0 * _short_today / _cycles_denom, 2)
 
     try:
-        record["quality_score"] = score_cycle(
-            {**record, "duration_s": _dur}, options, off_time_s=off_s,
-            short_cycle_ratio=_ratio_pct,
-        )
+        # #421: proportional penalties; the breakdown explains the score
+        _kw: dict[str, Any] = {
+            "off_time_s": off_s, "short_cycle_ratio": _ratio_pct,
+            "segment": _segment,
+        }
+        record["quality_penalties"] = score_breakdown(record, options, **_kw)
+        record["quality_score"] = score_cycle(record, options, **_kw)
     except Exception:
         _LOGGER.warning("score_cycle failed", exc_info=True)
         record["quality_score"] = None
@@ -1229,9 +1232,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             # dT_max can only grow, so neither can be judged yet (prod-1:
             # 20 min, start-up dT 2.1 -> live 50 pulled quality_today to 70
             # while every closed cycle scored 90+).
-            snap.quality_live = score_cycle(
-                {**rec, "duration_s": None, "dT_max": None}, self.options,
-            )
+            snap.quality_live = score_cycle(rec, self.options, running=True)
             snap.quality_live_duration_s = float(rec.get("duration_s") or 0)
         except Exception:
             _LOGGER.warning("live quality refresh failed", exc_info=True)
@@ -4282,6 +4283,23 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("adaptive save failed")
             return False
+
+    async def async_rescore_history(self) -> dict[str, Any] | None:
+        """#421: rescore stored cycles once with the proportional formula.
+
+        Runs before the store is hydrated, so the today / last-cycle
+        sensors start from the new scores. Never raises.
+        """
+        if self.db is None:
+            return None
+        try:
+            stats: dict[str, Any] = await self.db.async_rescore_all_cycles(
+                lambda rows, events: rescore_history(rows, self.options, events)
+            )
+            return stats
+        except Exception:
+            _LOGGER.exception("quality rescore failed")
+            return None
 
     async def _maybe_relearn_off_samples(self) -> bool:
         """#415: relearn off-time samples once from the cycles table.

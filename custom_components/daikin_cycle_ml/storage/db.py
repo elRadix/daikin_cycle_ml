@@ -274,6 +274,11 @@ class CycleDB:
             await conn.execute(
                 "ALTER TABLE cycles ADD COLUMN dhw_tank_temp REAL"
             )
+        # #421: BUH (step-weighted) and defrost seconds per cycle for the
+        # proportional quality penalties. Older cycles stay NULL.
+        for col in ("buh_s", "defrost_s"):
+            if col not in existing_cols:
+                await conn.execute(f"ALTER TABLE cycles ADD COLUMN {col} REAL")
 
         # v1.12.4 (v18): DHW backfill columns + indices.
         # Idempotent via PRAGMA table_info guard; fresh installs
@@ -405,8 +410,8 @@ class CycleDB:
                 cop_confidence, thermal_kw_avg, is_transient,
                 boiler_contribution_samples,
                 boiler_heat_samples, boiler_dhw_samples,
-                dhw_tank_temp)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                dhw_tank_temp, buh_s, defrost_s)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 record.get("start_ts"),
                 record.get("end_ts"),
@@ -431,6 +436,8 @@ class CycleDB:
                 int(record.get("boiler_heat_samples", 0) or 0),
                 int(record.get("boiler_dhw_samples", 0) or 0),
                 record.get("dhw_tank_temp"),
+                record.get("buh_s"),
+                record.get("defrost_s"),
             ),
         )
         try:
@@ -2452,6 +2459,44 @@ class CycleDB:
         }
         await self.async_set_model_state("data_migration_v32_completed", stats)
         _LOGGER.info("v32 migration (lost runs): %s", stats)
+        return stats
+
+    async def async_rescore_all_cycles(self, rescorer: Any) -> dict[str, Any]:
+        """#421: rescore every stored cycle once with ``rescorer``.
+
+        ``rescorer(rows, events_by_day) -> {id: score | None}`` (see
+        engine.quality_scorer.rescore_history). daily_summary is re-rolled
+        so quality averages follow. Marker
+        ``data_migration_quality_v2_completed``.
+        """
+        marker = await self.async_get_model_state("data_migration_quality_v2_completed")
+        if isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+        conn = self._require()
+        async with conn.execute(
+            "SELECT id, start_ts, end_ts, duration_s, mode, dT_max, buh_used, "
+            "buh_s, defrost_used, defrost_s, dhw_tank_temp, is_transient, "
+            "is_reconstructed, quality_score FROM cycles "
+            "WHERE end_ts IS NOT NULL ORDER BY start_ts"
+        ) as cur:
+            rows = [dict(r) for r in await cur.fetchall()]
+        events = await self.async_runtime_events_by_day()
+        scores = rescorer(rows, events)
+        changed = 0
+        for row in rows:
+            new = scores.get(row["id"], row["quality_score"])
+            if new != row["quality_score"]:
+                await conn.execute(
+                    "UPDATE cycles SET quality_score = ? WHERE id = ?",
+                    (new, row["id"]),
+                )
+                changed += 1
+        await conn.commit()
+        days = await self._rebuild_all_daily_summary()
+        stats = {"cycles": len(rows), "changed": changed, "days_rebuilt": days,
+                 "completed": True}
+        await self.async_set_model_state("data_migration_quality_v2_completed", stats)
+        _LOGGER.info("quality rescore (#421): %s", stats)
         return stats
 
     async def async_cycle_off_gaps(self) -> dict[str, list[float]]:

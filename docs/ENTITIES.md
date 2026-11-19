@@ -66,7 +66,7 @@ The most commonly used entities in user automations:
 |---|---|---|---|
 | `sensor.daikin_cycle_ml_cycle_state` | — | — | `idle` / `running` / `cooldown` |
 | `sensor.daikin_cycle_ml_current_cycle` | — | — | Live cycle data (running cycle) |
-| `sensor.daikin_cycle_ml_last_cycle` | score | measurement | Last completed cycle quality score (0–100) |
+| `sensor.daikin_cycle_ml_last_cycle` | score | measurement | Last completed cycle quality score (0–100); attributes `quality_penalties`, `buh_min`, `defrost_min` (#421) |
 | `sensor.daikin_cycle_ml_cycles_today` | cycles | total_increasing | Cycle count for today |
 | `sensor.daikin_cycle_ml_quality_today` | score | measurement | Average quality score today |
 | `sensor.daikin_cycle_ml_source_health` | s | duration | Seconds since last successful source update |

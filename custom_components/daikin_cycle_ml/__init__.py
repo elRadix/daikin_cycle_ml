@@ -172,6 +172,14 @@ async def _async_setup_database(
         coordinator.db = None
 
 
+async def _async_rescore_quality(coordinator: Any) -> None:
+    """#421: one-time rescore of stored cycles (proportional penalties)."""
+    try:
+        await coordinator.async_rescore_history()
+    except Exception:
+        _LOGGER.exception("quality rescore at startup failed")
+
+
 async def _async_hydrate_store(
     coordinator: DaikinCycleMLCoordinator,
 ) -> int:
@@ -309,6 +317,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except Exception:
             _LOGGER.exception("daily-summary backfill at startup failed")
     await _async_backfill_quality(coordinator)
+    await _async_rescore_quality(coordinator)  # #421 proportional penalties
     await _async_hydrate_store(coordinator)
     try:
         await coordinator.async_setup_alert_persistence()
