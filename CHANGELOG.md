@@ -16,6 +16,15 @@
 - `daily_summary.runs`: runs with time on the day (the open run and runs
   crossing midnight included); migration v33 re-rolls every day once.
   `daily_summary_recent` rows carry `runs` (#436)
+- Native Lovelace card `custom:daikin-daily-summary-card`, served and
+  loaded by the integration (no HACS frontend cards, no Lovelace
+  resource; the URL carries the version so an update reaches the browser).
+  Tabs Today (live run, today's numbers, today's alerts, #425), Overview,
+  Quality, Cycles, Duration, Events; 7 / 15 / 30 days; day details on
+  tap; visual editor and card-picker entry; English / Dutch / French;
+  light and dark theme; entities through the entity registry (any
+  language, several heat pumps). Docs:
+  `dashboard/cards/daikin-daily-summary-card/README.md`
 
 ### Fixed
 - A unit without a hot-water tank (no 3-way valve, e.g. EHBX + ERGA)
@@ -45,6 +54,12 @@
   for every series, flagged datasheets never offered, wizard paths (#435)
 - `tests/test_436_quality_consistency.py`: both cards render the
   #436 data with the same quality; runs per day; migration v33 (#436)
+- `tests/test_daily_summary_native_card.py`: the native card on the
+  states of the real integration (en / nl / fr, with and without entity
+  registry), #436 figures, escaping, first-cycle note; Chromium: tabs,
+  windows, day details, keyboard, alerts, editor
+- `tests/test_frontend_registration.py`: versioned URL, registered once,
+  no HTTP, failure logged
 
 ### Changed
 - `docs/MODEL_ATTRIBUTES.json` re-pinned to ESPAltherma beta 3548ea2 (was

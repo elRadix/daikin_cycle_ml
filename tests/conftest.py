@@ -52,15 +52,18 @@ def patched_compat(monkeypatch):
         return {}
     monkeypatch.setattr(coord_mod, "build_compat_view", _fake_build_compat)
 
-import pytest
-
-from homeassistant.core import HomeAssistant
-
 
 @pytest.fixture(autouse=True)
-def mock_frontend_dependency(hass: HomeAssistant):
-    """Mock frontend component for tests that setup the integration."""
+def mock_frontend_dependency(request):
+    """Mark the frontend loaded for tests that set the integration up.
+
+    manifest.json depends on ``frontend`` (the card is served and loaded
+    by the integration); the test HA has no frontend package. Only tests
+    that use ``hass`` are touched: requesting ``hass`` for every test
+    would build a Home Assistant instance for each sync test too.
+    """
+    if "hass" not in request.fixturenames:
+        return
+    hass = request.getfixturevalue("hass")
     hass.config.components.add("frontend")
-    # Mock the data structure used by add_extra_js_url
-    if "frontend_extra_module_url" not in hass.data:
-        hass.data["frontend_extra_module_url"] = set()
+    hass.data.setdefault("frontend_extra_module_url", set())
