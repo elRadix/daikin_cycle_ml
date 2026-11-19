@@ -62,7 +62,7 @@ cycle is from good, up to its maximum. Score = 100 minus the sum, rounded,
 | Penalty | Max | Formula | Example |
 |---|---|---|---|
 | Short run | 30 | 30 x (good_run - run) / good_run | good_run 45 min: 40 min -> 3.3, 10 min -> 23.3 |
-| Low dT | 20 | 20 x (good_dT - dT_max) / good_dT | good_dT 5 K: 4 K -> 4, 2.5 K -> 10 |
+| Low dT | 20 | 20 x (good_dT - dT_max) / good_dT; dT = R1T (before the BUH) - R4T (#423) | good_dT 5 K: 4 K -> 4, 2.5 K -> 10 |
 | Short pause | 20 | 20 x (good_off - pause) / good_off | good_off 20 min: 15 min -> 5, 2 min -> 18 |
 | Short-run ratio | 20 | 0 up to threshold / 2, linear to 20 at 1.5 x threshold | threshold 50 %: 25 % -> 0, 50 % -> 10, 75 % -> 20 |
 | Backup heater | 20 | 1 point per % of the run time; step 2 counts double | 2 of 300 min -> 0.7, 8 of 300 min -> 2.7, 30 of 300 min -> 10 |
@@ -309,7 +309,7 @@ Meaning:
 
 **Off-time (#415).** The off-time is the pause before a cycle (its start minus the previous end). Before #415 it was measured at close and included the cycle's own run time (prod-1 learned `good_off` 130 min); the stored samples are relearned once from the `cycles` table.
 
-**Floor (#408).** When many runs are short, the 20th percentile *is* a short run (prod-1 learned 2 min against a configured 20 min) and `short_run` would never fire. The value actually used is therefore never below **half of the configured** `short_run_threshold_min` (20 → 10). The sensor `learned_thresholds` keeps the raw learned value as its state and shows the value in use as attribute `short_run_effective_min`.
+**Floor (#408).** When many runs are short, the 20th percentile *is* a short run (prod-1 learned 2 min against a configured 20 min) and `short_run` would never fire. The value actually used is therefore never below **half of the configured** `short_run_threshold_min` (20 → 10). The sensor `learned_thresholds` shows the value in use as its state (#423; before: the raw learned value, 2 while 10 was used) with attributes `short_run_effective_min` (same value) and `short_run_learned_min` (raw learned value).
 
 This means **20% of your cycles will always be flagged as short_run** if adaptive is on and you use the default percentile. That is intentional — it is a relative threshold, not an absolute one.
 

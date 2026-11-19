@@ -808,6 +808,8 @@ written when the detector opens or closes a cycle, after a heating <->
 DHW split and every 15 min while running, and read once before the first
 detection after a restart (#417). The payload carries `last_seen_ts`; a
 cycle is resumed when HA was down for at most 6 h, however long the run.
+Known limit: HA down for more than 6 h drops the open cycle; no COP samples
+are written while HA is down, so v32 cannot rebuild that period either.
 
 ### 7.x Quality rescore + BUH / defrost seconds (#421)
 

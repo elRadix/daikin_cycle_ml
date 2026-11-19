@@ -486,6 +486,21 @@ def _attrs_source_health(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[s
     }
 
 
+def _value_learned(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> int | None:
+    """#423: the short-run threshold in use (learned, floored at half the
+    configured value, or the configured value). The raw learned value is
+    the attribute ``short_run_learned_min``; showing it as the state (2
+    while 10 was used) was confusing on a card."""
+    try:
+        value: int | None = c._effective_threshold(
+            "short_run_threshold_min",
+            int(c.options.get("short_run_threshold_min", 20)),
+        )
+        return value
+    except Exception:
+        return None
+
+
 def _attrs_learned(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     try:
         good_off = c.adaptive.learn_good_off_min(c._resolve_adaptive_mode())
@@ -504,7 +519,12 @@ def _attrs_learned(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, An
         )
     except Exception:
         short_eff = None
+    try:
+        short_learned = c.adaptive.learn_short_run_min(c._resolve_adaptive_mode())
+    except Exception:
+        short_learned = None
     return {
+        "short_run_learned_min": short_learned,
         "good_off_min": good_off,
         "target_cycles_per_day": target_cpd,
         "adaptive_enabled": bool(c.options.get("adaptive_thresholds_enabled", False)),
@@ -1467,7 +1487,7 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": UnitOfTime.MINUTES,
         "icon": "mdi:brain",
-        "value_fn": lambda s, c: c.adaptive.learn_short_run_min(c._resolve_adaptive_mode()),
+        "value_fn": _value_learned,
         "attr_fn": _attrs_learned,
     },
     {

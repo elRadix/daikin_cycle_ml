@@ -8,9 +8,10 @@ under another name than the definition file (``I/U ...`` / ``O/U ...``
 when a name exists on both sides), so the v2 source is checked against
 this catalog. v1 keeps using the definition names (MODEL_ATTRIBUTES.json).
 
-Firmware-computed values (``Stats: ...``, ``Unit model``) are not in the
-catalog; they are collected from the ``{"<name>", ESP_SENSOR_...}`` tables
-in ``src/`` and ``include/``.
+Firmware-computed values (``Stats: ...``, ``Unit model``, the DIII
+``E0:`` / ``63:`` and ``RAM:`` values) are not in the catalog; they are
+collected from the ``HaSensor`` tables and ``{"<name>", ESP_SENSOR_...}``
+entries in ``src/`` and ``include/``.
 
 Usage:
     python3 tools/parse_espaltherma_catalog.py --source /tmp/espaltherma \\
@@ -31,6 +32,9 @@ from typing import Any
 
 CATALOG_FILE = "data/catalog_names.txt"
 _EXTRA_RE = re.compile(r'\{\s*"([^"]+)"\s*,\s*ESP_SENSOR_[A-Z_]+\s*\}')
+# #423: every HaSensor table (Stats, DIII "E0:" / "63:", "RAM:" ...)
+_HA_TABLE_RE = re.compile(r"HaSensor\s+\w+\s*\[\s*\]\s*=\s*\{(.*?)\};", re.S)
+_TABLE_NAME_RE = re.compile(r'\{\s*"([^"]+)"\s*,')
 # A section header is "[<definition name>]"; value names may also start
 # with "[" ("[HPSU] Tv inflow Temp  (R1T)") but never end with "]" after
 # a "] " (the bracketed prefix is followed by text).
@@ -76,6 +80,8 @@ def parse_extras(source: Path) -> list[str]:
             if path.suffix in {".cpp", ".h"} and path.is_file():
                 text = path.read_text(encoding="utf-8", errors="replace")
                 names.update(_EXTRA_RE.findall(text))
+                for table in _HA_TABLE_RE.findall(text):
+                    names.update(_TABLE_NAME_RE.findall(table))
     return sorted(names)
 
 

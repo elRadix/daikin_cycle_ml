@@ -70,7 +70,7 @@ The most commonly used entities in user automations:
 | `sensor.daikin_cycle_ml_cycles_today` | cycles | total_increasing | Cycle count for today |
 | `sensor.daikin_cycle_ml_quality_today` | score | measurement | Average quality score today |
 | `sensor.daikin_cycle_ml_source_health` | s | duration | Seconds since last successful source update |
-| `sensor.daikin_cycle_ml_learned_thresholds` | min | — | Current adaptive thresholds (if enabled) |
+| `sensor.daikin_cycle_ml_learned_thresholds` | min | — | Short-run threshold in use (learned, floored at half the configured value); attributes `short_run_learned_min`, `good_off_min`, `target_cycles_per_day` (#423) |
 
 **`last_cycle`** — key attributes:
 

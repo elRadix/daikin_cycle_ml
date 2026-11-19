@@ -42,6 +42,9 @@ from .status_report import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# #423: last aggregation window per alert type already logged
+_SUPPRESS_LOGGED: dict[str, float] = {}
+
 DEFAULT_QUIET_START = "22:00"
 DEFAULT_QUIET_END = "07:00"
 DEFAULT_AGG_MIN = 30
@@ -357,10 +360,13 @@ def evaluate_alerts(
         _per_min = _opt_float(options, _per_key, _per_type_default)
         prev = last_sent.get(alert_type)
         if isinstance(prev, (int, float)) and (now - float(prev)) < _per_min * 60.0:
-            _LOGGER.debug(
-                "aggregation window (%s, %s min): suppressing %s",
-                _per_key, _per_min, alert_type,
-            )
+            # #423: once per aggregation window, not on every tick
+            if _SUPPRESS_LOGGED.get(alert_type) != prev:
+                _SUPPRESS_LOGGED[alert_type] = float(prev)
+                _LOGGER.debug(
+                    "aggregation window (%s, %s min): suppressing %s",
+                    _per_key, _per_min, alert_type,
+                )
             continue
         notif_id = NOTIF_ID_BY_TYPE.get(alert_type, f"daikin_cycle_ml_{alert_type}")
         ctx = context.get(alert_type) if context else None

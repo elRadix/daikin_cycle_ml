@@ -29,6 +29,13 @@
   defrost (new) 1 point per % above 5 % of the run time (max 10). The
   `last_cycle` sensor shows `quality_penalties`, `buh_min`, `defrost_min`.
   All stored cycles are rescored once and the days re-rolled (#421)
+- `learned_thresholds` shows the short-run threshold in use as its state
+  (prod-1: 10) instead of the raw learned value (2); the learned value is
+  attribute `short_run_learned_min` (#423)
+- DEBUG log: `#388 gate-1 null` only when the missing inputs change and
+  the alert aggregation message once per window, instead of every 30 s;
+  diagnostics `non_numeric_attrs` no longer list alias copies; the v2
+  catalog snapshot includes the DIII `E0:` / `63:` and `RAM:` values (#423)
 
 ### Fixed
 - Installations without a DHW tank logged every cycle as heating,
@@ -75,6 +82,17 @@
 - `quality_today` included a live score that penalised a running cycle's
   length and start-up dT (prod-1: 70 while every closed cycle scored 90+);
   the live score no longer judges values that can still grow (#419)
+- ESPAltherma values "0" / "1" were read as OFF / ON before the number
+  check, so a counter or measurement of exactly 0 or 1 was lost (v2
+  entities deliver every state as text; native counters reject booleans).
+  Numeric attributes (`Stats:`, `Unit meter:`, temperatures, flow, rps,
+  COP, ...) are now read as numbers first (#423)
+- dT (quality score, ML features) and the LWT the heating-curve advice
+  learns now use R1T (before the backup heater) instead of R2T, which
+  the backup heater raised while it ran (#423)
+- The accumulator write holds the update at most 2 s; a slower write
+  (prod-1: 3-10 s every night 02:30-04:00, host disk I/O) finishes in the
+  background (#423)
 
 ### Tests
 - `tests/test_413_v2_catalog.py`: v2 contract against the catalog
@@ -93,6 +111,9 @@
   BUH shared by day minutes, rebuilt cycles), the rescore on a real
   database, old-database columns, the last-cycle breakdown; scoring tests
   updated to the proportional values
+- `tests/test_423_data_polish.py`: "0" / "1" as numbers (monolithic and
+  v2), dT and COP-sample LWT from R1T, `learned_thresholds` state, log on
+  change, alias copies, catalog HaSensor tables, the bounded write
 
 ## [1.23.3] - 2026-11-18
 
