@@ -20,6 +20,7 @@ from .const import GOOD_CYCLE_MIN_SCORE as GOOD_CYCLE_MIN_SCORE
 from .const import VERSION as VERSION
 from .coordinator import DaikinCycleMLCoordinator
 from .engine.quality_scorer import score_cycle as _score_cycle
+from .frontend import async_register_frontend
 from .repairs import (
     clear_datasheet_load_failed,
     raise_datasheet_load_failed,
@@ -40,6 +41,7 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 async def async_setup(hass: HomeAssistant, _config: dict[str, Any]) -> bool:
     """Register integration-wide services + HTTP view once per HA."""
     await async_register_services(hass)
+    await async_register_frontend(hass)
     _VIEW_FLAG = f"{DOMAIN}_view_registered"
     if not hass.data.get(_VIEW_FLAG):  # pragma: no branch
         try:
