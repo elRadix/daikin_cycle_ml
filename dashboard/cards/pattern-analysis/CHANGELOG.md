@@ -1,5 +1,13 @@
 # Changelog — Pattern Analysis Card
 
+## [1.1.1] — 2026-11-19
+
+### Fixed
+- Touch did nothing: tabs could not be switched and no pop-up opened.
+  button-card calls preventDefault on touchend, so a touch never produces
+  a click; taps are now handled on pointerup (a scroll is not a tap)
+  (#431)
+
 ## [1.1.0] — 2026-11-19
 
 ### Changed (all cards, #427)

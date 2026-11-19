@@ -301,6 +301,29 @@ def test_pattern_analysis_clicks_per_card():
     assert data["cards"][1]["tap_action"]["action"] == "none"
     assert "window.__paTab" not in src and "card.__paTab || cfgTab" in src
     assert "t.closest('[data-pa-action]')" in src
+    # #431: button-card calls preventDefault on touchend, so a touch never
+    # produces a click; taps are handled on pointerup (with a scroll guard)
+    assert "addEventListener('pointerup'" in src and "addEventListener('click'" not in src.split("chart.__paBound = true;")[1].split("}, 0);")[0]
+    assert "if (moved > 12) return;" in src
+
+
+def test_heating_curve_point_popups(rendered):
+    """#431: tapping a bucket point opens its pop-up (works on touch)."""
+    src = (ROOT / "dashboard/cards/heating-curve/heating-curve.yaml").read_text(encoding="utf-8")
+    data = yaml.safe_load(src)
+    assert {"pointer-events": "auto"} in data["cards"][1]["styles"]["custom_fields"]["content"]
+    assert "addEventListener('pointerup'" in src
+    hc = " ".join(o for o in rendered["en"]["heating-curve"] if isinstance(o, str))
+    hits = re.findall(r'class="hc-hit" data-hc-pid="([^"]+)"', hc)
+    pops = re.findall(r'class="hc-pop" data-hc-pop="([^"]+)"', hc)
+    assert hits and hits == pops                          # one pop-up per point
+    assert 'class="hc-root" style="position:relative' in hc
+    text = _text(hc)
+    assert "Bucket 4-6°C" in text and "current bucket" in text
+    fr = _text(" ".join(o for o in rendered["fr"]["heating-curve"] if isinstance(o, str)))
+    assert "Tranche 4-6°C" in fr and "Départ moy." in fr
+    dark = " ".join(o for o in rendered["dark"]["heating-curve"] if isinstance(o, str))
+    assert 'class="hc-pop"' in dark and "background:#FFFFFF" not in dark.split('class="hc-pop"')[1]
 
 
 def test_stooklijn_suppression_keeps_measured_data():

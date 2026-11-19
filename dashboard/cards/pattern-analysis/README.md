@@ -6,6 +6,10 @@ Multi-tab Lovelace dashboard card for **Daikin Cycle ML** with 3 views — Distr
 
 ![Pattern Analysis showcase - animated cycling through Distribution, Scatter and COP tabs](showcase.gif)
 
+| Distribution | Scatter | COP |
+|---|---|---|
+| ![Distribution tab](screenshot-distribution.png) | ![Scatter tab](screenshot-scatter.png) | ![COP tab](screenshot-cop.png) |
+
 ---
 
 ## What it shows

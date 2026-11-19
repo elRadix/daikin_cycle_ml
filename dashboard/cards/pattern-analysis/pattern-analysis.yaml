@@ -1322,7 +1322,14 @@ cards:
                   popup.classList.add('pa-popup-out');
                   setTimeout(function(){ if (popup.parentNode) popup.parentNode.removeChild(popup); }, 200);
                 };
-                chart.addEventListener('click', function(ev){
+                /* #427: pointerup, not click: button-card calls preventDefault on
+                   touchend, so a touch never produces a click event */
+                var down = null;
+                chart.addEventListener('pointerdown', function(ev){ down = { x: ev.clientX, y: ev.clientY, id: ev.pointerId }; });
+                chart.addEventListener('pointerup', function(ev){
+                  if (!down || down.id !== ev.pointerId) return;
+                  var moved = Math.abs(ev.clientX - down.x) + Math.abs(ev.clientY - down.y); down = null;
+                  if (moved > 12) return;                            /* a scroll, not a tap */
                   var t = ev.target && ev.target.closest ? ev.target : null; if (!t) return;
                   var el = t.closest('[data-pa-action]');
                   var inPop = t.closest('.pa-popup');
