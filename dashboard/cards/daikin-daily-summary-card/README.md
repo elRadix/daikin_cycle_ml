@@ -43,7 +43,7 @@ the integration: no re-pasting.
 
 ### Backend
 
-- **daikin_cycle_ml** newer than `v1.24.1` (the release that adds this card).
+- **daikin_cycle_ml** `>= v1.25.0`.
 
 ### Frontend
 
