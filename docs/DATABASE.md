@@ -803,6 +803,11 @@ hour, so one single-sample hour set the month p90).
 `data_migration_off_s_relearn_completed`, records the one-time relearn of
 the adaptive off-time samples from the `cycles` table (#415).
 
+`cycle_detector_state` (model_state) holds the running cycle. It is
+written when the detector opens or closes a cycle, after a heating <->
+DHW split and every 15 min while running, and read once before the first
+detection after a restart (#417).
+
 ## 8. Backup and recovery
 
 ### 8.1 Automatic HA backup

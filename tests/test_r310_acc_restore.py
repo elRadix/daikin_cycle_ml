@@ -154,7 +154,8 @@ async def test_restore_energy_acc_exception() -> None:
 
 def test_setup_hook_calls_restores_in_order() -> None:
     src = Path("custom_components/daikin_cycle_ml/coordinator.py").read_text()
-    idx_det = src.index("await self._restore_detector_state()")
+    # #417: the setup hook restores the detector once (guarded helper)
+    idx_det = src.index("await self._restore_detector_once()")
     idx_rt = src.index("await self._restore_runtime_acc()")
     idx_el = src.index("await self._restore_energy_acc()")
     assert idx_det < idx_rt < idx_el

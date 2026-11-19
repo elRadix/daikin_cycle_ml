@@ -52,6 +52,7 @@ from .const import (
     COP_ROLLUP_WINDOW_HOURS,
     COP_SENSOR_ENTITY,
     COP_DS_MIN_SAMPLES,
+    DETECTOR_PERSIST_S,
     COP_DS_WINDOW_S,
     COP_VS_DATASHEET_LOW_PCT,
     DEFAULT_ALERT_RETENTION_DAYS,
@@ -1100,7 +1101,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 _LOGGER.exception("Baseline restore failed")
             await self.async_load_adaptive_state()
             await self._maybe_relearn_off_samples()
-            await self._restore_detector_state()
+            await self._restore_detector_once()
             await self._restore_runtime_acc()
             await self._restore_energy_acc()
             await self._maybe_backfill_daily_summary()
@@ -2058,6 +2059,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not self._runtime_day_key and self.db is not None:
             await self._restore_runtime_acc()
         self._maybe_reset_daily_accumulators(now)
+        # #417: restore a running cycle BEFORE the first detection. The
+        # restore ran after the first refresh, whose tick had already
+        # opened (and persisted) a new cycle: every HA restart during a
+        # run dropped the part before the restart.
+        await self._restore_detector_once()
         self._tick_mark("day_rollover")
         try:
             state: Any = None
@@ -2159,7 +2165,19 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 boiler_heat_active=snap.boiler_heat_active if _boiler_signals_trusted(snap) else False,
                 boiler_dhw_active=snap.boiler_dhw_active if _boiler_signals_trusted(snap) else False,
             )
-            if self.detector.state != prev_detector_state:
+            # #417: also persist when a mode split replaced the running
+            # cycle (state stays "running") and every DETECTOR_PERSIST_S
+            # while running, so a restore keeps the right start + samples.
+            if (
+                self.detector.state != prev_detector_state
+                or record is not None
+                or (
+                    self.detector.state == "running"
+                    and now - getattr(self, "_detector_persist_ts", 0.0)
+                    >= DETECTOR_PERSIST_S
+                )
+            ):
+                self._detector_persist_ts = now
                 await self._persist_detector_state()
             self._accumulate_cycle_samples(attrs)
             self._tick_mark("read_detect")
@@ -4336,6 +4354,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self.db.async_set_model_state(DETECTOR_STATE_KEY, payload)
         except Exception:
             _LOGGER.exception("detector state persist failed")
+
+    async def _restore_detector_once(self) -> bool:
+        """#417: restore the detector at most once, before detection runs."""
+        if getattr(self, "_detector_restore_done", False) or self.db is None:
+            return False
+        self._detector_restore_done = True
+        return await self._restore_detector_state()
 
     async def _restore_detector_state(self) -> bool:
         """Restore detector state from model_state. Never raises."""
