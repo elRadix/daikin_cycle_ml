@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.25.0] - 2026-11-19
+
 ### Added
 - Setup wizard: the family field also takes the model code you know: the
   indoor unit (EHBX08EF6V), the outdoor unit (ERGA06EAV3) or both. An
