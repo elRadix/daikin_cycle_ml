@@ -59,7 +59,7 @@ All entries persist to `/config/.storage/core.config_entries` under the integrat
 
 Daikin Cycle ML reads from **one** Home Assistant sensor entity — typically `sensor.althermasensors` published by ESPAltherma. Everything is computed from that sensor's **attributes**, not its state.
 
-### 2.1 Required attributes (12)
+### 2.1 Required attributes (11)
 
 Without these, cycle detection degrades or stops, and the `missing_attributes` repair is raised.
 
@@ -67,7 +67,6 @@ Without these, cycle detection degrades or stops, and the `missing_attributes` r
 |---|---|---|
 | `Operation Mode` | Mode fallback | Used only if `I/U operation mode` missing |
 | `I/U operation mode` | Mode source | Heating / Cooling / DHW |
-| `3way valve` | DHW discriminator | DHW vs space heating |
 | `Defrost Operation` | Defrost flag | Marks cycles with defrost |
 | `Leaving water temp after BUH (R2T)` | LWT | dT and COP inputs |
 | `Inlet water temp (R4T)` | Return water temp | dT and COP inputs |
@@ -79,6 +78,8 @@ Without these, cycle detection degrades or stops, and the `missing_attributes` r
 | `LW setpoint (main)` | Setpoint tracking | Setpoint-oscillation alert + modern LWT advice |
 
 Even if you deselect these in the wizard, they are **always kept**. Cycle detection depends on them.
+
+`3way valve` (DHW vs space heating) is read when present but is **not required** (#435): a unit without a hot-water tank (for example an EHBX wall unit with an ERGA) has no 3-way valve, and its absence means "no DHW". Missing `BUH Step1` / `BUH Step2` (a model without backup heater) raises the repair but does not pause cycle detection; detection only pauses when one of the other required values disappears (a partial publish after a restart, #109).
 
 > ⚠️ **R1T ambiguity on some models** — up to 3 attributes can share the `(R1T)` suffix (outdoor air, LWT before BUH, indoor ambient). The alias resolver disambiguates per model. See [MODEL_COMPATIBILITY §5](MODEL_COMPATIBILITY.md#5-per-model-matrix). This was the root cause of #196.
 
@@ -179,6 +180,8 @@ Malformed JSON shows an inline error, wizard does not advance.
 2. Confirm ESPAltherma sensor exists and publishes attributes (§2.4)
 3. Decide: **automatic** (auto-detect) or **manual** (map each attribute) mode
 4. Decide: bundled model (17 options) or **Custom** (you provide spec + map)
+
+**Only know your indoor unit?** The family field also accepts a typed model code (#435): the indoor unit (`EHBX08EF6V`), the outdoor unit (`ERGA06EAV3`) or both (`EHBX08EF6V + ERGA06EAV3`). An indoor size sold with several outdoor units narrows the model list to those (an `EHBX08` runs an ERGA06 or an ERGA08; the code on the outdoor unit or in the Daikin app tells which). Known units without a datasheet (ERGA D, Altherma LT, GEO, mini chiller) get a message to use the basic profile. The family and model lists also name the indoor units sold with each outdoor unit.
 
 ### 3.2 Wizard paths
 

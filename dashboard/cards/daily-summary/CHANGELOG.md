@@ -1,5 +1,16 @@
 # Changelog — Summary Card
 
+## [1.1.1] — 2026-11-19
+
+### Fixed
+- Quality per day weighted by cycles: heating and DHW counted equally,
+  so 2 DHW runs weighed as much as 5 heating runs (#436)
+- Period quality (header, chart average) = average of all cycles, the
+  same figure as the Daily summary tabbed card (#436)
+- Quality chart: trend moved to the chart header and band labels to the
+  legend; inside the plot they covered the y-axis and the latest point
+  (#436)
+
 ## [1.1.0] — 2026-11-19
 
 ### Changed (all cards, #427)

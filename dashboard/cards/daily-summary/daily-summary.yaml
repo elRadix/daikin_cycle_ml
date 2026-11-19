@@ -424,8 +424,14 @@ cards:
               e.dur_min += (rd.dur_min || 0);
               if(hasV(rd.dur_max) && parseFloat(rd.dur_max) > e.dur_max) e.dur_max = parseFloat(rd.dur_max);
               if(hasV(rd.quality_avg)){
-                e.quality_sum += parseFloat(rd.quality_avg);
-                e.quality_n += 1;
+                /* #436: weight each mode by its cycles (as the tabbed card):
+                   2 DHW runs must not count as much as 5 heating runs */
+                var qv = parseFloat(rd.quality_avg);
+                if(isFinite(qv)){
+                  var qw = Math.max(1, rd.cycles || 0);
+                  e.quality_sum += qv * qw;
+                  e.quality_n += qw;
+                }
               }
               e.buh += (rd.buh || 0);
               e.defrost += (rd.defrost || 0);
@@ -442,6 +448,7 @@ cards:
             var daysArr = Object.keys(byDate).map(function(k){
               var e = byDate[k];
               e.quality_avg = e.quality_n > 0 ? e.quality_sum / e.quality_n : null;
+              e.quality_w = e.quality_n;
               var evD = _evByDay[e.day];
               if (evD) {
                 if (hasV(evD.defrost_events) && parseFloat(evD.defrost_events) > e.defrost) e.defrost = parseFloat(evD.defrost_events);
@@ -458,7 +465,14 @@ cards:
             var cooling = totals.cooling || {days:0, cycles:0, dur_min:0, buh:0, defrost:0};
 
             var qualityVals = daysArr.filter(function(d){ return d.quality_avg !== null; }).map(function(d){ return d.quality_avg; });
-            var avgQuality = qualityVals.length > 0 ? qualityVals.reduce(function(a,v){ return a+v; }, 0) / qualityVals.length : null;
+            /* #436: period quality = average score of all cycles (weighted by
+               cycles per day), the same figure in both summary cards */
+            var qWAvg = function(arr){
+              var sw = 0, sq = 0;
+              arr.forEach(function(d){ if(d.quality_avg !== null && d.quality_w > 0){ sq += d.quality_avg * d.quality_w; sw += d.quality_w; } });
+              return sw > 0 ? sq / sw : null;
+            };
+            var avgQuality = qWAvg(daysArr);
             var totalHours = daysArr.reduce(function(a,d){ return a + d.dur_min; }, 0) / 60;
             var totalBuh = daysArr.reduce(function(a,d){ return a + d.buh; }, 0);
             var totalDefrost = daysArr.reduce(function(a,d){ return a + d.defrost; }, 0);
@@ -497,10 +511,7 @@ cards:
             var defrostRate = totalCycles > 0 ? (totalDefrost / totalCycles * 100) : null;
 
             var half = Math.floor(daysArr.length / 2);
-            var avgQ = function(arr){
-              var q = arr.filter(function(d){ return d.quality_avg !== null; });
-              return q.length > 0 ? q.reduce(function(a,d){ return a + d.quality_avg; }, 0) / q.length : null;
-            };
+            var avgQ = qWAvg;
             var qFirst = avgQ(daysArr.slice(0, half));
             var qSecond = avgQ(daysArr.slice(half));
             var trendDiff = (qFirst !== null && qSecond !== null) ? (qSecond - qFirst) : null;
@@ -646,10 +657,8 @@ cards:
             qc += '<rect x="'+qcPadL+'" y="'+qcy(100)+'" width="'+qcPlotW+'" height="'+(qcy(70)-qcy(100))+'" fill="'+QGOOD+'" opacity="0.08"/>';
             qc += '<rect x="'+qcPadL+'" y="'+qcy(70)+'" width="'+qcPlotW+'" height="'+(qcy(40)-qcy(70))+'" fill="'+QMID+'" opacity="0.06"/>';
             qc += '<rect x="'+qcPadL+'" y="'+qcy(40)+'" width="'+qcPlotW+'" height="'+(qcy(0)-qcy(40))+'" fill="'+QLOW+'" opacity="0.06"/>';
-            /* Zone labels (right) */
-            qc += '<text x="'+(qcPadL+qcPlotW-4)+'" y="'+(qcy(85)+4)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+QGOOD+'" opacity="0.7">'+t('q_good')+'</text>';
-            qc += '<text x="'+(qcPadL+qcPlotW-4)+'" y="'+(qcy(55)+4)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+QMID+'" opacity="0.7">'+t('q_mid')+'</text>';
-            qc += '<text x="'+(qcPadL+qcPlotW-4)+'" y="'+(qcy(20)+4)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="9" font-weight="900" fill="'+QLOW+'" opacity="0.7">'+t('q_low')+'</text>';
+            /* #436: zone labels live in the legend below the chart (in the
+               plot they covered the latest point) */
             /* Grid + Y labels */
             for(var qgi = 0; qgi <= 4; qgi++){
               var qgv = 25 * qgi;
@@ -704,12 +713,8 @@ cards:
             /* Axes */
             qc += '<line x1="'+qcPadL+'" y1="'+(qcPadT+qcPlotH)+'" x2="'+(qcPadL+qcPlotW)+'" y2="'+(qcPadT+qcPlotH)+'" stroke="#0D47A1" stroke-width="1.5"/>';
             qc += '<line x1="'+qcPadL+'" y1="'+qcPadT+'" x2="'+qcPadL+'" y2="'+(qcPadT+qcPlotH)+'" stroke="#0D47A1" stroke-width="1.5"/>';
-            /* Trend indicator top-left */
-            if(trendDiff !== null){
-              var tIcon2 = trendDiff > 5 ? '📈' : trendDiff < -5 ? '📉' : '➡️';
-              var tCol2 = trendDiff > 5 ? QGOOD : trendDiff < -5 ? QLOW : '#546E7A';
-              qc += '<text x="'+(qcPadL+4)+'" y="'+(qcPadT+14)+'" font-family="ui-monospace,monospace" font-size="10" font-weight="900" fill="'+tCol2+'">'+tIcon2+' '+((trendDiff>0?'+':'')+vI(trendDiff))+'%</text>';
-            }
+            /* #436: the trend sits in the chart header (it overlapped the
+               y-axis and the first day's value inside the plot) */
             qc += '</svg>';
 
             /* ============================================================
@@ -991,7 +996,7 @@ cards:
             /* ===== QUALITY PER DAY (dynamic colors) ===== */
             if(hasQuality){
               r += '<div class="d-sec">';
-              r += '<div class="d-hdr"><span>⭐ '+t('quality_chart')+'</span><span>'+t('avg')+' '+vI(avgQuality)+'%</span></div>';
+              r += '<div class="d-hdr"><span>⭐ '+t('quality_chart')+'</span><span>'+t('avg')+' '+vI(avgQuality)+'%'+(trendDiff===null?'':' <span style="color:'+trendColor+'">'+trendIcon+' '+(trendDiff>0?'+':'')+vI(trendDiff)+'%</span>')+'</span></div>';
               r += qc;
               r += chipRow([
                 {col:QGOOD, bg:'#E8F5E9', label:t('q_good')},

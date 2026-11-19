@@ -1,5 +1,12 @@
 # Changelog — Pattern Analysis Card
 
+## [1.1.2] — 2026-11-19
+
+### Fixed
+- Average run per day and per mode divides by the runs on the day
+  (`runs`), so it no longer exceeds the longest run while a run is open
+  (#436)
+
 ## [1.1.1] — 2026-11-19
 
 ### Fixed

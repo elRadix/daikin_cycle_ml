@@ -391,7 +391,7 @@ async def test_auto_full_flap_recovery(monkeypatch) -> None:
     _set_v2_available(c, True, monkeypatch)
     await c._async_update_data()
     assert c._source_resolution["chosen"] == "individual"
-    assert c._source_resolution["v2_coverage"] == 12
+    assert c._source_resolution["v2_coverage"] == 11  # #435: 11 required
 
 
 # ============================================================

@@ -30,6 +30,7 @@ from .const import (
     ALERT_STORE_SAVE_DELAY,
     ALERT_STORE_VERSION,
     ATTR_3WAY_VALVE,
+    DETECTION_CRITICAL_ATTRIBUTES,
     ATTR_BOILER_DHW_DEMAND,
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
@@ -502,6 +503,15 @@ def _buh_time_ratio(
     return round(buh_s / run_s, 3)
 
 
+def _detection_blocked(missing: list[str]) -> bool:
+    """#435: freeze the detector only when a detection-critical label is gone.
+
+    The #109 guard froze on ANY missing required label, so a unit that
+    structurally lacks one (no BUH steps) never detected a single cycle.
+    """
+    return any(a in DETECTION_CRITICAL_ATTRIBUTES for a in missing)
+
+
 def _open_cycle_from_detector(det: Any) -> dict[str, Any] | None:
     """Running cycle as {"start_ts", "mode"} for the live rollup."""
     try:
@@ -577,12 +587,16 @@ def _compute_daily_summary_recent(
         total_s = int(r.get("total_duration_s") or 0)
         dur_max_s = int(r.get("duration_max") or 0)
         q_sum = int(r.get("quality_sum") or 0)
+        # #436: runs with time on the day (open run, midnight crossings);
+        # rows rolled up before v33 fall back to the cycles started that day
+        runs = int(r.get("runs") or 0) or cycles
         days.append({
             "day": str(r.get("day")),
             "mode": str(r.get("mode") or "unknown"),
             "cycles": cycles,
+            "runs": runs,
             "dur_min": round(total_s / 60.0, 1),
-            "dur_min_avg": round(total_s / cycles / 60.0, 1) if cycles else 0.0,
+            "dur_min_avg": round(total_s / runs / 60.0, 1) if runs else 0.0,
             "dur_max": round(dur_max_s / 60.0, 1),
             "quality_avg": round(q_sum / cycles, 1) if cycles else None,
             "buh": int(r.get("buh_count") or 0),
@@ -2146,7 +2160,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     snap.attrs = attrs
                     snap.missing_attrs = list(choice.mono_missing)
                     snap.last_success_ts = now
-                    _should_freeze = bool(snap.missing_attrs)
+                    _should_freeze = _detection_blocked(snap.missing_attrs)
             elif self.source_type == SOURCE_TYPE_INDIVIDUAL:
                 # v1.20.0 #281: ESPAltherma v2 individual entities.
                 result = resolve_attrs(self.hass, prefix=self.individual_prefix)
@@ -2169,7 +2183,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 snap.attrs = attrs
                 snap.missing_attrs = missing_required(attrs)
                 snap.last_success_ts = now
-                _should_freeze = bool(snap.missing_attrs)
+                _should_freeze = _detection_blocked(snap.missing_attrs)
 
             if _should_freeze:
                 # v1.12.1 (#109): freeze detector when source publishes

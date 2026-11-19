@@ -106,8 +106,12 @@ open it full-size.
 - **Dynamically colored line** — the segment between two points takes the
   color of the average quality (`qColor((a.q + b.q) / 2)`).
 - **Zone bands** — green / orange / red background bands for context.
-- **Purple dashed line** — average over the whole period.
-- **Trend indicator** — `+5%` shows the first-half vs second-half delta.
+- **Purple dashed line** — average over the whole period: the average
+  score of all cycles (#436), the same figure as the tabbed card.
+- **Quality per day** — the average score of the cycles that started that
+  day, heating and DHW weighted by their number of cycles (#436).
+- **Trend indicator** — `+5%` in the chart header shows the first-half vs
+  second-half delta. The band names are in the legend below the chart.
 - **Value labels** — at 21 days or fewer every dot shows its value.
 
 ### Interactive

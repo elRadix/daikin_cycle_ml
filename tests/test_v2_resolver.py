@@ -125,9 +125,11 @@ def test_resolve_all_required_present() -> None:
     hass = _make_hass(_full_payload())
     result = resolve_attrs(hass)
     assert isinstance(result, ResolveResult)
-    assert set(result.attrs.keys()) == set(REQUIRED_ATTRIBUTES)
+    # #435: the payload also carries the 3-way valve (now structurally
+    # optional, still consumed), so it resolves next to the 11 required.
+    assert set(result.attrs.keys()) == set(REQUIRED_ATTRIBUTES) | {ATTR_3WAY_VALVE}
     assert result.missing_required == []
-    assert result.discovered_count == len(REQUIRED_ATTRIBUTES)
+    assert result.discovered_count == len(REQUIRED_ATTRIBUTES) + 1
 
 
 def test_resolve_normalizes_bool_strings() -> None:
@@ -244,8 +246,8 @@ def test_resolve_skips_placeholder_labels() -> None:
     # No sensor with empty slug exists in HA; resolver must not IndexError.
     hass = _make_hass(_full_payload())
     result = resolve_attrs(hass)
-    # No crash, all required present
-    assert set(result.attrs.keys()) == set(REQUIRED_ATTRIBUTES)
+    # No crash, all required present (+ the optional 3-way valve, #435)
+    assert set(result.attrs.keys()) == set(REQUIRED_ATTRIBUTES) | {ATTR_3WAY_VALVE}
 
 
 def test_resolve_ignores_extra_entities() -> None:
@@ -255,7 +257,7 @@ def test_resolve_ignores_extra_entities() -> None:
     hass = _make_hass(payload)
     result = resolve_attrs(hass)
     assert "some_extra_field" not in str(result.attrs.keys())
-    assert set(result.attrs.keys()) == set(REQUIRED_ATTRIBUTES)
+    assert set(result.attrs.keys()) == set(REQUIRED_ATTRIBUTES) | {ATTR_3WAY_VALVE}
 
 
 # ---------- prefix handling ----------
@@ -373,10 +375,11 @@ def test_resolve_extra_consumed_missing_not_in_required() -> None:
     but NOT in missing_required (no repair noise for legit-absent labels)."""
     hass = _make_hass(_full_payload())
     result = resolve_attrs(hass)
-    extra_labels = set(CONSUMED_ATTRIBUTES) - set(REQUIRED_ATTRIBUTES)
+    # #435: the payload carries the 3-way valve, which left REQUIRED
+    extra_labels = set(CONSUMED_ATTRIBUTES) - set(REQUIRED_ATTRIBUTES) - {ATTR_3WAY_VALVE}
     assert result.missing_required == []
     assert set(result.missing_consumed) == extra_labels
-    assert len(result.missing_consumed) == 14  # 26 consumed - 12 required
+    assert len(result.missing_consumed) == 14  # 26 consumed - 11 required - 3-way valve
 
 
 def test_resolve_missing_required_also_in_missing_consumed() -> None:

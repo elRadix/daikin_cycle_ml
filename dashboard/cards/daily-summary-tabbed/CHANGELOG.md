@@ -1,5 +1,14 @@
 # Changelog — Daily Summary Tabbed Card
 
+## [1.1.1] — 2026-11-19
+
+### Fixed
+- Period quality (Overview, Quality tab) = average of all cycles, the
+  same figure as the Daily summary card (#436)
+- Average run per day divides by the runs on the day (`runs`, with the
+  open run and runs crossing midnight), so it no longer exceeds the
+  longest run (#436)
+
 ## [1.1.0] — 2026-11-19
 
 ### Changed (all cards, #427)

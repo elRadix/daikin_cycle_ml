@@ -2,6 +2,50 @@
 
 ## [Unreleased]
 
+### Added
+- Setup wizard: the family field also takes the model code you know: the
+  indoor unit (EHBX08EF6V), the outdoor unit (ERGA06EAV3) or both. An
+  indoor size sold with several outdoor units (an 08 indoor unit runs an
+  ERGA06 or an ERGA08) narrows the model list to those; a known unit
+  without datasheet (ERGA D, Altherma LT, GEO, mini chiller) and an
+  unknown code get a clear message. Covers every indoor series in
+  ESPAltherma's indoor-unit table (beta 3548ea2), monobloc sub-variants
+  (EDLA09DA3W1, EBLQ011CAV3, Rotex RBLQ / RDLQ) and outdoor variants
+  (ERGA06EAV3H7, EPRA14DAV37). Family and model lists name the indoor
+  units sold with each outdoor unit (`engine/model_catalog.py`) (#435)
+- `daily_summary.runs`: runs with time on the day (the open run and runs
+  crossing midnight included); migration v33 re-rolls every day once.
+  `daily_summary_recent` rows carry `runs` (#436)
+
+### Fixed
+- A unit without a hot-water tank (no 3-way valve, e.g. EHBX + ERGA)
+  detected nothing: the missing valve counted as a missing required
+  value, which froze cycle detection on every tick (compressor at 16 rps
+  read as off, every sensor unknown, `dhw_installed` on). The 3-way valve
+  is now optional (absent = no DHW; no repair, the wizard check counts
+  11 values). Detection only pauses when a value it needs is gone (the
+  #109 restart guard), so a model without backup-heater steps also keeps
+  detecting cycles (#435)
+- Daily summary card: the quality of a day averaged heating and DHW
+  unweighted, so 2 DHW runs counted as much as 5 heating runs (17 Nov on
+  the #436 install: 85 % instead of 80 %). Days are now weighted by
+  cycles like the tabbed card, and both cards show the period quality as
+  the average of all cycles (84 % instead of 88 % and 86 %) (#436)
+- Average run per day exceeded the longest run while a run was open
+  (99.8 min next to 70.8 min): runtime is now divided by the runs on the
+  day (`dur_min_avg`, Daily summary tabbed, Pattern analysis) (#436)
+- Daily summary card: the trend label and the band labels inside the
+  quality chart covered the axis and the latest point; the trend moved to
+  the chart header, the bands are in the legend (#436)
+
+### Tests
+- `tests/test_435_no_dhw_detection.py`: the #435 reporter's source
+  (no valve), no BUH steps, the restart freeze still holds (#435)
+- `tests/test_435_model_catalog.py`: indoor / outdoor / combined codes
+  for every series, flagged datasheets never offered, wizard paths (#435)
+- `tests/test_436_quality_consistency.py`: both cards render the
+  #436 data with the same quality; runs per day; migration v33 (#436)
+
 ### Changed
 - `docs/MODEL_ATTRIBUTES.json` re-pinned to ESPAltherma beta 3548ea2 (was
   b613d10): the upstream commits in between changed the web UI, control

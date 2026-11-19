@@ -312,7 +312,7 @@ async def test_individual_review_shows_collisions(monkeypatch) -> None:
     fake = MagicMock()
     fake.missing_required = []
     fake.collisions = ["fin_temp"]
-    fake.discovered_count = 12
+    fake.discovered_count = 11
     monkeypatch.setattr(
         cf, "resolve_attrs", lambda hass, prefix: fake,
     )
@@ -321,7 +321,7 @@ async def test_individual_review_shows_collisions(monkeypatch) -> None:
     result = await flow.async_step_individual_review()
     ph = result["description_placeholders"]
     assert "fin_temp" in ph["collision_block"]
-    assert ph["matched"] == ph["total"] == "12"
+    assert ph["matched"] == ph["total"] == "11"  # #435: 11 required
 
 
 @pytest.mark.asyncio

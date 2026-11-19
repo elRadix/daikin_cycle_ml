@@ -115,21 +115,17 @@ from .const import (
 )
 from .engine.attribute_compat import build_compat_view
 from .engine.attribute_reader import missing_required
+from .engine.model_catalog import (
+    INDOOR_HINT_BY_FAMILY,
+    indoor_units_for,
+    resolve_model_text,
+)
 from .engine.model_datasheets import validate_spec
 from .engine.model_profiles import expected_attributes
 from .engine.smart_import import build_diagnostic, resolve_canonical
 
 _LOGGER = logging.getLogger(__name__)
 
-_MODEL_SELECTOR = selector.SelectSelector(
-    selector.SelectSelectorConfig(
-        options=[
-            selector.SelectOptionDict(value=m, label=MODEL_LABELS[m])
-            for m in MODEL_CHOICES
-        ],
-        mode=selector.SelectSelectorMode.DROPDOWN,
-    )
-)
 
 
 def _build_family_selector() -> selector.SelectSelector:
@@ -144,27 +140,54 @@ def _build_family_selector() -> selector.SelectSelector:
         ),
     ]
     for fam_key in sorted(MODEL_FAMILIES):
+        hint = INDOOR_HINT_BY_FAMILY.get(fam_key)
+        label = f"{fam_key.upper()} — {MODEL_FAMILIES[fam_key]}"
         options.append(selector.SelectOptionDict(
             value=fam_key,
-            label=f"{fam_key.upper()} — {MODEL_FAMILIES[fam_key]}",
+            label=f"{label} · indoor {hint}" if hint else label,
         ))
+    # #435: custom_value lets the user type any model code they know
+    # (indoor unit, outdoor unit or both); async_step_user resolves it.
     return selector.SelectSelector(selector.SelectSelectorConfig(
         options=options,
         mode=selector.SelectSelectorMode.DROPDOWN,
+        custom_value=True,
     ))
 
 
 _FAMILY_SELECTOR = _build_family_selector()
 
 
-def _build_model_selector(family: str) -> selector.SelectSelector:
-    if family in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
+def _model_label(model: str) -> str:
+    """Dropdown label; #435: names the indoor units sold with the model."""
+    indoor = indoor_units_for(model)
+    base = MODEL_LABELS[model]
+    return f"{base} · indoor {' / '.join(indoor)}" if indoor else base
+
+
+_MODEL_SELECTOR = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=[
+            selector.SelectOptionDict(value=m, label=_model_label(m))
+            for m in MODEL_CHOICES
+        ],
+        mode=selector.SelectSelectorMode.DROPDOWN,
+    )
+)
+
+
+def _build_model_selector(
+    family: str, only: list[str] | None = None,
+) -> selector.SelectSelector:
+    if only:
+        codes = list(only)
+    elif family in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
         codes = [family]
     else:
         codes = models_in_family(family) or [MODEL_BASISPROFIEL]
     return selector.SelectSelector(selector.SelectSelectorConfig(
         options=[
-            selector.SelectOptionDict(value=m, label=MODEL_LABELS[m])
+            selector.SelectOptionDict(value=m, label=_model_label(m))
             for m in codes
         ],
         mode=selector.SelectSelectorMode.DROPDOWN,
@@ -317,6 +340,9 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         self._reconfigure_entry: ConfigEntry | None = None
         self._selected_family: str = ""
         self._selected_model: str = ""
+        # #435: outdoor units an ambiguous typed indoor code pairs with
+        self._model_candidates: list[str] = []
+        self._model_hint: dict[str, str] = {}
 
     # ---------- initial setup ----------
 
@@ -334,6 +360,28 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             )
             self._data[CONF_SOURCE_TYPE] = source_type
             fam = user_input["family"]
+            self._model_candidates = []
+            if isinstance(fam, str) and fam.strip().lower() in MODEL_FAMILIES:
+                fam = fam.strip().lower()  # typed family prefix ("ERGA")
+            if fam not in MODEL_FAMILIES and fam not in (
+                MODEL_BASISPROFIEL, MODEL_CUSTOM,
+            ):
+                # #435: a typed model code (indoor and/or outdoor unit)
+                match = resolve_model_text(str(fam))
+                self._model_hint = {
+                    "code": match.code or str(fam),
+                    "series": match.series,
+                }
+                if match.key is None and not match.candidates:
+                    user_errors = {
+                        "family": "model_no_datasheet"
+                        if match.kind == "no_datasheet" else "model_unknown"
+                    }
+                    return self._show_user_form(user_errors)
+                self._model_candidates = list(match.candidates)
+                first = match.key or match.candidates[0]
+                fam = family_for_model(first)
+                self._data["model"] = first
             self._selected_family = fam
             if fam in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
                 self._selected_model = fam
@@ -347,6 +395,9 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             if source_type == SOURCE_TYPE_INDIVIDUAL:
                 return await self.async_step_individual_prefix()
             return await self.async_step_model()
+        return self._show_user_form({})
+
+    def _show_user_form(self, errors: dict[str, str]) -> ConfigFlowResult:
         current_model = self._data.get("model", "")
         current_family = family_for_model(current_model) if current_model else MODEL_BASISPROFIEL
         schema = vol.Schema({
@@ -387,7 +438,10 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=schema,
+            errors=errors,
             description_placeholders={
+                "code": self._model_hint.get("code", ""),
+                "series": self._model_hint.get("series", ""),
                 "mono_found": _mono_found,
                 "v2_count": str(_v2_count),
                 "suggestion": _suggest,
@@ -520,7 +574,16 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             default_model = self._selected_model
             if not default_model or default_model not in fam_models:
                 default_model = fam_models[0] if fam_models else MODEL_BASISPROFIEL
-            schema_dict[vol.Required("model", default=default_model)] = _build_model_selector(self._selected_family)
+            # #435: an ambiguous indoor code offers only its outdoor units
+            only = [
+                m for m in self._model_candidates
+                if m in fam_models
+            ]
+            if only:  # the typed code's outdoor unit (or the first candidate)
+                default_model = only[0]
+            schema_dict[vol.Required("model", default=default_model)] = _build_model_selector(
+                self._selected_family, only=only or None,
+            )
         schema_dict[vol.Required(
             "attribute_mode",
             default=self._data.get("attribute_mode", ATTRIBUTE_MODE_AUTO),
