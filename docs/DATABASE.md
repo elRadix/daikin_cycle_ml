@@ -806,7 +806,8 @@ the adaptive off-time samples from the `cycles` table (#415).
 `cycle_detector_state` (model_state) holds the running cycle. It is
 written when the detector opens or closes a cycle, after a heating <->
 DHW split and every 15 min while running, and read once before the first
-detection after a restart (#417).
+detection after a restart (#417). The payload carries `last_seen_ts`; a
+cycle is resumed when HA was down for at most 6 h, however long the run.
 
 ## 8. Backup and recovery
 

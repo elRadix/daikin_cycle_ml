@@ -129,3 +129,47 @@ async def test_restore_once_without_db():
         DaikinCycleMLCoordinator,
     )
     assert await DaikinCycleMLCoordinator._restore_detector_once(c) is False
+
+
+# --- resume gap = downtime, not run age (prod-1 runs last up to 11 h) ---------
+
+
+def _payload(start: float, seen: float | None) -> dict:
+    d = CycleDetector({}, dhw_present=True)
+    d.update(_running_attrs(), now=start, power_w=1500.0)
+    p = d.to_dict()
+    if seen is None:
+        p.pop("last_seen_ts")
+    else:
+        p["last_seen_ts"] = seen
+    return p
+
+
+def test_long_run_restored_after_short_downtime():
+    now = time.time()
+    d = CycleDetector({}, dhw_present=True)
+    d.restore_from_dict(_payload(now - 9 * 3600, now - 300), now)
+    assert d.state == "running"
+    assert d.snapshot()["start_ts"] == pytest.approx(now - 9 * 3600)
+
+
+def test_long_downtime_abandons_cycle():
+    now = time.time()
+    d = CycleDetector({}, dhw_present=True)
+    d.restore_from_dict(_payload(now - 9 * 3600, now - 7 * 3600), now)
+    assert d.state == "idle"
+
+
+@pytest.mark.parametrize("seen,expected", [(None, "idle"), (True, "idle")])
+def test_payload_without_last_seen_uses_start(seen, expected):
+    now = time.time()
+    d = CycleDetector({}, dhw_present=True)
+    d.restore_from_dict(_payload(now - 9 * 3600, seen), now)
+    assert d.state == expected
+
+
+def test_to_dict_carries_last_seen():
+    d = CycleDetector({}, dhw_present=True)
+    d.update(_running_attrs(), now=1000.0, power_w=1500.0)
+    d.update(_running_attrs(), now=1030.0, power_w=1500.0)
+    assert d.to_dict()["last_seen_ts"] == 1030.0

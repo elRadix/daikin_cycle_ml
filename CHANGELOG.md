@@ -49,7 +49,9 @@
   on 2026-11-18 and up to 11 h on other restart days (runtime per day
   44-84 % on a heat pump running 24/7). The running cycle is now restored
   before the first detection, saved after a heating <-> DHW split, and
-  saved every 15 min while running (#417)
+  saved every 15 min while running. The 6 h resume limit now counts the
+  time HA was down, not the run's age (a restart late in an 11 h run
+  dropped the whole run) (#417)
 
 ### Tests
 - `tests/test_413_v2_catalog.py`: v2 contract against the catalog
