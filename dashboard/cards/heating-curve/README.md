@@ -1,12 +1,15 @@
 # 🔥 Heating Curve Card
 
-**Version:** 1.0.0
-**Requires:** daikin_cycle_ml ≥ v1.4.0
+**Version:** 1.1.1 ([CHANGELOG](CHANGELOG.md))
+**Requires:** daikin_cycle_ml ≥ v1.24.0
 **HA Core:** 2026.9+
 
 A production-ready Lovelace dashboard card visualizing the heating curve of
-your Daikin Altherma heat pump. Spec-aware, bilingual, auto-discovering, and
-designed to work out of the box with **zero hardcoded entity IDs**.
+your Daikin Altherma heat pump. Spec-aware, English / Dutch / French, dark
+mode, auto-discovering, and designed to work out of the box with **zero
+hardcoded entity IDs**.
+
+![Heating Curve card: header with the model, measured points with a pop-up, live point, strips, panels and tiles](preview.png)
 
 ---
 

@@ -5,7 +5,7 @@ theme, hydraulic diagram, phase indicator, live alerts, and stooklijn
 advice. Auto-detects the integration language (EN / NL) and supports a
 manual override.
 
-![preview](preview.png)
+![Simple card](showcase.png)
 
 ---
 
@@ -204,7 +204,7 @@ container style.
 | Language not switching | Verify both `lang_override` (Jinja) and `LANG_OVERRIDE` (JS) are set to the same value. Check for typos - the values are case-sensitive and must be lowercase `'nl'` or `'en'`. |
 | Header in NL, body in EN (or vice versa) | `lang_override` and `LANG_OVERRIDE` are out of sync. Set both to identical values. |
 | Colours look washed out | Some browsers block CSS gradients in `card_mod` under strict mode. Remove the outer `card_mod.style` block if needed. |
-| Preview image missing | Take a fresh screenshot of the card (~800x600) and save it as `preview.png` in this folder. |
+| Preview image missing | Take a fresh screenshot of the card (~800x600) and save it as `showcase.png` in this folder. |
 
 ---
 
@@ -214,5 +214,5 @@ To regenerate the preview image for this README:
 
 1. Open the card in a dashboard.
 2. Take a screenshot of the card area (~800x600).
-3. Save as `preview.png` in this folder.
+3. Save as `showcase.png` in this folder.
 4. Optional: compress with TinyPNG or PNG-Crush before committing.

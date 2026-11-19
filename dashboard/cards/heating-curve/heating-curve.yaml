@@ -497,7 +497,7 @@ cards:
 
           /* ============ SVG LAYOUT ============ */
           var W = 620;
-          var X0 = 92, Y0 = 50, Wp = 500, Hp = 320;
+          var X0 = 92, Y0 = 30, Wp = 500, Hp = 320;  /* #431: less empty space above the plot */
           var X1 = X0 + Wp, Y1 = Y0 + Hp;
 
           var axLabY = Y1 + 42;
@@ -901,7 +901,7 @@ cards:
           s += '<text x="24" y="'+(spY+19)+'" font-family="ui-monospace,monospace" font-size="10.5" font-weight="900" fill="'+DK_BLUE_DK+'" letter-spacing="0.5">⚙ '+String(attr(S_STATE,'configured_model','—')).toUpperCase()+' · '+hp.family.toUpperCase()+' · '+hp.kw+' kW · '+hp.ref+'</text>';
           s += '<text x="24" y="'+(spY+36)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_MD+'">'+t('specRangeLwt')+' '+hp.lwtMin+'–'+hp.lwtMax+'°C  ·  '+t('specOutdoor')+' '+hp.outMin+'…+'+hp.outMax+'°C  ·  '+t('specNomCop')+' '+hp.nomCop.toFixed(1)+'</text>';
           s += '<text x="24" y="'+(spY+52)+'" font-family="ui-monospace,monospace" font-size="9" font-weight="800" fill="'+DK_BLUE_MD+'">'+t('specDefrost')+' +'+hp.defrostBelow+'°C  ·  '+t('specBuh')+' '+hp.buhAbove+'°C  ·  '+t('specHeatOff')+' +'+hp.offAbove+'°C</text>';
-          var regTxt = slope !== null ? 'LWT = '+inter.toFixed(1)+' '+(slope<0?'− ':'+ ')+Math.abs(slope).toFixed(2)+' × T_buiten' : t('specInsufficient');
+          var regTxt = slope !== null ? 'LWT = '+inter.toFixed(1)+' '+(slope<0?'− ':'+ ')+Math.abs(slope).toFixed(2)+' × '+(LANG==='nl'?'T_buiten':(LANG==='fr'?'T_ext':'T_out')) : t('specInsufficient');
           /* R203: totalSamples = ALL buckets; show current-bucket sample count separately */
           var samplesLine = t('specSamples')+': '+totalSamples;
           if (stookBucketSamples > 0 && stookBucketKey) {
@@ -1101,12 +1101,12 @@ cards:
           }
 
           var r = '';
-          r += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">';
+          r += '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;">'; /* #431: never wider than the card */
           var tile = function(icon,label,val,col){
             return '<div style="background:linear-gradient(135deg,#F5FAFD,#D6ECF7);border:2px solid '+col+';border-radius:10px;padding:8px 4px;text-align:center;box-sizing:border-box;">'
               +'<ha-icon icon="'+icon+'" style="--mdc-icon-size:1.15em;color:'+col+';display:block;margin:0 auto 3px;"></ha-icon>'
               +'<div style="font-size:0.42em;color:'+DK_BLUE_DK+';font-weight:900;text-transform:uppercase;letter-spacing:0.3px;">'+label+'</div>'
-              +'<div style="font-family:ui-monospace,monospace;font-size:1.02em;color:'+col+';font-weight:900;line-height:1;margin-top:3px;">'+val+'</div>'
+              +'<div style="font-family:ui-monospace,monospace;font-size:1.02em;color:'+col+';font-weight:900;line-height:1;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+val+'</div>'
               +'</div>';
           };
           r += tile('mdi:thermometer-chevron-down', t('lwtNow'), (now===null?'—':v1(now)+'°'), '#E60012');

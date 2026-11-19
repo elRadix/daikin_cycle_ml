@@ -7,6 +7,7 @@ Multi-tab Lovelace dashboard card for **Daikin Cycle ML** with 5 views — Overv
 ![Overview tab](screenshot-overview.png)
 ![Quality tab](screenshot-quality.png)
 ![Cycles tab](screenshot-cycles.png)
+![Duration tab](screenshot-duration.png)
 ![Events tab](screenshot-events.png)
 
 ---

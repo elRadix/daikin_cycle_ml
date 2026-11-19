@@ -4,6 +4,10 @@ Interactive Lovelace card for **heating curve optimization**, **LWT (Leaving Wat
 
 ![LWT Fine-Tuning — 4-tab demo (animated)](showcase.gif)
 
+| Advice | Buckets | Analysis | Live |
+|---|---|---|---|
+| ![Advice tab](lwt_advice.png) | ![Buckets tab](lwt_bucket.png) | ![Analysis tab](lwt_analysis.png) | ![Live tab](lwt_live.png) |
+
 ---
 
 ## What this card does
