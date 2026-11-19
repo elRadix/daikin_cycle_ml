@@ -19,3 +19,9 @@
   pumps (`device_id`)
 - Same figures as the other cards: quality = average of all cycles
   (#436), average run = runtime / runs on the day
+
+### Docs
+- README in the layout of the other cards (what it shows, requirements,
+  installation, options, tabs, day details, entities, examples,
+  troubleshooting), animated tab tour (`showcase.gif`), screenshots of
+  every tab, Dutch, French and dark theme; featured on the main README
