@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
+- `docs/MODEL_ATTRIBUTES.json` re-pinned to ESPAltherma beta 3548ea2 (was
+  b613d10): the upstream commits in between changed the web UI, control
+  and translations only; the definition labels (424, 40 models) and the
+  v2 catalog are unchanged (#430)
+
 ## [1.24.1] - 2026-11-19
 
 ### Fixed

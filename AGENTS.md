@@ -49,8 +49,8 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
 - Ruleset protect-main: id 24465625 — required-context count TE VERIFIEREN
 - CI workflows (.github/workflows, 8): ruff, hassfest, hacs, mypy, pylint,
   coverage, markdown, model-compat. Plus CodeQL (dynamic, "Push on main").
-- Model compat: v1 definitions pinned to ESPAltherma beta b613d10 (#393,
-  docs/MODEL_ATTRIBUTES.json). v2 catalog names pinned to beta 3548ea2
+- Model compat: v1 definitions pinned to ESPAltherma beta 3548ea2 (#430,
+  was b613d10 since #393; docs/MODEL_ATTRIBUTES.json). v2 catalog names pinned to beta 3548ea2
   (#413, docs/ESPALTHERMA_V2_CATALOG.json, tools/parse_espaltherma_catalog.py);
   the PR gate regenerates the snapshot at its pin, the weekly drift issue
   lists removed v2 names (consumed ones first).
@@ -70,13 +70,9 @@ Closed 2026-11-18 (solution comment + release link): #347 (@JoHuTi),
 Closed 2026-11-19 with v1.24.0 (solution comment + release link): #413,
 #415, #417, #419, #421, #423, #427.
 
-Open until v1.24.1 is confirmed published: #431 (pattern-analysis touch,
-heating-curve point pop-ups; fix in #432). Release published: TE
-VERIFIEREN, then comment + close #431.
-
-- #430  drift    "ESPAltherma upstream moved (beta)" (weekly model-compat
-                 drift issue, new 2026-11-19): review the diff, re-pin
-                 MODEL_ATTRIBUTES / V2 catalog if consumed names moved
+Closed 2026-11-19: #431 with v1.24.1 (published 18:06); #430 drift
+(beta b613d10 -> 3548ea2 only touched web UI / control / i18n: v1
+definitions and v2 catalog unchanged, pin moved).
 - #425  p3 ux    Show today's alerts in a card (Tweakers feedback)
 
 - #398  p1 enh   Bivalent phase 2: wizard section, binary_sensor
