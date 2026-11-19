@@ -785,6 +785,24 @@ never written.
 
 **Idempotent:** marker `data_migration_v24_completed`.
 
+### 7.x v31: stale cop_hourly rows (#415)
+
+`cop_hourly` rows whose `n_samples` or mean differ from their unflagged
+`cop_samples` are rebuilt; rows without samples are deleted. prod-1 kept
+two heating hours (n 1, mean 16.5 / 16.1, written 2026-10-31) while
+those hours held 10 normal samples: the rollup only re-rolls recent
+hours and v30 only hours with flagged samples. Reads
+(`async_query_cop_hourly`) also skip rows above `MAX_COP` or, for
+heating / DHW, below `COP_FLOOR`.
+
+The day / week / month `cop_p10` / `cop_p90` attributes are the
+sample-weighted mean of the hourly p10 / p90 (before: lowest / highest
+hour, so one single-sample hour set the month p90).
+
+**Idempotent:** marker `data_migration_v31_completed`. A second marker,
+`data_migration_off_s_relearn_completed`, records the one-time relearn of
+the adaptive off-time samples from the `cycles` table (#415).
+
 ## 8. Backup and recovery
 
 ### 8.1 Automatic HA backup

@@ -24,11 +24,33 @@
   `Heating Storage` were classified `unknown`: a mode containing "cool"
   is cooling and one containing "heat" is heating, as ESPAltherma's own
   statistics do (#413)
+- `off_s` (pause before a cycle) included the cycle's own run time: it
+  was measured at close (prod-1 cycle 430: 1 170 + 17 987 = 19 158 s).
+  `short_off`, `short_offs_today` and the quality score's off-time now
+  see the real pause; the adaptive off-time samples are relearned once
+  from the cycles table (prod-1 had learned `good_off` 130 min) (#415)
+- Stale `cop_hourly` rows: one-time migration v31 rebuilds hours whose
+  count or mean differ from their samples (prod-1: two hours at 16.5 /
+  16.1 kept the month COP maximum); reads skip rows outside the COP
+  gates (#415)
+- Heating-curve advice compared the live LWT setpoint with the last
+  stored heating sample (prod-1: 36.9 from the previous run's stop ramp
+  vs 28.6, "unit tracking behind"). Tracking now uses the live R1T while
+  heating runs steadily, and the A7/W35 normalisation uses the live LWT
+  (#415)
+- `cop_vs_datasheet_low` judged every 30 s tick, so run start / stop
+  ramps and defrosts raised it. It now uses the mean of the last hour of
+  steady heating (#415)
+- Day / week / month COP `cop_p10` / `cop_p90` are the sample-weighted
+  mean of the hourly values instead of the lowest / highest hour (#415)
 
 ### Tests
 - `tests/test_413_v2_catalog.py`: v2 contract against the catalog
   (required values per definition, consumed values, card and doc entity
   ids), side-name fallback, cooling classification, catalog tool
+- `tests/test_415_prod1_diag.py`: prod-1 v1.23.3 numbers for `off_s`,
+  off-time relearn, v31 on a real database, the read guard, weighted
+  p10 / p90, same-moment curve tracking and the steady datasheet window
 
 ## [1.23.3] - 2026-11-18
 

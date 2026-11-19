@@ -606,6 +606,8 @@ ADAPTIVE_MAX_TARGET_CPD = 100
 
 # model_state key for adaptive thresholds persistence
 MODEL_STATE_ADAPTIVE = "adaptive_thresholds"
+# #415: off-time samples relearned once with off_s from the cycle start
+OFF_RELEARN_MARKER = "data_migration_off_s_relearn_completed"
 DETECTOR_STATE_KEY = "cycle_detector_state"
 
 DEFAULT_SETPOINT_OSC_WINDOW_MIN = 30
@@ -679,6 +681,11 @@ BUH_7D_RATIO_THRESHOLD_DEFAULT = 0.15
 
 # --- PR F: P2 alert thresholds (v1.9.0) ---
 COP_VS_DATASHEET_LOW_PCT = -10.0
+# #415: the low alert judges a rolling mean of steady heating, not a tick
+# (run start / stop ramps and defrost dip far below the datasheet).
+STEADY_RUN_S = 900
+COP_DS_WINDOW_S = 3600
+COP_DS_MIN_SAMPLES = 20
 HIGH_CYCLE_RATE_MULTIPLIER = 1.5
 
 # Stooklijn advice state -> display label (Batch 39c)

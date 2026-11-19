@@ -192,6 +192,8 @@ Action: raise minimum run time (usually via heat curve or setback) or lower LWT 
 
 Fires when the compressor has been off for less than `short_off_threshold_min` (default 5 min).
 
+The off-time is the pause before the cycle: its start minus the previous cycle's end. Before #415 it also included the cycle's own run time, so the alert almost never fired.
+
 Message fields: off-time, threshold, LWT setpoint, indoor temp, flow, outdoor.
 
 Action: check heating demand (may be genuinely fluctuating) or increase minimum off-time in the thermostat. Compressors that restart within 5 min have not equalized pressure and wear faster.
@@ -234,7 +236,7 @@ Action: check refrigerant charge, filters, outdoor unit cleanliness. If 30d tren
 
 #### `cop_vs_datasheet_low`
 
-Fires when live COP is more than 10% below the datasheet value for your model.
+Fires when the COP is more than 10% below the datasheet value for your model, judged on the mean of the last hour of **steady heating** (compressor running in heating for at least 15 minutes, no defrost; at least 20 ticks). Run start and stop ramps and defrosts dip far below the datasheet and no longer trigger it (#415). The normalisation uses the live LWT, from the same moment as the COP.
 
 Only fires for bundled models (not Custom). Message includes expected vs actual. Useful as a sanity check — if you see this persistently, either the datasheet is wrong for your conditions or the pump is underperforming.
 

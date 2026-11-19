@@ -214,6 +214,10 @@ def _avg(xs: list[float]) -> float | None:
     return sum(xs) / len(xs)
 
 
+# #415: sentinel, tracking_lwt not given -> last heating sample (legacy)
+_LEGACY: Any = object()
+
+
 def analyze_stooklijn(
     samples: list[CopSample],
     comfort_min: float = 20.0,
@@ -223,7 +227,15 @@ def analyze_stooklijn(
     setpoint_lwt: float | None = None,
     comfort_max: float = 24.0,
     rt_setpoint: float | None = None,
+    tracking_lwt: Any = _LEGACY,
 ) -> StooklijnAdvies:
+    """Heating-curve advice.
+
+    ``tracking_lwt`` (#415): the LWT measured at the same moment as
+    ``setpoint_lwt``. The coordinator passes the live R1T while the
+    compressor runs steadily, else None (no tracking judgement). Left
+    out, the last heating sample is used (legacy contract).
+    """
     advies = StooklijnAdvies()
     _input_len = len(samples)
     samples = [s for s in samples if s.mode in ('heating', 'unknown')]
@@ -301,7 +313,12 @@ def analyze_stooklijn(
         advies.slope_delta = _slope_delta(advies.delta_c, recent.outdoor)
         return advies
     # B13: dynamic LWT step vs setpoint + comfort dual-loop
-    advies.tracking_error = round(setpoint_lwt - recent.lwt, 2)
+    _track = recent.lwt if tracking_lwt is _LEGACY else tracking_lwt
+    advies.tracking_error = (
+        round(setpoint_lwt - float(_track), 2)
+        if isinstance(_track, (int, float)) and not isinstance(_track, bool)
+        else None
+    )
     if rt_setpoint is not None and indoor_avg is not None:
         advies.err_indoor = round(rt_setpoint - indoor_avg, 2)
     if indoor_avg is None:
