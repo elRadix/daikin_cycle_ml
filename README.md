@@ -195,7 +195,7 @@ The new `sensor.daikin_cycle_ml_electrical_power_estimated` shows the live estim
 
 ## Documentation
 
-Complete, per-topic guides are in `docs/`:
+Complete, per-topic guides are in `docs/`. **Start at the [documentation index](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/README.md)**: it maps common questions to the right page and describes every guide, reference page and data file.
 
 | Doc | What it covers |
 |---|---|

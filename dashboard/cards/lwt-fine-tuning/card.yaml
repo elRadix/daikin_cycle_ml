@@ -89,6 +89,7 @@ cards:
               var a = el.dataset.evAction;
               if (a === 'view') {
                 var arg = el.dataset.evArg;
+                window.__lwtView = arg; /* keep the tab over re-renders */
                 hub.setAttribute('data-view', arg);
                 root.querySelectorAll('.lwt-btn').forEach(function(b){
                   b.classList.toggle('lwt-btn-active', b.dataset.evArg === arg);
@@ -96,7 +97,7 @@ cards:
                 window.__lwtHidePop && window.__lwtHidePop(hub);
                 return;
               }
-              if (a === 'pop' && el.dataset.evPid) { window.__lwtShowPop(hub, el); return; }
+              if (a === 'pop' && el.dataset.evPid) { window.__lwtShowPop(hub, el, 6000); return; }
               if (a === 'close') { window.__lwtHidePop && window.__lwtHidePop(hub); return; }
             }
           } catch(e) { console.warn('[LWTHub]', e); }
@@ -126,7 +127,11 @@ cards:
             /* ═══ 1. CONFIG & LANGUAGE ═══ */
             var CFG = (typeof variables !== 'undefined' && variables) ? variables : {};
             var cfgLangOvr = String(CFG.lang_override || '').toLowerCase();
-            var defaultTab = CFG.default_tab || 'advice';
+            var _views = ['advice', 'buckets', 'analysis', 'live'];
+            /* the card re-renders on every state change (triggers_update: all):
+               keep the tab the user picked instead of default_tab */
+            var defaultTab = (_views.indexOf(window.__lwtView) >= 0) ? window.__lwtView
+              : (_views.indexOf(CFG.default_tab) >= 0 ? CFG.default_tab : 'advice');
             var showHelp = CFG.show_help !== false;
             
             var haLang = (typeof hass !== 'undefined' && hass && hass.language) ? String(hass.language).toLowerCase() : '';
@@ -270,12 +275,13 @@ cards:
 
             /* ═══ 5. POPUP SYSTEM ═══ */
             if (!window.__lwtReg) window.__lwtReg = {};
-            if (!window.__lwtSeq) window.__lwtSeq = 0;
-            if (window.__lwtSeq > 2000) { window.__lwtReg = {}; window.__lwtSeq = 0; }
+            /* same ids on every render (counter restarts), so an open pop-up
+               can be found again after a re-render; payloads get fresh values */
+            window.__lwtSeq = 0;
             var reg = function(payload){ window.__lwtSeq++; var id = 'lwt' + window.__lwtSeq; window.__lwtReg[id] = payload; return id; };
 
             if (!window.__lwtShowPop) {
-              window.__lwtShowPop = function(hub, el){
+              window.__lwtShowPop = function(hub, el, ms){
                 try {
                   var host = hub.querySelector('.lwt-pop-host');
                   if (!host) return;
@@ -332,7 +338,9 @@ cards:
                   pop.style.left = left + 'px';
                   pop.style.top = top + 'px';
                   pop.style.visibility = 'visible';
-                  hub.__popTimer = setTimeout(function(){ window.__lwtHidePop(hub); }, 6000);
+                  var left_ms = ms || 6000;
+                  window.__lwtOpenPop = { pid: pid, until: Date.now() + left_ms };
+                  hub.__popTimer = setTimeout(function(){ window.__lwtHidePop(hub); }, left_ms);
                 } catch(e){ console.warn('[LWTHub pop]', e); }
               };
               window.__lwtHidePop = function(hub){
@@ -342,6 +350,7 @@ cards:
                   var pop = host.querySelector('.lwt-pop');
                   if (pop && pop.parentNode) pop.parentNode.removeChild(pop);
                   if (hub.__popTimer) { clearTimeout(hub.__popTimer); hub.__popTimer = null; }
+                  window.__lwtOpenPop = null;
                 } catch(e){}
               };
             }
@@ -402,11 +411,12 @@ cards:
             
             var buildAdvies = function() {
               var icon = `<svg viewBox="0 0 24 24" style="width:36px;height:36px;fill:#0097E0;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
-              var adviceColor = '#0097E0';
-              var adviceBg = 'rgba(0,151,224,0.1)';
+              /* optimal = green, lower LWT = blue, raise LWT = red */
+              var adviceColor = '#2E7D32';
+              var adviceBg = 'rgba(46,125,50,0.1)';
               
               if (delta < -0.5) {
-                adviceColor = '#2E7D32'; adviceBg = 'rgba(46,125,50,0.1)';
+                adviceColor = '#0097E0'; adviceBg = 'rgba(0,151,224,0.1)';
                 icon = `<svg viewBox="0 0 24 24" style="width:36px;height:36px;fill:${adviceColor};"><path d="M12 22l10-12H2l10 12z"/></svg>`;
               } else if (delta > 0.5) {
                 adviceColor = '#C62828'; adviceBg = 'rgba(198,40,40,0.1)';
@@ -578,7 +588,7 @@ cards:
 
             var buildAnalyse = function() {
               var oText = offset === 0 ? t('keep_offset') : (offset > 0 ? t('increase') + ' +' + offset + '°' : t('decrease') + ' ' + offset + '°');
-              var oCol = offset === 0 ? '#2E7D32' : (offset > 0 ? '#C62828' : '#2E7D32');
+              var oCol = offset === 0 ? '#2E7D32' : (offset > 0 ? '#C62828' : '#0097E0');
               
               return `
                 <div class="lwt-card">
@@ -808,6 +818,22 @@ cards:
             
             out += '<div class="lwt-pop-host"></div>';
             out += '</div>';
+            /* a pop-up that was open before this re-render: show it again
+               (fresh values) for the rest of its time */
+            var _open = window.__lwtOpenPop;
+            if (_open && _open.until > Date.now()) {
+              var _self = this;
+              setTimeout(function(){
+                try {
+                  var _root = (_self && _self.shadowRoot) ? _self.shadowRoot : null;
+                  var _hub = _root ? _root.querySelector('.lwt-hub') : null;
+                  var _el = _hub ? _hub.querySelector('[data-ev-pid="' + _open.pid + '"]') : null;
+                  if (_hub && _el && !_hub.querySelector('.lwt-pop')) {
+                    window.__lwtShowPop(_hub, _el, Math.max(500, _open.until - Date.now()));
+                  }
+                } catch(e) {}
+              }, 0);
+            }
             return out;
 
           } catch(err) {

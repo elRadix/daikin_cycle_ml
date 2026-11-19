@@ -1,5 +1,19 @@
 # Changelog — LWT Fine-Tuning Card
 
+## [1.0.1] — 2026-11-19
+
+### Fixed
+- The card re-renders on every Home Assistant state change
+  (`triggers_update: all`). It no longer jumps back to the first tab:
+  the tab you picked is kept, and `default_tab` is used only until the
+  first click (#427)
+- An open pop-up is shown again after a re-render for the rest of its
+  6 seconds, with fresh values (#427)
+
+### Changed
+- Colours: optimal LWT = green, lower LWT = blue, raise LWT = red, in the
+  Advice banner and the Analysis offset (#427)
+
 ## [1.0.0] — 2026-11-13
 
 Initial release as standalone card in `dashboard/cards/lwt-fine-tuning/`.

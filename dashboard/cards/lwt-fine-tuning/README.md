@@ -26,7 +26,7 @@ The card bundles four interactive tabs, each targeting a different question.
 **Question answered:** "What should I do right now?"
 
 **Visual elements:**
-- **Hero banner** — color-coded call to action (green/red/blue)
+- **Hero banner** — color-coded call to action (green = optimal, blue = lower, red = raise)
 - **COP grid** — Current COP (est.), Target COP (optimum), Efficiency Impact (%)
 - **Live temperature bars** — Actual / Optimum / Setpoint / Goal
 - **Explanation note** — plain-language guidance tailored to state
@@ -35,9 +35,9 @@ The card bundles four interactive tabs, each targeting a different question.
 
 | `delta_c` | Hero color | Hero label | Recommended action |
 |-----------|-----------|------------|-------------------|
-| `< -0.5` | 🟢 Green | **Lower LWT** | Decrease heating curve Offset |
+| `< -0.5` | 🔵 Blue | **Lower LWT** | Decrease heating curve Offset |
 | `> +0.5` | 🔴 Red | **Increase LWT** | Increase heating curve Offset |
-| `-0.5 .. +0.5` | 🔵 Blue | **Optimal LWT** | Keep current setting |
+| `-0.5 .. +0.5` | 🟢 Green | **Optimal LWT** | Keep current setting |
 
 When to look: every time you open the dashboard.
 
@@ -79,7 +79,7 @@ When to look: to understand seasonal behavior or spot bad temperature ranges.
 |------------------|-------|------------|
 | `0` | 🟢 Green | Keep offset |
 | `> 0` | 🔴 Red | Increase +X° |
-| `< 0` | 🟢 Green | Decrease X° |
+| `< 0` | 🔵 Blue | Decrease X° |
 
 When to look: after making a change, to verify tracking.
 
@@ -285,7 +285,7 @@ Normal during: defrost (5-15 min), DHW heating, cold start. Gap should close wit
 Three variables (edit card config):
 
 - `lang_override` — 'en' or 'nl' (default: auto-detect)
-- `default_tab` — 'advice' | 'buckets' | 'analysis' | 'live'
+- `default_tab` — 'advice' | 'buckets' | 'analysis' | 'live' (first render only; after a click the card keeps the tab you picked over state updates)
 - `show_help` — false to hide explanation notes
 
 ---

@@ -16,6 +16,9 @@
 - One-time migration v32 rebuilds runs lost on an HA restart before #417
   from the COP samples between stored cycles (`is_reconstructed = 1`) and
   re-rolls those days (#419)
+- Documentation index `docs/README.md`: common questions mapped to the
+  right page, and every guide, reference page and data file described;
+  linked from the README (#427)
 
 ### Changed
 - ESPAltherma v2 side names: v2 publishes a name that exists on both
@@ -38,6 +41,10 @@
   catalog snapshot includes the DIII `E0:` / `63:` and `RAM:` values (#423)
 
 ### Fixed
+- LWT fine-tuning card: a state change no longer jumps back to the
+  first tab or closes an open pop-up (the card re-renders on every state
+  change); colours now read optimal = green, lower LWT = blue, raise LWT
+  = red (#427)
 - Installations without a DHW tank logged every cycle as heating,
   cooling included: cooling runs are now classified as cooling (#413)
 - Operation modes `Auto Cool`, `Cooling Storage`, `Auto Heat` and
@@ -114,6 +121,8 @@
 - `tests/test_423_data_polish.py`: "0" / "1" as numbers (monolithic and
   v2), dT and COP-sample LWT from R1T, `learned_thresholds` state, log on
   change, alias copies, catalog HaSensor tables, the bounded write
+- `tests/test_427_lwt_card_state.py`: LWT card under Node: tab kept
+  over re-renders, open pop-up shown again, stable pop-up ids, colours
 
 ## [1.23.3] - 2026-11-18
 
