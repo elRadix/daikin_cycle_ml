@@ -155,6 +155,7 @@ async def _async_setup_database(
             await db.async_migrate_to_v28()  # v1.19.9 #123
             await db.async_migrate_to_v29()  # v1.20.1 #292 R709+R710
             await db.async_migrate_to_v30()  # #408 legacy COP outliers + daily min/max
+            await db.async_migrate_to_v31()  # #415 stale cop_hourly rows
             _LOGGER.info("v19 thermal rebuild: %s", v19)
         except Exception:
             _LOGGER.exception('v19 thermal rebuild migration failed')

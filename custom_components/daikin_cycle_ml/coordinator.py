@@ -51,6 +51,8 @@ from .const import (
     COP_LOW_THRESHOLD,
     COP_ROLLUP_WINDOW_HOURS,
     COP_SENSOR_ENTITY,
+    COP_DS_MIN_SAMPLES,
+    COP_DS_WINDOW_S,
     COP_VS_DATASHEET_LOW_PCT,
     DEFAULT_ALERT_RETENTION_DAYS,
     DEFAULT_COMFORT_MIN_C,
@@ -80,12 +82,14 @@ from .const import (
     MODE_DHW,
     MODE_HEATING,
     MODEL_BASISPROFIEL,
+    OFF_RELEARN_MARKER,
     OPTION_DAILY_SUMMARY_LIVE_ENABLED,
     REQUIRED_ATTRIBUTES,
     SOURCE_SENSOR_ENTITY,
     SOURCE_TYPE_AUTO,
     SOURCE_TYPE_INDIVIDUAL,
     SOURCE_TYPE_MONOLITHIC,
+    STEADY_RUN_S,
     STOOKLIJN_MIN_CONFIDENCE,
     STOOKLIJN_MIN_SAVINGS_PCT,
     TEST_ALERT_DELTA,
@@ -354,6 +358,13 @@ def _wire_dhw_tank_temp(
         record["dhw_tank_temp"] = float(tank)
 
 
+def _window_mean(window: Any, min_samples: int) -> float | None:
+    """#415: mean of (ts, value) pairs, None below ``min_samples``."""
+    if not window or len(window) < min_samples:
+        return None
+    return float(sum(v for _, v in window)) / len(window)
+
+
 def score_and_count(
     record: dict[str, Any],
     options: dict[str, Any] | None,
@@ -365,8 +376,16 @@ def score_and_count(
     Isolated try/except so a scoring failure never aborts the cycle
     pipeline (R191).
     """
+    # #415: the pause before this cycle = its start - the previous end.
+    # Measured at close (``now``) it also held the cycle's own run time.
+    _start = record.get("start_ts")
+    _ref = (
+        float(_start)
+        if isinstance(_start, (int, float)) and not isinstance(_start, bool)
+        else now
+    )
     try:
-        off_s = store.off_time_since_last(now)
+        off_s = store.off_time_since_last(_ref)
     except Exception:
         off_s = None
     if off_s is not None and isinstance(off_s, (int, float)):
@@ -846,6 +865,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cop_hourly_cache: dict[str, dict[str, Any]] = {}
         self._spf_state_cache: dict[str, Any] = {}
         self._datasheet_cache: dict[str, Any] = {}
+        self._cop_ds_window: deque[tuple[float, float]] = deque()
         self._datasheet_merged: dict[str, Any] = {}
         self._datasheet_defaults: dict[str, Any] = {}
         self._datasheet_user: dict[str, Any] = {}
@@ -1079,6 +1099,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             except Exception:
                 _LOGGER.exception("Baseline restore failed")
             await self.async_load_adaptive_state()
+            await self._maybe_relearn_off_samples()
             await self._restore_detector_state()
             await self._restore_runtime_acc()
             await self._restore_energy_acc()
@@ -2220,6 +2241,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.cop_vs_datasheet_pct = self._datasheet_cache.get(
                 "cop_vs_datasheet_pct"
             )
+            self._track_cop_ds_pct(now, snap.cop_vs_datasheet_pct)
             self._tick_mark("datasheet")
             await self._async_dispatch_alerts(snap)
             self._tick_mark("alerts_dispatch")
@@ -3358,15 +3380,68 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             )
         return t_out
 
+    def _steady_heating_view(self, now: float) -> dict[str, Any] | None:
+        """#415: compat view of the live attrs while heating runs steadily.
+
+        Steady = detector running in heating for >= STEADY_RUN_S and no
+        defrost; otherwise None.
+        """
+        det = self.detector.snapshot()
+        start = det.get("start_ts")
+        if (
+            det.get("state") != "running" or det.get("mode") != MODE_HEATING
+            or not isinstance(start, (int, float))
+            or now - float(start) < STEADY_RUN_S
+        ):
+            return None
+        attrs = getattr(getattr(self, "data", None), "attrs", None) or {}
+        view = build_compat_view(attrs)
+        if tolerant_on(view.get(ATTR_DEFROST_OPERATION)):
+            return None
+        return view
+
+    def _steady_live_lwt(self, now: float) -> float | None:
+        """#415: live R1T while heating runs steadily, else None.
+
+        The setpoint and the LWT must come from the same moment: the last
+        stored heating sample can be an hour old (the run's stop ramp).
+        """
+        try:
+            view = self._steady_heating_view(now)
+        except Exception:
+            _LOGGER.debug("steady live LWT unavailable", exc_info=True)
+            return None
+        if view is None:
+            return None
+        return _safe_float_opt(view.get("Leaving water temp. before BUH (R1T)"))
+
+    def _track_cop_ds_pct(self, now: float, pct: Any) -> None:
+        """#415: keep COP-vs-datasheet values of steady heating (1 h)."""
+        win = getattr(self, "_cop_ds_window", None)
+        if win is None:
+            win = self._cop_ds_window = deque()
+        while win and win[0][0] < now - COP_DS_WINDOW_S:
+            win.popleft()
+        if not isinstance(pct, (int, float)) or isinstance(pct, bool):
+            return
+        try:
+            steady = self._steady_heating_view(now) is not None
+        except Exception:
+            _LOGGER.debug("steady state unavailable", exc_info=True)
+            return
+        if steady:
+            win.append((now, float(pct)))
+
     def _resolve_lwt_for_datasheet(self, snap: Any) -> float | None:
-        """LWT voor A7/W35 normalisatie: stooklijn cache, dan raw attrs."""
-        lwt = _safe_float_opt(self._stooklijn_cache.get("huidige_lwt"))
-        if lwt is None:
-            lwt = _safe_float_opt(
-                (getattr(snap, "attrs", None) or {}).get(
-                    "Leaving water temp. before BUH (R1T)"
-                )
+        """LWT voor A7/W35 normalisatie (#415: live R1T first, same moment
+        as the COP; the stooklijn cache is the last stored sample)."""
+        lwt = _safe_float_opt(
+            build_compat_view(getattr(snap, "attrs", None) or {}).get(
+                "Leaving water temp. before BUH (R1T)"
             )
+        )
+        if lwt is None:
+            lwt = _safe_float_opt(self._stooklijn_cache.get("huidige_lwt"))
         return lwt
 
     def _resolve_cop_for_datasheet(self, snap: Any) -> float | None:
@@ -3614,6 +3689,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 indoor_avg=indoor_avg,
                 setpoint_lwt=setpoint_lwt,
                 comfort_max=comfort_max,
+                tracking_lwt=self._steady_live_lwt(now),
             )
             buckets = bucket_summary(samples)
             self._stooklijn_cache = {
@@ -4170,6 +4246,31 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return True
         except Exception:
             _LOGGER.exception("adaptive save failed")
+            return False
+
+    async def _maybe_relearn_off_samples(self) -> bool:
+        """#415: relearn off-time samples once from the cycles table.
+
+        Before #415 ``off_s`` held the pause plus the cycle's own run
+        time, so the learned ``good_off`` threshold was inflated. Never
+        raises; a failure leaves the marker unset and retries next start.
+        """
+        if self.db is None:
+            return False
+        try:
+            marker = await self.db.async_get_model_state(OFF_RELEARN_MARKER)
+            if isinstance(marker, dict) and marker.get("completed"):
+                return False
+            gaps = await self.db.async_cycle_off_gaps()
+            n = self.adaptive.replace_off_samples(gaps)
+            await self.async_save_adaptive_state()
+            await self.db.async_set_model_state(
+                OFF_RELEARN_MARKER, {"completed": True, "samples": n},
+            )
+            _LOGGER.info("off-time relearn (#415): %s samples", n)
+            return True
+        except Exception:
+            _LOGGER.exception("off-time relearn failed")
             return False
 
     async def async_load_adaptive_state(self) -> bool:
@@ -4821,7 +4922,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _hcr_cph = int(self.store.non_transient_in_window(now, 3600))
         _hcr_base = int(self.options.get("pendulum_cycles_per_hour", 4))
         is_high_cycle_rate = _hcr_cph > _hcr_base * HIGH_CYCLE_RATE_MULTIPLIER
-        _cop_ds_pct = getattr(snap, "cop_vs_datasheet_pct", None)
+        # #415: rolling mean of steady heating, not the tick value
+        _cop_ds_pct = _window_mean(
+            getattr(self, "_cop_ds_window", None), COP_DS_MIN_SAMPLES,
+        )
         is_cop_vs_datasheet_low = (
             isinstance(_cop_ds_pct, (int, float))
             and _cop_ds_pct < COP_VS_DATASHEET_LOW_PCT

@@ -82,6 +82,25 @@ class AdaptiveThresholds:
                 stored = True
         return stored
 
+    def replace_off_samples(self, by_mode: Mapping[str, list[float]]) -> int:
+        """Replace every mode's off-time samples (seconds in, minutes kept).
+
+        #415: used once to drop the inflated pre-fix values. Invalid or
+        negative entries are skipped. Returns the number of samples kept.
+        """
+        self._off_min.clear()
+        kept = 0
+        for mode, values in by_mode.items():
+            mins = [
+                float(v) / 60.0 for v in values
+                if isinstance(v, (int, float)) and not isinstance(v, bool)
+                and v >= 0
+            ]
+            if mins:
+                self._off_min[mode] = mins
+                kept += len(mins)
+        return kept
+
     def observe_day(self, cycles: int | None) -> bool:
         """Record end-of-day cycle count."""
         if cycles is None:

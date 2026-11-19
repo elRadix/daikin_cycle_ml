@@ -260,6 +260,8 @@ Meaning:
 - `short_run`: the 20th percentile of your cycle durations. Cycles shorter than this are in the bottom 20% → "short run"
 - `good_off`: the median off-time between cycles. Off-times longer than this are "good"
 
+**Off-time (#415).** The off-time is the pause before a cycle (its start minus the previous end). Before #415 it was measured at close and included the cycle's own run time (prod-1 learned `good_off` 130 min); the stored samples are relearned once from the `cycles` table.
+
 **Floor (#408).** When many runs are short, the 20th percentile *is* a short run (prod-1 learned 2 min against a configured 20 min) and `short_run` would never fire. The value actually used is therefore never below **half of the configured** `short_run_threshold_min` (20 → 10). The sensor `learned_thresholds` keeps the raw learned value as its state and shows the value in use as attribute `short_run_effective_min`.
 
 This means **20% of your cycles will always be flagged as short_run** if adaptive is on and you use the default percentile. That is intentional — it is a relative threshold, not an absolute one.

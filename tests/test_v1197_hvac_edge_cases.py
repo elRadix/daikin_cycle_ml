@@ -13,6 +13,7 @@ All tests use a real CycleStore and the real coordinator._alert_binary_states.
 No mock stores — that was the false-impression bug from earlier.
 """
 import random
+from collections import deque
 import time
 from types import SimpleNamespace
 
@@ -88,6 +89,11 @@ def _coord(store, options=None, **co_overrides):
 def _states(store, options=None, snap=None, **co_overrides):
     c = _coord(store, options, **co_overrides)
     s = snap if snap is not None else _snap()
+    # #415: the datasheet alert judges a rolling mean of steady heating;
+    # a snapshot value stands for one steady hour at that value.
+    pct = getattr(s, "cop_vs_datasheet_pct", None)
+    if isinstance(pct, (int, float)):
+        c._cop_ds_window = deque((float(i), float(pct)) for i in range(20))
     return co.DaikinCycleMLCoordinator._alert_binary_states(c, s)
 
 

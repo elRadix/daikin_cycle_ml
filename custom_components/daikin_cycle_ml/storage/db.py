@@ -2296,6 +2296,85 @@ class CycleDB:
         return stats
 
 
+    async def async_migrate_to_v31(self) -> dict[str, Any]:
+        """#415: rebuild cop_hourly rows that no longer match their samples.
+
+        prod-1 kept two heating hours (n 1, mean 16.5 / 16.1) written on
+        2026-10-31 while their hours now hold 10 normal samples: the
+        rollup only re-rolls recent hours and v30 only hours with flagged
+        samples. Every row whose count or mean differs from its unflagged
+        samples is rebuilt; a row without samples is deleted.
+        """
+        marker = await self.async_get_model_state("data_migration_v31_completed")
+        if isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+        await self.async_ensure_cop_samples_table()
+        await self.async_create_cop_hourly_v14()
+        conn = self._require()
+        async with conn.execute(
+            "SELECT CAST(ts / 3600 AS INTEGER), COALESCE(mode, 'unknown'), "
+            "COUNT(*), AVG(cop) FROM cop_samples "
+            "WHERE COALESCE(is_transition_artifact, 0) = 0 GROUP BY 1, 2"
+        ) as cur:
+            actual = {(int(r[0]), r[1]): (int(r[2]), float(r[3]))
+                      for r in await cur.fetchall()}
+        async with conn.execute(
+            "SELECT ts_hour, mode, n_samples, cop_mean FROM cop_hourly"
+        ) as cur:
+            stored = [(int(r[0]), r[1], int(r[2]), float(r[3]))
+                      for r in await cur.fetchall()]
+        orphans: list[tuple[int, str]] = []
+        rebuild: set[int] = set()
+        for hour, mode, n, mean in stored:
+            got = actual.get((hour, mode))
+            if got is None:
+                orphans.append((hour, mode))
+            elif got[0] != n or abs(got[1] - mean) > 1e-6:
+                rebuild.add(hour)
+        for hour, mode in orphans:
+            await conn.execute(
+                "DELETE FROM cop_hourly WHERE ts_hour = ? AND mode = ?",
+                (hour, mode),
+            )
+        hours = sorted(rebuild)
+        for i in range(0, len(hours), 500):
+            chunk = hours[i:i + 500]
+            ph = ",".join("?" * len(chunk))
+            await conn.execute(
+                f"DELETE FROM cop_hourly WHERE ts_hour IN ({ph})", chunk
+            )
+            await self._rebuild_cop_hourly_for_hours(chunk)
+        await conn.commit()
+        stats = {"hours_rebuilt": len(hours), "rows_deleted": len(orphans),
+                 "completed": True}
+        await self.async_set_model_state("data_migration_v31_completed", stats)
+        _LOGGER.info("v31 migration: %s", stats)
+        return stats
+
+    async def async_cycle_off_gaps(self) -> dict[str, list[float]]:
+        """#415: pause before each stored cycle, per mode (seconds).
+
+        Pause = start of the cycle - end of the previous cycle (any mode,
+        transients included, as at close time); only non-transient cycles
+        contribute, matching AdaptiveThresholds.observe_cycle.
+        """
+        conn = self._require()
+        async with conn.execute(
+            "SELECT start_ts, end_ts, mode, is_transient FROM cycles "
+            "WHERE start_ts IS NOT NULL AND end_ts IS NOT NULL "
+            "ORDER BY start_ts ASC"
+        ) as cur:
+            rows = await cur.fetchall()
+        out: dict[str, list[float]] = {}
+        prev_end: float | None = None
+        for start, end, mode, transient in rows:
+            if prev_end is not None and not transient:
+                gap = float(start) - prev_end
+                if gap >= 0:
+                    out.setdefault(mode or "unknown", []).append(gap)
+            prev_end = float(end)
+        return out
+
     async def async_migrate_to_v30(self) -> dict[str, Any]:
         """#408 B/C: flag legacy COP outliers, rebuild affected hours and
         every daily_summary day with the current semantics.
@@ -3326,9 +3405,15 @@ class CycleDB:
             "SELECT ts_hour, mode, n_samples, cop_mean, cop_p10, "
             "cop_p50, cop_p90, cop_std, lwt_mean, outdoor_mean, "
             "outdoor_min, outdoor_max, flow_mean, updated_ts "
-            "FROM cop_hourly WHERE ts_hour >= ?"
+            "FROM cop_hourly WHERE ts_hour >= ? "
+            # #415: never serve an hour outside the COP gates (a stale row
+            # left from before the gates, see async_migrate_to_v31).
+            "AND cop_mean <= ? AND NOT (mode IN ('heating', 'dhw') "
+            "AND cop_mean < ?)"
         )
-        params: list[Any] = [int(since_ts) // 3600]
+        params: list[Any] = [
+            int(since_ts) // 3600, float(MAX_COP), float(COP_FLOOR),
+        ]
         if until_ts is not None:
             sql += " AND ts_hour <= ?"
             params.append(int(until_ts) // 3600)
@@ -3362,15 +3447,18 @@ class CycleDB:
         for r in rows:
             weighted_sum += float(r["cop_mean"]) * int(r["n_samples"])
         cop_mean = weighted_sum / float(n_samples)
-        p10_values = [float(r["cop_p10"]) for r in rows]
-        p90_values = [float(r["cop_p90"]) for r in rows]
         means = [float(r["cop_mean"]) for r in rows]
+        # #415: sample-weighted mean of the hourly p10 / p90. The old
+        # min(p10) / max(p90) let one single-sample hour (prod-1: 16.5)
+        # set the week / month p90; now it weighs 1 sample of thousands.
+        p10 = sum(float(r["cop_p10"]) * int(r["n_samples"]) for r in rows)
+        p90 = sum(float(r["cop_p90"]) * int(r["n_samples"]) for r in rows)
         return {
             "n_hours": n_hours,
             "n_samples": n_samples,
             "cop_mean": cop_mean,
-            "cop_p10": min(p10_values),
-            "cop_p90": max(p90_values),
+            "cop_p10": p10 / float(n_samples),
+            "cop_p90": p90 / float(n_samples),
             "cop_min": min(means),
             "cop_max": max(means),
         }

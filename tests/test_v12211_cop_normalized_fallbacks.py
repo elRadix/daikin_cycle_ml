@@ -40,11 +40,19 @@ def test_lwt_fallback_from_raw_attr():
     assert c._resolve_lwt_for_datasheet(snap) == 28.6
 
 
-def test_lwt_prefers_cache():
+def test_lwt_prefers_live_r1t():
+    # #415: live R1T is the same moment as the COP; the cache is the last
+    # stored heating sample (prod-1: 36.9 from the previous run's stop ramp)
+    c = _coord()
+    c._stooklijn_cache = {"huidige_lwt": 36.9}
+    snap = SimpleNamespace(attrs={"Leaving water temp. before BUH (R1T)": 28.6})
+    assert c._resolve_lwt_for_datasheet(snap) == 28.6
+
+
+def test_lwt_cache_when_no_live_r1t():
     c = _coord()
     c._stooklijn_cache = {"huidige_lwt": 31.4}
-    snap = SimpleNamespace(attrs={"Leaving water temp. before BUH (R1T)": 28.6})
-    assert c._resolve_lwt_for_datasheet(snap) == 31.4
+    assert c._resolve_lwt_for_datasheet(SimpleNamespace(attrs={})) == 31.4
 
 
 def test_lwt_none_when_both_missing():
