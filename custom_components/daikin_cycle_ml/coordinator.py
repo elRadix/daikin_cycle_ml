@@ -1582,8 +1582,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     async def async_run_kmeans(self, days: int = 28) -> dict[str, Any]:
         """#443: retrain the per-mode k-means on the last N days.
 
-        Re-assigns ``cycles.cluster_id`` of the trained window so stored
-        ids always match the current model.
+        Re-assigns ``cycles.cluster_id`` of every stored cycle so stored
+        ids always match the current model (None where no model applies).
         """
         if self.db is None:
             return {"ok": False, "reason": "no_db"}
@@ -1605,7 +1605,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             )
             return {"ok": False, "reason": "too_few", "n": len(cycles)}
         self._apply_kmeans_state(state)
-        assigned = await self._reassign_clusters(cycles)
+        # every stored cycle, not only the training window: older rows
+        # would keep v1 ids that collide with the v2 ids (prod-1: DHW
+        # model sizes 33/1/2, stored counts 59/32/26)
+        try:
+            stored = await self.db.async_fetch_cycles_for_relearn(days=36500)
+        except Exception:
+            _LOGGER.warning("kmeans reassign fetch failed", exc_info=True)
+            stored = cycles
+        assigned = await self._reassign_clusters(stored)
         payload = dict(state)
         payload["centroids"] = self._kmeans_centroids
         payload["ts"] = time.time()
@@ -4482,14 +4490,27 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 and self.baseline._migrated_from_dim is None
             )
             if current:
-                return False
+                if marker.get("clusters_all"):
+                    return False
+                # v1.26.1: a v1.26.0 relearn reassigned only the 28-day
+                # window; retrain once more so every stored cycle gets a
+                # v2 cluster id (or none).
+                km = await self.async_run_kmeans()
+                await self.db.async_set_model_state(
+                    ML_V2_RELEARN_MARKER,
+                    {**marker, "clusters_all": True,
+                     "clusters_reassigned": km.get("assigned")},
+                )
+                _LOGGER.info("ML v2 cluster ids reassigned: %s", km)
+                return True
             stats: dict[str, Any] = {
                 "repair": await self.db.async_repair_co_fire_cop(),
             }
             stats.update(await self.async_relearn_models(days=90))
             await self.db.async_set_model_state(
                 ML_V2_RELEARN_MARKER,
-                {"completed": True, "ml_version": ML_VERSION, **stats},
+                {"completed": True, "ml_version": ML_VERSION,
+                 "clusters_all": True, **stats},
             )
             _LOGGER.info("ML v2 relearn (#443): %s", stats)
             return True
