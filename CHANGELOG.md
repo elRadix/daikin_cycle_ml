@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Added
+- `tools/ingest_diagnostics.py` + `tests/fixtures/diagnostics/`: every
+  diagnostics file that is sent is stored the same way, for analysis,
+  simulations and tests:
+  - repaired when pasted;
+  - anonymised: stable anon id, entity ids replaced, no IP / MAC / mail
+    addresses, names or paths;
+  - trimmed to the data that matters;
+  - listed in `INDEX.json`.
+
+  `tests/test_diagnostics_corpus.py` scans every file for personal data
+  and replays it through the compat view, the model-code resolution, the
+  quality score and the stored ML state. First 7 files: 5 installs
+  (split HT, EVLQ hybrid, ERGA, basic profile without a DHW tank)
+
 ## [1.26.1] - 2026-11-20
 
 ### Fixed
