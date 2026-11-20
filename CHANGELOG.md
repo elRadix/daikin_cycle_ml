@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.26.1] - 2026-11-20
+
 ### Fixed
 - k-means retrain reassigns every stored cycle, not only its 28-day
   training window. Older cycles kept their v1 cluster ids 0-2, which
