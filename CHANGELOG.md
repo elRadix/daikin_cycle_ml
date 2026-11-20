@@ -9,10 +9,11 @@
   model sizes 33 / 1 / 2, stored counts 59 / 32 / 26). A cycle whose mode
   has no model gets no cluster (#443)
 
-### Migration
-- Installs that ran the v1.26.0 relearn retrain the k-means once at
-  startup so every stored cycle gets a v2 cluster id (marker field
-  `clusters_all` on `data_migration_ml_v2_completed`) (#443)
+### Added
+- ML state check at every start: without a k-means v2 model (missing or
+  v1) the k-means is retrained; stored cluster ids that do not match the
+  current model are reassigned (only those rows). Works for any upgrade
+  path, also when releases are skipped or after a downgrade (#443)
 
 ### Changed
 - ML simulation: the injected "filter clogging" fault is now named a

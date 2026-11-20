@@ -1186,6 +1186,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 ):  # pragma: no branch
                     await self.db.async_ensure_cluster_column()
                 await self._load_kmeans_state()
+                await self._heal_ml_state()
             except Exception:
                 _LOGGER.warning("cluster state setup failed", exc_info=True)
             try:
@@ -1638,7 +1639,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cluster_labels = kmeans_v2.labels(state)
 
     async def _reassign_clusters(self, cycles: list[dict[str, Any]]) -> int:
-        """Write the v2 cluster id of every cycle (None for transients)."""
+        """Write the v2 cluster id of every cycle whose stored id differs.
+
+        None for transients, co-fire cycles and modes without a model.
+        Returns the number of rows changed.
+        """
         if self.db is None:
             return 0
         pairs: list[tuple[int, int | None]] = []
@@ -1646,12 +1651,43 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             cid = rec.get("id")
             if not isinstance(cid, int):
                 continue
-            pairs.append((cid, self._assign_cluster(
+            want = self._assign_cluster(
                 rec.get("mode"),
                 behaviour_values(rec, lwt_avg=rec.get("lwt_avg")),
                 record=rec,
-            )))
+            )
+            if rec.get("cluster_id") != want:
+                pairs.append((cid, want))
         return int(await self.db.async_set_cluster_ids(pairs))
+
+    async def _heal_ml_state(self) -> dict[str, Any]:
+        """#443: detect stale ML state at startup and repair it.
+
+        Works for any upgrade path (skipped releases, downgrade and
+        upgrade, a manual retrain):
+        - no v2 k-means model (missing or v1) while cycles are stored:
+          retrain;
+        - stored cluster ids that do not match the current model (v1 ids,
+          ids from an older model): reassign only those rows.
+        Never raises.
+        """
+        if self.db is None:
+            return {"action": "none"}
+        try:
+            cycles = await self.db.async_fetch_cycles_for_relearn(days=36500)
+            if len(cycles) < kmeans_v2.MIN_CYCLES_PER_MODE:
+                return {"action": "none"}
+            if not self._kmeans_v2.get("modes"):
+                km = await self.async_run_kmeans()
+                _LOGGER.info("ML state: no k-means v2 model, retrained: %s", km)
+                return {"action": "retrained", **km}
+            fixed = await self._reassign_clusters(cycles)
+            if fixed:
+                _LOGGER.info("ML state: %s stale cluster ids reassigned", fixed)
+            return {"action": "reassigned" if fixed else "ok", "fixed": fixed}
+        except Exception:
+            _LOGGER.exception("ML state check failed")
+            return {"action": "failed"}
 
     async def _merge_kmeans_state(self, fields: dict[str, Any]) -> None:
         """Read-modify-write kmeans_state. Never raises. Fix D (#125)."""
@@ -4490,27 +4526,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 and self.baseline._migrated_from_dim is None
             )
             if current:
-                if marker.get("clusters_all"):
-                    return False
-                # v1.26.1: a v1.26.0 relearn reassigned only the 28-day
-                # window; retrain once more so every stored cycle gets a
-                # v2 cluster id (or none).
-                km = await self.async_run_kmeans()
-                await self.db.async_set_model_state(
-                    ML_V2_RELEARN_MARKER,
-                    {**marker, "clusters_all": True,
-                     "clusters_reassigned": km.get("assigned")},
-                )
-                _LOGGER.info("ML v2 cluster ids reassigned: %s", km)
-                return True
+                return False
             stats: dict[str, Any] = {
                 "repair": await self.db.async_repair_co_fire_cop(),
             }
             stats.update(await self.async_relearn_models(days=90))
             await self.db.async_set_model_state(
                 ML_V2_RELEARN_MARKER,
-                {"completed": True, "ml_version": ML_VERSION,
-                 "clusters_all": True, **stats},
+                {"completed": True, "ml_version": ML_VERSION, **stats},
             )
             _LOGGER.info("ML v2 relearn (#443): %s", stats)
             return True

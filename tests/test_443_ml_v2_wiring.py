@@ -351,16 +351,35 @@ async def test_retrain_reassign_fetch_failure_falls_back_to_window(db, monkeypat
     assert calls == [28, 36500]
 
 
-async def test_v1260_marker_triggers_one_cluster_reassign(db):
-    """v1.26.1: a marker from v1.26.0 (no clusters_all) retrains once."""
-    await _seed(db)
+async def test_heal_detects_stale_ids_on_any_upgrade_path(db):
+    """Startup check: a v1.26.0 install (ids only fixed in the 28-day
+    window) or any older id is detected and only those rows are fixed."""
+    now = time.time()
+    await _seed(db, now=now)
+    old = await db.async_insert_cycle(_rec(now - 60 * 86400, 50.0))
     c = _coord(db)
-    await db.async_set_model_state(
-        ML_V2_RELEARN_MARKER, {"completed": True, "ml_version": ML_VERSION},
-    )
-    assert await c._maybe_ml_v2_relearn() is True
-    marker = await db.async_get_model_state(ML_V2_RELEARN_MARKER)
-    assert marker["clusters_all"] is True and marker["clusters_reassigned"] > 0
-    assert marker["ml_version"] == ML_VERSION          # kept
+    await c.async_run_kmeans(days=28)
+    conn = db._require()
+    await conn.execute("UPDATE cycles SET cluster_id = 99 WHERE id = ?", (old,))
+    await conn.commit()
+    out = await c._heal_ml_state()
+    assert out == {"action": "reassigned", "fixed": 1}
+    assert await c._heal_ml_state() == {"action": "ok", "fixed": 0}
+
+
+async def test_heal_retrains_without_v2_model(db):
+    await _seed(db)
+    await db.async_set_model_state("kmeans_state", {"centroids": [[1.0] * 12]})   # v1
+    c = _coord(db)
+    assert await c._load_kmeans_state() is False
+    out = await c._heal_ml_state()
+    assert out["action"] == "retrained" and out["ok"] is True
     assert c._kmeans_v2["version"] == 2
-    assert await c._maybe_ml_v2_relearn() is False     # once
+
+
+async def test_heal_noop_paths(db):
+    assert await _coord()._heal_ml_state() == {"action": "none"}
+    assert await _coord(db)._heal_ml_state() == {"action": "none"}      # no cycles
+    broken = MagicMock()
+    broken.async_fetch_cycles_for_relearn = AsyncMock(side_effect=RuntimeError("io"))
+    assert await _coord(broken)._heal_ml_state() == {"action": "failed"}
