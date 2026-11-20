@@ -1908,7 +1908,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._last_buh_meter_w = buh_w
         return pw + buh_w if buh_w else pw
 
-    def _meter_skip(self, st: Any, reason: str) -> None:
+    def _meter_skip(self, st: Any, reason: str) -> float | None:
+        """Record why the meter is not used; returns None for the caller."""
         unit = st.attributes.get("unit_of_measurement") if st is not None else None
         self._meter_status = {"used": False, "unit": unit, "reason": reason}
         return None
