@@ -42,12 +42,12 @@ def test_send_entity_path():
 
 
 def test_send_legacy_path():
-    h = _hass_legacy({"notify": {"telegram_rachid": {}}})
-    ok = asyncio.run(async_send_notification(h, "notify.telegram_rachid", "hi"))
+    h = _hass_legacy({"notify": {"telegram_chat": {}}})
+    ok = asyncio.run(async_send_notification(h, "notify.telegram_chat", "hi"))
     assert ok is True
     args, _ = h.services.async_call.call_args
     assert args[0] == "notify"
-    assert args[1] == "telegram_rachid"
+    assert args[1] == "telegram_chat"
 
 
 def test_send_invalid_empty():
@@ -98,7 +98,7 @@ def test_services_constant():
 def test_choose_selector_constructs():
     h = MagicMock()
     h.services.async_services = MagicMock(
-        return_value={"notify": {"telegram_rachid": {}, "send_message": {}}}
+        return_value={"notify": {"telegram_chat": {}, "send_message": {}}}
     )
     s = cf._build_notify_selector(h)
     assert s is not None

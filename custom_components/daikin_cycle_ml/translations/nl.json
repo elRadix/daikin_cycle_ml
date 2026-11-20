@@ -85,7 +85,7 @@
           "quiet_hours_start": "Start stille uren",
           "quiet_hours_end": "Einde stille uren"
         },
-        "description": "Hoe en wanneer waarschuwingen worden afgeleverd.\n\n- **Persistente meldingen**: waarschuwingen in de zijbalk.\n- **Notify-service** (optioneel): bijv. `notify.telegram_rachid`.\n- **Stille uren**: onderdruk niet-kritieke waarschuwingen tijdens het venster (standaard 22:00-07:00).",
+        "description": "Hoe en wanneer waarschuwingen worden afgeleverd.\n\n- **Persistente meldingen**: waarschuwingen in de zijbalk.\n- **Meldingsdoel** (optioneel): een notify-entiteit zoals een Telegram-chat (`notify.telegram_bot_123_456`), of een oude notify-dienst.\n- **Stille uren**: onderdruk niet-kritieke waarschuwingen tijdens het venster (standaard 22:00-07:00).",
         "data_description": {
           "persistent_enabled": "Toon waarschuwingen als persistente meldingen in de zijbalk.",
           "notify_service": "Kies een notify-entiteit (aanbevolen) of een legacy notify-service. Laat leeg om pushmeldingen uit te schakelen.",

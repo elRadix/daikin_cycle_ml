@@ -466,7 +466,7 @@ Key options:
 - pendulum_cycles_per_day (default 40)
 - persistent_enabled (default true)
 - quiet_hours_enabled / start / end
-- notify_service (e.g. notify.telegram_rachid)
+- notify_service (e.g. a notify entity such as notify.telegram_bot_123_456)
 - notify_emoji_enabled (default true)
 - status_update_enabled (default false)
 - status_update_interval_hours (default 24)

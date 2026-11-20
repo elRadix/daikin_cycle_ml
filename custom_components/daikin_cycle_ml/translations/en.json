@@ -85,7 +85,7 @@
           "quiet_hours_start": "Quiet hours start",
           "quiet_hours_end": "Quiet hours end"
         },
-        "description": "How and when alerts are delivered.\n\n- **Persistent notifications**: sidebar alerts.\n- **Notify service** (optional): e.g. `notify.telegram_rachid`.\n- **Quiet hours**: suppress non-critical alerts during the window (default 22:00–07:00).",
+        "description": "How and when alerts are delivered.\n\n- **Persistent notifications**: sidebar alerts.\n- **Notify target** (optional): a notify entity such as a Telegram chat (`notify.telegram_bot_123_456`), or a legacy notify service.\n- **Quiet hours**: suppress non-critical alerts during the window (default 22:00–07:00).",
         "data_description": {
           "persistent_enabled": "Show alerts as persistent notifications in the sidebar.",
           "notify_service": "Pick a notify entity (recommended) or a legacy notify service. Leave empty to disable push notifications.",
