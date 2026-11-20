@@ -241,6 +241,12 @@ Tweakers feedback "alerts not shown in any card" is now #425.
           a later run blocks every sample as clock skew).
     R394  After a merge the remote head branch is gone: git checkout -B
           <session branch> origin/main and push normally (never force).
+    R395  Every diagnostics file that is sent (issue, chat, prod) is
+          ingested with tools/ingest_diagnostics.py into
+          tests/fixtures/diagnostics (anonymised, trimmed, INDEX.json).
+          Never store or mention a reporter's name or handle; --note
+          describes the install or the problem only. See the README
+          in that folder.
 
 ## Historical rules (RETIRED)
 
