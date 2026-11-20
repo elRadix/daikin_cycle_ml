@@ -230,7 +230,7 @@ def test_process_new_cycle_advice_disabled():
             return_value=["advice"],
         ) as p_adv,
         patch(
-            "custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
+            "custom_components.daikin_cycle_ml.coordinator.evaluate_behaviour",
             return_value=MagicMock(),
         ),
     ):

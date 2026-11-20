@@ -70,7 +70,7 @@ def _rec(transient: int | None = None, dur: float = 3600.0) -> dict[str, Any]:
 async def _run_process(c: Any, rec: dict[str, Any]) -> None:
     import custom_components.daikin_cycle_ml.coordinator as co
     with patch.object(co, "extract_feature_vector", return_value=[0.0] * 12), \
-         patch.object(co, "evaluate_anomaly", return_value=MagicMock(is_anomaly=False)):
+         patch.object(co, "evaluate_behaviour", return_value=MagicMock(is_anomaly=False)):
         await c._process_new_cycle(rec, _snap())
 
 

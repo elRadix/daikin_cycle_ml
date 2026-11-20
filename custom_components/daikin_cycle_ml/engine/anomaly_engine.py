@@ -115,3 +115,54 @@ def evaluate(
         message=_message(sev, mz, top),
         details={"z_threshold": z_threshold, "n": baseline.sample_count},
     )
+
+
+def evaluate_behaviour(
+    baseline: Any,
+    mode: str | None,
+    values: Mapping[str, float | None],
+    outdoor: Any = None,
+    *,
+    learn: bool = True,
+    options: Mapping[str, Any] | None = None,
+) -> AnomalyResult:
+    """#443 ML v2: score a cycle on its behaviour, then learn it.
+
+    ``is_anomaly`` follows the persistence rule of ``BehaviourBaseline``
+    (z >= 4 on two consecutive cycles, or z >= 6 once); severity is the
+    usual watch / warn / critical of this cycle's own z.
+    """
+    from ..ml.behaviour_baseline import feature_index
+
+    sc, alert = baseline.observe(mode, values, outdoor, learn=learn)
+    if not sc.z:
+        return AnomalyResult(
+            is_anomaly=False, severity=SEV_NORMAL,
+            max_abs_z=0.0, top_dim=None, top_dim_value=0.0,
+            message="Baseline not ready",
+            details={"reason": "not_ready", "n": baseline.sample_count(mode)},
+        )
+    watch = _opt_float(options, "anomaly_watch_z", DEFAULT_WATCH_Z)
+    warn = _opt_float(options, "anomaly_warn_z", DEFAULT_WARN_Z)
+    critical = _opt_float(options, "anomaly_critical_z", DEFAULT_CRITICAL_Z)
+    mz = sc.max_abs_z
+    top_name = sc.top
+    top = feature_index(top_name)
+    # top_name is a key of sc.z: only measured dimensions are scored
+    raw = float(values.get(top_name) or 0.0) if top_name else 0.0
+    sev = classify_severity(mz, watch=watch, warn=warn, critical=critical)
+    return AnomalyResult(
+        is_anomaly=bool(alert) and sev != SEV_NORMAL,
+        severity=sev,
+        max_abs_z=round(mz, 3),
+        top_dim=top,
+        top_dim_value=round(raw, 3),
+        message=_message(sev, mz, top),
+        details={
+            "ml_version": 2,
+            "group": sc.group,
+            "top_dim_name": top_name,
+            "z": {k: round(v, 2) for k, v in sc.z.items()},
+            "n": baseline.sample_count(mode),
+        },
+    )

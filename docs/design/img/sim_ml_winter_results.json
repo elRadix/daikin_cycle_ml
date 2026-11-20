@@ -33,12 +33,12 @@
   ]
  },
  "v2": {
-  "alerts": 13,
-  "alerts_fault_free_days": 6,
-  "alerts_per_week_fault_free": 0.6,
+  "alerts": 14,
+  "alerts_fault_free_days": 7,
+  "alerts_per_week_fault_free": 0.7,
   "top_dims": {
    "dT_avg": 7,
-   "log_duration": 4,
+   "duration_s": 5,
    "rps_avg": 2
   },
   "filter_fault_alerts_and_delay_days": [
@@ -49,7 +49,7 @@
    0,
    null
   ],
-  "in_fault_share": 0.54
+  "in_fault_share": 0.5
  },
  "clusters": {
   "labelled_pendulum": 852,
@@ -292,7 +292,7 @@
    "transients": 1,
    "anomaly_cur": 57,
    "alert_cur": 52,
-   "alert_v2": 1,
+   "alert_v2": 2,
    "alert_cur_on_transient": 0
   },
   "1": {
@@ -394,13 +394,13 @@
  },
  "adaptive_last": {
   "day": 88,
-  "short_run_threshold_min": 39,
+  "short_run_threshold_min": 29,
   "good_off_threshold_min": 13,
   "target_cycles_per_day": 17
  },
  "adaptive_first": {
   "day": 1,
-  "short_run_threshold_min": 38,
+  "short_run_threshold_min": 29,
   "good_off_threshold_min": 18
  },
  "final_baseline": {

@@ -111,7 +111,7 @@ async def test_post_cycle_invokes_cop_hourly_rollup_with_48h():
             lambda *a, **kw: [0.0] * 12,
         ),
         patch(
-            "custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
+            "custom_components.daikin_cycle_ml.coordinator.evaluate_behaviour",
             lambda *a, **kw: MagicMock(),
         ),
     ):
@@ -142,7 +142,7 @@ async def test_post_cycle_rollup_swallows_exception():
             lambda *a, **kw: [0.0] * 12,
         ),
         patch(
-            "custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
+            "custom_components.daikin_cycle_ml.coordinator.evaluate_behaviour",
             lambda *a, **kw: MagicMock(),
         ),
     ):
@@ -177,7 +177,7 @@ async def test_startup_plus_post_cycle_rollups_idempotent():
                 lambda *a, **kw: [0.0] * 12,
             ),
             patch(
-                "custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
+                "custom_components.daikin_cycle_ml.coordinator.evaluate_behaviour",
                 lambda *a, **kw: MagicMock(),
             ),
         ]

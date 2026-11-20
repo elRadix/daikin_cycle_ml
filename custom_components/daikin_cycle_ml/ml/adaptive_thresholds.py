@@ -18,6 +18,12 @@ MIN_OFF_MIN = 0
 MAX_OFF_MIN = 240
 MIN_TARGET_CPD = 1
 MAX_TARGET_CPD = 100
+# #443: p5 of this install's run lengths (p20 learned 38 min on a healthy
+# pump in the winter simulation: one run in five was "short" by design).
+SHORT_RUN_PCT = 5.0
+# #443: history bound per mode (~90 days at 16 runs a day) and in days
+MAX_SAMPLES_PER_MODE = 1500
+MAX_DAYS = 90
 
 
 def _percentile(values: list[float], pct: float) -> float:
@@ -71,6 +77,7 @@ class AdaptiveThresholds:
                 dur_min = None
             if dur_min is not None and dur_min > 0:
                 self._run_min[m].append(dur_min)
+                del self._run_min[m][:-MAX_SAMPLES_PER_MODE]
                 stored = True
         if off_s is not None:
             try:
@@ -79,6 +86,7 @@ class AdaptiveThresholds:
                 off_m = None
             if off_m is not None and off_m >= 0:
                 self._off_min[m].append(off_m)
+                del self._off_min[m][:-MAX_SAMPLES_PER_MODE]
                 stored = True
         return stored
 
@@ -97,7 +105,25 @@ class AdaptiveThresholds:
                 and v >= 0
             ]
             if mins:
-                self._off_min[mode] = mins
+                self._off_min[mode] = mins[-MAX_SAMPLES_PER_MODE:]
+                kept += len(mins)
+        return kept
+
+    def replace_run_samples(self, by_mode: Mapping[str, list[float]]) -> int:
+        """#443: replace every mode's run-length samples (seconds in).
+
+        Used by the ML v2 relearn: the stored lists were never bounded
+        and held split segments. Returns the number of samples kept.
+        """
+        self._run_min.clear()
+        kept = 0
+        for mode, values in by_mode.items():
+            mins = [
+                float(v) / 60.0 for v in values
+                if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0
+            ][-MAX_SAMPLES_PER_MODE:]
+            if mins:
+                self._run_min[mode] = mins
                 kept += len(mins)
         return kept
 
@@ -112,17 +138,18 @@ class AdaptiveThresholds:
         if c < 0:
             return False
         self._daily_cycles.append(c)
+        del self._daily_cycles[:-MAX_DAYS]
         return True
 
     # --- learned thresholds ---
 
     def learn_short_run_min(self, mode: str | None) -> int | None:
-        """p20 of run durations (minutes). None if not enough samples."""
+        """p5 of run durations (minutes). None if not enough samples."""
         vals = self._run_min.get(mode or 'unknown', [])
         if len(vals) < self.min_samples:
             return None
-        p20 = _percentile(vals, 20.0)
-        return _clamp_int(p20, MIN_RUN_MIN, MAX_RUN_MIN)
+        p5 = _percentile(vals, SHORT_RUN_PCT)
+        return _clamp_int(p5, MIN_RUN_MIN, MAX_RUN_MIN)
 
     def learn_good_off_min(self, mode: str | None) -> int | None:
         """p50 of off durations (minutes). None if not enough samples."""
@@ -202,13 +229,13 @@ class AdaptiveThresholds:
         inst = cls(min_samples=ms)
         for k, v in (data.get('run_min') or {}).items():
             if isinstance(v, list):
-                inst._run_min[k] = [float(x) for x in v]
+                inst._run_min[k] = [float(x) for x in v][-MAX_SAMPLES_PER_MODE:]
         for k, v in (data.get('off_min') or {}).items():
             if isinstance(v, list):
-                inst._off_min[k] = [float(x) for x in v]
+                inst._off_min[k] = [float(x) for x in v][-MAX_SAMPLES_PER_MODE:]
         dc = data.get('daily_cycles') or []
         if isinstance(dc, list):
-            inst._daily_cycles = [int(x) for x in dc]
+            inst._daily_cycles = [int(x) for x in dc][-MAX_DAYS:]
         return inst
 
     def reset(self, mode: str | None = None) -> None:

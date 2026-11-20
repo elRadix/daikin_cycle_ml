@@ -970,7 +970,7 @@
     },
     "recompute_baseline": {
       "name": "Herbereken baseline",
-      "description": "Herbereken de ML-baseline (uitgesteld naar Batch 7).",
+      "description": "Leer de ML-baseline, adaptieve looptijden en k-means opnieuw uit de cycli van de laatste N dagen.",
       "fields": {
         "entry_id": {
           "name": "Configuratie-item",

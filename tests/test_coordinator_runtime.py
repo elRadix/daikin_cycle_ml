@@ -370,15 +370,25 @@ async def test_load_kmeans_legacy_8dim_reset():
     assert c._kmeans_centroids == []
 
 
-async def test_load_kmeans_ok_11dim():
+async def test_load_kmeans_v1_11dim_ignored():
+    """#443: a v1 state (no version) is not loaded; the relearn retrains."""
     db = MagicMock()
     db.async_get_model_state = AsyncMock(return_value={"centroids": [[1.0] * 11, [2.0] * 11]})
     c = _bare(db=db)
-    with patch("custom_components.daikin_cycle_ml.coordinator.classify_clusters") as cc:
-        cc.return_value = {"labels": "set"}
-        assert await c._load_kmeans_state() is True
-        assert len(c._kmeans_centroids) == 2
-        assert c._cluster_labels == {"labels": "set"}
+    assert await c._load_kmeans_state() is False
+
+
+async def test_load_kmeans_ok_v2():
+    db = MagicMock()
+    db.async_get_model_state = AsyncMock(return_value={
+        "version": 2,
+        "modes": {"heating": {"id_base": 0, "labels": ["normal", "pendulum"],
+                              "centroids": [[0.0], [-2.0]]}},
+    })
+    c = _bare(db=db)
+    assert await c._load_kmeans_state() is True
+    assert len(c._kmeans_centroids) == 2
+    assert c._cluster_labels == {0: "normal", 1: "pendulum"}
 
 
 async def test_load_kmeans_db_throws():

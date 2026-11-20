@@ -1053,7 +1053,7 @@
       "name": "Label cycle"
     },
     "recompute_baseline": {
-      "description": "Recompute ML baseline (deferred to Batch 7).",
+      "description": "Relearn the ML baseline, adaptive run lengths and k-means from the last N days of cycles.",
       "fields": {
         "days": {
           "description": "Baseline window in days.",

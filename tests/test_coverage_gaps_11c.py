@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from custom_components.daikin_cycle_ml.ml.behaviour_baseline import BehaviourBaseline
 from custom_components.daikin_cycle_ml.engine.notification_engine import (
     _opt_float as ne_opt_float,
 )
@@ -65,89 +66,55 @@ def test_qs_opt_none_opts_returns_default():
 # ---------- services.py recompute edges ----------
 
 
+# #443: the service delegates to coordinator.async_relearn_models (replay
+# into a fresh BehaviourBaseline + adaptive runs + k-means retrain). The v1
+# reset / update / to_dict error paths are gone; the replay itself is
+# covered with a real DB in tests/test_443_ml_v2_wiring.py.
+
+
 async def test_recompute_skips_invalid_records():
     from custom_components.daikin_cycle_ml.services import (
         _do_recompute_baseline,
     )
 
-    db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(return_value=[{}, {}, {}])
-    db.async_set_model_state = AsyncMock()
     c = MagicMock()
-    c.db = db
-    c.baseline = MultiBaseline(VECTOR_LEN)
+    c.db = MagicMock()
+    c.baseline = BehaviourBaseline()  # #443
+    c.async_relearn_models = AsyncMock(return_value={"cycles": 3, "samples": 0})
     out = await _do_recompute_baseline(c, 7)
     assert out["computed"] is True
     assert out["samples"] == 0
+    c.async_relearn_models.assert_awaited_once_with(days=7)
 
 
-_GOOD_REC = {
-    "mode": "Heating",
-    "start_ts": 1.0,
-    "end_ts": 3601.0,
-    "duration_s": 3600,
-    "dT_max": 5.0,
-    "dT_avg": 4.0,
-    "rps_max": 50,
-    "rps_avg": 40.0,
-    "outdoor_temp": 10.0,
-    "buh_used": 0,
-    "defrost_used": 0,
-}
 
 
-async def test_recompute_reset_exception_swallowed():
+async def test_recompute_relearn_exception_reported():
     from custom_components.daikin_cycle_ml.services import (
         _do_recompute_baseline,
     )
 
-    db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(return_value=[dict(_GOOD_REC)])
-    db.async_set_model_state = AsyncMock()
     c = MagicMock()
-    c.db = db
-    bad = MagicMock()
-    bad.reset = MagicMock(side_effect=RuntimeError("boom"))
-    bad.update = MagicMock(return_value=True)
-    bad.to_dict = MagicMock(return_value={})
-    c.baseline = bad
+    c.db = MagicMock()
+    c.baseline = BehaviourBaseline()
+    c.async_relearn_models = AsyncMock(side_effect=RuntimeError("boom"))
     out = await _do_recompute_baseline(c, 7)
-    assert out["computed"] is True
+    assert out["computed"] is False
+    assert out["error"] == "boom"
 
 
-async def test_recompute_update_exception_swallowed():
+async def test_recompute_passes_relearn_stats():
     from custom_components.daikin_cycle_ml.services import (
         _do_recompute_baseline,
     )
 
-    db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(return_value=[dict(_GOOD_REC)])
-    db.async_set_model_state = AsyncMock()
     c = MagicMock()
-    c.db = db
-    bad = MagicMock()
-    bad.reset = MagicMock()
-    bad.update = MagicMock(side_effect=RuntimeError("boom"))
-    bad.to_dict = MagicMock(return_value={})
-    c.baseline = bad
+    c.db = MagicMock()
+    c.baseline = BehaviourBaseline()
+    stats = {"cycles": 1, "samples": 1, "adaptive_runs": 1, "kmeans": {"ok": False}}
+    c.async_relearn_models = AsyncMock(return_value=stats)
     out = await _do_recompute_baseline(c, 7)
-    assert out["computed"] is True
-    assert out["samples"] == 0
-
-
-async def test_recompute_set_state_exception_swallowed():
-    from custom_components.daikin_cycle_ml.services import (
-        _do_recompute_baseline,
-    )
-
-    db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(return_value=[dict(_GOOD_REC)])
-    db.async_set_model_state = AsyncMock(side_effect=RuntimeError("boom"))
-    c = MagicMock()
-    c.db = db
-    c.baseline = MultiBaseline(VECTOR_LEN)
-    out = await _do_recompute_baseline(c, 7)
-    assert out["computed"] is True
+    assert out == {"computed": True, "days": 7, **stats}
 
 
 async def test_handle_run_maintenance_not_supported():

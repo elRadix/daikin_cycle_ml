@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 
+from custom_components.daikin_cycle_ml.ml.behaviour_baseline import BehaviourBaseline
 from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,
     DataSnapshot,
@@ -24,7 +25,7 @@ def _bare_coord(options=None, store=None, db=None):
     c.hass.services.async_call = AsyncMock()
     c._last_alert_sent = {}
     c._errors_total = 0
-    c.baseline = MultiBaseline(VECTOR_LEN)
+    c.baseline = BehaviourBaseline()  # #443
     c.db = db
     return c
 
@@ -48,7 +49,8 @@ def _good_record(start_ts=100.0):
 def test_baseline_attached_in_new_coord():
     c = _bare_coord()
     assert c.baseline is not None
-    assert c.baseline.dim == VECTOR_LEN
+    # #443: behaviour dimensions only (run length, dT, rps, COP, LWT, kW)
+    assert c.baseline.dim == 6
 
 
 async def test_process_new_cycle_updates_baseline():
@@ -103,12 +105,14 @@ async def test_process_new_cycle_db_failure_does_not_raise():
 async def test_process_new_cycle_after_enough_samples_anomaly_set():
     c = _bare_coord()
     snap = DataSnapshot()
-    for i in range(10):
+    # #443: 25 cycles before a dimension is scored (was 3); the
+    # persistence rule alerts at once on z >= 6.
+    for i in range(30):
         await c._process_new_cycle(_good_record(start_ts=100.0 + i * 4000), snap)
     # Feed a wildly different cycle
-    wild = _good_record(start_ts=100000.0)
+    wild = _good_record(start_ts=200000.0)
     wild["duration_s"] = 999999
-    wild["rps_max"] = 99999
+    wild["rps_avg"] = 99999
     snap2 = DataSnapshot()
     await c._process_new_cycle(wild, snap2)
     assert snap2.anomaly is not None

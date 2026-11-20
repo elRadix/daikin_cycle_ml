@@ -70,6 +70,26 @@ _TOP_DIM_ADVICE: dict[str, tuple[int, str, str, str]] = {
         "Defrost occurred at an atypical moment. "
         "Check outdoor unit and frosting conditions.",
     ),
+    # #443: ML v2 scores COP, leaving water and thermal power too
+    "cop_avg": (
+        PRIORITY_HIGH, "anomaly_cop",
+        "COP outside normal range",
+        "Efficiency deviates from this heat pump's own normal at the same "
+        "outdoor temperature. Check flow, water filter, heating curve and "
+        "the outdoor unit.",
+    ),
+    "lwt_avg": (
+        PRIORITY_MED, "anomaly_lwt",
+        "Leaving water temperature unusual",
+        "The leaving water temperature differs from normal for this "
+        "outdoor temperature. Check the heating curve and setpoint changes.",
+    ),
+    "thermal_kw_avg": (
+        PRIORITY_MED, "anomaly_thermal",
+        "Heat output unusual",
+        "Delivered heat deviates from normal. Check flow rate, dT and "
+        "whether the house load changed.",
+    ),
 }
 
 

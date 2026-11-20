@@ -627,6 +627,9 @@ ADAPTIVE_MAX_TARGET_CPD = 100
 MODEL_STATE_ADAPTIVE = "adaptive_thresholds"
 # #415: off-time samples relearned once with off_s from the cycle start
 OFF_RELEARN_MARKER = "data_migration_off_s_relearn_completed"
+# #443: ML v2 relearn (baseline replay, adaptive runs, k-means retrain,
+# co-fire COP repair) done once; rerun when the stored ML version differs.
+ML_V2_RELEARN_MARKER = "data_migration_ml_v2_completed"
 DETECTOR_STATE_KEY = "cycle_detector_state"
 # #417: persist a running cycle at least this often (restore keeps samples)
 DETECTOR_PERSIST_S = 900.0
