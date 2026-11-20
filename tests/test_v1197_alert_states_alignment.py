@@ -18,6 +18,10 @@ from types import SimpleNamespace
 
 from custom_components.daikin_cycle_ml import coordinator as co
 from custom_components.daikin_cycle_ml.storage.store import CycleStore
+import pytest
+
+# #443: wall-clock independent ("now - 1 h" is yesterday between 00:00 and 02:00)
+pytestmark = pytest.mark.usefixtures("at_noon")
 
 
 def _mk_cycle(*, end_offset_s, dur, is_trans=0, mode="heating", off_s=None):

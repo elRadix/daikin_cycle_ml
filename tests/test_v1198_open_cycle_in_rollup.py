@@ -5,6 +5,10 @@ import asyncio
 import time
 
 from tests.test_rollup_concurrency import _mk_db
+import pytest
+
+# #443: wall-clock independent ("now - 1 h" is yesterday between 00:00 and 02:00)
+pytestmark = pytest.mark.usefixtures("at_noon")
 
 
 async def test_rollup_includes_open_cycle(tmp_path):

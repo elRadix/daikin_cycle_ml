@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added
+- `tools/sim_ml_winter.py` + `docs/design/ml-winter-simulation.md`: three
+  winter months (1,403 cycles, two injected faults) through the real ML
+  pipeline. Finds `ml_anomaly` noise (19 alerts per healthy week), the
+  relative "pendulum" cluster label and the k-means train / assign
+  mismatch; simulates the proposed fix (0.6 per week) (#443)
+
+### Fixed
+- Tests that build cycles at "now - 1 h" and roll up "today" failed
+  between 00:00 and 02:00 local (about 20 tests, and the 100 % coverage
+  gate): the cycle fell on yesterday. New `at_noon` fixture (freezegun,
+  ticking) pins 9 test files to midday; verified at 23:28, 00:28, 01:28
+  and 11:28 (#443)
+
 ## [1.25.0] - 2026-11-19
 
 ### Added

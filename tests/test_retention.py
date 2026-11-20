@@ -9,6 +9,9 @@ import pytest
 
 from custom_components.daikin_cycle_ml.storage.db import CycleDB
 
+# #443: wall-clock independent ("now - 1 h" is yesterday between 00:00 and 02:00)
+pytestmark = pytest.mark.usefixtures("at_noon")
+
 
 @pytest.fixture
 async def db(tmp_path):

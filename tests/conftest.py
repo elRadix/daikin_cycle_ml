@@ -67,3 +67,22 @@ def mock_frontend_dependency(request):
     hass = request.getfixturevalue("hass")
     hass.config.components.add("frontend")
     hass.data.setdefault("frontend_extra_module_url", set())
+
+
+
+@pytest.fixture
+def at_noon():
+    """Start the clock at today 12:00 local and let it run (#443).
+
+    Tests that build cycles at "now - 1 h" and roll up "today" failed
+    between 00:00 and 02:00 local: the cycle fell on yesterday. Use with
+    ``pytestmark = pytest.mark.usefixtures("at_noon")``. ``tick=True``
+    keeps the event loop and asyncio.sleep working.
+    """
+    import datetime as _dt
+
+    from freezegun import freeze_time
+
+    noon = _dt.datetime.now().replace(hour=12, minute=0, second=0, microsecond=0)
+    with freeze_time(noon, tick=True) as frozen:
+        yield frozen

@@ -193,7 +193,7 @@ def indoor_units_for(model_key: str) -> list[str]:
         "Altherma 3 R (EPGA D 11-16 kW)": "EABH/EABX, EAVH/EAVX/EAVZ",
         "Altherma 3 R (ERLA D 11-16 kW)": "EBBH/EBBX, EBVH/EBVX/EBVZ, EBSH/EBSX",
     }
-    for pat, sizes, series in _INDOOR_RULES:
+    for _pat, sizes, series in _INDOOR_RULES:
         for size, keys in sizes.items():
             if model_key in keys:
                 out.append(f"{stems[series]} {size}")
