@@ -254,6 +254,10 @@ def _safe_float_opt(value: Any) -> float | None:
         return None
 
 
+# #435: units of a cumulative energy meter, never a power reading
+ENERGY_UNITS = frozenset({"Wh", "kWh", "MWh", "GJ", "MJ"})
+
+
 def _normalize_power_w(value: float | None, unit: str | None) -> float | None:
     """Normalize power reading to Watt (kW -> W, W/unknown stays W)."""
     if value is None:
@@ -1870,21 +1874,50 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         return None, "none"
 
     def _power_from_meter(self) -> float | None:
+        """Configured power meter in W, or None (reason in power_meter_status).
+
+        #435: a kW meter is converted to W; an energy meter (kWh, Wh,
+        device_class energy) is not a power reading and is skipped, once
+        logged, instead of being read as watts.
+        """
         ps = getattr(self, "power_sensor", None)
         if not ps:
-            return None
+            return self._meter_skip(None, "not_configured")
         st = self.hass.states.get(ps)
         if st is None or st.state in (None, "unknown", "unavailable", ""):
-            return None
+            return self._meter_skip(st, "unavailable")
+        unit = st.attributes.get("unit_of_measurement")
+        if unit in ENERGY_UNITS or st.attributes.get("device_class") == "energy":
+            if not getattr(self, "_meter_energy_warned", False):
+                self._meter_energy_warned = True
+                _LOGGER.warning(
+                    "power_sensor_entity %s is an energy sensor (%s), not a "
+                    "power sensor (W / kW): it is ignored, the ESPAltherma "
+                    "estimate is used. Pick the meter's power entity.",
+                    ps, unit or "device_class energy",
+                )
+            return self._meter_skip(st, "energy_sensor")
         try:
-            pw = float(st.state)
+            pw = _normalize_power_w(float(st.state), unit)
         except (TypeError, ValueError):
-            return None
-        if pw <= 0:
-            return None
+            return self._meter_skip(st, "not_numeric")
+        if pw is None or pw <= 0:
+            return self._meter_skip(st, "zero")
+        self._meter_status = {"used": True, "unit": unit, "reason": None}
         buh_w = self._power_from_buh_meter()
         self._last_buh_meter_w = buh_w
         return pw + buh_w if buh_w else pw
+
+    def _meter_skip(self, st: Any, reason: str) -> None:
+        unit = st.attributes.get("unit_of_measurement") if st is not None else None
+        self._meter_status = {"used": False, "unit": unit, "reason": reason}
+        return None
+
+    @property
+    def power_meter_status(self) -> dict[str, Any]:
+        """#435: diagnostics: is the configured meter used, and if not why."""
+        return dict(getattr(self, "_meter_status", None)
+                    or {"used": False, "unit": None, "reason": "not_read_yet"})
 
     def _power_from_buh_meter(self) -> float | None:
         """Backup-heater meter in W (unit-normalised), None if unset/invalid."""

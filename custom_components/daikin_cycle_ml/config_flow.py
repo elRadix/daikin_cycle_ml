@@ -933,7 +933,8 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 ),
             ): _num(0, 100, 1, "rps"),
             pse_key: selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
+                # #435: a power sensor (W / kW), not an energy meter (kWh)
+                selector.EntitySelectorConfig(domain="sensor", device_class="power")
             ),
             vol.Optional(
                 "indoor_temp_sensor",
@@ -1345,6 +1346,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain="sensor",
+                        device_class="power",  # #435: W / kW, not kWh
                         # #311: prevent feedback loops when user picks
                         # the integration's own derived sensor.
                         exclude_entities=["sensor.daikin_cycle_ml_*"],
@@ -1356,6 +1358,7 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(
                         domain="sensor",
+                        device_class="power",
                         exclude_entities=["sensor.daikin_cycle_ml_*"],
                     )
                 ),

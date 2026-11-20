@@ -323,7 +323,7 @@ Leave blank if the canonical name exists on your sensor. The wizard auto-fills.
 
 **`compressor_rps_threshold`** — compressor "on" when RPS exceeds this. Typical 2–5. Lower = catches brief modulation dips; higher = misses short cycles.
 
-**`power_sensor_entity`** — optional W sensor. Fallback when `INV frequency (rps)` missing from firmware.
+**`power_sensor_entity`** — optional **power** sensor in W or kW (not a kWh energy counter). When set, it is the first source for electrical power and COP; the ESPAltherma estimate is used only when the meter is unavailable, reads 0, or is an energy sensor (logged once). Also the cycle fallback when `INV frequency (rps)` is missing from the firmware.
 
 **`fallback_power_threshold_w`** — power threshold when the power sensor is the cycle signal. Typical 200 W (compressor only), 500 W (whole system).
 
@@ -483,7 +483,7 @@ Three sections: **Sensors**, **Detection**, **Comfort**.
 | COP sensor | `cop_sensor_entity` | entity picker | (empty) |
 | Indoor temp sensor | `indoor_temp_sensor` | entity picker | (empty) |
 
-- **Power sensor** — W sensor for energy accounting + cycle fallback
+- **Power sensor** — W / kW power sensor (not kWh) for electrical power, COP, energy accounting + cycle fallback
 - **BUH power sensor** — optional meter of the backup heater when it is on its own circuit (W or kW). Added to the power sensor for electrical power and COP, so BUH heat (measured after the BUH) and BUH electricity are both counted. Not used for compressor detection
 - **COP sensor** — COP sensor (`measurement` or `ratio`), enables rolling COP analysis.
   Values above `MAX_COP` (11.0) or non-finite (`inf`) are ignored and the
