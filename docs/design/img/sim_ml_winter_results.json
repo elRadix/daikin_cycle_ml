@@ -1,0 +1,470 @@
+{
+ "cycles": 1403,
+ "transients": 20,
+ "per_day": 15.6,
+ "current": {
+  "anomaly_cycles": 258,
+  "alerts": 233,
+  "alerts_fault_free_days": 182,
+  "alerts_per_week_fault_free": 19.3,
+  "alerts_on_transients": 17,
+  "alerts_first_20_heating": 17,
+  "alerts_first_20_dhw": 16,
+  "updates_skipped_as_outlier": 141,
+  "top_dims": {
+   "duration_s": 121,
+   "rps_avg": 32,
+   "dT_avg": 17,
+   "dT_max": 14,
+   "indoor_temp_avg": 12,
+   "cop_avg": 10,
+   "lwt_avg": 8,
+   "thermal_kw_avg": 7,
+   "rps_max": 6,
+   "outdoor_temp": 6
+  },
+  "filter_fault_alerts_and_delay_days": [
+   36,
+   0
+  ],
+  "cop_fault_alerts_and_delay_days": [
+   15,
+   0
+  ]
+ },
+ "v2": {
+  "alerts": 13,
+  "alerts_fault_free_days": 6,
+  "alerts_per_week_fault_free": 0.6,
+  "top_dims": {
+   "dT_avg": 7,
+   "log_duration": 4,
+   "rps_avg": 2
+  },
+  "filter_fault_alerts_and_delay_days": [
+   7,
+   6
+  ],
+  "cop_fault_alerts_and_delay_days": [
+   0,
+   null
+  ],
+  "in_fault_share": 0.54
+ },
+ "clusters": {
+  "labelled_pendulum": 852,
+  "pendulum_but_ge_20min": 838,
+  "true_short_heating_runs": 15,
+  "kmeans_runs": [
+   {
+    "day": 6,
+    "centroid_min": [
+     37.7,
+     59.8,
+     301.5
+    ],
+    "labels": [
+     "pendulum",
+     "normal",
+     "long_cycle"
+    ],
+    "n": 121,
+    "transients_in_training": 1,
+    "modes_in_training": {
+     "heating": 109,
+     "dhw": 12
+    }
+   },
+   {
+    "day": 13,
+    "centroid_min": [
+     56.9,
+     34.0,
+     282.6
+    ],
+    "labels": [
+     "normal",
+     "pendulum",
+     "long_cycle"
+    ],
+    "n": 138,
+    "transients_in_training": 3,
+    "modes_in_training": {
+     "heating": 124,
+     "dhw": 14
+    }
+   },
+   {
+    "day": 20,
+    "centroid_min": [
+     40.6,
+     371.2,
+     61.6
+    ],
+    "labels": [
+     "pendulum",
+     "long_cycle",
+     "normal"
+    ],
+    "n": 109,
+    "transients_in_training": 3,
+    "modes_in_training": {
+     "heating": 95,
+     "dhw": 14
+    }
+   },
+   {
+    "day": 27,
+    "centroid_min": [
+     46.3,
+     329.1,
+     71.5
+    ],
+    "labels": [
+     "pendulum",
+     "long_cycle",
+     "normal"
+    ],
+    "n": 108,
+    "transients_in_training": 0,
+    "modes_in_training": {
+     "heating": 94,
+     "dhw": 14
+    }
+   },
+   {
+    "day": 34,
+    "centroid_min": [
+     57.9,
+     35.7,
+     297.4
+    ],
+    "labels": [
+     "normal",
+     "pendulum",
+     "long_cycle"
+    ],
+    "n": 130,
+    "transients_in_training": 0,
+    "modes_in_training": {
+     "heating": 116,
+     "dhw": 14
+    }
+   },
+   {
+    "day": 41,
+    "centroid_min": [
+     51.7,
+     198.2,
+     357.9
+    ],
+    "labels": [
+     "pendulum",
+     "normal",
+     "long_cycle"
+    ],
+    "n": 103,
+    "transients_in_training": 0,
+    "modes_in_training": {
+     "heating": 89,
+     "dhw": 14
+    }
+   },
+   {
+    "day": 48,
+    "centroid_min": [
+     52.5,
+     426.5,
+     283.6
+    ],
+    "labels": [
+     "pendulum",
+     "long_cycle",
+     "normal"
+    ],
+    "n": 48,
+    "transients_in_training": 0,
+    "modes_in_training": {
+     "heating": 34,
+     "dhw": 14
+    }
+   },
+   {
+    "day": 55,
+    "centroid_min": [
+     54.0,
+     382.5,
+     242.0
+    ],
+    "labels": [
+     "pendulum",
+     "long_cycle",
+     "normal"
+    ],
+    "n": 91,
+    "transients_in_training": 0,
+    "modes_in_training": {
+     "heating": 77,
+     "dhw": 14
+    }
+   },
+   {
+    "day": 62,
+    "centroid_min": [
+     49.3,
+     166.3,
+     325.3
+    ],
+    "labels": [
+     "pendulum",
+     "normal",
+     "long_cycle"
+    ],
+    "n": 132,
+    "transients_in_training": 3,
+    "modes_in_training": {
+     "heating": 118,
+     "dhw": 14
+    }
+   },
+   {
+    "day": 69,
+    "centroid_min": [
+     62.6,
+     305.8,
+     416.0
+    ],
+    "labels": [
+     "pendulum",
+     "normal",
+     "long_cycle"
+    ],
+    "n": 73,
+    "transients_in_training": 0,
+    "modes_in_training": {
+     "heating": 59,
+     "dhw": 14
+    }
+   },
+   {
+    "day": 76,
+    "centroid_min": [
+     42.3,
+     298.3,
+     64.1
+    ],
+    "labels": [
+     "pendulum",
+     "long_cycle",
+     "normal"
+    ],
+    "n": 116,
+    "transients_in_training": 2,
+    "modes_in_training": {
+     "heating": 102,
+     "dhw": 14
+    }
+   },
+   {
+    "day": 83,
+    "centroid_min": [
+     73.9,
+     356.8,
+     46.3
+    ],
+    "labels": [
+     "normal",
+     "long_cycle",
+     "pendulum"
+    ],
+    "n": 118,
+    "transients_in_training": 0,
+    "modes_in_training": {
+     "heating": 104,
+     "dhw": 14
+    }
+   }
+  ]
+ },
+ "weeks": {
+  "0": {
+   "cycles": 139,
+   "transients": 1,
+   "anomaly_cur": 57,
+   "alert_cur": 52,
+   "alert_v2": 1,
+   "alert_cur_on_transient": 0
+  },
+  "1": {
+   "cycles": 134,
+   "transients": 4,
+   "anomaly_cur": 20,
+   "alert_cur": 18,
+   "alert_v2": 0,
+   "alert_cur_on_transient": 3
+  },
+  "2": {
+   "cycles": 100,
+   "transients": 2,
+   "anomaly_cur": 22,
+   "alert_cur": 19,
+   "alert_v2": 3,
+   "alert_cur_on_transient": 2
+  },
+  "3": {
+   "cycles": 112,
+   "transients": 0,
+   "anomaly_cur": 12,
+   "alert_cur": 12,
+   "alert_v2": 0,
+   "alert_cur_on_transient": 0
+  },
+  "4": {
+   "cycles": 132,
+   "transients": 0,
+   "anomaly_cur": 7,
+   "alert_cur": 6,
+   "alert_v2": 0,
+   "alert_cur_on_transient": 0
+  },
+  "5": {
+   "cycles": 91,
+   "transients": 0,
+   "anomaly_cur": 18,
+   "alert_cur": 16,
+   "alert_v2": 0,
+   "alert_cur_on_transient": 0
+  },
+  "6": {
+   "cycles": 54,
+   "transients": 0,
+   "anomaly_cur": 31,
+   "alert_cur": 27,
+   "alert_v2": 2,
+   "alert_cur_on_transient": 0
+  },
+  "7": {
+   "cycles": 95,
+   "transients": 0,
+   "anomaly_cur": 17,
+   "alert_cur": 17,
+   "alert_v2": 0,
+   "alert_cur_on_transient": 0
+  },
+  "8": {
+   "cycles": 129,
+   "transients": 3,
+   "anomaly_cur": 8,
+   "alert_cur": 8,
+   "alert_v2": 0,
+   "alert_cur_on_transient": 3
+  },
+  "9": {
+   "cycles": 68,
+   "transients": 0,
+   "anomaly_cur": 27,
+   "alert_cur": 24,
+   "alert_v2": 0,
+   "alert_cur_on_transient": 0
+  },
+  "10": {
+   "cycles": 111,
+   "transients": 2,
+   "anomaly_cur": 27,
+   "alert_cur": 22,
+   "alert_v2": 7,
+   "alert_cur_on_transient": 1
+  },
+  "11": {
+   "cycles": 124,
+   "transients": 3,
+   "anomaly_cur": 7,
+   "alert_cur": 7,
+   "alert_v2": 0,
+   "alert_cur_on_transient": 3
+  },
+  "12": {
+   "cycles": 114,
+   "transients": 5,
+   "anomaly_cur": 5,
+   "alert_cur": 5,
+   "alert_v2": 0,
+   "alert_cur_on_transient": 5
+  }
+ },
+ "adaptive_last": {
+  "day": 88,
+  "short_run_threshold_min": 39,
+  "good_off_threshold_min": 13,
+  "target_cycles_per_day": 17
+ },
+ "adaptive_first": {
+  "day": 1,
+  "short_run_threshold_min": 38,
+  "good_off_threshold_min": 18
+ },
+ "final_baseline": {
+  "dhw": {
+   "n": 167,
+   "std": {
+    "duration_s": 242.23,
+    "dT_max": 0.495,
+    "dT_avg": 0.221,
+    "rps_max": 3.318,
+    "rps_avg": 1.513,
+    "outdoor_temp": 3.785,
+    "buh_used": 0.0,
+    "defrost_used": 0.0,
+    "cop_avg": 0.15,
+    "lwt_avg": 0.413,
+    "indoor_temp_avg": 0.204,
+    "thermal_kw_avg": 0.161
+   },
+   "mean": {
+    "duration_s": 2894.93,
+    "dT_max": 5.99,
+    "dT_avg": 4.65,
+    "rps_max": 68.05,
+    "rps_avg": 57.77,
+    "outdoor_temp": 4.17,
+    "buh_used": 0.0,
+    "defrost_used": 0.0,
+    "cop_avg": 2.38,
+    "lwt_avg": 52.08,
+    "indoor_temp_avg": 20.52,
+    "thermal_kw_avg": 5.52
+   }
+  },
+  "heating": {
+   "n": 1095,
+   "std": {
+    "duration_s": 834.861,
+    "dT_max": 0.412,
+    "dT_avg": 0.29,
+    "rps_max": 1.516,
+    "rps_avg": 0.67,
+    "outdoor_temp": 2.716,
+    "buh_used": 0.0,
+    "defrost_used": 0.271,
+    "cop_avg": 0.585,
+    "lwt_avg": 1.555,
+    "indoor_temp_avg": 0.247,
+    "thermal_kw_avg": 0.112
+   },
+   "mean": {
+    "duration_s": 2621.52,
+    "dT_max": 2.87,
+    "dT_avg": 2.2,
+    "rps_max": 28.26,
+    "rps_avg": 24.02,
+    "outdoor_temp": 8.15,
+    "buh_used": 0.0,
+    "defrost_used": 0.08,
+    "cop_avg": 4.38,
+    "lwt_avg": 29.69,
+    "indoor_temp_avg": 20.51,
+    "thermal_kw_avg": 2.55
+   }
+  }
+ }
+}

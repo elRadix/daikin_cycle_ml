@@ -14,6 +14,9 @@ from custom_components.daikin_cycle_ml.coordinator import (
     DataSnapshot,
 )
 
+# #443: wall-clock independent ("now - 1 h" is yesterday between 00:00 and 02:00)
+pytestmark = pytest.mark.usefixtures("at_noon")
+
 C5_KEYS = {
     "runtime_compressor_today",
     "runtime_buh_today",
@@ -336,9 +339,15 @@ def test_buh_energy_kwh_est_swallows_exception():
     assert s_mod._buh_energy_kwh_est(c, 3600.0, 0.0) is None
 
 
-def test_attrs_runtime_unknown_mode_skipped():
+def test_attrs_runtime_unknown_mode_skipped(monkeypatch):
     """v1.22.8: unknown-mode cycles skipped from per-mode buckets."""
-    now = time.time()
+    # Anchor at local midday: between 00:00 and 01:00 "now - 3600" fell on
+    # yesterday, the unknown-mode branch was never reached and the 100 %
+    # coverage gate failed for runs in that hour.
+    import datetime as _dt
+
+    now = _dt.datetime.now().replace(hour=12, minute=0, second=0, microsecond=0).timestamp()
+    monkeypatch.setattr("custom_components.daikin_cycle_ml.sensor._now", lambda: now)
     c = _mk_coord(
         intersecting=[
             {"start_ts": now - 3600, "end_ts": now - 3500, "mode": "unknown",

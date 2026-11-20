@@ -43,7 +43,7 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
         ])
         for url in card_urls():
             add_extra_js_url(hass, url)
-    except Exception:  # noqa: BLE001 - a card must never break the integration
+    except Exception:  # a card must never break the integration
         _LOGGER.exception("Failed to register the Daikin Cycle ML card")
         return
     hass.data[_REGISTERED] = True
