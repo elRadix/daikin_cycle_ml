@@ -399,6 +399,12 @@ def _num(v: Any) -> float | None:
     return float(v)
 
 
+def _power_meter(coord: Any) -> dict[str, Any] | None:
+    """#435: is the configured power meter used, its unit, why not."""
+    pm = getattr(coord, "power_meter_status", None)
+    return pm if isinstance(pm, dict) else None
+
+
 def _cop_cross_check(coord: Any, snap: Any) -> dict[str, Any]:
     """#408 D: COP used vs measured (flow x dT / power) vs ESPAltherma.
 
@@ -665,6 +671,7 @@ async def async_get_config_entry_diagnostics(
             # v1.20.0 #281: COP source transparency (was dead; now surfaced)
             "cop_source": str(getattr(snap, "cop_source", "none")),
             "cop_cross_check": _cop_cross_check(coord, snap),
+            "power_meter": _power_meter(coord),
             "runtime_check": _runtime_check(coord, snap),
             "dhw_present": getattr(coord, "dhw_present", None),
             "dhw_present_source": getattr(coord, "_dhw_present_source", "unresolved"),

@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 ### Fixed
+- Power meter: a meter in kW was read as watts (0.85 kW counted as
+  0.85 W), and an energy meter (kWh / Wh, device class energy) picked as
+  power sensor was read as watts (3,200 kWh as 3,200 W). kW is now
+  converted; an energy sensor is skipped with one log line, so the
+  ESPAltherma estimate is used. The meter fields in the wizard offer power
+  sensors only. Diagnostics `coordinator.power_meter`: used, unit, reason
+  when skipped (Part of #435)
 - Notifications to notify entities (Telegram chats since HA 2025.11, and
   other entity-based notify integrations) failed with "notify service
   ... not found". A target that is a notify entity is now sent with
