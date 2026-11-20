@@ -309,3 +309,77 @@ def test_rich_snapshot_reads_espaltherma_labels():
     c = _coord()
     snap = SimpleNamespace(attrs={ATTR_LEAVING_WATER_AFTER_BUH: 38.0})
     assert c._snap_attr(snap, "leaving_water_temp", ATTR_LEAVING_WATER_AFTER_BUH) == 38.0
+
+
+async def test_retrain_reassigns_every_stored_cycle(db):
+    """prod-1 v1.26.0: cycles outside the 28-day window kept v1 ids 0-2,
+    which collide with the v2 DHW ids 0-2. Every stored cycle is
+    reassigned; a cycle whose mode has no model gets NULL."""
+    now = time.time()
+    await _seed(db, now=now)
+    old_heat = await db.async_insert_cycle(_rec(now - 60 * 86400, 50.0))
+    old_cool = await db.async_insert_cycle(_rec(now - 61 * 86400, 30.0, mode="cooling"))
+    conn = db._require()
+    await conn.execute("UPDATE cycles SET cluster_id = 1 WHERE id IN (?, ?)", (old_heat, old_cool))
+    await conn.commit()
+    c = _coord(db)
+    out = await c.async_run_kmeans(days=28)
+    assert out["ok"] is True
+    async with conn.execute(
+        "SELECT id, cluster_id FROM cycles WHERE id IN (?, ?)", (old_heat, old_cool)
+    ) as cur:
+        ids = {r[0]: r[1] for r in await cur.fetchall()}
+    heat_base = c._kmeans_v2["modes"]["heating"]["id_base"]
+    assert heat_base <= ids[old_heat] < heat_base + 10
+    assert ids[old_cool] is None
+
+
+async def test_retrain_reassign_fetch_failure_falls_back_to_window(db, monkeypatch):
+    await _seed(db)
+    real = db.async_fetch_cycles_for_relearn
+    calls = []
+
+    async def flaky(days=90):
+        calls.append(days)
+        if len(calls) > 1:
+            raise RuntimeError("locked")
+        return await real(days=days)
+
+    monkeypatch.setattr(db, "async_fetch_cycles_for_relearn", flaky)
+    out = await _coord(db).async_run_kmeans(days=28)
+    assert out["ok"] is True and out["assigned"] > 0
+    assert calls == [28, 36500]
+
+
+async def test_heal_detects_stale_ids_on_any_upgrade_path(db):
+    """Startup check: a v1.26.0 install (ids only fixed in the 28-day
+    window) or any older id is detected and only those rows are fixed."""
+    now = time.time()
+    await _seed(db, now=now)
+    old = await db.async_insert_cycle(_rec(now - 60 * 86400, 50.0))
+    c = _coord(db)
+    await c.async_run_kmeans(days=28)
+    conn = db._require()
+    await conn.execute("UPDATE cycles SET cluster_id = 99 WHERE id = ?", (old,))
+    await conn.commit()
+    out = await c._heal_ml_state()
+    assert out == {"action": "reassigned", "fixed": 1}
+    assert await c._heal_ml_state() == {"action": "ok", "fixed": 0}
+
+
+async def test_heal_retrains_without_v2_model(db):
+    await _seed(db)
+    await db.async_set_model_state("kmeans_state", {"centroids": [[1.0] * 12]})   # v1
+    c = _coord(db)
+    assert await c._load_kmeans_state() is False
+    out = await c._heal_ml_state()
+    assert out["action"] == "retrained" and out["ok"] is True
+    assert c._kmeans_v2["version"] == 2
+
+
+async def test_heal_noop_paths(db):
+    assert await _coord()._heal_ml_state() == {"action": "none"}
+    assert await _coord(db)._heal_ml_state() == {"action": "none"}      # no cycles
+    broken = MagicMock()
+    broken.async_fetch_cycles_for_relearn = AsyncMock(side_effect=RuntimeError("io"))
+    assert await _coord(broken)._heal_ml_state() == {"action": "failed"}

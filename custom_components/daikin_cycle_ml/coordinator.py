@@ -1186,6 +1186,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 ):  # pragma: no branch
                     await self.db.async_ensure_cluster_column()
                 await self._load_kmeans_state()
+                await self._heal_ml_state()
             except Exception:
                 _LOGGER.warning("cluster state setup failed", exc_info=True)
             try:
@@ -1582,8 +1583,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     async def async_run_kmeans(self, days: int = 28) -> dict[str, Any]:
         """#443: retrain the per-mode k-means on the last N days.
 
-        Re-assigns ``cycles.cluster_id`` of the trained window so stored
-        ids always match the current model.
+        Re-assigns ``cycles.cluster_id`` of every stored cycle so stored
+        ids always match the current model (None where no model applies).
         """
         if self.db is None:
             return {"ok": False, "reason": "no_db"}
@@ -1605,7 +1606,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             )
             return {"ok": False, "reason": "too_few", "n": len(cycles)}
         self._apply_kmeans_state(state)
-        assigned = await self._reassign_clusters(cycles)
+        # every stored cycle, not only the training window: older rows
+        # would keep v1 ids that collide with the v2 ids (prod-1: DHW
+        # model sizes 33/1/2, stored counts 59/32/26)
+        try:
+            stored = await self.db.async_fetch_cycles_for_relearn(days=36500)
+        except Exception:
+            _LOGGER.warning("kmeans reassign fetch failed", exc_info=True)
+            stored = cycles
+        assigned = await self._reassign_clusters(stored)
         payload = dict(state)
         payload["centroids"] = self._kmeans_centroids
         payload["ts"] = time.time()
@@ -1630,7 +1639,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cluster_labels = kmeans_v2.labels(state)
 
     async def _reassign_clusters(self, cycles: list[dict[str, Any]]) -> int:
-        """Write the v2 cluster id of every cycle (None for transients)."""
+        """Write the v2 cluster id of every cycle whose stored id differs.
+
+        None for transients, co-fire cycles and modes without a model.
+        Returns the number of rows changed.
+        """
         if self.db is None:
             return 0
         pairs: list[tuple[int, int | None]] = []
@@ -1638,12 +1651,43 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             cid = rec.get("id")
             if not isinstance(cid, int):
                 continue
-            pairs.append((cid, self._assign_cluster(
+            want = self._assign_cluster(
                 rec.get("mode"),
                 behaviour_values(rec, lwt_avg=rec.get("lwt_avg")),
                 record=rec,
-            )))
+            )
+            if rec.get("cluster_id") != want:
+                pairs.append((cid, want))
         return int(await self.db.async_set_cluster_ids(pairs))
+
+    async def _heal_ml_state(self) -> dict[str, Any]:
+        """#443: detect stale ML state at startup and repair it.
+
+        Works for any upgrade path (skipped releases, downgrade and
+        upgrade, a manual retrain):
+        - no v2 k-means model (missing or v1) while cycles are stored:
+          retrain;
+        - stored cluster ids that do not match the current model (v1 ids,
+          ids from an older model): reassign only those rows.
+        Never raises.
+        """
+        if self.db is None:
+            return {"action": "none"}
+        try:
+            cycles = await self.db.async_fetch_cycles_for_relearn(days=36500)
+            if len(cycles) < kmeans_v2.MIN_CYCLES_PER_MODE:
+                return {"action": "none"}
+            if not self._kmeans_v2.get("modes"):
+                km = await self.async_run_kmeans()
+                _LOGGER.info("ML state: no k-means v2 model, retrained: %s", km)
+                return {"action": "retrained", **km}
+            fixed = await self._reassign_clusters(cycles)
+            if fixed:
+                _LOGGER.info("ML state: %s stale cluster ids reassigned", fixed)
+            return {"action": "reassigned" if fixed else "ok", "fixed": fixed}
+        except Exception:
+            _LOGGER.exception("ML state check failed")
+            return {"action": "failed"}
 
     async def _merge_kmeans_state(self, fields: dict[str, Any]) -> None:
         """Read-modify-write kmeans_state. Never raises. Fix D (#125)."""

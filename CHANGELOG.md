@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Fixed
+- k-means retrain reassigns every stored cycle, not only its 28-day
+  training window. Older cycles kept their v1 cluster ids 0-2, which
+  collide with the v2 ids of the first mode (prod-1 diagnostics: DHW
+  model sizes 33 / 1 / 2, stored counts 59 / 32 / 26). A cycle whose mode
+  has no model gets no cluster (#443)
+
+### Added
+- ML state check at every start: without a k-means v2 model (missing or
+  v1) the k-means is retrained; stored cluster ids that do not match the
+  current model are reassigned (only those rows). Works for any upgrade
+  path, also when releases are skipped or after a downgrade (#443)
+
 ### Changed
 - ML simulation: the injected "filter clogging" fault is now named a
   water-flow loss (17 -> 10 l/min), with its real causes listed: a
