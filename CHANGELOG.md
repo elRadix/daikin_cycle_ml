@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Changed
+- ML simulation: the injected "filter clogging" fault is now named a
+  water-flow loss (17 -> 10 l/min), with its real causes listed: a
+  clogging water filter or dirt separator, air, a partly closed valve or
+  a weak pump (`FLOW_FAULT`, results key `flow_fault_alerts_and_delay_days`)
+  (#443)
+
 ## [1.26.0] - 2026-11-20
 
 ### Changed
