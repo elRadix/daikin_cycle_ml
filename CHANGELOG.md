@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.26.0] - 2026-11-20
+
 ### Changed
 - ML v2: the `ml_anomaly` alert scores how the heat pump behaves (run
   length, dT, compressor speed, COP, leaving water, heat output) per mode
