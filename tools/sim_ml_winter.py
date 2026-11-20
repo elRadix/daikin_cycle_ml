@@ -15,8 +15,9 @@ in the order of coordinator._process_new_cycle. Two faults are injected
 so the alerts can be scored: a clogging filter (flow 17 -> 10 l/min,
 4-14 Feb) and a slow COP loss (-15 %, 15-28 Feb).
 
-A second pipeline ("v2", the proposal in docs/design/ml-winter-simulation.md)
-runs on the same cycles for comparison.
+A second pipeline ("v2", shipped with #443: ml.behaviour_baseline +
+engine.anomaly_engine.evaluate_behaviour) runs on the same cycles for
+comparison; "current" is the v1 path (MultiBaseline, kept as a module).
 
 Usage:  python tools/sim_ml_winter.py [--out DIR]
 """
@@ -34,9 +35,16 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from custom_components.daikin_cycle_ml.coordinator import _classify_transient  # noqa: E402
-from custom_components.daikin_cycle_ml.engine.anomaly_engine import evaluate  # noqa: E402
+from custom_components.daikin_cycle_ml.engine.anomaly_engine import (  # noqa: E402
+    evaluate,
+    evaluate_behaviour,
+)
 from custom_components.daikin_cycle_ml.engine.quality_scorer import score_cycle  # noqa: E402
 from custom_components.daikin_cycle_ml.ml.adaptive_thresholds import AdaptiveThresholds  # noqa: E402
+from custom_components.daikin_cycle_ml.ml.behaviour_baseline import (  # noqa: E402
+    BehaviourBaseline,
+    behaviour_values,
+)
 from custom_components.daikin_cycle_ml.ml.clustering import (  # noqa: E402
     classify_clusters,
     kmeans,
@@ -263,9 +271,9 @@ def run_current(cycles: list[dict]) -> dict:
             adaptive.observe_cycle(mode, rec["duration_s"], rec["off_s"])
         per_mode = mb.get(mode)
         updated = None
-        if not rec["is_transient"]:
-            updated = per_mode.update(vec)
-        res = evaluate(vec, per_mode, {})
+        if not rec["is_transient"] and not rec.get("boiler_contribution_samples"):
+            updated = per_mode.update(vec)  # co-fire cycles are not learned (v1.17.2)
+        res = evaluate(vec, per_mode, {})  # ... but are evaluated
         rec["z"] = res.max_abs_z
         rec["top"] = FEATURE_NAMES[res.top_dim] if res.top_dim is not None else None
         rec["anomaly"] = res.is_anomaly
@@ -288,68 +296,31 @@ def run_current(cycles: list[dict]) -> dict:
     return out
 
 
-# ---------------------------------------------------------------- pipeline: v2 proposal
-
-BEHAVIOUR = ("log_duration", "dT_avg", "rps_avg", "cop_avg", "lwt_avg", "thermal_kw_avg")
-FLOOR = {"log_duration": 0.15, "dT_avg": 0.4, "rps_avg": 3.0, "cop_avg": 0.15,
-         "lwt_avg": 0.8, "thermal_kw_avg": 0.3}
-
-
-class RobustBaseline:
-    """Unbiased warm-up (alpha_eff = max(alpha, 1/n)), std floor, Huber-clipped update."""
-
-    def __init__(self, alpha: float = 0.02) -> None:
-        self.alpha, self.n = alpha, 0
-        self.mean: dict[str, float] = {}
-        self.var: dict[str, float] = {}
-
-    def z(self, x: dict[str, float]) -> dict[str, float]:
-        return {k: (x[k] - self.mean[k]) / max(FLOOR[k], math.sqrt(self.var[k])) for k in BEHAVIOUR} if self.n else {}
-
-    def update(self, x: dict[str, float]) -> None:
-        self.n += 1
-        a = max(self.alpha, 1.0 / self.n)
-        for k in BEHAVIOUR:
-            if self.n == 1:
-                self.mean[k], self.var[k] = x[k], 0.0
-                continue
-            s = max(FLOOR[k], math.sqrt(self.var[k]))
-            d = max(-3 * s, min(3 * s, x[k] - self.mean[k])) if self.n > 30 else x[k] - self.mean[k]
-            self.mean[k] += a * d
-            self.var[k] = (1 - a) * (self.var[k] + a * d * d)
-
-
-def _bvec(rec: dict) -> dict[str, float]:
-    return {"log_duration": math.log(max(60.0, rec["duration_s"])), "dT_avg": rec["dT_avg"],
-            "rps_avg": rec["rps_avg"], "cop_avg": rec["cop_avg"], "lwt_avg": rec["lwt_avg"],
-            "thermal_kw_avg": rec["thermal_kw_avg"]}
-
+# ---------------------------------------------------------------- pipeline: v2 (#443, shipped)
 
 def run_v2(cycles: list[dict]) -> None:
-    """Per mode x outdoor band (4 K), behaviour dims only, persistence."""
-    base: dict[tuple, RobustBaseline] = defaultdict(RobustBaseline)
-    streak: dict[str, int] = Counter()
+    """The shipped ML v2 path: BehaviourBaseline + evaluate_behaviour.
+
+    Same rules as coordinator._ml_score_cycle: transients and co-fire
+    cycles are not scored, a short run drops its run length.
+    """
+    bb = BehaviourBaseline()
     last_alert = -1e18
     for rec in cycles:
         rec["v2_alert"] = False
         rec["v2_z"] = 0.0
-        if rec["is_transient"]:
-            continue  # transients are not scored (they are expected)
-        mode = rec["mode"]
-        band = (mode, int(math.floor(rec["outdoor_temp"] / 4.0)))
-        b = base[band] if base[band].n >= 25 else base[(mode, None)]
-        x = _bvec(rec)
-        zs = b.z(x) if b.n >= 25 else {}
-        zmax = max((abs(v) for v in zs.values()), default=0.0)
-        rec["v2_z"] = round(zmax, 2)
-        rec["v2_top"] = max(zs, key=lambda k: abs(zs[k])) if zs else None
-        hit = zmax >= 4.0
-        streak[mode] = streak[mode] + 1 if hit else 0
-        if (streak[mode] >= 2 or zmax >= 6.0) and rec["end_ts"] - last_alert >= DEDUP_S:
+        if rec["is_transient"] or rec.get("boiler_contribution_samples"):
+            continue
+        vals = behaviour_values(rec, cop_avg=rec["cop_avg"], lwt_avg=rec["lwt_avg"],
+                                thermal_kw_avg=rec["thermal_kw_avg"])
+        if rec["duration_s"] < SHORT_RUN_MIN * 60:
+            vals["duration_s"] = None
+        res = evaluate_behaviour(bb, rec["mode"], vals, rec["outdoor_temp"])
+        rec["v2_z"] = res.max_abs_z
+        rec["v2_top"] = res.details.get("top_dim_name")
+        if res.is_anomaly and rec["end_ts"] - last_alert >= DEDUP_S:
             rec["v2_alert"] = True
             last_alert = rec["end_ts"]
-        base[band].update(x)
-        base[(mode, None)].update(x)
 
 
 # ---------------------------------------------------------------- report

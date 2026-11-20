@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from custom_components.daikin_cycle_ml.ml.behaviour_baseline import BehaviourBaseline
 from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,
     DataSnapshot,
@@ -27,7 +28,7 @@ def _bare(options=None, db=None):
     c.hass.services.async_call = AsyncMock()
     c._last_alert_sent = {}
     c._errors_total = 0
-    c.baseline = MultiBaseline(VECTOR_LEN)
+    c.baseline = BehaviourBaseline()  # #443
     c.db = db
     return c
 
@@ -92,10 +93,10 @@ async def test_kmeans_callback_sunday():
 
 async def test_kmeans_run_failure():
     db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(return_value=[_rec(0), _rec(1), _rec(2)])
+    db.async_fetch_cycles_for_relearn = AsyncMock(return_value=[_rec(0), _rec(1), _rec(2)])
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db)
-    p = "custom_components.daikin_cycle_ml.ml.clustering.kmeans"
+    p = "custom_components.daikin_cycle_ml.ml.kmeans_v2.train"  # #443
     with patch(p, side_effect=RuntimeError("boom")):
         out = await c.async_run_kmeans(days=7)
     assert out["ok"] is False
@@ -104,8 +105,11 @@ async def test_kmeans_run_failure():
 
 async def test_kmeans_save_state_failure():
     db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(return_value=[_rec(0), _rec(1), _rec(2)])
+    # #443: per-mode model needs >= 12 cycles of the mode
+    db.async_fetch_cycles_for_relearn = AsyncMock(return_value=[_rec(i) for i in range(12)])
     db.async_set_model_state = AsyncMock(side_effect=RuntimeError("boom"))
+    db.async_get_model_state = AsyncMock(return_value=None)
+    db.async_set_cluster_ids = AsyncMock(return_value=0)
     c = _bare(db=db)
     out = await c.async_run_kmeans(days=7)
     assert out["ok"] is True

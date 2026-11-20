@@ -91,6 +91,13 @@ def _baseline_summary(coord: Any) -> dict[str, Any]:  # pragma: no cover
     if baseline is None:
         return {}
     summary: dict[str, Any] = {"total_samples": 0, "modes": {}}
+    if hasattr(baseline, "summary"):  # #443: ML v2 behaviour baseline
+        try:
+            summary.update(baseline.summary())
+            summary["total_samples"] = baseline.total_samples()
+        except Exception:
+            _LOGGER.debug("diagnostics: baseline summary failed")
+        return summary
     try:
         summary["total_samples"] = baseline.total_samples()
         for mode in baseline.modes():  # DIAG-V1224

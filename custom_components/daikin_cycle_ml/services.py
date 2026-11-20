@@ -89,9 +89,9 @@ SCHEMA_BASELINE = vol.Schema({
 })
 
 
-SCHEMA_RECOMPUTE_KMEANS = vol.Schema({
+SCHEMA_RECOMPUTE_KMEANS = vol.Schema({  # #443: 28 days (per-mode models)
     vol.Required(ATTR_ENTRY_ID): str,
-    vol.Optional(ATTR_DAYS, default=7): vol.All(int, vol.Range(min=1, max=365)),
+    vol.Optional(ATTR_DAYS, default=28): vol.All(int, vol.Range(min=1, max=365)),
 })
 
 SCHEMA_RUN_MAINTENANCE = vol.Schema({
@@ -241,14 +241,18 @@ async def _do_label_cycle(coordinator: Any, cycle_id: int, label: str) -> dict[s
 
 
 async def _do_recompute_baseline(coordinator: Any, days: int) -> dict[str, Any]:
+    """#443: replay the last N days into a fresh ML v2 baseline.
+
+    Also rebuilds the adaptive run samples and retrains the per-mode
+    k-means (coordinator.async_relearn_models).
+    """
     db = getattr(coordinator, "db", None)
     if db is None:
         return {"computed": False, "reason": "no_db", "days": days}
-    mb = getattr(coordinator, "baseline", None)
-    if mb is None:
+    if getattr(coordinator, "baseline", None) is None:
         return {"computed": False, "reason": "no_baseline", "days": days}
     try:
-        cycles = await db.async_fetch_cycles(days=days)
+        stats = await coordinator.async_relearn_models(days=days)
     except Exception as err:
         return {
             "computed": False,
@@ -256,39 +260,9 @@ async def _do_recompute_baseline(coordinator: Any, days: int) -> dict[str, Any]:
             "days": days,
             "error": str(err),
         }
-    if not cycles:
+    if not stats.get("cycles"):
         return {"computed": False, "reason": "no_data", "days": days, "samples": 0}
-    from .ml.features import extract_feature_vector, is_valid_record
-    try:
-        mb.reset()
-    except Exception as err:
-        _LOGGER.debug("baseline reset failed: %s", err)
-    fed = 0
-    for rec in cycles:
-        if not is_valid_record(rec):
-            continue
-        try:
-            vec = extract_feature_vector(rec)
-        except Exception as err:
-            _LOGGER.debug(
-                "feature extraction failed for cycle %s: %s",
-                rec.get("id"), err,
-            )
-            continue
-        mode = rec.get("mode") or "unknown"
-        try:
-            mb.update(mode, vec)
-            fed += 1
-        except Exception as err:
-            _LOGGER.debug(
-                "baseline update failed for mode %s: %s", mode, err,
-            )
-            continue
-    try:
-        await db.async_set_model_state("baseline_state", mb.to_dict())
-    except Exception as err:
-        _LOGGER.warning("Failed to persist baseline state: %s", err)
-    return {"computed": True, "days": days, "samples": fed}
+    return {"computed": True, "days": days, **stats}
 
 
 # ---------- HA handlers ----------
@@ -318,7 +292,7 @@ async def _handle_recompute_kmeans(
 ) -> dict[str, Any]:
     """Trigger a kmeans retrain, notify the user, return the result."""
     coord = _resolve_coordinator(hass, call.data[ATTR_ENTRY_ID])
-    days = int(call.data.get(ATTR_DAYS, 7))
+    days = int(call.data.get(ATTR_DAYS, 28))
     _raw = await coord.async_run_kmeans(days=days)
     result: dict[str, Any] = dict(_raw) if isinstance(_raw, dict) else {"ok": False, "reason": "bad_result"}
     _fire_kmeans_notification(hass, result)

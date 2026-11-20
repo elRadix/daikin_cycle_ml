@@ -153,4 +153,5 @@ def test_multibaseline_source_has_legacy_import():
 def test_coordinator_has_kmeans_guard():
     co_path = _INTEG / "coordinator.py"
     src = co_path.read_text()
-    assert "kmeans_state is legacy" in src
+    # #443: any v1 kmeans_state (8- or 12-dim, no "version") is ignored
+    assert "kmeans_state is v1" in src

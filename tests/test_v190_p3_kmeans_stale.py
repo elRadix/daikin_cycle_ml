@@ -147,7 +147,7 @@ async def test_persist_attempt_success_after_failures_resets():
 @pytest.mark.asyncio
 async def test_run_kmeans_too_few_persists_failure():
     db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(return_value=[])
+    db.async_fetch_cycles_for_relearn = AsyncMock(return_value=[])
     db.async_get_model_state = AsyncMock(return_value=None)
     db.async_set_model_state = AsyncMock()
     c = _bare(db=db)
@@ -167,10 +167,10 @@ async def test_run_kmeans_too_few_persists_failure():
 
 @pytest.mark.asyncio
 async def test_run_kmeans_kmeans_failed_persists_failure(monkeypatch):
-    from custom_components.daikin_cycle_ml.ml import clustering
+    from custom_components.daikin_cycle_ml.ml import kmeans_v2 as clustering  # #443
 
     db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(
+    db.async_fetch_cycles_for_relearn = AsyncMock(
         return_value=[_rec(0.0), _rec(1.0), _rec(2.0)],
     )
     db.async_get_model_state = AsyncMock(return_value=None)
@@ -180,7 +180,7 @@ async def test_run_kmeans_kmeans_failed_persists_failure(monkeypatch):
     def boom(*a, **kw):
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(clustering, "kmeans", boom)
+    monkeypatch.setattr(clustering, "train", boom)
     out = await c.async_run_kmeans(days=7)
 
     assert out["ok"] is False

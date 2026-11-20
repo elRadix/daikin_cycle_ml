@@ -144,6 +144,21 @@ Every dimension can be `None` (source attribute missing, or sensor not configure
 
 ## 3. Per-mode baseline
 
+> **ML v2 (#443).** The anomaly alert now uses `ml/behaviour_baseline.py`
+> instead of the 12-dimension `MultiBaseline` described in sections 2–4
+> (kept as a module; the 12-dim vector still fills the `features` table):
+>
+> - **Dimensions:** run length (log minutes), `dT_avg`, `rps_avg`, `cop_avg`, `lwt_avg`, `thermal_kw_avg`. Outdoor temperature, BUH / defrost flags, `dT_max` and `rps_max` are context, not dimensions.
+> - **Groups:** per mode and per 4 K outdoor band; the mode statistics are used until a band has 25 cycles. A dimension is scored after 25 samples.
+> - **Learning:** `alpha_eff = max(0.02, 1/n)` (unbiased warm-up), a std floor per dimension (run length 0.15 log, dT 0.4 K, rps 3, COP 0.15, LWT 0.8 K, kW 0.3), and a Huber clip at 3 sigma after 30 samples instead of skipping outliers.
+> - **Not scored:** transients and boiler co-fire cycles. Short runs and split segments drop their run length.
+> - **Alert:** z ≥ 4 on two consecutive cycles of the mode, or z ≥ 6 once. `top_dim` stays an index into `FEATURE_NAMES`; `details` carries `top_dim_name`, `group` and the z per dimension.
+> - **K-means v2** (`ml/kmeans_v2.py`): one model per mode, trained on the last 28 days on standardised behaviour vectors without transients or co-fire. The mean and std are stored with the model, so assignment uses the same scale. Labels are absolute: a centroid under the short-run threshold is `pendulum`, over 180 min `long_cycle`, else `normal`. Cluster ids are `mode index * 10 + i`.
+> - **Adaptive short-run:** p5 (was p20), history bounded to 1,500 runs per mode and 90 days.
+> - **Relearn:** once after the update (marker `data_migration_ml_v2_completed`), and again when the stored ML version differs. It replays the cycles table into the models, retrains k-means, reassigns cluster ids and repairs co-fire COP. The `recompute_baseline` service runs the same replay on demand.
+>
+> Simulation and numbers: [design/ml-winter-simulation.md](design/ml-winter-simulation.md).
+
 ### 3.1 Why per-mode
 
 A heating cycle, a DHW cycle, and a cooling cycle have completely different characteristics:

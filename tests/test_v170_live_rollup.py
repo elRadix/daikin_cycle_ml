@@ -94,7 +94,7 @@ async def test_process_new_cycle_invokes_rollup(monkeypatch):
         lambda *a, **kw: [0.0] * 12,
     )
     monkeypatch.setattr(
-        "custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
+        "custom_components.daikin_cycle_ml.coordinator.evaluate_behaviour",
         lambda *a, **kw: MagicMock(),
     )
     snap = SimpleNamespace(anomaly=None, advice=None, cluster_id=None, mode="heating")
@@ -143,7 +143,7 @@ async def test_merged_cycle_triggers_daily_rollup(monkeypatch):
         lambda *a, **kw: [0.0] * 12,
     )
     monkeypatch.setattr(
-        "custom_components.daikin_cycle_ml.coordinator.evaluate_anomaly",
+        "custom_components.daikin_cycle_ml.coordinator.evaluate_behaviour",
         lambda *a, **kw: MagicMock(),
     )
 

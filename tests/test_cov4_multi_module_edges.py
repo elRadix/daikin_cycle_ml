@@ -85,30 +85,13 @@ def test_resolve_optional_with_entry_id():
     p.assert_called_once_with(hass, "e1")
 
 
-def test_do_recompute_baseline_extract_raises():
+def test_do_recompute_baseline_delegates_to_relearn():
+    """#443: the v1 feature-extraction loop moved to
+    coordinator.async_relearn_models (behaviour values, no vector)."""
     coord = MagicMock()
     coord.db = MagicMock()
-    sample = [{"id": 1, "mode": "heating", "duration_s": 600}]
-    for name in (
-        "async_fetch_cycles_since",
-        "async_fetch_cycles",
-        "async_get_cycles",
-        "async_get_cycles_since",
-        "async_recent_cycles",
-    ):
-        setattr(coord.db, name, AsyncMock(return_value=sample))
-    coord.db.async_set_model_state = AsyncMock()
-    with (
-        patch(
-            "custom_components.daikin_cycle_ml.ml.features.is_valid_record",
-            return_value=True,
-        ),
-        patch(
-            "custom_components.daikin_cycle_ml.ml.features.extract_feature_vector",
-            side_effect=RuntimeError("boom"),
-        ),
-    ):
-        result = asyncio.run(svc._do_recompute_baseline(coord, 30))
+    coord.async_relearn_models = AsyncMock(return_value={"cycles": 1, "samples": 0})
+    result = asyncio.run(svc._do_recompute_baseline(coord, 30))
     assert result["computed"] is True
     assert result["samples"] == 0
 

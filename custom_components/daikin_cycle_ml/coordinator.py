@@ -39,6 +39,7 @@ from .const import (
     ATTR_FLOW_SENSOR,
     ATTR_INDOOR_AMBIENT_R1T,
     ATTR_LEAVING_WATER_AFTER_BUH,
+    ATTR_LEAVING_WATER_BEFORE_BUH,
     ATTR_LW_SETPOINT,
     ATTR_OUTDOOR_AIR_R1T,
     ATTR_TARGET_COND_TEMP,
@@ -85,6 +86,7 @@ from .const import (
     MODE_DHW,
     MODE_HEATING,
     MODEL_BASISPROFIEL,
+    ML_V2_RELEARN_MARKER,
     OFF_RELEARN_MARKER,
     OPTION_DAILY_SUMMARY_LIVE_ENABLED,
     REQUIRED_ATTRIBUTES,
@@ -104,7 +106,7 @@ from .const import (
     tolerant_on,
 )
 from .engine.action_engine import generate_advice
-from .engine.anomaly_engine import evaluate as evaluate_anomaly
+from .engine.anomaly_engine import AnomalyResult, evaluate_behaviour
 from .engine.attribute_compat import build_compat_view
 from .engine.attribute_reader import missing_required, read
 from .engine.cop_degradation import (
@@ -172,9 +174,9 @@ from .engine.thermal import (
     secondary_rps_from_attrs as _secondary_rps_from_attrs,
 )
 from .ml.adaptive_thresholds import AdaptiveThresholds
-from .ml.clustering import classify_clusters, nearest_centroid
-from .ml.features import VECTOR_LEN, extract_feature_vector
-from .ml.multi_baseline import MultiBaseline
+from .ml import kmeans_v2
+from .ml.behaviour_baseline import ML_VERSION, BehaviourBaseline, behaviour_values
+from .ml.features import extract_feature_vector
 from .repairs import async_check_repairs
 from .storage.db import VACUUM_MIN_FREE_RATIO
 from .storage.store import CycleStore, _is_transient_int
@@ -777,6 +779,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     # R52: class-level defaults so __new__-style tests find these attrs
     _kmeans_centroids: list[Any] = []
     _cluster_labels: dict[int, str] = {}
+    _kmeans_v2: dict[str, Any] = {}
     _setpoint_history: deque[Any] | None = None
     _last_setpoint: float | None = None
 
@@ -873,7 +876,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._kmeans_backfill_unsub: Any = None
         self._status_update_unsub: Any = None
         self._stooklijn_unsub: Any = None
-        self.baseline = MultiBaseline(VECTOR_LEN)
+        self.baseline = BehaviourBaseline()
         self.adaptive = AdaptiveThresholds(
             min_samples=int(
                 self.options.get("adaptive_min_samples", 20)
@@ -881,6 +884,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         )
         self._kmeans_centroids: list[list[float]] = []
         self._cluster_labels: dict[int, str] = {}
+        self._kmeans_v2: dict[str, Any] = {}
         self.cop_sensor_entity: str = self.options.get(
             "cop_sensor_entity", COP_SENSOR_ENTITY
         )
@@ -1146,7 +1150,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             out.update(result)
         return out
 
-    # ---------- Batch 11c MultiBaseline wiring ----------
+    # ---------- Batch 11c baseline wiring (#443: BehaviourBaseline) ----------
 
     async def async_setup_baseline_persistence(self) -> None:
         """Restore baseline from model_state, schedule 6h save."""
@@ -1154,14 +1158,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             try:
                 data = await self.db.async_get_model_state("baseline_state")
                 if data:
-                    self.baseline = MultiBaseline.from_dict(data)
+                    self.baseline = BehaviourBaseline.from_dict(data)
                     if getattr(self.baseline, "_migrated_from_dim", None) is not None:
+                        # #443: v1 state (12-dim MultiBaseline); the ML v2
+                        # relearn below replays the cycles table into it.
                         _LOGGER.info(
-                            "MultiBaseline migrated from dim=%s to %d; persisting now",
+                            "Baseline state is v1 (dim=%s): ML v2 relearn",
                             self.baseline._migrated_from_dim,
-                            self.baseline.dim,
                         )
-                        await self.async_save_baseline_state()
                     _LOGGER.info(
                         "Baseline restored: modes=%s samples=%s",
                         self.baseline.modes(),
@@ -1171,6 +1175,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 _LOGGER.exception("Baseline restore failed")
             await self.async_load_adaptive_state()
             await self._maybe_relearn_off_samples()
+            await self._maybe_ml_v2_relearn()
             await self._restore_detector_once()
             await self._restore_runtime_acc()
             await self._restore_energy_acc()
@@ -1574,36 +1579,71 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("kmeans persist: write failed")
 
-    async def async_run_kmeans(self, days: int = 7) -> dict[str, Any]:
-        """Cluster last N days of cycles into 3 groups."""
+    async def async_run_kmeans(self, days: int = 28) -> dict[str, Any]:
+        """#443: retrain the per-mode k-means on the last N days.
+
+        Re-assigns ``cycles.cluster_id`` of the trained window so stored
+        ids always match the current model.
+        """
         if self.db is None:
             return {"ok": False, "reason": "no_db"}
-        from .ml.clustering import kmeans, labels_to_dict
-        from .ml.features import extract_many
         try:
-            cycles = await self.db.async_fetch_cycles(days=days)
+            cycles = await self.db.async_fetch_cycles_for_relearn(days=days)
         except Exception:
             _LOGGER.exception("kmeans fetch failed")
             await self._persist_kmeans_attempt(ok=False, reason="fetch_failed")
             return {"ok": False, "reason": "fetch_failed"}
-        vectors = extract_many(cycles)
-        if len(vectors) < 3:
-            await self._persist_kmeans_attempt(
-                ok=False, reason="too_few", n=len(vectors),
-            )
-            return {"ok": False, "reason": "too_few", "n": len(vectors)}
         try:
-            result = kmeans(vectors, k=3)
+            state = kmeans_v2.train(cycles, short_run_min=self._short_run_min())
         except Exception:
             _LOGGER.exception("kmeans run failed")
             await self._persist_kmeans_attempt(ok=False, reason="kmeans_failed")
             return {"ok": False, "reason": "kmeans_failed"}
-        payload = labels_to_dict(result)
+        if not state["modes"]:
+            await self._persist_kmeans_attempt(
+                ok=False, reason="too_few", n=len(cycles),
+            )
+            return {"ok": False, "reason": "too_few", "n": len(cycles)}
+        self._apply_kmeans_state(state)
+        assigned = await self._reassign_clusters(cycles)
+        payload = dict(state)
+        payload["centroids"] = self._kmeans_centroids
         payload["ts"] = time.time()
+        # drop the v1 per-sample payload (labels list, sizes, inertia)
+        payload.update(labels=None, cluster_sizes=None, inertia=None, iterations=None)
         await self._persist_kmeans_attempt(
-            ok=True, n=len(vectors), k=result.k, extra=payload,
+            ok=True, n=state["n"], k=state["k"], extra=payload,
         )
-        return {"ok": True, "n": len(vectors), "k": result.k}
+        return {"ok": True, "n": state["n"], "k": state["k"], "assigned": assigned}
+
+    def _short_run_min(self) -> float:
+        """Configured short-run threshold in minutes (k-means labels)."""
+        try:
+            opts = getattr(self, "options", None) or {}
+            return float(opts.get("short_run_threshold_min", 20) or 20)
+        except (TypeError, ValueError):
+            return 20.0
+
+    def _apply_kmeans_state(self, state: dict[str, Any]) -> None:
+        self._kmeans_v2 = state
+        self._kmeans_centroids = kmeans_v2.centroids(state)
+        self._cluster_labels = kmeans_v2.labels(state)
+
+    async def _reassign_clusters(self, cycles: list[dict[str, Any]]) -> int:
+        """Write the v2 cluster id of every cycle (None for transients)."""
+        if self.db is None:
+            return 0
+        pairs: list[tuple[int, int | None]] = []
+        for rec in cycles:
+            cid = rec.get("id")
+            if not isinstance(cid, int):
+                continue
+            pairs.append((cid, self._assign_cluster(
+                rec.get("mode"),
+                behaviour_values(rec, lwt_avg=rec.get("lwt_avg")),
+                record=rec,
+            )))
+        return int(await self.db.async_set_cluster_ids(pairs))
 
     async def _merge_kmeans_state(self, fields: dict[str, Any]) -> None:
         """Read-modify-write kmeans_state. Never raises. Fix D (#125)."""
@@ -2253,7 +2293,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             ):
                 self._detector_persist_ts = now
                 await self._persist_detector_state()
-            self._accumulate_cycle_samples(attrs)
+            self._accumulate_cycle_samples(
+                attrs,
+                boiler_on=(
+                    snap.boiler_active is True
+                    and _boiler_signals_trusted(snap)
+                ),
+            )
             self._tick_mark("read_detect")
             if record is not None:
                 # v1.12.0 (#105): classify transient before scoring/insert
@@ -2901,8 +2947,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("energy tick failed")
 
-    def _accumulate_cycle_samples(self, attrs: dict[str, Any]) -> None:
-        """Add LWT + indoor temp to running sums while cycle is active."""
+    def _accumulate_cycle_samples(
+        self, attrs: dict[str, Any], *, boiler_on: bool = False,
+    ) -> None:
+        """Add LWT + indoor temp to running sums while cycle is active.
+
+        #443: ``boiler_on`` (trusted hybrid / bivalent boiler signal) keeps
+        co-fire ticks out of the cycle COP: the source COP then counts the
+        boiler's heat as heat-pump output (+53..94 % in the simulation).
+        """
         try:
             is_active = self.detector.state != "idle"
         except Exception:
@@ -2910,7 +2963,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not is_active:
             return
         lwt = None
-        for k in ("lwt", "leaving_water_temp", "leaving_temp", "R2T"):
+        # #443: ESPAltherma labels first (the short keys were never sent,
+        # so lwt_avg stayed 0.0 and k-means / the baseline lost LWT).
+        for k in (
+            ATTR_LEAVING_WATER_AFTER_BUH, ATTR_LEAVING_WATER_BEFORE_BUH,
+            "lwt", "leaving_water_temp", "leaving_temp", "R2T",
+        ):
             v = attrs.get(k)
             if isinstance(v, (int, float)) and not isinstance(v, bool):
                 lwt = float(v)
@@ -2929,6 +2987,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     _LOGGER.debug("indoor cast failed", exc_info=True)
 
 
+        if boiler_on:
+            return
         cop = self._read_cop()
         if cop is None or cop <= 0.0:
             return
@@ -3093,7 +3153,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 )
                 await self.db.async_insert_features(cid, vec)
                 try:
-                    cid_val = self._assign_cluster(vec)
+                    cid_val = self._assign_cluster(
+                        record.get("mode"),
+                        behaviour_values(record, cop_avg=cop_avg, lwt_avg=lwt_avg),
+                        record=record,
+                    )
                     if cid_val is not None:
                         snap.cluster_id = cid_val
                         await self.db.async_update_cycle_cluster(
@@ -3108,19 +3172,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 
         # ML pipeline (best-effort, never blocks cycle durability).
         try:
-            vector = extract_feature_vector(
-                record,
-                cop_avg=cop_avg,
-                lwt_avg=lwt_avg,
-                indoor_temp_avg=indoor_avg,
-                thermal_kw_avg=record.get("thermal_kw_avg") or 0.0,
-            )
             mode = record.get("mode") or snap.mode or "unknown"
+            # #419: split / cap segments are not compressor runs
+            _seg = bool(record.get("continued")) or record.get(
+                "ended_by") in ("split", "cap")
             if not record.get("is_transient"):
                 try:
-                    # #419: split / cap segments are not compressor runs
-                    _seg = bool(record.get("continued")) or record.get(
-                        "ended_by") in ("split", "cap")
                     self.adaptive.observe_cycle(
                         mode,
                         None if _seg else record.get("duration_s"),
@@ -3130,18 +3187,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     _LOGGER.warning(
                         "adaptive observe_cycle failed", exc_info=True
                     )
-            per_mode = self.baseline.get(mode)
-            if not record.get("is_transient"):
-                # v1.12.0 (#105): skip baseline update on transients
-                # v1.17.2: also skip co-fire cycles on hybrid (boiler
-                # contributed heat skews thermal_kw_avg/dT and triggers
-                # false ml_anomaly on pure-HP cycles). Non-hybrid has 0
-                # boiler_contribution_samples so this is a no-op there.
-                _boiler_n = int(record.get("boiler_contribution_samples", 0) or 0)
-                if _boiler_n == 0:
-                    per_mode.update(vector)
-            result = evaluate_anomaly(vector, per_mode, self.options)
-            snap.anomaly = result
+            snap.anomaly = self._ml_score_cycle(
+                record, mode, cop_avg=cop_avg, lwt_avg=lwt_avg,
+                segment=_seg,
+            )
+            result = snap.anomaly
             if self.options.get("action_advice_enabled", True):
                 snap.advice = generate_advice(
                     result, record, mode=snap.mode, options=self.options
@@ -4326,7 +4376,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return default
         value = int(learned.get(key, default))
         if key == "short_run_threshold_min":
-            # #408 A: the learner takes p20 of this install's own run
+            # #408 A: the learner took p20 (p5 since #443) of this install's own run
             # lengths, so frequent short runs teach it that short is
             # normal (prod-1: 2 min vs configured 20) and short_run stops
             # firing. Never go below half of the configured value.
@@ -4411,6 +4461,75 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("off-time relearn failed")
             return False
+
+    async def _maybe_ml_v2_relearn(self) -> bool:
+        """#443: relearn every ML model once from the cycles table.
+
+        Runs when the marker is missing, when it carries another ML
+        version, or when the restored baseline is not a v2 baseline (a
+        downgrade wrote v1 state over it). Never raises; a failure leaves
+        the marker unset and retries on the next start.
+        """
+        if self.db is None:
+            return False
+        try:
+            marker = await self.db.async_get_model_state(ML_V2_RELEARN_MARKER)
+            current = (
+                isinstance(marker, dict)
+                and marker.get("completed")
+                and marker.get("ml_version") == ML_VERSION
+                and isinstance(self.baseline, BehaviourBaseline)
+                and self.baseline._migrated_from_dim is None
+            )
+            if current:
+                return False
+            stats: dict[str, Any] = {
+                "repair": await self.db.async_repair_co_fire_cop(),
+            }
+            stats.update(await self.async_relearn_models(days=90))
+            await self.db.async_set_model_state(
+                ML_V2_RELEARN_MARKER,
+                {"completed": True, "ml_version": ML_VERSION, **stats},
+            )
+            _LOGGER.info("ML v2 relearn (#443): %s", stats)
+            return True
+        except Exception:
+            _LOGGER.exception("ML v2 relearn failed")
+            return False
+
+    async def async_relearn_models(self, days: int = 90) -> dict[str, Any]:
+        """#443: replay stored cycles into a fresh baseline + adaptive runs,
+        then retrain the k-means. Used by the relearn and the
+        recompute_baseline service. Raises on DB errors.
+        """
+        if self.db is None:
+            return {"samples": 0}
+        cycles = await self.db.async_fetch_cycles_for_relearn(days=days)
+        fresh = BehaviourBaseline()
+        runs: dict[str, list[float]] = {}
+        for rec in cycles:
+            if rec.get("is_transient"):
+                continue
+            mode = rec.get("mode") or "unknown"
+            dur = rec.get("duration_s")
+            if isinstance(dur, (int, float)) and dur > 0:
+                runs.setdefault(mode, []).append(float(dur))
+            self._ml_score_cycle(
+                rec, mode, cop_avg=rec.get("cop_avg"),
+                lwt_avg=rec.get("lwt_avg"), baseline=fresh,
+            )
+        self.baseline = fresh
+        await self.async_save_baseline_state()
+        kept = self.adaptive.replace_run_samples(runs)
+        await self.async_save_adaptive_state()
+        km = await self.async_run_kmeans()
+        return {
+            "cycles": len(cycles),
+            "samples": fresh.total_samples(),
+            "adaptive_runs": kept,
+            "kmeans": {k: km.get(k) for k in ("ok", "n", "k", "assigned", "reason")
+                       if k in km},
+        }
 
     async def async_load_adaptive_state(self) -> bool:
         if self.db is None:
@@ -5111,13 +5230,62 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             ),
         }
 
-    def _assign_cluster(self, vector: list[float]) -> int | None:
-        if not self._kmeans_centroids:
+    def _ml_score_cycle(
+        self,
+        record: dict[str, Any],
+        mode: str,
+        *,
+        cop_avg: float | None,
+        lwt_avg: float | None,
+        segment: bool = False,
+        baseline: BehaviourBaseline | None = None,
+    ) -> AnomalyResult:
+        """#443 ML v2: score a closed cycle's behaviour, then learn it.
+
+        Transients and boiler co-fire cycles are neither scored nor
+        learned (the boiler's heat inflates COP / thermal power / dT).
+        A short run or a split segment drops the run length: short_run
+        and the pendulum detectors already alert on it, and the baseline
+        must not learn that short is normal.
+        """
+        _boiler_n = int(record.get("boiler_contribution_samples", 0) or 0)
+        if record.get("is_transient") or _boiler_n > 0:
+            return AnomalyResult(
+                is_anomaly=False, severity="normal", max_abs_z=0.0,
+                top_dim=None, top_dim_value=0.0, message="Not scored",
+                details={"reason": "co_fire" if _boiler_n else "transient"},
+            )
+        values = behaviour_values(
+            record, cop_avg=cop_avg, lwt_avg=lwt_avg,
+            thermal_kw_avg=record.get("thermal_kw_avg"),
+        )
+        dur = values.get("duration_s")
+        short_s = 60.0 * float(self._effective_threshold(
+            "short_run_threshold_min",
+            int(self.options.get("short_run_threshold_min", 20) or 20),
+        ))
+        if segment or (dur is not None and dur < short_s):
+            values["duration_s"] = None
+        return evaluate_behaviour(
+            baseline if baseline is not None else self.baseline,
+            mode, values, record.get("outdoor_temp"),
+            options=self.options,
+        )
+
+    def _assign_cluster(
+        self,
+        mode: str | None,
+        values: dict[str, float | None],
+        *,
+        record: dict[str, Any] | None = None,
+    ) -> int | None:
+        """#443: cluster id from the mode's v2 model (None: no model)."""
+        rec = record or {}
+        if rec.get("is_transient") or int(
+            rec.get("boiler_contribution_samples") or 0
+        ) > 0:
             return None
-        try:
-            return nearest_centroid(vector, self._kmeans_centroids)
-        except Exception:
-            return None
+        return kmeans_v2.assign(self._kmeans_v2, mode, values)
 
     def cluster_label(self, cluster_id: int | None) -> str | None:
         if cluster_id is None:
@@ -5125,28 +5293,17 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         return self._cluster_labels.get(cluster_id)
 
     async def _load_kmeans_state(self) -> bool:
+        """Load the v2 model; a v1 state (no ``version``) is ignored."""
         if self.db is None:
             return False
         try:
             data = await self.db.async_get_model_state("kmeans_state")
-            if not data:
+            if not isinstance(data, dict) or not data.get("modes"):
                 return False
-            centroids = data.get("centroids") or []
-            if not centroids:
+            if data.get("version") != kmeans_v2.KMEANS_VERSION:
+                _LOGGER.info("kmeans_state is v1: retrained by the ML v2 relearn")
                 return False
-            _raw_centroids = data.get('centroids') or []
-            if _raw_centroids and len(_raw_centroids[0]) == 8:
-                _LOGGER.warning(
-                    'kmeans_state is legacy 8-dim, resetting (retrain on Sunday)'
-                )
-                self._kmeans_centroids = []
-                return False
-            self._kmeans_centroids = [
-                [float(x) for x in c] for c in centroids
-            ]
-            self._cluster_labels = classify_clusters(
-                self._kmeans_centroids
-            )
+            self._apply_kmeans_state(data)
             return True
         except Exception:
             _LOGGER.debug("load kmeans_state failed", exc_info=True)
@@ -5199,14 +5356,16 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 base['good_cycles_today'] = c.get('good_cycles')
         except Exception:
             _LOGGER.debug("snapshot counters failed", exc_info=True)
-        try:
-            attrs = getattr(snap, 'attributes', None) or {}
-            base['lwt'] = attrs.get('leaving_water_temp')
-            base['indoor'] = attrs.get('indoor_temp')
-            base['outdoor'] = attrs.get('outdoor_temp')
-            base['flow_lmin'] = attrs.get('flow_lmin')
-        except Exception:
-            _LOGGER.debug("snapshot attrs failed", exc_info=True)
+        # #443: ESPAltherma labels too (snap.attrs, compat view); _snap_attr
+        # only reads dicts, so it needs no guard
+        base['lwt'] = self._snap_attr(
+            snap, 'leaving_water_temp', ATTR_LEAVING_WATER_AFTER_BUH)
+        base['indoor'] = self._snap_attr(
+            snap, 'indoor_temp', ATTR_INDOOR_AMBIENT_R1T)
+        base['outdoor'] = self._snap_attr(
+            snap, 'outdoor_temp', ATTR_OUTDOOR_AIR_R1T)
+        base['flow_lmin'] = self._snap_attr(
+            snap, 'flow_lmin', ATTR_FLOW_SENSOR)
         try:
             last = getattr(snap, 'last_cycle', None)
             if isinstance(last, dict):

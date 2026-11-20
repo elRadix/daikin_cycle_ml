@@ -2,19 +2,60 @@
 
 ## [Unreleased]
 
-### Added
-- `tools/sim_ml_winter.py` + `docs/design/ml-winter-simulation.md`: three
-  winter months (1,403 cycles, two injected faults) through the real ML
-  pipeline. Finds `ml_anomaly` noise (19 alerts per healthy week), the
-  relative "pendulum" cluster label and the k-means train / assign
-  mismatch; simulates the proposed fix (0.6 per week) (#443)
+### Changed
+- ML v2: the `ml_anomaly` alert scores how the heat pump behaves (run
+  length, dT, compressor speed, COP, leaving water, heat output) per mode
+  and per 4 K outdoor band, with an unbiased warm-up, a std floor and a
+  Huber-clipped update. It alerts on z >= 4 on two cycles in a row or
+  z >= 6 once. Transients and boiler co-fire cycles are not scored; a
+  short run is left to short_run / pendulum. Winter simulation: 0.7
+  alerts per healthy week instead of 19, the filter fault still found
+  after 6 days. New advice for COP, leaving water and heat output (#443)
+- k-means: one model per mode on standardised behaviour values, without
+  transients or co-fire, labels by run length ("pendulum" = under the
+  short-run threshold, "long_cycle" = over 180 min), 28-day window
+  (service default 7 -> 28 days) (#443)
+- Adaptive short-run threshold learns p5 instead of p20; learned
+  history is bounded to 1,500 runs per mode and 90 days (#443)
+- `recompute_baseline` service relearns the baseline, the adaptive run
+  lengths and the k-means from the stored cycles (#443)
 
 ### Fixed
+- Leaving water temperature never reached the cycle average (`lwt_avg`
+  always 0) and the status report: the ESPAltherma labels are read now
+  (#443)
+- Hybrid / bivalent: ticks with the boiler on are left out of the cycle
+  COP (the boiler's heat read as heat-pump output, +53..94 % in the
+  simulation); the per-cycle DB fallback and the cop_hourly rebuild drop
+  boiler samples like the live paths (#443)
 - Tests that build cycles at "now - 1 h" and roll up "today" failed
   between 00:00 and 02:00 local (about 20 tests, and the 100 % coverage
   gate): the cycle fell on yesterday. New `at_noon` fixture (freezegun,
   ticking) pins 9 test files to midday; verified at 23:28, 00:28, 01:28
   and 11:28 (#443)
+
+### Migration
+- One-time ML relearn on the first start (marker
+  `data_migration_ml_v2_completed`, rerun when the stored ML version
+  differs): replays the cycles table into the new baseline and adaptive
+  run lengths, retrains k-means and reassigns `cycles.cluster_id`,
+  rebuilds cop_hourly hours with boiler samples and recomputes the COP of
+  co-fire cycles from their pure-HP samples (#443)
+
+### Added
+- `tools/sim_ml_scenarios.py`: mild / normal / cold weather x heat pump /
+  hybrid / bivalent, 9 injected pendulum episodes each, through the real
+  alert detectors, CycleDB and the shipped ML v2 (#443)
+- `tools/sim_ml_winter.py` + `docs/design/ml-winter-simulation.md`: three
+  winter months (1,403 cycles, two injected faults) through the real ML
+  pipeline. Finds `ml_anomaly` noise (19 alerts per healthy week), the
+  relative "pendulum" cluster label and the k-means train / assign
+  mismatch; its v2 path runs the shipped ML v2 (#443)
+
+### Tests
+- `tests/test_443_behaviour_baseline.py`, `tests/test_443_ml_v2_wiring.py`;
+  tests pinning v1 ML internals (12-dim baseline, p20, relative cluster
+  labels, 7-day k-means) updated with the #443 values in a comment (#443)
 
 ## [1.25.0] - 2026-11-19
 

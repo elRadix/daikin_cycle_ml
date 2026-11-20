@@ -70,7 +70,7 @@ label_cycle:
         text: null
 recompute_baseline:
   name: Recompute baseline
-  description: Recompute ML baseline (deferred to Batch 7).
+  description: Relearn the ML baseline, adaptive run lengths and k-means from the last N days of cycles.
   fields:
     entry_id:
       name: Config entry
@@ -217,7 +217,7 @@ recompute_kmeans:
       name: Days
       description: Training window in days.
       required: false
-      default: 7
+      default: 28
       selector:
         number:
           min: 1

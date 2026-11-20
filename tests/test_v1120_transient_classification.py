@@ -157,14 +157,15 @@ async def test_baseline_skipped_for_transient_cycle(monkeypatch):
     import custom_components.daikin_cycle_ml.coordinator as co
 
     monkeypatch.setattr(co, "extract_feature_vector", lambda *a, **k: [0.0] * 12)
+    seen: list = []
     monkeypatch.setattr(
         co,
-        "evaluate_anomaly",
-        lambda *a, **k: MagicMock(is_anomaly=False),
+        "evaluate_behaviour",
+        lambda *a, **k: seen.append(a) or MagicMock(is_anomaly=False),
     )
     await c._process_new_cycle(_rec_full(1), _Snap())
-    bl = c.baseline.get.return_value
-    bl.update.assert_not_called()
+    # #443: transients never reach the behaviour scorer
+    assert seen == []
 
 
 async def test_baseline_called_for_non_transient_cycle(monkeypatch):
@@ -173,14 +174,15 @@ async def test_baseline_called_for_non_transient_cycle(monkeypatch):
     import custom_components.daikin_cycle_ml.coordinator as co
 
     monkeypatch.setattr(co, "extract_feature_vector", lambda *a, **k: [0.0] * 12)
+    seen: list = []
     monkeypatch.setattr(
         co,
-        "evaluate_anomaly",
-        lambda *a, **k: MagicMock(is_anomaly=False),
+        "evaluate_behaviour",
+        lambda *a, **k: seen.append(a) or MagicMock(is_anomaly=False),
     )
     await c._process_new_cycle(_rec_full(0), _Snap())
-    bl = c.baseline.get.return_value
-    bl.update.assert_called_once()
+    # #443: scored (and learned) via evaluate_behaviour
+    assert len(seen) == 1
 
 
 def test_attrs_today_includes_transient_fields():

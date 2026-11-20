@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from custom_components.daikin_cycle_ml.ml.adaptive_thresholds import AdaptiveThresholds
+from custom_components.daikin_cycle_ml.ml.behaviour_baseline import BehaviourBaseline
 from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,
 )
@@ -24,7 +26,8 @@ def _coord(db=None):
     c._maintenance_unsub = None
     c._baseline_save_unsub = None
     c._kmeans_unsub = None
-    c.baseline = MultiBaseline(VECTOR_LEN)
+    c.baseline = BehaviourBaseline()  # #443
+    c.adaptive = AdaptiveThresholds()
     c.db = db
     return c
 
@@ -150,8 +153,8 @@ async def test_setup_baseline_persistence_empty_state():
 
 
 async def test_setup_baseline_persistence_restores_state():
-    saved = MultiBaseline(VECTOR_LEN)
-    saved.update("Heating", [1.0] * VECTOR_LEN)
+    saved = BehaviourBaseline()  # #443
+    saved.update("Heating", {"cop_avg": 4.0})
     db = MagicMock()
     db.async_get_model_state = AsyncMock(return_value=saved.to_dict())
     c = _coord(db=db)
@@ -192,7 +195,7 @@ async def test_save_baseline_state_ok():
     db = MagicMock()
     db.async_set_model_state = AsyncMock()
     c = _coord(db=db)
-    c.baseline.update("Heating", [1.0] * VECTOR_LEN)
+    c.baseline.update("Heating", {"cop_avg": 4.0})
     out = await c.async_save_baseline_state()
     assert out is True
     assert db.async_set_model_state.await_count == 1
@@ -243,7 +246,7 @@ async def test_run_kmeans_no_db():
 
 async def test_run_kmeans_fetch_error():
     db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(side_effect=RuntimeError("boom"))
+    db.async_fetch_cycles_for_relearn = AsyncMock(side_effect=RuntimeError("boom"))
     c = _coord(db=db)
     out = await c.async_run_kmeans()
     assert out["ok"] is False
@@ -252,7 +255,9 @@ async def test_run_kmeans_fetch_error():
 
 async def test_run_kmeans_too_few():
     db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(return_value=[])
+    db.async_fetch_cycles_for_relearn = AsyncMock(return_value=[])
+    db.async_get_model_state = AsyncMock(return_value=None)
+    db.async_set_model_state = AsyncMock()
     c = _coord(db=db)
     out = await c.async_run_kmeans()
     assert out["ok"] is False
@@ -261,9 +266,11 @@ async def test_run_kmeans_too_few():
 
 
 async def test_run_kmeans_happy():
-    recs = [_rec(100.0 + i * 5000) for i in range(9)]
+    # #443: per-mode model, >= 12 cycles of a mode, k = min(3, n // 4)
+    recs = [_rec(100.0 + i * 5000) for i in range(12)]
     db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(return_value=recs)
+    db.async_fetch_cycles_for_relearn = AsyncMock(return_value=recs)
+    db.async_set_cluster_ids = AsyncMock(return_value=0)
     # I2 C1: async_run_kmeans now reads existing kmeans_state before merging
     db.async_get_model_state = AsyncMock(return_value=None)
     db.async_set_model_state = AsyncMock()
@@ -277,9 +284,10 @@ async def test_run_kmeans_happy():
 
 
 async def test_run_kmeans_saves_ts():
-    recs = [_rec(100.0 + i * 5000) for i in range(5)]
+    recs = [_rec(100.0 + i * 5000) for i in range(12)]
     db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(return_value=recs)
+    db.async_fetch_cycles_for_relearn = AsyncMock(return_value=recs)
+    db.async_set_cluster_ids = AsyncMock(return_value=0)
     # I2 C1: async_run_kmeans now reads existing kmeans_state before merging
     db.async_get_model_state = AsyncMock(return_value=None)
     db.async_set_model_state = AsyncMock()
@@ -323,16 +331,23 @@ async def test_recompute_no_baseline():
     assert out["reason"] == "no_baseline"
 
 
+def _relearn_db(recs=None, err=None):
+    db = MagicMock()
+    db.async_fetch_cycles_for_relearn = (
+        AsyncMock(side_effect=err) if err else AsyncMock(return_value=recs or [])
+    )
+    db.async_get_model_state = AsyncMock(return_value=None)
+    db.async_set_model_state = AsyncMock()
+    db.async_set_cluster_ids = AsyncMock(return_value=0)
+    return db
+
+
 async def test_recompute_fetch_error():
     from custom_components.daikin_cycle_ml.services import (
         _do_recompute_baseline,
     )
 
-    db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(side_effect=RuntimeError("boom"))
-    c = MagicMock()
-    c.db = db
-    c.baseline = MultiBaseline(VECTOR_LEN)
+    c = _coord(db=_relearn_db(err=RuntimeError("boom")))
     out = await _do_recompute_baseline(c, 7)
     assert out["computed"] is False
     assert out["reason"] == "fetch_failed"
@@ -343,11 +358,7 @@ async def test_recompute_no_data():
         _do_recompute_baseline,
     )
 
-    db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(return_value=[])
-    c = MagicMock()
-    c.db = db
-    c.baseline = MultiBaseline(VECTOR_LEN)
+    c = _coord(db=_relearn_db([]))
     out = await _do_recompute_baseline(c, 7)
     assert out["computed"] is False
     assert out["reason"] == "no_data"
@@ -361,17 +372,16 @@ async def test_recompute_happy():
 
     recs = [_rec(100.0 + i * 5000, mode="Heating") for i in range(3)]
     recs += [_rec(50000.0 + i * 5000, mode="DHW") for i in range(2)]
-    db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(return_value=recs)
-    db.async_set_model_state = AsyncMock()
-    c = MagicMock()
-    c.db = db
-    c.baseline = MultiBaseline(VECTOR_LEN)
+    db = _relearn_db(recs)
+    c = _coord(db=db)
     out = await _do_recompute_baseline(c, 7)
     assert out["computed"] is True
-    assert out["samples"] >= 1
-    assert db.async_set_model_state.await_count == 1
-    assert db.async_set_model_state.await_args[0][0] == "baseline_state"
+    assert out["samples"] == 5
+    # #443: baseline + adaptive + kmeans attempt (too few cycles per mode)
+    keys = [call.args[0] for call in db.async_set_model_state.await_args_list]
+    assert keys[0] == "baseline_state"
+    assert "kmeans_state" in keys
+    assert out["kmeans"]["reason"] == "too_few"
 
 
 async def test_recompute_resets_before_update():
@@ -380,14 +390,11 @@ async def test_recompute_resets_before_update():
     )
 
     recs = [_rec(100.0 + i * 5000) for i in range(3)]
-    db = MagicMock()
-    db.async_fetch_cycles = AsyncMock(return_value=recs)
-    db.async_set_model_state = AsyncMock()
-    c = MagicMock()
-    c.db = db
-    c.baseline = MultiBaseline(VECTOR_LEN)
-    c.baseline.update("Heating", [999.0] * VECTOR_LEN)
-    c.baseline.update("Heating", [999.0] * VECTOR_LEN)
+    c = _coord(db=_relearn_db(recs))
+    c.baseline.update("Heating", {"cop_avg": 4.0})
+    c.baseline.update("Other", {"cop_avg": 4.0})
     out = await _do_recompute_baseline(c, 7)
     assert out["computed"] is True
-    assert c.baseline.total_samples() == out["samples"]
+    # #443: a fresh baseline replaces the old one (no "Other" mode left)
+    assert c.baseline.modes() == ["Heating"]
+    assert c.baseline.total_samples() == out["samples"] == 3

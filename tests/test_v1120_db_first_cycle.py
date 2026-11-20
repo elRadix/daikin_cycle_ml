@@ -62,7 +62,7 @@ async def test_db_insert_called_before_ml(monkeypatch):
     monkeypatch.setattr(co, "extract_feature_vector", lambda *a, **k: [0.0] * 12)
     monkeypatch.setattr(
         co,
-        "evaluate_anomaly",
+        "evaluate_behaviour",
         lambda *a, **k: MagicMock(is_anomaly=False),
     )
     await c._process_new_cycle(_rec(), _FakeSnap())
@@ -84,12 +84,13 @@ async def test_features_include_thermal_kw_avg(monkeypatch):
     monkeypatch.setattr(co, "extract_feature_vector", _fake_extract)
     monkeypatch.setattr(
         co,
-        "evaluate_anomaly",
+        "evaluate_behaviour",
         lambda *a, **k: MagicMock(is_anomaly=False),
     )
     await c._process_new_cycle(_rec(), _FakeSnap())
-    # Both calls (features + ML) must include thermal_kw_avg
-    assert len(captured) == 2
+    # #443: the ML path scores behaviour values (no feature vector); the
+    # features row is the only extract_feature_vector call left.
+    assert len(captured) == 1
     for call in captured:
         assert "thermal_kw_avg" in call
         assert call["thermal_kw_avg"] == 2.5
@@ -104,7 +105,7 @@ async def test_db_insert_cycle_exception_isolated(monkeypatch):
     monkeypatch.setattr(co, "extract_feature_vector", lambda *a, **k: [0.0] * 12)
     monkeypatch.setattr(
         co,
-        "evaluate_anomaly",
+        "evaluate_behaviour",
         lambda *a, **k: MagicMock(is_anomaly=False),
     )
     await c._process_new_cycle(_rec(), _FakeSnap())
@@ -123,7 +124,7 @@ async def test_features_exception_isolated(monkeypatch):
     monkeypatch.setattr(co, "extract_feature_vector", lambda *a, **k: [0.0] * 12)
     monkeypatch.setattr(
         co,
-        "evaluate_anomaly",
+        "evaluate_behaviour",
         lambda *a, **k: MagicMock(is_anomaly=False),
     )
     await c._process_new_cycle(_rec(), _FakeSnap())
@@ -142,7 +143,7 @@ async def test_cluster_assign_exception_isolated(monkeypatch):
     monkeypatch.setattr(co, "extract_feature_vector", lambda *a, **k: [0.0] * 12)
     monkeypatch.setattr(
         co,
-        "evaluate_anomaly",
+        "evaluate_behaviour",
         lambda *a, **k: MagicMock(is_anomaly=False),
     )
     await c._process_new_cycle(_rec(), _FakeSnap())
@@ -160,7 +161,7 @@ async def test_rollup_called_after_ml(monkeypatch):
     monkeypatch.setattr(co, "extract_feature_vector", lambda *a, **k: [0.0] * 12)
     monkeypatch.setattr(
         co,
-        "evaluate_anomaly",
+        "evaluate_behaviour",
         lambda *a, **k: MagicMock(is_anomaly=False),
     )
     await c._process_new_cycle(_rec(), _FakeSnap())

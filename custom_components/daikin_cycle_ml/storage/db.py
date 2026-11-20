@@ -179,6 +179,9 @@ def _lost_runs(
 class CycleDB:
     """Thin async wrapper around aiosqlite with schema bootstrap."""
 
+    # #443: cop_samples.boiler_active seen once (column is never dropped)
+    _boiler_col_known: bool = False
+
     def __init__(
         self,
         path: str | Path,
@@ -928,6 +931,9 @@ class CycleDB:
                 " AND (is_transition_artifact IS NULL "
                 "OR is_transition_artifact = 0)"
             )
+        if await self._cop_samples_has_boiler_col():
+            # #443: co-fire samples carry the boiler's heat in the COP
+            sql += " AND (boiler_active IS NULL OR boiler_active = 0)"
         cur = await conn.execute(sql, params)
         try:
             row = await cur.fetchone()
@@ -936,6 +942,16 @@ class CycleDB:
         if row is None:  # pragma: no cover
             return (None, 0)
         return (row[0], int(row[1] or 0))
+
+    async def _cop_samples_has_boiler_col(self) -> bool:
+        """True when cop_samples has the v22 boiler_active column."""
+        if self._boiler_col_known:
+            return True
+        conn = self._require()
+        async with conn.execute("PRAGMA table_info(cop_samples)") as cur:
+            cols = {r[1] for r in await cur.fetchall()}
+        self._boiler_col_known = "boiler_active" in cols
+        return self._boiler_col_known
 
     async def _relabel_cycle_to_dhw(
         self, cycle_id: int, original_mode: str
@@ -1976,7 +1992,9 @@ class CycleDB:
             "SELECT ts, cop, lwt, outdoor, flow_lmin, mode "
             "FROM cop_samples "
             f"WHERE CAST(ts / 3600 AS INTEGER) IN ({placeholders}) "
-            "AND is_transition_artifact = 0",
+            "AND is_transition_artifact = 0 "
+            # #443: same pure-HP filter as async_rollup_cop_hourly
+            "AND (boiler_active IS NULL OR boiler_active = 0)",
             hours,
         ) as cur:
             rows = await cur.fetchall()
@@ -3218,6 +3236,99 @@ class CycleDB:
         except Exception:
             _LOGGER.warning("update_cycle_cluster failed", exc_info=True)
             return False
+
+    async def async_fetch_cycles_for_relearn(
+        self, days: int = 90,
+    ) -> list[dict[str, Any]]:
+        """#443: cycles of the last N days + the LWT mean of their features.
+
+        ``lwt_avg`` lives only in the features vector (index of
+        ``lwt_avg`` in FEATURE_NAMES); it is None when it was not measured.
+        """
+        from ..ml.features import FEATURE_NAMES
+
+        lwt_i = FEATURE_NAMES.index("lwt_avg")
+        conn = self._require()
+        cutoff = time.time() - float(days) * 86400.0
+        async with conn.execute(
+            "SELECT c.*, f.vector_json AS _vec FROM cycles c "
+            "LEFT JOIN features f ON f.cycle_id = c.id "
+            "WHERE c.start_ts >= ? ORDER BY c.start_ts ASC",
+            (cutoff,),
+        ) as cur:
+            rows = await cur.fetchall()
+        out: list[dict[str, Any]] = []
+        for r in rows:
+            d = dict(r)
+            raw = d.pop("_vec", None)
+            lwt: float | None = None
+            try:
+                vec = json.loads(raw) if raw else None
+                v = vec[lwt_i] if isinstance(vec, list) and len(vec) > lwt_i else None
+                if isinstance(v, (int, float)) and v > 0:
+                    lwt = float(v)
+            except (TypeError, ValueError):
+                lwt = None
+            d["lwt_avg"] = lwt
+            out.append(d)
+        return out
+
+    async def async_set_cluster_ids(
+        self, pairs: list[tuple[int, int | None]],
+    ) -> int:
+        """#443: write cluster ids in one transaction. Returns rows written."""
+        if not pairs:
+            return 0
+        await self.async_ensure_cluster_column()
+        conn = self._require()
+        await conn.executemany(
+            "UPDATE cycles SET cluster_id = ? WHERE id = ?",
+            [(cid, int(rid)) for rid, cid in pairs],
+        )
+        await conn.commit()
+        return len(pairs)
+
+    async def async_repair_co_fire_cop(self) -> dict[str, int]:
+        """#443: keep the boiler's heat out of stored COP values, once.
+
+        - cop_hourly hours that hold boiler samples are rebuilt (the v19
+          rebuild path had no boiler filter);
+        - co-fire cycles get their cop_avg from their pure-HP samples
+          (NULL when every sample had the boiler on).
+        """
+        await self.async_ensure_cop_samples_table()
+        conn = self._require()
+        async with conn.execute(
+            "SELECT DISTINCT CAST(ts / 3600 AS INTEGER) FROM cop_samples "
+            "WHERE boiler_active = 1"
+        ) as cur:
+            hours = [int(r[0]) for r in await cur.fetchall()]
+        if hours:
+            await conn.execute(
+                "DELETE FROM cop_hourly WHERE ts_hour IN ("
+                + ",".join("?" * len(hours)) + ")",
+                hours,
+            )
+            await conn.commit()
+        rebuilt = await self._rebuild_cop_hourly_for_hours(hours) if hours else 0
+        async with conn.execute(
+            "SELECT id, start_ts, end_ts, mode FROM cycles "
+            "WHERE boiler_contribution_samples > 0 AND end_ts IS NOT NULL"
+        ) as cur:
+            cofire = list(await cur.fetchall())
+        fixed = 0
+        for row in cofire:
+            avg, _n = await self._sample_aggregates(
+                float(row["start_ts"]), float(row["end_ts"]), mode=row["mode"],
+            )
+            await conn.execute(
+                "UPDATE cycles SET cop_avg = ? WHERE id = ?",
+                (round(float(avg), 3) if avg is not None else None, int(row["id"])),
+            )
+            fixed += 1
+        if fixed:
+            await conn.commit()
+        return {"hours": len(hours), "hours_rebuilt": rebuilt, "cycles": fixed}
 
     async def async_count_by_cluster(self) -> dict[int, int]:  # pragma: no cover
         """Return {cluster_id: count} for cycles with cluster assigned."""

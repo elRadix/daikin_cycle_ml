@@ -62,14 +62,14 @@ def test_learn_short_run_returns_none_below_min():
     assert at.learn_short_run_min("heating") is None
 
 
-def test_learn_short_run_p20():
+def test_learn_short_run_p5():
     at = AdaptiveThresholds(min_samples=5)
-    # 5 samples: 5, 10, 15, 20, 25 min -> p20 near 10
+    # #443: p5 (was p20 -> 9). 5 samples: 5, 10, 15, 20, 25 min;
+    # rank (5 - 1) * 0.05 = 0.2 -> 5 + 0.2 * (10 - 5) = 6
     for m in (5, 10, 15, 20, 25):
         at.observe_cycle("heating", m * 60.0, None)
     v = at.learn_short_run_min("heating")
-    assert v is not None
-    assert 8 <= v <= 12
+    assert v == 6
 
 
 def test_learn_good_off_p50():

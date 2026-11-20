@@ -143,17 +143,15 @@ def test_resolve_cop_sample_mode_classify_raises():
 
 def test_assign_cluster_empty_returns_none():
     c = _mk()
-    assert c._assign_cluster([1.0, 2.0]) is None
+    c._kmeans_v2 = {}
+    assert c._assign_cluster("heating", {"duration_s": 600.0}) is None
 
 
-def test_assign_cluster_exception_returns_none():
+def test_assign_cluster_broken_model_returns_none():
+    """#443: a malformed v2 model never raises."""
     c = _mk()
-    c._kmeans_centroids = [[1.0, 2.0]]
-    with patch(
-        "custom_components.daikin_cycle_ml.coordinator.nearest_centroid",
-        side_effect=RuntimeError("boom"),
-    ):
-        assert c._assign_cluster([1.0, 2.0]) is None
+    c._kmeans_v2 = {"modes": {"heating": {"dims": ["duration_s"]}}}
+    assert c._assign_cluster("heating", {"duration_s": 600.0}) is None
 
 
 def test_cluster_label_none_returns_none():

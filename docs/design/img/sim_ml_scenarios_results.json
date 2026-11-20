@@ -1,0 +1,1769 @@
+{
+ "mild/hp": {
+  "cycles": 1572,
+  "pendulum": {
+   "episodes": [
+    {
+     "kind": "heating_cold",
+     "day": 43,
+     "outdoor": -3.1,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 7,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 44,
+     "outdoor": -2.1,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 11,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 42,
+     "outdoor": 1.1,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 11,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 84,
+     "outdoor": 13.4,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 11,
+     "detectors": [
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 85,
+     "outdoor": 13.4,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 10,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 71,
+     "outdoor": 13.8,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 11,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 24,
+     "outdoor": 7.6,
+     "cycles": 5,
+     "detected": true,
+     "minutes_to_detect": 34,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 16,
+     "outdoor": 8.0,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 33,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 36,
+     "outdoor": 8.1,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 35,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    }
+   ],
+   "false_positive_cycles": {},
+   "normal_cycles": 1513,
+   "real_short_runs_outside_episodes": 101
+  },
+  "ml": {
+   "alerts_current_per_week": 24.0,
+   "alerts_v2_per_week": 0.1,
+   "pendulum_episodes_with_ml_alert_current": 9,
+   "pendulum_episodes_with_ml_alert_v2": 2
+  },
+  "kmeans_last": {
+   "day": 83,
+   "centroid_min": [
+    15.3,
+    313.9,
+    48.4
+   ],
+   "labels": [
+    "pendulum",
+    "long_cycle",
+    "normal"
+   ],
+   "n": 124,
+   "transients_in_training": 10,
+   "modes_in_training": {
+    "heating": 111,
+    "dhw": 13
+   }
+  },
+  "kmeans_v2": {
+   "modes": {
+    "dhw": {
+     "labels": [
+      "normal",
+      "normal",
+      "normal"
+     ],
+     "sizes": [
+      19,
+      11,
+      24
+     ],
+     "n": 54
+    },
+    "heating": {
+     "labels": [
+      "normal",
+      "long_cycle",
+      "normal"
+     ],
+     "sizes": [
+      182,
+      8,
+      233
+     ],
+     "n": 423
+    }
+   },
+   "assigned": {
+    "normal_ge20": 409,
+    "long_cycle_ge20": 8,
+    "normal_short": 60,
+    "None_short": 22
+   }
+  }
+ },
+ "mild/hybrid": {
+  "cycles": 1567,
+  "pendulum": {
+   "episodes": [
+    {
+     "kind": "heating_cold",
+     "day": 43,
+     "outdoor": -2.0,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 6,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 44,
+     "outdoor": -1.2,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 12,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 42,
+     "outdoor": 1.7,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 9,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 84,
+     "outdoor": 13.4,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 6,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 85,
+     "outdoor": 13.4,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 10,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 71,
+     "outdoor": 13.8,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 9,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 24,
+     "outdoor": 7.6,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 35,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 23,
+     "outdoor": 6.7,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 39,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 22,
+     "outdoor": 7.5,
+     "cycles": 5,
+     "detected": true,
+     "minutes_to_detect": 32,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    }
+   ],
+   "false_positive_cycles": {},
+   "normal_cycles": 1507,
+   "real_short_runs_outside_episodes": 101
+  },
+  "ml": {
+   "alerts_current_per_week": 25.7,
+   "alerts_v2_per_week": 0.4,
+   "pendulum_episodes_with_ml_alert_current": 9,
+   "pendulum_episodes_with_ml_alert_v2": 3
+  },
+  "kmeans_last": {
+   "day": 83,
+   "centroid_min": [
+    15.3,
+    313.9,
+    48.4
+   ],
+   "labels": [
+    "pendulum",
+    "long_cycle",
+    "normal"
+   ],
+   "n": 124,
+   "transients_in_training": 10,
+   "modes_in_training": {
+    "heating": 111,
+    "dhw": 13
+   }
+  },
+  "kmeans_v2": {
+   "modes": {
+    "dhw": {
+     "labels": [
+      "normal",
+      "normal",
+      "normal"
+     ],
+     "sizes": [
+      19,
+      11,
+      24
+     ],
+     "n": 54
+    },
+    "heating": {
+     "labels": [
+      "normal",
+      "normal",
+      "pendulum"
+     ],
+     "sizes": [
+      186,
+      186,
+      23
+     ],
+     "n": 395
+    }
+   },
+   "assigned": {
+    "normal_ge20": 388,
+    "None_ge20": 29,
+    "normal_short": 38,
+    "None_short": 22,
+    "pendulum_short": 23
+   }
+  },
+  "boiler": {
+   "cofire_cycles": 87,
+   "cofire_cycle_cop_avg_vs_true_pct": 55.1,
+   "ml_alerts_current_on_cofire": 74,
+   "ml_anomaly_current_on_cofire": 87,
+   "ml_alerts_v2_on_cofire": 0,
+   "cofire_cycles_in_last_kmeans_window": 0,
+   "samples": {
+    "true_hp_cop_mean": 4.14,
+    "pure_hp_path_cop_mean": 4.32,
+    "all_samples_cop_mean": 4.65,
+    "boiler_samples_excluded": 355,
+    "cycle_fallback_cop_vs_true_pct": 0.0
+   }
+  }
+ },
+ "mild/bivalent": {
+  "cycles": 1570,
+  "pendulum": {
+   "episodes": [
+    {
+     "kind": "heating_cold",
+     "day": 43,
+     "outdoor": -3.1,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 10,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 44,
+     "outdoor": -2.1,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 8,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 42,
+     "outdoor": 1.1,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 10,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 84,
+     "outdoor": 13.4,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 11,
+     "detectors": [
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 85,
+     "outdoor": 13.4,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 10,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 71,
+     "outdoor": 13.8,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 6,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 25,
+     "outdoor": 8.3,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 34,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 22,
+     "outdoor": 7.5,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 37,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 36,
+     "outdoor": 8.1,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 37,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    }
+   ],
+   "false_positive_cycles": {},
+   "normal_cycles": 1514,
+   "real_short_runs_outside_episodes": 102
+  },
+  "ml": {
+   "alerts_current_per_week": 24.0,
+   "alerts_v2_per_week": 0.1,
+   "pendulum_episodes_with_ml_alert_current": 9,
+   "pendulum_episodes_with_ml_alert_v2": 3
+  },
+  "kmeans_last": {
+   "day": 83,
+   "centroid_min": [
+    15.3,
+    313.9,
+    48.4
+   ],
+   "labels": [
+    "pendulum",
+    "long_cycle",
+    "normal"
+   ],
+   "n": 124,
+   "transients_in_training": 10,
+   "modes_in_training": {
+    "heating": 111,
+    "dhw": 13
+   }
+  },
+  "kmeans_v2": {
+   "modes": {
+    "dhw": {
+     "labels": [
+      "normal",
+      "normal",
+      "normal"
+     ],
+     "sizes": [
+      19,
+      11,
+      24
+     ],
+     "n": 54
+    },
+    "heating": {
+     "labels": [
+      "normal",
+      "long_cycle",
+      "normal"
+     ],
+     "sizes": [
+      182,
+      8,
+      233
+     ],
+     "n": 423
+    }
+   },
+   "assigned": {
+    "normal_ge20": 409,
+    "long_cycle_ge20": 8,
+    "normal_short": 60,
+    "None_short": 22
+   }
+  },
+  "boiler": {
+   "cofire_cycles": 4,
+   "cofire_cycle_cop_avg_vs_true_pct": 68.7,
+   "ml_alerts_current_on_cofire": 4,
+   "ml_anomaly_current_on_cofire": 4,
+   "ml_alerts_v2_on_cofire": 0,
+   "cofire_cycles_in_last_kmeans_window": 0,
+   "samples": {
+    "true_hp_cop_mean": 3.65,
+    "pure_hp_path_cop_mean": 3.95,
+    "all_samples_cop_mean": 4.19,
+    "boiler_samples_excluded": 417,
+    "cycle_fallback_cop_vs_true_pct": 0.0
+   }
+  }
+ },
+ "normal/hp": {
+  "cycles": 1447,
+  "pendulum": {
+   "episodes": [
+    {
+     "kind": "heating_cold",
+     "day": 43,
+     "outdoor": -7.0,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 7,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 44,
+     "outdoor": -6.2,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 11,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 42,
+     "outdoor": -3.7,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 8,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 84,
+     "outdoor": 9.6,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 9,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 85,
+     "outdoor": 10.2,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 6,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 71,
+     "outdoor": 11.2,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 6,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 22,
+     "outdoor": 4.3,
+     "cycles": 5,
+     "detected": true,
+     "minutes_to_detect": 36,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 16,
+     "outdoor": 4.6,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 35,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 61,
+     "outdoor": 4.6,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 36,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    }
+   ],
+   "false_positive_cycles": {
+    "short_off": 1
+   },
+   "normal_cycles": 1389,
+   "real_short_runs_outside_episodes": 13
+  },
+  "ml": {
+   "alerts_current_per_week": 17.9,
+   "alerts_v2_per_week": 0.5,
+   "pendulum_episodes_with_ml_alert_current": 9,
+   "pendulum_episodes_with_ml_alert_v2": 3
+  },
+  "kmeans_last": {
+   "day": 83,
+   "centroid_min": [
+    73.9,
+    356.8,
+    46.3
+   ],
+   "labels": [
+    "normal",
+    "long_cycle",
+    "pendulum"
+   ],
+   "n": 118,
+   "transients_in_training": 0,
+   "modes_in_training": {
+    "heating": 104,
+    "dhw": 14
+   }
+  },
+  "kmeans_v2": {
+   "modes": {
+    "dhw": {
+     "labels": [
+      "normal",
+      "normal",
+      "normal"
+     ],
+     "sizes": [
+      26,
+      11,
+      19
+     ],
+     "n": 56
+    },
+    "heating": {
+     "labels": [
+      "normal",
+      "normal",
+      "normal"
+     ],
+     "sizes": [
+      211,
+      71,
+      113
+     ],
+     "n": 395
+    }
+   },
+   "assigned": {
+    "normal_ge20": 423,
+    "normal_short": 28,
+    "None_short": 10
+   }
+  }
+ },
+ "normal/hybrid": {
+  "cycles": 1428,
+  "pendulum": {
+   "episodes": [
+    {
+     "kind": "heating_cold",
+     "day": 43,
+     "outdoor": -6.8,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 11,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 44,
+     "outdoor": -6.1,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 10,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 42,
+     "outdoor": -2.6,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 10,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 84,
+     "outdoor": 9.6,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 10,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 85,
+     "outdoor": 10.2,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 7,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 71,
+     "outdoor": 11.2,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 11,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 39,
+     "outdoor": 5.1,
+     "cycles": 5,
+     "detected": true,
+     "minutes_to_detect": 30,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 26,
+     "outdoor": 4.0,
+     "cycles": 5,
+     "detected": true,
+     "minutes_to_detect": 34,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 25,
+     "outdoor": 4.7,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 37,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    }
+   ],
+   "false_positive_cycles": {
+    "short_off": 1
+   },
+   "normal_cycles": 1369,
+   "real_short_runs_outside_episodes": 13
+  },
+  "ml": {
+   "alerts_current_per_week": 26.0,
+   "alerts_v2_per_week": 0.4,
+   "pendulum_episodes_with_ml_alert_current": 9,
+   "pendulum_episodes_with_ml_alert_v2": 2
+  },
+  "kmeans_last": {
+   "day": 83,
+   "centroid_min": [
+    52.1,
+    475.4,
+    339.7
+   ],
+   "labels": [
+    "pendulum",
+    "long_cycle",
+    "normal"
+   ],
+   "n": 116,
+   "transients_in_training": 0,
+   "modes_in_training": {
+    "dhw": 14,
+    "heating": 102
+   }
+  },
+  "kmeans_v2": {
+   "modes": {
+    "dhw": {
+     "labels": [
+      "normal",
+      "normal",
+      "normal"
+     ],
+     "sizes": [
+      26,
+      11,
+      19
+     ],
+     "n": 56
+    },
+    "heating": {
+     "labels": [
+      "normal",
+      "normal",
+      "pendulum"
+     ],
+     "sizes": [
+      203,
+      114,
+      22
+     ],
+     "n": 339
+    }
+   },
+   "assigned": {
+    "None_ge20": 52,
+    "normal_ge20": 367,
+    "pendulum_short": 22,
+    "None_short": 10,
+    "normal_short": 6
+   }
+  },
+  "boiler": {
+   "cofire_cycles": 193,
+   "cofire_cycle_cop_avg_vs_true_pct": 70.5,
+   "ml_alerts_current_on_cofire": 175,
+   "ml_anomaly_current_on_cofire": 190,
+   "ml_alerts_v2_on_cofire": 0,
+   "cofire_cycles_in_last_kmeans_window": 0,
+   "samples": {
+    "true_hp_cop_mean": 3.97,
+    "pure_hp_path_cop_mean": 4.07,
+    "all_samples_cop_mean": 4.46,
+    "boiler_samples_excluded": 351,
+    "cycle_fallback_cop_vs_true_pct": 0.0
+   }
+  }
+ },
+ "normal/bivalent": {
+  "cycles": 1441,
+  "pendulum": {
+   "episodes": [
+    {
+     "kind": "heating_cold",
+     "day": 43,
+     "outdoor": -6.0,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 9,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 44,
+     "outdoor": -5.2,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 12,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 42,
+     "outdoor": -3.0,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 9,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 84,
+     "outdoor": 9.6,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 11,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 85,
+     "outdoor": 10.2,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 10,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 71,
+     "outdoor": 11.2,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 8,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 24,
+     "outdoor": 4.4,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 35,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 54,
+     "outdoor": 4.8,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 32,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 36,
+     "outdoor": 4.7,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 38,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    }
+   ],
+   "false_positive_cycles": {
+    "short_off": 1
+   },
+   "normal_cycles": 1382,
+   "real_short_runs_outside_episodes": 13
+  },
+  "ml": {
+   "alerts_current_per_week": 17.5,
+   "alerts_v2_per_week": 0.4,
+   "pendulum_episodes_with_ml_alert_current": 9,
+   "pendulum_episodes_with_ml_alert_v2": 3
+  },
+  "kmeans_last": {
+   "day": 83,
+   "centroid_min": [
+    73.9,
+    356.8,
+    46.3
+   ],
+   "labels": [
+    "normal",
+    "long_cycle",
+    "pendulum"
+   ],
+   "n": 118,
+   "transients_in_training": 0,
+   "modes_in_training": {
+    "heating": 104,
+    "dhw": 14
+   }
+  },
+  "kmeans_v2": {
+   "modes": {
+    "dhw": {
+     "labels": [
+      "normal",
+      "normal",
+      "normal"
+     ],
+     "sizes": [
+      26,
+      11,
+      19
+     ],
+     "n": 56
+    },
+    "heating": {
+     "labels": [
+      "normal",
+      "normal",
+      "normal"
+     ],
+     "sizes": [
+      230,
+      56,
+      107
+     ],
+     "n": 393
+    }
+   },
+   "assigned": {
+    "normal_ge20": 420,
+    "None_ge20": 3,
+    "normal_short": 29,
+    "None_short": 10
+   }
+  },
+  "boiler": {
+   "cofire_cycles": 10,
+   "cofire_cycle_cop_avg_vs_true_pct": 53.0,
+   "ml_alerts_current_on_cofire": 8,
+   "ml_anomaly_current_on_cofire": 10,
+   "ml_alerts_v2_on_cofire": 0,
+   "cofire_cycles_in_last_kmeans_window": 0,
+   "samples": {
+    "true_hp_cop_mean": 3.2,
+    "pure_hp_path_cop_mean": 3.3,
+    "all_samples_cop_mean": 3.68,
+    "boiler_samples_excluded": 899,
+    "cycle_fallback_cop_vs_true_pct": 0.0
+   }
+  }
+ },
+ "cold/hp": {
+  "cycles": 836,
+  "pendulum": {
+   "episodes": [
+    {
+     "kind": "heating_cold",
+     "day": 43,
+     "outdoor": -12.0,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 7,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 44,
+     "outdoor": -11.0,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 11,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 42,
+     "outdoor": -8.6,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 8,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 83,
+     "outdoor": 4.9,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 9,
+     "detectors": [
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 85,
+     "outdoor": 5.1,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 9,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 71,
+     "outdoor": 6.1,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 7,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 22,
+     "outdoor": -1.2,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 37,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 54,
+     "outdoor": -1.0,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 40,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 61,
+     "outdoor": -0.9,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 36,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    }
+   ],
+   "false_positive_cycles": {},
+   "normal_cycles": 778,
+   "real_short_runs_outside_episodes": 1
+  },
+  "ml": {
+   "alerts_current_per_week": 9.4,
+   "alerts_v2_per_week": 0.2,
+   "pendulum_episodes_with_ml_alert_current": 6,
+   "pendulum_episodes_with_ml_alert_v2": 2
+  },
+  "kmeans_last": {
+   "day": 83,
+   "centroid_min": [
+    411.0,
+    57.0,
+    268.5
+   ],
+   "labels": [
+    "long_cycle",
+    "pendulum",
+    "normal"
+   ],
+   "n": 69,
+   "transients_in_training": 0,
+   "modes_in_training": {
+    "heating": 55,
+    "dhw": 14
+   }
+  },
+  "kmeans_v2": {
+   "modes": {
+    "dhw": {
+     "labels": [
+      "normal",
+      "normal",
+      "normal"
+     ],
+     "sizes": [
+      19,
+      24,
+      13
+     ],
+     "n": 56
+    },
+    "heating": {
+     "labels": [
+      "normal",
+      "long_cycle",
+      "normal"
+     ],
+     "sizes": [
+      78,
+      43,
+      138
+     ],
+     "n": 259
+    }
+   },
+   "assigned": {
+    "long_cycle_ge20": 43,
+    "normal_ge20": 248,
+    "normal_short": 24
+   }
+  }
+ },
+ "cold/hybrid": {
+  "cycles": 706,
+  "pendulum": {
+   "episodes": [
+    {
+     "kind": "heating_cold",
+     "day": 43,
+     "outdoor": -11.8,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 12,
+     "detectors": [
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 44,
+     "outdoor": -11.1,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 8,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 42,
+     "outdoor": -8.9,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 10,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 83,
+     "outdoor": 4.9,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 7,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 85,
+     "outdoor": 5.1,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 7,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 71,
+     "outdoor": 6.1,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 10,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 5,
+     "outdoor": 0.4,
+     "cycles": 5,
+     "detected": true,
+     "minutes_to_detect": 32,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 31,
+     "outdoor": 0.7,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 39,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 35,
+     "outdoor": 1.8,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 36,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    }
+   ],
+   "false_positive_cycles": {},
+   "normal_cycles": 647,
+   "real_short_runs_outside_episodes": 1
+  },
+  "ml": {
+   "alerts_current_per_week": 19.3,
+   "alerts_v2_per_week": 0.0,
+   "pendulum_episodes_with_ml_alert_current": 8,
+   "pendulum_episodes_with_ml_alert_v2": 1
+  },
+  "kmeans_last": {
+   "day": 83,
+   "centroid_min": [
+    57.0,
+    403.9,
+    287.8
+   ],
+   "labels": [
+    "pendulum",
+    "long_cycle",
+    "normal"
+   ],
+   "n": 62,
+   "transients_in_training": 0,
+   "modes_in_training": {
+    "dhw": 14,
+    "heating": 48
+   }
+  },
+  "kmeans_v2": {
+   "modes": {
+    "dhw": {
+     "labels": [
+      "normal",
+      "normal",
+      "normal"
+     ],
+     "sizes": [
+      19,
+      24,
+      13
+     ],
+     "n": 56
+    },
+    "heating": {
+     "labels": [
+      "normal",
+      "pendulum",
+      "normal"
+     ],
+     "sizes": [
+      83,
+      24,
+      64
+     ],
+     "n": 171
+    }
+   },
+   "assigned": {
+    "None_ge20": 56,
+    "normal_ge20": 202,
+    "pendulum_short": 24,
+    "normal_short": 1
+   }
+  },
+  "boiler": {
+   "cofire_cycles": 175,
+   "cofire_cycle_cop_avg_vs_true_pct": 94.1,
+   "ml_alerts_current_on_cofire": 161,
+   "ml_anomaly_current_on_cofire": 172,
+   "ml_alerts_v2_on_cofire": 0,
+   "cofire_cycles_in_last_kmeans_window": 20,
+   "samples": {
+    "true_hp_cop_mean": 3.45,
+    "pure_hp_path_cop_mean": 3.5,
+    "all_samples_cop_mean": 4.88,
+    "boiler_samples_excluded": 1144,
+    "cycle_fallback_cop_vs_true_pct": 0.0
+   }
+  }
+ },
+ "cold/bivalent": {
+  "cycles": 797,
+  "pendulum": {
+   "episodes": [
+    {
+     "kind": "heating_cold",
+     "day": 43,
+     "outdoor": -11.8,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 10,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 44,
+     "outdoor": -11.1,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 10,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_cold",
+     "day": 42,
+     "outdoor": -7.8,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 8,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 83,
+     "outdoor": 4.9,
+     "cycles": 7,
+     "detected": true,
+     "minutes_to_detect": 8,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 85,
+     "outdoor": 5.1,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 6,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "heating_mild",
+     "day": 71,
+     "outdoor": 6.1,
+     "cycles": 8,
+     "detected": true,
+     "minutes_to_detect": 9,
+     "detectors": [
+      "pendulum_hourly",
+      "short_cycling_pattern",
+      "short_off",
+      "short_run"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 35,
+     "outdoor": 1.4,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 36,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 39,
+     "outdoor": -0.5,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 37,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    },
+    {
+     "kind": "dhw",
+     "day": 5,
+     "outdoor": -0.6,
+     "cycles": 4,
+     "detected": true,
+     "minutes_to_detect": 39,
+     "detectors": [
+      "dhw_pendulum"
+     ]
+    }
+   ],
+   "false_positive_cycles": {},
+   "normal_cycles": 741,
+   "real_short_runs_outside_episodes": 1
+  },
+  "ml": {
+   "alerts_current_per_week": 11.9,
+   "alerts_v2_per_week": 0.0,
+   "pendulum_episodes_with_ml_alert_current": 5,
+   "pendulum_episodes_with_ml_alert_v2": 1
+  },
+  "kmeans_last": {
+   "day": 83,
+   "centroid_min": [
+    57.0,
+    407.8,
+    275.2
+   ],
+   "labels": [
+    "pendulum",
+    "long_cycle",
+    "normal"
+   ],
+   "n": 67,
+   "transients_in_training": 0,
+   "modes_in_training": {
+    "dhw": 14,
+    "heating": 53
+   }
+  },
+  "kmeans_v2": {
+   "modes": {
+    "dhw": {
+     "labels": [
+      "normal",
+      "normal",
+      "normal"
+     ],
+     "sizes": [
+      19,
+      24,
+      13
+     ],
+     "n": 56
+    },
+    "heating": {
+     "labels": [
+      "normal",
+      "long_cycle",
+      "normal"
+     ],
+     "sizes": [
+      59,
+      23,
+      149
+     ],
+     "n": 231
+    }
+   },
+   "assigned": {
+    "normal_ge20": 240,
+    "long_cycle_ge20": 23,
+    "None_ge20": 20,
+    "normal_short": 24
+   }
+  },
+  "boiler": {
+   "cofire_cycles": 64,
+   "cofire_cycle_cop_avg_vs_true_pct": 64.3,
+   "ml_alerts_current_on_cofire": 64,
+   "ml_anomaly_current_on_cofire": 64,
+   "ml_alerts_v2_on_cofire": 0,
+   "cofire_cycles_in_last_kmeans_window": 0,
+   "samples": {
+    "true_hp_cop_mean": 3.1,
+    "pure_hp_path_cop_mean": 3.17,
+    "all_samples_cop_mean": 3.63,
+    "boiler_samples_excluded": 1311,
+    "cycle_fallback_cop_vs_true_pct": 0.0
+   }
+  }
+ }
+}

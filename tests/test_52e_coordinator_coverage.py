@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from custom_components.daikin_cycle_ml.ml.behaviour_baseline import BehaviourBaseline
 from custom_components.daikin_cycle_ml.coordinator import (
     DaikinCycleMLCoordinator,
     DataSnapshot,
@@ -93,7 +94,7 @@ def _mk(options=None, data=None):
     c.cop_sensor_entity = "sensor.cop"
     c.power_sensor = None
     c.indoor_temp_entity = None
-    c.baseline = MultiBaseline(VECTOR_LEN)
+    c.baseline = BehaviourBaseline()  # #443
     c.adaptive = AdaptiveThresholds(min_samples=20)
     return c
 
@@ -114,8 +115,9 @@ def test_setup_baseline_persistence_migration_saves():
     c.db.async_set_model_state = AsyncMock(return_value=True)
     c.db.async_ensure_cluster_column = AsyncMock()
     with (
-        patch.object(MultiBaseline, "from_dict", return_value=mb),
+        patch.object(BehaviourBaseline, "from_dict", return_value=mb),
         patch.object(c, "async_load_adaptive_state", new=AsyncMock(return_value=True)),
+        patch.object(c, "_maybe_ml_v2_relearn", new=AsyncMock(return_value=True)) as relearn,
         patch.object(c, "_load_kmeans_state", new=AsyncMock(return_value=False)),
         patch(
             "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval",
@@ -124,7 +126,8 @@ def test_setup_baseline_persistence_migration_saves():
     ):
         asyncio.run(c.async_setup_baseline_persistence())
     assert c.baseline is mb
-    c.db.async_set_model_state.assert_awaited()
+    # #443: a v1 (migrated) baseline is rebuilt by the ML v2 relearn
+    relearn.assert_awaited_once()
 
 
 def test_setup_baseline_persistence_restore_exception():

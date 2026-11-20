@@ -145,7 +145,7 @@ async def test_handle_recompute_kmeans_success(monkeypatch):
     result = await _handle_recompute_kmeans(hass, call)
 
     assert result == {"ok": True, "n": 47, "k": 3}
-    coord.async_run_kmeans.assert_awaited_once_with(days=7)
+    coord.async_run_kmeans.assert_awaited_once_with(days=28)  # #443: per-mode models
     assert len(notified) == 1
 
 
@@ -234,7 +234,7 @@ def test_schema_recompute_kmeans_default_days():
     from custom_components.daikin_cycle_ml.services import SCHEMA_RECOMPUTE_KMEANS
 
     data = SCHEMA_RECOMPUTE_KMEANS({"entry_id": "e1"})
-    assert data["days"] == 7
+    assert data["days"] == 28  # #443
 
 
 @pytest.mark.asyncio
