@@ -85,7 +85,7 @@
                     "quiet_hours_start": "Début des heures calmes",
                     "quiet_hours_end": "Fin des heures calmes"
                 },
-                "description": "Comment et quand les alertes sont envoyées.\n\n- **Notifications persistantes** : alertes dans la barre latérale.\n- **Destinataire** (facultatif) : par ex. `notify.mobile_app_telephone`.\n- **Heures calmes** : pas d'alerte non critique pendant cette plage (22:00–07:00 par défaut).",
+                "description": "Comment et quand les alertes sont envoyées.\n\n- **Notifications persistantes** : alertes dans la barre latérale.\n- **Destinataire** (facultatif) : une entité de notification, comme un chat Telegram (`notify.telegram_bot_123_456`), ou un ancien service notify (`notify.mobile_app_telephone`).\n- **Heures calmes** : pas d'alerte non critique pendant cette plage (22:00–07:00 par défaut).",
                 "data_description": {
                     "persistent_enabled": "Afficher les alertes en notifications persistantes dans la barre latérale.",
                     "notify_service": "Choisir une entité de notification (recommandé) ou un ancien service notify. Laisser vide pour ne rien envoyer sur le téléphone.",
