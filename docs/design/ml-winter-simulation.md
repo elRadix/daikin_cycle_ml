@@ -30,7 +30,7 @@ The simulated house and weather:
 | Data volume | 1,403 cycles (15.6 per day), 180 DHW runs, 20 false starts |
 
 Two faults are injected to score the alerts:
-- **Filter clogging, 4–13 Feb:** flow falls from 17 to 10 l/min, so ΔT rises by 70 %.
+- **Water-flow loss, 4–13 Feb:** flow falls from 17 to 10 l/min, so ΔT rises by 70 %. On a real install this comes from a clogging water filter or dirt separator, air in the system, a partly closed valve or a weak pump.
 - **Slow COP loss, 15–28 Feb:** the COP falls by 15 %.
 
 ![Anomaly score per cycle](img/sim_ml_winter_z.png)
@@ -45,7 +45,7 @@ Two faults are injected to score the alerts:
 | Alerts per week, no fault | **19.3** | **0.6** |
 | Alerts in week 1 | 52 | 1 |
 | Alerts on false starts | 17 | 0 |
-| Filter fault: alerts / first alert after | 36 / day 0 (buried in noise) | 7 / day 6 |
+| Water-flow loss: alerts / first alert after | 36 / day 0 (buried in noise) | 7 / day 6 |
 | COP loss: alerts | 15 (indistinguishable from noise) | 0 (a COP-degradation job, see 7) |
 
 The causes, in order of impact:
@@ -120,7 +120,7 @@ The causes, in order of impact:
 
 The simulation's v2 path now runs the shipped code (`ml/behaviour_baseline.py`, `engine/anomaly_engine.evaluate_behaviour`, `ml/kmeans_v2.py`), with the coordinator's rules: transients and co-fire cycles are not scored, and a short run drops its run length (short_run and the pendulum detectors already cover it).
 
-Result in this winter: 14 alerts instead of 233, 0.7 per fault-free week, and the filter fault found after 6 days (7 alerts).
+Result in this winter: 14 alerts instead of 233, 0.7 per fault-free week, and the water-flow loss found after 6 days (7 alerts).
 
 Migration: on the first start after the update, the integration relearns every model once from the cycles table (marker `data_migration_ml_v2_completed`, rerun when the stored ML version differs or a v1 baseline is restored):
 - the baseline replays the stored cycles (LWT from the features rows);
@@ -128,7 +128,7 @@ Migration: on the first start after the update, the integration relearns every m
 - the per-mode k-means is retrained and every `cycles.cluster_id` is reassigned;
 - co-fire COP is repaired: cop_hourly hours holding boiler samples are rebuilt, and co-fire cycles get their COP from their pure-HP samples.
 
-Still open for tuning on prod-1 data: a lower threshold (z ≥ 3.5) or a CUSUM on `dT_avg` would find the filter fault sooner, at the cost of some noise.
+Still open for tuning on prod-1 data: a lower threshold (z ≥ 3.5) or a CUSUM on `dT_avg` would find the water-flow loss sooner, at the cost of some noise.
 
 ## Scenarios: weather, pendulum, hybrid and bivalent
 

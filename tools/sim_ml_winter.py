@@ -12,7 +12,7 @@ split heat pump (ERGA-class, radiators + underfloor) from 1 Dec to 28 Feb:
 - coordinator._classify_transient
 
 in the order of coordinator._process_new_cycle. Two faults are injected
-so the alerts can be scored: a clogging filter (flow 17 -> 10 l/min,
+so the alerts can be scored: a slow water-flow loss (17 -> 10 l/min,
 4-14 Feb) and a slow COP loss (-15 %, 15-28 Feb).
 
 A second pipeline ("v2", shipped with #443: ml.behaviour_baseline +
@@ -61,7 +61,8 @@ from custom_components.daikin_cycle_ml.ml.multi_baseline import MultiBaseline  #
 DAY = 86400.0
 DAYS = 90
 T0 = 1796083200.0  # 2026-12-01 00:00 UTC
-FILTER_FAULT = (65, 75)   # day index 65..74 = 4-13 Feb: flow 17 -> 10 l/min
+FLOW_FAULT = (65, 75)   # day index 65..74 = 4-13 Feb: water flow 17 -> 10 l/min
+# (clogging water filter / dirt separator, air, a partly closed valve, weak pump)
 COP_FAULT = (76, 90)      # 15-28 Feb: COP -15 % (slow)
 DEDUP_S = 3600.0          # ALERT_DEDUP_DEFAULTS["ml_anomaly"] = 60 min
 SHORT_RUN_MIN = 20
@@ -140,10 +141,10 @@ def generate(seed: int = 7) -> tuple[list[dict], list[float]]:
         d = int((t - T0) // DAY)
         to = temp_at(t)
         flow = 17.0
-        if FILTER_FAULT[0] <= d < FILTER_FAULT[1]:
-            flow = 17.0 - 7.0 * (d - FILTER_FAULT[0] + 1) / (FILTER_FAULT[1] - FILTER_FAULT[0])
-        elif d >= FILTER_FAULT[1]:
-            flow = 17.0  # filter cleaned
+        if FLOW_FAULT[0] <= d < FLOW_FAULT[1]:
+            flow = 17.0 - 7.0 * (d - FLOW_FAULT[0] + 1) / (FLOW_FAULT[1] - FLOW_FAULT[0])
+        elif d >= FLOW_FAULT[1]:
+            flow = 17.0  # flow restored (installer service)
         cop_f = 1.0
         if COP_FAULT[0] <= d:
             cop_f = 1.0 - 0.15 * (d - COP_FAULT[0] + 1) / (COP_FAULT[1] - COP_FAULT[0])
@@ -339,11 +340,11 @@ def summarize(cycles, cur):
 
     def in_fault(c):
         d = int((c["start_ts"] - T0) // DAY)
-        return FILTER_FAULT[0] + 3 <= d < FILTER_FAULT[1] or d >= COP_FAULT[0] + 5
+        return FLOW_FAULT[0] + 3 <= d < FLOW_FAULT[1] or d >= COP_FAULT[0] + 5
 
     def faultless(c):
         d = int((c["start_ts"] - T0) // DAY)
-        return d < FILTER_FAULT[0] or (FILTER_FAULT[1] <= d < COP_FAULT[0])
+        return d < FLOW_FAULT[0] or (FLOW_FAULT[1] <= d < COP_FAULT[0])
 
     top = Counter(c["top"] for c in cycles if c["alert"])
     top_v2 = Counter(c.get("v2_top") for c in cycles if c["v2_alert"])
@@ -363,21 +364,21 @@ def summarize(cycles, cur):
             "anomaly_cycles": sum(c["anomaly"] for c in cycles),
             "alerts": sum(c["alert"] for c in cycles),
             "alerts_fault_free_days": sum(c["alert"] for c in cycles if faultless(c)),
-            "alerts_per_week_fault_free": round(sum(c["alert"] for c in cycles if faultless(c)) / ((FILTER_FAULT[0] + COP_FAULT[0] - FILTER_FAULT[1]) / 7), 1),
+            "alerts_per_week_fault_free": round(sum(c["alert"] for c in cycles if faultless(c)) / ((FLOW_FAULT[0] + COP_FAULT[0] - FLOW_FAULT[1]) / 7), 1),
             "alerts_on_transients": sum(c["alert"] and c["is_transient"] for c in cycles),
             "alerts_first_20_heating": sum(c["alert"] for c in first20["heating"]),
             "alerts_first_20_dhw": sum(c["alert"] for c in first20["dhw"]),
             "updates_skipped_as_outlier": sum(c["skipped_update"] for c in cycles),
             "top_dims": dict(top.most_common()),
-            "filter_fault_alerts_and_delay_days": det("alert", *FILTER_FAULT),
+            "flow_fault_alerts_and_delay_days": det("alert", *FLOW_FAULT),
             "cop_fault_alerts_and_delay_days": det("alert", COP_FAULT[0], DAYS),
         },
         "v2": {
             "alerts": sum(c["v2_alert"] for c in cycles),
             "alerts_fault_free_days": sum(c["v2_alert"] for c in cycles if faultless(c)),
-            "alerts_per_week_fault_free": round(sum(c["v2_alert"] for c in cycles if faultless(c)) / ((FILTER_FAULT[0] + COP_FAULT[0] - FILTER_FAULT[1]) / 7), 1),
+            "alerts_per_week_fault_free": round(sum(c["v2_alert"] for c in cycles if faultless(c)) / ((FLOW_FAULT[0] + COP_FAULT[0] - FLOW_FAULT[1]) / 7), 1),
             "top_dims": dict(top_v2.most_common()),
-            "filter_fault_alerts_and_delay_days": det("v2_alert", *FILTER_FAULT),
+            "flow_fault_alerts_and_delay_days": det("v2_alert", *FLOW_FAULT),
             "cop_fault_alerts_and_delay_days": det("v2_alert", COP_FAULT[0], DAYS),
             "in_fault_share": round(sum(c["v2_alert"] for c in cycles if in_fault(c)) / max(1, sum(c["v2_alert"] for c in cycles)), 2),
         },
@@ -403,7 +404,7 @@ def plots(cycles, temps, summary, out: Path) -> None:
     fig, ax = plt.subplots(4, 1, figsize=(11, 11), sharex=True)
     ax[0].plot([i / 24 for i in range(len(temps))], temps, lw=0.6, color="#1E88E5")
     ax[0].set_ylabel("Outdoor °C")
-    ax[0].axvspan(*FILTER_FAULT, color="#FB8C00", alpha=0.15, label="filter clogging")
+    ax[0].axvspan(*FLOW_FAULT, color="#FB8C00", alpha=0.15, label="water-flow loss")
     ax[0].axvspan(COP_FAULT[0], DAYS, color="#E53935", alpha=0.12, label="COP loss")
     ax[0].legend(loc="upper right", fontsize=8)
     ax[0].set_title("Three-month winter: ML anomaly score per cycle")
@@ -417,7 +418,7 @@ def plots(cycles, temps, summary, out: Path) -> None:
         a.axhline(3.0 if key == "z" else 4.0, color="#FB8C00", ls="--", lw=1)
         a.set_ylabel(lab)
         a.set_ylim(0, 31)
-        a.axvspan(*FILTER_FAULT, color="#FB8C00", alpha=0.15)
+        a.axvspan(*FLOW_FAULT, color="#FB8C00", alpha=0.15)
         a.axvspan(COP_FAULT[0], DAYS, color="#E53935", alpha=0.12)
     weeks = summary["weeks"]
     w = sorted(weeks)
