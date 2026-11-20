@@ -6182,7 +6182,17 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not (isinstance(svc, str) and "." in svc):
             return False
         domain, name = svc.split(".", 1)
-        payload = {"message": message}
+        payload: dict[str, Any] = {"message": message}
+        # HA 2025.11+: Telegram (and other integrations) expose notify
+        # *entities* (notify.telegram_<chat>) sent to via notify.send_message;
+        # the legacy notify.<name> service no longer exists for them.
+        if (
+            domain == "notify"
+            and not self.hass.services.has_service(domain, name)
+            and self.hass.states.get(svc) is not None
+        ):
+            domain, name = "notify", "send_message"
+            payload["entity_id"] = svc
         try:
             await self.hass.services.async_call(
                 domain, name, payload, blocking=False,

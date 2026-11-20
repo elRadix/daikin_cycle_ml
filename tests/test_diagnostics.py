@@ -23,7 +23,7 @@ def _entry(coord=None, data=None, options=None):
         "model": "epra12eav3",
     }
     e.options = options or {
-        "notify_service": "notify.telegram_rachid",
+        "notify_service": "notify.telegram_chat",
         "short_run_threshold_min": 20,
     }
     e.runtime_data = coord

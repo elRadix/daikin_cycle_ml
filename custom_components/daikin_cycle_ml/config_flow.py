@@ -253,11 +253,35 @@ def _legacy_notify_options(hass: HomeAssistant) -> list[str]:
     )
 
 
+def _notify_entity_options(hass: HomeAssistant) -> list[selector.SelectOptionDict]:
+    """Notify entities (HA 2025.11+ Telegram chats, mobile apps, ...).
+
+    Sent to with notify.send_message; the coordinator picks the right call.
+    """
+    try:
+        ids = sorted(hass.states.async_entity_ids("notify"))
+    except Exception:
+        return []
+    out: list[selector.SelectOptionDict] = []
+    for eid in ids:
+        st = hass.states.get(eid)
+        name = st.attributes.get("friendly_name") if st is not None else None
+        label = f"{name} ({eid})" if isinstance(name, str) and name else eid
+        out.append(selector.SelectOptionDict(value=eid, label=label))
+    return out
+
+
 def _build_notify_selector(hass: HomeAssistant) -> selector.SelectSelector:
-    """Dropdown of notify targets with free-text fallback."""
+    """Dropdown of notify targets (entities + legacy services), free text too."""
+    entities = _notify_entity_options(hass)
+    seen = {o["value"] for o in entities}
+    legacy = [
+        selector.SelectOptionDict(value=s, label=s)
+        for s in _legacy_notify_options(hass) if s not in seen
+    ]
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
-            options=_legacy_notify_options(hass),
+            options=entities + legacy,
             mode=selector.SelectSelectorMode.DROPDOWN,
             custom_value=True,
         )

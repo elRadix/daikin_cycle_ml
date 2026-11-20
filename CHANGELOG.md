@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Fixed
+- Notifications to notify entities (Telegram chats since HA 2025.11, and
+  other entity-based notify integrations) failed with "notify service
+  ... not found". A target that is a notify entity is now sent with
+  `notify.send_message` + `entity_id`; legacy notify services and other
+  domains are called as before. The notify dropdown in the wizard lists
+  notify entities first, then legacy services. Example target in the
+  notifications step text made neutral; EN, NL and FR show a notify
+  entity example (Part of #451)
+
 ### Added
 - `tools/ingest_diagnostics.py` + `tests/fixtures/diagnostics/`: every
   diagnostics file that is sent is stored the same way, for analysis,

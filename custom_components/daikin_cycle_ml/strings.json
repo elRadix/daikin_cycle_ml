@@ -160,7 +160,7 @@
           "status_update_enabled": "Enable periodic status-update notifications (multi-line summary).",
           "status_update_interval_hours": "Hours between status updates (1-168)."
         },
-        "description": "How and when alerts are delivered.\n\n- **Persistent notifications**: sidebar alerts.\n- **Notify service** (optional): e.g. `notify.telegram_rachid`.\n- **Quiet hours**: suppress non-critical alerts during the window (default 22:00–07:00).",
+        "description": "How and when alerts are delivered.\n\n- **Persistent notifications**: sidebar alerts.\n- **Notify target** (optional): a notify entity such as a Telegram chat (`notify.telegram_bot_123_456`), or a legacy notify service.\n- **Quiet hours**: suppress non-critical alerts during the window (default 22:00–07:00).",
         "title": "Notifications"
       },
       "pendulum": {
