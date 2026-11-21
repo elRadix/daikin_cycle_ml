@@ -17,6 +17,7 @@ from typing import Any, Concatenate, ParamSpec, TypeVar, cast
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceNotFound
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import (
     async_call_later,
     async_track_time_change,
@@ -109,6 +110,7 @@ from .engine.action_engine import generate_advice
 from .engine.anomaly_engine import AnomalyResult, evaluate_behaviour
 from .engine.attribute_compat import build_compat_view
 from .engine.attribute_reader import missing_required, read
+from .engine.notify_format import escape_for_parse_mode
 from .engine.cop_degradation import (
     analyze_degradation,
     analyze_trend,
@@ -6240,6 +6242,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         ):
             domain, name = "notify", "send_message"
             payload["entity_id"] = svc
+            payload["message"] = self._format_for_notify_entity(svc, message)
         try:
             await self.hass.services.async_call(
                 domain, name, payload, blocking=False,
@@ -6270,6 +6273,21 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     svc, context, err,
                 )
             return False
+
+    def _format_for_notify_entity(self, entity_id: str, message: str) -> str:
+        """Escape the text for a Telegram bot's parse mode (#451).
+
+        Other notify entities get the text unchanged.
+        """
+        ent = er.async_get(self.hass).async_get(entity_id)
+        if ent is None or ent.platform != "telegram_bot":
+            return message
+        entry = (
+            self.hass.config_entries.async_get_entry(ent.config_entry_id)
+            if ent.config_entry_id else None
+        )
+        mode = entry.options.get("parse_mode") if entry is not None else None
+        return escape_for_parse_mode(message, mode if isinstance(mode, str) else None)
 
     async def _emit_alert(self, alert: Any) -> None:
         """Deliver a single alert via persistent + notify service."""

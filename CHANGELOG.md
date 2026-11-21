@@ -3,6 +3,20 @@
 ## [Unreleased]
 
 ### Fixed
+- Telegram rejected alerts sent to a notify entity ("Can't parse
+  entities: can't find end of the entity"): the bot sends with its parse
+  mode (Markdown by default), and option names such as
+  `short_off_threshold_min` read as an unclosed italic. Text to a
+  `telegram_bot` notify entity is now escaped for the bot's parse mode
+  (Markdown, MarkdownV2, HTML; plain text unchanged). Other notify
+  entities are untouched (Part of #451)
+- Recorder warning "State attributes for
+  sensor.daikin_cycle_ml_daily_summary_recent exceed maximum size of
+  16384 bytes": the large attributes of `daily_summary_recent`,
+  `cop_curve_recent`, `alerts_today`, `hp_specs` and
+  `heating_curve_advice` are no longer written to the recorder (the
+  cards read the current state). `thermal_power_live`, used for the
+  Efficiency card graphs, is still recorded in full
 - The live score of an open run (`quality_today.live_score`) was null on
   9 of every 10 updates: the coordinator builds a new snapshot every
   30 s, and the score is recomputed every 5 minutes. The last score is now
@@ -12,7 +26,8 @@
   0 / 1 / 1 (Part of #435)
 
 ### Tests
-- `tests/test_435_live_score_carry.py`; `test_435_long_open_run` in
+- `tests/test_451_telegram_parse_mode.py`, `tests/test_recorder_large_attributes.py`,
+  `tests/test_435_live_score_carry.py`; `test_435_long_open_run` in
   `tests/test_daily_summary_native_card.py`
 
 ## [1.27.0] - 2026-11-21
