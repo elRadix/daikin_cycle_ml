@@ -169,6 +169,8 @@ def _attrs_hp_specs(
         "hmax_basis": ds.get("hmax_basis"),
         "profile": dict(ds.get("profile") or {}),
         "rps_learned": dict(getattr(c, "rps_learned", None) or {}) if c is not None else {},
+        # #473: maximum heat learned per band, with sample counts
+        "hmax_learned": dict(getattr(c, "hmax_learned", None) or {}) if c is not None else {},
     }
 
 

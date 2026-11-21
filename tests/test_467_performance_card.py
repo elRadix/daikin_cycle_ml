@@ -154,7 +154,9 @@ def test_loads_against_the_profile_limits(out):
     r = out["cases"]["en"]
     assert r["ok"] and r["lang"] == "en"
     # max heat at (5.2 °C, 33 °C): W35 row (nearest water), between A-7 and A7
-    th_max = 10.4 + (12.0 - 10.4) * (5.2 + 7) / 14
+    # #473: the datasheet A2/W35 capacity (5.74 kW) is a maximum too; at 5.2 °C
+    # the W35 row lies between it and the manual A7/W35 12 kW
+    th_max = 5.74 + (12.0 - 5.74) * (5.2 - 2) / 5
     # 33 °C water is within 3 K of the W35 points: counts as known, no "add a point" note
     assert r["limits"]["thMax"] == pytest.approx(th_max, abs=1e-6) and r["limits"]["thExact"] is True
     assert "Nearest point" not in _text(r["html"])
@@ -339,13 +341,14 @@ def test_card_on_phone_tablet_and_desktop():
 
 
 def test_datasheet_only_install_gets_a_thermal_load(out):
-    """#467: an EPRA12 (part-load datasheet) gets its nominal 12 kW at A7/W35 as
-    maximum heat; at 5.2 °C / 33 °C that is the nearest point, within 3 K."""
+    """#473 (maintainer decision): an EPRA12 uses its own datasheet capacities as
+    the maximum heat, like every model: at 5.2 °C / 33 °C between A2/W35 5.74 kW
+    and A7/W35 6.17 kW (33 °C is within 3 K of the W35 row)."""
     r = out["cases"]["datasheet_only"]
-    assert r["limits"]["thMax"] == pytest.approx(12.0)
-    assert r["loads"]["thermal"] == pytest.approx(5.02 / 12 * 100)
-    # the nominal capacity is the reference; the card says so
-    assert r["limits"]["thNominal"] is True
-    assert "Against the nominal capacity (12 kW)" in _text(r["html"])
+    th = 5.74 + (6.17 - 5.74) * (5.2 - 2) / 5
+    assert r["limits"]["thMax"] == pytest.approx(th, abs=1e-6)
+    assert r["loads"]["thermal"] == pytest.approx(5.02 / th * 100, abs=1e-6)
+    assert r["limits"]["thNominal"] is False
+    assert "nominal capacity" not in _text(r["html"])
     assert "32 rps ·" not in _text(r["html"])                       # no range yet: just the speed
     assert out["cases"]["en"]["limits"]["thNominal"] is False      # the user's own values

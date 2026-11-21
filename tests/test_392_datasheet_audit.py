@@ -119,3 +119,51 @@ def test_catalogue_model_maps_to_espaltherma_definition(model):
 def test_model_attributes_pinned_to_beta():
     meta = ESPA["_meta"]
     assert meta["branch"] == "beta" and len(meta["commit"]) == 40
+
+
+# #473: heating capacities (kW) from the Daikin product tables, read online.
+# (label -> (hc, cop)); EKHBRD COPs were already in the file and match.
+CAPACITY_PINNED = {
+    "edlq05cv3": {"A7/W35": (4.4, 5.0), "A7/W45": (4.03, 3.58)},
+    "edlq07cv3": {"A7/W35": (7.0, 4.52), "A7/W45": (6.9, 3.42)},
+    **{f"{fam}{s}cv3": {"A7/W35": a, "A7/W45": b} for fam in ("eblq", "edlq")
+       for s, a, b in (("11", (11.2, 4.61), (11.0, 3.55)),
+                       ("14", (14.5, 4.30), (13.6, 3.32)),
+                       ("16", (16.0, 4.26), (15.2, 3.26)))},
+    "ekhbrd011": {"A7/W35": (11.2, 4.2), "A7/W65": (11.3, 2.97), "A7/W80": (11.0, 2.5)},
+    "ekhbrd014": {"A7/W35": (14.4, 3.72), "A7/W65": (14.5, 2.89), "A7/W80": (14.0, 2.48)},
+    "ekhbrd016": {"A7/W35": (16.0, 3.72), "A7/W65": (16.0, 2.73), "A7/W80": (16.0, 2.41)},
+    "epsk12aw1": {"A7/W35": (10.2, 5.5)},
+    "epsk14aw1": {"A7/W35": (10.2, 5.5)},
+}
+
+
+@pytest.mark.parametrize("model", sorted(CAPACITY_PINNED))
+def test_capacities_from_product_tables_pinned(model):
+    entry = DS[model]
+    got = {p["label"]: (p["hc"], p["cop"]) for p in entry["points"]}
+    assert got == CAPACITY_PINNED[model]
+    assert entry["verified"] is True and "daikin" in entry["ref"].lower()
+    assert entry["nom_cop"] == got["A7/W35"][1]
+
+
+# #473: capacities kept although not confirmed for the exact model
+# (no verified flag: false means non-catalogue; the note gives the source).
+UNVERIFIED_CAPACITY = {
+    "epsk06aw1": {"A7/W35": 5.81}, "epsk08aw1": {"A7/W35": 7.62},
+    "epsk10aw1": {"A7/W35": 8.11},
+    "epga11dav3": {"A7/W35": 11.1}, "epga14dav3": {"A7/W35": 14.5},
+    "epga16dav3": {"A7/W35": 16.5},
+    "errq011": {"A7/W65": 11.0}, "errq014": {"A7/W65": 14.0},
+    "errq016": {"A7/W65": 16.0},
+}
+
+
+@pytest.mark.parametrize("model", sorted(UNVERIFIED_CAPACITY))
+def test_unverified_capacities_kept_and_flagged(model):
+    entry = DS[model]
+    got = {p["label"]: p["hc"] for p in entry["points"] if "hc" in p}
+    assert got == UNVERIFIED_CAPACITY[model]
+    assert "verified" not in entry and entry["note"]
+    a7 = next(p for p in entry["points"] if p["label"] == "A7/W35")
+    assert entry["nom_cop"] == a7["cop"] or model.startswith("epga")

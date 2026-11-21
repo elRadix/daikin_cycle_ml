@@ -96,9 +96,15 @@ CREATE TABLE IF NOT EXISTS cop_samples (
     mode_original TEXT,
     is_transition_artifact INTEGER DEFAULT 0,
     boiler_active INTEGER DEFAULT 0,
-    boiler_mode TEXT DEFAULT ''
+    boiler_mode TEXT DEFAULT '',
+    thermal_kw REAL,
+    power_w REAL,
+    rps REAL,
+    is_reconstructed INTEGER DEFAULT 0
 );
 
+-- #473: thermal_kw / power_w / rps per sample; is_reconstructed = 1 when
+-- back-filled by the v34 data migration.
 CREATE INDEX IF NOT EXISTS idx_cop_samples_ts ON cop_samples(ts);
 CREATE INDEX IF NOT EXISTS idx_cop_samples_outdoor ON cop_samples(outdoor);
 

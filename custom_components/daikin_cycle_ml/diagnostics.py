@@ -740,6 +740,7 @@ async def async_get_config_entry_diagnostics(
         "model_profile": {
             "stored": getattr(coord, "model_profile", None),
             "rps_learned": getattr(coord, "rps_learned", None),
+            "hmax_learned": getattr(coord, "hmax_learned", None),
         },
         "buh": _buh_snapshot(coord),
         "entities": _entities_registry(hass, entry),

@@ -111,6 +111,7 @@ from .engine.anomaly_engine import AnomalyResult, evaluate_behaviour
 from .engine.attribute_compat import build_compat_view
 from .engine.attribute_reader import missing_required, read
 from .engine import defrost_limit
+from .engine import hmax_learning as _hmax_learning
 from .engine import model_profile as _model_profile
 from .engine.alert_texts import resolve_language
 from .engine.notify_format import escape_for_parse_mode
@@ -957,6 +958,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         # merged into the setup model's datasheet on every refresh.
         self._model_profile: dict[str, Any] = _model_profile.empty_profile()
         self._rps_learned: dict[str, Any] = {}
+        # #473: maximum heat per band learned from full-speed samples
+        self._hmax_learned: dict[str, Any] = {}
+        self._hmax_learned_ts: float = 0.0
         self._cop_ds_window: deque[tuple[float, float]] = deque()
         self._datasheet_merged: dict[str, Any] = {}
         self._datasheet_defaults: dict[str, Any] = {}
@@ -3627,6 +3631,33 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._model_profile = _model_profile.empty_profile()
         self._datasheet_cache = {}
 
+    async def _refresh_hmax_learned(self, db: Any, *, every_s: float = 6 * 3600.0) -> None:
+        """#473: learn the maximum heat per band from full-speed samples
+        (at most every 6 h) and keep it in model_state."""
+        now = time.time()
+        if now - float(getattr(self, "_hmax_learned_ts", 0.0) or 0.0) < every_s:
+            return
+        fetch = getattr(db, "async_hmax_samples", None)
+        if fetch is None:
+            return
+        self._hmax_learned_ts = now
+        prof = getattr(self, "_model_profile", None) or {}
+        entry = getattr(self, "entry", None)
+        model = str(entry.data.get("model") or "") if entry is not None else ""
+        manual_top = (prof.get("fields") or {}).get("rps_max") if prof.get("model") == model else None
+        top = manual_top or (getattr(self, "_rps_learned", None) or {}).get("rps_max")
+        res = _hmax_learning.learn_hmax(
+            await fetch(now - _hmax_learning.LEARN_DAYS * 86400.0), top)
+        self._hmax_learned = res
+        setter = getattr(db, "async_set_model_state", None)
+        if setter is not None:
+            await setter("hmax_learned", {**res, "updated_ts": now})
+
+    @property
+    def hmax_learned(self) -> dict[str, Any]:
+        """#473: learned maximum heat per band (public, R216)."""
+        return dict(getattr(self, "_hmax_learned", None) or {})
+
     @property
     def model_profile(self) -> dict[str, Any]:
         """#467: the stored model profile (public, R216)."""
@@ -3782,6 +3813,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         ds_raw = _model_profile.apply_profile(
             ds_raw, getattr(self, "_model_profile", None), model,
             getattr(self, "_rps_learned", None),
+            getattr(self, "_hmax_learned", None),
         )
         ds: dict[str, Any] | None = None
         if ds_raw is not None:
@@ -4377,8 +4409,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not isinstance(source_attrs, dict):
             source_attrs = {}
         _r1t_before: float | None = None
+        _rps_now: Any = None
         if source_attrs:
             compat = build_compat_view(source_attrs)
+            _rps_now = compat.get('INV frequency (rps)')
             mapped: dict[str, Any] = {'state': raw}
             _r1t_before = compat.get(
                 'Leaving water temp. before BUH (R1T)'
@@ -4442,6 +4476,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             'source': 'interval',
             'boiler_active': 1 if _ba else 0,
             'boiler_mode': _boiler_mode,
+            # #473: heat, electrical input and compressor speed of the sample
+            **_sample_heat_fields(
+                sample.flow_lmin, _r1t_before if source_attrs else None,
+                getattr(sample, 'inlet', None), sample.cop,
+                _read_power_safe(self), _rps_now,
+            ),
         }
         # v1.19.9 #123: 3-tier Carnot classifier (RFI #127 Q1, factor 0.65).
         # reject: physically impossible -> do not store.
@@ -4912,6 +4952,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             if _rps_since is not None:
                 self._rps_learned = _model_profile.learn_rps(await _rps_since(
                     time.time() - _model_profile.LEARN_DAYS * 86400.0))
+            await self._refresh_hmax_learned(_db)
         except Exception:
             _LOGGER.exception("7d rollup refresh failed")
 
@@ -6385,6 +6426,41 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 # ---------------------------------------------------------------------
 # I2 (v1.9.0): kmeans_retrain_stale render helpers
 # ---------------------------------------------------------------------
+def _read_power_safe(coord: Any) -> float | None:
+    """#473: live electrical power in W, or None (no meter / no hass)."""
+    reader = getattr(coord, "_read_power_w", None)
+    if reader is None or getattr(coord, "hass", None) is None:
+        return None
+    try:
+        v = reader()
+    except (AttributeError, TypeError, ValueError):
+        return None
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0 else None
+
+
+def _sample_heat_fields(
+    flow_lmin: Any, r1t: Any, r4t: Any, cop: Any, power_w: Any, rps: Any,
+) -> dict[str, float | None]:
+    """#473: thermal_kw = flow / 60 x (R1T - R4T) x 4.186; power_w from the
+    meter, else thermal / COP; rps as reported. None when not measurable."""
+    def f(v: Any) -> float | None:
+        try:
+            x = float(v)
+        except (TypeError, ValueError):
+            return None
+        return x if math.isfinite(x) else None
+
+    fl, a, b, c = f(flow_lmin), f(r1t), f(r4t), f(cop)
+    thermal = fl / 60.0 * (a - b) * 4.186 if fl and fl > 0 and a is not None and b is not None and a > b else None
+    pw = f(power_w)
+    if pw is None and thermal is not None and c and c > 0:
+        pw = thermal / c * 1000.0
+    sp = f(rps)
+    return {"thermal_kw": round(thermal, 3) if thermal is not None else None,
+            "power_w": round(pw, 1) if pw is not None else None,
+            "rps": sp if sp is not None and sp > 0 else None}
+
+
 def _defrost_limit_value(coord: Any, opts: Mapping[str, Any]) -> int:
     """#463: the weekly defrost limit in use (a set option, else the
     weather-aware limit, else the default count)."""

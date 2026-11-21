@@ -29,6 +29,7 @@
       profile: "Model profile", profile_hint: "From the model chosen in setup. Fill in what is missing or adjust a value: your value is used by the whole integration.",
       p_out: "Outdoor °C", p_water: "Water °C", p_hmax: "Max heat kW", p_cop: "Spec COP", p_src: "Source", add: "Add point",
       rps_min: "Compressor minimum", rps_max: "Compressor maximum", learned_from: "learned from {n} runs",
+      learned_hmax: "Learned from your runs at full speed", from_samples: "from {n} samples",
       src: { datasheet: "Datasheet", learned: "Learned", manual: "Manual" }, missing: "Missing", reset: "Remove my value",
       saved: "Saved: used by the whole integration.", error: "Not saved: {msg}", not_found: "Daikin Cycle ML entities not found.",
       states: { heating: "Heating", dhw: "Hot water", off: "Off" },
@@ -52,6 +53,7 @@
       profile: "Modelprofiel", profile_hint: "Uit het model van de installatie. Vul aan wat ontbreekt of pas een waarde aan: je waarde wordt door de hele integratie gebruikt.",
       p_out: "Buiten °C", p_water: "Water °C", p_hmax: "Max. vermogen kW", p_cop: "Spec-COP", p_src: "Bron", add: "Punt toevoegen",
       rps_min: "Compressor minimum", rps_max: "Compressor maximum", learned_from: "geleerd uit {n} runs",
+      learned_hmax: "Geleerd uit je runs op vol toerental", from_samples: "uit {n} metingen",
       src: { datasheet: "Datasheet", learned: "Geleerd", manual: "Handmatig" }, missing: "Ontbreekt", reset: "Mijn waarde wissen",
       saved: "Opgeslagen: de hele integratie gebruikt het.", error: "Niet opgeslagen: {msg}", not_found: "Daikin Cycle ML-entiteiten niet gevonden.",
       states: { heating: "Verwarmen", dhw: "Warm water", off: "Uit" },
@@ -75,6 +77,7 @@
       profile: "Profil du modèle", profile_hint: "Issu du modèle choisi à l'installation. Complétez ce qui manque ou ajustez une valeur : elle est utilisée par toute l'intégration.",
       p_out: "Extérieur °C", p_water: "Eau °C", p_hmax: "Puissance max. kW", p_cop: "COP fiche", p_src: "Source", add: "Ajouter un point",
       rps_min: "Compresseur minimum", rps_max: "Compresseur maximum", learned_from: "appris sur {n} cycles",
+      learned_hmax: "Appris de vos cycles à pleine vitesse", from_samples: "sur {n} mesures",
       src: { datasheet: "Fiche", learned: "Appris", manual: "Manuel" }, missing: "Manquant", reset: "Effacer ma valeur",
       saved: "Enregistré : utilisé par toute l'intégration.", error: "Non enregistré : {msg}", not_found: "Entités Daikin Cycle ML introuvables.",
       states: { heating: "Chauffage", dhw: "Eau chaude", off: "Arrêt" },
@@ -135,7 +138,7 @@
       const cell = (c, step) => `<input type="number" step="${step}" data-pt="${esc(key)}" data-c="${c}" aria-label="${esc(t["p_" + c])} ${esc(p.label || "")}" class="${num(p[c]) === null ? "empty" : ""}" value="${num(p[c]) === null ? "" : p[c]}">`;
       const manual = src.hmax === "manual" || src.cop === "manual";
       return `<tr><td>${f.n0(num(p.t_out))}</td><td>${f.n0(num(p.t_lwc))}</td><td>${cell("hmax", 0.1)}</td><td>${cell("cop", 0.01)}</td>`
-        + `<td>${srcChip(t, src.hmax || src.cop || null)}${manual ? ` <button type="button" class="lnk" data-act="clear-point" data-pt="${esc(key)}">${esc(t.reset)}</button>` : ""}</td></tr>`;
+        + `<td>${srcChip(t, src.hmax || src.cop || null)}${src.hmax === "learned" && num(p.hmax_n) ? ` <span class="muted">${esc(f.fill(t.from_samples, { n: f.n0(num(p.hmax_n)) }))}</span>` : ""}${manual ? ` <button type="button" class="lnk" data-act="clear-point" data-pt="${esc(key)}">${esc(t.reset)}</button>` : ""}</td></tr>`;
     }).join("");
     return `<div class="prof"><div class="hint">${esc(t.profile_hint)}</div><div class="pgrid">${rpsRow("rps_min")}${rpsRow("rps_max")}</div>`
       + `<div class="tw"><table><thead><tr><th>${esc(t.p_out)}</th><th>${esc(t.p_water)}</th><th>${esc(t.p_hmax)}</th><th>${esc(t.p_cop)}</th><th>${esc(t.p_src)}</th></tr></thead><tbody>${rows}`
@@ -157,7 +160,7 @@
       compressor: L.fmin !== null && L.fmax !== null ? `${f.n0(l.rps)} rps · ${f.n0(L.fmin)}–${f.n0(L.fmax)}` : `${f.n0(l.rps)} rps`,
     };
     const note = {
-      thermal: L.thMax === null ? t.miss_hc : L.thNominal ? f.fill(t.nominal, { kw: f.n0(L.kw) })
+      thermal: L.thMax === null ? t.miss_hc : L.thNominal ? f.fill(t.nominal, { kw: f.n0(L.kw) }) : L.thLearned ? t.learned_hmax
         : !L.thExact ? f.fill(t.nearest, { from: L.thFrom.join(", "), out: cond.out, lwt: cond.lwt }) : "",
       electrical: L.elMax === null ? t.miss_el : "",
       compressor: L.fmin === null || L.fmax === null ? t.miss_f : "",

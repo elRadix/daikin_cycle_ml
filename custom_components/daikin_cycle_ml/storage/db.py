@@ -2610,6 +2610,58 @@ class CycleDB:
         _LOGGER.info("v33 migration (daily runs): %s", stats)
         return stats
 
+    async def async_migrate_to_v34(self) -> dict[str, Any]:
+        """#473: back-fill heat, power and compressor speed of older samples.
+
+        thermal_kw = flow / 60 x (R1T - R4T) x 4.186, power_w = thermal_kw /
+        COP x 1000, rps = rps_avg of the stored run that contains the sample
+        (approximate). is_reconstructed = 1. Skipped (left NULL): no flow,
+        R1T <= R4T, no COP, transition artefacts, boiler active. Marker
+        ``data_migration_v34_completed``.
+        """
+        marker = await self.async_get_model_state("data_migration_v34_completed")
+        if isinstance(marker, dict) and marker.get("completed"):
+            return {"skipped": 1}
+        await self.async_ensure_cop_samples_table()
+        conn = self._require()
+        cur = await conn.execute(
+            "UPDATE cop_samples SET "
+            "thermal_kw = flow_lmin / 60.0 * (r1t - r4t) * 4.186, "
+            "power_w = flow_lmin / 60.0 * (r1t - r4t) * 4.186 / cop * 1000.0, "
+            "rps = (SELECT c.rps_avg FROM cycles c WHERE c.start_ts <= cop_samples.ts "
+            "AND COALESCE(c.end_ts, c.start_ts) >= cop_samples.ts "
+            "ORDER BY c.start_ts DESC LIMIT 1), "
+            "is_reconstructed = 1 "
+            "WHERE thermal_kw IS NULL AND flow_lmin > 0 AND r1t > r4t AND cop > 0 "
+            "AND COALESCE(is_transition_artifact, 0) = 0 AND COALESCE(boiler_active, 0) = 0"
+        )
+        rows = int(cur.rowcount or 0)
+        await cur.close()
+        await conn.commit()
+        stats = {"samples_reconstructed": rows, "completed": True}
+        await self.async_set_model_state("data_migration_v34_completed", stats)
+        _LOGGER.info("v34 migration (sample heat / power / speed): %s", stats)
+        return stats
+
+    async def async_hmax_samples(self, since_ts: float) -> list[tuple[Any, ...]]:
+        """#473: (ts, outdoor, water, thermal_kw, rps, is_reconstructed) of
+        heating samples with heat and speed, for learning the maximum heat."""
+        if self._conn is None:
+            return []
+        try:
+            cur = await self._conn.execute(
+                "SELECT ts, outdoor, COALESCE(lwt, r1t), thermal_kw, rps, "
+                "COALESCE(is_reconstructed, 0) FROM cop_samples "
+                "WHERE ts >= ? AND mode = 'heating' AND thermal_kw > 0 AND rps > 0 "
+                "AND COALESCE(is_transition_artifact, 0) = 0 AND COALESCE(boiler_active, 0) = 0",
+                (float(since_ts),),
+            )
+            rows = await cur.fetchall()
+            await cur.close()
+        except sqlite3.Error:
+            return []
+        return [tuple(r) for r in rows]
+
     async def _rebuild_all_daily_summary(self) -> int:
         """DELETE + re-roll daily_summary for every day with cycles."""
         conn = self._require()
@@ -3399,7 +3451,11 @@ class CycleDB:
             "mode_original TEXT,"
             "is_transition_artifact INTEGER DEFAULT 0,"
             "boiler_active INTEGER DEFAULT 0,"
-            "boiler_mode TEXT DEFAULT '')"
+            "boiler_mode TEXT DEFAULT '',"
+            "thermal_kw REAL,"
+            "power_w REAL,"
+            "rps REAL,"
+            "is_reconstructed INTEGER DEFAULT 0)"
         )
         # Issue #218 (Block B): self-healing for pre-v22 DBs.
         # If table already existed without boiler_active, add it now.
@@ -3417,6 +3473,11 @@ class CycleDB:
                 "ALTER TABLE cop_samples ADD COLUMN "
                 "boiler_mode TEXT DEFAULT ''"
             )
+        # #473: heat, power and compressor speed per sample (learned max heat)
+        for _col, _typ in (("thermal_kw", "REAL"), ("power_w", "REAL"), ("rps", "REAL"),
+                           ("is_reconstructed", "INTEGER DEFAULT 0")):
+            if _col not in _cols:
+                await conn.execute(f"ALTER TABLE cop_samples ADD COLUMN {_col} {_typ}")
         await conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_cop_samples_ts "
             "ON cop_samples(ts)"
@@ -3594,8 +3655,8 @@ class CycleDB:
             "INSERT INTO cop_samples "
             "(ts, cop, lwt, outdoor, r1t, r4t, flow_lmin, "
             "power_stable, mode, source, boiler_active, boiler_mode, "
-            "is_transition_artifact) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "is_transition_artifact, thermal_kw, power_w, rps) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 float(sample["ts"]),
                 float(sample["cop"]),
@@ -3610,6 +3671,9 @@ class CycleDB:
                 _safe_bool_int(sample.get("boiler_active")),
                 _safe_boiler_mode(sample.get("boiler_mode")),
                 int(sample.get("is_transition_artifact", 0) or 0),
+                _safe_float_or_none(sample.get("thermal_kw"), lo=0.0, hi=60.0),
+                _safe_float_or_none(sample.get("power_w"), lo=0.0, hi=30000.0),
+                _safe_float_or_none(sample.get("rps"), lo=0.0, hi=250.0),
             ),
         )
 
