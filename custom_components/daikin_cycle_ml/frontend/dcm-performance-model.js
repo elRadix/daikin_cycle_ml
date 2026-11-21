@@ -94,10 +94,11 @@
     if (!Array.isArray(points) || outdoor === null || lwt === null) return null;
     const byW = {}, used = new Set();
     let manual = false;
+    const srcs = new Set();   /* sources of the points used: datasheet / learned / manual */
     for (const p of points) {
       const w = num(p.t_lwc), a = num(p.t_out), v = num(p[key]);
       if (w === null || a === null || v === null) continue;
-      (byW[w] = byW[w] || []).push({ a, v, label: p.label || `A${a}/W${w}`, m: !!(p.src && p.src[key] === "manual") });
+      (byW[w] = byW[w] || []).push({ a, v, label: p.label || `A${a}/W${w}`, m: !!(p.src && p.src[key] === "manual"), s: (p.src && p.src[key]) || "datasheet" });
     }
     const ws = Object.keys(byW).map(Number).sort((x, y) => x - y);
     if (!ws.length) return null;
@@ -109,11 +110,11 @@
         let i = 0;
         while (i < list.length - 2 && outdoor > list[i + 1].a) i++;
         const p0 = list[i], p1 = list[i + 1];
-        [p0, p1].forEach((p) => { used.add(p.label); manual = manual || p.m; });
+        [p0, p1].forEach((p) => { used.add(p.label); manual = manual || p.m; srcs.add(p.s); });
         return p0.v + (p1.v - p0.v) * (outdoor - p0.a) / (p1.a - p0.a);
       }
       const near = outdoor < lo.a ? lo : hi;
-      used.add(near.label); manual = manual || near.m;
+      used.add(near.label); manual = manual || near.m; srcs.add(near.s);
       if (Math.abs(near.a - outdoor) > NEAR_K) exact = false;
       if (key !== "cop") return near.v;
       const c0 = carnot(w, near.a), c1 = carnot(w, outdoor);
@@ -134,7 +135,7 @@
       const v0 = along(ws[i]), v1 = along(ws[i + 1]);
       value = v0 + (v1 - v0) * (lwt - ws[i]) / (ws[i + 1] - ws[i]);
     }
-    return { value, exact, from: [...used], manual };
+    return { value, exact, from: [...used], manual, srcs: [...srcs] };
   }
 
   function limits(specs, outdoor, lwt) {
@@ -150,7 +151,9 @@
       fmin, fmax, fSrc: vs.rps_max || vs.rps_min || null,
       kw: num(specs.kw),
       /* the maximum is the nominal capacity (part-load datasheet, #467) */
-      thNominal: !!hc && specs.hmax_basis === "nominal" && !hc.manual,
+      thNominal: !!hc && specs.hmax_basis === "nominal" && hc.srcs.every((x) => x === "datasheet"),
+      /* #473: a point learned from this installation's full-speed runs was used */
+      thLearned: !!hc && hc.srcs.includes("learned") && !hc.manual,
     };
   }
 

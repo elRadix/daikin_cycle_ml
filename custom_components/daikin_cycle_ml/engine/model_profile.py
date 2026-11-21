@@ -47,22 +47,16 @@ POINT_FIELDS: dict[str, tuple[float, float]] = {
 T_OUT_RANGE = (-30.0, 40.0)
 T_LWC_RANGE = (10.0, 80.0)
 SRC_DATASHEET, SRC_LEARNED, SRC_MANUAL = "datasheet", "learned", "manual"
-# A datasheet whose A7/W35 heating capacity is at least this share of the
-# nominal kW lists full-capacity points (ERLA11: 10.6 of 11 kW): its hc
-# values are the maximum heat. Below it (Hydrosplit EPRA: 41-77 %) hc is
-# the capacity at the EN 14511 rating point, part load, and is not used.
-FULL_CAPACITY_RATIO = 0.8
+# The datasheet heating capacity (hc) per point is the maximum heat at that
+# point for every model (maintainer decision, #473: EPRA included, like all
+# other models). Only a model whose datasheet lists no capacity at all
+# falls back to its nominal kW at A7/W35.
 
 
 def full_capacity_table(entry: Mapping[str, Any]) -> bool:
-    """True when the datasheet capacities are the unit's maximum heat."""
-    kw = _num(entry.get("kw"))
-    pts = [p for p in entry.get("points") or [] if isinstance(p, Mapping) and _num(p.get("hc")) is not None]
-    if not kw or not pts:
-        return False
-    ref = next((p for p in pts if _num(p.get("t_out")) == 7 and _num(p.get("t_lwc")) == 35), None)
-    hc = _num(ref.get("hc")) if ref is not None else max(_num(p.get("hc")) or 0.0 for p in pts)
-    return bool(hc) and (hc or 0.0) / kw >= FULL_CAPACITY_RATIO
+    """True when the datasheet lists a heating capacity at any point."""
+    return any(isinstance(p, Mapping) and _num(p.get("hc")) is not None
+               for p in entry.get("points") or [])
 
 
 def empty_profile() -> dict[str, Any]:
@@ -192,7 +186,8 @@ def edit(profile: Mapping[str, Any], model: str, *, fields: Mapping[str, Any] | 
 
 
 def apply_profile(entry: Mapping[str, Any] | None, profile: Mapping[str, Any] | None,
-                  model: str, learned: Mapping[str, Any] | None = None) -> dict[str, Any] | None:
+                  model: str, learned: Mapping[str, Any] | None = None,
+                  hmax_learned: Mapping[str, Any] | None = None) -> dict[str, Any] | None:
     """The model's datasheet with the user's values and the learned
     compressor range merged in per value, each with its source.
     None when there is neither a datasheet nor a profile value."""
@@ -229,16 +224,29 @@ def apply_profile(entry: Mapping[str, Any] | None, profile: Mapping[str, Any] | 
             row["hmax"] = hc
             row["src"]["hmax"] = SRC_DATASHEET
         points[point_key(t, w)] = row
-    # Without a full-capacity table the nominal capacity (datasheet kw, the
-    # number in the model name: EPRA12 = 12 kW) is the maximum heat at A7/W35,
-    # so every model has one (maintainer decision, #467). hmax_basis
-    # "nominal" lets the card say so; the user's own value wins.
+    # A datasheet without any capacity: the nominal capacity (datasheet kw,
+    # the number in the model name) is the maximum heat at A7/W35, so every
+    # model has one. hmax_basis "nominal" lets the card say so.
     kw = _num(base.get("kw"))
     if not full and kw is not None and _in(kw, POINT_FIELDS["hmax"]):
         key = point_key(7, 35)
         row = points.get(key) or {"label": "A7/W35", "t_out": key[0], "t_lwc": key[1], "src": {}}
         row["hmax"] = kw
         row["src"]["hmax"] = SRC_DATASHEET
+        points[key] = row
+    # #473: maximum heat learned from this installation's full-speed samples
+    # fills only what the datasheet left empty (manual > datasheet > learned)
+    for b in (hmax_learned or {}).get("bands") or []:
+        t, w, v = _num(b.get("t_out")), _num(b.get("t_lwc")), _num(b.get("hmax"))
+        if t is None or w is None or v is None or not _in(v, POINT_FIELDS["hmax"]):
+            continue
+        key = point_key(t, w)
+        row = points.get(key) or {"label": _label(*key), "t_out": key[0], "t_lwc": key[1], "src": {}}
+        if "hmax" in row["src"]:
+            continue
+        row["hmax"] = v
+        row["hmax_n"] = int(_num(b.get("n")) or 0)
+        row["src"]["hmax"] = SRC_LEARNED
         points[key] = row
     for p in manual["points"]:
         key = point_key(p["t_out"], p["t_lwc"])
@@ -247,6 +255,8 @@ def apply_profile(entry: Mapping[str, Any] | None, profile: Mapping[str, Any] | 
             if k in p:
                 row[k] = p[k]
                 row["src"][k] = SRC_MANUAL
+                if k == "hmax":
+                    row.pop("hmax_n", None)
         points[key] = row
     base["points"] = [points[k] for k in sorted(points)]
     base["value_sources"] = sources

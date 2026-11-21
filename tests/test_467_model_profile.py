@@ -308,22 +308,27 @@ async def test_configure_step_explains_invalid_values(hass, monkeypatch):
 
 # ---------- maximum heat from the datasheet, for every model ----------
 
+
 def test_full_capacity_table_rule():
+    # #473: any datasheet capacity counts as the maximum heat at its point
     assert mp.full_capacity_table({"kw": 11, "points": [{"t_out": 7, "t_lwc": 35, "hc": 10.6}]}) is True
-    assert mp.full_capacity_table({"kw": 12, "points": [{"t_out": 7, "t_lwc": 35, "hc": 6.17}]}) is False
-    assert mp.full_capacity_table({"kw": 8, "points": [{"t_out": 2, "t_lwc": 35, "hc": 7.0}]}) is True   # no A7/W35: largest hc
-    assert mp.full_capacity_table({"kw": None, "points": [{"t_out": 7, "t_lwc": 35, "hc": 6}]}) is False
+    assert mp.full_capacity_table({"kw": 12, "points": [{"t_out": 7, "t_lwc": 35, "hc": 6.17}]}) is True
     assert mp.full_capacity_table({"kw": 8, "points": [{"t_out": 7, "t_lwc": 35}]}) is False
+    assert mp.full_capacity_table({"kw": 8, "points": ["x"]}) is False
 
 
 def test_part_load_datasheet_uses_the_nominal_kw_at_a7_w35():
+    """#473 (maintainer decision): EPRA keeps all its datasheet points like every
+    other model; only a datasheet without any capacity uses the nominal kW."""
     epra = {"kw": 12, "nom_cop": 4.9, "points": [{"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 4.92, "hc": 6.17},
                                                   {"label": "A-7/W55", "t_out": -7, "t_lwc": 55, "cop": 2.05, "hc": 2.55}]}
     out = mp.apply_profile(epra, None, "epra12eav3")
     pts = {(p["t_out"], p["t_lwc"]): p for p in out["points"]}
-    assert out["hmax_from_datasheet"] is False and out["hmax_basis"] == "nominal"
-    assert pts[(7.0, 35.0)]["hmax"] == 12 and pts[(7.0, 35.0)]["src"]["hmax"] == "datasheet"
-    assert "hmax" not in pts[(-7.0, 55.0)]               # the part-load 2.55 kW is not a maximum
+    assert out["hmax_from_datasheet"] is True and out["hmax_basis"] == "datasheet"
+    assert pts[(7.0, 35.0)]["hmax"] == 6.17 and pts[(7.0, 35.0)]["src"]["hmax"] == "datasheet"
+    assert pts[(-7.0, 55.0)]["hmax"] == 2.55
+    no_hc = mp.apply_profile({"kw": 9, "points": [{"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 4.5}]}, None, "m")
+    assert no_hc["hmax_basis"] == "nominal" and no_hc["points"][0]["hmax"] == 9.0
     no_a7 = mp.apply_profile({"kw": 9, "points": []}, None, "m")
     assert no_a7["points"] == [{"label": "A7/W35", "t_out": 7.0, "t_lwc": 35.0, "src": {"hmax": "datasheet"}, "hmax": 9.0}]
     mine = mp.apply_profile(epra, mp.edit({}, "epra12eav3", points=[{"t_out": 7, "t_lwc": 35, "hmax": 11.5}]), "epra12eav3")
