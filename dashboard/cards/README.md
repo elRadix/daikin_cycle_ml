@@ -1,17 +1,15 @@
-# Shared card settings
+# Shared card settings (YAML cards)
 
-**New: a native card.** [Daily summary (native)](daikin-daily-summary-card/README.md)
-(`type: custom:daikin-daily-summary-card`) is served by the integration
-itself: add it from the card picker, no HACS frontend cards and no YAML
-needed. It has a visual editor and a **Today** tab with the live run and
-today's alerts.
+**Start with the native cards.** [Efficiency](daikin-efficiency-card/README.md)
+(`type: custom:daikin-efficiency-card`) and
+[Daily summary](daikin-daily-summary-card/README.md)
+(`type: custom:daikin-daily-summary-card`) are served by the integration:
+add them from the card picker, no HACS frontend cards, no YAML, and they
+update by themselves. Their options are set in the visual editor; the
+settings below do not apply to them. Overview and comparison:
+[dashboard README](../README.md).
 
-**New: a second native card.** [Efficiency (native)](daikin-efficiency-card/README.md)
-(`type: custom:daikin-efficiency-card`) merges LWT fine-tuning, COP & energy
-and the heating curve, with live graphs and a good / watch / act verdict
-on every graph.
-
-Seven Lovelace YAML cards for Daikin Cycle ML. Each card is one YAML file:
+This page is for the seven YAML cards. Each card is one YAML file:
 paste it in **Edit dashboard → Add card → Manual**. All cards share the
 same header, variables, language rule and theme (#427).
 

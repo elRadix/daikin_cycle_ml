@@ -1,186 +1,140 @@
-# Dashboard Cards — Daikin Cycle ML
+# Dashboard cards — Daikin Cycle ML
 
-Ready-to-use Lovelace dashboard cards for the **Daikin Cycle ML** integration.
+Two kinds of cards for the **Daikin Cycle ML** integration:
 
-## ⭐ Featured Card
+- **Native cards (recommended).** The integration serves them itself:
+  nothing to install, nothing to paste, and they update with every
+  release. Add them from the card picker.
+- **YAML cards.** Lovelace YAML you paste into a manual card. They need
+  three HACS frontend cards and have to be re-pasted after an update.
 
-| Card | Description | Preview | Requires |
-|---|---|---|---|
-| [**Daily Summary Tabbed**](cards/daily-summary-tabbed/README.md) | **5-tab variant** — Overview, Quality, Cycles, Duration, Events. Adaptive charts, popup details, EN/NL entity auto-detect, persistent tab state | <img src="cards/daily-summary-tabbed/screenshot-overview.png" width="480" alt="Daily Summary Tabbed preview"> | v1.12.0+ |
-| [**LWT Fine-Tuning**](cards/lwt-fine-tuning/README.md) | **4-tab heating-curve advisor** — Advice, Buckets (optimal LWT curve with auto-zoom), Analysis (slope/tracking/step), Live (animated LWT marker). EN/NL auto-detect, popup drilldown, optimal-zone band, state-aware waiting messages | <img src="cards/lwt-fine-tuning/showcase.gif" width="480" alt="LWT Fine-Tuning preview (animated)"> | v1.22.6+ |
-
-## Other cards
-
-| Card | Description | Preview | Requires |
-|---|---|---|---|
-| [**Simple Card**](cards/simple-card/README.md) | Live phase, hydraulic diagram, COP, quality, alerts, stooklijn advice | <img src="cards/simple-card/showcase.png" width="320" alt="Simple Card preview"> | v1.4.0+ |
-| [**Heating Curve**](cards/heating-curve/README.md) | HP spec-aware visual with COP heatmap, regression & live position | <img src="cards/heating-curve/preview.png" width="320" alt="Heating Curve preview"> | v1.4.0+ |
-| [**Daily Summary**](cards/daily-summary/README.md) | 8-day cycle history: sparklines, dynamic quality line chart, stacked cycles / duration bars, BUH + defrost events | <img src="cards/daily-summary/showcase.png" width="320" alt="Daily Summary preview"> | v1.7.1+ |
-| [**COP & Energie**](cards/cop-energy/README.md) | Radial SPF hero gauge, per-mode COP dials, animated RPS fan, energy cascade. Light/dark themes, EN/NL auto-detect | <img src="cards/cop-energy/showcase.png" width="320" alt="COP & Energie preview"> | v1.19.0+ |
-| [**Pattern Analysis**](cards/pattern-analysis/README.md) | **3-tab analytic view** — Distribution, Scatter, COP. Interactive popups, dual-axis trends, dark-mode, EN/NL entity auto-detect | <img src="cards/pattern-analysis/showcase.gif" width="320" alt="Pattern Analysis preview (animated)"> | v1.21.0+ |
+**[Native cards](#native-cards)** · **[Add a native card](#add-a-native-card)** · **[Which card replaces which](#which-card-replaces-which)** · **[YAML cards](#yaml-cards)** · **[Troubleshooting](#troubleshooting)** · **[Adding a card](#adding-a-card)**
 
 ---
 
-## Requirements
+## Native cards
 
-### Backend (integration)
+Both native cards:
 
-- **daikin_cycle_ml** `>= v1.4.0`
+- have a **visual editor** and appear in the **card picker**;
+- speak **English, Dutch and French** (Home Assistant language, or forced);
+- follow the Home Assistant theme, **dark mode** included;
+- find their entities by themselves, in any language and after renames;
+- work with **several heat pumps** (`device_id`);
+- need **no HACS frontend cards** (no button-card, stack-in-card, card-mod).
 
-> **Entity ids below are the English defaults.** On a Dutch or French
-> install HA creates translated ids (e.g. `sensor.daikin_cycle_ml_cyclus_status`,
-> `sensor.daikin_cycle_ml_etat_du_cycle`). All cards resolve these
-> automatically via the entity registry `translation_key`, so they also keep
-> working after you rename entity ids (#347, #369).
+### ⭐ Efficiency — a verdict on every graph
 
-**Core entities** (used by both cards):
+`type: custom:daikin-efficiency-card` · **[📖 Documentation](cards/daikin-efficiency-card/README.md)**
 
-- `sensor.daikin_cycle_ml_heating_curve_advice`
-- `sensor.daikin_cycle_ml_cycle_state`
-- `sensor.daikin_cycle_ml_last_cycle`
-- `sensor.daikin_cycle_ml_cop_mean_day`
-- `sensor.daikin_cycle_ml_cop_mean_week`
+[<img src="cards/daikin-efficiency-card/preview.png" width="440" alt="Efficiency card — Live tab">](cards/daikin-efficiency-card/screenshot-live.png)
 
-**Simple Card only** (additional):
+| Today | Efficiency | Curve | Advice | Dark |
+|---|---|---|---|---|
+| [<img src="cards/daikin-efficiency-card/thumb-today.png" width="140" alt="Today">](cards/daikin-efficiency-card/screenshot-today.png) | [<img src="cards/daikin-efficiency-card/thumb-eff.png" width="140" alt="Efficiency">](cards/daikin-efficiency-card/screenshot-eff.png) | [<img src="cards/daikin-efficiency-card/thumb-curve.png" width="140" alt="Curve">](cards/daikin-efficiency-card/screenshot-curve.png) | [<img src="cards/daikin-efficiency-card/thumb-advice.png" width="140" alt="Advice">](cards/daikin-efficiency-card/screenshot-advice.png) | [<img src="cards/daikin-efficiency-card/thumb-dark-live.png" width="140" alt="Dark">](cards/daikin-efficiency-card/screenshot-dark-live.png) |
 
-- `sensor.daikin_cycle_ml_current_cycle`
-- `sensor.daikin_cycle_ml_cycles_today`
-- `sensor.daikin_cycle_ml_quality_today`
-- `sensor.daikin_cycle_ml_cop_today`
-- `sensor.daikin_cycle_ml_source_health`
-- `sensor.daikin_cycle_ml_learned_thresholds`
-- `sensor.daikin_cycle_ml_thermal_power_live` (optional, kW callout)
-- 15 binary_sensors (see Simple Card README for the full list)
+LWT fine-tuning, COP & energy and the heating curve in one card.
 
-**Daily Summary only** (additional):
+- **Hero** — COP (10-min mean), electrical power → heat, overall status
+- **Live** — setpoint tracker; graphs of water temperatures, compressor
+  (start / stop markers), flow and ΔT, comfort; 30 min / 3 h / 24 h
+- **Today · Efficiency** — COP per hour, per period and mode, against
+  the datasheet; SPF against SCOP; COP drop at the same weather
+- **Curve** — the measured heating curve with the limits of your model,
+  Carnot efficiency, heat balance, defrost, specifications
+- **Advice** — the heating-curve advice in plain words, with the comfort
+  guard
+- **Every graph says good / watch / act**, judged within the datasheet
+  limits of your model; a help section explains why
 
-- `sensor.daikin_cycle_ml_daily_summary_recent` (state = total cycles; attrs `days[]`, `totals_by_mode`, `days_available`, `days_count`, `latest_day`, `oldest_day`)
-- `sensor.daikin_cycle_ml_hp_specs` (attrs `model`, `family`, `kw` for the hero)
+### ⭐ Daily summary — today, quality, cycles, events
 
-**Attributes on `sensor.daikin_cycle_ml_cycle_state`:**
+`type: custom:daikin-daily-summary-card` · **[📖 Documentation](cards/daikin-daily-summary-card/README.md)**
 
-- `configured_language` — auto-detected language (`nl` / `en`)
-- `configured_model` — HP model key (e.g. `epra12eav3`)
-- `configured_source_sensor`, `configured_power_sensor`, `configured_cop_sensor`, `configured_indoor_sensor`
+[<img src="cards/daikin-daily-summary-card/showcase.gif" width="440" alt="Daily summary card — tab tour (animated)">](cards/daikin-daily-summary-card/README.md)
 
-**Attributes on `sensor.daikin_cycle_ml_heating_curve_advice`:**
+- **Today** — the run going on now, today's numbers and **today's alerts**
+- **Overview · Quality · Cycles · Duration · Events** — 7 / 15 / 30 days,
+  charts per mode, best and worst day; tap a day for its details
 
-- `huidige_lwt`, `optimale_lwt`, `besparing_cop_pct`
-- `bucket`, `samples`, `buckets` (dict: `{ "<outdoor-bucket>": { cop, n, lwt }, ... }`)
-- `reason`, `comfort_impact`, `betrouwbaarheid`
+### Add a native card
 
-### Frontend (HACS cards)
+1. Update Daikin Cycle ML (HACS) and restart Home Assistant.
+2. Refresh the browser once (`Ctrl`+`Shift`+`R`; in the app: pull down).
+3. **Edit dashboard → + Add card**, search **Daikin Cycle ML**.
+4. Pick **Efficiency** or **Daily summary**, set the options in the
+   visual editor (all optional) and **Save**.
 
-| Card | Repo | Purpose |
+Or in YAML (**+ Add card → Manual**):
+
+    type: custom:daikin-efficiency-card
+
+    type: custom:daikin-daily-summary-card
+
+The options of each card are in its documentation.
+
+---
+
+## Which card replaces which
+
+The native cards cover most YAML cards. The YAML cards stay available.
+
+| Native card | Covers (YAML) | Still only in the YAML card |
 |---|---|---|
-| `stack-in-card` | [custom-cards/stack-in-card](https://github.com/custom-cards/stack-in-card) | Wrapper |
-| `button-card` | [custom-cards/button-card](https://github.com/custom-cards/button-card) | SVG content |
-| `card-mod` | [thomasloven/lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod) | Border + shadow styling |
-
-Install each via **HACS → Frontend → Explore & Download Repositories**.
-Restart Home Assistant after installing a new frontend card.
+| Efficiency | [LWT fine-tuning](cards/lwt-fine-tuning/README.md), [COP & energy](cards/cop-energy/README.md), [Heating curve](cards/heating-curve/README.md) | Slope / offset analysis (LWT fine-tuning), COP heatmap behind the curve, animated power flow |
+| Daily summary | [Daily summary (tabbed)](cards/daily-summary-tabbed/README.md), [Summary](cards/daily-summary/README.md) | — |
+| — | — | [Simple card](cards/simple-card/README.md) (hydraulic diagram), [Pattern analysis](cards/pattern-analysis/README.md) |
 
 ---
 
-## Installation
+## YAML cards
 
-1. Install the three HACS frontend cards (see above).
-2. Restart Home Assistant.
-3. Hard-refresh the browser (`Ctrl+Shift+R`).
-4. Open **Lovelace → Edit dashboard → + Add Card → Manual**.
-5. Open the card's own README (via the **Available Cards** table) and copy
-   the entire YAML from its `*.yaml` file.
-6. Paste the YAML into the manual card editor.
-7. **Save.**
+| Card | Shows | Preview |
+|---|---|---|
+| [Simple card](cards/simple-card/README.md) | Live phase, hydraulic diagram, COP, quality, alerts, heating-curve advice | <img src="cards/simple-card/showcase.png" width="220" alt="Simple card"> |
+| [Pattern analysis](cards/pattern-analysis/README.md) | Cycle duration distribution, cycles vs duration, COP | <img src="cards/pattern-analysis/showcase.gif" width="220" alt="Pattern analysis (animated)"> |
+| [LWT fine-tuning](cards/lwt-fine-tuning/README.md) | Heating-curve advice, buckets, slope / offset analysis, live LWT | <img src="cards/lwt-fine-tuning/showcase.gif" width="220" alt="LWT fine-tuning (animated)"> |
+| [COP & energy](cards/cop-energy/README.md) | SPF gauge, COP per period and mode, live power flow, energy today | <img src="cards/cop-energy/showcase.png" width="220" alt="COP and energy"> |
+| [Heating curve](cards/heating-curve/README.md) | LWT vs outdoor with COP heatmap, regression, live point | <img src="cards/heating-curve/preview.png" width="220" alt="Heating curve"> |
+| [Daily summary (tabbed)](cards/daily-summary-tabbed/README.md) | Per-day data in five tabs, 7 / 15 / 30 days, pop-ups | <img src="cards/daily-summary-tabbed/screenshot-overview.png" width="220" alt="Daily summary tabbed"> |
+| [Summary](cards/daily-summary/README.md) | One-page multi-day summary | <img src="cards/daily-summary/showcase.png" width="220" alt="Summary"> |
 
-Cards auto-detect your HP model, integration language, and configuration — no
-manual entity-ID edits required if your integration uses the default
-`daikin_cycle_ml` prefix.
+### Install a YAML card
 
----
+1. **HACS → Frontend**: install
+   [stack-in-card](https://github.com/custom-cards/stack-in-card),
+   [button-card](https://github.com/custom-cards/button-card) and
+   [card-mod](https://github.com/thomasloven/lovelace-card-mod).
+2. Restart Home Assistant and refresh the browser (`Ctrl`+`Shift`+`R`).
+3. Open the card's README, copy the whole `*.yaml` file.
+4. **Edit dashboard → + Add card → Manual**, paste, **Save**.
 
-## Features
-
-### 🎨 Visual
-
-- **COP heatmap** — 2D Carnot-based grid behind the plot (red → yellow → green)
-- **HP spec-aware axes** — Y-axis auto-scales to your heat pump's LWT range
-- **Auto-zoom** — X-axis focuses on bucket spread when data is available
-- **Live point** — Blinking last-cycle outdoor × current LWT position
-- **Bucket points** — One point per outdoor bucket · Color = COP quality · details in the tooltip
-- **Regression curve** — Linear fit through buckets with formula label
-- **Zone overlays** — Defrost (hachure), warm tint, heating OFF, BUH assist band
-- **Hydraulic loop** *(Simple Card)* — Animated supply/return, live rps fan, ΔT bubble
-
-### ⚙️ Auto-discovery
-
-- Reads `configured_model` to select HP specs from a lookup table (14 models: EPRA / ERLA, 04–16 kW)
-- Reads `configured_*` sensors for the config footer
-- Graceful fallbacks when attributes are missing
-
-### 🌐 Header, language and theme (all cards)
-
-- Same header on every card: title + heat pump model, family, power, refrigerant
-- English, Dutch and French: `lang_override`, else the HA UI language, else the integration language
-- Dark mode: `theme_override: auto` follows the HA dark mode (`light` / `dark` force it)
-- One `variables:` block in the card header — see [shared card settings](cards/README.md)
-
-### 📐 Info panels
-
-- **Specs box** — model, family, kW, refrigerant, LWT/outdoor ranges, thresholds, regression formula, samples, buckets
-- **Config footer** — auto-discovered sensors (source, power, COP, indoor)
-- **Regression + samples counter**
-- **COP trend** — 24h vs 7d rolling comparison
+After every integration update, re-paste the YAML (HACS does not update
+pasted cards). Header, variables (`lang_override`, `theme_override`,
+`show_help`), language and theme are shared by all YAML cards: see
+[shared card settings](cards/README.md).
 
 ---
 
-## Data & limitations
+## Data notes
 
-### HP specs are indicative
-
-`HP_SPECS` values (kW, nominal COP, LWT ranges, refrigerant) are **indicative**
-and derived from public Altherma 3 datasheets. Verify against your own unit
-before relying on the thresholds for control decisions.
-
-### `buckets` structure
-
-The Heating Curve card reads `buckets` from
-`sensor.daikin_cycle_ml_heating_curve_advice`. Keys follow
-`bucket_for_outdoor()` in the integration:
-
-- `-10-` — outdoor < -10 °C
-- `-10--8`, `-8--6`, `-2-0`, `0-2`, `2-4`, ..., `18-20` — 2 °C buckets
-- `20+` — outdoor >= 20 °C
-- `unknown` — dropped
-
-Each bucket value is `{ cop: float, n: int, lwt: float|None }`.
-
-### Live dot uses last completed cycle
-
-`_attrs_current_cycle` does not expose `outdoor_temp` in v1.4.x — the live dot
-therefore reads `outdoor_temp` from `sensor.daikin_cycle_ml_last_cycle`.
-
-### During DHW
-
-While DHW (or the backup heater) runs, the heating-curve advice is
-suppressed (`suppressed_by`), but the measured buckets and LWT values stay,
-so the Heating Curve and LWT cards keep rendering their data.
-
----
-
-## Customization
-
-### Language, theme and hints
-
-All cards use the same variables in their header (`lang_override`,
-`theme_override`, `show_help`) — see [shared card settings](cards/README.md).
-
-### Entity IDs
-
-If your integration entities don't match the default prefix
-(`sensor.daikin_cycle_ml_*` / `binary_sensor.daikin_cycle_ml_*`), update the
-`var S = { ... }` / `var B = { ... }` objects near the top of each card's JS
-block.
+- **Entities in any language.** Home Assistant creates translated entity
+  ids (`sensor.daikin_cycle_ml_cyclus_status` in Dutch,
+  `..._etat_du_cycle` in French). All cards find them through the entity
+  registry (`translation_key`), also after a rename.
+- **Your model's limits** (LWT range, nominal COP, SCOP, backup-heater,
+  defrost and heating-off temperatures) come from
+  `sensor.daikin_cycle_ml_hp_specs`, the datasheet of the configured
+  model. Datasheet values are indicative for a real installation.
+- **Graph history (Efficiency card)** comes from the recorder history of
+  `sensor.daikin_cycle_ml_thermal_power_live` and the defrost, hot-water,
+  backup-heater and compressor binary sensors. Keep them in the recorder.
+- **Heating-curve buckets** (`sensor.daikin_cycle_ml_heating_curve_advice`,
+  attribute `buckets`): one entry per 2 °C outdoor band (`-4--2`, `0-2`,
+  …, `-10-` below −10 °C, `20+` from 20 °C), each `{cop, n, lwt}`.
+- **During hot water or backup heater** the curve advice pauses
+  (`suppressed_by`); the measured buckets and LWT stay, so the curve
+  graphs keep their data.
 
 ---
 
@@ -188,22 +142,24 @@ block.
 
 | Symptom | Fix |
 |---|---|
-| Card renders as plain YAML text | HACS frontend cards not installed. See **Requirements**. |
-| `Custom element doesn't exist: stack-in-card` | Frontend card not loaded — restart HA, hard-refresh browser. |
-| Body shows empty / blank | Check the browser console for JS errors. Verify entity IDs match. |
-| `ButtonCardJSTemplateError` | A helper function referenced by the card is missing — ensure the YAML matches the current version from this repo. |
-| COP shows `—` | No COP sample collected yet — check `sensor.daikin_cycle_ml_cop_today` in **Developer Tools → States**. |
-| Language not switching | Verify both override variables are set to the same value. Values are case-sensitive lowercase `'nl'` / `'en'`. |
-| Header in NL, body in EN (or vice versa) | Override variables are out of sync. Set both to identical values. |
-| Colours look washed out | Some browsers block CSS gradients in `card_mod` under strict mode. Remove the outer `card_mod.style` block if needed. |
-| Preview image missing | Take a fresh screenshot of the card (~800×600) and save it as `preview.png` in the card's folder. |
+| Native card missing from the card picker | Update and restart Home Assistant, then refresh the browser once |
+| Native card: "entities not found" | Integration set up and updated? With several heat pumps, pick one with `device_id` |
+| Efficiency graphs empty | Normal for the first hours after the update; otherwise check that the recorder keeps `thermal_power_live` |
+| YAML card shows as plain text / `Custom element doesn't exist` | Install the three HACS frontend cards, restart, refresh the browser |
+| YAML card outdated after an update | Re-paste the YAML from this repository |
+| COP shows `—` | No COP sample yet: check `sensor.daikin_cycle_ml_cop_today` in Developer Tools → States |
 
 ---
 
-## Adding a new card
+## Adding a card
 
-1. Create a new folder under `cards/<your-card-name>/`.
-2. Add `<your-card-name>.yaml` — the full Lovelace YAML.
-3. Add `README.md` — purpose, dependencies, install steps, entity list.
-4. Add `preview.png` — a screenshot of the rendered card (~800×600).
-5. Add a row to the **Available Cards** table at the top of this file.
+**Native:** the card files go in `custom_components/daikin_cycle_ml/frontend/`
+(each under 500 lines) and in `CARD_FILES` of its `__init__.py`. Tests
+render it under Node from the states of the real integration and in
+Chromium (`tests/test_*_native_card.py`). The documentation folder
+`cards/<card>/` holds a README with every screenshot and a CHANGELOG.
+
+**YAML:** a folder `cards/<card>/` with the YAML, a README, a CHANGELOG
+and a screenshot; the shared block is synced with
+`tools/sync_card_common.py` (see [shared card settings](cards/README.md)).
+Add the card to the tables above.
