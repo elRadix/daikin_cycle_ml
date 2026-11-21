@@ -707,7 +707,8 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 5.15
+          "cop": 5.15,
+          "hc": 11.1
         },
         {
           "label": "A7/W55",
@@ -715,7 +716,8 @@
           "t_lwc": 55,
           "cop": 3.88
         }
-      ]
+      ],
+      "note": "hc at A7/W35 from the Daikin EPGA brochure; the product-table page could not be read to confirm it."
     },
     "epga14dav3": {
       "family": "Split",
@@ -731,7 +733,8 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 4.99
+          "cop": 4.99,
+          "hc": 14.5
         },
         {
           "label": "A7/W55",
@@ -739,7 +742,8 @@
           "t_lwc": 55,
           "cop": 3.65
         }
-      ]
+      ],
+      "note": "hc at A7/W35 from the Daikin EPGA brochure; the product-table page could not be read to confirm it."
     },
     "epga16dav3": {
       "family": "Split",
@@ -755,7 +759,8 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 4.78
+          "cop": 4.78,
+          "hc": 16.5
         },
         {
           "label": "A7/W55",
@@ -763,7 +768,8 @@
           "t_lwc": 55,
           "cop": 3.71
         }
-      ]
+      ],
+      "note": "hc at A7/W35 from the Daikin EPGA brochure; the product-table page could not be read to confirm it."
     },
     "edla09d3v3": {
       "family": "Monoblock",
@@ -984,7 +990,24 @@
       "charge_kg": 2.8,
       "refrigerant": "R410A",
       "gwp": 2088,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 5.0,
+          "hc": 4.4
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.58,
+          "hc": 4.03
+        }
+      ],
+      "ref": "daikin-ce.com product table EDLQ-CV3 (EDLQ05/07CAV3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C)",
+      "verified": true
     },
     "edlq07cv3": {
       "family": "Monoblock",
@@ -995,51 +1018,129 @@
       "charge_kg": 3.2,
       "refrigerant": "R410A",
       "gwp": 2088,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.52,
+          "hc": 7.0
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.42,
+          "hc": 6.9
+        }
+      ],
+      "ref": "daikin-ce.com product table EDLQ-CV3 (EDLQ05/07CAV3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C)",
+      "verified": true
     },
     "edlq11cv3": {
       "family": "Monoblock",
       "kw": 11,
       "lwt_min": 25,
       "lwt_max": 55,
-      "nom_cop": 4.52,
+      "nom_cop": 4.61,
       "charge_kg": 4.0,
       "refrigerant": "R410A",
       "gwp": 2088,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.61,
+          "hc": 11.2
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.55,
+          "hc": 11.0
+        }
+      ],
+      "ref": "daikin-ce.com product table EDLQ011-016CV3 (EDLQ011/014/016CAV3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C)",
+      "verified": true
     },
     "edlq14cv3": {
       "family": "Monoblock",
       "kw": 14,
       "lwt_min": 25,
       "lwt_max": 55,
-      "nom_cop": 4.52,
+      "nom_cop": 4.3,
       "charge_kg": 4.5,
       "refrigerant": "R410A",
       "gwp": 2088,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.3,
+          "hc": 14.5
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.32,
+          "hc": 13.6
+        }
+      ],
+      "ref": "daikin-ce.com product table EDLQ011-016CV3 (EDLQ011/014/016CAV3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C)",
+      "verified": true
     },
     "edlq16cv3": {
       "family": "Monoblock",
       "kw": 16,
       "lwt_min": 25,
       "lwt_max": 55,
-      "nom_cop": 4.52,
+      "nom_cop": 4.26,
       "charge_kg": 5.0,
       "refrigerant": "R410A",
       "gwp": 2088,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.26,
+          "hc": 16.0
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.26,
+          "hc": 15.2
+        }
+      ],
+      "ref": "daikin-ce.com product table EDLQ011-016CV3 (EDLQ011/014/016CAV3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C)",
+      "verified": true
     },
     "epsk06aw1": {
       "family": "Monoblock",
       "kw": 6,
       "lwt_min": 25,
       "lwt_max": 65,
-      "nom_cop": 4.91,
+      "nom_cop": 5.19,
       "charge_kg": 1.0,
       "refrigerant": "R290",
       "gwp": 3,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 5.19,
+          "hc": 5.81
+        }
+      ],
+      "ref": "daikin.eu product table EPSK06-10ARV3 (EN14511 Ta 7/6 C, LWC 35 C (dT5))",
+      "note": "Values of the single-phase EPSK ARV3 variant; no AW1 table found. Unverified for AW1."
     },
     "epsk08aw1": {
       "family": "Monoblock",
@@ -1050,40 +1151,80 @@
       "charge_kg": 1.0,
       "refrigerant": "R290",
       "gwp": 3,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 5.01,
+          "hc": 7.62
+        }
+      ],
+      "ref": "daikin.eu product table EPSK06-10ARV3 (EN14511 Ta 7/6 C, LWC 35 C (dT5))",
+      "note": "Values of the single-phase EPSK ARV3 variant; no AW1 table found. Unverified for AW1."
     },
     "epsk10aw1": {
       "family": "Monoblock",
       "kw": 10,
       "lwt_min": 25,
       "lwt_max": 65,
-      "nom_cop": 5.01,
+      "nom_cop": 4.94,
       "charge_kg": 1.2,
       "refrigerant": "R290",
       "gwp": 3,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.94,
+          "hc": 8.11
+        }
+      ],
+      "ref": "daikin.eu product table EPSK06-10ARV3 (EN14511 Ta 7/6 C, LWC 35 C (dT5))",
+      "note": "Values of the single-phase EPSK ARV3 variant; no AW1 table found. Unverified for AW1."
     },
     "epsk12aw1": {
       "family": "Monoblock",
       "kw": 12,
       "lwt_min": 25,
       "lwt_max": 65,
-      "nom_cop": 4.91,
+      "nom_cop": 5.5,
       "charge_kg": 1.3,
       "refrigerant": "R290",
       "gwp": 3,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 5.5,
+          "hc": 10.2
+        }
+      ],
+      "ref": "daikin.eu product table EPVX14A9W / EPSK12-14AW1 (EN14511 Ta 7/6 C, LWC 35 C (dT5): nominal 10.2 kW, maximum 11.99 kW)",
+      "verified": true
     },
     "epsk14aw1": {
       "family": "Monoblock",
       "kw": 14,
       "lwt_min": 25,
       "lwt_max": 65,
-      "nom_cop": 4.91,
+      "nom_cop": 5.5,
       "charge_kg": 1.4,
       "refrigerant": "R290",
       "gwp": 3,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 5.5,
+          "hc": 10.2
+        }
+      ],
+      "ref": "daikin.eu product table EPVX14A9W / EPSK12-14AW1 (EN14511 Ta 7/6 C, LWC 35 C (dT5): nominal 10.2 kW, maximum 13.34 kW)",
+      "verified": true
     },
     "epra18eav3": {
       "family": "Monoblock",
@@ -1171,7 +1312,24 @@
       "nom_cop": 4.61,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.61,
+          "hc": 11.2
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.55,
+          "hc": 11.0
+        }
+      ],
+      "ref": "daikin-ce.com product table EBLQ011-016CV3 (EBLQ011/014/016CAV3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C)",
+      "verified": true
     },
     "eblq14cv3": {
       "family": "Monoblock",
@@ -1181,7 +1339,24 @@
       "nom_cop": 4.3,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.3,
+          "hc": 14.5
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.32,
+          "hc": 13.6
+        }
+      ],
+      "ref": "daikin-ce.com product table EBLQ011-016CV3 (EBLQ011/014/016CAV3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C)",
+      "verified": true
     },
     "eblq16cv3": {
       "family": "Monoblock",
@@ -1191,7 +1366,24 @@
       "nom_cop": 4.26,
       "refrigerant": "R32",
       "gwp": 675,
-      "points": []
+      "points": [
+        {
+          "label": "A7/W35",
+          "t_out": 7,
+          "t_lwc": 35,
+          "cop": 4.26,
+          "hc": 16.0
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.26,
+          "hc": 15.2
+        }
+      ],
+      "ref": "daikin-ce.com product table EBLQ011-016CV3 (EBLQ011/014/016CAV3) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C)",
+      "verified": true
     },
     "ekhbrd011": {
       "family": "Split",
@@ -1206,21 +1398,26 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 4.2
+          "cop": 4.2,
+          "hc": 11.2
         },
         {
           "label": "A7/W65",
           "t_out": 7,
           "t_lwc": 65,
-          "cop": 2.97
+          "cop": 2.97,
+          "hc": 11.3
         },
         {
           "label": "A7/W80",
           "t_out": 7,
           "t_lwc": 80,
-          "cop": 2.5
+          "cop": 2.5,
+          "hc": 11.0
         }
-      ]
+      ],
+      "ref": "daikin-ce.com product table EKHBRD-ADY17 / ERRQ-AY1 (EN14511 Ta 7/6 C; (1) LW 65 C EW 55 C, (2) LW 80 C EW 70 C, (3) LW 35 C EW 30 C)",
+      "verified": true
     },
     "ekhbrd014": {
       "family": "Split",
@@ -1235,21 +1432,26 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 3.72
+          "cop": 3.72,
+          "hc": 14.4
         },
         {
           "label": "A7/W65",
           "t_out": 7,
           "t_lwc": 65,
-          "cop": 2.89
+          "cop": 2.89,
+          "hc": 14.5
         },
         {
           "label": "A7/W80",
           "t_out": 7,
           "t_lwc": 80,
-          "cop": 2.48
+          "cop": 2.48,
+          "hc": 14.0
         }
-      ]
+      ],
+      "ref": "daikin-ce.com product table EKHBRD-ADY17 / ERRQ-AY1 (EN14511 Ta 7/6 C; (1) LW 65 C EW 55 C, (2) LW 80 C EW 70 C, (3) LW 35 C EW 30 C)",
+      "verified": true
     },
     "ekhbrd016": {
       "family": "Split",
@@ -1264,21 +1466,26 @@
           "label": "A7/W35",
           "t_out": 7,
           "t_lwc": 35,
-          "cop": 3.72
+          "cop": 3.72,
+          "hc": 16.0
         },
         {
           "label": "A7/W65",
           "t_out": 7,
           "t_lwc": 65,
-          "cop": 2.73
+          "cop": 2.73,
+          "hc": 16.0
         },
         {
           "label": "A7/W80",
           "t_out": 7,
           "t_lwc": 80,
-          "cop": 2.41
+          "cop": 2.41,
+          "hc": 16.0
         }
-      ]
+      ],
+      "ref": "daikin-ce.com product table EKHBRD-ADY17 / ERRQ-AY1 (EN14511 Ta 7/6 C; (1) LW 65 C EW 55 C, (2) LW 80 C EW 70 C, (3) LW 35 C EW 30 C)",
+      "verified": true
     },
     "errq011": {
       "family": "Split",
@@ -1299,7 +1506,8 @@
           "label": "A7/W65",
           "t_out": 7,
           "t_lwc": 65,
-          "cop": 3.08
+          "cop": 3.08,
+          "hc": 11.0
         },
         {
           "label": "A7/W80",
@@ -1307,7 +1515,8 @@
           "t_lwc": 80,
           "cop": 2.5
         }
-      ]
+      ],
+      "note": "hc at A7/W65 from the ERRQ-ERSQ table in docs/MODEL_COMPATIBILITY.md (heating / power input matches this point's COP); no Daikin product table found for this variant."
     },
     "errq014": {
       "family": "Split",
@@ -1328,7 +1537,8 @@
           "label": "A7/W65",
           "t_out": 7,
           "t_lwc": 65,
-          "cop": 3.0
+          "cop": 3.0,
+          "hc": 14.0
         },
         {
           "label": "A7/W80",
@@ -1336,7 +1546,8 @@
           "t_lwc": 80,
           "cop": 2.48
         }
-      ]
+      ],
+      "note": "hc at A7/W65 from the ERRQ-ERSQ table in docs/MODEL_COMPATIBILITY.md (heating / power input matches this point's COP); no Daikin product table found for this variant."
     },
     "errq016": {
       "family": "Split",
@@ -1357,7 +1568,8 @@
           "label": "A7/W65",
           "t_out": 7,
           "t_lwc": 65,
-          "cop": 2.88
+          "cop": 2.88,
+          "hc": 16.0
         },
         {
           "label": "A7/W80",
@@ -1365,7 +1577,8 @@
           "t_lwc": 80,
           "cop": 2.41
         }
-      ]
+      ],
+      "note": "hc at A7/W65 from the ERRQ-ERSQ table in docs/MODEL_COMPATIBILITY.md (heating / power input matches this point's COP); no Daikin product table found for this variant."
     },
     "evlq05cv3": {
       "family": "Daikin Altherma R Hybrid EVLQ05CV3",

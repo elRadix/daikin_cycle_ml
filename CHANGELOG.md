@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Changed
+- Datasheet: heating capacities from the Daikin product tables added for
+  EDLQ05/07CAV3, EBLQ/EDLQ011/014/016CAV3 (A7/W35 + A7/W45, nominal COP
+  corrected to the table: EDLQ011-016 4.61 / 4.30 / 4.26), EKHBRD011-016
+  (W35 / W65 / W80) and EPSK12/14AW1 (A7/W35 10.2 kW, COP 5.50). Values
+  not confirmed for the exact model are kept with their source in the
+  entry note: EPSK06-10AW1 (ARV3 table), EPGA11-16DAV3 (brochure A7/W35),
+  ERRQ011-016 (A7/W65). The Performance card now has a maximum heat from
+  the datasheet for these models (#473).
+
+### Tests
+- test_392_datasheet_audit: capacities pinned per product table, unverified
+  capacities kept with a note; test_ht_profile_and_datasheet allows hc.
+
 ## [1.28.1] - 2026-11-21
 
 ### Fixed

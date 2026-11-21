@@ -105,7 +105,10 @@ def test_ht_datasheets_points_shape():
     d = _load()
     for m in HT_MODELS:
         for p in d["models"][m]["points"]:
-            assert set(p.keys()) == {"label", "t_out", "t_lwc", "cop"}
+            # hc (heating capacity) is optional: EKHBRD-ADY17 has the Daikin
+            # product-table capacities since #473, ERRQ the unverified A7/W65 one
+            assert {"label", "t_out", "t_lwc", "cop"} <= set(p) <= {"label", "t_out", "t_lwc", "cop", "hc"}
+            assert "hc" not in p or 0.5 < p["hc"] < 40.0
             assert 0.0 < p["cop"] < 15.0
             assert -30 <= p["t_out"] <= 50
             assert 5 <= p["t_lwc"] <= 80
