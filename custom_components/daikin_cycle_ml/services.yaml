@@ -325,9 +325,9 @@ set_model_profile:
         object: null
     points:
       name: Datasheet points
-      description: "Points by outdoor and water temperature with max heat (hc, kW) and/or spec COP, for example [{t_out: -7, t_lwc: 55, hc: 7.2, cop: 1.82}]."
+      description: "Points by outdoor and water temperature with maximum heat (hmax, kW, from the capacity tables) and/or spec COP, for example [{t_out: -7, t_lwc: 55, hmax: 7.2, cop: 1.82}]."
       required: false
-      example: '[{"t_out": -7, "t_lwc": 55, "hc": 7.2}]'
+      example: '[{"t_out": -7, "t_lwc": 55, "hmax": 7.2}]'
       selector:
         object: null
     reset:

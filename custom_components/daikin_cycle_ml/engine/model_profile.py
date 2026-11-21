@@ -38,7 +38,10 @@ FIELDS: dict[str, tuple[float, float]] = {
     "rps_max": (5.0, 200.0),
 }
 POINT_FIELDS: dict[str, tuple[float, float]] = {
-    "hc": (0.5, 40.0),     # heating capacity (max heat) kW at the point
+    # maximum heating capacity kW at the point (databook capacity tables or
+    # the user). Not the datasheet "hc": that is the capacity at the
+    # EN 14511 rating point, often part load (EPRA12: 6.17 kW at A7/W35).
+    "hmax": (0.5, 40.0),
     "cop": (0.5, 10.0),    # spec COP at the point
 }
 T_OUT_RANGE = (-30.0, 40.0)
@@ -130,7 +133,7 @@ def validate_edit(fields: Any, points: Any) -> list[str]:
             if k in ("t_out", "t_lwc"):
                 continue
             if k not in POINT_FIELDS:
-                errs.append(f"points[{i}]: unknown field {k!r} (allowed: hc, cop)")
+                errs.append(f"points[{i}]: unknown field {k!r} (allowed: hmax, cop)")
             elif p[k] is not None and ((n := _num(p[k])) is None or not _in(n, POINT_FIELDS[k])):
                 errs.append(f"points[{i}].{k}={p[k]!r} out of range {list(POINT_FIELDS[k])}")
     return errs

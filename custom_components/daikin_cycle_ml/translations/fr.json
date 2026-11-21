@@ -647,7 +647,7 @@
             },
             "model_profile": {
                 "title": "Profil du modèle",
-                "description": "Vos propres valeurs pour {model}, le modèle choisi à l'installation. Elles priment sur la fiche technique et sont utilisées par toute l'intégration (COP par rapport à la fiche, alertes, cartes). Laissez un champ vide pour utiliser la fiche ou la valeur apprise. Vitesse du compresseur apprise de vos cycles : {learned}.\n\nPoints : une liste avec t_out (extérieur °C), t_lwc (eau °C), hc (puissance max. kW) et/ou cop, par exemple :\n- t_out: -7\n  t_lwc: 55\n  hc: 7.2",
+                "description": "Vos propres valeurs pour {model}, le modèle choisi à l'installation. Elles priment sur la fiche technique et sont utilisées par toute l'intégration (COP par rapport à la fiche, alertes, cartes). Laissez un champ vide pour utiliser la fiche ou la valeur apprise. Vitesse du compresseur apprise de vos cycles : {learned}.\n\nPoints : une liste avec t_out (extérieur °C), t_lwc (eau °C), hmax (puissance max. kW, tableaux de capacité) et/ou cop, par exemple :\n- t_out: -7\n  t_lwc: 55\n  hmax: 7.2",
                 "data": {
                     "kw": "Puissance nominale",
                     "rps_min": "Vitesse minimale du compresseur",
@@ -658,7 +658,7 @@
                     "kw": "Seulement si votre unité diffère de la fiche.",
                     "rps_min": "Vide : appris de vos cycles.",
                     "rps_max": "Vide : appris de vos cycles.",
-                    "points": "Complétez la puissance max. (hc) ou un COP absent de la fiche, ou corrigez-en un."
+                    "points": "Complétez la puissance max. (hmax) ou un COP absent de la fiche, ou corrigez-en un."
                 }
             }
         },
@@ -1166,7 +1166,7 @@
                 },
                 "points": {
                     "name": "Points de la fiche",
-                    "description": "Points par température extérieure et d'eau avec puissance max. (hc, kW) et/ou COP de la fiche, par exemple [{t_out: -7, t_lwc: 55, hc: 7.2, cop: 1.82}]."
+                    "description": "Points par température extérieure et d'eau avec puissance max. (hmax, kW, tableaux de capacité) et/ou COP de la fiche, par exemple [{t_out: -7, t_lwc: 55, hc: 7.2, cop: 1.82}]."
                 },
                 "reset": {
                     "name": "Réinitialiser",

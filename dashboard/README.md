@@ -23,6 +23,18 @@ Both native cards:
 - work with **several heat pumps** (`device_id`);
 - need **no HACS frontend cards** (no button-card, stack-in-card, card-mod).
 
+### 🏁 Performance — load against your model's limits
+
+`type: custom:daikin-performance-card` · **[📖 Documentation](cards/daikin-performance-card/README.md)**
+
+[<img src="cards/daikin-performance-card/preview.png" width="300" alt="Performance card">](cards/daikin-performance-card/preview.png)
+
+Thermal load, compressor speed and electrical load against what your model
+can do at today's outdoor and water temperature, COP against the
+datasheet, and the headroom before the backup heater. Fill in or adjust
+the limits in the **model profile** on the card; the whole integration
+uses them.
+
 ### ⭐ Efficiency — a verdict on every graph
 
 `type: custom:daikin-efficiency-card` · **[📖 Documentation](cards/daikin-efficiency-card/README.md)**

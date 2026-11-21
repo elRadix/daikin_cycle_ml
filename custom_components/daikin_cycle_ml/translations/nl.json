@@ -647,7 +647,7 @@
       },
       "model_profile": {
         "title": "Modelprofiel",
-        "description": "Je eigen waarden voor {model}, het model uit de installatie. Ze gaan voor de datasheet en worden door de hele integratie gebruikt (COP t.o.v. de datasheet, meldingen, kaarten). Laat een veld leeg om de datasheet of de geleerde waarde te gebruiken. Compressortoerental geleerd uit je runs: {learned}.\n\nPunten: een lijst met t_out (buiten °C), t_lwc (water °C), hc (maximaal vermogen kW) en/of cop, bijvoorbeeld:\n- t_out: -7\n  t_lwc: 55\n  hc: 7.2",
+        "description": "Je eigen waarden voor {model}, het model uit de installatie. Ze gaan voor de datasheet en worden door de hele integratie gebruikt (COP t.o.v. de datasheet, meldingen, kaarten). Laat een veld leeg om de datasheet of de geleerde waarde te gebruiken. Compressortoerental geleerd uit je runs: {learned}.\n\nPunten: een lijst met t_out (buiten °C), t_lwc (water °C), hmax (maximaal vermogen kW, uit de capaciteitstabellen) en/of cop, bijvoorbeeld:\n- t_out: -7\n  t_lwc: 55\n  hmax: 7.2",
         "data": {
           "kw": "Nominaal vermogen",
           "rps_min": "Minimaal compressortoerental",
@@ -658,7 +658,7 @@
           "kw": "Alleen als je unit afwijkt van de datasheet.",
           "rps_min": "Leeg: geleerd uit je runs.",
           "rps_max": "Leeg: geleerd uit je runs.",
-          "points": "Vul maximaal vermogen (hc) of een COP in die de datasheet mist, of corrigeer er een."
+          "points": "Vul het maximale vermogen (hmax) of een COP in die de datasheet mist, of corrigeer er een."
         }
       }
     },
@@ -1166,7 +1166,7 @@
         },
         "points": {
           "name": "Datasheetpunten",
-          "description": "Punten per buiten- en watertemperatuur met maximaal vermogen (hc, kW) en/of spec-COP, bijvoorbeeld [{t_out: -7, t_lwc: 55, hc: 7.2, cop: 1.82}]."
+          "description": "Punten per buiten- en watertemperatuur met maximaal vermogen (hmax, kW, uit de capaciteitstabellen) en/of spec-COP, bijvoorbeeld [{t_out: -7, t_lwc: 55, hc: 7.2, cop: 1.82}]."
         },
         "reset": {
           "name": "Herstellen",

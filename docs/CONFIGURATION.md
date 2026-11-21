@@ -777,14 +777,14 @@ Leave a field empty to use the datasheet (or the learned value).
 |---|---|---|
 | Nominal heat output | `kw`, only when your unit differs from the datasheet | datasheet |
 | Compressor minimum / maximum speed | `rps_min` / `rps_max` | learned from your runs (5th percentile of run averages, 95th percentile of run peaks, steady heating and hot-water runs of 20 min or more over 60 days, after 20 runs) |
-| Datasheet points | list of `t_out` (outdoor °C), `t_lwc` (water °C), `hc` (max heat kW), `cop` | datasheet |
+| Datasheet points | list of `t_out` (outdoor °C), `t_lwc` (water °C), `hmax` (maximum heat kW, from Daikin's capacity tables; not the datasheet `hc`, which is the capacity at the EN 14511 rating point), `cop` | datasheet |
 
 Example: the datasheet gives the COP at A-7/W55 but not the maximum heat.
 Add it as a point:
 
     - t_out: -7
       t_lwc: 55
-      hc: 7.2
+      hmax: 7.2
 
 Every value shows its source on the `hp_specs` sensor (`value_sources`, and
 `src` per point): `datasheet`, `learned` or `manual`. The same can be done

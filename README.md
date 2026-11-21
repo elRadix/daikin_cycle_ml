@@ -59,8 +59,9 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 > entities regardless of language, and keep working after you rename entity
 > IDs. After updating the integration, re-paste the card YAML from
 > `dashboard/cards/` — HACS does not update pasted cards. The native
-> [Daily Summary](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-daily-summary-card)
-> and [Efficiency](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-efficiency-card)
+> [Daily Summary](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-daily-summary-card),
+> [Efficiency](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-efficiency-card)
+> and [Performance](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-performance-card)
 > cards update by themselves.
 
 ### ⭐ Featured: Daily Summary — the first native card

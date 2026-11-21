@@ -918,7 +918,7 @@
       },
       "model_profile": {
         "title": "Model profile",
-        "description": "Your own values for {model}, the model chosen in setup. They win over the datasheet and are used by the whole integration (COP against the datasheet, alerts, cards). Leave a field empty to use the datasheet or the learned value. Compressor speed learned from your runs: {learned}.\n\nPoints: a list with t_out (outdoor °C), t_lwc (water °C), hc (max heat kW) and/or cop, for example:\n- t_out: -7\n  t_lwc: 55\n  hc: 7.2",
+        "description": "Your own values for {model}, the model chosen in setup. They win over the datasheet and are used by the whole integration (COP against the datasheet, alerts, cards). Leave a field empty to use the datasheet or the learned value. Compressor speed learned from your runs: {learned}.\n\nPoints: a list with t_out (outdoor °C), t_lwc (water °C), hmax (maximum heat kW, from the capacity tables) and/or cop, for example:\n- t_out: -7\n  t_lwc: 55\n  hmax: 7.2",
         "data": {
           "kw": "Nominal heat output",
           "rps_min": "Compressor minimum speed",
@@ -929,7 +929,7 @@
           "kw": "Only when your unit differs from the datasheet.",
           "rps_min": "Empty: learned from your runs.",
           "rps_max": "Empty: learned from your runs.",
-          "points": "Fill in max heat (hc) or a COP the datasheet lacks, or correct one."
+          "points": "Fill in the maximum heat (hmax) or a COP the datasheet lacks, or correct one."
         }
       }
     },
@@ -1190,7 +1190,7 @@
         },
         "points": {
           "name": "Datasheet points",
-          "description": "Points by outdoor and water temperature with max heat (hc, kW) and/or spec COP, for example [{t_out: -7, t_lwc: 55, hc: 7.2, cop: 1.82}]."
+          "description": "Points by outdoor and water temperature with maximum heat (hmax, kW, from the capacity tables) and/or spec COP, for example [{t_out: -7, t_lwc: 55, hc: 7.2, cop: 1.82}]."
         },
         "reset": {
           "name": "Reset",
