@@ -39,6 +39,7 @@
       when_change: "The advice changes when a band has enough steady heating hours, when the room leaves its comfort range, or after you change the curve (it then re-learns).",
       how_change: "Change the offset of the weather-dependent curve on the Daikin controller or in the Onecta app, one step at a time, and wait at least a day before the next step.",
       help_title: "Help", help_now: "Right now", lvl_good: "Good", lvl_watch: "Watch", lvl_bad: "Act", lvl_info: "Info",
+      todo_title: "What needs attention", todo_none: "Nothing needs attention: every check is fine.", todo_see: "See", todo_open: "Show what needs attention",
       not_found: "Daikin Cycle ML entities not found. Is the integration set up and updated?",
       h_live: [
         "The tracker compares the leaving water (10-minute mean, so a defrost or start does not count) with the target temperature of the heating curve. Within ±{trk} K is on target, more than {trkBad} K off means the unit cannot follow its curve.",
@@ -102,6 +103,7 @@
       when_change: "Het advies verandert zodra een band genoeg stabiele verwarmingsuren heeft, als de kamer buiten zijn comfortbereik komt, of nadat je de stooklijn wijzigt (hij leert dan opnieuw).",
       how_change: "Wijzig de offset van de weersafhankelijke stooklijn op de Daikin-bediening of in de Onecta-app, één stap tegelijk, en wacht minstens een dag voor de volgende stap.",
       help_title: "Uitleg", help_now: "Op dit moment", lvl_good: "Goed", lvl_watch: "Let op", lvl_bad: "Actie", lvl_info: "Info",
+      todo_title: "Wat aandacht vraagt", todo_none: "Niets vraagt aandacht: alle controles zijn in orde.", todo_see: "Zie", todo_open: "Toon wat aandacht vraagt",
       not_found: "Daikin Cycle ML-entiteiten niet gevonden. Is de integratie ingesteld en bijgewerkt?",
       h_live: [
         "De tracker vergelijkt de aanvoer (10-minutengemiddelde, zodat een ontdooiing of start niet meetelt) met de doeltemperatuur van de stooklijn. Binnen ±{trk} K is op doel, meer dan {trkBad} K ernaast betekent dat de unit zijn stooklijn niet kan volgen.",
@@ -165,6 +167,7 @@
       when_change: "Le conseil change quand une plage a assez d'heures de chauffage stable, quand la pièce sort de sa plage de confort, ou après une modification de la loi d'eau (il réapprend alors).",
       how_change: "Modifiez le décalage de la loi d'eau sur la commande Daikin ou dans l'application Onecta, un pas à la fois, et attendez au moins un jour avant le pas suivant.",
       help_title: "Aide", help_now: "En ce moment", lvl_good: "Bien", lvl_watch: "À surveiller", lvl_bad: "À corriger", lvl_info: "Info",
+      todo_title: "Points d'attention", todo_none: "Rien à signaler : tous les contrôles sont bons.", todo_see: "Voir", todo_open: "Afficher les points d'attention",
       not_found: "Entités Daikin Cycle ML introuvables. L'intégration est-elle configurée et à jour ?",
       h_live: [
         "Le suivi compare le départ (moyenne sur 10 minutes, pour qu'un dégivrage ou un démarrage ne compte pas) à la température cible de la loi d'eau. À ±{trk} K c'est sur la cible ; à plus de {trkBad} K l'unité ne suit pas sa loi d'eau.",

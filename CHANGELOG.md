@@ -26,7 +26,19 @@
   ERRQ011-016 (A7/W65). The Performance card now has a maximum heat from
   the datasheet for these models (#473).
 
+### Fixed
+- Efficiency card 1.2.0: the header badge could say "⛔ Act" while Advice
+  only showed "Keep the curve" (the badge took checks of other tabs that
+  no tab listed). One list of actions now feeds the badge (with the count,
+  tap opens Advice), dots on the tabs and "What needs attention" at the
+  top of Advice, worst first, each with a link to its tab (Part of #475).
+- Efficiency card: backup-heater text rewritten in EN / NL / FR (1 kWh of
+  heat per kWh against 3 to 5 for the heat pump, and the usual causes).
+
 ### Tests
+- test_475_efficiency_actions: replay of the report (Act badge with a
+  datasheet check on another tab) in EN / NL / FR, badge count = list,
+  tab dots, Chromium clicks on the badge and the links.
 - test_473_hmax_learning (bands, thresholds, migration v34, coordinator
   refresh), test_473_card (learned point in EN / NL / FR).
 - test_392_datasheet_audit: capacities pinned per product table, unverified
