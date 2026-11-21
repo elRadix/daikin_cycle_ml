@@ -23,6 +23,7 @@ import re
 import shutil
 import subprocess
 from datetime import datetime, timedelta
+from typing import Any
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -35,6 +36,7 @@ from homeassistant.util import slugify
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURE = ROOT / "tests/fixtures/card_states_427.json"
+HISTORY_FIXTURE = ROOT / "tests/fixtures/card_history_24h.json"
 CARDS = sorted((ROOT / "dashboard/cards").glob("*/*.yaml"))
 COMP = ROOT / "custom_components/daikin_cycle_ml"
 LANGS = ("en", "nl", "fr")
@@ -374,6 +376,9 @@ def _source(mode: str, outdoor: float) -> tuple[dict, float]:
         "BUH Step1": buh,
         "BUH Step2": False,
         "LW setpoint (main)": 34.0,
+        "Indoor ambient temp. (R1T)": 20.4 if on else 20.2,
+        "RT setpoint": 20.5,
+        "Refrig. Temp. liquid side (R3T)": lwt + (1.5 if on else 0.0),
     }
     power = ((1400.0 if dhw else 950.0) + (3000.0 if buh else 0.0)) if on else 25.0
     return attrs, power
@@ -430,6 +435,8 @@ async def test_dump_card_states(hass, freezer):  # pragma: no cover - generator
     await hass.async_block_till_done()
     coord = entry.runtime_data
     t, n = start, 0
+    hist: dict[str, list] = {k: [] for k in HISTORY_ENTITIES}
+    last_hist: dict[str, Any] = {}
     while t < end:
         n += 1
         t += timedelta(seconds=30)
@@ -440,6 +447,8 @@ async def test_dump_card_states(hass, freezer):  # pragma: no cover - generator
         hass.states.async_set(PWR, str(power), {"unit_of_measurement": "W", "device_class": "power"})
         await hass.async_block_till_done()
         await coord.async_refresh()
+        if end - t <= timedelta(hours=24):
+            _record_history(hass, hist, last_hist, t)
         if n % 30 == 0:
             async_fire_time_changed(hass, t)
             await hass.async_block_till_done()
@@ -456,8 +465,40 @@ async def test_dump_card_states(hass, freezer):  # pragma: no cover - generator
                 ents[st.entity_id] = {"platform": e.platform, "translation_key": e.translation_key}
     FIXTURE.write_text(json.dumps({"now": t.isoformat(), "states": states, "entities": ents},
                                   ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    HISTORY_FIXTURE.write_text(json.dumps(hist, ensure_ascii=False, separators=(",", ":")) + "\n",
+                               encoding="utf-8")
     await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
+
+
+# entities of the native efficiency card's graphs, in the compressed
+# format of the history/history_during_period websocket command
+HISTORY_ENTITIES = (
+    "sensor.daikin_cycle_ml_thermal_power_live",
+    "binary_sensor.daikin_cycle_ml_compressor_running",
+    "binary_sensor.daikin_cycle_ml_defrost_active",
+    "binary_sensor.daikin_cycle_ml_dhw_active",
+    "binary_sensor.daikin_cycle_ml_buh_active",
+)
+
+
+def _record_history(hass, hist, last, t):  # pragma: no cover - generator
+    for eid in HISTORY_ENTITIES:
+        st = hass.states.get(eid)
+        if st is None:
+            continue
+        attrs = {} if eid.startswith("binary_sensor.") else {
+            k: v for k, v in st.attributes.items()
+            if k.startswith("input_") or k.endswith("_c") or k == "calculation_source"
+        }
+        key = (st.state, json.dumps(attrs, sort_keys=True, default=str))
+        if last.get(eid) == key:
+            continue
+        last[eid] = key
+        row: dict[str, Any] = {"s": st.state, "lu": round(t.timestamp(), 1)}
+        if attrs:
+            row["a"] = json.loads(json.dumps(attrs, default=str))
+        hist[eid].append(row)
 
 
 # --------------------------------------------------------------------------

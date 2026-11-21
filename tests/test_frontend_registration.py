@@ -16,7 +16,19 @@ _MOD = "custom_components.daikin_cycle_ml.frontend"
 
 
 def test_card_url_is_versioned():
-    assert card_urls() == [f"{URL_BASE}/daikin-daily-summary-card.js?v={VERSION}"]
+    urls = card_urls()
+    assert urls[0] == f"{URL_BASE}/daikin-daily-summary-card.js?v={VERSION}"
+    assert f"{URL_BASE}/daikin-efficiency-card.js?v={VERSION}" in urls
+    assert all(u.endswith(f"?v={VERSION}") for u in urls)
+
+
+def test_every_card_file_exists():
+    from pathlib import Path
+
+    from custom_components.daikin_cycle_ml.frontend import CARD_FILES
+
+    folder = Path(__file__).resolve().parent.parent / "custom_components/daikin_cycle_ml/frontend"
+    assert set(CARD_FILES) == {p.name for p in folder.glob("*.js")}
 
 
 @pytest.mark.asyncio
@@ -30,7 +42,7 @@ async def test_register_serves_folder_and_loads_card_once(hass):
     cfg = hass.http.async_register_static_paths.call_args.args[0][0]
     assert cfg.url_path == URL_BASE and cfg.path.endswith("frontend")
     assert cfg.cache_headers is True  # safe: the URL changes with the version
-    add_js.assert_called_once_with(hass, card_urls()[0])
+    assert [c.args for c in add_js.call_args_list] == [(hass, u) for u in card_urls()]
 
 
 @pytest.mark.asyncio
@@ -52,4 +64,4 @@ async def test_register_failure_is_logged_not_raised(hass):
     hass.http.async_register_static_paths = AsyncMock()
     with patch(f"{_MOD}.add_extra_js_url") as add_js:
         await async_register_frontend(hass)
-    add_js.assert_called_once()
+    assert add_js.call_count == len(card_urls())

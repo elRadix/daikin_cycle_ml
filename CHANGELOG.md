@@ -26,6 +26,21 @@
   entity example (Part of #451)
 
 ### Added
+- Native Lovelace card `custom:daikin-efficiency-card`, served by the
+  integration (no HACS frontend cards): merges the LWT fine-tuning, COP &
+  energy and heating-curve cards. Live hero (COP 10-min mean, power,
+  heat), tabs Live (setpoint tracker; water, compressor with start / stop
+  markers, flow / ΔT, comfort and refrigerant graphs over 30 min / 3 h /
+  24 h from the recorder), Today, Efficiency, Curve (heating curve,
+  Carnot efficiency, heat balance, defrost, specifications) and Advice.
+  Every graph and tab gets a verdict (good / watch / act / info) within
+  the datasheet limits of the model, and a help section explains it.
+  EN / NL / FR, dark theme, visual editor. Docs:
+  `dashboard/cards/daikin-efficiency-card/README.md` (Part of #457)
+- `thermal_power_live` attributes with the live temperatures for the
+  card's graphs: `lwt_c`, `lwt_after_buh_c`, `return_c`, `outdoor_c`,
+  `lw_setpoint_c`, `room_c` (the configured indoor sensor wins),
+  `room_setpoint_c`, `refrigerant_liquid_c` (v1 and v2 names) (Part of #457)
 - `tools/ingest_diagnostics.py` + `tests/fixtures/diagnostics/`: every
   diagnostics file that is sent is stored the same way, for analysis,
   simulations and tests:
@@ -39,6 +54,20 @@
   and replays it through the compat view, the model-code resolution, the
   quality score and the stored ML state. First 7 files: 5 installs
   (split HT, EVLQ hybrid, ERGA, basic profile without a DHW tank)
+
+### Tests
+- `tests/test_efficiency_native_card.py`: the seven card files load in
+  any order; states and 24 h history of the real integration in EN / NL /
+  FR (with and without the entity registry); every verdict pushed to
+  good / watch / act by scenario; texts complete in every language; pure
+  helpers (datasheet COP, curve fit, hold-until-next-sample history,
+  time-weighted 10-min mean); Chromium: history websocket call, tabs,
+  range, advanced, help, curve points, history refused, visual editor
+- `tests/test_efficiency_live_temps.py`: live temperature attributes on
+  v1 and v2 names, indoor sensor override
+- `tests/fixtures/card_history_24h.json`: 24 h recorder history of the
+  card's entities, written by the fixture generator in
+  `tests/test_427_cards_live_states.py`
 
 ## [1.26.1] - 2026-11-20
 

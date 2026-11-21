@@ -100,7 +100,7 @@ The most commonly used entities in user automations:
 
 | Entity | Unit | Device class | Description |
 |---|---|---|---|
-| `sensor.daikin_cycle_ml_thermal_power_live` | kW | power | Live thermal power: flow × 4.18 × dT / 60 |
+| `sensor.daikin_cycle_ml_thermal_power_live` | kW | power | Live thermal power: flow × 4.18 × dT / 60. Attributes: inputs (`input_power_w`, `input_cop`, `input_flow_lmin`, `input_dt_k`, `input_rps`, `calculation_source`) and live temperatures for the Efficiency card (`lwt_c`, `lwt_after_buh_c`, `return_c`, `outdoor_c`, `lw_setpoint_c`, `room_c`, `room_setpoint_c`, `refrigerant_liquid_c`) |
 | `sensor.daikin_cycle_ml_electrical_power_estimated` | W | power | Electrical input estimate (v1.14.0). `source` attribute: `power_meter` / `espaltherma_v2_stats` / `inverter_estimated_v1` / `none`. Extra attributes: `supply_phases`, `buh_step1_kw`, `buh_step2_kw`, `buh_step1_on`, `buh_step2_on`, `inv_current_a`, `v2_stats_present`. |
 
 Reports `unknown` when compressor is off or flow/dT invalid. Normal — not an error.

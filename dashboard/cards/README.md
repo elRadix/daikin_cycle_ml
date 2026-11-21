@@ -6,6 +6,11 @@ itself: add it from the card picker, no HACS frontend cards and no YAML
 needed. It has a visual editor and a **Today** tab with the live run and
 today's alerts.
 
+**New: a second native card.** [Efficiency (native)](daikin-efficiency-card/README.md)
+(`type: custom:daikin-efficiency-card`) merges LWT fine-tuning, COP & energy
+and the heating curve, with live graphs and a good / watch / act verdict
+on every graph.
+
 Seven Lovelace YAML cards for Daikin Cycle ML. Each card is one YAML file:
 paste it in **Edit dashboard → Add card → Manual**. All cards share the
 same header, variables, language rule and theme (#427).

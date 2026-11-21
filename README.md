@@ -59,8 +59,9 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 > entities regardless of language, and keep working after you rename entity
 > IDs. After updating the integration, re-paste the card YAML from
 > `dashboard/cards/` — HACS does not update pasted cards. The native
-> [Daily Summary card](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-daily-summary-card)
-> updates by itself.
+> [Daily Summary](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-daily-summary-card)
+> and [Efficiency](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-efficiency-card)
+> cards update by themselves.
 
 ### ⭐ Featured: Daily Summary — the first native card
 
@@ -84,6 +85,27 @@ it updates with every release.
 In YAML: `type: custom:daikin-daily-summary-card`.
 
 **[📖 Full documentation](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-daily-summary-card)**
+
+### ⭐ New: Efficiency — native card with a verdict on every graph
+
+[<img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daikin-efficiency-card/screenshot-live.png" width="440" alt="Efficiency native card — Live tab">](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-efficiency-card)
+
+LWT fine-tuning, COP & energy and the heating curve in one native card.
+Add **Daikin Cycle ML · Efficiency** from the card picker.
+
+- **Live** — COP (10-min mean), power → heat, setpoint tracker, graphs of
+  water temperatures, compressor (starts / stops), flow and ΔT, comfort
+  (30 min / 3 h / 24 h)
+- **Today · Efficiency · Curve · Advice** — COP per hour, per period and
+  against the datasheet, SPF vs SCOP, the heating curve with Carnot
+  efficiency and heat balance, the curve advice with comfort guard
+- **Every graph says good / watch / act**, within the datasheet limits of
+  your model, and a help section explains it
+- **English / Dutch / French**, light and dark theme, visual editor
+
+In YAML: `type: custom:daikin-efficiency-card`.
+
+**[📖 Full documentation](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-efficiency-card)**
 
 ---
 
