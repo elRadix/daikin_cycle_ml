@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.28.0] - 2026-11-21
+
 ### Added
 - Native card **Performance** (`type: custom:daikin-performance-card`):
   thermal load, compressor speed and electrical load against the limits of
