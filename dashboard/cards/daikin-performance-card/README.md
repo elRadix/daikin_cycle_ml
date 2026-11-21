@@ -78,18 +78,30 @@ Home Assistant). It starts from the datasheet of the model chosen in setup:
   steady runs; type a value to set your own.
 - **Datasheet points**: per outdoor and water temperature the **maximum
   heat** (`hmax`) and the **spec COP**. A dashed red box is missing.
-  When your model's datasheet lists full-capacity points (A7/W35 capacity
-  at least 80 % of the nominal kW, for example ERLA, EDLA, ERGA, EBLA),
-  they fill the maximum heat. When it lists part-load rating points
-  (Hydrosplit EPRA), the nominal capacity (EPRA12 = 12 kW) is used at
-  A7/W35 and the dial says so; add colder points from Daikin's capacity
-  tables if you want more precision.
+  See [Where the maximum heat comes from](#where-the-maximum-heat-comes-from).
 - **Add point** for a condition the datasheet does not list.
 
 Every value shows its source: **Datasheet**, **Learned** or **Manual**.
 **Remove my value** goes back to the datasheet or the learned value. Your
 values are saved in the integration and used everywhere: COP against the
 datasheet, the normalised COP, alerts and the other cards.
+
+## Where the maximum heat comes from
+
+Per outdoor and water temperature, in this order:
+
+1. **Manual**: your own value.
+2. **Datasheet**: the capacities in your model's Daikin datasheet, for
+   every model.
+3. **Learned**: for conditions the datasheet does not list, learned from
+   your own runs at full compressor speed (90 % of the maximum speed or
+   more, 5 K bands, after 30 samples on 3 days). The thermal dial says
+   "Learned from your runs at full speed" and the profile shows the
+   number of samples.
+4. **Nominal**: when the datasheet has no capacity at all, the nominal kW
+   at A7/W35; the dial says so.
+
+![Learned maximum heat](screenshot-learned.png)
 
 ## Troubleshooting
 

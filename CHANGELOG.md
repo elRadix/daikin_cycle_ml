@@ -2,7 +2,21 @@
 
 ## [Unreleased]
 
+### Added
+- Maximum heat learned from your own runs (#473): heating samples at 90 %
+  of the maximum compressor speed or more, per 5 K outdoor / 5 K water
+  band, 95th percentile of the heat, after 30 samples on 3 days, fill the
+  conditions the datasheet does not list (source "learned"). cop_samples
+  store thermal_kw, power_w and rps; data migration v34 fills them for
+  existing samples (marker data_migration_v34_completed). hp_specs and
+  diagnostics expose hmax_learned; Performance card 1.1.0 says "Learned
+  from your runs at full speed".
+
 ### Changed
+- Every datasheet capacity is the maximum heat at its point, for every
+  model, also the Hydrosplit EPRA (EPRA12: 6.17 kW at A7/W35 instead of
+  the nominal 12 kW of 1.28.1); the nominal kW at A7/W35 is only used when
+  the datasheet has no capacity at all (#473).
 - Datasheet: heating capacities from the Daikin product tables added for
   EDLQ05/07CAV3, EBLQ/EDLQ011/014/016CAV3 (A7/W35 + A7/W45, nominal COP
   corrected to the table: EDLQ011-016 4.61 / 4.30 / 4.26), EKHBRD011-016
@@ -13,6 +27,8 @@
   the datasheet for these models (#473).
 
 ### Tests
+- test_473_hmax_learning (bands, thresholds, migration v34, coordinator
+  refresh), test_473_card (learned point in EN / NL / FR).
 - test_392_datasheet_audit: capacities pinned per product table, unverified
   capacities kept with a note; test_ht_profile_and_datasheet allows hc.
 
