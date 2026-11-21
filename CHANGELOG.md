@@ -3,6 +3,12 @@
 ## [Unreleased]
 
 ### Fixed
+- Cycle detection paused forever when ESPAltherma does not send
+  `I/U operation mode` or `Water pump operation` (commented out in some
+  definitions, e.g. EBLA/EDLA monobloc on v1): the compressor read as off.
+  Both have a fallback (`Operation Mode` classifies the mode; a missing
+  pump state never blocks a run), so they no longer freeze detection; they
+  are still reported as missing so they can be enabled (Part of #455)
 - Power meter: a meter in kW was read as watts (0.85 kW counted as
   0.85 W), and an energy meter (kWh / Wh, device class energy) picked as
   power sensor was read as watts (3,200 kWh as 3,200 W). kW is now
