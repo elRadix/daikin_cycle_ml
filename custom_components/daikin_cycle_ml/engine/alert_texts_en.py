@@ -71,9 +71,9 @@ ALERTS = {
     },
     "defrost_excessive": {
         "title": "Many defrosts",
-        "what": "{count_7d} defrosts in the last 7 days (limit {threshold}).",
-        "what_plain": "Many defrosts in the last 7 days.",
-        "todo": "Normal in humid weather between about −5 and +7 °C, fog or drizzle, often several times per hour of running. Keep snow and leaves away from the unit and make sure meltwater can drain away (never scrape ice off). If ice stays on the unit or defrosts stay this frequent in dry weather, ask your installer.",
+        "what": "{count_7d} defrosts in the last 7 days; up to {threshold} are normal for this weather and {run_h_7d} h of running.",
+        "what_plain": "More defrosts than normal for the weather in the last 7 days.",
+        "todo": "Frequent defrosts are normal in humid weather between about −5 and +7 °C, but not at 10 °C or warmer. Keep snow and leaves away from the unit, make sure meltwater can drain away and the cold air does not blow back into the unit (never scrape ice off). If ice stays on the unit or this keeps coming, ask your installer.",
     },
     "buh_excessive": {
         "title": "Backup heater used often",

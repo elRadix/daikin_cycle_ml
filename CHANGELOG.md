@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 ### Changed
+- "Many defrosts" now follows the weather and the running time: the
+  weekly limit is the running hours of the last 7 days times the highest
+  plausible defrost rate for the outdoor temperature of each hour (up to
+  2 per hour around 0 °C, 0.1 per hour at 10 °C or warmer), plus 50 %,
+  at least 10. It counts real defrost events instead of runs that
+  contained a defrost. A healthy unit in a humid winter week no longer
+  trips the fixed limit of 30, while defrosts on warm days are flagged.
+  Rates reviewed by an HVAC engineer (Part of #463)
 - Alert messages rewritten for home owners, in English, Dutch and French
   alike: each alert says whether you need to do something (no action
   needed / keep an eye on it / action needed), what happened with the
@@ -27,6 +35,10 @@
   (Part of #463)
 
 ### Tests
+- `test_463_defrost_limit`: rate bands, humid winter week (old limit
+  fired, new does not), too many for the weather, warm days, cold night
+  inside a mild day, cooling ignored, missing data, fallback to runs with
+  a defrost, coordinator wiring and option override (Part of #463)
 - `test_463_alert_messages`: same keys and placeholders in en / nl / fr,
   every alert rendered in every language without placeholders, None or
   jargon, at most four facts, language resolution, Telegram escaping,

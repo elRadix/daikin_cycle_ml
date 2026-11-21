@@ -337,6 +337,8 @@ def _defrost_snapshot(coord: Any) -> dict[str, Any]:  # # DIAG-V1224
         "start_ts": getattr(coord, "_defrost_start_ts", None),
         "duration_s": getattr(coord, "_defrost_duration_s", None),
         "last_defrost_ts": getattr(coord, "_last_defrost_ts", None),
+        # #463: events, running hours and the weather-aware limit (7 days)
+        "limit_7d": getattr(coord, "_defrost_7d", None),
     }
 
 

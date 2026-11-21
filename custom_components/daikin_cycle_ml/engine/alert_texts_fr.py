@@ -71,9 +71,9 @@ ALERTS = {
     },
     "defrost_excessive": {
         "title": "Beaucoup de dégivrages",
-        "what": "{count_7d} dégivrages ces 7 derniers jours (limite {threshold}).",
-        "what_plain": "Beaucoup de dégivrages ces 7 derniers jours.",
-        "todo": "Normal par temps humide entre environ −5 et +7 °C, brouillard ou bruine, souvent plusieurs fois par heure de fonctionnement. Écartez neige et feuilles de l'unité et veillez à ce que l'eau de fonte s'évacue (ne grattez jamais la glace). Si la glace reste sur l'unité ou si les dégivrages restent aussi fréquents par temps sec, demandez à votre installateur.",
+        "what": "{count_7d} dégivrages ces 7 derniers jours ; jusqu'à {threshold} sont normaux pour ce temps et {run_h_7d} h de fonctionnement.",
+        "what_plain": "Plus de dégivrages que la normale pour la météo ces 7 derniers jours.",
+        "todo": "Des dégivrages fréquents sont normaux par temps humide entre environ −5 et +7 °C, mais pas à 10 °C ou plus. Écartez neige et feuilles de l'unité, veillez à ce que l'eau de fonte s'évacue et que l'air froid ne soit pas réaspiré par l'unité (ne grattez jamais la glace). Si la glace reste sur l'unité ou si cela continue, demandez à votre installateur.",
     },
     "buh_excessive": {
         "title": "Appoint électrique souvent utilisé",

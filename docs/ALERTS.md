@@ -244,11 +244,42 @@ The reference is the datasheet's A7/W35 point, normalised to your LWT and outdoo
 
 #### `defrost_excessive`
 
-Fires when 7-day defrost count exceeds 30.
+Since #463 the limit follows the weather and the running time
+(`engine/defrost_limit.py`). It counts real defrost events (each start
+of *Defrost Operation*, per day), not runs that contained a defrost.
 
-Message includes count, duration (7d, in minutes), mode, outdoor temp.
+Weekly limit = sum over the last 7 days of compressor running hours
+(heating and hot water; cooling is left out) x the highest plausible
+defrost rate for the outdoor temperature of each running hour x 1.5,
+with a floor of 10:
 
-Action: check outdoor humidity (frequent defrosts on cold damp days is expected — the threshold is designed to catch excessive defrosts even accounting for weather). If your region is coastal, you may want to raise the threshold via the `defrost_excessive` dedup option.
+| Outdoor (mean of the running hour) | Max defrosts per running hour |
+|---|---|
+| < -7 °C (drier air) | 1.0 |
+| -7 to -2 °C | 1.5 |
+| -2 to 3 °C (most frost) | 2.0 |
+| 3 to 7 °C | 1.5 |
+| 7 to 10 °C | 0.5 |
+| >= 10 °C | 0.1 |
+
+A day without outdoor data uses 2.0 (the most lenient). The rates are
+conservative upper bounds for humid NW-European weather on a Daikin
+Altherma 3, reviewed by an HVAC engineer; Daikin does not publish its
+defrost logic. The alert also fires when there are more than 2 defrosts
+on 2 or more days with a mean of 10 °C or warmer, whatever the count.
+
+Example: a humid week around 0 °C with 20 h of running a day allows up
+to 420 defrosts (140 h x 2.0 x 1.5); the old fixed limit of 30 fired on
+a healthy unit.
+
+Advanced: setting `defrost_7d_count_threshold` in the options replaces
+the dynamic limit by that fixed count. Diagnostics: `defrost.limit_7d`
+shows events, running hours, limit and the rate per day.
+
+Action: keep snow and leaves away from the unit, make sure meltwater can
+drain away and the cold air does not blow back into the unit; never
+scrape ice off. If ice stays on the unit or the alert keeps coming, ask
+the installer.
 
 #### `buh_excessive`
 
@@ -653,7 +684,7 @@ Each alert type has a field schema in `ALERT_SCHEMA`. Fields with `None` values 
 | ml_anomaly | severity, mode, z_score, top_dim, last_duration, avg_duration_7d, outdoor |
 | setpoint_osc | lwt_setpoint, lwt_target, swing, changes, window, threshold, mode |
 | cop_degradation | week_pct, threshold, trend_30d, mode, outdoor |
-| defrost_excessive | count_7d, threshold, duration_7d_min, mode, outdoor |
+| defrost_excessive | count_7d, threshold (dynamic limit), run_h_7d, duration_7d_min, mode, outdoor |
 | buh_excessive | buh_ratio_7d, threshold, buh_count_7d, mode, outdoor |
 | source_stale | age_s, threshold, source_sensor, mode |
 | missing_attributes | missing_count, which, source_sensor, mode |

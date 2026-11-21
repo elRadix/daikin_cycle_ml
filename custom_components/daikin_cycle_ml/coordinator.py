@@ -110,6 +110,7 @@ from .engine.action_engine import generate_advice
 from .engine.anomaly_engine import AnomalyResult, evaluate_behaviour
 from .engine.attribute_compat import build_compat_view
 from .engine.attribute_reader import missing_required, read
+from .engine import defrost_limit
 from .engine.alert_texts import resolve_language
 from .engine.notify_format import escape_for_parse_mode
 from .engine.cop_degradation import (
@@ -864,6 +865,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._last_alert_sent: dict[str, float] = {}
         # PR E: 7d rollup cache (refreshed before each dispatch)
         self._defrost_7d_sum: int = 0
+        # #463: weather-aware weekly defrost limit (engine/defrost_limit).
+        self._defrost_7d: dict[str, Any] = {}
         self._defrost_7d_duration_s: float = 0.0
         self._buh_7d_count: int = 0
         self._buh_7d_ratio: float = 0.0
@@ -4835,6 +4838,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._defrost_7d_sum = sum(
                 int(r.get("defrost_count", 0) or 0) for r in rows
             )
+            _events: dict[str, dict[str, Any]] = {}
+            try:
+                _ev = await _db.async_runtime_events_by_day()
+                if isinstance(_ev, dict):
+                    _events = _ev
+            except Exception:
+                _LOGGER.debug("runtime events 7d failed", exc_info=True)
+            await self._refresh_defrost_limit(_db, rows, _events)
             try:
                 _dds = await _db.async_defrost_duration_since(
                     time.time() - (7 * 86400)
@@ -4850,13 +4861,6 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             # 20 h run with 9 min of BUH as "BUH" (prod-1: 0.444 while
             # BUH ran 10 min/day). Cycle ratio stays as the fallback when
             # no per-day BUH minutes are stored yet.
-            _events: dict[str, dict[str, Any]] = {}
-            try:
-                _ev = await _db.async_runtime_events_by_day()
-                if isinstance(_ev, dict):
-                    _events = _ev
-            except Exception:
-                _LOGGER.debug("runtime events 7d failed", exc_info=True)
             _time_ratio = _buh_time_ratio(rows, _events)
             if _time_ratio is not None:
                 self._buh_7d_ratio = _time_ratio
@@ -4875,6 +4879,24 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._avg_duration_7d_min = await self._compute_avg_duration_7d_min()
         except Exception:
             _LOGGER.exception("7d rollup refresh failed")
+
+    async def _refresh_defrost_limit(
+        self, db: Any, rows: list[dict[str, Any]],
+        events: dict[str, dict[str, Any]],
+    ) -> None:
+        """#463: defrost events of the last 7 days against a limit that
+        follows the weather and the running hours (engine/defrost_limit).
+        On a DB error the previous result stays in place."""
+        now = time.time()
+        cutoff_day = time.strftime("%Y-%m-%d", time.localtime(now - 7 * 86400.0))
+        try:
+            hourly = await db.async_query_cop_hourly(since_ts=now - 8 * 86400.0)
+        except Exception:
+            _LOGGER.debug("cop_hourly for defrost limit failed", exc_info=True)
+            return
+        res = defrost_limit.compute(rows, events, hourly or [], cutoff_day=cutoff_day)
+        self._defrost_7d = res
+        self._defrost_7d_sum = int(res["events_7d"])
 
     async def _compute_db_retention_stale(self) -> dict[str, Any]:
         """I1: count rows past retention for db_retention_warning.
@@ -5254,11 +5276,17 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             isinstance(_cop_week_pct, (int, float))
             and _cop_week_pct < COP_DEGRADATION_WEEK_PCT_THRESHOLD
         )
-        _defrost_thr = int(self.options.get(
-            "defrost_7d_count_threshold", DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
-        ))
+        # #463: a fixed count only when the user set one; otherwise the
+        # weather-aware limit (engine/defrost_limit).
         _defrost_7d = int(getattr(self, "_defrost_7d_sum", 0) or 0)
-        is_defrost_excessive = _defrost_7d > _defrost_thr
+        _dl = getattr(self, "_defrost_7d", None) or {}
+        if "defrost_7d_count_threshold" in self.options or not _dl:
+            _defrost_thr = int(self.options.get(
+                "defrost_7d_count_threshold", DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
+            ))
+            is_defrost_excessive = _defrost_7d > _defrost_thr
+        else:
+            is_defrost_excessive = bool(_dl.get("excessive"))
         _buh_thr = float(self.options.get(
             "buh_7d_ratio_threshold", BUH_7D_RATIO_THRESHOLD_DEFAULT,
         ))
@@ -5828,10 +5856,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             },
             "defrost_excessive": {
                 "count_7d": int(getattr(self, "_defrost_7d_sum", 0) or 0),
-                "threshold": int(opts.get(
-                    "defrost_7d_count_threshold",
-                    DEFROST_7D_COUNT_THRESHOLD_DEFAULT,
-                )),
+                "threshold": _defrost_limit_value(self, opts),
+                "run_h_7d": (getattr(self, "_defrost_7d", None) or {}).get("run_h_7d"),
                 "duration_7d_min": _d7d,
                 "mode": mode_str,
                 "outdoor": _f(out_t),
@@ -6324,6 +6350,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
 # ---------------------------------------------------------------------
 # I2 (v1.9.0): kmeans_retrain_stale render helpers
 # ---------------------------------------------------------------------
+def _defrost_limit_value(coord: Any, opts: Mapping[str, Any]) -> int:
+    """#463: the weekly defrost limit in use (a set option, else the
+    weather-aware limit, else the default count)."""
+    dl = getattr(coord, "_defrost_7d", None) or {}
+    if "defrost_7d_count_threshold" in opts or not dl.get("limit_7d"):
+        return int(opts.get("defrost_7d_count_threshold", DEFROST_7D_COUNT_THRESHOLD_DEFAULT))
+    return int(dl["limit_7d"])
+
+
 def _format_last_ok_ts(ts: Any) -> str:
     """Format a last_ok_ts epoch as YYYY-MM-DD HH:MM; em-dash if absent."""
     if not isinstance(ts, (int, float)):
