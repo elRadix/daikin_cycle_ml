@@ -305,7 +305,23 @@
       curve: ["curveFit", "curveLive", "carnot", "balance", "events"],
       advice: ["advice", "comfort", "tracker"],
     };
-    a.overall = worst(a.tabs.live.concat(["todayCop", "events", "sheet", "trend"]).map((k) => a[k]));
+    /* one list of what needs attention (watch / bad) over every tab, each
+       check once, at the first tab that shows it: the header badge, the
+       tab dots and the Advice tab's to-do list all read it */
+    const seen = new Set();
+    a.actions = [];
+    for (const tab of ["live", "today", "eff", "curve", "advice"]) {
+      for (const key of a.tabs[tab]) {
+        const x = a[key];
+        if (seen.has(key) || !x || (x.lvl !== "bad" && x.lvl !== "watch")) continue;
+        seen.add(key);
+        a.actions.push(Object.assign({ key, tab }, x));
+      }
+    }
+    a.actions.sort((x, y) => RANK[y.lvl] - RANK[x.lvl]);
+    a.tabLvl = {};
+    for (const tab of Object.keys(a.tabs)) a.tabLvl[tab] = worst(a.tabs[tab].map((k) => a[k])).lvl;
+    a.overall = a.actions.length ? a.actions[0] : worst(Object.keys(a.tabs).flatMap((t) => a.tabs[t]).map((k) => a[k]));
     return a;
   }
 

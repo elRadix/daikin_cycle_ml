@@ -56,7 +56,8 @@
       + `<div class="big">${esc(L.running ? f.n1(cop) : "—")}</div><div class="muted">${esc(t.cop10)}</div></div>`
       + `<div class="hr"><div class="pw"><b>${esc(f.n0(L.power10 !== null ? L.power10 : L.power))} W</b> <span class="muted">${esc(t.elec)}</span></div>`
       + `<div class="pw">→ <b style="color:${C.lwt}">${esc(f.n2(L.kw10 !== null ? L.kw10 : L.kw))} kW</b> <span class="muted">${esc(t.heat_out)}</span></div>`
-      + `<div class="chip ${a.overall.lvl}">${LVL_ICON[a.overall.lvl]} ${esc(t["lvl_" + a.overall.lvl])}</div></div>`
+      + `<button class="chip ${a.overall.lvl}" data-act="todo" title="${esc(t.todo_open)}">${LVL_ICON[a.overall.lvl]} ${esc(t["lvl_" + a.overall.lvl])}`
+      + `${a.actions.length ? ` · ${a.actions.length}` : ""}</button></div>`
       + `<div class="note-s">${esc(t.heat_note)}</div></div>`;
   }
 
@@ -176,9 +177,20 @@
     return s;
   }
 
+  /* everything that needs attention, from every tab, worst first */
+  function renderTodo(a, V, t, f) {
+    const esc = P.data.esc;
+    const items = a.actions.map((x) => `<li class="vd ${x.lvl}" data-todo="${x.key}"><span class="vi">${LVL_ICON[x.lvl]}</span>`
+      + `<span>${esc(f.fill(V[x.k] || V.none, x.p, SIGNED[x.k]))}`
+      + (x.tab !== "advice" ? ` <button class="go" data-act="tab" data-tab="${x.tab}">${esc(t.todo_see)} ${esc(t["tab_" + x.tab])} ›</button>` : "")
+      + `</span></li>`).join("");
+    return `<div class="todo" id="todo">${sect(t.todo_title, a.actions.length ? String(a.actions.length) : "")}`
+      + (items ? `<ul>${items}</ul>` : `<div class="vd good"><span class="vi">${LVL_ICON.good}</span><span>${esc(t.todo_none)}</span></div>`) + `</div>`;
+  }
+
   function renderAdvice(m, a, V, t, f) {
     const A = m.advice, x = a.advice, esc = P.data.esc, L = m.live;
-    let s = `<div class="adv ${x.lvl}"><div class="tl">${esc(t.advice_title)}</div><div class="at">${esc(f.fill(V[x.k], x.p))}</div>`
+    let s = renderTodo(a, V, t, f) + `<div class="adv ${x.lvl}"><div class="tl">${esc(t.advice_title)}</div><div class="at">${esc(f.fill(V[x.k], x.p))}</div>`
       + `<div class="cells">` + tile(t.setpoint_now, f.n1(A.setpoint) + " °") + tile(t.setpoint_new, f.n1(A.target !== null ? A.target : A.setpoint) + " °")
       + tile(t.saving, f.n1(A.saving) + " %") + tile(t.confidence, f.n0(A.confidence === null ? null : A.confidence * 100) + " %") + `</div>`
       + P.charts.gauge(A.confidence === null ? null : A.confidence * 100, 100, P.charts.C.info) + `</div>`;
@@ -214,7 +226,8 @@
       + `<div class="hs">${esc(t.subtitle)}${m.meta ? " · " + esc(m.meta) : ""}</div></div></div>`;
     if (!m.ok) return head + `<div class="body"><div class="note warn">⚠️ ${esc(t.not_found)}</div></div>`;
     let s = head + hero(m, a, t, f) + `<div class="tabs n${tabs.length}" role="tablist">`
-      + tabs.map((k) => `<button role="tab" class="tab${k === tab ? " on" : ""}" aria-selected="${k === tab}" data-act="tab" data-tab="${k}">${esc(t["tab_" + k])}</button>`).join("")
+      + tabs.map((k) => `<button role="tab" class="tab${k === tab ? " on" : ""}" aria-selected="${k === tab}" data-act="tab" data-tab="${k}">${esc(t["tab_" + k])}`
+        + (a.tabLvl[k] === "bad" || a.tabLvl[k] === "watch" ? `<i class="tdot ${a.tabLvl[k]}" role="img" aria-label="${esc(t["lvl_" + a.tabLvl[k]])}"></i>` : "") + `</button>`).join("")
       + `</div><div class="body">`;
     if (tab === "live") s += renderLive(m, a, V, t, f, ui, config);
     else if (tab === "today") s += renderToday(m, a, V, t, f);
@@ -225,6 +238,6 @@
     return s + `</div>`;
   }
 
-  Object.assign(P, { render: { TABS, makeFmt, render, renderHelp, helpVals } });
+  Object.assign(P, { render: { TABS, makeFmt, render, renderHelp, renderTodo, helpVals } });
   if (window.__dcmEffBoot) window.__dcmEffBoot();
 })();

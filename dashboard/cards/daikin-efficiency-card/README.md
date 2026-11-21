@@ -89,7 +89,7 @@ verdict of the live graphs and today).
 | **Today** | COP, electricity, heat, run time, starts, cycles, defrosts, backup heater, duty cycle; per mode; COP per hour (24 h) |
 | **Efficiency** | COP over 24 h / week / month against the nominal COP; per mode; COP at A7/W35 against the datasheet; season SPF against the datasheet SCOP at 35 °C and 55 °C; COP drop at the same weather and the 30-day trend |
 | **Curve** | The heating curve: best measured water temperature per outdoor band (colour = COP, tap for details), the fitted curve, the last 48 h, now; defrost zone, backup-heater, maximum and minimum lines; 24 h backup-heater and defrost strip; Carnot efficiency, heat balance, defrost today; specifications of your model; tiles |
-| **Advice** | The heating-curve advice in plain words, target now → advised, expected COP gain, confidence, comfort guard, tracker, when the advice changes and how to change the curve |
+| **Advice** | **What needs attention** (every check of every tab that is ⚠️ or ⛔, worst first, with a link to its tab), then the heating-curve advice in plain words, target now → advised, expected COP gain, confidence, comfort guard, tracker, when the advice changes and how to change the curve |
 
 ---
 
@@ -99,6 +99,13 @@ Each graph has a line under it: ✅ good, ⚠️ watch, ⛔ act, ℹ️ info (no
 judged now, with the reason). The help section repeats the current
 verdicts of the tab and explains the graphs with the numbers of **your**
 model (datasheet in `sensor.daikin_cycle_ml_hp_specs`).
+
+**One list of actions.** The badge in the header (for example
+"⛔ Act · 2"), the dots on the tabs and **What needs attention** at the
+top of Advice come from the same list: every check that needs attention
+on any tab, each once, worst first. Tap the badge to open that list; tap
+"See …" next to an item to open the tab with its graph. When nothing
+needs attention, the list says so and the badge shows ✅ Good or ℹ️ Info.
 
 | Graph | Good | Watch / act |
 |---|---|---|

@@ -30,7 +30,7 @@
 (function () {
   "use strict";
 
-  const CARD_VERSION = "1.1.0";
+  const CARD_VERSION = "1.2.0";
   const TAG = "daikin-efficiency-card";
   const EDITOR_TAG = "daikin-efficiency-card-editor";
   const PARTS = ["data", "assess", "charts", "verdicts", "i18n", "render"];
@@ -56,7 +56,12 @@
     .big { font-size: 2.4em; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
     .hr { text-align: right; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
     .pw { font-size: .95em; font-variant-numeric: tabular-nums; }
-    .chip { border-radius: 12px; padding: 3px 10px; font-size: .8em; font-weight: 800; color: #fff; }
+    .chip { border-radius: 12px; padding: 3px 10px; font-size: .8em; font-weight: 800; color: #fff; border: 0; font-family: inherit; cursor: pointer; }
+    .chip:focus-visible, .go:focus-visible { outline: 2px solid var(--dcm-accent, #0097E0); outline-offset: 2px; }
+    .tdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 4px; vertical-align: middle; }
+    .tdot.watch { background: #FB8C00; } .tdot.bad { background: #E53935; }
+    .todo { margin-bottom: 12px; } .todo ul { list-style: none; margin: 0; padding: 0; }
+    .go { border: 0; background: none; padding: 2px 0; margin-left: 4px; color: var(--dcm-accent, #0097E0); font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
     .chip.good { background: #43A047; } .chip.watch { background: #FB8C00; } .chip.bad { background: #E53935; } .chip.info { background: #1E88E5; }
     .note-s { grid-column: 1 / -1; font-size: .72em; color: var(--secondary-text-color); }
     .tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px 4px; padding: 6px 8px 0; border-bottom: 1px solid var(--divider-color); }
@@ -125,6 +130,7 @@
     .hb { font-size: .84em; color: var(--secondary-text-color); line-height: 1.45; }
     .hb ul { margin: 4px 0 8px; padding-left: 0; list-style: none; } .hb li { margin: 3px 0; color: var(--primary-text-color); }
     .hb p { margin: 6px 0; }
+    @container (max-width: 440px) { .cells { grid-template-columns: repeat(2, 1fr); } }
     @container (max-width: 340px) { .cells, .panels { grid-template-columns: repeat(2, 1fr); } .mr { grid-template-columns: 1fr 1fr; } }
   `;
 
@@ -244,6 +250,7 @@
           const act = el.getAttribute("data-act");
           if (!act) continue;
           if (act === "tab") this._ui.tab = el.getAttribute("data-tab");
+          else if (act === "todo") this._ui.tab = "advice";
           else if (act === "range") this._ui.range = el.getAttribute("data-range");
           else if (act === "adv") this._ui.adv = !this._ui.adv;
           else if (act === "help") this._ui.help = !this._ui.help;

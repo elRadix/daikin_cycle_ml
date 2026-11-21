@@ -1,5 +1,25 @@
 # Changelog · Efficiency card (native)
 
+## [1.2.0] - Unreleased
+
+### Added
+
+- **What needs attention** at the top of Advice: every check of every tab
+  that is ⚠️ or ⛔, worst first, each with its explanation and a link to
+  the tab with the graph (#475).
+- Dots on the tabs that have something needing attention.
+
+### Fixed
+
+- The header badge said "⛔ Act" while Advice only showed "Keep the
+  curve": the badge took checks of other tabs that no tab listed. The
+  badge, the tab dots and the list now come from one list; the badge
+  shows the count and opens Advice (#475).
+- Tiles in two columns on a phone-width card (no "EXPECTE D" breaks).
+- Backup-heater text rewritten in EN / NL / FR: it gives 1 kWh of heat per
+  kWh, the heat pump 3 to 5, and the usual causes (the Dutch text was not
+  correct Dutch).
+
 ## [1.1.0] - 2026-11-21
 
 ### Added
