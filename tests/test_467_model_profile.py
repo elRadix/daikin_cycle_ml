@@ -31,10 +31,10 @@ def test_apply_without_profile_marks_datasheet_sources():
     out = mp.apply_profile(DS, None, "erla11dav3")
     assert out["value_sources"] == {"kw": "datasheet", "nom_cop": "datasheet", "lwt_min": "datasheet", "lwt_max": "datasheet"}
     a7 = next(p for p in out["points"] if p["label"] == "A7/W35")
-    # #467: DS lists 10.6 kW at A7/W35 for an 11 kW unit (96 %), a full-capacity
-    # table: its hc is the maximum heat, source datasheet
-    assert a7["src"] == {"cop": "datasheet", "hmax": "datasheet"} and a7["hmax"] == 10.6
-    assert out["hmax_from_datasheet"] is True and out["hmax_basis"] == "datasheet"
+    # #478: no product-table maximum: the nominal 11 kW is the estimate at
+    # A7/W35, above the 10.6 kW rating point (a lower bound)
+    assert a7["src"] == {"cop": "datasheet", "hmax": "estimate"} and a7["hmax"] == 11.0
+    assert out["hmax_from_datasheet"] is False and out["hmax_basis"] == "nominal" and out["hmax_anchor"] == 11
     assert out["profile"]["applied"] is False
     assert len(out["points"]) == 2           # the point without temperatures is dropped
     assert "src" not in DS["points"][0]       # the bundled entry is never changed
@@ -49,7 +49,7 @@ def test_manual_values_fill_and_override_per_value():
     pts = {(p["t_out"], p["t_lwc"]): p for p in out["points"]}
     assert pts[(-7.0, 55.0)]["hmax"] == 7.2 and pts[(-7.0, 55.0)]["src"] == {"cop": "datasheet", "hmax": "manual"}
     assert pts[(7.0, 35.0)]["cop"] == 5.0 and pts[(7.0, 35.0)]["hc"] == 10.6
-    assert pts[(7.0, 35.0)]["src"] == {"cop": "manual", "hmax": "datasheet"}   # #467 full-capacity table
+    assert pts[(7.0, 35.0)]["src"] == {"cop": "manual", "hmax": "estimate"}   # #478 estimate from kw 11.2
     assert pts[(-7.0, 35.0)]["label"] == "A-7/W35" and pts[(-7.0, 35.0)]["src"] == {"hmax": "manual", "cop": "manual"}
     assert out["kw"] == 11.2 and out["value_sources"]["kw"] == "manual"
     assert out["rps_max"] == 90 and out["value_sources"]["rps_max"] == "manual"   # manual beats learned
@@ -309,31 +309,58 @@ async def test_configure_step_explains_invalid_values(hass, monkeypatch):
 # ---------- maximum heat from the datasheet, for every model ----------
 
 
-def test_full_capacity_table_rule():
-    # #473: any datasheet capacity counts as the maximum heat at its point
-    assert mp.full_capacity_table({"kw": 11, "points": [{"t_out": 7, "t_lwc": 35, "hc": 10.6}]}) is True
-    assert mp.full_capacity_table({"kw": 12, "points": [{"t_out": 7, "t_lwc": 35, "hc": 6.17}]}) is True
-    assert mp.full_capacity_table({"kw": 8, "points": [{"t_out": 7, "t_lwc": 35}]}) is False
-    assert mp.full_capacity_table({"kw": 8, "points": ["x"]}) is False
+def test_estimate_lowered_in_frost_and_at_high_water():
+    assert mp.estimate_hmax(10.0, 7, 35) == 10.0 and mp.estimate_hmax(10.0, 12, 30) == 10.0
+    assert mp.estimate_hmax(10.0, -7, 35) == 8.6 and mp.estimate_hmax(10.0, 7, 55) == 9.0
+    assert mp.estimate_hmax(0.1, -20, 80) == 0.5
+    assert mp.capacity_anchor({"hc_max_a7": 9.97, "kw": 12}) == (9.97, "max")
+    assert mp.capacity_anchor({"kw": 12}) == (12, "nominal") and mp.capacity_anchor({"kw": 99}) == (None, None)
 
 
-def test_part_load_datasheet_uses_the_nominal_kw_at_a7_w35():
-    """#473 (maintainer decision): EPRA keeps all its datasheet points like every
-    other model; only a datasheet without any capacity uses the nominal kW."""
-    epra = {"kw": 12, "nom_cop": 4.9, "points": [{"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 4.92, "hc": 6.17},
-                                                  {"label": "A-7/W55", "t_out": -7, "t_lwc": 55, "cop": 2.05, "hc": 2.55}]}
+def test_rating_points_are_lower_bounds_of_the_maximum():
+    """#478 (Daikin certification 4D133543C, EPRA12EAV3): the EN 14511
+    capacities are rating points. The maximum is the product-table 9.97 kW at
+    A7/W35, lowered in frost / at high water, never below a rating point."""
+    epra = {"kw": 12, "hc_max_a7": 9.97, "nom_cop": 4.92, "points": [
+        {"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 4.92, "hc": 6.17},
+        {"label": "A-7/W35", "t_out": -7, "t_lwc": 35, "cop": 3.04, "hc": 7.49},
+        {"label": "A-7/W55", "t_out": -7, "t_lwc": 55, "cop": 2.11, "hc": 9.02}]}
     out = mp.apply_profile(epra, None, "epra12eav3")
     pts = {(p["t_out"], p["t_lwc"]): p for p in out["points"]}
-    assert out["hmax_from_datasheet"] is True and out["hmax_basis"] == "datasheet"
-    assert pts[(7.0, 35.0)]["hmax"] == 6.17 and pts[(7.0, 35.0)]["src"]["hmax"] == "datasheet"
-    assert pts[(-7.0, 55.0)]["hmax"] == 2.55
+    assert out["hmax_basis"] == "max" and out["hmax_from_datasheet"] is True and out["hmax_anchor"] == 9.97
+    assert pts[(7.0, 35.0)]["hmax"] == 9.97 and pts[(7.0, 35.0)]["src"]["hmax"] == "datasheet"
+    # 9.97 x 0.86 = 8.57 above the 7.49 kW rating point: estimate
+    assert pts[(-7.0, 35.0)]["hmax"] == 8.57 and pts[(-7.0, 35.0)]["src"]["hmax"] == "estimate"
+    # 9.97 x 0.86 x 0.9 = 7.72 below the certified 9.02 kW: the rating point wins
+    assert pts[(-7.0, 55.0)]["hmax"] == 9.02 and pts[(-7.0, 55.0)]["src"]["hmax"] == "datasheet"
     no_hc = mp.apply_profile({"kw": 9, "points": [{"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 4.5}]}, None, "m")
     assert no_hc["hmax_basis"] == "nominal" and no_hc["points"][0]["hmax"] == 9.0
     no_a7 = mp.apply_profile({"kw": 9, "points": []}, None, "m")
-    assert no_a7["points"] == [{"label": "A7/W35", "t_out": 7.0, "t_lwc": 35.0, "src": {"hmax": "datasheet"}, "hmax": 9.0}]
+    assert no_a7["points"] == [{"label": "A7/W35", "t_out": 7.0, "t_lwc": 35.0, "src": {"hmax": "estimate"}, "hmax": 9.0}]
+    # a datasheet maximum (databook capacity table, field hmax) is kept as is
+    own = mp.apply_profile({"kw": 12, "points": [{"t_out": -7, "t_lwc": 35, "hmax": 10.1, "hc": 7.49}]}, None, "m")
+    assert own["points"][0]["hmax"] == 10.1 and own["points"][0]["src"]["hmax"] == "datasheet"
+    only_hc = mp.apply_profile({"kw": 99, "points": [{"t_out": 2, "t_lwc": 35, "hc": 5.0}]}, None, "m")
+    assert only_hc["hmax_basis"] is None and only_hc["points"][0]["hmax"] == 5.0
     mine = mp.apply_profile(epra, mp.edit({}, "epra12eav3", points=[{"t_out": 7, "t_lwc": 35, "hmax": 11.5}]), "epra12eav3")
     a7 = next(p for p in mine["points"] if p["t_out"] == 7)
     assert a7["hmax"] == 11.5 and a7["src"]["hmax"] == "manual"   # the user's value wins
+
+
+def test_learned_capacity_only_raises_the_maximum():
+    epra = {"kw": 12, "hc_max_a7": 9.97, "points": [{"label": "A-7/W35", "t_out": -7, "t_lwc": 35, "cop": 3.04, "hc": 7.49}]}
+    bands = {"bands": [{"t_out": -7, "t_lwc": 35, "hmax": 9.4, "n": 60},     # above the estimate: raises
+                       {"t_out": 2, "t_lwc": 35, "hmax": 5.0, "n": 40},      # below: the estimate stays
+                       {"t_out": -2, "t_lwc": 30, "hmax": 9.9, "n": 31}]}    # new band above the estimate
+    out = mp.apply_profile(epra, None, "epra12eav3", None, bands)
+    pts = {(p["t_out"], p["t_lwc"]): p for p in out["points"]}
+    assert pts[(-7.0, 35.0)]["hmax"] == 9.4 and pts[(-7.0, 35.0)]["src"]["hmax"] == "learned" and pts[(-7.0, 35.0)]["hmax_n"] == 60
+    assert pts[(2.0, 35.0)]["hmax"] == 9.47 and pts[(2.0, 35.0)]["src"]["hmax"] == "estimate"
+    assert pts[(-2.0, 30.0)]["hmax"] == 9.9 and pts[(-2.0, 30.0)]["src"]["hmax"] == "learned"
+    manual = mp.edit({}, "epra12eav3", points=[{"t_out": -7, "t_lwc": 35, "hmax": 8.0}])
+    out = mp.apply_profile(epra, manual, "epra12eav3", None, bands)
+    pt = next(p for p in out["points"] if (p["t_out"], p["t_lwc"]) == (-7.0, 35.0))
+    assert pt["hmax"] == 8.0 and pt["src"]["hmax"] == "manual" and "hmax_n" not in pt
 
 
 def test_every_bundled_model_has_a_maximum_heat():

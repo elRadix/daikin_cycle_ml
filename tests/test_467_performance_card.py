@@ -51,7 +51,7 @@ for (const [name, c] of Object.entries(D.cases)) {
   const hass = { states: c.states, entities: c.entities, language: c.lang, locale: { language: c.lang } };
   const m = M.buildModel(hass, c.config || {});
   out.cases[name] = { lang: m.lang, ok: m.ok, lvl: m.lvl, key: m.key, loads: m.loads, limits: m.limits, copPct: m.copPct,
-    headroom: m.headroom, staticLoad: m.staticLoad, primary: m.primary,
+    headroom: m.headroom, staticLoad: m.staticLoad, primary: m.primary, atLimit: m.atLimit,
     html: P.render.render(m, c.config || {}, Object.assign({ prof: true, msg: '', msgErr: false }, c.ui || {})) };
 }
 const pts = [{ t_out: 7, t_lwc: 35, hmax: 12 }, { t_out: -7, t_lwc: 35, hmax: 10 }, { t_out: 7, t_lwc: 55, hmax: 11, src: { hmax: 'manual' } }, { t_out: -7, t_lwc: 55, hmax: 9 }];
@@ -72,26 +72,38 @@ def _run(cases: dict, files=None) -> dict:
     return json.loads(proc.stdout)
 
 
-def _with_profile(case: dict) -> dict:
+# #478: hp_specs as the sensor writes it now: the fixture's attributes with
+# the bundled EPRA12EAV3 entry (certified points, hc_max_a7, max_input_kw)
+BUNDLED = json.loads((ROOT / "custom_components/daikin_cycle_ml/data/datasheets.json").read_text())["models"]["epra12eav3"]
+MERGED_KEYS = ("points", "value_sources", "profile", "rps_min", "rps_max", "hmax_basis", "hmax_anchor",
+               "hc_max_a7", "max_input_kw")
+
+
+def _specs(case: dict) -> dict:
     eid = next(k for k, v in case["entities"].items() if v["translation_key"] == "hp_specs")
-    specs = dict(case["states"][eid]["attributes"])
-    merged = mp.apply_profile(specs, PROFILE, "epra12eav3", {"rps_min": 18, "rps_max": 90, "runs": 40})
-    return _set(case, "hp_specs", **{k: merged[k] for k in ("points", "value_sources", "profile", "rps_min", "rps_max")},
+    return {**case["states"][eid]["attributes"], **BUNDLED}
+
+
+def _with_profile(case: dict) -> dict:
+    merged = mp.apply_profile(_specs(case), PROFILE, "epra12eav3", {"rps_min": 18, "rps_max": 90, "runs": 40})
+    return _set(case, "hp_specs", **{k: merged.get(k) for k in MERGED_KEYS},
                 rps_learned={"rps_min": 18, "rps_max": 90, "runs": 40})
 
 
 def _datasheet_only(case: dict) -> dict:
-    eid = next(k for k, v in case["entities"].items() if v["translation_key"] == "hp_specs")
-    merged = mp.apply_profile(dict(case["states"][eid]["attributes"]), None, "epra12eav3")
-    return _set(case, "hp_specs", points=merged["points"], value_sources=merged["value_sources"],
-                hmax_basis=merged["hmax_basis"])
+    merged = mp.apply_profile(_specs(case), None, "epra12eav3")
+    return _set(case, "hp_specs", **{k: merged.get(k) for k in MERGED_KEYS})
 
 
 def _cases() -> dict:
     c = {lang: _with_profile(_case(lang)) for lang in ("en", "nl", "fr")}
     c["plain"] = _case("en")                                   # datasheet only: no max heat, no speed range
-    c["limit"] = _set(_with_profile(_case("en")), "thermal_power_live", input_rps=95)
-    c["limit_buh"] = _set(_set(_with_profile(_case("en")), "thermal_power_live", input_rps=95), "buh_active", "on")
+    # #478: at its limit = full confirmed speed AND water > 2 K below target (34 °C)
+    c["limit"] = _set(_with_profile(_case("en")), "thermal_power_live", input_rps=95, lwt_c=31.5)
+    c["limit_buh"] = _set(_set(_with_profile(_case("en")), "thermal_power_live", input_rps=95, lwt_c=31.5), "buh_active", "on")
+    c["fast_on_target"] = _set(_with_profile(_case("en")), "thermal_power_live", input_rps=95)
+    c["buh_reserve"] = _set(_with_profile(_case("en")), "buh_active", "on")
+    c["seen"] = _set(_datasheet_only(_case("en")), "thermal_power_live", **{"state": "11.0"})
     c["near"] = _set(_with_profile(_case("en")), "thermal_power_live", input_rps=86)
     c["idle"] = _set(_with_profile(_case("en")), "compressor_running", "off")
     c["defrost"] = _set(_with_profile(_case("en")), "defrost_active", "on")
@@ -153,10 +165,10 @@ def test_texts_complete_in_every_language(out):
 def test_loads_against_the_profile_limits(out):
     r = out["cases"]["en"]
     assert r["ok"] and r["lang"] == "en"
-    # max heat at (5.2 °C, 33 °C): W35 row (nearest water), between A-7 and A7
-    # #473: the datasheet A2/W35 capacity (5.74 kW) is a maximum too; at 5.2 °C
-    # the W35 row lies between it and the manual A7/W35 12 kW
-    th_max = 5.74 + (12.0 - 5.74) * (5.2 - 2) / 5
+    # max heat at (5.2 °C, 33 °C): W35 row (nearest water). #478: A2/W35 is
+    # the estimate 9.97 x 0.95 = 9.47 kW (above the 5.74 kW rating point);
+    # A7/W35 is the manual 12 kW
+    th_max = 9.47 + (12.0 - 9.47) * (5.2 - 2) / 5
     # 33 °C water is within 3 K of the W35 points: counts as known, no "add a point" note
     assert r["limits"]["thMax"] == pytest.approx(th_max, abs=1e-6) and r["limits"]["thExact"] is True
     assert "Nearest point" not in _text(r["html"])
@@ -164,7 +176,8 @@ def test_loads_against_the_profile_limits(out):
     cop35 = 4.08 + (4.92 - 4.08) * (5.2 - 2) / 5
     cop = cop35 * _carnot(33, 5.2) / _carnot(35, 5.2)
     assert r["limits"]["copSpec"] == pytest.approx(cop, abs=1e-6)
-    assert r["loads"]["electrical"] == pytest.approx(0.95 / (th_max / cop) * 100, abs=1e-6)
+    assert r["loads"]["electrical"] == pytest.approx(0.95 / 2.28 * 100, abs=1e-6)   # Daikin max power input
+    assert r["limits"]["elEst"] is False and r["limits"]["fSeen"] is False and r["atLimit"] is False
     assert r["loads"]["compressor"] == pytest.approx((32 - 15) / 80 * 100)     # manual 15-95 beats learned 18-90
     assert r["copPct"] == pytest.approx(5.2874 / cop * 100, abs=1e-6)
     assert r["headroom"] == pytest.approx(th_max - 5.02, abs=1e-6)
@@ -174,6 +187,7 @@ def test_loads_against_the_profile_limits(out):
 
 @pytest.mark.parametrize(("case", "lvl", "key"), [
     ("plain", "info", "no_limits"), ("limit", "bad", "at_limit"), ("limit_buh", "bad", "at_limit_buh"),
+    ("fast_on_target", "watch", "near_limit"), ("buh_reserve", "watch", "buh_on"),
     ("near", "watch", "near_limit"), ("idle", "info", "idle"), ("defrost", "info", "defrost"), ("cop_low", "good", "ok"),
 ])
 def test_verdicts(out, case, lvl, key):
@@ -190,9 +204,9 @@ def test_missing_limits_are_said_not_invented(out):
 
 
 @pytest.mark.parametrize(("lang", "words"), [
-    ("en", ["Thermal load", "Compressor", "Electrical load", "COP vs spec", "Model profile", "Manual", "Remove my value"]),
-    ("nl", ["Thermische last", "Compressor", "Elektrische last", "COP t.o.v. spec", "Modelprofiel", "Handmatig", "Datasheet"]),
-    ("fr", ["Charge thermique", "Compresseur", "Charge électrique", "COP / fiche", "Profil du modèle", "Manuel", "Fiche"]),
+    ("en", ["Capacity used", "Compressor", "Electrical power", "COP vs rating point", "Model profile", "Manual", "Remove my value", "Estimate"]),
+    ("nl", ["Benut vermogen", "Compressor", "Elektrisch vermogen", "COP t.o.v. meetpunt", "Modelprofiel", "Handmatig", "Schatting"]),
+    ("fr", ["Puissance utilisée", "Compresseur", "Puissance électrique", "COP / point de mesure", "Profil du modèle", "Manuel", "Estimation"]),
 ])
 def test_renders_in_every_language(out, lang, words):
     text = _text(out["cases"][lang]["html"])
@@ -203,7 +217,7 @@ def test_renders_in_every_language(out, lang, words):
 
 def test_profile_panel_rows_and_sources(out):
     html = out["cases"]["en"]["html"]
-    assert html.count('data-c="hmax"') == 6     # the 6 datasheet points; the profile values sit on them
+    assert html.count('data-c="hmax"') == 7     # the 7 certified points (#478); the profile values sit on them
     assert 'data-field="rps_min"' in html and 'value="15"' in html
     assert 'data-act="clear-field"' in html and 'data-act="clear-point"' in html and 'data-act="add-point"' in html
 
@@ -211,9 +225,9 @@ def test_profile_panel_rows_and_sources(out):
 def test_primary_dial_and_title(out):
     assert out["cases"]["primary_thermal"]["primary"] == "thermal"
     main = re.search(r'<div class="dial main">.*?<div class="cap">([^<]+)</div>', out["cases"]["primary_thermal"]["html"]).group(1)
-    assert main == "Thermal load"
+    assert main == "Capacity used"
     html = out["cases"]["primary_el"]["html"]
-    assert re.search(r'<div class="dial main">.*?<div class="cap">([^<]+)</div>', html).group(1) == "Electrical load"
+    assert re.search(r'<div class="dial main">.*?<div class="cap">([^<]+)</div>', html).group(1) == "Electrical power"
     assert ">Mine · EPRA12EAV3<" in html
 
 
@@ -341,14 +355,25 @@ def test_card_on_phone_tablet_and_desktop():
 
 
 def test_datasheet_only_install_gets_a_thermal_load(out):
-    """#473 (maintainer decision): an EPRA12 uses its own datasheet capacities as
-    the maximum heat, like every model: at 5.2 °C / 33 °C between A2/W35 5.74 kW
-    and A7/W35 6.17 kW (33 °C is within 3 K of the W35 row)."""
+    """#478 (Daikin certification 4D133543C): the EPRA12 rating points are
+    lower bounds; the maximum is estimated from Daikin's 9.97 kW at A7/W35:
+    at 5.2 °C / 33 °C between A2/W35 9.47 (estimate) and A7/W35 9.97."""
     r = out["cases"]["datasheet_only"]
-    th = 5.74 + (6.17 - 5.74) * (5.2 - 2) / 5
+    th = 9.47 + (9.97 - 9.47) * (5.2 - 2) / 5
     assert r["limits"]["thMax"] == pytest.approx(th, abs=1e-6)
     assert r["loads"]["thermal"] == pytest.approx(5.02 / th * 100, abs=1e-6)
-    assert r["limits"]["thNominal"] is False
-    assert "nominal capacity" not in _text(r["html"])
-    assert "32 rps ·" not in _text(r["html"])                       # no range yet: just the speed
-    assert out["cases"]["en"]["limits"]["thNominal"] is False      # the user's own values
+    assert r["limits"]["thEstimate"] is True and r["limits"]["basis"] == "max"
+    text = _text(r["html"])
+    assert "Estimate from Daikin&#39;s maximum (9.97 kW at A7/W35), lower in frost" in r["html"]
+    assert "32 rps ·" not in text                                  # no range yet: just the speed
+
+
+def test_more_heat_than_the_estimate_raises_the_maximum(out):
+    """#478: the reported case: delivering more than the maximum while the
+    compressor has speed left proves the maximum is too low: no "at its limit"."""
+    r = out["cases"]["seen"]
+    assert r["limits"]["thSeen"] is True and r["limits"]["thMax"] == pytest.approx(11.0)
+    assert r["loads"]["thermal"] == pytest.approx(100.0) and r["atLimit"] is False and r["lvl"] != "bad"
+    text = _text(r["html"])
+    assert "Delivers more than the estimate" in text and "the maximum is at least 11.0 kW" in text
+    assert "AT ITS LIMIT" not in text

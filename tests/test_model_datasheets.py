@@ -185,7 +185,7 @@ def test_load_bundled_wrong_schema(tmp_path):
 def test_load_bundled_specific_points_count():
     b = md.load_bundled()
     assert len(b["erla11dav3"]["points"]) == 9
-    assert len(b["epra08eav3"]["points"]) == 6
+    assert len(b["epra08eav3"]["points"]) == 7   # #478: the 7 certified points (4D133543C)
 
 
 def test_load_bundled_empty_points_preserved():

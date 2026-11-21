@@ -103,24 +103,26 @@ def _pts(out):
     return {(p["t_out"], p["t_lwc"]): p for p in out["points"]}
 
 
-def test_erla11_datasheet_stays_learned_only_adds_new_conditions():
+def test_learned_below_the_estimate_keeps_the_estimate():
+    """#478: a learned value is a lower bound: below the estimate it changes nothing."""
     pts = _pts(mp.apply_profile(ERLA11, None, "erla11dav3", None, LEARNED))
-    assert pts[(7.0, 35.0)]["hmax"] == 10.6 and pts[(7.0, 35.0)]["src"]["hmax"] == "datasheet"
-    assert pts[(-7.0, 55.0)]["hmax"] == 7.89 and pts[(-7.0, 55.0)]["src"]["hmax"] == "datasheet"
-    assert pts[(-7.0, 35.0)]["hmax"] == 9.4 and pts[(-7.0, 35.0)]["src"]["hmax"] == "learned"
-    assert pts[(-7.0, 35.0)]["hmax_n"] == 412 and pts[(-7.0, 35.0)]["label"] == "A-7/W35"
-    assert pts[(-12.0, 45.0)]["src"] == {"hmax": "learned"}
+    assert pts[(7.0, 35.0)]["hmax"] == 11.0 and pts[(7.0, 35.0)]["src"]["hmax"] == "estimate"
+    assert pts[(-7.0, 35.0)]["hmax"] == 9.46 and "hmax_n" not in pts[(-7.0, 35.0)]
+    assert pts[(-12.0, 45.0)]["src"] == {"hmax": "estimate"} and pts[(-12.0, 45.0)]["hmax"] == 8.46
     assert (1.0, 35.0) not in pts                      # out-of-range learned value ignored
 
 
-def test_epra12_keeps_its_datasheet_points_learned_fills_the_rest():
-    """Maintainer decision: EPRA keeps every datasheet point like all models;
-    learned values fill only conditions the datasheet does not list."""
-    pts = _pts(mp.apply_profile(EPRA12, None, "epra12eav3", None, LEARNED))
-    assert pts[(7.0, 35.0)]["hmax"] == 6.17 and pts[(7.0, 35.0)]["src"]["hmax"] == "datasheet"
-    assert pts[(-7.0, 35.0)]["hmax"] == 4.8 and pts[(-7.0, 35.0)]["src"]["hmax"] == "datasheet"
-    assert pts[(-7.0, 55.0)]["hmax"] == 7.0 and pts[(-7.0, 55.0)]["src"]["hmax"] == "learned"
-    assert pts[(-12.0, 45.0)]["src"] == {"hmax": "learned"}
+def test_epra12_learned_raises_the_estimate_never_a_certified_point():
+    import json
+    from pathlib import Path
+
+    ds = json.loads((Path(mp.__file__).resolve().parent.parent / "data" / "datasheets.json").read_text())["models"]
+    pts = _pts(mp.apply_profile(ds["epra12eav3"], None, "epra12eav3", None, LEARNED))
+    assert pts[(7.0, 35.0)]["hmax"] == 9.97 and pts[(7.0, 35.0)]["src"]["hmax"] == "datasheet"   # 8.8 learned is lower
+    assert pts[(-7.0, 55.0)]["hmax"] == 9.02 and pts[(-7.0, 55.0)]["src"]["hmax"] == "datasheet"  # certified
+    assert pts[(-7.0, 35.0)]["hmax"] == 9.4 and pts[(-7.0, 35.0)]["src"]["hmax"] == "learned"     # above 8.57
+    assert pts[(-7.0, 35.0)]["hmax_n"] == 412 and pts[(-7.0, 35.0)]["label"] == "A-7/W35"
+    assert pts[(-12.0, 45.0)]["hmax"] == 8.1 and pts[(-12.0, 45.0)]["src"]["hmax"] == "learned"   # above 7.67
 
 
 def test_manual_beats_learned():

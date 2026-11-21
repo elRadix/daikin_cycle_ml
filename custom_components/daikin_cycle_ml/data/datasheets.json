@@ -103,32 +103,41 @@
           "t_out": -7,
           "t_lwc": 35,
           "cop": 3.04,
-          "hc": 4.8
+          "hc": 7.49
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.57,
+          "hc": 7.73
         },
         {
           "label": "A-2/W45",
           "t_out": -2,
           "t_lwc": 45,
-          "cop": 2.36,
-          "hc": 7.73
+          "cop": 2.83,
+          "hc": 8.58
         },
         {
           "label": "A7/W55",
           "t_out": 7,
           "t_lwc": 55,
-          "cop": 2.94
+          "cop": 2.94,
+          "hc": 7.72
         },
         {
           "label": "A-7/W55",
           "t_out": -7,
           "t_lwc": 55,
           "cop": 2.05,
-          "hc": 2.55
+          "hc": 7.55
         }
       ],
       "hc_max_a7": 7.95,
-      "ref": "daikin.co.uk product table ETBX12E9W / EPRA08-12EV (EN14511 Ta 7/6 C, LWC 35 C (dT5); SCOP EN14825 average climate)",
-      "verified": true
+      "ref": "Daikin certification sheet 4D133543C EPRA08-12EV/EW (EN14511 rated data, heating; capacities are rating points, not maxima) + daikin.eu product table ETBX12E9W / EPRA08-12EV (max capacity / max power input at Ta 7 C; SCOP EN14825 average climate)",
+      "verified": true,
+      "max_input_kw": 1.69
     },
     "epra10eav3": {
       "family": "Altherma 3 H MT",
@@ -159,34 +168,43 @@
           "t_out": -7,
           "t_lwc": 35,
           "cop": 3.04,
-          "hc": 4.8
+          "hc": 7.49
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.57,
+          "hc": 7.73
         },
         {
           "label": "A-2/W45",
           "t_out": -2,
           "t_lwc": 45,
-          "cop": 2.36,
-          "hc": 7.73
+          "cop": 2.59,
+          "hc": 8.66
         },
         {
           "label": "A7/W55",
           "t_out": 7,
           "t_lwc": 55,
-          "cop": 2.94
+          "cop": 2.94,
+          "hc": 7.72
         },
         {
           "label": "A-7/W55",
           "t_out": -7,
           "t_lwc": 55,
-          "cop": 2.05,
-          "hc": 2.55
+          "cop": 2.11,
+          "hc": 9.02
         }
       ],
       "scop_w35": 4.82,
       "scop_w55": 3.48,
       "hc_max_a7": 9.25,
-      "ref": "daikin.co.uk product table ETBX12E9W / EPRA08-12EV (EN14511 Ta 7/6 C, LWC 35 C (dT5); SCOP EN14825 average climate)",
-      "verified": true
+      "ref": "Daikin certification sheet 4D133543C EPRA08-12EV/EW (EN14511 rated data, heating; capacities are rating points, not maxima) + daikin.eu product table ETBX12E9W / EPRA08-12EV (max capacity / max power input at Ta 7 C; SCOP EN14825 average climate)",
+      "verified": true,
+      "max_input_kw": 2.04
     },
     "epra11eav3": {
       "family": "Monoblock",
@@ -232,32 +250,41 @@
           "t_out": -7,
           "t_lwc": 35,
           "cop": 3.04,
-          "hc": 4.8
+          "hc": 7.49
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.57,
+          "hc": 7.73
         },
         {
           "label": "A-2/W45",
           "t_out": -2,
           "t_lwc": 45,
-          "cop": 2.36,
-          "hc": 7.73
+          "cop": 2.54,
+          "hc": 9.36
         },
         {
           "label": "A7/W55",
           "t_out": 7,
           "t_lwc": 55,
-          "cop": 2.94
+          "cop": 2.94,
+          "hc": 7.72
         },
         {
           "label": "A-7/W55",
           "t_out": -7,
           "t_lwc": 55,
-          "cop": 2.05,
-          "hc": 2.55
+          "cop": 2.11,
+          "hc": 9.02
         }
       ],
       "hc_max_a7": 9.97,
-      "ref": "daikin.co.uk product table ETBX12E9W / EPRA08-12EV (EN14511 Ta 7/6 C, LWC 35 C (dT5); SCOP EN14825 average climate)",
-      "verified": true
+      "ref": "Daikin certification sheet 4D133543C EPRA08-12EV/EW (EN14511 rated data, heating; capacities are rating points, not maxima) + daikin.eu product table ETBX12E9W / EPRA08-12EV (max capacity / max power input at Ta 7 C; SCOP EN14825 average climate)",
+      "verified": true,
+      "max_input_kw": 2.28
     },
     "epra14eav3": {
       "family": "Monoblock",
@@ -1203,7 +1230,8 @@
         }
       ],
       "ref": "daikin.eu product table EPVX14A9W / EPSK12-14AW1 (EN14511 Ta 7/6 C, LWC 35 C (dT5): nominal 10.2 kW, maximum 11.99 kW)",
-      "verified": true
+      "verified": true,
+      "hc_max_a7": 11.99
     },
     "epsk14aw1": {
       "family": "Monoblock",
@@ -1224,7 +1252,8 @@
         }
       ],
       "ref": "daikin.eu product table EPVX14A9W / EPSK12-14AW1 (EN14511 Ta 7/6 C, LWC 35 C (dT5): nominal 10.2 kW, maximum 13.34 kW)",
-      "verified": true
+      "verified": true,
+      "hc_max_a7": 13.34
     },
     "epra18eav3": {
       "family": "Monoblock",
