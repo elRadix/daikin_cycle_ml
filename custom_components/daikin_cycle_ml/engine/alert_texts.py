@@ -90,9 +90,9 @@ _EMPTY = (None, "", "—", "None", "unknown", "unavailable")
 
 
 def resolve_language(options: Mapping[str, Any] | None, ha_language: str | None) -> str:
-    """Notification language: the option when the user chose one, else the
-    Home Assistant language (en / nl / fr), else English."""
-    chosen = str((options or {}).get("notification_language") or "auto").lower()
+    """Notification language: English unless the user chose one; "auto"
+    follows the Home Assistant language (en / nl / fr, else English)."""
+    chosen = str((options or {}).get("notification_language") or "en").lower()
     if chosen in LANGS:
         return chosen
     ha = str(ha_language or "").lower()[:2]

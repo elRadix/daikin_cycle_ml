@@ -628,9 +628,11 @@ HVAC engineer for Daikin Altherma: no filter advice, ice is never scraped
 off, backup-heater use names its normal reasons, refrigerant matters go
 to the installer.
 
-Language: the **Notification language** option. Default *Home
-Assistant* follows the HA language (en / nl / fr, else English); pick a
-language to override it. Dutch and French use a decimal comma.
+Language: the **Notification language** option (Configure →
+Notifications → Content). The default is English for every install,
+existing and new: pick *Nederlands* or *Français*, or *Home Assistant* to
+follow the Home Assistant language (English for any other language).
+Dutch and French use a decimal comma.
 
 | Level | Alerts |
 |---|---|

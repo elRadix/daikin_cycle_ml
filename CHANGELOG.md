@@ -16,9 +16,10 @@
   1-2 °C; never scrape ice off; the backup heater lists its normal uses
   (very cold days, tank disinfection, powerful hot water) and points to
   an error or emergency mode first; no filter advice (Part of #463)
-- Notification language follows the Home Assistant language by default
-  (new option value "Home Assistant"); choosing English, Dutch or French
-  still overrides it. Dutch and French use a decimal comma (Part of #463)
+- Notification language: English stays the default for every install;
+  pick Nederlands or Français in Configure -> Notifications -> Content, or
+  the new value "Home Assistant" to follow the Home Assistant language.
+  Dutch and French use a decimal comma (Part of #463)
 
 ### Fixed
 - docs/ALERTS.md: `high_cycle_rate` fires above 1.5 x

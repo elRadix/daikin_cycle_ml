@@ -6276,8 +6276,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return False
 
     def _notify_language(self, options: Mapping[str, Any] | None = None) -> str:
-        """#463: alert language. The option when the user chose one, else
-        the Home Assistant language (en / nl / fr), else English."""
+        """#463: alert language. English unless the user chose one; "auto"
+        follows the Home Assistant language (en / nl / fr, else English)."""
         hass = getattr(self, "hass", None)
         ha_lang = getattr(getattr(hass, "config", None), "language", None)
         return resolve_language(

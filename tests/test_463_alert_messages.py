@@ -7,7 +7,7 @@ Contract:
   jargon (z-score, k-means, sigma), and has at most four fact lines;
 - the level line says whether action is needed; a critical trigger is
   never "no action needed";
-- the language follows Home Assistant unless the user picked one;
+- the language is English unless the user picks one ("auto" = HA language);
 - texts reviewed by an HVAC engineer: no filter advice, ice is never
   scraped off, the backup heater text names its normal uses.
 """
@@ -134,7 +134,7 @@ def test_emoji_off_has_no_emoji_markers() -> None:
 @pytest.mark.parametrize(
     ("options", "ha", "expected"),
     [
-        ({}, "nl", "nl"),
+        ({}, "nl", "en"),
         ({"notification_language": "auto"}, "fr", "fr"),
         ({"notification_language": "auto"}, "de", "en"),
         ({"notification_language": "en"}, "nl", "en"),
@@ -143,7 +143,7 @@ def test_emoji_off_has_no_emoji_markers() -> None:
         (None, None, "en"),
     ],
 )
-def test_language_follows_home_assistant_unless_chosen(options, ha, expected) -> None:
+def test_language_english_unless_chosen(options, ha, expected) -> None:
     assert at.resolve_language(options, ha) == expected
 
 

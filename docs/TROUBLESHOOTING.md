@@ -474,7 +474,13 @@ Or, if you only want to see `kmeans_retrain_stale`, wait for natural trigger (wh
 
 ### 6.5 Alerts come in the wrong language
 
-**Fix:** Options → Notifications → Content → `notification_language` = `en` or `nl`.
+Alerts are in English unless you pick a language. Since #463 every alert
+is written in English, Dutch and French alike.
+
+**Fix:** Settings → Devices & Services → Daikin Cycle ML → Configure →
+Notifications → Content → **Notification language**: *English*,
+*Nederlands*, *Français*, or *Home Assistant* (follows the Home Assistant
+language; English for any other language).
 
 Next alert fires in the new language. Existing notifications stay in their original language.
 

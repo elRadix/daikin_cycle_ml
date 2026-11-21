@@ -688,7 +688,7 @@ def _state_label(state: str, step_c: int, lang: str) -> str:
 
 
 def _alert_language(options: Any, c: Any) -> str:
-    """#463: notification language, the Home Assistant language by default."""
+    """#463: notification language, English unless chosen ("auto" = HA language)."""
     ha_lang = getattr(getattr(getattr(c, "hass", None), "config", None), "language", None)
     return _resolve_language(
         options if isinstance(options, dict) else None,
