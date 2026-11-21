@@ -1,6 +1,6 @@
 # Changelog · Performance card (native)
 
-## [1.2.0] - Unreleased
+## [1.2.0] - 2026-11-21
 
 ### Fixed
 

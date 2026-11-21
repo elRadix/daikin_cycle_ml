@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.29.1] - 2026-11-21
+
 ### Fixed
 - Performance card 1.2.0 / model profile: the maximum heat took Daikin's
   EN 14511 capacities as the maximum, so an EPRA12 at -1 °C / 30 °C making
