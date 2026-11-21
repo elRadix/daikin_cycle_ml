@@ -55,6 +55,10 @@ def _safe_float(value: Any) -> float | None:
 MAX_RESUME_GAP_S: float = 6 * 3600.0
 # #421: a sample counts for the time since the previous one, at most 5 min
 MAX_TICK_GAP_S: float = 300.0
+# #454: some units (EDLA monobloc) stop the compressor for a few minutes
+# inside a defrost (4-way valve reversal). While the unit reports defrost,
+# a compressor stop keeps the run open, up to this long.
+DEFROST_HOLD_MAX_S: float = 20 * 60.0
 """Maximum gap (seconds) at which a RUNNING detector state may be resumed."""
 
 
@@ -265,6 +269,7 @@ class CycleDetector:
         self._tick_dt: float = 0.0
         self._defrost_s: float = 0.0  # #421: defrost seconds in the cycle
         self._defrost_used = False
+        self._defrost_hold_s = 0.0
         self._thermal_kw_samples: list[float] = []
         self._pump_off_count: int = 0
         self._pending_mode: str | None = None
@@ -440,6 +445,7 @@ class CycleDetector:
         self._buh_s = 0.0
         self._defrost_s = 0.0
         self._defrost_used = False
+        self._defrost_hold_s = 0.0
         self._thermal_kw_samples = []
         self._pump_off_count = 0
         self._pending_mode = None
@@ -664,6 +670,7 @@ class CycleDetector:
             return None
 
         if on:
+            self._defrost_hold_s = 0.0
             self._record_boiler_sample(
                 active=boiler_active,
                 heat=boiler_heat_active,
@@ -678,6 +685,16 @@ class CycleDetector:
                 self._mode = self._classify_mode(attrs)
                 self._accumulate(attrs)
                 return record
+            self._accumulate(attrs)
+            return None
+
+        # #454: the compressor stops inside a defrost (EDLA: 0 rps for ~2 min
+        # in a 9 min defrost). That is part of the run, not its end.
+        if (
+            _is_on(attrs, ATTR_DEFROST_OPERATION)
+            and getattr(self, "_defrost_hold_s", 0.0) < DEFROST_HOLD_MAX_S
+        ):
+            self._defrost_hold_s = getattr(self, "_defrost_hold_s", 0.0) + self._tick_dt
             self._accumulate(attrs)
             return None
 

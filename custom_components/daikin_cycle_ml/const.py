@@ -839,7 +839,9 @@ ALERT_DEDUP_DEFAULTS: dict[str, int] = {
     "buh_excessive": 1440,
     "source_stale": 60,
     "cop_physically_impossible": 1440,
-    "missing_attributes": 60,
+    # #454: a setup gap that lasts until the ESPAltherma definition changes;
+    # the repair issue shows it all the time, the alert once a day
+    "missing_attributes": 1440,
     "dhw_pendulum": 60,
     "high_cycle_rate": 60,
     "cop_vs_datasheet_low": 1440,

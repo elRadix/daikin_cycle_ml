@@ -3,6 +3,15 @@
 ## [Unreleased]
 
 ### Fixed
+- A compressor stop inside a defrost ended the run: some units (EDLA
+  monobloc) stop the compressor for a few minutes while they defrost.
+  The run was closed as a poor cycle, a short-run alert fired and a new
+  run started after the defrost. While the unit reports defrost, a stop
+  now keeps the run open (up to 20 minutes); a stop without defrost ends
+  the run as before (Part of #455, discussion #454)
+- The "Missing attributes" alert repeated every hour for a setup gap that
+  only changes with the ESPAltherma definition; it now fires once a day
+  (the repair issue keeps showing it)
 - Telegram rejected alerts sent to a notify entity ("Can't parse
   entities: can't find end of the entity"): the bot sends with its parse
   mode (Markdown by default), and option names such as
@@ -29,6 +38,9 @@
   0 / 1 / 1 (Part of #435)
 
 ### Tests
+- `tests/test_454_defrost_compressor_stop.py`: the reporter's defrost
+  (0 rps inside Defrost Operation ON) keeps one run; a stop without
+  defrost still ends it; the hold is bounded and resets per defrost
 - `tests/test_corpus_native_cards.py`: every diagnostics file of the
   corpus replays through the live temperatures, the recorder exclusion,
   the Efficiency card and the Daily summary card; corpus file of the

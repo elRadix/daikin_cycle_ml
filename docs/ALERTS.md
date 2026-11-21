@@ -150,7 +150,7 @@ Triggered when the corresponding binary sensor state is on.
 | `defrost_excessive` | (computed) | warning | 1440 min | (none) |
 | `buh_excessive` | (computed) | warning | 1440 min | (none) |
 | `source_stale` | `source_stale` | **critical** | 60 min | (none) |
-| `missing_attributes` | `missing_attributes` | warning | 60 min | (none) |
+| `missing_attributes` | `missing_attributes` | warning | 24 h | (none) |
 | `db_retention_warning` | (computed) | info | 1440 min | (none) |
 | `kmeans_retrain_stale` | (computed) | info | 1440 min | (none) |
 | `energy_daily_anomaly` | (computed) | info | 1440 min | (none) |
@@ -394,7 +394,7 @@ Windows are per-type. Firing `short_run` does not reset the window for `pendulum
 | defrost_excessive | 1440 min |
 | buh_excessive | 1440 min |
 | source_stale | 60 min |
-| missing_attributes | 60 min |
+| missing_attributes | 24 h |
 | dhw_pendulum | 60 min |
 | high_cycle_rate | 60 min |
 | cop_vs_datasheet_low | 1440 min |
