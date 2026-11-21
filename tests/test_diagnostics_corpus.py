@@ -96,7 +96,10 @@ def test_replay(path):
     if isinstance(base, dict):
         bb = BehaviourBaseline.from_dict(base)
         if base.get("type") == "behaviour":
-            assert bb._migrated_from_dim is None and bb.modes()
+            assert bb._migrated_from_dim is None
+            # #435 day 2: a run open for 24 h, no closed cycle -> nothing learned yet
+            cycles = ((doc.get("database") or {}).get("counts") or {}).get("cycles")
+            assert bb.modes() or cycles == 0
             assert BehaviourBaseline.from_dict(bb.to_dict()).to_dict() == bb.to_dict()
         else:   # v1 state: the relearn replaces it
             assert bb._migrated_from_dim is not None

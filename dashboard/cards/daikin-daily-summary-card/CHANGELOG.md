@@ -1,5 +1,15 @@
 # Changelog — Daily Summary Card (native)
 
+## [1.0.1] — 2026-11-21
+
+### Fixed
+- A run that started on an earlier day shows the weekday in "since"
+  (was the time only: "since 08:54 AM" for a run open since yesterday)
+- Charts with a maximum of 1 (Cycles, Events) showed the axis labels
+  0 / 1 / 1; each label now appears once
+- The live score of an open run now shows on every update (integration
+  fix, #435)
+
 ## [1.0.0] — 2026-11-19
 
 ### Added

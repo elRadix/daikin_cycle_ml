@@ -1,5 +1,14 @@
 # Changelog · Efficiency card (native)
 
+## [1.0.1] - 2026-11-21
+
+### Fixed
+
+- COP against the datasheet outside the datasheet points (for example a
+  model with A7 values only, at 3 °C outdoor): the nearest point is now
+  scaled with the Carnot ratio instead of reused as is, which judged the
+  COP too harshly in cold weather (#435 diagnostics)
+
 ## [1.0.0] - 2026-11-21
 
 ### Added

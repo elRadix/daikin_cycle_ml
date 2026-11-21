@@ -29,7 +29,7 @@
 (function () {
   "use strict";
 
-  const CARD_VERSION = "1.0.0";
+  const CARD_VERSION = "1.0.1";
   const TAG = "daikin-efficiency-card";
   const EDITOR_TAG = "daikin-efficiency-card-editor";
   const PARTS = ["data", "assess", "charts", "verdicts", "i18n", "render"];

@@ -1820,7 +1820,7 @@ async def async_setup_entry(
         hk = frozenset(d["key"] for d in SENSOR_DEFS if d.get("requires_hybrid"))
         async_remove_stale_entities(hass, entry.entry_id, hk)
     entities = [
-        DaikinCycleMLSensor(
+        (DaikinCycleMLLargeSensor if spec["key"] in LARGE_ATTR_SENSORS else DaikinCycleMLSensor)(
             coord,
             key=spec["key"],
             name=spec["name"],
@@ -1836,6 +1836,28 @@ async def async_setup_entry(
         if not (spec.get("requires_hybrid") and not is_hybrid)
     ]
     async_add_entities(entities)
+
+
+# Sensors with attributes that can pass the recorder's 16 KB limit (31 days
+# x modes, 48 h of hourly points, every alert of the day). The recorder then
+# drops all their attributes and logs a warning on every update. The cards
+# read the current state only, so these attributes stay out of the recorder.
+LARGE_ATTR_SENSORS = frozenset({
+    "daily_summary_recent", "cop_curve_recent", "alerts_today",
+    "hp_specs", "heating_curve_advice",
+})
+
+
+class DaikinCycleMLLargeSensor(DaikinCycleMLSensor):
+    """Sensor whose large attributes are not written to the recorder."""
+
+    _unrecorded_attributes = frozenset({
+        "days", "events_by_day", "totals_by_mode",   # daily_summary_recent
+        "points",                                    # cop_curve_recent, hp_specs
+        "alerts", "by_type",                         # alerts_today
+        "datasheet_sources",                         # hp_specs
+        "buckets",                                   # heating_curve_advice
+    })
 
 
 # --- backwards-compat wrappers (Batch 31cd) ---

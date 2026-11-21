@@ -2,6 +2,53 @@
 
 ## [Unreleased]
 
+### Fixed
+- A compressor stop inside a defrost ended the run: some units (EDLA
+  monobloc) stop the compressor for a few minutes while they defrost.
+  The run was closed as a poor cycle, a short-run alert fired and a new
+  run started after the defrost. While the unit reports defrost, a stop
+  now keeps the run open (up to 20 minutes); a stop without defrost ends
+  the run as before (Part of #455, discussion #454)
+- The "Missing attributes" alert repeated every hour for a setup gap that
+  only changes with the ESPAltherma definition; it now fires once a day
+  (the repair issue keeps showing it)
+- Telegram rejected alerts sent to a notify entity ("Can't parse
+  entities: can't find end of the entity"): the bot sends with its parse
+  mode (Markdown by default), and option names such as
+  `short_off_threshold_min` read as an unclosed italic. Text to a
+  `telegram_bot` notify entity is now escaped for the bot's parse mode
+  (Markdown, MarkdownV2, HTML; plain text unchanged). Other notify
+  entities are untouched (Part of #451)
+- Recorder warning "State attributes for
+  sensor.daikin_cycle_ml_daily_summary_recent exceed maximum size of
+  16384 bytes": the large attributes of `daily_summary_recent`,
+  `cop_curve_recent`, `alerts_today`, `hp_specs` and
+  `heating_curve_advice` are no longer written to the recorder (the
+  cards read the current state). `thermal_power_live`, used for the
+  Efficiency card graphs, is still recorded in full
+- The live score of an open run (`quality_today.live_score`) was null on
+  9 of every 10 updates: the coordinator builds a new snapshot every
+  30 s, and the score is recomputed every 5 minutes. The last score is now
+  carried between refreshes, with the run length advanced (Part of #435)
+- Efficiency card 1.0.1: outside the datasheet points (a model with A7
+  values only, at 3 °C outdoor) the expected COP is the nearest point
+  scaled with the Carnot ratio, not the A7 value as is (Part of #435)
+- Daily summary card 1.0.1: a run open since an earlier day names the day
+  in "since"; charts with a maximum of 1 no longer show the axis labels
+  0 / 1 / 1 (Part of #435)
+
+### Tests
+- `tests/test_454_defrost_compressor_stop.py`: the reporter's defrost
+  (0 rps inside Defrost Operation ON) keeps one run; a stop without
+  defrost still ends it; the hold is bounded and resets per defrost
+- `tests/test_corpus_native_cards.py`: every diagnostics file of the
+  corpus replays through the live temperatures, the recorder exclusion,
+  the Efficiency card and the Daily summary card; corpus file of the
+  #435 install on day 2 (one continuous 24 h run, no closed cycle)
+- `tests/test_451_telegram_parse_mode.py`, `tests/test_recorder_large_attributes.py`,
+  `tests/test_435_live_score_carry.py`; `test_435_long_open_run` in
+  `tests/test_daily_summary_native_card.py`
+
 ## [1.27.0] - 2026-11-21
 
 ### Fixed
