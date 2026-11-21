@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.28.1] - 2026-11-21
+
 ### Fixed
 - Performance card / model profile: the maximum heat was empty for every
   model, also when the datasheet lists full-capacity points (ERLA11DAV3:
