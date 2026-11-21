@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.29.0] - 2026-11-21
+
 ### Added
 - Maximum heat learned from your own runs (#473): heating samples at 90 %
   of the maximum compressor speed or more, per 5 K outdoor / 5 K water
