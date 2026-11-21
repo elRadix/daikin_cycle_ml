@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added
+- **Model profile** (Configure -> Model profile, or the new service
+  `daikin_cycle_ml.set_model_profile`): fill in what the datasheet of the
+  model chosen in setup lacks (for example the maximum heat at A-7/W55) or
+  adjust a value to your installation. Your values win over the datasheet
+  and are used by the whole integration: COP against the datasheet, the
+  normalised A7/W35 COP, the "COP below datasheet" alert and every card.
+  Every value shows its source on `hp_specs` (`value_sources`, `src` per
+  point: datasheet, learned or manual) (Part of #467)
+- Compressor speed range learned from your own runs (`rps_min`, `rps_max`
+  on `hp_specs`, `rps_learned` with the number of runs); a value in the
+  model profile replaces it. Diagnostics show the stored profile and the
+  learned range (Part of #467)
+
 ### Fixed
 - "Today" counters far too high (110 starts, 531 h runtime, 2 h 20
   backup heater, 33 defrosts at 14:24): ESPAltherma's own today counters
@@ -53,6 +67,12 @@
   (Part of #463)
 
 ### Tests
+- `test_467_model_profile`: per-value merge with sources, manual over
+  datasheet over learned, profile of another model kept but not applied,
+  edits and resets, validation messages, learned range (robust to odd
+  runs, needs 20 runs), store round trip, the profile on the snapshot
+  datasheet, the DB query on the real schema, the service and the
+  Configure step (Part of #467)
 - `test_466_native_today_not_daily` (replay of the reported counters,
   fails on the old code) and `test_466_native_cards` (target ΔT in EN /
   NL / FR, chart width, units and legend, axis start, trend numbers)

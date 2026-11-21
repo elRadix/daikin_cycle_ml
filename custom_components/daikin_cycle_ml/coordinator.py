@@ -111,6 +111,7 @@ from .engine.anomaly_engine import AnomalyResult, evaluate_behaviour
 from .engine.attribute_compat import build_compat_view
 from .engine.attribute_reader import missing_required, read
 from .engine import defrost_limit
+from .engine import model_profile as _model_profile
 from .engine.alert_texts import resolve_language
 from .engine.notify_format import escape_for_parse_mode
 from .engine.cop_degradation import (
@@ -952,6 +953,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._cop_hourly_cache: dict[str, dict[str, Any]] = {}
         self._spf_state_cache: dict[str, Any] = {}
         self._datasheet_cache: dict[str, Any] = {}
+        # #467: the user's model profile and the learned compressor range,
+        # merged into the setup model's datasheet on every refresh.
+        self._model_profile: dict[str, Any] = _model_profile.empty_profile()
+        self._rps_learned: dict[str, Any] = {}
         self._cop_ds_window: deque[tuple[float, float]] = deque()
         self._datasheet_merged: dict[str, Any] = {}
         self._datasheet_defaults: dict[str, Any] = {}
@@ -3611,6 +3616,26 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         )
         self._datasheet_cache = {}
         self._datasheet_user_loaded = True
+        await self.async_reload_model_profile()
+
+    async def async_reload_model_profile(self) -> None:
+        """#467: (re)load the model profile; the next refresh uses it."""
+        try:
+            self._model_profile = await _model_profile.load(self.hass, self.entry.entry_id)
+        except (OSError, ValueError, TypeError):  # R366: never swallow NameError
+            _LOGGER.warning("model profile store unreadable; datasheet values only", exc_info=True)
+            self._model_profile = _model_profile.empty_profile()
+        self._datasheet_cache = {}
+
+    @property
+    def model_profile(self) -> dict[str, Any]:
+        """#467: the stored model profile (public, R216)."""
+        return dict(self._model_profile)
+
+    @property
+    def rps_learned(self) -> dict[str, Any]:
+        """#467: compressor speed range learned from this installation."""
+        return dict(self._rps_learned)
 
     @property
     def datasheet_sources(self) -> dict[str, str]:
@@ -3753,6 +3778,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             model = MODEL_BASISPROFIEL
         ds_raw = _get_datasheet(self._datasheet_merged, model)
+        # #467: the user's values and the learned compressor range, per value
+        ds_raw = _model_profile.apply_profile(
+            ds_raw, getattr(self, "_model_profile", None), model,
+            getattr(self, "_rps_learned", None),
+        )
         ds: dict[str, Any] | None = None
         if ds_raw is not None:
             defaults = self._datasheet_defaults
@@ -4877,6 +4907,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             # I6: energy_daily_anomaly cache (same pattern)
             self._energy_daily_anomaly = await self._compute_energy_daily_anomaly()
             self._avg_duration_7d_min = await self._compute_avg_duration_7d_min()
+            # #467: compressor speed range of this installation
+            _rps_since = getattr(_db, "async_rps_since", None)
+            if _rps_since is not None:
+                self._rps_learned = _model_profile.learn_rps(await _rps_since(
+                    time.time() - _model_profile.LEARN_DAYS * 86400.0))
         except Exception:
             _LOGGER.exception("7d rollup refresh failed")
 

@@ -3804,6 +3804,28 @@ class CycleDB:
         except Exception:
             return None
 
+    async def async_rps_since(
+        self, since_ts: float, min_duration_s: float = 1200.0
+    ) -> list[tuple[float | None, float | None]]:
+        """#467: (rps_avg, rps_max) of steady heating / hot-water runs since
+        since_ts, for learning the compressor speed range."""
+        if self._conn is None:
+            return []
+        try:
+            cur = await self._conn.execute(
+                "SELECT rps_avg, rps_max FROM cycles "
+                "WHERE end_ts >= ? AND duration_s >= ? "
+                "AND COALESCE(is_transient, 0) = 0 "
+                "AND mode IN ('heating', 'dhw') "
+                "AND rps_max IS NOT NULL AND rps_max > 0",
+                (float(since_ts), float(min_duration_s)),
+            )
+            rows = await cur.fetchall()
+            await cur.close()
+        except sqlite3.Error:
+            return []
+        return [(r[0], r[1]) for r in rows]
+
     async def async_defrost_duration_since(
         self, since_ts: float
     ) -> float | None:

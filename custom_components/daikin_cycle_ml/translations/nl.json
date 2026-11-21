@@ -260,7 +260,8 @@
           "advanced": "Geavanceerd",
           "cop_calc": "COP-berekening",
           "test_notification": "Testmelding nu versturen",
-          "test_all_notifications": "Verstuur ALLE testmeldingen"
+          "test_all_notifications": "Verstuur ALLE testmeldingen",
+          "model_profile": "Modelprofiel"
         },
         "menu_option_descriptions": {
           "device": "Sensoren en cyclusdetectie-drempels",
@@ -643,7 +644,26 @@
         "data_description": {
           "buh_penalty_legionella_waived": "Wanneer de SWW-tank 60°C of hoger bereikt, is de backupverwarmer vereist om de run af te ronden. Schakel dit uit om de -10 kwaliteitsstraf te behouden, ook voor onvermijdelijke legionella-runs."
         }
+      },
+      "model_profile": {
+        "title": "Modelprofiel",
+        "description": "Je eigen waarden voor {model}, het model uit de installatie. Ze gaan voor de datasheet en worden door de hele integratie gebruikt (COP t.o.v. de datasheet, meldingen, kaarten). Laat een veld leeg om de datasheet of de geleerde waarde te gebruiken. Compressortoerental geleerd uit je runs: {learned}.\n\nPunten: een lijst met t_out (buiten °C), t_lwc (water °C), hc (maximaal vermogen kW) en/of cop, bijvoorbeeld:\n- t_out: -7\n  t_lwc: 55\n  hc: 7.2",
+        "data": {
+          "kw": "Nominaal vermogen",
+          "rps_min": "Minimaal compressortoerental",
+          "rps_max": "Maximaal compressortoerental",
+          "points": "Datasheetpunten"
+        },
+        "data_description": {
+          "kw": "Alleen als je unit afwijkt van de datasheet.",
+          "rps_min": "Leeg: geleerd uit je runs.",
+          "rps_max": "Leeg: geleerd uit je runs.",
+          "points": "Vul maximaal vermogen (hc) of een COP in die de datasheet mist, of corrigeer er een."
+        }
       }
+    },
+    "error": {
+      "invalid_profile": "Deze waarden zijn niet opgeslagen: {problem}"
     }
   },
   "entity": {
@@ -1129,6 +1149,28 @@
         "entry_id": {
           "name": "Configuratie-item",
           "description": "Item waarvan de DB geëxporteerd moet worden."
+        }
+      }
+    },
+    "set_model_profile": {
+      "name": "Modelprofiel instellen",
+      "description": "Vul waarden van het modelprofiel van je warmtepomp in of pas ze aan (het model uit de installatie). Jouw waarden gaan voor de datasheet en worden door de hele integratie gebruikt. Laat een waarde leeg (null) om terug te gaan naar de datasheet.",
+      "fields": {
+        "entry_id": {
+          "name": "Configuratie-item",
+          "description": "ID van het configuratie-item (optioneel bij één Daikin Cycle ML-item)."
+        },
+        "fields": {
+          "name": "Waarden",
+          "description": "Modelwaarden, bijvoorbeeld {kw: 11, rps_min: 16, rps_max: 95}. Toegestaan: kw, nom_cop, scop_w35, scop_w55, lwt_min, lwt_max, rps_min, rps_max."
+        },
+        "points": {
+          "name": "Datasheetpunten",
+          "description": "Punten per buiten- en watertemperatuur met maximaal vermogen (hc, kW) en/of spec-COP, bijvoorbeeld [{t_out: -7, t_lwc: 55, hc: 7.2, cop: 1.82}]."
+        },
+        "reset": {
+          "name": "Herstellen",
+          "description": "Eerst al je eigen waarden verwijderen (terug naar de datasheet)."
         }
       }
     }

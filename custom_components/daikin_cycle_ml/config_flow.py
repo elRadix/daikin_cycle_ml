@@ -1260,9 +1260,56 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                 "notifications",
                 "advanced",
                 "cop_calc",
+                "model_profile",
                 "test_notification",
                 "test_all_notifications",
             ],
+        )
+
+    async def async_step_model_profile(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """#467: the user's own values for the model chosen in setup. They win
+        over the datasheet and are used by the whole integration."""
+        from .engine import model_profile as mp  # noqa: PLC0415
+
+        entry = self.config_entry
+        model = str(entry.data.get("model") or "")
+        current = await mp.load(self.hass, entry.entry_id)
+        if current["model"] != model:
+            current = mp.empty_profile()
+        coord = getattr(entry, "runtime_data", None)
+        errors: dict[str, str] = {}
+        problem = ""
+        if user_input is not None:
+            fields = {k: user_input.get(k) for k in ("kw", "rps_min", "rps_max")}
+            points = user_input.get("points") or []
+            found = mp.validate_edit(fields, points)
+            if found:
+                errors["base"] = "invalid_profile"
+                problem = "; ".join(found)
+            else:
+                new = mp.edit({}, model, fields={k: v for k, v in fields.items() if v is not None},
+                              points=points)
+                await mp.save(self.hass, entry.entry_id, new)
+                if coord is not None and hasattr(coord, "async_reload_model_profile"):
+                    await coord.async_reload_model_profile()
+                return self.async_create_entry(data=dict(entry.options or {}))
+        learned = dict(getattr(coord, "rps_learned", None) or {}) if coord is not None else {}
+        learned_txt = (f"{learned['rps_min']}–{learned['rps_max']} rps ({learned.get('runs', 0)})"
+                       if "rps_min" in learned else f"— ({learned.get('runs', 0)})")
+        def num(lo: float, hi: float, step: float, unit: str) -> selector.NumberSelector:
+            return selector.NumberSelector(selector.NumberSelectorConfig(
+                min=lo, max=hi, step=step, mode=selector.NumberSelectorMode.BOX,
+                unit_of_measurement=unit))
+        f = current["fields"]
+        schema = vol.Schema({
+            vol.Optional("kw", description={"suggested_value": f.get("kw")}): num(1, 40, 0.1, "kW"),
+            vol.Optional("rps_min", description={"suggested_value": f.get("rps_min")}): num(1, 150, 1, "rps"),
+            vol.Optional("rps_max", description={"suggested_value": f.get("rps_max")}): num(5, 200, 1, "rps"),
+            vol.Optional("points", description={"suggested_value": current["points"] or None}): selector.ObjectSelector(),
+        })
+        return self.async_show_form(
+            step_id="model_profile", data_schema=schema, errors=errors,
+            description_placeholders={"model": model or "—", "learned": learned_txt, "problem": problem},
         )
 
     def _save(

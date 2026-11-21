@@ -736,6 +736,11 @@ async def async_get_config_entry_diagnostics(
             "boiler_efficiency_cop": getattr(snap, "boiler_efficiency_cop", None),
         },
         "defrost": _defrost_snapshot(coord),
+        # #467: the user's model profile and the learned compressor range
+        "model_profile": {
+            "stored": getattr(coord, "model_profile", None),
+            "rps_learned": getattr(coord, "rps_learned", None),
+        },
         "buh": _buh_snapshot(coord),
         "entities": _entities_registry(hass, entry),
         "device": _device_registry(hass, entry),
