@@ -22,7 +22,7 @@ Do not add triple-backtick fences when editing this file.
 NOTE: DEEPSEEK.md is local-only, gitignored. Read it from the dev
 container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
 
-## Project identity (v89.0 — updated 2026-11-19 evening)
+## Project identity (v90.0 — updated 2026-11-21)
 
 - GitHub: elRadix/daikin_cycle_ml · default branch main · HACS custom repo
 - Dev container: /workspace/daikin_cycle_ml (daikin_cycle_dev, image python:3.14)
@@ -32,11 +32,15 @@ container at /workspace/daikin_cycle_ml/DEEPSEEK.md if present.
   Cloud sessions can push branches but NOT tags and cannot delete remote
   branches (proxy 403). Tags + branch deletion run from daikin_cycle_dev
   via docker exec with a pre-guard (see v87.0 addendum).
-- Main tip: d615af7 (release v1.24.1, PR #433). Nothing unreleased.
-- Latest release: v1.24.1 (tag v1.24.1 -> d615af7), 2026-11-19.
-  Same day: v1.24.0 (tag v1.24.0 -> 177ae8e, PR #429).
-  Before: v1.23.3 (143f9cf), v1.23.0-v1.23.2 (2026-11-18), v1.22.10 (91034f5).
-- Manifest / const.VERSION / pyproject: 1.24.1 (match)
+- Main tip: 5545aee (PR #460, unreleased fixes on top of v1.27.0).
+- Latest release: v1.27.0 (tag v1.27.0 -> 73742c5, PR #459), 2026-11-21:
+  native Efficiency card (#457/#458) + #452 #453 #456.
+  Before: v1.26.1, v1.26.0 (ML v2, #443), v1.25.0 (native Daily summary
+  card), v1.24.1 (d615af7), v1.24.0 (177ae8e).
+- Unreleased on main (#460): Telegram parse-mode escape, recorder 16 KB
+  exclusion, live score carry, defrost compressor-stop hold,
+  missing_attributes alert 24 h, card fixes 1.0.1, corpus card tests.
+- Manifest / const.VERSION / pyproject: 1.27.0 (match)
 - Open PRs: none. GitHub deletes the head branch when a PR merges
   (seen for #428 #429 #432 #433): restart the session branch from
   origin/main and push normally, no force (R394).
@@ -96,10 +100,16 @@ definitions and v2 catalog unchanged, pin moved).
 
 Tweakers feedback "alerts not shown in any card" is now #425.
 
-## Current state (v89.0 — 2026-11-19 evening)
+## Current state (v90.0 — 2026-11-21)
 
-- Coverage: 100.00% (pyproject fail_under = 100), CI green on d615af7
-- Tests: 6985 collected (README badge 6985)
+- Coverage: 100.00% (pyproject fail_under = 100), CI green on 5545aee
+- Tests: 7255 collected (README badge 7205 = v1.27.0; next bump updates it)
+- Native cards (2), served by the integration (frontend/, CARD_FILES):
+  custom:daikin-daily-summary-card (1.0.1) and custom:daikin-efficiency-card
+  (1.0.1, seven part files, verdicts in dcm-efficiency-assess.js). Docs
+  dashboard/README.md (native first) + card folders.
+- Diagnostics corpus: 8 files in tests/fixtures/diagnostics (INDEX.json),
+  replayed by test_diagnostics_corpus.py and test_corpus_native_cards.py.
 - Dashboard cards (7): one header with the model, shared variables
   (lang_override / theme_override / show_help + card-specific), EN/NL/FR,
   dark mode; shared block tools/card_common.js synced by
@@ -208,6 +218,39 @@ Tweakers feedback "alerts not shown in any card" is now #425.
     R383  CI poll timeout ≠ failure — diagnose via gh run list --commit $SHA before amending.
     R384  Heredoc delimiter mismatch = PS2-trap, nothing mutated. Ctrl+C → echo READY → re-paste identical.
 
+### Active rules added in v90.0 (2026-11-21): fixtures and testing
+
+    R397  A test fixture comes from production code, never typed by hand:
+          card states from the generator in test_427_cards_live_states.py
+          (DCML_DUMP_CARD_STATES=1, writes card_states_427.json and
+          card_history_24h.json), diagnostics through
+          tools/ingest_diagnostics.py. A regenerated fixture that shifts
+          unrelated values (day boundary, counts) is not committed whole:
+          keep the old file and take over only the entities that changed.
+    R398  Every diagnostics file joins the test base: after ingesting, run
+          test_diagnostics_corpus.py AND test_corpus_native_cards.py. A
+          failure there is a real gap (code or test assumption): fix it,
+          never skip the file. Name the reporter only per R396.
+    R399  Cloud sessions cannot download GitHub attachments (proxy) and a
+          fetch agent returns extracts only. Ask the user to paste or
+          attach the file, or to ingest it in the dev container. Never
+          rebuild a diagnostics file from extracts.
+    R400  A fix for a reported behaviour gets a replay test of the
+          reporter's data (attributes, history pattern) and is shown to
+          fail on the old code before it is committed.
+    R401  New sensor attributes that grow with time (per day, per hour,
+          per alert) go in sensor.LARGE_ATTR_SENSORS / _unrecorded_
+          attributes; cards read the live state. The corpus test fails
+          when a truncated attribute set is not excluded.
+    R402  Native card changes: Node test on the real-integration fixture
+          in EN / NL / FR + Chromium test of the element + a look at the
+          rendered screenshot before committing (R390 for native cards);
+          bump CARD_VERSION and the card CHANGELOG.
+    R403  "Push / merge when green" = squash-merge the PR with the full
+          head SHA (R386) once mergeable_state is clean; it stays under
+          [Unreleased] unless a release is asked for. Then comment the
+          solution on the linked issues (closed ones get a follow-up).
+
 ### Active rules added in v89.0 (2026-11-19)
 
     R385  Release notes: ALWAYS give the full Markdown source in the chat
@@ -244,9 +287,15 @@ Tweakers feedback "alerts not shown in any card" is now #425.
     R395  Every diagnostics file that is sent (issue, chat, prod) is
           ingested with tools/ingest_diagnostics.py into
           tests/fixtures/diagnostics (anonymised, trimmed, INDEX.json).
-          Never store or mention a reporter's name or handle; --note
-          describes the install or the problem only. See the README
+          Never store a reporter's name or handle in the corpus; --note
+          describes the install or the problem only (credit: R396). See the README
           in that folder.
+    R396  Credit reporters by GitHub handle in what is published for
+          people: the release notes "Thank you" section (always, one line
+          per reporter with the issue or discussion link and what their
+          report led to) and the PR body ("Reported by @handle (#N)").
+          Anonymous everywhere else (R395: fixtures, notes, commit
+          messages). Never the maintainer's own name or accounts.
 
 ## Historical rules (RETIRED)
 
@@ -568,7 +617,8 @@ Release PR = version bump only, ONE commit, nothing else in it.
    publish GitHub release (template of previous releases: logo, star
    badge, end-user "What's new" with benefits for the heat pump and issue
    links, "After updating" incl. which cards to re-paste, card gallery
-   with image URLs on the tag, Thank you, Manuals, technical section,
+   with image URLs on the tag, Thank you (reporters by @handle, R396),
+   Manuals, technical section,
    Support). ALWAYS hand over the full release-notes Markdown source in
    the chat (R385). Optionally a Tweakers post (Dutch, UBB) in the same
    reply.
@@ -804,3 +854,28 @@ dropped). All work is now pushed to origin after each batch to prevent recurrenc
   end-user language about the benefits for the heat pump and the request
   to re-paste cards; galleries of all card screenshots in releases;
   image filenames never change.
+
+### v90.0 addendum (2026-11-21)
+
+- Released v1.27.0 (#459): native Efficiency card (#457, PR #458) with a
+  verdict on every graph within the model's datasheet limits; live
+  temperatures on thermal_power_live; #452 notify entities, #453 kW / energy
+  meters, #456 detection without I/U mode / pump state. Issues #435 #451
+  #455 #457 closed; #436 #425 #208 closed after their fixes had shipped.
+- Merged unreleased (#460): Telegram text escaped for the bot's parse mode
+  (engine/notify_format.py); large attributes of five sensors unrecorded
+  (prod-1 daily_summary_recent 18 KB); live score carried between 5 min
+  scorings; a compressor stop inside a defrost keeps the run (EDLA,
+  DEFROST_HOLD_MAX_S 20 min; the boiler-only rule still ends hybrid runs
+  first); missing_attributes alert once a day; card fixes 1.0.1.
+- Open question: discussion #454 shows 12 defrosts for one defrost in the
+  history; waiting for the reporter's diagnostics.
+- Lessons:
+  - A new DataSnapshot is built every tick: a throttled value must be
+    carried over from the coordinator, or it reads None between refreshes.
+  - HA history stores a value only when it changes: graphs hold a value
+    until the next sample (step line) and carry the last value into the
+    window; 10-min means are time-weighted.
+  - Credit reporters by @handle in release notes and PR bodies (R396);
+    an early release note credited a reporter with a finding they did not
+    make: describe what their report actually led to.
