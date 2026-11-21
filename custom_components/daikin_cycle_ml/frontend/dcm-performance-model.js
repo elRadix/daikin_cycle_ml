@@ -4,10 +4,12 @@
  * Pure functions, no DOM: tested under Node.
  *
  * The limits come from the model chosen in setup (sensor hp_specs), with
- * the user's model profile merged in by the integration (#467): every
- * datasheet point may carry hmax (maximum heat kW, from the user or the capacity tables;
- * not the datasheet hc, which is the rating-point capacity) and cop, each with its source
- * in point.src; rps_min / rps_max come from the profile or are learned.
+ * the user's model profile merged in by the integration (#467, #478): every
+ * point may carry hmax (maximum heat kW: the user's value, or an estimate
+ * from Daikin's maximum at A7/W35 raised to every capacity the unit is known
+ * to reach there) and cop, each with its source in point.src; rps_min /
+ * rps_max come from the profile or are learned (learned max = highest speed
+ * seen so far, not a confirmed top speed).
  */
 (function () {
   "use strict";
@@ -28,6 +30,8 @@
   const REQUIRED_ROLES = ["thermal_power_live", "hp_specs"];
   const LOADS = ["thermal", "compressor", "electrical"];
   const WATCH = 85, BAD = 95;
+  const TOP = 0.9;       /* #478: within 10 % of a confirmed top speed = full speed */
+  const LAG_K = 2;       /* water more than 2 K below its target = the unit cannot keep up */
   const NEAR_K = 3;   /* within 3 K of a known point counts as known (no "add a point" note) */
 
   const esc = (s) => String(s === undefined || s === null ? "" : s)
@@ -145,13 +149,20 @@
     const cop = atCondition(pts, "cop", outdoor, lwt);
     const thMax = hc ? hc.value : null, copSpec = cop ? cop.value : null;
     const fmin = num(specs.rps_min), fmax = num(specs.rps_max);
+    const maxIn = num(specs.max_input_kw);
+    const fSeen = vs.rps_max === "learned";
     return {
       thMax, thExact: hc ? hc.exact : false, thFrom: hc ? hc.from : [], thManual: hc ? hc.manual : false,
-      copSpec, elMax: thMax && copSpec ? thMax / copSpec : null,
+      copSpec,
+      /* #478: Daikin's maximum power input; else an estimate */
+      elMax: maxIn !== null ? maxIn : thMax && copSpec ? thMax / copSpec : null, elEst: maxIn === null,
       fmin, fmax, fSrc: vs.rps_max || vs.rps_min || null,
-      kw: num(specs.kw),
-      /* the maximum is the nominal capacity (part-load datasheet, #467) */
-      thNominal: !!hc && specs.hmax_basis === "nominal" && hc.srcs.every((x) => x === "datasheet"),
+      /* a learned maximum is only the highest speed seen so far */
+      fSeen, fTop: fmax !== null && !fSeen ? fmax : null,
+      kw: num(specs.kw), basis: specs.hmax_basis || null, anchor: num(specs.hmax_anchor),
+      thSeen: false,
+      /* an estimate (not a Daikin or user value) was used for the maximum */
+      thEstimate: !!hc && hc.srcs.includes("estimate") && !hc.manual,
       /* #473: a point learned from this installation's full-speed runs was used */
       thLearned: !!hc && hc.srcs.includes("learned") && !hc.manual,
     };
@@ -170,10 +181,15 @@
     const tp = st("thermal_power_live"), a = (tp && tp.attributes) || {};
     const live = {
       heat: num(tp && tp.state), power: num(a.input_power_w), cop: num(a.input_cop), rps: num(a.input_rps),
-      lwt: num(a.lwt_c), outdoor: num(a.outdoor_c),
+      lwt: num(a.lwt_c), outdoor: num(a.outdoor_c), target: num(a.lw_setpoint_c),
       running: isOn("compressor_running"), defrost: isOn("defrost_active"), dhw: isOn("dhw_active"), buh: isOn("buh_active"),
     };
     const L = limits(specs, live.outdoor, live.lwt);
+    /* #478: delivering more than the maximum proves the maximum is too low
+       there: raise it to what the unit does now */
+    if (live.running && !live.defrost && live.heat !== null && L.thMax !== null && live.heat > L.thMax) {
+      L.thMax = live.heat; L.thSeen = true;
+    }
     const pct = (x, max) => (x !== null && max ? (x / max) * 100 : null);
     const loads = {
       thermal: pct(live.heat, L.thMax),
@@ -184,16 +200,24 @@
     const staticLoad = pct(live.heat, L.kw);
     const copPct = live.cop !== null && L.copSpec ? (live.cop / L.copSpec) * 100 : null;
     const headroom = L.thMax !== null && live.heat !== null ? Math.max(0, L.thMax - live.heat) : null;
-    const worst = Math.max(loads.thermal === null ? -1 : loads.thermal, loads.compressor === null ? -1 : loads.compressor);
+    /* #478 (Daikin engineer review): "at its limit" only when the water
+       stays below its target and the compressor is at a confirmed top speed
+       (without one: at the estimated maximum heat). The backup heater is
+       shown from its own signal, never predicted. */
+    const lagging = live.target !== null && live.lwt !== null && live.lwt < live.target - LAG_K;
+    const fullSpeed = L.fTop !== null && live.rps !== null && live.rps >= TOP * L.fTop;
+    const atLimit = lagging && (L.fTop !== null ? fullSpeed : loads.thermal !== null && loads.thermal >= BAD);
+    const nearSpeed = L.fTop !== null && live.rps !== null && live.rps >= (WATCH / 100) * L.fTop;
     let lvl, key;
     if (!live.running) { lvl = "info"; key = "idle"; }
     else if (live.defrost) { lvl = "info"; key = "defrost"; }
-    else if (worst < 0) { lvl = "info"; key = "no_limits"; }
-    else if (worst >= BAD) { lvl = "bad"; key = live.buh ? "at_limit_buh" : "at_limit"; }
-    else if (worst >= WATCH) { lvl = "watch"; key = "near_limit"; }
+    else if (loads.thermal === null && loads.compressor === null) { lvl = "info"; key = "no_limits"; }
+    else if (atLimit) { lvl = "bad"; key = live.buh ? "at_limit_buh" : "at_limit"; }
+    else if (live.buh) { lvl = "watch"; key = "buh_on"; }
+    else if ((loads.thermal !== null && loads.thermal >= WATCH) || nearSpeed) { lvl = "watch"; key = "near_limit"; }
     else { lvl = "good"; key = copPct !== null && copPct >= 100 ? "ok_efficient" : "ok"; }
     return {
-      ids, ok, lang, live, limits: L, loads, staticLoad, copPct, headroom, lvl, key,
+      ids, ok, lang, live, limits: L, loads, staticLoad, copPct, headroom, lvl, key, atLimit,
       model: specs.model ? String(specs.model).toUpperCase() : "",
       meta: [specs.family, num(specs.kw) ? num(specs.kw) + " kW" : "", specs.refrigerant].filter((x) => x && String(x) !== "None").join(" · "),
       points: (Array.isArray(specs.points) ? specs.points : []).filter((p) => num(p.t_out) !== null && num(p.t_lwc) !== null),
@@ -202,6 +226,6 @@
     };
   }
 
-  Object.assign(P, { model: { DOMAIN, SUFFIX, LOADS, WATCH, BAD, esc, num, on, pickLang, resolveEntities, carnot, atCondition, limits, zone, buildModel } });
+  Object.assign(P, { model: { DOMAIN, SUFFIX, LOADS, WATCH, BAD, TOP, LAG_K, esc, num, on, pickLang, resolveEntities, carnot, atCondition, limits, zone, buildModel } });
   if (window.__dcmPerfBoot) window.__dcmPerfBoot();
 })();

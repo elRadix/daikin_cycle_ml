@@ -2,6 +2,39 @@
 
 ## [Unreleased]
 
+### Fixed
+- Performance card 1.2.0 / model profile: the maximum heat took Daikin's
+  EN 14511 capacities as the maximum, so an EPRA12 at -1 °C / 30 °C making
+  5.7 kW at 36 rps showed 104 %, "no headroom" and "the backup heater has
+  to help". Those capacities are rating points (Daikin picks the
+  compressor speed per test point). For every model the maximum heat is
+  now estimated from Daikin's maximum at A7/W35 (`hc_max_a7`, EPRA12
+  9.97 kW) or else the nominal kW, 1 %/K lower below 7 °C outdoor and
+  0.5 %/K above 35 °C water, never below a datasheet or learned capacity
+  (they only raise it). Reviewed with a Daikin application engineer
+  (Part of #478).
+- "At its limit" only when the leaving water stays more than 2 K below its
+  target at a confirmed top speed (typed in the model profile; a learned
+  maximum is the highest speed seen so far); the backup heater is shown
+  from its own signal; heat above the maximum raises it to what the unit
+  delivers; electrical maximum = Daikin maximum power input where
+  published (Part of #478).
+- Datasheet EPRA08/10/12 EAV3: points corrected to Daikin certification
+  sheet 4D133543C (A-7/W35 7.49 kW was 4.8; A-2/W45, A-7/W55 per size;
+  A7/W45 and A7/W55 capacities added); maximum power input 1.69 / 2.04 /
+  2.28 kW; EPSK12/14AW1 maximum 11.99 / 13.34 kW (Part of #478).
+
+### Changed
+- Performance card: dials "Capacity used", "Electrical power", "COP vs
+  rating point"; "reserve" instead of "headroom"; source chip "Estimate";
+  README with three images (phone, model profile, dark).
+
+### Tests
+- test_478_performance_replay: the reported EPRA12 case (fails on the old
+  code: 5.43 kW maximum, "at its limit"); model profile estimate, lower
+  bounds and learned raise; card verdicts at its limit / backup heater
+  on with reserve / heat above the maximum.
+
 ## [1.29.0] - 2026-11-21
 
 ### Added

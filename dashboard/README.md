@@ -29,11 +29,12 @@ Both native cards:
 
 [<img src="cards/daikin-performance-card/preview.png" width="300" alt="Performance card">](cards/daikin-performance-card/preview.png)
 
-Thermal load, compressor speed and electrical load against what your model
-can do at today's outdoor and water temperature, COP against the
-datasheet, and the headroom before the backup heater. Fill in or adjust
-the limits in the **model profile** on the card; the whole integration
-uses them.
+Capacity used, compressor speed and electrical power against what your
+model can deliver at today's outdoor and water temperature, COP against
+the Daikin rating point, and the heat still in reserve. Daikin's
+datasheet capacities count as a minimum, never as the maximum; fill in or
+adjust the limits in the **model profile** on the card; the whole
+integration uses them.
 
 ### ⭐ Efficiency — a verdict on every graph
 

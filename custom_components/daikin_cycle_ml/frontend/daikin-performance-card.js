@@ -20,7 +20,7 @@
 (function () {
   "use strict";
 
-  const CARD_VERSION = "1.1.0";
+  const CARD_VERSION = "1.2.0";
   const TAG = "daikin-performance-card";
   const EDITOR_TAG = "daikin-performance-card-editor";
   const PARTS = ["model", "render"];
@@ -80,7 +80,7 @@
     .pmeta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: .76em; }
     .srcchip { border-radius: 999px; padding: 1px 8px; font-weight: 700; font-size: .78em; white-space: nowrap; }
     .srcchip.datasheet { background: rgba(0,151,224,.18); } .srcchip.learned { background: rgba(67,160,71,.22); }
-    .srcchip.manual { background: rgba(251,140,0,.28); } .srcchip.missing { background: rgba(229,57,53,.2); }
+    .srcchip.manual { background: rgba(251,140,0,.28); } .srcchip.estimate { background: rgba(142,142,147,.24); } .srcchip.missing { background: rgba(229,57,53,.2); }
     .lnk { border: 0; background: none; color: var(--dcm-accent, #0097E0); font: inherit; cursor: pointer; padding: 0; font-size: .95em; }
     .tw { overflow-x: auto; }
     table { border-collapse: collapse; width: 100%; font-size: .85em; }

@@ -167,6 +167,11 @@ def _attrs_hp_specs(
         "rps_max": ds.get("rps_max"),
         "value_sources": dict(ds.get("value_sources") or {}),
         "hmax_basis": ds.get("hmax_basis"),
+        # #478: product-table maximum at A7/W35 and maximum power input
+        # (Daikin), the A7/W35 anchor of the maximum-heat estimate
+        "hc_max_a7": ds.get("hc_max_a7"),
+        "max_input_kw": ds.get("max_input_kw"),
+        "hmax_anchor": ds.get("hmax_anchor"),
         "profile": dict(ds.get("profile") or {}),
         "rps_learned": dict(getattr(c, "rps_learned", None) or {}) if c is not None else {},
         # #473: maximum heat learned per band, with sample counts

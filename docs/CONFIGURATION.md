@@ -776,23 +776,30 @@ Leave a field empty to use the datasheet (or the learned value).
 | Field | Meaning | Default |
 |---|---|---|
 | Nominal heat output | `kw`, only when your unit differs from the datasheet | datasheet |
-| Compressor minimum / maximum speed | `rps_min` / `rps_max` | learned from your runs (5th percentile of run averages, 95th percentile of run peaks, steady heating and hot-water runs of 20 min or more over 60 days, after 20 runs) |
-| Datasheet points | list of `t_out` (outdoor °C), `t_lwc` (water °C), `hmax` (maximum heat kW: the datasheet capacity `hc`, else learned, else your value), `cop` | datasheet |
+| Compressor minimum / maximum speed | `rps_min` / `rps_max` | learned from your runs (5th percentile of run averages, 95th percentile of run peaks, steady heating and hot-water runs of 20 min or more over 60 days, after 20 runs). A learned maximum is the highest speed seen so far: type your unit's top speed to confirm it |
+| Datasheet points | list of `t_out` (outdoor °C), `t_lwc` (water °C), `hmax` (maximum heat kW, see below), `cop` | datasheet |
 
-Where the maximum heat comes from, per point (#473):
+Where the maximum heat comes from, per point, the same rule for every
+model (#478, reviewed with a Daikin application engineer):
 
 1. **Your value** (manual) always wins.
-2. **Datasheet**: every capacity in the model's datasheet (`hc`, Daikin
-   product tables) is the maximum heat at that outdoor / water
-   temperature, for every model (EPRA12: 6.17 kW at A7/W35).
-3. **Learned**: for a condition the datasheet does not list, the
-   integration learns the maximum from your own runs: heating samples at
-   90 % of the maximum compressor speed or more, per 5 K outdoor and 5 K
-   water band, 95th percentile of the heat output, after 30 samples on
-   3 days (last 365 days, refreshed every 6 h).
-4. **Nominal**: a model whose datasheet has no capacity at all uses the
-   nominal kW (the number in the model name) at A7/W35, and the card says
-   so.
+2. **Estimate** from the maximum at A7/W35: Daikin's product-table
+   maximum (`hc_max_a7`, EPRA12 9.97 kW) or else the nominal kW (`kw`),
+   1 % lower per K outdoor below 7 °C and 0.5 % lower per K leaving water
+   above 35 °C.
+3. **Never below what the unit is known to reach.** Daikin's EN 14511
+   capacities (`hc`) are rating points: Daikin picks the compressor speed
+   per test point, so they are a lower bound, not the maximum (EPRA08, 10
+   and 12 all list 6.17 kW at A7/W35). A rating point above the estimate
+   (source *datasheet*) and what your own heat pump delivered at high
+   speed (source *learned*: heating samples at 90 % of the maximum speed
+   or more, per 5 K outdoor and 5 K water band, 95th percentile, after 30
+   samples on 3 days) raise it; they never lower it.
+
+The Performance card raises the maximum to the live heat when the unit
+delivers more, says "at its limit" only when the water stays more than
+2 K below its target at a confirmed top speed, and shows the backup
+heater from its own signal.
 
 Example: the datasheet gives the COP at A-7/W55 but not the maximum heat.
 Add it as a point:
