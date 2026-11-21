@@ -1,5 +1,28 @@
 # Changelog · Performance card (native)
 
+## [1.2.0] - Unreleased
+
+### Fixed
+
+- An EPRA12 at -1 °C / 30 °C making 5.7 kW at 36 rps showed 104 %, "NO
+  HEADROOM" and "the backup heater has to help". Daikin's datasheet
+  capacities are rating points, not the maximum: the maximum heat is now
+  estimated from Daikin's maximum at A7/W35 (else the nominal kW), with
+  the datasheet and learned capacities as a minimum, for every model
+  (#478). The same case now shows about 62 % and 3.5 kW in reserve.
+- "At its limit" only when the water stays more than 2 K below its target
+  at a confirmed top speed; the backup heater comes from its own signal
+  ("backup heater on while the heat pump has reserve").
+- Heat above the maximum raises the maximum to what the unit does.
+
+### Changed
+
+- Dials: **Capacity used**, **Electrical power** (against Daikin's maximum
+  power input where published), **COP vs rating point**; the learned
+  compressor maximum reads "highest speed seen so far"; source chip
+  **Estimate** in the model profile; reserve instead of headroom.
+- Three README images: phone, model profile, dark.
+
 ## [1.1.0] - 2026-11-21
 
 ### Added

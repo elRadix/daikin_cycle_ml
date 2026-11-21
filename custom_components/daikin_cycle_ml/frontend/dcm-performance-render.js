@@ -11,7 +11,7 @@
 
   const I18N = {
     en: {
-      title: "Performance", sub: "Load · compressor · COP against spec", thermal: "Capacity used", electrical: "Electrical power",
+      title: "Performance", sub: "Capacity · compressor · COP vs rating point", thermal: "Capacity used", electrical: "Electrical power",
       compressor: "Compressor", cop_spec: "COP vs rating point", spec: "rating", outdoor: "Outdoor", water: "Leaving water", heat: "Heat out",
       static: "Static load", of_nominal: "of nominal", headroom: "RESERVE", little: "LITTLE RESERVE", none: "AT ITS LIMIT",
       room: "About {kw} kW more heat available from the heat pump at {out} °C / {lwt} °C (estimate).",
@@ -23,7 +23,7 @@
       v_at_limit: "At its limit: the compressor is at full speed and the water stays more than 2 K below its target. A lower water temperature (heating curve) gives back capacity and COP.",
       v_at_limit_buh: "At its limit and the backup heater is on. A lower water temperature (heating curve) gives back capacity and COP.",
       v_near_limit: "Working hard: close to the estimated maximum at this outdoor and water temperature.",
-      v_ok_efficient: "Room to spare and at or above the rated COP: the efficient part of the curve.",
+      v_ok_efficient: "Room to spare and a COP at or above the rating point: the efficient part of the curve.",
       v_ok: "Running with room to spare.",
       profile: "Model profile", profile_hint: "From the model chosen in setup. Fill in what is missing or adjust a value: your value is used by the whole integration.",
       p_out: "Outdoor °C", p_water: "Water °C", p_hmax: "Max heat kW", p_cop: "Spec COP", p_src: "Source", add: "Add point",
@@ -41,7 +41,7 @@
       states: { heating: "Heating", dhw: "Hot water", off: "Off" },
     },
     nl: {
-      title: "Prestatie", sub: "Belasting · compressor · COP t.o.v. spec", thermal: "Benut vermogen", electrical: "Elektrisch vermogen",
+      title: "Prestatie", sub: "Vermogen · compressor · COP t.o.v. meetpunt", thermal: "Benut vermogen", electrical: "Elektrisch vermogen",
       compressor: "Compressor", cop_spec: "COP t.o.v. meetpunt", spec: "meetpunt", outdoor: "Buiten", water: "Aanvoer", heat: "Warmte",
       static: "Statische last", of_nominal: "van nominaal", headroom: "RESERVE", little: "WEINIG RESERVE", none: "OP ZIJN GRENS",
       room: "Nog ongeveer {kw} kW warmte beschikbaar uit de warmtepomp bij {out} °C / {lwt} °C (schatting).",
@@ -53,7 +53,7 @@
       v_at_limit: "Op zijn grens: de compressor draait op vol toerental en het water blijft meer dan 2 K onder het doel. Een lagere watertemperatuur (stooklijn) geeft vermogen en COP terug.",
       v_at_limit_buh: "Op zijn grens en de backup-heater staat aan. Een lagere watertemperatuur (stooklijn) geeft vermogen en COP terug.",
       v_near_limit: "Werkt hard: dicht bij het geschatte maximum bij deze buiten- en watertemperatuur.",
-      v_ok_efficient: "Ruim binnen de grens en op of boven de nominale COP: het zuinige deel van de curve.",
+      v_ok_efficient: "Ruim binnen de grens en een COP op of boven het meetpunt: het zuinige deel van de curve.",
       v_ok: "Draait ruim binnen de grens.",
       profile: "Modelprofiel", profile_hint: "Uit het model van de installatie. Vul aan wat ontbreekt of pas een waarde aan: je waarde wordt door de hele integratie gebruikt.",
       p_out: "Buiten °C", p_water: "Water °C", p_hmax: "Max. vermogen kW", p_cop: "Spec-COP", p_src: "Bron", add: "Punt toevoegen",
@@ -71,7 +71,7 @@
       states: { heating: "Verwarmen", dhw: "Warm water", off: "Uit" },
     },
     fr: {
-      title: "Performance", sub: "Charge · compresseur · COP par rapport à la fiche", thermal: "Puissance utilisée", electrical: "Puissance électrique",
+      title: "Performance", sub: "Puissance · compresseur · COP / point de mesure", thermal: "Puissance utilisée", electrical: "Puissance électrique",
       compressor: "Compresseur", cop_spec: "COP / point de mesure", spec: "point", outdoor: "Extérieur", water: "Départ", heat: "Chaleur",
       static: "Charge statique", of_nominal: "du nominal", headroom: "RÉSERVE", little: "PEU DE RÉSERVE", none: "À SA LIMITE",
       room: "Encore environ {kw} kW de chaleur disponibles de la pompe à chaleur à {out} °C / {lwt} °C (estimation).",
@@ -83,7 +83,7 @@
       v_at_limit: "À sa limite : le compresseur est à pleine vitesse et l'eau reste plus de 2 K sous sa cible. Une eau moins chaude (loi d'eau) rend de la puissance et du COP.",
       v_at_limit_buh: "À sa limite et l'appoint électrique est en marche. Une eau moins chaude (loi d'eau) rend de la puissance et du COP.",
       v_near_limit: "Travaille dur : proche du maximum estimé à cette température extérieure et d'eau.",
-      v_ok_efficient: "De la réserve et un COP égal ou supérieur au nominal : la partie efficace de la courbe.",
+      v_ok_efficient: "De la réserve et un COP égal ou supérieur au point de mesure : la partie efficace de la courbe.",
       v_ok: "Fonctionne avec de la réserve.",
       profile: "Profil du modèle", profile_hint: "Issu du modèle choisi à l'installation. Complétez ce qui manque ou ajustez une valeur : elle est utilisée par toute l'intégration.",
       p_out: "Extérieur °C", p_water: "Eau °C", p_hmax: "Puissance max. kW", p_cop: "COP fiche", p_src: "Source", add: "Ajouter un point",
