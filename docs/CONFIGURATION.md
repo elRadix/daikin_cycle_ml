@@ -766,6 +766,32 @@ Configures the electrical-input estimate used for COP.
 **Verify:** `sensor.daikin_cycle_ml_electrical_power_estimated` shows the current estimate. Its `source` attribute reveals which path was taken at any moment.
 
 
+### 4.11 Model profile (#467)
+
+Your own values for the model chosen in setup. They win over the datasheet
+and are used by the whole integration: COP against the datasheet, the
+normalised A7/W35 COP, the "COP below datasheet" alert and every card.
+Leave a field empty to use the datasheet (or the learned value).
+
+| Field | Meaning | Default |
+|---|---|---|
+| Nominal heat output | `kw`, only when your unit differs from the datasheet | datasheet |
+| Compressor minimum / maximum speed | `rps_min` / `rps_max` | learned from your runs (5th percentile of run averages, 95th percentile of run peaks, steady heating and hot-water runs of 20 min or more over 60 days, after 20 runs) |
+| Datasheet points | list of `t_out` (outdoor °C), `t_lwc` (water °C), `hmax` (maximum heat kW, from Daikin's capacity tables; not the datasheet `hc`, which is the capacity at the EN 14511 rating point), `cop` | datasheet |
+
+Example: the datasheet gives the COP at A-7/W55 but not the maximum heat.
+Add it as a point:
+
+    - t_out: -7
+      t_lwc: 55
+      hmax: 7.2
+
+Every value shows its source on the `hp_specs` sensor (`value_sources`, and
+`src` per point): `datasheet`, `learned` or `manual`. The same can be done
+with the service `daikin_cycle_ml.set_model_profile` (a value of `null`
+removes that override, `reset: true` starts again from the datasheet). A
+profile saved for another model is kept but not applied.
+
 ### 4.8 Bivalent systems — DHW detection guide
 
 Bivalent setups combine a Daikin heat pump with an auxiliary boiler. The integration needs to know whether to expect a DHW tank or bypass DHW detection entirely.

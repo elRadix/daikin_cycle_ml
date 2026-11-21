@@ -162,6 +162,12 @@ def _attrs_hp_specs(
         "datasheet_sources": (
             dict(c.datasheet_sources) if c is not None else {}
         ),
+        # #467: model profile (user values per value) + learned compressor range
+        "rps_min": ds.get("rps_min"),
+        "rps_max": ds.get("rps_max"),
+        "value_sources": dict(ds.get("value_sources") or {}),
+        "profile": dict(ds.get("profile") or {}),
+        "rps_learned": dict(getattr(c, "rps_learned", None) or {}) if c is not None else {},
     }
 
 

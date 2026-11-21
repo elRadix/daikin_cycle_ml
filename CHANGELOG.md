@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Added
+- Native card **Performance** (`type: custom:daikin-performance-card`):
+  thermal load, compressor speed and electrical load against the limits of
+  the model chosen in setup at the current outdoor and water temperature,
+  COP against the datasheet and the headroom before the backup heater. The
+  model profile can be filled in or adjusted on the card. EN / NL / FR,
+  dark mode, phone to desktop (Part of #467)
+- **Model profile** (Configure -> Model profile, the Performance card, or the new service
+  `daikin_cycle_ml.set_model_profile`): fill in what the datasheet of the
+  model chosen in setup lacks (the maximum heat per point, `hmax`) or
+  adjust a value to your installation. Your values win over the datasheet
+  and are used by the whole integration: COP against the datasheet, the
+  normalised A7/W35 COP, the "COP below datasheet" alert and every card.
+  Every value shows its source on `hp_specs` (`value_sources`, `src` per
+  point: datasheet, learned or manual) (Part of #467)
+- Compressor speed range learned from your own runs (`rps_min`, `rps_max`
+  on `hp_specs`, `rps_learned` with the number of runs); a value in the
+  model profile replaces it. Diagnostics show the stored profile and the
+  learned range (Part of #467)
+
 ### Fixed
 - "Today" counters far too high (110 starts, 531 h runtime, 2 h 20
   backup heater, 33 defrosts at 14:24): ESPAltherma's own today counters
@@ -53,6 +73,18 @@
   (Part of #463)
 
 ### Tests
+- `test_467_performance_card` (loads against the profile limits computed
+  independently, verdicts, missing limits, every language, profile panel
+  saving through the service, phone / tablet / desktop in Chromium) and
+  `test_native_cards_responsive` (all three native cards at 360 to 1920
+  px: nothing sticks out of the card, no script errors, every tab)
+  (Part of #467)
+- `test_467_model_profile`: per-value merge with sources, manual over
+  datasheet over learned, profile of another model kept but not applied,
+  edits and resets, validation messages, learned range (robust to odd
+  runs, needs 20 runs), store round trip, the profile on the snapshot
+  datasheet, the DB query on the real schema, the service and the
+  Configure step (Part of #467)
 - `test_466_native_today_not_daily` (replay of the reported counters,
   fails on the old code) and `test_466_native_cards` (target ΔT in EN /
   NL / FR, chart width, units and legend, axis start, trend numbers)

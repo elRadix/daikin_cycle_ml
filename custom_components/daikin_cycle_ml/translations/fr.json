@@ -260,7 +260,8 @@
                     "advanced": "Avancé",
                     "cop_calc": "Calcul du COP",
                     "test_notification": "Envoyer une notification de test",
-                    "test_all_notifications": "Envoyer TOUTES les notifications de test"
+                    "test_all_notifications": "Envoyer TOUTES les notifications de test",
+                    "model_profile": "Profil du modèle"
                 },
                 "menu_option_descriptions": {
                     "device": "Capteurs, seuils de détection et confort",
@@ -643,7 +644,26 @@
                 "data_description": {
                     "buh_penalty_legionella_waived": "Quand le ballon atteint 60 °C ou plus, l'appoint est nécessaire pour finir la désinfection. Décocher pour garder la pénalité de −10 même dans ce cas."
                 }
+            },
+            "model_profile": {
+                "title": "Profil du modèle",
+                "description": "Vos propres valeurs pour {model}, le modèle choisi à l'installation. Elles priment sur la fiche technique et sont utilisées par toute l'intégration (COP par rapport à la fiche, alertes, cartes). Laissez un champ vide pour utiliser la fiche ou la valeur apprise. Vitesse du compresseur apprise de vos cycles : {learned}.\n\nPoints : une liste avec t_out (extérieur °C), t_lwc (eau °C), hmax (puissance max. kW, tableaux de capacité) et/ou cop, par exemple :\n- t_out: -7\n  t_lwc: 55\n  hmax: 7.2",
+                "data": {
+                    "kw": "Puissance nominale",
+                    "rps_min": "Vitesse minimale du compresseur",
+                    "rps_max": "Vitesse maximale du compresseur",
+                    "points": "Points de la fiche"
+                },
+                "data_description": {
+                    "kw": "Seulement si votre unité diffère de la fiche.",
+                    "rps_min": "Vide : appris de vos cycles.",
+                    "rps_max": "Vide : appris de vos cycles.",
+                    "points": "Complétez la puissance max. (hmax) ou un COP absent de la fiche, ou corrigez-en un."
+                }
             }
+        },
+        "error": {
+            "invalid_profile": "Ces valeurs n'ont pas été enregistrées : {problem}"
         }
     },
     "entity": {
@@ -1129,6 +1149,28 @@
                 "entry_id": {
                     "name": "Intégration",
                     "description": "Intégration dont la base doit être exportée."
+                }
+            }
+        },
+        "set_model_profile": {
+            "name": "Définir le profil du modèle",
+            "description": "Complétez ou modifiez les valeurs du profil de votre pompe à chaleur (le modèle choisi à l'installation). Vos valeurs priment sur la fiche technique et sont utilisées par toute l'intégration. Laissez une valeur vide (null) pour revenir à la fiche.",
+            "fields": {
+                "entry_id": {
+                    "name": "Entrée de configuration",
+                    "description": "ID de l'entrée de configuration (facultatif s'il n'y a qu'une entrée Daikin Cycle ML)."
+                },
+                "fields": {
+                    "name": "Valeurs",
+                    "description": "Valeurs du modèle, par exemple {kw: 11, rps_min: 16, rps_max: 95}. Autorisées : kw, nom_cop, scop_w35, scop_w55, lwt_min, lwt_max, rps_min, rps_max."
+                },
+                "points": {
+                    "name": "Points de la fiche",
+                    "description": "Points par température extérieure et d'eau avec puissance max. (hmax, kW, tableaux de capacité) et/ou COP de la fiche, par exemple [{t_out: -7, t_lwc: 55, hc: 7.2, cop: 1.82}]."
+                },
+                "reset": {
+                    "name": "Réinitialiser",
+                    "description": "Supprimer d'abord toutes vos valeurs (retour à la fiche)."
                 }
             }
         }

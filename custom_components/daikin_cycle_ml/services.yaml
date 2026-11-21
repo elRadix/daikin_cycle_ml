@@ -303,3 +303,37 @@ export_legacy_db:
       selector:
         config_entry:
           integration: daikin_cycle_ml
+set_model_profile:
+  name: Set model profile
+  description: >-
+    Fill in or change values of your heat pump's model profile (the model
+    chosen in setup). Your values win over the datasheet and are used by the
+    whole integration. Leave a value empty (null) to go back to the datasheet.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID (optional when there is one Daikin Cycle ML entry).
+      required: false
+      selector:
+        text: null
+    fields:
+      name: Values
+      description: "Model values, for example {kw: 11, rps_min: 16, rps_max: 95}. Allowed: kw, nom_cop, scop_w35, scop_w55, lwt_min, lwt_max, rps_min, rps_max."
+      required: false
+      example: '{"rps_min": 16, "rps_max": 95}'
+      selector:
+        object: null
+    points:
+      name: Datasheet points
+      description: "Points by outdoor and water temperature with maximum heat (hmax, kW, from the capacity tables) and/or spec COP, for example [{t_out: -7, t_lwc: 55, hmax: 7.2, cop: 1.82}]."
+      required: false
+      example: '[{"t_out": -7, "t_lwc": 55, "hmax": 7.2}]'
+      selector:
+        object: null
+    reset:
+      name: Reset
+      description: Remove all your values first (back to the datasheet).
+      required: false
+      default: false
+      selector:
+        boolean: null

@@ -260,7 +260,8 @@
           "advanced": "Advanced",
           "cop_calc": "COP calculation",
           "test_notification": "Send test notification now",
-          "test_all_notifications": "Send ALL test notifications"
+          "test_all_notifications": "Send ALL test notifications",
+          "model_profile": "Model profile"
         },
         "menu_option_descriptions": {
           "device": "Sensors and cycle-detection thresholds",
@@ -643,7 +644,26 @@
         "data_description": {
           "buh_penalty_legionella_waived": "When the DHW tank reaches 60°C or higher, the backup heater is required to complete the run. Disable this to keep the -10 quality penalty even for unavoidable legionella runs."
         }
+      },
+      "model_profile": {
+        "title": "Model profile",
+        "description": "Your own values for {model}, the model chosen in setup. They win over the datasheet and are used by the whole integration (COP against the datasheet, alerts, cards). Leave a field empty to use the datasheet or the learned value. Compressor speed learned from your runs: {learned}.\n\nPoints: a list with t_out (outdoor °C), t_lwc (water °C), hmax (maximum heat kW, from the capacity tables) and/or cop, for example:\n- t_out: -7\n  t_lwc: 55\n  hmax: 7.2",
+        "data": {
+          "kw": "Nominal heat output",
+          "rps_min": "Compressor minimum speed",
+          "rps_max": "Compressor maximum speed",
+          "points": "Datasheet points"
+        },
+        "data_description": {
+          "kw": "Only when your unit differs from the datasheet.",
+          "rps_min": "Empty: learned from your runs.",
+          "rps_max": "Empty: learned from your runs.",
+          "points": "Fill in the maximum heat (hmax) or a COP the datasheet lacks, or correct one."
+        }
       }
+    },
+    "error": {
+      "invalid_profile": "These values were not saved: {problem}"
     }
   },
   "entity": {
@@ -1129,6 +1149,28 @@
         "entry_id": {
           "name": "Config entry",
           "description": "Entry whose DB should be exported."
+        }
+      }
+    },
+    "set_model_profile": {
+      "name": "Set model profile",
+      "description": "Fill in or change values of your heat pump's model profile (the model chosen in setup). Your values win over the datasheet and are used by the whole integration. Leave a value empty (null) to go back to the datasheet.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID (optional when there is one Daikin Cycle ML entry)."
+        },
+        "fields": {
+          "name": "Values",
+          "description": "Model values, for example {kw: 11, rps_min: 16, rps_max: 95}. Allowed: kw, nom_cop, scop_w35, scop_w55, lwt_min, lwt_max, rps_min, rps_max."
+        },
+        "points": {
+          "name": "Datasheet points",
+          "description": "Points by outdoor and water temperature with maximum heat (hmax, kW, from the capacity tables) and/or spec COP, for example [{t_out: -7, t_lwc: 55, hc: 7.2, cop: 1.82}]."
+        },
+        "reset": {
+          "name": "Reset",
+          "description": "Remove all your values first (back to the datasheet)."
         }
       }
     }

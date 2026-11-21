@@ -23,6 +23,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .const import DB_FILENAME, DB_FILENAME_TEMPLATE, DOMAIN
 from .engine import model_datasheets as md
+from .engine import model_profile as mp
 from .repairs import (
     clear_datasheet_import_invalid,
     clear_datasheet_schema_unknown,
@@ -43,6 +44,7 @@ SERVICE_SEND_TEST_NOTIFICATION = "send_test_notification"
 SERVICE_EXPORT_COP_HOURLY = "export_cop_hourly"
 SERVICE_IMPORT_DATASHEET = "import_datasheet"
 SERVICE_REMOVE_USER_DATASHEET = "remove_user_datasheet"
+SERVICE_SET_MODEL_PROFILE = "set_model_profile"  # #467
 SERVICE_ASSIGN_LEGACY_DB = "assign_legacy_db"
 SERVICE_ARCHIVE_LEGACY_DB = "archive_legacy_db"
 SERVICE_EXPORT_LEGACY_DB = "export_legacy_db"
@@ -131,6 +133,14 @@ SCHEMA_IMPORT_DATASHEET = vol.Schema({
 SCHEMA_REMOVE_USER_DATASHEET = vol.Schema({
     vol.Required(ATTR_ENTRY_ID): str,
     vol.Required(ATTR_MODEL_KEY): str,
+})
+
+# #467: the user's own values on top of the setup model's datasheet
+SCHEMA_SET_MODEL_PROFILE = vol.Schema({
+    vol.Optional(ATTR_ENTRY_ID): str,
+    vol.Optional("fields"): dict,
+    vol.Optional("points"): list,
+    vol.Optional("reset", default=False): bool,
 })
 
 SCHEMA_ASSIGN_LEGACY_DB = vol.Schema({
@@ -414,6 +424,27 @@ async def _handle_import_datasheet(
     if reload_fn is not None:
         await reload_fn()
     return {"imported": sorted(clean.keys()), "errors": errors}
+
+
+async def _handle_set_model_profile(
+    hass: HomeAssistant, call: ServiceCall
+) -> dict[str, Any]:
+    """#467: set, change or clear values of the model profile. The values
+    are applied on the next refresh, across the whole integration."""
+    coord = _resolve_optional_coordinator(hass, call.data.get(ATTR_ENTRY_ID))
+    fields = call.data.get("fields")
+    points = call.data.get("points")
+    errors = mp.validate_edit(fields, points)
+    if errors:
+        raise HomeAssistantError("Model profile not saved: " + "; ".join(errors))
+    entry = coord.entry
+    model = str(entry.data.get("model") or "")
+    new = mp.edit(coord.model_profile, model, fields=fields, points=points,
+                  reset=bool(call.data.get("reset")))
+    saved = await mp.save(hass, entry.entry_id, new)
+    await coord.async_reload_model_profile()
+    await coord.async_request_refresh()
+    return {"model": model, "profile": saved}
 
 
 async def _handle_remove_user_datasheet(
@@ -710,6 +741,12 @@ async def async_register_services(hass: HomeAssistant) -> None:
         partial(_handle_recompute_kmeans, hass),
         schema=SCHEMA_RECOMPUTE_KMEANS,
         supports_response=SupportsResponse.ONLY,
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_SET_MODEL_PROFILE,
+        partial(_handle_set_model_profile, hass),
+        schema=SCHEMA_SET_MODEL_PROFILE,
+        supports_response=SupportsResponse.OPTIONAL,
     )
     hass.services.async_register(
         DOMAIN, SERVICE_REMOVE_USER_DATASHEET,

@@ -132,7 +132,7 @@ Tweakers feedback "alerts not shown in any card" is now #425.
 - Translations: en, nl, fr (+ icons.json)
 - Entities (README): 50 sensors · 17 binary sensors
   (strings.json entity keys: sensor 51 / binary_sensor 20 — difference TE VERIFIEREN)
-- Services: 13 (services.yaml) · Repair issues: 11 (strings.json issues)
+- Services: 14 (services.yaml, set_model_profile #467) · Repair issues: 11 (strings.json issues)
 - Alerts: 19
 - DB: daikin_cycle_ml.db schema v16 (v1.12.0 migration, #105/#107) ·
   HA Store alerts v1 · user datasheet store v1
@@ -535,7 +535,7 @@ dhw_active, heating_active, cooling_active, pendulum_hourly,
 pendulum_daily, short_run, short_off, source_stale,
 missing_attributes, setpoint_oscillating, dhw_pendulum, high_cycle_rate.
 
-Services (13):
+Services (14):
 - daikin_cycle_ml.reset_counters
 - daikin_cycle_ml.export_cycles
 - daikin_cycle_ml.label_cycle
@@ -549,6 +549,7 @@ Services (13):
 - daikin_cycle_ml.assign_legacy_db
 - daikin_cycle_ml.archive_legacy_db
 - daikin_cycle_ml.export_legacy_db
+- daikin_cycle_ml.set_model_profile
 
 Scheduled jobs (automatic):
 - poll every 30s
