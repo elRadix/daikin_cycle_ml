@@ -111,6 +111,24 @@ def out() -> dict:
         eid = f"sensor.daikin_cycle_ml_{role}"
         first["states"][eid] = {**first["states"][eid], "state": value}
     cases["first_run"] = first
+    # #435: one run open for 24 h, no closed cycle yet (reporter's day 2)
+    long_run = _fixture("en")
+    for role, value in (("cycles_today", "0"), ("last_cycle", "unknown")):
+        eid = f"sensor.daikin_cycle_ml_{role}"
+        long_run["states"][eid] = {**long_run["states"][eid], "state": value}
+    cid = "sensor.daikin_cycle_ml_current_cycle"
+    cur = json.loads(json.dumps(long_run["states"][cid]))
+    cur["attributes"]["started_at"] = 1795093200 - 1430 * 60  # 2026-11-18 14:10 local
+    long_run["states"][cid] = cur
+    rid = "sensor.daikin_cycle_ml_daily_summary_recent"
+    rec = json.loads(json.dumps(long_run["states"][rid]))
+    rec["attributes"]["days"] = [
+        {"day": "2026-11-18", "mode": "heating", "cycles": 0, "runs": 1, "dur_min": 905.5, "dur_max": 905.5},
+        {"day": "2026-11-19", "mode": "heating", "cycles": 0, "runs": 1, "dur_min": 524.2, "dur_max": 524.2},
+    ]
+    rec["attributes"]["events_by_day"] = {}
+    long_run["states"][rid] = rec
+    cases["long_run_435"] = long_run
     return _run(cases)
 
 
@@ -290,3 +308,15 @@ def test_card_in_chromium():
     assert r["schema"] == ["device_id", "title", "default_tab", "window", "tabs", "language", "show_help"]
     assert r["formWin"] == "15"
     assert r["changed"] == {"window": 30, "default_tab": "quality"}
+
+
+def test_435_long_open_run(out):
+    html = out["cases"]["long_run_435"]["html"]
+    # started yesterday: the weekday is named
+    assert re.search(r"since Wed \d\d:\d\d", _text(html["today"])), _text(html["today"])[:400]
+    # a maximum of 0 / 1 per day: every axis label once
+    for tab in ("cycles", "events"):
+        for svg in re.findall(r"<svg.*?</svg>", html[tab], re.S):
+            ticks = re.findall(r'class="tick"[^>]*>([^<]*)<', svg)
+            assert len(ticks) == len(set(ticks)), (tab, ticks)
+

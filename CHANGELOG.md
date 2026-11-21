@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Fixed
+- The live score of an open run (`quality_today.live_score`) was null on
+  9 of every 10 updates: the coordinator builds a new snapshot every
+  30 s, and the score is recomputed every 5 minutes. The last score is now
+  carried between refreshes, with the run length advanced (Part of #435)
+- Daily summary card 1.0.1: a run open since an earlier day names the day
+  in "since"; charts with a maximum of 1 no longer show the axis labels
+  0 / 1 / 1 (Part of #435)
+
+### Tests
+- `tests/test_435_live_score_carry.py`; `test_435_long_open_run` in
+  `tests/test_daily_summary_native_card.py`
+
 ## [1.27.0] - 2026-11-21
 
 ### Fixed

@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  const CARD_VERSION = "1.0.0";
+  const CARD_VERSION = "1.0.1";
   const TAG = "daikin-daily-summary-card";
   const EDITOR_TAG = "daikin-daily-summary-card-editor";
   const DOMAIN = "daikin_cycle_ml";
@@ -312,6 +312,11 @@
       wd: (day) => wd.format(date(day)),
       dm: (day) => dm.format(date(day)),
       time: (ts) => hm.format(new Date(ts)),
+      /* time today, weekday + time for an earlier day (#435: a run open since yesterday) */
+      since: (ts, nowMs) => {
+        const d = new Date(ts), n = new Date(nowMs);
+        return d.toDateString() === n.toDateString() ? hm.format(d) : wd.format(d) + " " + hm.format(d);
+      },
       date,
     };
   }
@@ -326,9 +331,14 @@
     const top = 14, bottom = h - 26, left = 30, right = W - 6;
     const y = (v) => bottom - (v / yMax) * (bottom - top);
     let s = "";
+    const seen = new Set();
     for (const t of ticks) {
+      /* #435: a maximum of 1 gave the labels 0 / 1 / 1 (0.5 rounded) */
+      const lab = fmtTick(t);
+      if (seen.has(lab)) continue;
+      seen.add(lab);
       s += `<line x1="${left}" x2="${right}" y1="${y(t)}" y2="${y(t)}" class="grid"/>`
-        + `<text x="${left - 4}" y="${y(t) + 3}" class="tick" text-anchor="end">${esc(fmtTick(t))}</text>`;
+        + `<text x="${left - 4}" y="${y(t) + 3}" class="tick" text-anchor="end">${esc(lab)}</text>`;
     }
     return { s, top, bottom, left, right, y };
   }
@@ -512,7 +522,7 @@
     const runFor = td.running && td.started_at ? Math.max(0, (m.now / 1000 - td.started_at) / 60) : td.duration_min;
     s += `<div class="banner ${td.running ? "on" : ""}">`
       + `<span class="dot"></span><b>${td.running ? esc(MODE_ICON[td.mode] || "") + " " + esc(t.running) + " · " + esc(t[td.mode] || td.mode) : esc(t.idle)}</b>`
-      + (td.running && runFor !== null ? `<span class="muted">${esc(t.run_for)} ${esc(f.dur(runFor))}${td.started_at ? " · " + esc(t.since) + " " + esc(f.time(td.started_at * 1000)) : ""}</span>` : "")
+      + (td.running && runFor !== null ? `<span class="muted">${esc(t.run_for)} ${esc(f.dur(runFor))}${td.started_at ? " · " + esc(t.since) + " " + esc(f.since(td.started_at * 1000, m.now)) : ""}</span>` : "")
       + (td.running && td.live_score !== null ? `<span class="pill" style="background:${qColor(td.live_score)}">${esc(t.live_score)} ${esc(f.n0(td.live_score))}</span>` : "")
       + `</div>`;
     if (td.running && !td.last_cycle_known && (td.cycles || 0) === 0) s += `<div class="note">ℹ️ ${esc(t.first_run)}</div>`;

@@ -772,6 +772,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _energy_day_key: str = ""
     _last_energy_tick_ts: float = 0.0
     _last_quality_live_ts: float = 0.0
+    # #435: last live score + run length, carried into every snapshot
+    _quality_live_cache: tuple[int | None, float | None] = (None, None)
     _cop_hourly_cache: dict[str, dict[str, Any]] = {}
     _cop_hourly_cache_ts: float = 0.0
     _cop_degradation_cache: dict[str, Any] = {}
@@ -1287,8 +1289,18 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if getattr(self.detector, "state", "idle") != "running":
             snap.quality_live = None
             snap.quality_live_duration_s = None
+            self._quality_live_cache = (None, None)
             return
         if (now - self._last_quality_live_ts) < 300.0:
+            # #435: every tick builds a new snapshot. Between two scorings
+            # the last score is carried over (it was None 9 ticks in 10:
+            # live_score null while a 24 h run was open).
+            score, dur = getattr(self, "_quality_live_cache", (None, None))
+            snap.quality_live = score
+            snap.quality_live_duration_s = (
+                dur + max(0.0, now - self._last_quality_live_ts)
+                if dur is not None else None
+            )
             return
         self._last_quality_live_ts = now
         try:
@@ -1296,17 +1308,18 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             if not rec:
                 snap.quality_live = None
                 snap.quality_live_duration_s = None
-                return
-            # #419: a running cycle is not finished. Its length and its
-            # dT_max can only grow, so neither can be judged yet (prod-1:
-            # 20 min, start-up dT 2.1 -> live 50 pulled quality_today to 70
-            # while every closed cycle scored 90+).
-            snap.quality_live = score_cycle(rec, self.options, running=True)
-            snap.quality_live_duration_s = float(rec.get("duration_s") or 0)
+            else:
+                # #419: a running cycle is not finished. Its length and its
+                # dT_max can only grow, so neither can be judged yet (prod-1:
+                # 20 min, start-up dT 2.1 -> live 50 pulled quality_today to
+                # 70 while every closed cycle scored 90+).
+                snap.quality_live = score_cycle(rec, self.options, running=True)
+                snap.quality_live_duration_s = float(rec.get("duration_s") or 0)
         except Exception:
             _LOGGER.warning("live quality refresh failed", exc_info=True)
             snap.quality_live = None
             snap.quality_live_duration_s = None
+        self._quality_live_cache = (snap.quality_live, snap.quality_live_duration_s)
 
     async def _maybe_refresh_cop_hourly(self, now: float) -> None:
         """Refresh day/week/month cop_hourly caches (throttled 300s)."""
