@@ -101,10 +101,15 @@ def test_status_report_advice_texts():
     en_advice = ALERT_ADVICE["en"]["short_run"]
     assert "raise minimum run time" not in en_advice.lower()
     assert "lower the lwt setpoint" not in en_advice.lower()
-    assert "pump speed" in en_advice.lower()
-    assert "overshoot" in en_advice.lower()
+    # #463 (HVAC review): a single short run is normal after hot water, a
+    # defrost or in mild weather; the repeated case has its own advice.
+    assert "hot water" in en_advice.lower()
+    assert "defrost" in en_advice.lower()
+    assert "filter" not in en_advice.lower()
 
     # Controleren of short_cycling_pattern ook is aangepast
     sc_advice = ALERT_ADVICE["en"]["short_cycling_pattern"]
     assert "raise minimum run time" not in sc_advice.lower()
-    assert "overshoot" in sc_advice.lower()
+    # #463 (HVAC review): first open valves/circuits, then the curve offset.
+    assert "radiator valves" in sc_advice.lower()
+    assert "offset" in sc_advice.lower()

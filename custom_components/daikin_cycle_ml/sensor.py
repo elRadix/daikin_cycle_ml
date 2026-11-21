@@ -57,6 +57,7 @@ from .engine.thermal import (
 from .engine.thermal import (
     safe_float as _safe_float,
 )
+from .engine.alert_texts import resolve_language as _resolve_language
 from .engine.attribute_compat import build_compat_view as _build_compat_view
 from .engine.thermal import live_temps_from_view as _live_temps_from_view
 from .engine.timer_health import is_stale
@@ -344,7 +345,7 @@ def _attrs_cycle_state(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str
         "configured_cop_sensor": opts.get("cop_sensor_entity"),
         "configured_indoor_sensor": opts.get("indoor_temp_sensor"),
         "configured_model": data.get("model"),
-        "configured_language": opts.get("notification_language", "en"),
+        "configured_language": _alert_language(opts, c),
         "configured_entry_id": entry.entry_id,
     }
 
@@ -686,11 +687,20 @@ def _state_label(state: str, step_c: int, lang: str) -> str:
         return str(tmpl)
 
 
+def _alert_language(options: Any, c: Any) -> str:
+    """#463: notification language, English unless chosen ("auto" = HA language)."""
+    ha_lang = getattr(getattr(getattr(c, "hass", None), "config", None), "language", None)
+    return _resolve_language(
+        options if isinstance(options, dict) else None,
+        ha_lang if isinstance(ha_lang, str) else None,
+    )
+
+
 def _attrs_stooklijn(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     data = s.stooklijn_advies or {}
     _lang = 'en'
     with contextlib.suppress(Exception):
-        _lang = (c.options or {}).get('notification_language', 'en') or 'en'
+        _lang = _alert_language(c.options, c)
     _state = str(data.get('state', 'unknown'))
     _step = int(data.get('step_c') or 0)
     return {

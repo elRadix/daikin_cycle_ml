@@ -57,8 +57,9 @@ def test_build_rich_alert_none_value_renders_bare_dash():
     assert "— min" not in msg
     assert "— °C" not in msg
     assert "— l/min" not in msg
-    assert "29.0 °C" in msg
-    assert "20 min" in msg
+    # #463: Dutch uses a decimal comma; no duration -> the plain sentence.
+    assert "29,0 °C" in msg
+    assert "De compressor stopte na een korte run." in msg
 
 
 def test_build_rich_alert_real_values_preserved():
@@ -79,9 +80,13 @@ def test_build_rich_alert_real_values_preserved():
         language="nl",
     )
     assert "12 min" in msg
-    assert "29.0 °C" in msg
-    assert "30.3 °C" in msg
-    assert "18.0 l/min" in msg
+    # #463: decimal comma in Dutch; at most 4 facts (outdoor, water now,
+    # water target, mode), so the flow row is left out.
+    assert "29,0 °C" in msg
+    assert "30,3 °C" in msg
+    assert "12,1 °C" in msg
+    assert "verwarmen" in msg
+    assert "l/min" not in msg
 
 
 def test_short_off_floor_applies():
@@ -106,8 +111,9 @@ def test_advice_not_bled_across_alerts():
     """SB-2: per-alert ALERT_ADVICE wins; no shared bleed."""
     msg1 = build_rich_alert("short_run", "warning", {}, language="nl")
     msg2 = build_rich_alert("short_off", "warning", {}, language="nl")
-    assert "korter dan drempel" in msg1
-    assert "Off-tijd te kort" in msg2
+    # #463 texts
+    assert "Herhaalde korte runs" in msg1
+    assert "minimale pauze" in msg2
     assert msg1 != msg2
 
 

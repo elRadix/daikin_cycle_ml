@@ -569,29 +569,31 @@ def test_alert_schema_field_references_resolve():
 def test_alert_titles_en():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
 
-    assert ALERT_TITLES["en"]["kmeans_retrain_stale"] == "K-means retrain stale"
+    assert ALERT_TITLES["en"]["kmeans_retrain_stale"] == "Learning paused"  # #463
 
 
 def test_alert_titles_nl():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
 
-    assert ALERT_TITLES["nl"]["kmeans_retrain_stale"] == "K-means hertraining verouderd"
+    assert ALERT_TITLES["nl"]["kmeans_retrain_stale"] == "Leren gepauzeerd"  # #463
 
 
 def test_alert_advice_en_static_fallback():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
 
     advice = ALERT_ADVICE["en"]["kmeans_retrain_stale"]
-    assert "14" in advice
-    assert "recompute_kmeans" in advice
+    # #463: no service names in end-user text.
+    assert "recompute_kmeans" not in advice
+    assert "restart Home Assistant" in advice
 
 
 def test_alert_advice_nl_static_fallback():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
 
     advice = ALERT_ADVICE["nl"]["kmeans_retrain_stale"]
-    assert "14" in advice
-    assert "recompute_kmeans" in advice
+    # #463: no service names in end-user text.
+    assert "recompute_kmeans" not in advice
+    assert "herstart Home Assistant" in advice
 
 
 def test_kmeans_advice_by_reason_en_all_reasons():
@@ -603,11 +605,12 @@ def test_kmeans_advice_by_reason_en_all_reasons():
     assert "kmeans_failed" in en
     assert "no_db" in en
     assert None in en
-    assert "cycles" in en["too_few"].lower()
-    assert "database read" in en["fetch_failed"].lower()
+    # #463 texts
+    assert "runs" in en["too_few"].lower()
+    assert "could not be read" in en["fetch_failed"].lower()
     assert "report" in en["kmeans_failed"].lower()
-    assert "not initialized" in en["no_db"].lower()
-    assert "retrain" in en[None].lower()
+    assert "not loaded" in en["no_db"].lower()
+    assert "weekly learning" in en[None].lower()
 
 
 def test_kmeans_advice_by_reason_nl_parity():
@@ -659,10 +662,10 @@ def test_format_last_ok_ts_none_returns_em_dash():
 def test_kmeans_advice_lookup_by_reason():
     from custom_components.daikin_cycle_ml.coordinator import _kmeans_advice
 
-    assert "cycles" in _kmeans_advice("too_few", "en").lower()
+    assert "runs" in _kmeans_advice("too_few", "en").lower()  # #463
     assert "database" in _kmeans_advice("fetch_failed", "en").lower()
     assert "report" in _kmeans_advice("kmeans_failed", "en").lower()
-    assert "retrain" in _kmeans_advice(None, "en").lower()
+    assert "weekly learning" in _kmeans_advice(None, "en").lower()
 
 
 def test_kmeans_advice_falls_back_for_unknown_reason():
@@ -670,14 +673,14 @@ def test_kmeans_advice_falls_back_for_unknown_reason():
 
     result = _kmeans_advice("unknown_reason_xyz", "en")
     # Falls back to None-key entry
-    assert "retrain" in result.lower()
+    assert "weekly learning" in result.lower()  # #463
 
 
 def test_kmeans_advice_nl():
     from custom_components.daikin_cycle_ml.coordinator import _kmeans_advice
 
     result = _kmeans_advice("too_few", "nl")
-    assert "cycli" in result.lower()
+    assert "runs" in result.lower()  # #463: NL uses "runs" throughout
 
 
 def test_alert_type_emoji_resolves_for_kmeans_retrain_stale():

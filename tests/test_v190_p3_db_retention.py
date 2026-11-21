@@ -94,29 +94,30 @@ def test_alert_schema_entry():
 def test_alert_titles_en():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
 
-    assert ALERT_TITLES["en"]["db_retention_warning"] == "Database retention warning"
+    assert ALERT_TITLES["en"]["db_retention_warning"] == "Database cleanup not running"  # #463
 
 
 def test_alert_titles_nl():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
 
-    assert ALERT_TITLES["nl"]["db_retention_warning"] == "Database-retentie waarschuwing"
+    assert ALERT_TITLES["nl"]["db_retention_warning"] == "Database wordt niet opgeruimd"  # #463
 
 
 def test_alert_advice_en():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
 
     advice = ALERT_ADVICE["en"]["db_retention_warning"]
-    assert "Database" in advice
-    assert "maintenance" in advice
+    # #463: plain words, with the option to check.
+    assert "cleanup" in advice
+    assert "integration options" in advice
 
 
 def test_alert_advice_nl():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_ADVICE
 
     advice = ALERT_ADVICE["nl"]["db_retention_warning"]
-    assert "Database" in advice
-    assert "onderhoud" in advice
+    assert "opruimen" in advice  # #463
+    assert "opties van de integratie" in advice
 
 
 # ---------- C4: dispatch wiring ----------
@@ -252,11 +253,9 @@ def test_alert_renders_labels_not_raw_keys():
         "mode": "heating",
     }
     msg = build_rich_alert("db_retention_warning", "info", ctx, language="en")
-    # Labels render with spaces:
-    assert "Stale alerts" in msg
-    assert "Stale cycles" in msg
-    assert "Alert retention" in msg
-    assert "Cycle retention" in msg
+    # #463: the counts are in the sentence; retention days are settings, hidden.
+    assert "42 old alerts and 7 old cycles" in msg
+    assert "stale_alerts" not in msg
     # Raw keys do NOT appear collapsed:
     assert "stalealerts" not in msg
     assert "stalecycles" not in msg

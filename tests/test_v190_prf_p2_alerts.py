@@ -139,7 +139,7 @@ def test_render_dhw_pendulum_real_values():
         "advice": "",
     }
     out = build_rich_alert("dhw_pendulum", "warning", ctx, language="en")
-    assert "DHW pendulum detected" in out
+    assert "Hot water reheats often" in out  # #463
     assert "5" in out
     assert "—" not in out.split("━")[2]  # rows block has no dash
 
@@ -154,9 +154,9 @@ def test_render_high_cycle_rate_real_values():
         "advice": "",
     }
     out = build_rich_alert("high_cycle_rate", "warning", ctx, language="en")
-    assert "High cycle rate" in out
+    assert "Very many starts this hour" in out  # #463
     assert "8" in out
-    assert "1.5" in out
+    assert "1.5" not in out  # #463: multiplier is a threshold, hidden
 
 
 def test_render_cop_vs_datasheet_low_real_values():
@@ -267,6 +267,7 @@ def test_notif_id_by_type_total():
 def test_alert_titles_totals():
     assert len(ALERT_TITLES["en"]) == 21
     assert len(ALERT_TITLES["nl"]) == 21
+    assert len(ALERT_TITLES["fr"]) == 21  # #463
 
 
 def test_alert_advice_totals():

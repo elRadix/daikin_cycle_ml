@@ -653,7 +653,11 @@ LANG_EN = "en"
 LANG_NL = "nl"
 LANG_FR = "fr"
 NOTIFICATION_LANGUAGES = [LANG_EN, LANG_NL, LANG_FR]
-DEFAULT_NOTIFICATION_LANGUAGE = LANG_EN
+# #463: "auto" = the Home Assistant language (en / nl / fr, else English)
+LANG_AUTO = "auto"
+# #463: English for everyone unless the user picks a language; "auto"
+# (Home Assistant language) is an option the user chooses.
+DEFAULT_NOTIFICATION_LANGUAGE = "en"
 
 ALERT_GROUP_PENDULUM = "pendulum"
 ALERT_GROUP_SHORT_CYCLE = "short_cycle"

@@ -617,7 +617,7 @@ Notifications
 
 | Field | Code key | Default |
 |---|---|---|
-| Language | `notification_language` | `en` (or `nl`) |
+| Language | `notification_language` | `en`; also `nl`, `fr`, or `auto` (Home Assistant language) |
 | Pendulum group | `alert_group_pendulum` | `true` |
 | Short cycle group | `alert_group_short_cycle` | `true` |
 | ML group | `alert_group_ml` | `true` |

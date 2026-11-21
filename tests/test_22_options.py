@@ -13,7 +13,9 @@ from custom_components.daikin_cycle_ml import const
 def test_const_language_keys():
     assert const.LANG_EN == "en"
     assert const.LANG_NL == "nl"
+    # #463: English for everyone; "auto" (HA language) is chosen manually.
     assert const.DEFAULT_NOTIFICATION_LANGUAGE == "en"
+    assert const.LANG_AUTO == "auto"
     assert "en" in const.NOTIFICATION_LANGUAGES
     assert "nl" in const.NOTIFICATION_LANGUAGES
 

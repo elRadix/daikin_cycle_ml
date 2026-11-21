@@ -35,7 +35,8 @@ def test_pendulum_hourly_real_numbers():
         }
     }
     msg = _first_msg("pendulum_hourly", ctx)
-    assert "hourly" in msg.lower()
+    # #463: title "Many starts this hour" (was "... hourly ...").
+    assert "this hour" in msg.lower()
     assert "6" in msg and "4" in msg
     assert "?" not in msg
     assert "{" not in msg
@@ -93,8 +94,9 @@ def test_ml_anomaly_format():
     }
     msg = _first_msg("ml_anomaly", ctx)
     assert "Heating" in msg
-    assert "3.8" in msg
-    assert "duration_s" in msg
+    # #463: the z-score and feature name are jargon, hidden from the user.
+    assert "3.8" not in msg
+    assert "duration_s" not in msg
 
 
 def test_setpoint_osc_format():

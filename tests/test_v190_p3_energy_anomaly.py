@@ -556,8 +556,8 @@ def test_energy_daily_anomaly_schema_has_6_fields():
 def test_energy_daily_anomaly_titles():
     from custom_components.daikin_cycle_ml.engine.status_report import ALERT_TITLES
 
-    assert ALERT_TITLES["en"]["energy_daily_anomaly"] == "Energy daily anomaly"
-    assert ALERT_TITLES["nl"]["energy_daily_anomaly"] == "Energie-dagelijkse afwijking"
+    assert ALERT_TITLES["en"]["energy_daily_anomaly"] == "High electricity use today"  # #463
+    assert ALERT_TITLES["nl"]["energy_daily_anomaly"] == "Hoog stroomverbruik vandaag"
 
 
 def test_energy_daily_anomaly_advice():
@@ -599,10 +599,10 @@ def test_energy_daily_anomaly_build_rich_alert_en():
         "advice": "Check valves.",
     }
     out = build_rich_alert("energy_daily_anomaly", "info", ctx, language="en")
-    assert "Energy daily anomaly" in out
+    assert "High electricity use today" in out  # #463
     assert "15.5" in out
     assert "heating" in out
-    assert "10.5" in out
+    assert "10.5" not in out  # #463: z-score is jargon, hidden
 
 
 def test_energy_daily_anomaly_binary_alert_map_format():

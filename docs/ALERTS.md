@@ -196,13 +196,13 @@ The off-time is the pause before the cycle: its start minus the previous cycle's
 
 Message fields: off-time, threshold, LWT setpoint, indoor temp, flow, outdoor.
 
-Action: check heating demand (may be genuinely fluctuating) or increase minimum off-time in the thermostat. Compressors that restart within 5 min have not equalized pressure and wear faster.
+Action: none for a single event. The heat pump enforces its own minimum compressor pause, so a short pause is usually a switch between heating and hot water or a defrost. Look at the compressor graph only when it comes together with short runs.
 
 #### `high_cycle_rate`
 
-Fires when cycles per hour > 1.5 × `target_cycles_per_day` / 24.
+Fires when compressor starts in the last hour (all modes) > 1.5 × `pendulum_cycles_per_hour`.
 
-Target: 8 cycles/day → 12 cycles/hour threshold. Different from `pendulum_hourly` in that it's scaled to your configured target, not a fixed number.
+With the default of 4 per hour it fires above 6 starts in an hour: a stronger version of `pendulum_hourly`.
 
 #### `ml_anomaly`
 
@@ -232,7 +232,7 @@ The comparison uses outdoor-bin matching: only days with similar outdoor tempera
 
 Message fields: week percent (negative = degradation), threshold, 30d trend, mode, outdoor.
 
-Action: check refrigerant charge, filters, outdoor unit cleanliness. If 30d trend is also negative, it is a real degradation, not a temporary dip.
+Action: keep the outdoor unit free of leaves and snow (never scrape ice off the fins: the unit defrosts itself) and check that the curve or room temperature was not raised. If the drop lasts two weeks, or the 30-day trend is also negative, or ice stays on the unit, ask the installer (refrigerant work is installer work).
 
 #### `cop_vs_datasheet_low`
 
@@ -602,18 +602,43 @@ Each toggle has its own label and description in the UI. The descriptions explai
 
 ### 9.1 Message structure
 
-All 17 binary alerts render through `build_rich_alert()` with a fixed structure:
+Since #463 every alert answers two questions for the home owner: do I need
+to do something, and if not, where can I see what is going on. All 17
+binary alerts render through `build_rich_alert()`:
 
 ```
 {emoji} Daikin Cycle ML — {title}
-{timestamp}
+🏠 {model} · 🕐 {timestamp}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-{field label}  {value}
-{field label}  {value}
-...
+{level emoji} {level}            ℹ️ No action needed / ⚠️ Keep an eye on it / ⛔ Action needed
+{what happened, with the values}
+👉 {what to do}
+🔎 See: {native card} → {tab} → {graph}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• {action advice}
+{up to 4 facts: outdoor, water now, water target, mode, ...}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+Texts: `engine/alert_texts_en.py`, `_nl.py`, `_fr.py` (same keys and
+placeholders, pinned by `tests/test_463_alert_messages.py`). Shared
+level, card pointer and rendering: `engine/alert_texts.py`. When a value
+is missing, the plain sentence without numbers is used. Thresholds,
+z-scores and option keys are never shown. The texts were reviewed by an
+HVAC engineer for Daikin Altherma: no filter advice, ice is never scraped
+off, backup-heater use names its normal reasons, refrigerant matters go
+to the installer.
+
+Language: the **Notification language** option (Configure →
+Notifications → Content). The default is English for every install,
+existing and new: pick *Nederlands* or *Français*, or *Home Assistant* to
+follow the Home Assistant language (English for any other language).
+Dutch and French use a decimal comma.
+
+| Level | Alerts |
+|---|---|
+| ℹ️ No action needed | short_run, short_off, ml_anomaly (⚠️ when critical), setpoint_osc, cop_vs_datasheet_low, kmeans_retrain_stale |
+| ⚠️ Keep an eye on it | pendulum_hourly, pendulum_daily, short_cycling_pattern, high_cycle_rate, cop_degradation, defrost_excessive, buh_excessive, cop_physically_impossible, missing_attributes, dhw_pendulum, energy_daily_anomaly, db_retention_warning |
+| ⛔ Action needed | source_stale |
 
 ### 9.2 Field tables per alert
 
@@ -682,23 +707,21 @@ Note: persistent notifications **never** receive emoji, regardless of this setti
 
 ### 9.5 Action advice
 
-Every alert type has an advice string in `ALERT_ADVICE`, per language. Rendered as the last line after `•`.
+Every alert type has a to-do per language (`ALERT_ADVICE`, built from
+`engine/alert_texts_<lang>.py`), shown after 👉. Example for `short_run`:
 
-Example for `short_run`:
+> 👉 A short run after hot water, around a defrost or in mild weather is normal. Only if they keep coming, follow the advice of the 'Repeated short runs' alert.
 
-> • Cycle shorter than threshold: raise minimum run time or lower the LWT setpoint.
-
-Toggle: **Options → Notifications → Delivery → Action advice**. When disabled, the advice line is omitted.
-
-Special case: `ml_anomaly` may include a dimension-specific hint based on the top dimension (e.g. "check dT_max" if that is what flagged). This is dynamic advice appended to the base advice.
+`kmeans_retrain_stale` uses the to-do for its failure reason
+(`KMEANS_ADVICE_BY_REASON`).
 
 ### 9.6 Severity rendering
 
-Severity appears in two places:
-- In the emoji prefix (see 9.4)
-- In the `severity` field for alerts that expose it explicitly (`ml_anomaly`)
-
-For alerts without an explicit severity field, the severity is reflected only via emoji + the alert type itself.
+The message shows the level line (9.1), not the internal severity. The
+severity still drives quiet hours (critical passes) and the emoji
+fallback (9.4). A critical trigger is never shown as "No action needed":
+an info alert with severity critical (`ml_anomaly`, z >= 6) reads "Keep an
+eye on it".
 
 ### 9.7 Field value formatting
 

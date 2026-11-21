@@ -33,6 +33,7 @@ from ..const import (
     NOTIF_ID_SOURCE_STALE,
     SEVERITY_EMOJI,
 )
+from .alert_texts import resolve_language
 from .status_report import (
     build_cop_low_report,
     build_rich_alert,
@@ -331,9 +332,9 @@ def evaluate_alerts(
     if emoji_enabled is None:
         emoji_enabled = bool(options.get("notify_emoji_enabled", True))
 
-    _lang = language or (options.get("notification_language") if options else None) or "en"
-    if _lang not in ("en", "nl", "fr"):
-        _lang = "en"
+    # #463: an explicit language wins; otherwise the option (HA language is
+    # resolved by the coordinator, which passes it in). Unknown -> English.
+    _lang = resolve_language({"notification_language": language} if language else options, None)
 
     agg_min = _opt_float(options, "alert_aggregation_minutes", DEFAULT_AGG_MIN)
     persistent_enabled = bool(options.get("persistent_enabled", True))

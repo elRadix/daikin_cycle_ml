@@ -129,7 +129,8 @@ async def test_full_reject_chain_produces_alert_and_message(
             f"message should mention physical impossibility: {msg!r}"
         )
         # Message moet advies bevatten (uit ALERT_ADVICE)
-        assert "sensor" in msg.lower() or "calibration" in msg.lower() or "Carnot" in msg, (
+        # #463: the advice points at the power meter in the integration options.
+        assert "power meter" in msg.lower(), (
             f"message should include advice: {msg!r}"
         )
 
