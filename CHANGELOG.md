@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.27.1] - 2026-11-21
+
 ### Fixed
 - A compressor stop inside a defrost ended the run: some units (EDLA
   monobloc) stop the compressor for a few minutes while they defrost.
