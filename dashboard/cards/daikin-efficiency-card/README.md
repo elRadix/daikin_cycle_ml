@@ -12,6 +12,12 @@ card itself: nothing to install, no YAML to paste.
 
 **[Installation](#installation)** · **[Options](#options)** · **[Tabs](#tabs)** · **[How the verdicts work](#how-the-verdicts-work)** · **[Data](#where-the-data-comes-from)** · **[Troubleshooting](#troubleshooting)**
 
+| Live | Today | Efficiency | Curve | Advice | Dark |
+|---|---|---|---|---|---|
+| [![Live](preview.png)](screenshot-live.png) | [![Today](thumb-today.png)](screenshot-today.png) | [![Efficiency](thumb-eff.png)](screenshot-eff.png) | [![Curve](thumb-curve.png)](screenshot-curve.png) | [![Advice](thumb-advice.png)](screenshot-advice.png) | [![Dark](thumb-dark-live.png)](screenshot-dark-live.png) |
+
+Full tabs:
+
 ![Live tab](screenshot-live.png)
 ![Today tab](screenshot-today.png)
 ![Efficiency tab](screenshot-eff.png)
