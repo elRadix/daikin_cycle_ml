@@ -1,8 +1,9 @@
 """Frontend: serve and load the native Lovelace card(s) of Daikin Cycle ML.
 
-The card is served from the integration folder and added to every
+The cards are served from the integration folder and added to every
 dashboard with ``add_extra_js_url``: users add
-``type: custom:daikin-daily-summary-card`` without installing anything
+``type: custom:daikin-daily-summary-card`` or
+``type: custom:daikin-efficiency-card`` without installing anything
 or adding a Lovelace resource. The URL carries the integration version,
 so browsers fetch the new card after every update instead of a cached one.
 """
@@ -20,7 +21,18 @@ from ..const import DOMAIN, VERSION
 _LOGGER = logging.getLogger(__name__)
 
 URL_BASE = f"/{DOMAIN}_frontend"
-CARD_FILES = ("daikin-daily-summary-card.js",)
+CARD_FILES = (
+    "daikin-daily-summary-card.js",
+    # efficiency card: the parts register themselves, the element is
+    # defined once all of them are loaded (any order)
+    "dcm-efficiency-data.js",
+    "dcm-efficiency-assess.js",
+    "dcm-efficiency-charts.js",
+    "dcm-efficiency-verdicts.js",
+    "dcm-efficiency-i18n.js",
+    "dcm-efficiency-render.js",
+    "daikin-efficiency-card.js",
+)
 _REGISTERED = f"{DOMAIN}_frontend_registered"
 
 

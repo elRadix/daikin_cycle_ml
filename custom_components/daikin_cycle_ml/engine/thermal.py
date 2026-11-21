@@ -220,3 +220,37 @@ def compute_thermal_power_live(
     if rps is not None and rps > 0:
         return round(rps * RPS_KW_FACTOR, 3), "rps_heuristic"
     return None, "idle"
+
+
+# Live temperatures for the native efficiency card: label -> attribute key.
+# First present label wins (v1 monolithic and v2 names via the compat view).
+LIVE_TEMP_LABELS: dict[str, tuple[str, ...]] = {
+    "lwt_c": ("Leaving water temp. before BUH (R1T)", ATTR_LEAVING_WATER_AFTER_BUH),
+    "lwt_after_buh_c": (ATTR_LEAVING_WATER_AFTER_BUH,),
+    "return_c": (ATTR_INLET_WATER_R4T,),
+    "outdoor_c": ("Outdoor air temp.(R1T)", "R1T-Outdoor air temp."),
+    "lw_setpoint_c": ("LW setpoint (main)",),
+    "room_c": ("Indoor ambient temp. (R1T)",),
+    "room_setpoint_c": ("RT setpoint",),
+    "refrigerant_liquid_c": ("Refrig. Temp. liquid side (R3T)",),
+}
+
+
+def live_temps_from_view(view: dict[str, Any]) -> dict[str, float | None]:
+    """Live water / air / room temperatures from a compat view (None = absent)."""
+    out: dict[str, float | None] = {}
+    for key, labels in LIVE_TEMP_LABELS.items():
+        val: float | None = None
+        for label in labels:
+            val = safe_float(view.get(label))
+            if val is None:
+                txt = view.get(label)
+                if isinstance(txt, str):
+                    try:
+                        val = float(txt)
+                    except ValueError:
+                        val = None
+            if val is not None:
+                break
+        out[key] = val
+    return out

@@ -12,6 +12,7 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+import math
 import time
 from collections.abc import Callable
 from typing import Any
@@ -56,6 +57,8 @@ from .engine.thermal import (
 from .engine.thermal import (
     safe_float as _safe_float,
 )
+from .engine.attribute_compat import build_compat_view as _build_compat_view
+from .engine.thermal import live_temps_from_view as _live_temps_from_view
 from .engine.timer_health import is_stale
 from .entity import DaikinCycleMLEntity, async_remove_stale_entities
 
@@ -259,7 +262,35 @@ def _attrs_thermal_power_live(
         "input_dt_k": dt_k,
         "input_rps": rps,
         "calculation_source": source,
+        **_live_temps(s, c),
     }
+
+
+def _live_temps(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
+    """Live temperatures for the native efficiency card.
+
+    The room temperature of the configured indoor sensor wins over the
+    controller's own room sensor.
+    """
+    temps: dict[str, Any] = dict(
+        _live_temps_from_view(_build_compat_view(getattr(s, "attrs", None) or {}))
+    )
+    ent = getattr(c, "indoor_temp_entity", None)
+    hass = getattr(c, "hass", None)
+    if isinstance(ent, str) and ent and hass is not None:
+        st = hass.states.get(ent)
+        room = _safe_float_text(st.state) if st is not None else None
+        if room is not None:
+            temps["room_c"] = room
+    return temps
+
+
+def _safe_float_text(v: Any) -> float | None:
+    try:
+        x = float(v)
+    except (TypeError, ValueError):
+        return None
+    return x if math.isfinite(x) else None
 
 
 def _avg_off_time(cycles: list[Any]) -> float | None:
