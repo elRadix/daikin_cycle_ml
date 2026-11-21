@@ -69,7 +69,11 @@ const U = out.unit, d = P.data;
 const pts = [{ t_out: 7, t_lwc: 35, cop: 4.92 }, { t_out: 2, t_lwc: 35, cop: 4.08 }, { t_out: -7, t_lwc: 35, cop: 3.04 },
   { t_out: 7, t_lwc: 55, cop: 2.94 }, { t_out: -7, t_lwc: 55, cop: 2.05 }];
 U.ds = [d.datasheetCop(pts, 7, 35), d.datasheetCop(pts, -7, 55), d.datasheetCop(pts, 4.5, 35),
-  d.datasheetCop(pts, 7, 45), d.datasheetCop([], 7, 35), d.datasheetCop(pts, null, 35)];
+  d.datasheetCop(pts, 7, 45), d.datasheetCop([], 7, 35), d.datasheetCop(pts, null, 35),
+  /* only A7 points (ERGA06): 3 °C outdoor scales A7 with the Carnot ratio */
+  d.datasheetCop([{ t_out: 7, t_lwc: 35, cop: 4.85 }], 3, 35), d.carnot(35, 3) / d.carnot(35, 7),
+  /* beyond the warmest point (prod-1 at 8.2 °C) */
+  d.datasheetCop(pts, 8.2, 35), d.carnot(35, 8.2) / d.carnot(35, 7)];
 U.fit = d.fitCurve([{ x: -10, y: 45, n: 1 }, { x: 0, y: 40, n: 3 }, { x: 10, y: 35, n: 2 }]);
 U.fitNone = d.fitCurve([{ x: 1, y: 30, n: 5 }]);
 U.buckets = d.bucketPoints({ '-4--2': { lwt: 36, cop: 4, n: 3 }, '-10-': { lwt: 40, n: 1 }, '20+': { lwt: 25, n: 1 }, '0-2': { lwt: 34 }, 'x': { lwt: 1 }, '2-4': {} });
@@ -301,6 +305,9 @@ def test_pure_helpers(out):
     assert u["ds"][0] == pytest.approx(4.92) and u["ds"][1] == pytest.approx(2.05)
     assert u["ds"][2] == pytest.approx(4.5) and u["ds"][3] == pytest.approx((4.92 + 2.94) / 2)
     assert u["ds"][4] is None and u["ds"][5] is None
+    # outside the datasheet points: nearest point x Carnot ratio (#435: ERGA06 has A7 only)
+    assert u["ds"][6] == pytest.approx(4.85 * u["ds"][7]) and u["ds"][6] < 4.85
+    assert u["ds"][8] == pytest.approx(4.92 * u["ds"][9]) and u["ds"][8] > 4.92
     assert u["fit"]["a"] == pytest.approx(40) and u["fit"]["b"] == pytest.approx(-0.5) and u["fit"]["spread"] == 20
     assert u["fitNone"] is None
     assert [(b["key"], b["x"]) for b in u["buckets"]] == [("-10-", -11), ("-4--2", -3), ("0-2", 1), ("20+", 21)]

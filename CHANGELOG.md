@@ -21,11 +21,18 @@
   9 of every 10 updates: the coordinator builds a new snapshot every
   30 s, and the score is recomputed every 5 minutes. The last score is now
   carried between refreshes, with the run length advanced (Part of #435)
+- Efficiency card 1.0.1: outside the datasheet points (a model with A7
+  values only, at 3 °C outdoor) the expected COP is the nearest point
+  scaled with the Carnot ratio, not the A7 value as is (Part of #435)
 - Daily summary card 1.0.1: a run open since an earlier day names the day
   in "since"; charts with a maximum of 1 no longer show the axis labels
   0 / 1 / 1 (Part of #435)
 
 ### Tests
+- `tests/test_corpus_native_cards.py`: every diagnostics file of the
+  corpus replays through the live temperatures, the recorder exclusion,
+  the Efficiency card and the Daily summary card; corpus file of the
+  #435 install on day 2 (one continuous 24 h run, no closed cycle)
 - `tests/test_451_telegram_parse_mode.py`, `tests/test_recorder_large_attributes.py`,
   `tests/test_435_live_score_carry.py`; `test_435_long_open_run` in
   `tests/test_daily_summary_native_card.py`

@@ -213,8 +213,10 @@
     return out.sort((a, b) => a.x - b.x);
   }
 
-  /* expected COP from the datasheet points at (outdoor, lwt): nearest
-     two LWT lines, linear in outdoor (None outside the datasheet) */
+  /* expected COP from the datasheet points at (outdoor, lwt): per LWT line
+     linear in outdoor between two points; outside the points (or with a
+     single point, e.g. only A7) the nearest point is scaled with the
+     Carnot ratio of the two conditions. Lines are interpolated in LWT. */
   function datasheetCop(points, outdoor, lwt) {
     if (!Array.isArray(points) || outdoor === null || lwt === null) return null;
     const byW = {};
@@ -223,13 +225,18 @@
       if (w === null || a === null || c === null) continue;
       (byW[w] = byW[w] || []).push({ a, c });
     }
-    const atW = (list) => {
+    const atW = (list, w) => {
       list.sort((x, y) => x.a - y.a);
-      if (list.length === 1) return list[0].c;
-      let i = 0;
-      while (i < list.length - 2 && outdoor > list[i + 1].a) i++;
-      const p0 = list[i], p1 = list[i + 1];
-      return p0.c + (p1.c - p0.c) * (outdoor - p0.a) / (p1.a - p0.a);
+      const lo = list[0], hi = list[list.length - 1];
+      if (list.length > 1 && outdoor >= lo.a && outdoor <= hi.a) {
+        let i = 0;
+        while (i < list.length - 2 && outdoor > list[i + 1].a) i++;
+        const p0 = list[i], p1 = list[i + 1];
+        return p0.c + (p1.c - p0.c) * (outdoor - p0.a) / (p1.a - p0.a);
+      }
+      const near = outdoor < lo.a ? lo : hi;
+      const c0 = carnot(w, near.a), c1 = carnot(w, outdoor);
+      return c0 && c1 ? near.c * (c1 / c0) : near.c;
     };
     const ws = Object.keys(byW).map(Number).sort((a, b) => a - b);
     if (!ws.length) return null;
@@ -237,7 +244,7 @@
     for (const w of ws) { if (w <= lwt) lo = w; if (w >= lwt && hi >= w) hi = w; }
     if (lwt < ws[0]) hi = lo = ws[0];
     if (lwt > ws[ws.length - 1]) hi = lo = ws[ws.length - 1];
-    const c0 = atW(byW[lo]), c1 = atW(byW[hi]);
+    const c0 = atW(byW[lo], lo), c1 = atW(byW[hi], hi);
     const v = lo === hi ? c0 : c0 + (c1 - c0) * (lwt - lo) / (hi - lo);
     return v > 0 ? v : null;
   }

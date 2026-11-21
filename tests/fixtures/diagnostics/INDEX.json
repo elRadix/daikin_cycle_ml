@@ -131,5 +131,24 @@
   "cycles": 0,
   "cop_samples": 0,
   "generated_at": "2026-11-19T19:25:53.134273+01:00"
+ },
+ {
+  "file": "erga06eav3_1_26_1_f817e241d6_202611210845.json",
+  "anon_id": "f817e241d6",
+  "origin": "user",
+  "note": "ERGA06EAV3 split, no DHW tank, one continuous heating run over 24 h, external power meter, day 2 after the detection fix",
+  "model": "erga06eav3",
+  "unit_model": null,
+  "integration_version": "1.26.1",
+  "ha_version": "2026.11.2",
+  "source_type": "monolithic",
+  "source_chosen": null,
+  "is_hybrid": false,
+  "is_bivalent": false,
+  "dhw_present": false,
+  "power_meter": true,
+  "cycles": 0,
+  "cop_samples": 267,
+  "generated_at": "2026-11-21T08:45:21.727487+01:00"
  }
 ]
