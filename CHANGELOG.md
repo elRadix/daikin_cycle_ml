@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.27.0] - 2026-11-21
+
 ### Fixed
 - Cycle detection paused forever when ESPAltherma does not send
   `I/U operation mode` or `Water pump operation` (commented out in some
@@ -65,6 +67,11 @@
   range, advanced, help, curve points, history refused, visual editor
 - `tests/test_efficiency_live_temps.py`: live temperature attributes on
   v1 and v2 names, indoor sensor override
+- `tests/test_notify_entity_target.py`: notify entity targets via
+  `notify.send_message`, legacy services unchanged (#451)
+- `tests/test_435_power_meter_units.py`: kW meters converted, energy
+  sensors skipped (#435); `tests/test_435_no_dhw_detection.py` adds the
+  EDLA v1 source without I/U mode and pump state (#455)
 - `tests/fixtures/card_history_24h.json`: 24 h recorder history of the
   card's entities, written by the fixture generator in
   `tests/test_427_cards_live_states.py`
