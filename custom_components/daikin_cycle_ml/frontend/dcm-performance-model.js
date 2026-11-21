@@ -149,6 +149,8 @@
       copSpec, elMax: thMax && copSpec ? thMax / copSpec : null,
       fmin, fmax, fSrc: vs.rps_max || vs.rps_min || null,
       kw: num(specs.kw),
+      /* the maximum is the nominal capacity (part-load datasheet, #467) */
+      thNominal: !!hc && specs.hmax_basis === "nominal" && !hc.manual,
     };
   }
 

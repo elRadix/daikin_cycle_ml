@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Fixed
+- Performance card / model profile: the maximum heat was empty for every
+  model, also when the datasheet lists full-capacity points (ERLA11DAV3:
+  10.6 kW at A7/W35 for an 11 kW unit, 9 points). A datasheet whose
+  A7/W35 capacity is at least 80 % of the nominal kW now fills the
+  maximum heat of every point (ERLA, EDLA, ERGA, EBLA, EBLQ, EVLQ); a
+  part-load datasheet (Hydrosplit EPRA) uses the nominal capacity
+  (EPRA12 = 12 kW) at A7/W35, and the card says so.
+  Every bundled model has a maximum; your own values still win (#467)
+
+### Tests
+- `test_467_model_profile`: full-capacity rule, nominal kW fallback,
+  every bundled model has a maximum heat, the reported ERLA11 gets all
+  9 points; `test_467_performance_card`: a datasheet-only install shows
+  its thermal load (#467)
+
 ## [1.28.0] - 2026-11-21
 
 ### Added
