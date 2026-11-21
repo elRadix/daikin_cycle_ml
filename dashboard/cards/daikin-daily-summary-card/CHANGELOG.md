@@ -1,5 +1,19 @@
 # Changelog — Daily Summary Card (native)
 
+## [1.1.0] — 2026-11-21
+
+### Fixed
+- On a wide desktop card the charts were scaled up, with large text and
+  thick bars; they are now drawn at the card's own width (#466)
+- The Today tiles (starts, runtime, backup heater, defrosts) showed
+  ESPAltherma counters that had not reset since the ESP started (531 h
+  "today"). The integration now detects this and shows its own counts
+  (#466, integration fix)
+
+### Changed
+- Trends show the last day's value and the range of the period next to
+  each sparkline (#466)
+
 ## [1.0.1] — 2026-11-21
 
 ### Fixed

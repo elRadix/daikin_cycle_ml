@@ -85,3 +85,36 @@ def compressor_starts_today(attrs: dict[str, Any], computed: int) -> tuple[int, 
         return int(native), "native"
     return computed, "computed"
 
+
+
+# #466: ESPAltherma rolls its "today" counters over at local midnight only
+# once the ESP has a clock (NTP); without one they count since boot
+# (include/stats.h: day = -1 while the clock is not set). A Tweakers report
+# showed 531 h of compressor run "today" at 14:24. A run or backup-heater
+# total above the minutes since local midnight proves the counters are not
+# daily, so none of the four is used and the computed values take over.
+TODAY_KEYS: tuple[str, ...] = (
+    "Stats: Compressor starts today",
+    "Stats: Defrosts today",
+    "Stats: Compressor run today (min)",
+    "Stats: Backup heater today (min)",
+)
+TODAY_SLACK_MIN = 5.0  # ESP and Home Assistant clocks / time zone edges
+
+
+def native_today_is_daily(attrs: dict[str, Any], minutes_today: float) -> bool:
+    """False when a native today counter holds more minutes than today has
+    (minutes_today: minutes since local midnight)."""
+    limit = max(0.0, float(minutes_today)) + TODAY_SLACK_MIN
+    for key in ("Stats: Compressor run today (min)", "Stats: Backup heater today (min)"):
+        v = _read_float(attrs, key)
+        if v is not None and v > limit:
+            return False
+    return True
+
+
+def daily_attrs(attrs: dict[str, Any], minutes_today: float) -> dict[str, Any]:
+    """The attributes, without the native today counters when they are not daily."""
+    if not isinstance(attrs, dict) or native_today_is_daily(attrs, minutes_today):
+        return attrs
+    return {k: v for k, v in attrs.items() if k not in TODAY_KEYS}

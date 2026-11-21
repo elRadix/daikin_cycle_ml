@@ -36,7 +36,9 @@ from .const import buh_step_kw_for_model as _buh_step_kw_for_model
 from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
 from .engine.runtime_source import (
     compressor_starts_today,
+    daily_attrs,
     defrost_count_today,
+    native_today_is_daily,
     read_native_buh_minutes,
     read_native_compressor_minutes,
     read_native_compressor_starts,
@@ -903,6 +905,21 @@ def _resolve_attrs(
     return _s_attrs if isinstance(_s_attrs, dict) else {}
 
 
+def _today_attrs(
+    s: DataSnapshot, c: DaikinCycleMLCoordinator
+) -> dict[str, Any]:
+    """#466: attributes for the today sensors, without the native ESPAltherma
+    today counters when they do not reset at midnight (no clock on the ESP)."""
+    now = _now()
+    return daily_attrs(_resolve_attrs(s, c), (now - _local_midnight(now)) / 60.0)
+
+
+def _native_daily(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
+    """#466: False when the ESP's today counters do not reset at midnight."""
+    now = _now()
+    return native_today_is_daily(_resolve_attrs(s, c), (now - _local_midnight(now)) / 60.0)
+
+
 def _local_midnight(now: float) -> float:
     lt = time.localtime(float(now))
     return time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, 0, 0, 0, 0, 0, -1))
@@ -921,7 +938,7 @@ def _value_runtime_compressor_today_s(
     firmware's own wall-clock counter — correct by definition. Fallback
     uses ``cycles_intersecting`` (overlap-window sum) + open-cycle portion.
     """
-    attrs = _resolve_attrs(s, c)
+    attrs = _today_attrs(s, c)
     native_min = read_native_compressor_minutes(attrs)
     if native_min is not None:
         return int(round(native_min * 60.0))
@@ -950,7 +967,7 @@ def _value_runtime_buh_today_s(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> int:
     snap = c.runtime_snapshot
-    attrs = _resolve_attrs(s, c)
+    attrs = _today_attrs(s, c)
     native_min = read_native_buh_minutes(attrs)
     if native_min is not None:
         return int(round(native_min * 60.0))
@@ -963,7 +980,7 @@ def _value_runtime_buh_today_s(
 def _value_compressor_starts_today(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> int:
-    attrs = _resolve_attrs(s, c)
+    attrs = _today_attrs(s, c)
     try:
         cycles = c.store.cycles_today(_now())
         computed = len(cycles) if cycles else 0
@@ -976,7 +993,7 @@ def _value_compressor_starts_today(
 def _value_defrost_count_today(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> int:
-    attrs = _resolve_attrs(s, c)
+    attrs = _today_attrs(s, c)
     snap = c.runtime_snapshot
     _snap = snap if isinstance(snap, dict) else {}
     try:
@@ -1073,7 +1090,7 @@ def _attrs_runtime_compressor_today_s(
     ``cycle_count`` counts only cycles whose START_TS falls inside today
     (mirrors rollup attribution rule in async_rollup_day).
     """
-    attrs = _resolve_attrs(s, c)
+    attrs = _today_attrs(s, c)
     native_min = read_native_compressor_minutes(attrs)
     now = _now()
     midnight = _local_midnight(now)
@@ -1097,6 +1114,7 @@ def _attrs_runtime_compressor_today_s(
         pass
     total = sum(by_mode.values())
     return {
+        "native_daily": _native_daily(s, c),  # #466
         "source": "native" if native_min is not None else "computed",
         "native_min": native_min,
         "heating_s": int(by_mode["heating"]),
@@ -1111,7 +1129,7 @@ def _attrs_runtime_buh_today_s(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> dict[str, Any]:
     snap = c.runtime_snapshot
-    attrs = _resolve_attrs(s, c)
+    attrs = _today_attrs(s, c)
     native_min = read_native_buh_minutes(attrs)
     _snap = snap if isinstance(snap, dict) else {}
     s1 = float(_snap.get("buh_step1_s", 0.0) or 0.0)
@@ -1125,6 +1143,7 @@ def _attrs_runtime_buh_today_s(
         entity_total = computed_total
         source = "computed"
     return {
+        "native_daily": _native_daily(s, c),  # #466
         "source": source,
         "native_min": native_min,
         "total_s": entity_total,
@@ -1142,7 +1161,7 @@ def _attrs_compressor_starts_today(
 ) -> dict[str, Any]:
     """v1.22.8: source-honest attrs. Entity state may be native; per-mode/
     last-hour splits remain computed because firmware exposes no split."""
-    attrs = _resolve_attrs(s, c)
+    attrs = _today_attrs(s, c)
     try:
         cycles = c.store.cycles_today(_now())
     except Exception:
@@ -1160,6 +1179,7 @@ def _attrs_compressor_starts_today(
     computed_count = len(cycles)
     native_count = read_native_compressor_starts(attrs)
     return {
+        "native_daily": _native_daily(s, c),  # #466
         "source": "native" if native_count is not None else "computed",
         "native_count": int(native_count) if native_count is not None else None,
         "computed_count": computed_count,
@@ -1175,12 +1195,13 @@ def _attrs_defrost_count_today(
 ) -> dict[str, Any]:
     """v1.22.8: source-honest attrs. Firmware exposes count but not duration."""
     snap = c.runtime_snapshot
-    attrs = _resolve_attrs(s, c)
+    attrs = _today_attrs(s, c)
     _snap = snap if isinstance(snap, dict) else {}
     computed_count = int(_snap.get("defrost_count", 0) or 0)
     dur = float(_snap.get("defrost_duration_s", 0.0) or 0.0)
     native_count = read_native_defrost_count(attrs)
     return {
+        "native_daily": _native_daily(s, c),  # #466
         "source": "native" if native_count is not None else "computed",
         "native_count": int(native_count) if native_count is not None else None,
         "computed_count": computed_count,
@@ -1195,7 +1216,7 @@ def _attrs_defrost_duration_today_s(
 ) -> dict[str, Any]:
     """v1.22.8: computed-only source (ESPAltherma v2 exposes no native duration)."""
     snap = c.runtime_snapshot
-    attrs = _resolve_attrs(s, c)
+    attrs = _today_attrs(s, c)
     _snap = snap if isinstance(snap, dict) else {}
     computed_count = int(_snap.get("defrost_count", 0) or 0)
     dur = float(_snap.get("defrost_duration_s", 0.0) or 0.0)

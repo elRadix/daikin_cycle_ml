@@ -72,25 +72,26 @@
     const w = m.win, bands = [{ role: "defrost_active", color: C.defrost }, { role: "dhw_active", color: C.dhw }, { role: "buh_active", color: C.buh }];
     const tm = (ms) => f.time(ms);
     s += sect(t.ch_water) + P.charts.lineChart(w, {
-      title: t.ch_water, bands, empty: t.no_history, yL: { pad: 6, step: 2 },
+      title: t.ch_water, bands, empty: t.no_history, yL: { pad: 6, step: 2, unit: "°C" },
       refBands: [{ get: (p) => p.sp, k: LIM.track_ok_k, color: C.target }],
       series: [{ get: (p) => p.sp, color: C.target, dash: "5 3", width: 1.5 }, { get: (p) => p.ret, color: C.ret }, { get: (p) => p.lwt, color: C.lwt }],
     }, tm) + legend([{ c: C.lwt, l: t.lwt }, { c: C.ret, l: t.ret }, { c: C.target, l: t.setpoint + " ±1 K" }, { c: C.defrost, l: t.defrost }, { c: C.dhw, l: t.dhw }, { c: C.buh, l: t.buh }])
       + verdict(a, "water", V, t, f);
     s += sect(t.ch_compressor) + P.charts.lineChart(w, {
       title: t.ch_compressor, bands, markers: "compressor_running", empty: t.no_history,
-      yL: { fixed: { lo: 0, hi: Math.max(60, ...w.samples.map((p) => p.rps || 0)) } }, yR: { pad: 500, step: 500 },
+      yL: { fixed: { lo: 0, hi: Math.max(60, ...w.samples.map((p) => p.rps || 0)) }, unit: t.rps }, yR: { pad: 500, step: 500, unit: "W" },
       series: [{ get: (p) => p.power, color: C.power, axis: "r", width: 1.5 }, { get: (p) => p.rps, color: C.rps }],
     }, tm) + legend([{ c: C.rps, l: t.rps }, { c: C.power, l: t.power }, { c: C.good, l: "▲ " + t.start }, { c: C.bad, l: "▲ " + t.stop }])
       + verdict(a, "compressor", V, t, f);
+    const DT = P.assess.dtLimits(m.specs);
     s += sect(t.ch_hydraulics) + P.charts.lineChart(w, {
-      title: t.ch_hydraulics, bands, empty: t.no_history, yL: { fixed: { lo: 0, hi: Math.max(25, ...w.samples.map((p) => p.flow || 0)) } }, yR: { fixed: { lo: 0, hi: 12 } },
-      refs: [{ y: m.specs.minFlow, color: C.bad, label: t.min_flow }, { y: LIM.dt_design_k, axis: "r", color: C.dt, label: t.design_dt }],
+      title: t.ch_hydraulics, bands, empty: t.no_history, yL: { fixed: { lo: 0, hi: Math.max(25, ...w.samples.map((p) => p.flow || 0)) }, unit: "l/min" }, yR: { fixed: { lo: 0, hi: Math.max(12, Math.ceil((DT.high + 2) / 4) * 4) }, unit: "ΔT K" },
+      refs: [{ y: m.specs.minFlow, color: C.bad, label: t.min_flow }, { y: DT.design, axis: "r", color: C.dt, label: t.design_dt.replace("{dt}", (DT.design % 1 === 0 ? f.n0(DT.design) : f.n1(DT.design))) }],
       series: [{ get: (p) => p.dt, color: C.dt, axis: "r", width: 1.5 }, { get: (p) => p.flow, color: C.flow }],
-    }, tm) + legend([{ c: C.flow, l: t.flow }, { c: C.dt, l: t.dt }].concat(m.specs.minFlow !== null ? [{ c: C.bad, l: t.min_flow }] : []))
+    }, tm) + legend([{ c: C.flow, l: t.flow + " (←)" }, { c: C.dt, l: t.dt + " (→)" }, { c: C.dt, l: "- - " + t.design_dt.replace("{dt}", (DT.design % 1 === 0 ? f.n0(DT.design) : f.n1(DT.design))) }].concat(m.specs.minFlow !== null ? [{ c: C.bad, l: "- - " + t.min_flow }] : []))
       + verdict(a, "hydraulics", V, t, f);
     s += sect(t.ch_comfort) + P.charts.lineChart(m.day, {
-      title: t.ch_comfort, empty: t.no_history, yL: { pad: 4, step: 2 }, yR: { pad: 6, step: 2 },
+      title: t.ch_comfort, empty: t.no_history, yL: { pad: 4, step: 2, unit: "°C" }, yR: { pad: 6, step: 2, unit: "°C" },
       series: [{ get: (p) => p.out, color: C.out, axis: "r", width: 1.5 }, { get: (p) => p.roomSp, color: C.roomSp, dash: "5 3", width: 1.5 }, { get: (p) => p.room, color: C.room }],
     }, tm) + legend([{ c: C.room, l: t.room }, { c: C.roomSp, l: t.room_sp }, { c: C.out, l: t.outdoor + " (→)" }])
       + verdict(a, "comfort", V, t, f) + verdict(a, "cop", V, t, f);
@@ -187,10 +188,10 @@
   }
 
   function helpVals(m) {
-    const S = m.specs, LIM = P.assess.LIMITS;
+    const S = m.specs, LIM = P.assess.LIMITS, DT = P.assess.dtLimits(S);
     return {
       trk: LIM.track_ok_k, trkBad: LIM.track_bad_k, model: m.model || "heat pump", lwtMin: S.lwtMin, lwtMax: S.lwtMax,
-      buh: S.buhAbove, starts: LIM.starts_watch_h, dtDesign: LIM.dt_design_k, dtLow: LIM.dt_low_k, dtHigh: LIM.dt_high_k,
+      buh: S.buhAbove, starts: LIM.starts_watch_h, dtDesign: DT.design, dtLow: DT.low, dtHigh: DT.high,
       room: LIM.room_ok_k, copOk: Math.round(LIM.cop_ok_ratio * 100), defrost: S.defrostBelow, defWatch: LIM.defrost_watch_pct,
       nom: S.nomCop, scop35: S.scop35, scop55: S.scop55, off: S.offAbove, caOk: Math.round(LIM.carnot_ok * 100), caHigh: 70,
     };
