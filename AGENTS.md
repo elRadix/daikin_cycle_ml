@@ -293,9 +293,12 @@ Tweakers feedback "alerts not shown in any card" is now #425.
     R396  Credit reporters by GitHub handle in what is published for
           people: the release notes "Thank you" section (always, one line
           per reporter with the issue or discussion link and what their
-          report led to) and the PR body ("Reported by @handle (#N)").
-          Anonymous everywhere else (R395: fixtures, notes, commit
-          messages). Never the maintainer's own name or accounts.
+          report led to) and the PR body ("Reported by" + the real
+          handle + "(#N)"). An @handle notifies that user: write only
+          real reporters' handles; a placeholder goes in backticks
+          (`@<handle>`). Anonymous everywhere else (R395: fixtures,
+          notes, commit messages). Never the maintainer's own name or
+          accounts.
 
 ## Historical rules (RETIRED)
 
@@ -876,6 +879,6 @@ dropped). All work is now pushed to origin after each batch to prevent recurrenc
   - HA history stores a value only when it changes: graphs hold a value
     until the next sample (step line) and carry the last value into the
     window; 10-min means are time-weighted.
-  - Credit reporters by @handle in release notes and PR bodies (R396);
+  - Credit reporters by their handle in release notes and PR bodies (R396);
     an early release note credited a reporter with a finding they did not
     make: describe what their report actually led to.
