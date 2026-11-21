@@ -420,6 +420,7 @@ def test_card_in_chromium():
     assert r["stable"] is True
     assert "Historie is niet beschikbaar" in r["failNote"]
     assert r["stub"] == {"default_tab": "live", "range": "3h"} and r["size"] == 12 and r["grid"]["columns"] == 12
-    assert r["schema"] == ["device_id", "title", "default_tab", "range", "tabs", "language", "show_help", "min_flow"]
+    # #466: target_dt (the installer's ΔT) after min_flow
+    assert r["schema"] == ["device_id", "title", "default_tab", "range", "tabs", "language", "show_help", "min_flow", "target_dt"]
     assert r["formHelp"] is True
     assert r["changed"] == {"range": "24h", "min_flow": 12}

@@ -377,6 +377,23 @@ entities by translation key, so they also survive renamed entity IDs.
 
 ## 5. COP and energy
 
+### 4.7 "Today" shows hundreds of hours, starts or defrosts
+
+**Cause:** ESPAltherma v2 with stats sends its own "today" counters
+(`Stats: Compressor starts today`, `... run today (min)`, `Backup heater
+today (min)`, `Defrosts today`). It resets them at local midnight only
+when the ESP knows the time; without a clock they count since the ESP
+started (531 h "today" was reported, #466).
+
+**What the integration does (Unreleased):** when the run or backup-heater
+minutes are more than the minutes since midnight, none of the four is
+used and its own counts are shown. The today sensors then have
+`native_daily: false` and `source: computed`; diagnostics show
+`runtime_check.native_daily`.
+
+**Fix on the ESP:** give ESPAltherma a clock (time server / NTP and your
+time zone in its settings) so its counters roll over at midnight again.
+
 ### 5.1 COP values are unrealistic (> 10 or < 1)
 
 **Cause:** Power sensor is missing or wrong. If using `rps_heuristic` fallback, COP is an estimate.

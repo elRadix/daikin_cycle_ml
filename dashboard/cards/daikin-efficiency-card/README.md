@@ -64,6 +64,7 @@ arrives.
 | `language` | auto | `en`, `nl`, `fr` | Card language; auto = Home Assistant language, then the integration language |
 | `show_help` | `true` | `true`, `false` | Help section at the bottom of each tab |
 | `min_flow` | none | l/min | Minimum water flow of your unit, from its installation manual. Shown as a line in the flow graph; a flow below it is flagged |
+| `target_dt` | 5 | K | Target ΔT of your installation (leaving minus return water), as your installer set it; 2 to 15. The flow graph's target line and the verdicts use it: below 60 % of it is "much water for little heat", above it + 3 K "too little flow" |
 
 ### Language and theme
 
@@ -104,7 +105,7 @@ model (datasheet in `sensor.daikin_cycle_ml_hp_specs`).
 | Tracker | 10-min water mean within ±1 K of the target | 1–2 K off: watch; more than 2 K: act. Not judged during defrost, hot water, the first 10 min of a run, or when heating is off above the "heating off" temperature |
 | Water | ΔT 3–8 K (Daikin design about 5 K), water within the unit limits | ΔT below 3 K or above 8 K; water above the backup-heater temperature; above the maximum: act |
 | Compressor | Running without frequent starts | 3 starts in the last hour: watch; 4 or more, or the short-cycling sensors: act |
-| Flow | Flow fits the heat (ΔT 3–8 K) | No flow while running, or below your `min_flow`: act |
+| Flow | Flow fits the heat (ΔT between 60 % of your `target_dt` and target + 3 K; 3–8 K at the default 5 K) | No flow while running, or below your `min_flow`: act |
 | Comfort | Room within ±0.5 K of its setpoint | 0.5–1 K below: watch; 1 K or more below: act; more than 1 K above: watch (the curve can go down) |
 | COP | At least 90 % of the datasheet at the current outdoor and water temperature | 75–90 %: watch; below 75 %: act; above 140 %: check the meter |
 | Refrigerant (advanced) | Liquid up to 6 K above the leaving water | More: watch (low flow or air) |

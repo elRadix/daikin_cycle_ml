@@ -25,7 +25,7 @@
 (function () {
   "use strict";
 
-  const CARD_VERSION = "1.0.1";
+  const CARD_VERSION = "1.1.0";
   const TAG = "daikin-daily-summary-card";
   const EDITOR_TAG = "daikin-daily-summary-card-editor";
   const DOMAIN = "daikin_cycle_ml";
@@ -325,7 +325,15 @@
   /* SVG charts                                                          */
   /* ------------------------------------------------------------------ */
 
-  const W = 360;
+  /* #466: drawn at the card's own width (setChartWidth) so text and bars
+     keep their size on a wide desktop card; 360 under Node / before layout. */
+  let W = 360;
+  function setChartWidth(px) {
+    const w = Math.round(Number(px));
+    W = isFinite(w) && w > 0 ? Math.max(300, Math.min(1400, w)) : 360;
+    return W;
+  }
+  const chartH = (h) => Math.round(h * Math.min(1.5, Math.max(1, W / 360)));
 
   function chartFrame(h, yMax, ticks, fmtTick) {
     const top = 14, bottom = h - 26, left = 30, right = W - 6;
@@ -365,7 +373,7 @@
 
   /* stacked bars: series = [{key, color, get(d)}] */
   function barChart(days, series, opts, f, sel) {
-    const h = 170;
+    const h = chartH(170);
     const totals = days.map((d) => series.reduce((a, se) => a + (se.get(d) || 0), 0));
     const yMax = niceMax(Math.max(1, ...totals));
     const fr = chartFrame(h, yMax, [0, yMax / 2, yMax], opts.tick);
@@ -395,7 +403,7 @@
   }
 
   function qualityChart(days, avg, f, sel) {
-    const h = 170;
+    const h = chartH(170);
     const qs = days.map((d) => d.quality).filter((q) => q !== null);
     const lo = qs.length && Math.min(...qs) >= 70 ? 50 : qs.length && Math.min(...qs) >= 40 ? 20 : 0;
     const base = chartFrame(h, 100 - lo, [], String);
@@ -427,6 +435,16 @@
     const pts = values.map((x, i) => (x === null || !isFinite(x) ? null
       : (i / (values.length - 1)) * w + "," + (h - 2 - ((x - min) / Math.max(1e-9, max - min)) * (h - 4)))).filter(Boolean);
     return `<svg viewBox="0 0 ${w} ${h}" class="spark" preserveAspectRatio="none"><polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+  }
+
+  /* #466: a trend with its numbers: the last day in bold, the range under it */
+  function sparkCell(label, values, color, fmt) {
+    const v = values.filter((x) => x !== null && isFinite(x));
+    const last = v.length ? v[v.length - 1] : null;
+    const range = v.length > 1 ? fmt(Math.min(...v)) + " – " + fmt(Math.max(...v)) : "";
+    return `<div><span class="tl">${esc(label)}</span>`
+      + `<span class="sv" style="color:${color}">${esc(last === null ? "—" : fmt(last))}</span>`
+      + spark(values, color) + (range ? `<span class="sr">${esc(range)}</span>` : "") + `</div>`;
   }
 
   /* ------------------------------------------------------------------ */
@@ -580,9 +598,9 @@
       + `<div class="ts">${esc(f.n0(d.cycles))} × · ${esc(f.hours(d.dur_min))}</div></div>` : "");
     if (ps.best) s += `<div class="bwrow">${bw("🏆 " + t.best_day, ps.best, C.good)}${bw("⚠️ " + t.worst_day, ps.worst, C.low)}</div>`;
     s += `<div class="sect">${esc(t.trends)}</div><div class="sparks">`
-      + `<div><span class="tl">${esc(t.quality)}</span>${spark(days.map((d) => d.quality), C.good)}</div>`
-      + `<div><span class="tl">${esc(t.cycles)}</span>${spark(days.map((d) => d.cycles), C.heating)}</div>`
-      + `<div><span class="tl">${esc(t.runtime)}</span>${spark(days.map((d) => d.dur_min / 60), C.cooling)}</div>`
+      + sparkCell(t.quality, days.map((d) => d.quality), C.good, f.n0)
+      + sparkCell(t.cycles, days.map((d) => d.cycles), C.heating, f.n0)
+      + sparkCell(t.runtime, days.map((d) => d.dur_min / 60), C.cooling, (h) => f.hours(h * 60))
       + `</div>`;
     return s;
   }
@@ -724,6 +742,8 @@
     .sparks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .sparks > div { background: var(--secondary-background-color); border-radius: 10px; padding: 6px 8px; }
     .spark { width: 100%; height: 28px; display: block; }
+    .sparks .sv { display: block; font-size: 1.15em; font-weight: 800; line-height: 1.2; }
+    .sparks .sr { display: block; font-size: .72em; color: var(--secondary-text-color); }
     .banner { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 12px; border-radius: 10px;
       background: var(--secondary-background-color); color: var(--primary-text-color); }
     .banner .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--disabled-text-color, #9e9e9e); }
@@ -785,10 +805,20 @@
 
     connectedCallback() {
       if (!this._timer) this._timer = setInterval(() => { this._sig = null; this._draw(); }, 60000);
+      if (!this._ro && typeof ResizeObserver === "function") {
+        this._ro = new ResizeObserver(() => { if (this._chartWidth() !== this._w) { this._sig = null; this._draw(); } });
+        this._ro.observe(this);
+      }
     }
 
     disconnectedCallback() {
       if (this._timer) { clearInterval(this._timer); this._timer = null; }
+      if (this._ro) { this._ro.disconnect(); this._ro = null; }
+    }
+
+    _chartWidth() {
+      const w = this.getBoundingClientRect ? this.getBoundingClientRect().width : 0;
+      return w > 0 ? Math.round((w - 24) / 20) * 20 : 360;
     }
 
     _signature() {
@@ -815,6 +845,8 @@
           }
         });
       }
+      this._w = this._chartWidth();
+      setChartWidth(this._w);
       const m = buildModel(this._hass, this._config, Date.now());
       const root = this.shadowRoot.getElementById("root");
     root.setAttribute("lang", m.lang);
@@ -911,7 +943,7 @@
   /* pure helpers for tests and other cards */
   window.DaikinDailySummaryCard = {
     version: CARD_VERSION, SUFFIX, TABS, I18N,
-    resolveEntities, buildDays, periodStats, buildModel, render, pickLang, alertTitle, alertBody, esc,
+    resolveEntities, buildDays, periodStats, buildModel, render, pickLang, alertTitle, alertBody, esc, setChartWidth,
   };
 
   if (!window.__dcmSummaryCardLogged) {

@@ -43,7 +43,7 @@ CTX = {
     "pct_diff": "-14", "cop_expected": "4.1", "stale_alerts": 120, "stale_cycles": 40,
     "hours_since_ok": 410, "today_el_kwh": "15.5", "baseline_el_mean": "6.0",
     "z_max": 6.4, "top_dim": "duration_s", "z_score": 4.9, "baseline_el_sigma": "1.2",
-    "multiplier": 1.5, "last_duration_min": 14, "avg_duration_7d_min": 38,
+    "multiplier": 1.5, "last_duration_min": 14, "avg_duration_7d_min": 38, "run_h_7d": "61.5",
 }
 JARGON = ("z-score", "z_max", "k-means", "kmeans", "sigma", "recompute_", "_threshold", "duration_s")
 

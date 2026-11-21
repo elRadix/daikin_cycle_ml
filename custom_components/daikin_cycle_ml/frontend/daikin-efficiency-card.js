@@ -25,11 +25,12 @@
  *   language:    '' (auto) | en | nl | fr
  *   show_help:   true | false
  *   min_flow:    minimum water flow of your unit in l/min (installation manual)
+ *   target_dt:   target ΔT of the installation in K (installer setting; default 5)
  */
 (function () {
   "use strict";
 
-  const CARD_VERSION = "1.0.1";
+  const CARD_VERSION = "1.1.0";
   const TAG = "daikin-efficiency-card";
   const EDITOR_TAG = "daikin-efficiency-card-editor";
   const PARTS = ["data", "assess", "charts", "verdicts", "i18n", "render"];
@@ -83,9 +84,11 @@
       font-size: .82em; font-weight: 700; color: var(--secondary-text-color); min-height: 30px; }
     .win.on { background: var(--dcm-accent, #0097E0); border-color: var(--dcm-accent, #0097E0); color: #fff; }
     .chart { width: 100%; height: auto; display: block; touch-action: pan-y; }
+    .chart polyline, .chart line, .chart path { vector-effect: non-scaling-stroke; }
     .chart .grid { stroke: var(--divider-color); stroke-width: 1; }
     .chart .tick { font-size: 8px; fill: var(--secondary-text-color); }
     .chart .rl { font-size: 8px; font-weight: 700; }
+    .chart .unit { font-weight: 700; }
     .chart .empty { font-size: 10px; fill: var(--secondary-text-color); }
     .chart .track { fill: var(--secondary-background-color); }
     .chart .callout { fill: var(--card-background-color, #fff); stroke: var(--divider-color); }
@@ -162,10 +165,21 @@
 
       connectedCallback() {
         if (!this._timer) this._timer = setInterval(() => { this._sig = null; this._draw(); }, 30000);
+        /* #466: redraw the charts at the new width when the card resizes */
+        if (!this._ro && typeof ResizeObserver === "function") {
+          this._ro = new ResizeObserver(() => { const w = this._chartWidth(); if (w !== this._w) { this._sig = null; this._draw(); } });
+          this._ro.observe(this);
+        }
       }
 
       disconnectedCallback() {
         if (this._timer) { clearInterval(this._timer); this._timer = null; }
+        if (this._ro) { this._ro.disconnect(); this._ro = null; }
+      }
+
+      _chartWidth() {
+        const w = this.getBoundingClientRect ? this.getBoundingClientRect().width : 0;
+        return w > 0 ? Math.round((w - 24) / 20) * 20 : 360;   /* 20 px steps: no redraw per pixel */
       }
 
       async _loadHistory() {
@@ -213,6 +227,8 @@
           this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card><div id="root"></div></ha-card>`;
           this.shadowRoot.addEventListener("click", (ev) => this._onClick(ev));
         }
+        this._w = this._chartWidth();
+        P.charts.setWidth(this._w);
         const m = D.buildModel(this._hass, this._config, this._buf, Date.now() / 1000, this._ui.range);
         m.buf = this._buf;
         const a = P.assess.assess(m);
@@ -244,6 +260,7 @@
       device_id: "Heat pump (when you have several)", title: "Title", default_tab: "Tab shown first",
       range: "Live graphs: time range", tabs: "Tabs", language: "Language", show_help: "Show help",
       min_flow: "Minimum flow of your unit (l/min, from the installation manual)",
+      target_dt: "Target ΔT of your installation (K, set by your installer; Daikin default 5)",
     };
 
     class DaikinEfficiencyCardEditor extends HTMLElement {
@@ -263,6 +280,7 @@
           { name: "language", selector: { select: { mode: "dropdown", options: [opt("", "Auto (Home Assistant)"), opt("en", "English"), opt("nl", "Nederlands"), opt("fr", "Français")] } } },
           { name: "show_help", selector: { boolean: {} } },
           { name: "min_flow", selector: { number: { min: 0, max: 100, step: 0.5, mode: "box", unit_of_measurement: "l/min" } } },
+          { name: "target_dt", selector: { number: { min: 2, max: 15, step: 0.5, mode: "box", unit_of_measurement: "K" } } },
         ];
       }
 

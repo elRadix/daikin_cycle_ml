@@ -337,6 +337,8 @@ def _defrost_snapshot(coord: Any) -> dict[str, Any]:  # # DIAG-V1224
         "start_ts": getattr(coord, "_defrost_start_ts", None),
         "duration_s": getattr(coord, "_defrost_duration_s", None),
         "last_defrost_ts": getattr(coord, "_last_defrost_ts", None),
+        # #463: events, running hours and the weather-aware limit (7 days)
+        "limit_7d": getattr(coord, "_defrost_7d", None),
     }
 
 
@@ -476,6 +478,8 @@ def _runtime_check(coord: Any, snap: Any, now: float | None = None) -> dict[str,
         "closed_min": round(closed / 60.0, 1),
         "open_cycle_min": round(open_s / 60.0, 1),
         "native_min": native,
+        # #466: False when the ESP's today counters do not reset at midnight
+        "native_daily": native is None or native <= round((t - midnight) / 60.0, 1) + 5.0,
         "diff_min": round(cycles_min - native, 1) if native is not None else None,
         "coverage_pct": (
             round(cycles_min / native * 100.0, 1) if native else None

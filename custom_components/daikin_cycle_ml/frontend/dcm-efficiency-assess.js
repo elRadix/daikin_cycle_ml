@@ -16,9 +16,9 @@
     track_ok_k: 1.0,        /* 10-min mean within ±1 K of the target */
     track_bad_k: 2.0,       /* more than 2 K off = not following the curve */
     settle_min: 10,         /* first 10 min of a run: still heating up */
-    dt_low_k: 3.0,          /* heating ΔT below 3 K: much flow for little heat */
-    dt_high_k: 8.0,         /* above 8 K: too little flow for the heat */
-    dt_design_k: 5.0,       /* Daikin design ΔT for space heating */
+    dt_low_k: 3.0,          /* defaults for a 5 K target; see dtLimits() */
+    dt_high_k: 8.0,
+    dt_design_k: 5.0,       /* Daikin default design ΔT for space heating */
     starts_watch_h: 3,      /* starts in the last hour */
     starts_bad_h: 4,
     room_ok_k: 0.5,
@@ -74,18 +74,27 @@
     return v("bad", gap > 0 ? "trk_far_above" : "trk_far_below", p);
   }
 
+  /* #466: the installer sets the target ΔT (card option target_dt, default
+     5 K). Low = 60 % of it (much water for little heat), high = 3 K above. */
+  function dtLimits(S) {
+    const design = S && S.dtTarget ? S.dtTarget : LIMITS.dt_design_k;
+    return { design, low: Math.round(design * 6) / 10, high: design + 3 };
+  }
+
   function water(m) {
     const L = m.live, S = m.specs;
     if (L.lwt === null) return v("info", "w_no_data");
-    const p = { lwt: r1(L.lwt), ret: r1(L.ret), dt: r1(L.dt), max: S.lwtMax, min: S.lwtMin, buh: S.buhAbove };
+    const DT = dtLimits(S);
+    const p = { lwt: r1(L.lwt), ret: r1(L.ret), dt: r1(L.dt), max: S.lwtMax, min: S.lwtMin, buh: S.buhAbove,
+      target: DT.design, low: DT.low, high: DT.high };
     if (S.lwtMax !== null && L.lwt > S.lwtMax) return v("bad", "w_over_max", p);
     if (!L.running) return v("info", "w_idle", p);
     if (L.defrost) return v("info", "w_defrost", p);
     if (L.mode === "dhw") return v("info", "w_dhw", p);
     if (S.buhAbove !== null && L.lwt > S.buhAbove) return v("watch", "w_buh_zone", p);
     if (L.dt === null) return v("info", "w_no_dt", p);
-    if (L.dt < LIMITS.dt_low_k) return v("watch", "w_dt_low", p);
-    if (L.dt > LIMITS.dt_high_k) return v("watch", "w_dt_high", p);
+    if (L.dt < DT.low) return v("watch", "w_dt_low", p);
+    if (L.dt > DT.high) return v("watch", "w_dt_high", p);
     return v("good", "w_ok", p);
   }
 
@@ -102,14 +111,15 @@
 
   function hydraulics(m) {
     const L = m.live, S = m.specs;
-    const design = L.kw !== null && L.kw > 0 ? (L.kw / (4.186 * LIMITS.dt_design_k)) * 60 : null;
-    const p = { flow: r1(L.flow), min: S.minFlow, design: r1(design), dt: r1(L.dt) };
+    const DT = dtLimits(S);
+    const design = L.kw !== null && L.kw > 0 ? (L.kw / (4.186 * DT.design)) * 60 : null;
+    const p = { flow: r1(L.flow), min: S.minFlow, design: r1(design), dt: r1(L.dt), target: DT.design };
     if (!L.running) return v("info", "h_idle", p);
     if (L.flow === null) return v("info", "h_no_sensor", p);
     if (L.flow <= 0) return v("bad", "h_no_flow", p);
     if (S.minFlow !== null && L.flow < S.minFlow) return v("bad", "h_below_min", p);
-    if (L.mode === "heating" && L.dt !== null && L.dt > LIMITS.dt_high_k) return v("watch", "h_low", p);
-    if (L.mode === "heating" && L.dt !== null && L.dt < LIMITS.dt_low_k) return v("watch", "h_high", p);
+    if (L.mode === "heating" && L.dt !== null && L.dt > DT.high) return v("watch", "h_low", p);
+    if (L.mode === "heating" && L.dt !== null && L.dt < DT.low) return v("watch", "h_high", p);
     return v("good", "h_ok", p);
   }
 
@@ -299,6 +309,6 @@
     return a;
   }
 
-  Object.assign(P, { assess: { LIMITS, RANK, assess, worst, heatingSteady } });
+  Object.assign(P, { assess: { LIMITS, RANK, assess, worst, heatingSteady, dtLimits } });
   if (window.__dcmEffBoot) window.__dcmEffBoot();
 })();

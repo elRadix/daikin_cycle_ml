@@ -164,7 +164,10 @@ def test_native_garbage_falls_back(garbage):
 def test_huge_native_does_not_crash():
     c = _mk_coord(attrs={"Stats: Compressor run today (min)": 1e10})
     s = _mk_snap()
-    assert S._value_runtime_compressor_today_s(s, c) == int(round(1e10 * 60))
+    # #466: more minutes than today has -> the ESP counter is not daily;
+    # the computed value is used (no crash, no absurd runtime).
+    v = S._value_runtime_compressor_today_s(s, c)
+    assert 0 <= v <= 86400
 
 
 def test_massive_cycle_overlap_bounded():

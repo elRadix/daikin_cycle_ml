@@ -294,6 +294,8 @@
         scop55: num(specs.scop_w55), buhAbove: num(specs.buh_above_c), defrostBelow: num(specs.defrost_below_c),
         offAbove: num(specs.off_above_c), kw: num(specs.kw), points: Array.isArray(specs.points) ? specs.points : [],
         minFlow: num(config && config.min_flow),
+        /* #466: target ΔT of this installation (card option target_dt, 2-15 K) */
+        dtTarget: (() => { const d = num(config && config.target_dt); return d !== null && d >= 2 && d <= 15 ? d : 5; })(),
       },
       live,
       win: windowed(buf, now, range), day: windowed(buf, now, "24h"),

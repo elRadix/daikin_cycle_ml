@@ -71,9 +71,9 @@ ALERTS = {
     },
     "defrost_excessive": {
         "title": "Veel ontdooiingen",
-        "what": "{count_7d} ontdooiingen in de laatste 7 dagen (grens {threshold}).",
-        "what_plain": "Veel ontdooiingen in de laatste 7 dagen.",
-        "todo": "Normaal bij vochtig weer tussen ongeveer −5 en +7 °C, mist of motregen, vaak meerdere keren per uur draaien. Houd sneeuw en bladeren weg van de unit en zorg dat smeltwater weg kan (krab nooit ijs weg). Blijft er ijs op de unit of blijven de ontdooiingen zo vaak bij droog weer, vraag dan je installateur.",
+        "what": "{count_7d} ontdooiingen in de laatste 7 dagen; tot {threshold} is normaal bij dit weer en {run_h_7d} u draaien.",
+        "what_plain": "Meer ontdooiingen dan normaal voor het weer in de laatste 7 dagen.",
+        "todo": "Vaak ontdooien is normaal bij vochtig weer tussen ongeveer −5 en +7 °C, maar niet bij 10 °C of warmer. Houd sneeuw en bladeren weg van de unit, zorg dat smeltwater weg kan en dat de koude lucht niet terug de unit in blaast (krab nooit ijs weg). Blijft er ijs op de unit of blijft dit terugkomen, vraag dan je installateur.",
     },
     "buh_excessive": {
         "title": "Elektrische bijverwarming vaak gebruikt",

@@ -2,7 +2,33 @@
 
 ## [Unreleased]
 
+### Fixed
+- "Today" counters far too high (110 starts, 531 h runtime, 2 h 20
+  backup heater, 33 defrosts at 14:24): ESPAltherma's own today counters
+  reset at midnight only when the ESP has a clock, and count since boot
+  otherwise. When the run or backup-heater minutes exceed the minutes
+  since midnight, the integration uses its own counts for all four; the
+  sensors show `native_daily: false` (#466)
+- Native cards on a wide desktop screen: graphs were scaled up about 3x
+  with very thick lines and large text; they are now drawn at the card's
+  own width. Efficiency card 1.1.0, Daily summary card 1.1.0 (#466)
+
+### Added
+- Efficiency card option **Target ΔT** (`target_dt`, default 5 K): the
+  ΔT your installer set, used by the flow graph and its verdicts. Units
+  on the graph axes and a full legend for the flow graph; the time axis
+  starts at the first sample when the history is shorter than the range.
+  Daily summary Trends show the last value and the range (#466)
+
 ### Changed
+- "Many defrosts" now follows the weather and the running time: the
+  weekly limit is the running hours of the last 7 days times the highest
+  plausible defrost rate for the outdoor temperature of each hour (up to
+  2 per hour around 0 °C, 0.1 per hour at 10 °C or warmer), plus 50 %,
+  at least 10. It counts real defrost events instead of runs that
+  contained a defrost. A healthy unit in a humid winter week no longer
+  trips the fixed limit of 30, while defrosts on warm days are flagged.
+  Rates reviewed by an HVAC engineer (Part of #463)
 - Alert messages rewritten for home owners, in English, Dutch and French
   alike: each alert says whether you need to do something (no action
   needed / keep an eye on it / action needed), what happened with the
@@ -27,6 +53,14 @@
   (Part of #463)
 
 ### Tests
+- `test_466_native_today_not_daily` (replay of the reported counters,
+  fails on the old code) and `test_466_native_cards` (target ΔT in EN /
+  NL / FR, chart width, units and legend, axis start, trend numbers)
+  (#466)
+- `test_463_defrost_limit`: rate bands, humid winter week (old limit
+  fired, new does not), too many for the weather, warm days, cold night
+  inside a mild day, cooling ignored, missing data, fallback to runs with
+  a defrost, coordinator wiring and option override (Part of #463)
 - `test_463_alert_messages`: same keys and placeholders in en / nl / fr,
   every alert rendered in every language without placeholders, None or
   jargon, at most four facts, language resolution, Telegram escaping,

@@ -1,5 +1,24 @@
 # Changelog · Efficiency card (native)
 
+## [1.1.0] - 2026-11-21
+
+### Added
+
+- Card option **Target ΔT** (`target_dt`, 2-15 K, default 5): the ΔT your
+  installer set. The flow graph's target line, the verdicts (low below
+  60 % of it, high above it + 3 K) and the help use it. A 3 K
+  installation was flagged against a fixed 5 K before (#466)
+- Units above the graph axes (°C, rps / W, l/min / ΔT K) and a legend
+  entry for every line of the flow graph, with the side of its axis
+
+### Fixed
+
+- On a wide desktop card the graphs were scaled up about 3x, with very
+  thick lines and large text. They are now drawn at the card's own width
+  and redraw when the card resizes (#466)
+- When the history starts inside the chosen time range, the time axis
+  starts there instead of squeezing the data against the right edge
+
 ## [1.0.1] - 2026-11-21
 
 ### Fixed

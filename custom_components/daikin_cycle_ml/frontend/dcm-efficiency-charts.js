@@ -7,7 +7,15 @@
   "use strict";
 
   const P = (window.DaikinEfficiencyCardParts = window.DaikinEfficiencyCardParts || {});
-  const W = 360;
+  /* #466: charts are drawn at the card's own width (setWidth), so text and
+     lines keep their size on a wide desktop card instead of being scaled up
+     from a 360-unit drawing. 360 under Node and before the first layout. */
+  let W = 360;
+  function setWidth(px) {
+    const w = Math.round(Number(px));
+    W = isFinite(w) && w > 0 ? Math.max(300, Math.min(1400, w)) : 360;
+    return W;
+  }
   const C = {
     lwt: "#E53935", ret: "#FB8C00", target: "#8E24AA", rps: "#1E88E5", power: "#43A047",
     flow: "#0097A7", dt: "#F4511E", room: "#E53935", roomSp: "#8E24AA", out: "#1E88E5",
@@ -35,8 +43,15 @@
   }
 
   /* line chart over time: series [{get, color, axis, dash, label}] */
-  function lineChart(win, opts, fmtTime) {
-    const h = opts.height || 150, top = 10, bottom = h - 18, left = 30, right = W - (opts.yR ? 30 : 6);
+  function lineChart(win0, opts, fmtTime) {
+    /* #466: a little taller on wide cards; units above the axes; when the
+       history starts inside the window, the time axis starts there too */
+    const units = !!((opts.yL && opts.yL.unit) || (opts.yR && opts.yR.unit));
+    const h = Math.round((opts.height || 150) * Math.min(1.6, Math.max(1, W / 360)));
+    const top = units ? 18 : 10, bottom = h - 18, left = 30, right = W - (opts.yR ? 30 : 6);
+    const first = win0.samples.length ? win0.samples[0].t : null;
+    const win = first !== null && first - win0.from > 0.05 * (win0.to - win0.from) && first < win0.to - 60
+      ? Object.assign({}, win0, { from: first }) : win0;
     const x = (t) => left + ((t - win.from) / Math.max(1, win.to - win.from)) * (right - left);
     const ranges = {};
     for (const ax of ["l", "r"]) {
@@ -76,6 +91,8 @@
         s += `<text x="${right + 3}" y="${(yy + 3).toFixed(1)}" class="tick" text-anchor="start">${esc(opts.yR.fmt ? opts.yR.fmt(vr) : Math.round(vr))}</text>`;
       }
     }
+    if (opts.yL && opts.yL.unit) s += `<text x="${left - 3}" y="9" class="tick unit" text-anchor="end">${esc(opts.yL.unit)}</text>`;
+    if (opts.yR && opts.yR.unit) s += `<text x="${right + 3}" y="9" class="tick unit" text-anchor="start">${esc(opts.yR.unit)}</text>`;
     for (const tk of timeTicks(win.from, win.to, fmtTime)) {
       const xx = x(tk.t), anc = xx > right - 18 ? "end" : xx < left + 18 ? "start" : "middle";
       s += `<text x="${xx.toFixed(1)}" y="${h - 5}" class="tick" text-anchor="${anc}">${esc(tk.label)}</text>`;
@@ -221,6 +238,6 @@
     return `<div class="gauge"><span style="width:${pct.toFixed(1)}%;background:${color}"></span>${mk}</div>`;
   }
 
-  Object.assign(P, { charts: { W, C, lineChart, curveChart, strip24, copBars, gauge, niceRange, timeTicks } });
+  Object.assign(P, { charts: { get W() { return W; }, setWidth, C, lineChart, curveChart, strip24, copBars, gauge, niceRange, timeTicks } });
   if (window.__dcmEffBoot) window.__dcmEffBoot();
 })();
