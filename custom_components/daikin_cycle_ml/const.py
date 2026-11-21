@@ -365,9 +365,17 @@ REQUIRED_ATTRIBUTES = [
 # open / close a run and classify its mode; BUH steps are tracked
 # per-tick by _tick_buh_and_defrost and do not drive detection, so a
 # model without a backup heater keeps detecting cycles.
+# Discussion #454 (EDLA monobloc, ESPAltherma v1): "I/U operation mode"
+# and "Water pump operation" are commented out in several ESPAltherma
+# definitions. Both have a fallback in the detector ("Operation Mode"
+# classifies the mode; a missing pump state never blocks a run), so their
+# absence is reported (repair, wizard count) but does not freeze detection.
 DETECTION_CRITICAL_ATTRIBUTES = [
     a for a in REQUIRED_ATTRIBUTES
-    if a not in (ATTR_BUH_STEP1, ATTR_BUH_STEP2)
+    if a not in (
+        ATTR_BUH_STEP1, ATTR_BUH_STEP2,
+        ATTR_IU_OPERATION_MODE, ATTR_WATER_PUMP_OPERATION,
+    )
 ]
 
 # --- v1.20.0 #281: consumed attributes (runtime transparency contract) ---

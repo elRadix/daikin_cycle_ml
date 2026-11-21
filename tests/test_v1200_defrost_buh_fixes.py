@@ -1,4 +1,6 @@
 """v1.20.0 RED-phase tests for defrost/BUH fixes (#280).
+# #454: freeze examples use Inlet water temp.(R4T); the pump state and I/U
+# operation mode have detector fallbacks and no longer freeze detection.
 
 R634/R635/R681: production-derived reproduction tests.
 Bug 5 is confirmed via issue #280 symptom (ed-vanleeuwen, 2026-11-07):
@@ -90,7 +92,7 @@ async def test_freeze_gate_does_not_block_defrost_tick(monkeypatch):
     monkeypatch.setattr(f"{_COORD_MOD}.read", lambda *a, **kw: dict(partial_attrs))
     monkeypatch.setattr(
         f"{_COORD_MOD}.missing_required",
-        lambda a: [ATTR_BUH_STEP1, ATTR_BUH_STEP2, "Water pump operation"],
+        lambda a: [ATTR_BUH_STEP1, ATTR_BUH_STEP2, "Inlet water temp.(R4T)"],
     )
     c._last_runtime_tick_ts = 1000.0
     await c._async_update_data()
@@ -104,7 +106,7 @@ async def test_freeze_gate_still_blocks_detector_update(monkeypatch):
     """R600: freeze gate must still protect detector from partial attrs."""
     c = _bare()
     monkeypatch.setattr(f"{_COORD_MOD}.read", lambda *a, **kw: {})
-    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda a: ["Water pump operation"])
+    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda a: ["Inlet water temp.(R4T)"])
     await c._async_update_data()
     c.detector.update.assert_not_called()
 

@@ -101,8 +101,11 @@ def test_detection_critical_excludes_buh_steps():
     assert _detection_blocked([]) is False
     # a model without backup heater keeps detecting
     assert _detection_blocked([ATTR_BUH_STEP1, ATTR_BUH_STEP2]) is False
-    # the #109 guard still holds for a partial publish
-    assert _detection_blocked(["Water pump operation"]) is True
+    # the #109 guard still holds for a partial publish of a label the
+    # detector needs (#454: the pump state and I/U mode have fallbacks)
+    assert _detection_blocked(["Operation Mode"]) is True
+    assert _detection_blocked(["Inlet water temp.(R4T)"]) is True
+    assert _detection_blocked(["Water pump operation", "I/U operation mode"]) is False
 
 
 async def test_435_unit_without_dhw_detects_heating_run(hass):
@@ -132,9 +135,42 @@ async def test_435_unit_without_buh_steps_detects(hass):
 
 
 async def test_435_partial_publish_still_freezes(hass):
-    attrs = {k: v for k, v in ATTRS_435.items() if k != "Water pump operation"}
+    # #454: the pump state has a fallback; a missing R4T still freezes
+    attrs = {k: v for k, v in ATTRS_435.items() if k != "Inlet water temp.(R4T)"}
     attrs[ATTR_INV_FREQUENCY_RPS] = 16
     coord = DaikinCycleMLCoordinator(hass, _entry(hass))
     hass.states.async_set(SRC, "unknown", attrs)
     await coord._async_update_data()
     assert coord.detector.state == "idle"
+
+
+# Discussion #454: EDLA09DA3V3 monobloc, heat only, ESPAltherma v1 with
+# "I/U operation mode" and "Water pump operation" not enabled in the
+# definition. Values from the reported source attributes.
+ATTRS_454 = {
+    "Operation Mode": "Heating", "Defrost Operation": "OFF", "Low noise control": "OFF",
+    "Error type": "Normal", "Error Code": " 0", "R1T-Outdoor air temp.": 8.1,
+    "Heat exchanger mid-temp.(R5T)": 2.3, "INV primary current (A)": 3.3,
+    "INV secondary current (A)": 7.9, "INV frequency (rps)": 22, "Fan 1 (step)": 8,
+    "Silent Mode": "OFF", "DHW setpoint": 48.4, "LW setpoint (main)": 31.9,
+    "3way valve(On:DHW_Off:Space)": "OFF", "Leaving water temp. before BUH (R1T)": 33.8,
+    "Leaving water temp. after BUH (R2T)": 33.9, "Inlet water temp.(R4T)": 29.8,
+    "DHW tank temp. (R5T)": 44, "Indoor ambient temp. (R1T)": 20.7, "Reheat ON/OFF": "OFF",
+    "Powerful DHW Operation. ON/OFF": "OFF", "Space heating Operation ON/OFF": "ON",
+    "LW setpoint (add)": 28.3, "RT setpoint": 20.5, "Flow sensor (l/min)": 12.5,
+    "Water pressure": 1.3, "Water pump signal (0:max-100:stop)": 59,
+}
+
+
+async def test_454_edla_v1_without_iu_mode_and_pump_detects(hass):
+    coord = DaikinCycleMLCoordinator(hass, _entry(hass))
+    hass.states.async_set(SRC, "unknown", ATTRS_454)
+    data = await coord._async_update_data()
+    # still reported, so the user can enable them in ESPAltherma
+    assert set(data.missing_attrs) == {
+        "I/U operation mode", "Water pump operation", ATTR_BUH_STEP1, ATTR_BUH_STEP2,
+    }
+    # but detection runs: 22 rps is a running compressor, mode from Operation Mode
+    assert coord.detector.state == "running"
+    assert data.state == "running"
+    assert data.mode == "heating"

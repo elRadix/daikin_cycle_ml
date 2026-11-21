@@ -1,4 +1,6 @@
 """v1.12.1: source gate tests for #109 restart phantom short_off."""
+# #454: freeze examples use Inlet water temp.(R4T); the pump state and I/U
+# operation mode have detector fallbacks and no longer freeze detection.
 
 from __future__ import annotations
 
@@ -47,10 +49,10 @@ def _bare() -> DaikinCycleMLCoordinator:
 async def test_detector_not_updated_when_attrs_missing(monkeypatch):
     c = _bare()
     monkeypatch.setattr(f"{_COORD_MOD}.read", lambda *a, **kw: {})
-    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda attrs: ["Water pump operation"])
+    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda attrs: ["Inlet water temp.(R4T)"])
     snap = await c._async_update_data()
     c.detector.update.assert_not_called()
-    assert snap.missing_attrs == ["Water pump operation"]
+    assert snap.missing_attrs == ["Inlet water temp.(R4T)"]
 
 
 @pytest.mark.asyncio
@@ -76,7 +78,7 @@ async def test_detector_updated_when_attrs_complete(monkeypatch):
 async def test_snap_state_preserved_during_missing_attrs(monkeypatch):
     c = _bare()
     monkeypatch.setattr(f"{_COORD_MOD}.read", lambda *a, **kw: {})
-    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda attrs: ["Water pump operation"])
+    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda attrs: ["Inlet water temp.(R4T)"])
     snap = await c._async_update_data()
     assert snap.state == "running"
     assert snap.mode == "heating"
@@ -87,7 +89,7 @@ async def test_snap_state_preserved_during_missing_attrs(monkeypatch):
 async def test_process_new_cycle_not_called_when_attrs_missing(monkeypatch):
     c = _bare()
     monkeypatch.setattr(f"{_COORD_MOD}.read", lambda *a, **kw: {})
-    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda attrs: ["Water pump operation"])
+    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda attrs: ["Inlet water temp.(R4T)"])
     await c._async_update_data()
     c._process_new_cycle.assert_not_called()
 
@@ -96,7 +98,7 @@ async def test_process_new_cycle_not_called_when_attrs_missing(monkeypatch):
 async def test_tick_energy_not_called_when_attrs_missing(monkeypatch):
     c = _bare()
     monkeypatch.setattr(f"{_COORD_MOD}.read", lambda *a, **kw: {})
-    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda attrs: ["Water pump operation"])
+    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda attrs: ["Inlet water temp.(R4T)"])
     await c._async_update_data()
     c._tick_energy.assert_not_called()
 
@@ -105,7 +107,7 @@ async def test_tick_energy_not_called_when_attrs_missing(monkeypatch):
 async def test_last_success_ts_updated_during_missing_attrs(monkeypatch):
     c = _bare()
     monkeypatch.setattr(f"{_COORD_MOD}.read", lambda *a, **kw: {})
-    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda attrs: ["Water pump operation"])
+    monkeypatch.setattr(f"{_COORD_MOD}.missing_required", lambda attrs: ["Inlet water temp.(R4T)"])
     snap = await c._async_update_data()
     assert snap.last_success_ts > 0.0
     assert snap.last_sample_ts == snap.last_success_ts
