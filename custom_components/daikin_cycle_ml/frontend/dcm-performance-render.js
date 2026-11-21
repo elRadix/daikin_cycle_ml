@@ -18,6 +18,7 @@
       room_none: "Add the max heat for this condition in the model profile to see the kW left.",
       miss_hc: "Max heat unknown · add it in the model profile", miss_el: "Needs max heat and spec COP", miss_f: "Speed range not known yet",
       nearest: "Nearest point: {from} · add a point closer to {out} °C / {lwt} °C",
+      nominal: "Against the nominal capacity ({kw} kW) · adjust it in the model profile",
       v_idle: "The compressor is off. The dials show the next run.", v_defrost: "Defrosting: the loads return when heating resumes.",
       v_no_limits: "No limits known for this model yet. Add max heat points or the compressor range in the model profile.",
       v_at_limit: "At its limit: no headroom left before the backup heater has to help. A lower water temperature (heating curve) gives back capacity and COP.",
@@ -40,6 +41,7 @@
       room_none: "Vul het maximale vermogen voor deze situatie in het modelprofiel in om de resterende kW te zien.",
       miss_hc: "Max. vermogen onbekend · vul het in het modelprofiel in", miss_el: "Vraagt max. vermogen en spec-COP", miss_f: "Toerenbereik nog niet bekend",
       nearest: "Dichtstbijzijnd punt: {from} · voeg een punt dichter bij {out} °C / {lwt} °C toe",
+      nominal: "Tegenover het nominale vermogen ({kw} kW) · aan te passen in het modelprofiel",
       v_idle: "De compressor staat uit. De meters tonen de volgende run.", v_defrost: "Ontdooien: de lasten komen terug als het verwarmen hervat.",
       v_no_limits: "Nog geen grenzen bekend voor dit model. Vul maximaal-vermogenpunten of het compressorbereik in het modelprofiel in.",
       v_at_limit: "Op zijn grens: geen reserve meer voordat de backup-heater moet bijspringen. Een lagere watertemperatuur (stooklijn) geeft vermogen en COP terug.",
@@ -62,6 +64,7 @@
       room_none: "Ajoutez la puissance max. pour cette condition dans le profil du modèle pour voir les kW restants.",
       miss_hc: "Puissance max. inconnue · ajoutez-la dans le profil du modèle", miss_el: "Demande la puissance max. et le COP de la fiche", miss_f: "Plage de vitesse pas encore connue",
       nearest: "Point le plus proche : {from} · ajoutez un point plus proche de {out} °C / {lwt} °C",
+      nominal: "Par rapport à la puissance nominale ({kw} kW) · modifiable dans le profil du modèle",
       v_idle: "Le compresseur est à l'arrêt. Les cadrans montrent le prochain cycle.", v_defrost: "Dégivrage : les charges reviennent à la reprise du chauffage.",
       v_no_limits: "Aucune limite connue pour ce modèle. Ajoutez des points de puissance max. ou la plage du compresseur dans le profil du modèle.",
       v_at_limit: "À sa limite : plus de réserve avant que l'appoint électrique doive aider. Une eau moins chaude (loi d'eau) rend de la puissance et du COP.",
@@ -151,10 +154,11 @@
     const sub = {
       thermal: L.thMax !== null ? `${f.n1(l.heat)} / ${f.n1(L.thMax)} kW` : `${f.n1(l.heat)} kW`,
       electrical: L.elMax !== null ? `${f.n2(l.power === null ? null : l.power / 1000)} / ${f.n2(L.elMax)} kW` : `${f.n2(l.power === null ? null : l.power / 1000)} kW`,
-      compressor: `${f.n0(l.rps)} rps · ${f.n0(L.fmin)}–${f.n0(L.fmax)}`,
+      compressor: L.fmin !== null && L.fmax !== null ? `${f.n0(l.rps)} rps · ${f.n0(L.fmin)}–${f.n0(L.fmax)}` : `${f.n0(l.rps)} rps`,
     };
     const note = {
-      thermal: L.thMax === null ? t.miss_hc : !L.thExact ? f.fill(t.nearest, { from: L.thFrom.join(", "), out: cond.out, lwt: cond.lwt }) : "",
+      thermal: L.thMax === null ? t.miss_hc : L.thNominal ? f.fill(t.nominal, { kw: f.n0(L.kw) })
+        : !L.thExact ? f.fill(t.nearest, { from: L.thFrom.join(", "), out: cond.out, lwt: cond.lwt }) : "",
       electrical: L.elMax === null ? t.miss_el : "",
       compressor: L.fmin === null || L.fmax === null ? t.miss_f : "",
     };

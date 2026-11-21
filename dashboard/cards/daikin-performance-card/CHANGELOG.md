@@ -1,5 +1,16 @@
 # Changelog · Performance card (native)
 
+## [1.0.1] - 2026-11-21
+
+### Fixed
+
+- The maximum heat comes from the datasheet when it lists full-capacity
+  points (ERLA, EDLA, ERGA, EBLA, EBLQ, EVLQ), otherwise from the nominal
+  kW at A7/W35, so the thermal and electrical dials work without typing
+  anything (integration fix, #467). On a part-load datasheet (Hydrosplit
+  EPRA) the thermal dial says it compares against the nominal capacity.
+- Compressor dial without a known speed range shows only the speed.
+
 ## [1.0.0] - 2026-11-21
 
 ### Added

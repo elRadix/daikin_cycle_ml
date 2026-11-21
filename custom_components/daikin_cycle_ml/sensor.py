@@ -166,6 +166,7 @@ def _attrs_hp_specs(
         "rps_min": ds.get("rps_min"),
         "rps_max": ds.get("rps_max"),
         "value_sources": dict(ds.get("value_sources") or {}),
+        "hmax_basis": ds.get("hmax_basis"),
         "profile": dict(ds.get("profile") or {}),
         "rps_learned": dict(getattr(c, "rps_learned", None) or {}) if c is not None else {},
     }

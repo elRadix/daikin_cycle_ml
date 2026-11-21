@@ -80,6 +80,13 @@ def _with_profile(case: dict) -> dict:
                 rps_learned={"rps_min": 18, "rps_max": 90, "runs": 40})
 
 
+def _datasheet_only(case: dict) -> dict:
+    eid = next(k for k, v in case["entities"].items() if v["translation_key"] == "hp_specs")
+    merged = mp.apply_profile(dict(case["states"][eid]["attributes"]), None, "epra12eav3")
+    return _set(case, "hp_specs", points=merged["points"], value_sources=merged["value_sources"],
+                hmax_basis=merged["hmax_basis"])
+
+
 def _cases() -> dict:
     c = {lang: _with_profile(_case(lang)) for lang in ("en", "nl", "fr")}
     c["plain"] = _case("en")                                   # datasheet only: no max heat, no speed range
@@ -93,6 +100,7 @@ def _cases() -> dict:
     c["primary_el"] = {**_with_profile(_case("en")), "config": {"primary_load": "electrical", "title": "Mine"}}
     c["cold"] = _set(_with_profile(_case("en")), "thermal_power_live", outdoor_c=-12, lwt_c=58)
     c["none"] = {**_case("en"), "states": {}, "entities": {}}
+    c["datasheet_only"] = _datasheet_only(_case("en"))     # #467: hp_specs as the integration now writes it, no profile
     return c
 
 
@@ -328,3 +336,16 @@ def test_card_on_phone_tablet_and_desktop():
         assert r["stub"] == {"primary_load": "compressor"} and r["size"] == 8 and r["grid"]["columns"] == 12
         assert r["schema"] == ["device_id", "title", "primary_load", "language"]
         assert r["label"] == "Big dial|zz" and r["changed"] == {"primary_load": "electrical"}
+
+
+def test_datasheet_only_install_gets_a_thermal_load(out):
+    """#467: an EPRA12 (part-load datasheet) gets its nominal 12 kW at A7/W35 as
+    maximum heat; at 5.2 °C / 33 °C that is the nearest point, within 3 K."""
+    r = out["cases"]["datasheet_only"]
+    assert r["limits"]["thMax"] == pytest.approx(12.0)
+    assert r["loads"]["thermal"] == pytest.approx(5.02 / 12 * 100)
+    # the nominal capacity is the reference; the card says so
+    assert r["limits"]["thNominal"] is True
+    assert "Against the nominal capacity (12 kW)" in _text(r["html"])
+    assert "32 rps ·" not in _text(r["html"])                       # no range yet: just the speed
+    assert out["cases"]["en"]["limits"]["thNominal"] is False      # the user's own values

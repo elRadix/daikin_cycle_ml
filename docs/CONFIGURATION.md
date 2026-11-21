@@ -779,6 +779,14 @@ Leave a field empty to use the datasheet (or the learned value).
 | Compressor minimum / maximum speed | `rps_min` / `rps_max` | learned from your runs (5th percentile of run averages, 95th percentile of run peaks, steady heating and hot-water runs of 20 min or more over 60 days, after 20 runs) |
 | Datasheet points | list of `t_out` (outdoor °C), `t_lwc` (water °C), `hmax` (maximum heat kW, from Daikin's capacity tables; not the datasheet `hc`, which is the capacity at the EN 14511 rating point), `cop` | datasheet |
 
+Maximum heat from the datasheet: when the model's datasheet lists
+full-capacity points (its A7/W35 capacity is at least 80 % of the nominal
+kW, for example the ERLA11: 10.6 of 11 kW), those capacities are used as
+the maximum heat. When it lists part-load rating points (Hydrosplit EPRA:
+41-77 %), the nominal capacity (the number in the model name: EPRA12 =
+12 kW) is used as the maximum heat at A7/W35. Every bundled model has at
+least one maximum; your own values always win.
+
 Example: the datasheet gives the COP at A-7/W55 but not the maximum heat.
 Add it as a point:
 

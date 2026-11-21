@@ -31,7 +31,10 @@ def test_apply_without_profile_marks_datasheet_sources():
     out = mp.apply_profile(DS, None, "erla11dav3")
     assert out["value_sources"] == {"kw": "datasheet", "nom_cop": "datasheet", "lwt_min": "datasheet", "lwt_max": "datasheet"}
     a7 = next(p for p in out["points"] if p["label"] == "A7/W35")
-    assert a7["src"] == {"cop": "datasheet"}   # the rating-point hc is data, not a limit
+    # #467: DS lists 10.6 kW at A7/W35 for an 11 kW unit (96 %), a full-capacity
+    # table: its hc is the maximum heat, source datasheet
+    assert a7["src"] == {"cop": "datasheet", "hmax": "datasheet"} and a7["hmax"] == 10.6
+    assert out["hmax_from_datasheet"] is True and out["hmax_basis"] == "datasheet"
     assert out["profile"]["applied"] is False
     assert len(out["points"]) == 2           # the point without temperatures is dropped
     assert "src" not in DS["points"][0]       # the bundled entry is never changed
@@ -46,7 +49,7 @@ def test_manual_values_fill_and_override_per_value():
     pts = {(p["t_out"], p["t_lwc"]): p for p in out["points"]}
     assert pts[(-7.0, 55.0)]["hmax"] == 7.2 and pts[(-7.0, 55.0)]["src"] == {"cop": "datasheet", "hmax": "manual"}
     assert pts[(7.0, 35.0)]["cop"] == 5.0 and pts[(7.0, 35.0)]["hc"] == 10.6
-    assert pts[(7.0, 35.0)]["src"] == {"cop": "manual"}
+    assert pts[(7.0, 35.0)]["src"] == {"cop": "manual", "hmax": "datasheet"}   # #467 full-capacity table
     assert pts[(-7.0, 35.0)]["label"] == "A-7/W35" and pts[(-7.0, 35.0)]["src"] == {"hmax": "manual", "cop": "manual"}
     assert out["kw"] == 11.2 and out["value_sources"]["kw"] == "manual"
     assert out["rps_max"] == 90 and out["value_sources"]["rps_max"] == "manual"   # manual beats learned
@@ -301,3 +304,43 @@ async def test_configure_step_explains_invalid_values(hass, monkeypatch):
     assert keys["kw"].description["suggested_value"] is None      # other model's value not shown
     res = await flow.async_step_model_profile({"kw": 11.0})
     assert res["type"] == "create_entry"
+
+
+# ---------- maximum heat from the datasheet, for every model ----------
+
+def test_full_capacity_table_rule():
+    assert mp.full_capacity_table({"kw": 11, "points": [{"t_out": 7, "t_lwc": 35, "hc": 10.6}]}) is True
+    assert mp.full_capacity_table({"kw": 12, "points": [{"t_out": 7, "t_lwc": 35, "hc": 6.17}]}) is False
+    assert mp.full_capacity_table({"kw": 8, "points": [{"t_out": 2, "t_lwc": 35, "hc": 7.0}]}) is True   # no A7/W35: largest hc
+    assert mp.full_capacity_table({"kw": None, "points": [{"t_out": 7, "t_lwc": 35, "hc": 6}]}) is False
+    assert mp.full_capacity_table({"kw": 8, "points": [{"t_out": 7, "t_lwc": 35}]}) is False
+
+
+def test_part_load_datasheet_uses_the_nominal_kw_at_a7_w35():
+    epra = {"kw": 12, "nom_cop": 4.9, "points": [{"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 4.92, "hc": 6.17},
+                                                  {"label": "A-7/W55", "t_out": -7, "t_lwc": 55, "cop": 2.05, "hc": 2.55}]}
+    out = mp.apply_profile(epra, None, "epra12eav3")
+    pts = {(p["t_out"], p["t_lwc"]): p for p in out["points"]}
+    assert out["hmax_from_datasheet"] is False and out["hmax_basis"] == "nominal"
+    assert pts[(7.0, 35.0)]["hmax"] == 12 and pts[(7.0, 35.0)]["src"]["hmax"] == "datasheet"
+    assert "hmax" not in pts[(-7.0, 55.0)]               # the part-load 2.55 kW is not a maximum
+    no_a7 = mp.apply_profile({"kw": 9, "points": []}, None, "m")
+    assert no_a7["points"] == [{"label": "A7/W35", "t_out": 7.0, "t_lwc": 35.0, "src": {"hmax": "datasheet"}, "hmax": 9.0}]
+    mine = mp.apply_profile(epra, mp.edit({}, "epra12eav3", points=[{"t_out": 7, "t_lwc": 35, "hmax": 11.5}]), "epra12eav3")
+    a7 = next(p for p in mine["points"] if p["t_out"] == 7)
+    assert a7["hmax"] == 11.5 and a7["src"]["hmax"] == "manual"   # the user's value wins
+
+
+def test_every_bundled_model_has_a_maximum_heat():
+    import json
+    from pathlib import Path
+
+    data = json.loads((Path(mp.__file__).resolve().parent.parent / "data" / "datasheets.json").read_text())
+    models = data.get("models", data)
+    for key, entry in models.items():
+        if not isinstance(entry, dict) or "points" not in entry:
+            continue
+        out = mp.apply_profile(entry, None, key)
+        assert any(p.get("hmax") for p in out["points"]), key
+    erla = mp.apply_profile(models["erla11dav3"], None, "erla11dav3")
+    assert sum(1 for p in erla["points"] if p.get("hmax")) == 9           # the reported ERLA11: all 9 points

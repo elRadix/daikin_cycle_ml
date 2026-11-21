@@ -20,7 +20,7 @@
 (function () {
   "use strict";
 
-  const CARD_VERSION = "1.0.0";
+  const CARD_VERSION = "1.0.1";
   const TAG = "daikin-performance-card";
   const EDITOR_TAG = "daikin-performance-card-editor";
   const PARTS = ["model", "render"];

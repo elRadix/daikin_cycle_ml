@@ -126,8 +126,9 @@ async def test_setup_options_unload_after_wizard(hass, model):
         a7 = [p for p in specs.attributes.get("points") or [] if p["label"] == "A7/W35"]
         if any(p["label"] == "A7/W35" for p in ds.get("points", [])):
             assert a7 and a7[0]["cop"] == ds["nom_cop"]
-        else:  # unverified, no curve (e.g. epra04eav3): loads without points
-            assert a7 == []
+        else:  # unverified, no curve (e.g. epra04eav3): loads without COP points
+            # #467: only the nominal kW as maximum heat at A7/W35, no COP
+            assert all("cop" not in p and p["hmax"] == ds["kw"] for p in a7)
 
     # options flow round-trip keeps the model and applies the change
     o = await hass.config_entries.options.async_init(entry.entry_id)

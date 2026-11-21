@@ -77,10 +77,13 @@ Home Assistant). It starts from the datasheet of the model chosen in setup:
 - **Compressor minimum / maximum**: learned from your own runs after 20
   steady runs; type a value to set your own.
 - **Datasheet points**: per outdoor and water temperature the **maximum
-  heat** (`hmax`, from Daikin's capacity tables) and the **spec COP**. A
-  dashed red box is missing. The datasheet's own heating capacity is the
-  capacity at the EN 14511 rating point (often part load), so it is not
-  used as a maximum.
+  heat** (`hmax`) and the **spec COP**. A dashed red box is missing.
+  When your model's datasheet lists full-capacity points (A7/W35 capacity
+  at least 80 % of the nominal kW, for example ERLA, EDLA, ERGA, EBLA),
+  they fill the maximum heat. When it lists part-load rating points
+  (Hydrosplit EPRA), the nominal capacity (EPRA12 = 12 kW) is used at
+  A7/W35 and the dial says so; add colder points from Daikin's capacity
+  tables if you want more precision.
 - **Add point** for a condition the datasheet does not list.
 
 Every value shows its source: **Datasheet**, **Learned** or **Manual**.
@@ -90,8 +93,8 @@ datasheet, the normalised COP, alerts and the other cards.
 
 ## Troubleshooting
 
-- **All dials "—"**: no maximum heat and no compressor range yet. Add the
-  maximum heat for a few points, or wait for 20 steady runs.
+- **Compressor dial "—"**: the speed range is learned after 20 steady
+  runs; or type it in the model profile.
 - **"Nearest point …" under the thermal dial**: add a point closer to the
   current outdoor and water temperature.
 - **Card not found** in the picker: refresh the browser once after the update.

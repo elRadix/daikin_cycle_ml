@@ -47,6 +47,22 @@ POINT_FIELDS: dict[str, tuple[float, float]] = {
 T_OUT_RANGE = (-30.0, 40.0)
 T_LWC_RANGE = (10.0, 80.0)
 SRC_DATASHEET, SRC_LEARNED, SRC_MANUAL = "datasheet", "learned", "manual"
+# A datasheet whose A7/W35 heating capacity is at least this share of the
+# nominal kW lists full-capacity points (ERLA11: 10.6 of 11 kW): its hc
+# values are the maximum heat. Below it (Hydrosplit EPRA: 41-77 %) hc is
+# the capacity at the EN 14511 rating point, part load, and is not used.
+FULL_CAPACITY_RATIO = 0.8
+
+
+def full_capacity_table(entry: Mapping[str, Any]) -> bool:
+    """True when the datasheet capacities are the unit's maximum heat."""
+    kw = _num(entry.get("kw"))
+    pts = [p for p in entry.get("points") or [] if isinstance(p, Mapping) and _num(p.get("hc")) is not None]
+    if not kw or not pts:
+        return False
+    ref = next((p for p in pts if _num(p.get("t_out")) == 7 and _num(p.get("t_lwc")) == 35), None)
+    hc = _num(ref.get("hc")) if ref is not None else max(_num(p.get("hc")) or 0.0 for p in pts)
+    return bool(hc) and (hc or 0.0) / kw >= FULL_CAPACITY_RATIO
 
 
 def empty_profile() -> dict[str, Any]:
@@ -198,6 +214,7 @@ def apply_profile(entry: Mapping[str, Any] | None, profile: Mapping[str, Any] | 
         base[k] = v
         sources[k] = SRC_MANUAL
 
+    full = full_capacity_table(base)
     points: dict[tuple[float, float], dict[str, Any]] = {}
     for p in base.get("points") or []:
         if not isinstance(p, Mapping):
@@ -207,7 +224,22 @@ def apply_profile(entry: Mapping[str, Any] | None, profile: Mapping[str, Any] | 
             continue
         row = dict(p)
         row["src"] = {k: SRC_DATASHEET for k in POINT_FIELDS if _num(p.get(k)) is not None}
+        hc = _num(p.get("hc"))
+        if full and "hmax" not in row["src"] and hc is not None and _in(hc, POINT_FIELDS["hmax"]):
+            row["hmax"] = hc
+            row["src"]["hmax"] = SRC_DATASHEET
         points[point_key(t, w)] = row
+    # Without a full-capacity table the nominal capacity (datasheet kw, the
+    # number in the model name: EPRA12 = 12 kW) is the maximum heat at A7/W35,
+    # so every model has one (maintainer decision, #467). hmax_basis
+    # "nominal" lets the card say so; the user's own value wins.
+    kw = _num(base.get("kw"))
+    if not full and kw is not None and _in(kw, POINT_FIELDS["hmax"]):
+        key = point_key(7, 35)
+        row = points.get(key) or {"label": "A7/W35", "t_out": key[0], "t_lwc": key[1], "src": {}}
+        row["hmax"] = kw
+        row["src"]["hmax"] = SRC_DATASHEET
+        points[key] = row
     for p in manual["points"]:
         key = point_key(p["t_out"], p["t_lwc"])
         row = points.get(key) or {"label": _label(*key), "t_out": key[0], "t_lwc": key[1], "src": {}}
@@ -218,6 +250,8 @@ def apply_profile(entry: Mapping[str, Any] | None, profile: Mapping[str, Any] | 
         points[key] = row
     base["points"] = [points[k] for k in sorted(points)]
     base["value_sources"] = sources
+    base["hmax_from_datasheet"] = full
+    base["hmax_basis"] = "datasheet" if full else ("nominal" if kw is not None and _in(kw, POINT_FIELDS["hmax"]) else None)
     base["profile"] = {
         "model": prof["model"],
         "applied": prof["model"] == model and bool(manual["fields"] or manual["points"]),
