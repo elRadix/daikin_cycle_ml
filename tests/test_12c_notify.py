@@ -57,7 +57,9 @@ def test_emoji_disabled_via_kwarg():
 
 def test_no_context_leaves_placeholder():
     out = evaluate_alerts({"short_run": True}, {}, now=1e9)
-    assert "{duration_min}" in out[0].message or "Duration" in out[0].message
+    # #463: without context the alert uses its plain sentence, never a raw {placeholder}.
+    assert "{duration_min}" not in out[0].message
+    assert "The compressor stopped after a short run." in out[0].message
 
 
 def test_ml_anomaly_mapped():

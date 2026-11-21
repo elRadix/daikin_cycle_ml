@@ -110,6 +110,7 @@ from .engine.action_engine import generate_advice
 from .engine.anomaly_engine import AnomalyResult, evaluate_behaviour
 from .engine.attribute_compat import build_compat_view
 from .engine.attribute_reader import missing_required, read
+from .engine.alert_texts import resolve_language
 from .engine.notify_format import escape_for_parse_mode
 from .engine.cop_degradation import (
     analyze_degradation,
@@ -4039,7 +4040,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         from .engine.notification_engine import build_cop_low_message
         msg = build_cop_low_message(
             float(cop), int(samples),
-            language=self.options.get('notification_language', 'en'),
+            language=self._notify_language(),
             emoji_enabled=bool(self.options.get('notify_emoji_enabled', True)),
          full_model=self._notify_full_model)
         alert = SimpleNamespace(
@@ -4090,7 +4091,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         from .engine.notification_engine import build_stooklijn_message
         msg = build_stooklijn_message(
             cache,
-            language=self.options.get('notification_language', 'en'),
+            language=self._notify_language(),
             emoji_enabled=bool(self.options.get('notify_emoji_enabled', True)),
          full_model=self._notify_full_model)
         alert = SimpleNamespace(
@@ -5506,7 +5507,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         snap_dict = await self._build_rich_status_snapshot()
         opts = self.options or {}
         emoji = bool(opts.get("notify_emoji_enabled", True))
-        lang = opts.get("notification_language", "en")
+        lang = self._notify_language(opts)
         msg = build_status_message(
             snap_dict, emoji_enabled=emoji, language=lang,
             full_model=self._notify_full_model,
@@ -6020,7 +6021,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if alert_kind == "cop_low":
             msg = build_cop_low_message(
                 COP_LOW_THRESHOLD - TEST_ALERT_DELTA, 8,
-                language=opts.get("notification_language", "en"),
+                language=self._notify_language(opts),
                 emoji_enabled=bool(opts.get("notify_emoji_enabled", True)),
              full_model=self._notify_full_model)
             spec = AlertSpec(
@@ -6044,7 +6045,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             }
             msg = build_stooklijn_message(
                 fake,
-                language=opts.get("notification_language", "en"),
+                language=self._notify_language(opts),
                 emoji_enabled=bool(opts.get("notify_emoji_enabled", True)),
              full_model=self._notify_full_model)
             spec = AlertSpec(
@@ -6074,7 +6075,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             now,
             {},
             context=ctx,
-            language=opts.get("notification_language", "en"),
+            language=self._notify_language(opts),
             **self._boiler_kwargs_for_alerts(),
          full_model=self._notify_full_model)
         if not alerts:
@@ -6110,7 +6111,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     opts[k] = True
         persistent = bool(opts.get("persistent_enabled", True))
         emoji = bool(opts.get("notify_emoji_enabled", True))
-        lang = opts.get("notification_language", "en")
+        lang = self._notify_language(opts)
         ctx_all = self._build_alert_context(self.data)
 
         parts: list[str] = []
@@ -6178,7 +6179,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             alerts = evaluate_alerts(
                 states, self.options, now, self._last_alert_sent,
                 context=self._build_alert_context(snap),
-                language=self.options.get("notification_language", "en"),
+                language=self._notify_language(),
                 **self._boiler_kwargs_for_alerts(),
              full_model=self._notify_full_model)
             for alert in alerts:
@@ -6273,6 +6274,16 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     svc, context, err,
                 )
             return False
+
+    def _notify_language(self, options: Mapping[str, Any] | None = None) -> str:
+        """#463: alert language. The option when the user chose one, else
+        the Home Assistant language (en / nl / fr), else English."""
+        hass = getattr(self, "hass", None)
+        ha_lang = getattr(getattr(hass, "config", None), "language", None)
+        return resolve_language(
+            self.options if options is None else options,
+            ha_lang if isinstance(ha_lang, str) else None,
+        )
 
     def _format_for_notify_entity(self, entity_id: str, message: str) -> str:
         """Escape the text for a Telegram bot's parse mode (#451).

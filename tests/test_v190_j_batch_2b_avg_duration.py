@@ -163,13 +163,13 @@ def test_schema_ml_anomaly_has_row() -> None:
 def test_labels_en_present() -> None:
     from custom_components.daikin_cycle_ml.engine import status_report as sr
 
-    assert sr.ALERT_LABELS["en"]["avg_duration_7d"] == "Avg duration 7d"
+    assert sr.ALERT_LABELS["en"]["avg_duration_7d"] == "Average run (7 days)"  # #463
 
 
 def test_labels_nl_present() -> None:
     from custom_components.daikin_cycle_ml.engine import status_report as sr
 
-    assert sr.ALERT_LABELS["nl"]["avg_duration_7d"] == "Gem. duur 7d"
+    assert sr.ALERT_LABELS["nl"]["avg_duration_7d"] == "Gemiddelde run (7 dagen)"  # #463
 
 
 def test_last_duration_min_preserved() -> None:

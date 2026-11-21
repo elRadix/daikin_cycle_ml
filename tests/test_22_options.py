@@ -13,7 +13,8 @@ from custom_components.daikin_cycle_ml import const
 def test_const_language_keys():
     assert const.LANG_EN == "en"
     assert const.LANG_NL == "nl"
-    assert const.DEFAULT_NOTIFICATION_LANGUAGE == "en"
+    # #463: default follows the Home Assistant language.
+    assert const.DEFAULT_NOTIFICATION_LANGUAGE == const.LANG_AUTO == "auto"
     assert "en" in const.NOTIFICATION_LANGUAGES
     assert "nl" in const.NOTIFICATION_LANGUAGES
 

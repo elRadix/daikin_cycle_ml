@@ -119,4 +119,4 @@ def test_pendulum_hourly_renders_cph():
     )
     msg = out[0].message
     assert "5" in msg
-    assert "hourly" in msg.lower()
+    assert "this hour" in msg.lower()  # #463 title

@@ -69,6 +69,7 @@ from .const import (
     DEFAULT_GOOD_RUN_MIN,
     DEFAULT_INDIVIDUAL_PREFIX,
     DEFAULT_NOTIFICATION_LANGUAGE,
+    LANG_AUTO,
     DEFAULT_NOTIFY_EMOJI_ENABLED,
     DEFAULT_NOTIFY_SERVICE,
     DEFAULT_PENDULUM_CPD,
@@ -229,10 +230,11 @@ def _num(
 
 
 def _build_language_selector() -> selector.SelectSelector:
-    """Dropdown: EN / NL. Default EN."""
+    """Dropdown: Home Assistant language (default), English, Dutch, French."""
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
             options=[
+                selector.SelectOptionDict(value=LANG_AUTO, label="Home Assistant"),
                 selector.SelectOptionDict(value=LANG_EN, label="English"),
                 selector.SelectOptionDict(value=LANG_NL, label="Nederlands"),
                 selector.SelectOptionDict(value=LANG_FR, label="Français"),

@@ -151,13 +151,14 @@ def test_rich_alert_en_mode():
 def test_rich_alert_critical_severity():
     ctx = {"mode": "heating", "z_max": 5.5, "top_dim": "x"}
     out = build_rich_alert("ml_anomaly", "critical", ctx, language="nl")
-    assert "kritiek" in out
+    # #463: the level line replaces the severity word; critical lifts info to watch.
+    assert "Houd het in de gaten" in out
 
 
 def test_rich_alert_warning_severity():
     ctx = {"mode": "heating", "z_max": 3.2, "top_dim": "x"}
     out = build_rich_alert("ml_anomaly", "warning", ctx, language="nl")
-    assert "waarschuwing" in out
+    assert "Geen actie nodig" in out  # #463: ml_anomaly is info
 
 
 def test_rich_alert_ctx_advice_wins():

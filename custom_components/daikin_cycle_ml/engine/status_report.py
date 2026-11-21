@@ -6,6 +6,17 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
+from .alert_texts import HIDDEN_FACTS as _HIDDEN_FACTS
+from .alert_texts import LEVEL_EMOJI as _LEVEL_EMOJI
+from .alert_texts import LEVEL_INFO as _LEVEL_INFO
+from .alert_texts import LEVEL_WATCH as _LEVEL_WATCH
+from .alert_texts import MAX_FACTS as _MAX_FACTS
+from .alert_texts import fact_rank as _fact_rank
+from .alert_texts import TEXTS as _ALERT_TEXTS
+from .alert_texts import fields as _alert_fields
+from .alert_texts import fill as _alert_fill
+from .alert_texts import message_parts as _alert_message_parts
+
 try:
     from ..const import (
         ALERT_TYPE_EMOJI,
@@ -26,6 +37,7 @@ except Exception:  # pragma: no cover
 DIV = "\u2501" * 22
 _SAMPLES_WORD = {"en": "samples", "nl": "samples", "fr": "\u00e9chantillons"}
 _TPL_FIELD_RE = re.compile(r"\{(\w+)\}")
+
 
 GREETINGS = {
     "en": {
@@ -303,55 +315,6 @@ def build_cop_low_report(cop: Any, samples: Any, *, language: str = "en", emoji_
     return "\n".join(lines)
 
 
-ALERT_TITLES = {
-    "en": {
-        "pendulum_hourly": "Pendulum detected (hourly)",
-        "pendulum_daily":  "Pendulum detected (daily)",
-        "short_run":      "Short run detected",
-        "short_cycling_pattern": "Short cycling pattern detected",
-        "short_off":      "Short off-time detected",
-        "ml_anomaly":     "ML anomaly detected",
-        "setpoint_osc":   "LWT-setpoint oscillating",
-        "cop_low":        "Day COP low",
-        "stooklijn_advies": "Stooklijn advice",
-        "cop_degradation": "COP degradation",
-        "defrost_excessive": "Defrost excessive",
-        "buh_excessive": "Backup heater excessive",
-        "source_stale": "Source sensor stale",
-        "cop_physically_impossible": "Physically impossible COP",
-        "missing_attributes": "Missing attributes",
-        "dhw_pendulum": "DHW pendulum detected",
-        "high_cycle_rate": "High cycle rate",
-        "cop_vs_datasheet_low": "COP below datasheet",
-        "db_retention_warning": "Database retention warning",
-        "kmeans_retrain_stale": "K-means retrain stale",
-        "energy_daily_anomaly": "Energy daily anomaly",
-    },
-    "nl": {
-        "pendulum_hourly": "Pendelen gedetecteerd (per uur)",
-        "pendulum_daily":  "Pendelen gedetecteerd (dagelijks)",
-        "short_run":      "Korte run gedetecteerd",
-        "short_cycling_pattern": "Kort-cyclisch patroon gedetecteerd",
-        "short_off":      "Korte off-tijd gedetecteerd",
-        "ml_anomaly":     "ML-anomalie gedetecteerd",
-        "setpoint_osc":   "LWT-setpoint oscilleert",
-        "cop_low":        "Dag-COP laag",
-        "stooklijn_advies": "Stooklijn advies",
-        "cop_degradation": "COP-degradatie",
-        "defrost_excessive": "Overmatig ontdooien",
-        "buh_excessive": "Backup heater overmatig",
-        "source_stale": "Bronsensor verouderd",
-        "cop_physically_impossible": "Fysiek onmogelijke COP",
-        "missing_attributes": "Ontbrekende attributen",
-        "dhw_pendulum": "SWW-pendelen gedetecteerd",
-        "high_cycle_rate": "Hoge cyclusfrequentie",
-        "cop_vs_datasheet_low": "COP onder datasheet",
-        "db_retention_warning": "Database-retentie waarschuwing",
-        "kmeans_retrain_stale": "K-means hertraining verouderd",
-        "energy_daily_anomaly": "Energie-dagelijkse afwijking",
-    },
-}
-
 ALERT_LABELS = {
     "en": {
         "cycles_hour": "Cycles / hour", "target_hour": "Target",
@@ -360,15 +323,15 @@ ALERT_LABELS = {
         "off_time": "Off-time", "mode": "Mode",
         "zscore": "Z-score", "top_dim": "Top dim",
         "changes": "Changes", "window": "Window",
-        "lwt_setpoint": "LWT setpoint", "lwt_target": "LWT target",
-        "lwt_actual": "LWT actual", "outdoor": "Outdoor",
-        "last_duration": "Last duration", "avg_duration_7d": "Avg duration 7d", "samples": "Samples", "delta_max": "Setpoint swing",
+        "lwt_setpoint": "Water target", "lwt_target": "Water target (curve)",
+        "lwt_actual": "Water now", "outdoor": "Outdoor",
+        "last_duration": "Last run", "avg_duration_7d": "Average run (7 days)", "samples": "Samples", "delta_max": "Setpoint swing",
         "cop": "COP", "severity": "Severity",
         "indoor": "Indoor", "flow": "Flow",
         "week_pct": "Week", "threshold_pct": "Threshold",
-        "trend_30d": "Trend 30d",
-        "count_7d": "Count 7d", "duration_7d_min": "Duration 7d",
-        "buh_ratio_7d": "BUH ratio", "threshold_ratio": "Threshold",
+        "trend_30d": "COP trend (30 days)",
+        "count_7d": "Count 7d", "duration_7d_min": "Defrost time (7 days)",
+        "buh_ratio_7d": "Backup heater share", "threshold_ratio": "Threshold",
         "stale_alerts": "Stale alerts", "stale_cycles": "Stale cycles",
         "alert_retention_days": "Alert retention",
         "cycle_retention_days": "Cycle retention",
@@ -395,15 +358,15 @@ ALERT_LABELS = {
         "off_time": "Off-tijd", "mode": "Modus",
         "zscore": "Z-score", "top_dim": "Top-dimensie",
         "changes": "Wijzigingen", "window": "Venster",
-        "lwt_setpoint": "LWT setpoint", "lwt_target": "LWT doel",
-        "lwt_actual": "LWT actueel", "outdoor": "Buiten",
-        "last_duration": "Laatste duur", "avg_duration_7d": "Gem. duur 7d", "samples": "Monsters", "delta_max": "Setpoint-swing",
+        "lwt_setpoint": "Watertemperatuur doel", "lwt_target": "Doel volgens stooklijn",
+        "lwt_actual": "Watertemperatuur nu", "outdoor": "Buiten",
+        "last_duration": "Laatste run", "avg_duration_7d": "Gemiddelde run (7 dagen)", "samples": "Monsters", "delta_max": "Setpoint-swing",
         "cop": "COP", "severity": "Ernst",
         "indoor": "Binnen", "flow": "Flow",
         "week_pct": "Week", "threshold_pct": "Drempel",
-        "trend_30d": "Trend 30d",
-        "count_7d": "Aantal 7d", "duration_7d_min": "Duur 7d",
-        "buh_ratio_7d": "BUH-ratio", "threshold_ratio": "Drempel",
+        "trend_30d": "COP-trend (30 dagen)",
+        "count_7d": "Aantal 7d", "duration_7d_min": "Ontdooitijd (7 dagen)",
+        "buh_ratio_7d": "Aandeel backup-heater", "threshold_ratio": "Drempel",
         "stale_alerts": "Verouderde meldingen",
         "stale_cycles": "Verouderde cycli",
         "alert_retention_days": "Melding-retentie",
@@ -570,204 +533,62 @@ ALERT_SCHEMA = {
 
 
 def build_rich_alert(alert_type: str, severity: str, context: Mapping[str, Any], *, language: str = "en", emoji_enabled: bool = True, full_model: str = "") -> str:
-    """Build a sectioned rich-alert message for any alert type."""
-    if language not in ALERT_LABELS:
-        language = "en"
-    labels = ALERT_LABELS[language]
-    titles = ALERT_TITLES.get(language, ALERT_TITLES["en"])
-    title = titles.get(alert_type, alert_type)
-    type_e = ALERT_TYPE_EMOJI.get(alert_type, "")
-    sev_e = SEVERITY_EMOJI.get(severity, "")
-    head_e = type_e or sev_e or "\U0001F514"
-    now = _dt.datetime.now()
-    ts = now.strftime("%Y-%m-%d %H:%M")
+    """Alert message for end users (#463).
+
+    Title, level (no action needed / keep an eye on it / action needed),
+    what happened, what to do, where to look (native card -> tab -> graph)
+    and up to four facts that explain the alert. Texts: engine/alert_texts*.
+    """
+    lang = language if language in _ALERT_TEXTS else "en"
+    labels = ALERT_LABELS.get(lang, ALERT_LABELS["en"])
     ctx = dict(context or {})
     if "mode" in ctx:
-        ctx["mode"] = MODE_LABELS.get(language, MODE_LABELS["en"]).get(
-            ctx["mode"], ctx["mode"]
-        )
-    sev_e = SEVERITY_EMOJI.get(severity, "")
-    sev_lbl = SEVERITY_LABELS.get(language, SEVERITY_LABELS["en"]).get(
-        severity, severity
-    )
-    ctx["severity_label"] = (sev_e + " " + sev_lbl).strip()
-    lines = []
-    if emoji_enabled:
-        lines.append(head_e + " Daikin Cycle ML \u2014 " + title)
-        lines.append(_subtitle_line(ts, full_model, emoji_enabled))
-    else:
-        lines.append("Daikin Cycle ML \u2014 " + title)
-        lines.append(_subtitle_line(ts, full_model, emoji_enabled))
-    lines.append(DIV)
-    rows = ALERT_SCHEMA.get(alert_type) or []
+        ctx["mode"] = MODE_LABELS.get(lang, MODE_LABELS["en"]).get(ctx["mode"], ctx["mode"])
+    parts = _alert_message_parts(alert_type, ctx, lang)
+    if severity == "critical" and parts["level"] == _LEVEL_INFO:
+        # A critical trigger (e.g. ml_anomaly z >= 6) is never "no action needed".
+        parts["level"] = _LEVEL_WATCH
+        parts["level_text"] = _ALERT_TEXTS[lang].LEVELS[_LEVEL_WATCH]
+    head_e = ALERT_TYPE_EMOJI.get(alert_type) or SEVERITY_EMOJI.get(severity, "") or "\U0001F514"
+    ts = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    def _e(emoji: str) -> str:
+        return (emoji + " ") if emoji_enabled else ""
+
+    lines = [
+        _e(head_e) + "Daikin Cycle ML \u2014 " + parts["title"],
+        _subtitle_line(ts, full_model, emoji_enabled),
+        DIV,
+        _e(_LEVEL_EMOJI[parts["level"]]) + parts["level_text"],
+        parts["what"],
+        _e("\U0001F449") + str(ctx.get("advice") or parts["todo"]).strip(),
+    ]
+    if parts["see"]:
+        lines.append(_e("\U0001F50E") + parts["see"])
+    facts: list[str] = []
+    rows = sorted(ALERT_SCHEMA.get(alert_type) or [], key=lambda r: _fact_rank(r[2]))
     for emoji, label_key, tpl in rows:
-        label = labels.get(label_key, label_key)
-        _fields = _TPL_FIELD_RE.findall(tpl)
-        if any(ctx.get(_fn) in (None, "\u2014") for _fn in _fields):
-            val = "\u2014"
-        else:
-            try:
-                val = tpl.format(**ctx)
-            except (KeyError, IndexError, ValueError):  # pragma: no cover
-                val = "\u2014"
-        lines.append(_row(emoji, label, val, emojis=emoji_enabled))
-    builtin = ALERT_ADVICE.get(language, {}).get(alert_type)
-    advice = ctx.get("advice") or builtin
-    if advice:
+        names = _alert_fields(tpl)
+        if not names or names & _HIDDEN_FACTS or names & parts["used"]:
+            continue
+        value = _alert_fill(tpl, ctx, lang)
+        if value is None:
+            continue
+        sep = "\u00a0: " if lang == "fr" else ": "
+        facts.append(_e(emoji) + labels.get(label_key, label_key) + sep + value)
+        if len(facts) >= _MAX_FACTS:
+            break
+    if facts:
         lines.append(DIV)
-        lines.append(str(advice).strip())
+        lines.extend(facts)
     lines.append(DIV)
-    return "\n".join(lines)
+    return "\n".join(line for line in lines if line)
 
 SEVERITY_LABELS = {
     "en": {"critical": "critical", "warning": "warning",
            "watch": "watch", "normal": "normal", "info": "info"},
     "nl": {"critical": "kritiek", "warning": "waarschuwing",
            "watch": "let op", "normal": "normaal", "info": "informatie"},
-}
-
-ALERT_ADVICE = {
-    "en": {
-        "pendulum_hourly": ("\u2022 Check setpoint delta, hysteresis and heat "
-            "curve \u2014 the pump is cycling too often."),
-        "pendulum_daily": ("\u2022 Check setpoint delta, hysteresis and heat "
-            "curve \u2014 the pump is cycling too often."),
-        "short_run": ("\u2022 Cycle shorter than threshold. Note: short runs "
-            "immediately after DHW are normal (valve switch/overshoot). "
-            "Otherwise, check pump speed or LWT overshoot."),
-        "short_cycling_pattern": ("\u2022 Frequent short runs detected. "
-            "Check pump speed and LWT overshoot. Note: short runs "
-            "directly after DHW are normal."),
-        "short_off": ("\u2022 Off-time too short: if false positives, decrease "
-            "short_off_threshold_min; if missing real short cycles, increase it."),
-        "ml_anomaly": ("\u2022 Behaviour deviates from learned baseline. "
-            "Check recent setpoint / weather / DHW changes."),
-        "setpoint_osc": ("\u2022 Lock the LWT setpoint or raise thermostat "
-            "hysteresis."),
-        "cop_degradation": ("\u2022 COP dropped sharply vs last week. Check "
-            "refrigerant charge, filters, outdoor unit cleanliness."),
-        "defrost_excessive": ("\u2022 Frequent defrost cycles. Check outdoor "
-            "humidity, defrost sensor, and outdoor unit airflow."),
-        "buh_excessive": ("\u2022 Backup heater running often. Check heat pump "
-            "sizing, outdoor temperature, and defrost performance."),
-        "source_stale": ("\u2022 Source sensor stopped updating. Check ESPAltherma "
-            "connection and MQTT / ESPHome link."),
-        "cop_physically_impossible": (
-            "\u2022 COP above physical maximum (1.5x Carnot). Check "
-            "sensor calibration or firmware."),
-        "missing_attributes": ("\u2022 Source is missing required attributes. "
-            "Check ESPAltherma template / register mapping."),
-        "dhw_pendulum": ("\u2022 DHW is cycling too often. Check DHW tank "
-            "setpoint, hysteresis, and 3-way valve behaviour."),
-        "high_cycle_rate": ("\u2022 Cycle rate above 1.5\u00d7 target. Check "
-            "setpoint delta, hysteresis and heat curve."),
-        "cop_vs_datasheet_low": ("\u2022 COP below datasheet expectation. Check "
-            "refrigerant charge, filters, outdoor unit cleanliness."),
-        "db_retention_warning": ("\u2022 Database not being pruned. Check that "
-            "maintenance runs at 03:00 local and no manual runs have failed."),
-        "kmeans_retrain_stale": ("\u2022 Weekly retrain has not succeeded in 14+ days. Run daikin_cycle_ml.recompute_kmeans from Developer Tools \u2192 Services, or restart HA Core."),
-        "energy_daily_anomaly": ("\u2022 Daily electrical energy is more than 2 sigma above the 30-day baseline. Check for excessive demand, stuck valves, or unusual operating conditions."),
-    },
-    "nl": {
-        "pendulum_hourly": ("\u2022 Controleer setpoint-delta, hysterese en "
-            "stooklijn \u2014 de pomp pendelt te vaak."),
-        "pendulum_daily": ("\u2022 Controleer setpoint-delta, hysterese en "
-            "stooklijn \u2014 de pomp pendelt te vaak."),
-        "short_run": ("\u2022 Cyclus korter dan drempel: verhoog "
-            "minimumlooptijd of verlaag de LWT-setpoint."),
-        "short_cycling_pattern": ("\u2022 Vaak korte runs gedetecteerd. "
-            "Verhoog minimumlooptijd of verminder LWT-setpoint-oscillatie."),
-        "short_off": ("\u2022 Off-tijd te kort: bij valse meldingen verlaag "
-            "short_off_threshold_min; bij gemiste korte cycli verhoog het."),
-        "ml_anomaly": ("\u2022 Gedrag wijkt af van de geleerde baseline. "
-            "Controleer recente setpoint / weer / SWW-wijzigingen."),
-        "setpoint_osc": ("\u2022 Vergrendel het LWT-setpoint of verhoog "
-            "de thermostaat-hysterese."),
-        "cop_degradation": ("\u2022 COP sterk gedaald t.o.v. vorige week. "
-            "Controleer koelmiddel, filters en buitenunit."),
-        "defrost_excessive": ("\u2022 Veel ontdooicycli. Controleer "
-            "luchtvochtigheid, ontdooisensor en luchtstroom buitenunit."),
-        "buh_excessive": ("\u2022 Backup heater draait vaak. Controleer "
-            "WP-capaciteit, buitentemperatuur en ontdooigedrag."),
-        "source_stale": ("\u2022 Bronsensor werkt niet meer bij. Controleer "
-            "ESPAltherma-verbinding en MQTT / ESPHome-koppeling."),
-        "cop_physically_impossible": (
-            "\u2022 COP boven fysisch maximum (1.5x Carnot). Controleer "
-            "sensorkalibratie of firmware."),
-        "missing_attributes": ("\u2022 Bron mist vereiste attributen. "
-            "Controleer ESPAltherma-template / registermapping."),
-        "dhw_pendulum": ("\u2022 SWW pendelt te vaak. Controleer "
-            "SWW-tanksetpoint, hysterese en 3-wegklep."),
-        "high_cycle_rate": ("\u2022 Cyclusfrequentie > 1,5\u00d7 doel. "
-            "Controleer setpoint-delta, hysterese en stooklijn."),
-        "cop_vs_datasheet_low": ("\u2022 COP onder datasheet-verwachting. "
-            "Controleer koelmiddel, filters en buitenunit."),
-        "db_retention_warning": ("\u2022 Database wordt niet opgeruimd. "
-            "Controleer of onderhoud draait (03:00 lokaal) en geen "
-            "handmatige runs zijn mislukt."),
-        "kmeans_retrain_stale": ("\u2022 Wekelijkse hertraining is al 14+ dagen niet gelukt. Voer daikin_cycle_ml.recompute_kmeans uit via Developer Tools \u2192 Services, of herstart HA Core."),
-        "energy_daily_anomaly": ("\u2022 Dagelijkse elektrische energie is meer dan 2 sigma boven de 30-daagse baseline. Controleer op overmatige vraag, vastgelopen kleppen of ongewone omstandigheden."),
-    },
-}
-
-# ---------------------------------------------------------------------
-# I2 (v1.9.0): dynamic advice by last_failure_reason for
-# kmeans_retrain_stale. The base ALERT_ADVICE entry above is the
-# fallback when no reason-specific text applies. _build_alert_context
-# in coordinator.py overrides ctx["advice"] with the reason-derived
-# string (build_rich_alert prefers ctx["advice"] over the builtin).
-# ---------------------------------------------------------------------
-KMEANS_ADVICE_BY_REASON: dict[str, dict[str | None, str]] = {
-    "en": {
-        "too_few": (
-            "Not enough cycles in the last 7 days for training "
-            "(needs at least 3, ideally 20 or more). No action needed "
-            "\u2014 retrain resumes when cycles return."
-        ),
-        "fetch_failed": (
-            "Database read failed. Check HA logs for 'kmeans fetch "
-            "failed'. If it persists, restart HA Core."
-        ),
-        "kmeans_failed": (
-            "Clustering algorithm failed. Please report this at "
-            "github.com/elRadix/daikin_cycle_ml/issues."
-        ),
-        "no_db": (
-            "Database not initialized. Check integration is loaded: "
-            "Settings \u2192 Devices & Services \u2192 Daikin Cycle ML."
-        ),
-        None: (
-            "Weekly retrain has not fired. Possible HA Core scheduler "
-            "issue. Try restarting HA Core, then run "
-            "daikin_cycle_ml.recompute_kmeans to force a retrain."
-        ),
-    },
-    "nl": {
-        "too_few": (
-            "Te weinig cycli in de laatste 7 dagen voor training "
-            "(minimaal 3, ideaal 20 of meer). Geen actie nodig "
-            "\u2014 hertraining hervat zodra er weer cycli zijn."
-        ),
-        "fetch_failed": (
-            "Database-leesfout. Controleer HA-logs op 'kmeans fetch "
-            "failed'. Herstart HA Core als dit aanhoudt."
-        ),
-        "kmeans_failed": (
-            "Cluster-algoritme faalde. Meld dit op "
-            "github.com/elRadix/daikin_cycle_ml/issues."
-        ),
-        "no_db": (
-            "Database niet ge\u00efnitialiseerd. Controleer of de "
-            "integratie geladen is: Instellingen \u2192 Apparaten & "
-            "Diensten \u2192 Daikin Cycle ML."
-        ),
-        None: (
-            "Wekelijkse hertraining is niet uitgevoerd. Mogelijk HA "
-            "Core scheduler-probleem. Herstart HA Core en voer "
-            "daikin_cycle_ml.recompute_kmeans uit om een hertraining "
-            "te forceren."
-        ),
-    },
 }
 
 
@@ -798,30 +619,6 @@ MODE_LABELS["fr"] = {
     "dhw": "eau chaude", "unknown": "inconnu",
 }
 
-ALERT_TITLES["fr"] = {
-    "pendulum_hourly": "Cycles trop fr\u00e9quents (sur 1 heure)",
-    "pendulum_daily":  "Cycles trop fr\u00e9quents (sur la journ\u00e9e)",
-    "short_run":      "Cycle court d\u00e9tect\u00e9",
-    "short_cycling_pattern": "S\u00e9rie de cycles courts d\u00e9tect\u00e9e",
-    "short_off":      "Arr\u00eat trop court d\u00e9tect\u00e9",
-    "ml_anomaly":     "Anomalie d\u00e9tect\u00e9e par l'apprentissage",
-    "setpoint_osc":   "Consigne de d\u00e9part d'eau instable",
-    "cop_low":        "COP du jour bas",
-    "stooklijn_advies": "Conseil de loi d'eau",
-    "cop_degradation": "Baisse du COP",
-    "defrost_excessive": "D\u00e9givrages excessifs",
-    "buh_excessive": "Appoint \u00e9lectrique trop sollicit\u00e9",
-    "source_stale": "ESPAltherma ne r\u00e9pond plus",
-    "cop_physically_impossible": "COP physiquement impossible",
-    "missing_attributes": "Valeurs ESPAltherma manquantes",
-    "dhw_pendulum": "Cycles trop fr\u00e9quents en eau chaude",
-    "high_cycle_rate": "Fr\u00e9quence de cycles \u00e9lev\u00e9e",
-    "cop_vs_datasheet_low": "COP sous la fiche technique",
-    "db_retention_warning": "Base de donn\u00e9es non purg\u00e9e",
-    "kmeans_retrain_stale": "Apprentissage hebdomadaire en retard",
-    "energy_daily_anomaly": "Consommation du jour anormale",
-}
-
 ALERT_LABELS["fr"] = {
     "cycles_hour": "Cycles / heure", "target_hour": "Objectif",
     "cycles_today": "Cycles aujourd'hui", "target_day": "Objectif",
@@ -829,15 +626,15 @@ ALERT_LABELS["fr"] = {
     "off_time": "Temps d'arr\u00eat", "mode": "Mode",
     "zscore": "\u00c9cart (z)", "top_dim": "Crit\u00e8re principal",
     "changes": "Changements", "window": "Fen\u00eatre",
-    "lwt_setpoint": "Consigne d\u00e9part", "lwt_target": "D\u00e9part vis\u00e9",
-    "lwt_actual": "D\u00e9part mesur\u00e9", "outdoor": "Ext\u00e9rieur",
-    "last_duration": "Dernier cycle", "avg_duration_7d": "Dur\u00e9e moy. 7 j",
+    "lwt_setpoint": "Eau, consigne", "lwt_target": "Eau, consigne de la loi d'eau",
+    "lwt_actual": "Eau, maintenant", "outdoor": "Ext\u00e9rieur",
+    "last_duration": "Dernier cycle", "avg_duration_7d": "Cycle moyen (7 jours)",
     "samples": "\u00c9chantillons", "delta_max": "\u00c9cart de consigne",
     "cop": "COP", "severity": "Gravit\u00e9",
     "indoor": "Int\u00e9rieur", "flow": "D\u00e9bit",
     "week_pct": "Semaine", "threshold_pct": "Seuil",
-    "trend_30d": "Tendance 30 j",
-    "count_7d": "Nombre 7 j", "duration_7d_min": "Dur\u00e9e 7 j",
+    "trend_30d": "Tendance du COP (30 jours)",
+    "count_7d": "Nombre 7 j", "duration_7d_min": "Temps de d\u00e9givrage (7 jours)",
     "buh_ratio_7d": "Part de l'appoint", "threshold_ratio": "Seuil",
     "stale_alerts": "Alertes \u00e0 purger", "stale_cycles": "Cycles \u00e0 purger",
     "alert_retention_days": "Conservation alertes",
@@ -867,70 +664,20 @@ SEVERITY_LABELS["fr"] = {
     "watch": "\u00e0 surveiller", "normal": "normal", "info": "info",
 }
 
-ALERT_ADVICE["fr"] = {
-    "pendulum_hourly": ("\u2022 V\u00e9rifier l'\u00e9cart de consigne, l'hyst\u00e9r\u00e9sis et la "
-        "loi d'eau \u2014 la PAC d\u00e9marre trop souvent."),
-    "pendulum_daily": ("\u2022 V\u00e9rifier l'\u00e9cart de consigne, l'hyst\u00e9r\u00e9sis et la "
-        "loi d'eau \u2014 la PAC d\u00e9marre trop souvent."),
-    "short_run": ("\u2022 Cycle plus court que le seuil : allonger la dur\u00e9e "
-        "minimale de marche ou baisser la consigne de d\u00e9part d'eau."),
-    "short_cycling_pattern": ("\u2022 Cycles courts fr\u00e9quents. Allonger la "
-        "dur\u00e9e minimale de marche ou stabiliser la consigne de d\u00e9part."),
-    "short_off": ("\u2022 Arr\u00eat trop court : en cas de fausses alertes, baisser "
-        "le seuil d'arr\u00eat court ; si de vrais cycles courts \u00e9chappent, l'augmenter."),
-    "ml_anomaly": ("\u2022 Le comportement s'\u00e9carte de la r\u00e9f\u00e9rence apprise. "
-        "V\u00e9rifier les derniers changements de consigne, de m\u00e9t\u00e9o ou d'eau chaude."),
-    "setpoint_osc": ("\u2022 Stabiliser la consigne de d\u00e9part d'eau ou augmenter "
-        "l'hyst\u00e9r\u00e9sis du thermostat."),
-    "cop_degradation": ("\u2022 Le COP a fortement baiss\u00e9 par rapport \u00e0 la semaine "
-        "derni\u00e8re. V\u00e9rifier la charge en fluide, les filtres et la propret\u00e9 du groupe ext\u00e9rieur."),
-    "defrost_excessive": ("\u2022 D\u00e9givrages fr\u00e9quents. V\u00e9rifier l'humidit\u00e9 "
-        "ext\u00e9rieure, la sonde de d\u00e9givrage et la circulation d'air du groupe ext\u00e9rieur."),
-    "buh_excessive": ("\u2022 L'appoint \u00e9lectrique tourne souvent. V\u00e9rifier le "
-        "dimensionnement de la PAC, la temp\u00e9rature ext\u00e9rieure et les d\u00e9givrages."),
-    "source_stale": ("\u2022 ESPAltherma n'envoie plus de donn\u00e9es. V\u00e9rifier "
-        "le module, le Wi-Fi et la liaison MQTT / ESPHome."),
-    "cop_physically_impossible": (
-        "\u2022 COP au-dessus du maximum physique (1,5 \u00d7 Carnot). "
-        "V\u00e9rifier l'\u00e9talonnage des sondes ou le firmware."),
-    "missing_attributes": ("\u2022 Des valeurs n\u00e9cessaires manquent \u00e0 la source. "
-        "V\u00e9rifier le mod\u00e8le / les registres ESPAltherma."),
-    "dhw_pendulum": ("\u2022 L'eau chaude d\u00e9marre trop souvent. V\u00e9rifier la "
-        "consigne du ballon, l'hyst\u00e9r\u00e9sis et la vanne 3 voies."),
-    "high_cycle_rate": ("\u2022 Fr\u00e9quence de cycles au-dessus de 1,5 \u00d7 l'objectif. "
-        "V\u00e9rifier l'\u00e9cart de consigne, l'hyst\u00e9r\u00e9sis et la loi d'eau."),
-    "cop_vs_datasheet_low": ("\u2022 COP sous la valeur de la fiche technique. V\u00e9rifier "
-        "la charge en fluide, les filtres et la propret\u00e9 du groupe ext\u00e9rieur."),
-    "db_retention_warning": ("\u2022 La base de donn\u00e9es n'est pas purg\u00e9e. V\u00e9rifier "
-        "que la maintenance tourne \u00e0 3 h et qu'aucun lancement manuel n'a \u00e9chou\u00e9."),
-    "kmeans_retrain_stale": ("\u2022 L'apprentissage hebdomadaire n'a pas r\u00e9ussi depuis "
-        "14 jours ou plus. Lancer daikin_cycle_ml.recompute_kmeans depuis Outils de "
-        "d\u00e9veloppement \u2192 Actions, ou red\u00e9marrer Home Assistant."),
-    "energy_daily_anomaly": ("\u2022 La consommation \u00e9lectrique du jour d\u00e9passe de plus "
-        "de 2 \u00e9carts types la r\u00e9f\u00e9rence sur 30 jours. Chercher une demande excessive, "
-        "une vanne bloqu\u00e9e ou des conditions inhabituelles."),
+
+# ---------------------------------------------------------------------
+# #463: titles, advice and learning-status texts come from
+# engine/alert_texts_<lang>.py (same keys in en / nl / fr). The names are
+# kept for the callers and tests that read them.
+# ---------------------------------------------------------------------
+ALERT_TITLES: dict[str, dict[str, str]] = {
+    lang: {**{t: a["title"] for t, a in mod.ALERTS.items()}, **mod.OTHER_TITLES}
+    for lang, mod in _ALERT_TEXTS.items()
+}
+ALERT_ADVICE: dict[str, dict[str, str]] = {
+    lang: {t: a["todo"] for t, a in mod.ALERTS.items()} for lang, mod in _ALERT_TEXTS.items()
+}
+KMEANS_ADVICE_BY_REASON: dict[str, dict[str | None, str]] = {
+    lang: dict(mod.KMEANS_REASONS) for lang, mod in _ALERT_TEXTS.items()
 }
 
-KMEANS_ADVICE_BY_REASON["fr"] = {
-    "too_few": (
-        "Pas assez de cycles sur les 7 derniers jours pour l'apprentissage "
-        "(il en faut au moins 3, id\u00e9alement 20 ou plus). Rien \u00e0 faire "
-        "\u2014 il reprendra quand les cycles reviendront."
-    ),
-    "fetch_failed": (
-        "\u00c9chec de lecture de la base. Chercher \u00ab kmeans fetch failed \u00bb "
-        "dans les journaux ; si \u00e7a persiste, red\u00e9marrer Home Assistant."
-    ),
-    "kmeans_failed": (
-        "L'algorithme de regroupement a \u00e9chou\u00e9. \u00c0 signaler sur "
-        "github.com/elRadix/daikin_cycle_ml/issues."
-    ),
-    "no_db": (
-        "Base de donn\u00e9es non initialis\u00e9e. V\u00e9rifier que l'int\u00e9gration est "
-        "charg\u00e9e : Param\u00e8tres \u2192 Appareils et services \u2192 Daikin Cycle ML."
-    ),
-    None: (
-        "L'apprentissage hebdomadaire ne s'est pas lanc\u00e9. Red\u00e9marrer Home "
-        "Assistant puis lancer daikin_cycle_ml.recompute_kmeans pour le forcer."
-    ),
-}

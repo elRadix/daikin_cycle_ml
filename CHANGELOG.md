@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+### Changed
+- Alert messages rewritten for home owners, in English, Dutch and French
+  alike: each alert says whether you need to do something (no action
+  needed / keep an eye on it / action needed), what happened with the
+  values, one concrete step, and where to look on the native cards
+  (card, tab, graph). Thresholds, z-scores and setting names are no
+  longer shown; at most four facts follow (outdoor, water now, water
+  target, mode). The texts were reviewed by an HVAC engineer for Daikin
+  Altherma: short runs and short pauses after hot water, a defrost or in
+  mild weather are called normal; repeated short runs first ask to open
+  radiator valves and floor circuits, then to lower the curve offset by
+  1-2 °C; never scrape ice off; the backup heater lists its normal uses
+  (very cold days, tank disinfection, powerful hot water) and points to
+  an error or emergency mode first; no filter advice (Part of #463)
+- Notification language follows the Home Assistant language by default
+  (new option value "Home Assistant"); choosing English, Dutch or French
+  still overrides it. Dutch and French use a decimal comma (Part of #463)
+
+### Fixed
+- docs/ALERTS.md: `high_cycle_rate` fires above 1.5 x
+  `pendulum_cycles_per_hour` (was described as a daily target / 24)
+  (Part of #463)
+
+### Tests
+- `test_463_alert_messages`: same keys and placeholders in en / nl / fr,
+  every alert rendered in every language without placeholders, None or
+  jargon, at most four facts, language resolution, Telegram escaping,
+  HVAC review rules. Older text assertions updated to the new texts with
+  a #463 comment (Part of #463)
+
 ## [1.27.1] - 2026-11-21
 
 ### Fixed
