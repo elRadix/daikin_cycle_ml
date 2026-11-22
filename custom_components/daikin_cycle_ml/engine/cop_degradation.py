@@ -539,4 +539,3 @@ def analyze_trend(
         "valid": valid,
         "updated_ts": float(now) if now is not None else None,
     }
-
