@@ -4,7 +4,7 @@ if [ -z "${PRE_PUSH_TIMEOUT_APPLIED:-}" ]; then
     export PRE_PUSH_TIMEOUT_APPLIED=1
     exec timeout --signal=KILL 120 "$0" "$@"
 fi
-# Fast pre-push: ruff on changed .py files only. Full suite = CI job.
+# Fast pre-push: scripts/ci-fast.sh (changed files only). Full suite = CI job.
 # Fast-only: full suite runs on GitHub CI.
 set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
@@ -15,12 +15,5 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     [ "$local_sha" = "0000000000000000000000000000000000000000" ] && exit 0
 done
 
-CHANGED=$(git diff --name-only origin/main...HEAD -- '*.py' 2>/dev/null | tr '\n' ' ')
-if [ -z "$CHANGED" ]; then
-    echo "[pre-push] no .py changes — skip"
-    exit 0
-fi
-
-echo "[pre-push] ruff on changed .py files"
-timeout 60 ruff check $CHANGED || { echo "[pre-push] ruff FAILED"; exit 1; }
-echo "[pre-push] OK"
+# #500 D1: ruff + mypy on the changed files and the markdown check
+exec bash scripts/ci-fast.sh
