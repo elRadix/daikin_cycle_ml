@@ -181,7 +181,7 @@ Malformed JSON shows an inline error, wizard does not advance.
 3. Decide: **automatic** (auto-detect) or **manual** (map each attribute) mode
 4. Decide: bundled model (17 options) or **Custom** (you provide spec + map)
 
-**Only know your indoor unit?** The family field also accepts a typed model code (#435): the indoor unit (`EHBX08EF6V`), the outdoor unit (`ERGA06EAV3`) or both (`EHBX08EF6V + ERGA06EAV3`). An indoor size sold with several outdoor units narrows the model list to those (an `EHBX08` runs an ERGA06 or an ERGA08; the code on the outdoor unit or in the Daikin app tells which). Known units without a datasheet (ERGA D, Altherma LT, GEO, mini chiller) get a message to use the basic profile. The family and model lists also name the indoor units sold with each outdoor unit.
+**Only know your indoor unit?** The family field also accepts a typed model code (#435): the indoor unit (`EHBX08EF6V`), the outdoor unit (`ERGA06EAV3`) or both (`EHBX08EF6V + ERGA06EAV3`). An indoor size sold with several outdoor units narrows the model list to those (an `EHBX08` runs an ERGA06 or an ERGA08; the code on the outdoor unit or in the Daikin app tells which). Known units without a datasheet (ERGA D, Altherma LT, GEO, mini chiller) get a message to use the basic profile. The family and size alone also work (`ERGA06`, `Altherma 3 R ERGA06`), as do shortened or three-phase codes (`EPGA11DV`, `EPRA14DAW1`: a three-phase datasheet when there is one, otherwise the same unit's single-phase datasheet); a series letter you give must match (#198). What you typed is kept as `model_code` in the setup and shown in the diagnostics. The family and model lists also name the indoor units sold with each outdoor unit.
 
 ### 3.2 Wizard paths
 

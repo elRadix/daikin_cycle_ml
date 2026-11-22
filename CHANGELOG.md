@@ -21,6 +21,11 @@
   leaves out `custom_components`, `integration_manifest` and `setup_times`
   (on an install with many custom integrations that list runs to hundreds
   of lines). The bug report form points to it.
+- Setup wizard (#198): a typed model code also resolves on family and size
+  (`ERGA06`, `Altherma 3 R ERGA06`), a shortened suffix (`EPGA11DV`,
+  `ERLA11DV37`) and three-phase codes (`EPRA14DAW1` -> EPRA14DAW17,
+  `ERLA16DAW1` -> ERLA16DAV3); a given series letter must match. The typed
+  text is kept as `model_code` in the entry and shows in diagnostics.
 
 ### Fixed
 - Altherma HT (ERRQ + ERSQ, #189): the hydrobox water temperatures and
@@ -65,6 +70,9 @@
 - test_189_ht_hydrobox: an Altherma HT source with exactly the names of
   the ESPAltherma ERRQ-ERSQ definition detects a heating run (fails on the
   old code); stand-ins keep the freeze for a missing R4T or start signal.
+- test_198_model_codes: 15 typed codes (size only, shortened, three-phase,
+  series mismatch, flagged datasheets) and the wizard keeping the typed
+  code (fails on the old code).
 
 ## [1.30.1] - 2026-11-22
 

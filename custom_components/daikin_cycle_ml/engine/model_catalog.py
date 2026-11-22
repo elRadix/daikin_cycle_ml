@@ -138,6 +138,29 @@ def _outdoor_key(token: str) -> tuple[str, str] | None:
     return None
 
 
+# #198: family + size, optionally the series letter ("ERGA06",
+# "EPGA11DV", "ERLA11DV37", "EPRA14DAW1"). A given series letter must match
+# the key's (EBLA08DAV3 is the D series, not our EBLA08EV3). Three-phase
+# (W1) codes prefer a three-phase datasheet and otherwise use the
+# single-phase one of the same unit and size.
+_FAMILY_SIZE = re.compile(r"^([A-Z]{4})(\d{2})([A-Z])?")
+
+
+def _family_size_keys(token: str) -> list[str]:
+    m = _FAMILY_SIZE.match(token)
+    if not m:
+        return []
+    stem, series = (m.group(1) + m.group(2)).lower(), (m.group(3) or "").lower()
+    keys = [
+        k for k in MODEL_CHOICES
+        if k.startswith(stem) and k not in FLAGGED_NON_CATALOGUE
+        and (not series or k[6:7] == series)
+    ]
+    if "W1" in token[6:]:
+        keys = [k for k in keys if "w" in k[6:]] or keys
+    return sorted(keys)
+
+
 def resolve_model_text(text: str) -> ModelMatch:
     """Resolve what the user typed (indoor, outdoor or both) to a model."""
     tokens = _tokens(text or "")
@@ -146,6 +169,12 @@ def resolve_model_text(text: str) -> ModelMatch:
         hit = _outdoor_key(tok)
         if hit is not None:
             return ModelMatch(kind=hit[1], key=hit[0], candidates=[hit[0]], code=tok)
+    for tok in tokens:
+        keys = _family_size_keys(tok)
+        if len(keys) == 1:
+            return ModelMatch(kind="alias", key=keys[0], candidates=keys, code=tok)
+        if keys:
+            return ModelMatch(kind="ambiguous", candidates=keys, code=tok)
     flagged = FLAGGED_NON_CATALOGUE
     for tok in tokens:
         for pat, sizes, series in _INDOOR_RULES:
