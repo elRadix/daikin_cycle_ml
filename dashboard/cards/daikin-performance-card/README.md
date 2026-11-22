@@ -124,6 +124,15 @@ Per outdoor and water temperature:
 | EVLQ05 / 08 CV3 | 5.12 / 10.02 kW (Daikin product table) |
 | all other models | the nominal kW (an estimate; type yours to correct it) |
 
+## Diagnostics for a bug report
+
+At the bottom of the card, **Download** saves the diagnostics file and
+**Copy** puts it on the clipboard, ready to paste into a
+[GitHub issue](https://github.com/elRadix/daikin_cycle_ml/issues/new/choose).
+It is Home Assistant's diagnostics file for the heat pump this card shows,
+without the list of every other custom integration Home Assistant adds to
+its own download. An administrator account is needed.
+
 ## Troubleshooting
 
 - **Compressor dial "—"**: the speed range is learned after 20 steady

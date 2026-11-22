@@ -1,5 +1,16 @@
 # Changelog · Performance card (native)
 
+## [1.3.0] - 2026-11-22
+
+### Added
+
+- **Diagnostics for a bug report** at the bottom of the card: *Download*
+  saves `daikin_cycle_ml_diagnostics.json`, *Copy* puts it on the
+  clipboard to paste into an issue. It is the same file as Home Assistant's
+  "Download diagnostics" for the heat pump this card shows, without the list
+  of every other custom integration Home Assistant adds. Needs an
+  administrator account (as Home Assistant's own download).
+
 ## [1.2.2] - 2026-11-22
 
 ### Fixed

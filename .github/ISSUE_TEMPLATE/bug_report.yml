@@ -156,6 +156,10 @@ body:
         ---
         ## 📎 How to download the diagnostics file
 
+        Easiest: on any native Daikin card, press **Download** (or **Copy**)
+        under "Diagnostics for a bug report". That file leaves out the list of
+        all your other integrations. Or, in Home Assistant:
+
         1. Settings -> Devices & Services -> Daikin Cycle ML
         2. Click the **three dots** (⋮) next to the integration
         3. Select **Download diagnostics**

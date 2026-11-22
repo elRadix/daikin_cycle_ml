@@ -53,7 +53,80 @@
   }
   /* DCM-PATCH:END */
 
-  const CARD_VERSION = "1.1.2";
+  /* DCM-DIAG:BEGIN (same block in every native card; tests/test_card_diagnostics_export.py)
+   * Diagnostics for a bug report straight from the card: the same file as
+   * Home Assistant's "Download diagnostics", without the list of every other
+   * custom integration Home Assistant adds (custom_components,
+   * integration_manifest, setup_times). Download, or copy to paste. */
+  const DCM_DIAG_T = {
+    en: { label: "Diagnostics for a bug report", save: "Download", copy: "Copy", busy: "Collecting…",
+      saved: "Saved: daikin_cycle_ml_diagnostics.json", copied: "Copied: paste it into your issue",
+      no_entry: "No Daikin Cycle ML entry found for this card.", failed: "Not available: {msg}" },
+    nl: { label: "Diagnose voor een foutmelding", save: "Downloaden", copy: "Kopiëren", busy: "Verzamelen…",
+      saved: "Opgeslagen: daikin_cycle_ml_diagnostics.json", copied: "Gekopieerd: plak het in je issue",
+      no_entry: "Geen Daikin Cycle ML-installatie gevonden voor deze kaart.", failed: "Niet beschikbaar: {msg}" },
+    fr: { label: "Diagnostic pour un rapport de bug", save: "Télécharger", copy: "Copier", busy: "Collecte…",
+      saved: "Enregistré : daikin_cycle_ml_diagnostics.json", copied: "Copié : collez-le dans votre issue",
+      no_entry: "Aucune installation Daikin Cycle ML trouvée pour cette carte.", failed: "Indisponible : {msg}" },
+  };
+  const DCM_DIAG_DROP = ["custom_components", "integration_manifest", "setup_times"];
+  function dcmDiagEntry(hass, ids) {
+    for (const id of Object.values(ids || {})) {
+      const e = id && hass && hass.entities && hass.entities[id];
+      const d = e && e.device_id && hass.devices && hass.devices[e.device_id];
+      if (d && Array.isArray(d.config_entries) && d.config_entries.length) return d.config_entries[0];
+    }
+    return null;
+  }
+  function dcmDiagText(raw) {
+    const out = Object.assign({}, raw);
+    for (const k of DCM_DIAG_DROP) delete out[k];
+    return JSON.stringify(out, null, 2);
+  }
+  async function dcmDiagRun(hass, entryId, how) {
+    const text = dcmDiagText(await hass.callApi("GET", "diagnostics/config_entry/" + entryId));
+    if (how === "copy") { await navigator.clipboard.writeText(text); return "copied"; }
+    const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = "daikin_cycle_ml_diagnostics.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return "saved";
+  }
+  function dcmDiagHtml(t, msg) {
+    const b = "font:inherit;font-size:12px;min-height:32px;padding:4px 12px;border-radius:8px;cursor:pointer;"
+      + "border:1px solid var(--divider-color,#ccc);background:var(--card-background-color,#fff);color:var(--primary-text-color)";
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 16px 12px;font-size:12px;color:var(--secondary-text-color)">`
+      + `<span>${esc(t.label)}</span><span style="display:flex;gap:8px">`
+      + `<button type="button" data-diag="save" style="${b}">${esc(t.save)}</button>`
+      + `<button type="button" data-diag="copy" style="${b}">${esc(t.copy)}</button></span>`
+      + (msg ? `<span role="status">${esc(msg)}</span>` : "") + `</div>`;
+  }
+  /* mounts the row in box; info() -> { lang, ids }; returns the redraw */
+  function dcmDiag(card, box, info) {
+    let msg = "";
+    const tr = () => DCM_DIAG_T[info().lang] || DCM_DIAG_T.en;
+    const draw = () => dcmPatch(box, dcmDiagHtml(tr(), msg));
+    box.addEventListener("click", async (ev) => {
+      const path = ev.composedPath ? ev.composedPath() : [ev.target];
+      const btn = path.find((n) => n && n.getAttribute && n.getAttribute("data-diag"));
+      if (!btn) return;
+      const t = tr(), entry = dcmDiagEntry(card._hass, info().ids);
+      if (!entry) { msg = t.no_entry; draw(); return; }
+      msg = t.busy; draw();
+      try {
+        msg = t[await dcmDiagRun(card._hass, entry, btn.getAttribute("data-diag"))];
+      } catch (err) {
+        msg = t.failed.replace("{msg}", (err && (err.message || (err.body && err.body.message))) || String(err));
+      }
+      draw();
+    });
+    return draw;
+  }
+  /* DCM-DIAG:END */
+
+  const CARD_VERSION = "1.2.0";
   const TAG = "daikin-daily-summary-card";
   const EDITOR_TAG = "daikin-daily-summary-card-editor";
   const DOMAIN = "daikin_cycle_ml";
@@ -873,6 +946,9 @@
       if (!this.shadowRoot) {
         this.attachShadow({ mode: "open" });
         this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card><div id="root"></div></ha-card>`;
+        const diagBox = document.createElement("div");
+        this.shadowRoot.querySelector("ha-card").appendChild(diagBox);
+        this._diagDraw = dcmDiag(this, diagBox, () => this._diagInfo || { lang: "en", ids: {} });
         this.shadowRoot.addEventListener("click", (ev) => this._onClick(ev));
         this.shadowRoot.addEventListener("keydown", (ev) => {
           if ((ev.key === "Enter" || ev.key === " ") && ev.target && ev.target.getAttribute && ev.target.getAttribute("role") === "button") {
@@ -886,6 +962,8 @@
       const root = this.shadowRoot.getElementById("root");
     root.setAttribute("lang", m.lang);
     dcmPatch(root, render(m, this._config, this._ui));
+    this._diagInfo = { lang: m.lang, ids: resolveEntities(this._hass, this._config) };
+    this._diagDraw();
     }
 
     _onClick(ev) {
