@@ -1,0 +1,241 @@
+{
+  "entity": {
+    "sensor": {
+      "thermal_power_live": {
+        "default": "mdi:fire"
+      },
+      "electrical_power_estimated": {
+        "default": "mdi:lightning-bolt"
+      },
+      "hp_specs": {
+        "default": "mdi:heat-pump-outline"
+      },
+      "cop_normalized_a7w35": {
+        "default": "mdi:thermometer-lines"
+      },
+      "cop_vs_datasheet_pct": {
+        "default": "mdi:chart-bell-curve"
+      },
+      "cop_degradation_status": {
+        "default": "mdi:chart-line-variant"
+      },
+      "cop_degradation_week_pct": {
+        "default": "mdi:trending-down"
+      },
+      "cop_trend_30d": {
+        "default": "mdi:chart-timeline-variant"
+      },
+      "cycle_state": {
+        "default": "mdi:state-machine"
+      },
+      "current_cycle": {
+        "default": "mdi:hvac"
+      },
+      "last_cycle": {
+        "default": "mdi:star-outline"
+      },
+      "alerts_today": {
+        "default": "mdi:alert-circle-outline"
+      },
+      "cycles_today": {
+        "default": "mdi:counter"
+      },
+      "quality_today": {
+        "default": "mdi:star-outline"
+      },
+      "runtime_compressor_today": {
+        "default": "mdi:timer-outline"
+      },
+      "runtime_buh_today": {
+        "default": "mdi:fire-alert"
+      },
+      "compressor_starts_today": {
+        "default": "mdi:restart"
+      },
+      "defrost_count_today": {
+        "default": "mdi:snowflake-melt"
+      },
+      "defrost_duration_today": {
+        "default": "mdi:timer-sand"
+      },
+      "duty_cycle_today": {
+        "default": "mdi:gauge"
+      },
+      "electrical_energy_heating_today": {
+        "default": "mdi:lightning-bolt"
+      },
+      "electrical_energy_dhw_today": {
+        "default": "mdi:lightning-bolt"
+      },
+      "electrical_energy_cooling_today": {
+        "default": "mdi:lightning-bolt"
+      },
+      "electrical_energy_total_today": {
+        "default": "mdi:lightning-bolt-circle"
+      },
+      "thermal_energy_heating_today": {
+        "default": "mdi:fire"
+      },
+      "thermal_energy_cooling_today": {
+        "default": "mdi:snowflake"
+      },
+      "source_health": {
+        "default": "mdi:heart-pulse"
+      },
+      "learned_thresholds": {
+        "default": "mdi:brain"
+      },
+      "cop_today": {
+        "default": "mdi:heat-pump"
+      },
+      "cop_combined_today": {
+        "default": "mdi:heat-pump-outline"
+      },
+      "spf_season": {
+        "default": "mdi:calendar-star"
+      },
+      "spf_ytd": {
+        "default": "mdi:calendar-today"
+      },
+      "scop_running_365d": {
+        "default": "mdi:chart-timeline-variant"
+      },
+      "heating_curve_advice": {
+        "default": "mdi:chart-line"
+      },
+      "cop_mean_day": {
+        "default": "mdi:calendar-today"
+      },
+      "cop_mean_week": {
+        "default": "mdi:calendar-week"
+      },
+      "cop_mean_month": {
+        "default": "mdi:calendar-month"
+      },
+      "cop_curve_recent": {
+        "default": "mdi:chart-scatter-plot"
+      },
+      "cop_heating_day": {
+        "default": "mdi:radiator"
+      },
+      "cop_heating_week": {
+        "default": "mdi:radiator"
+      },
+      "cop_heating_month": {
+        "default": "mdi:radiator"
+      },
+      "cop_dhw_day": {
+        "default": "mdi:water-boiler"
+      },
+      "cop_dhw_week": {
+        "default": "mdi:water-boiler"
+      },
+      "cop_dhw_month": {
+        "default": "mdi:water-boiler"
+      },
+      "cop_cooling_day": {
+        "default": "mdi:snowflake"
+      },
+      "cop_cooling_week": {
+        "default": "mdi:snowflake"
+      },
+      "cop_cooling_month": {
+        "default": "mdi:snowflake"
+      },
+      "daily_summary_recent": {
+        "default": "mdi:calendar-range"
+      },
+      "hybrid_mode": {
+        "default": "mdi:heat-pump-outline"
+      },
+      "boiler_efficiency_cop": {
+        "default": "mdi:fire"
+      },
+      "boiler_contribution_today_pct": {
+        "default": "mdi:fire-circle"
+      }
+    },
+    "binary_sensor": {
+      "compressor_running": {
+        "default": "mdi:heat-pump"
+      },
+      "short_run": {
+        "default": "mdi:timer-alert-outline"
+      },
+      "short_off": {
+        "default": "mdi:timer-alert-outline"
+      },
+      "short_cycling_pattern": {
+        "default": "mdi:repeat-variant"
+      },
+      "buh_active": {
+        "default": "mdi:fire"
+      },
+      "dhw_active": {
+        "default": "mdi:water-boiler"
+      },
+      "setpoint_oscillating": {
+        "default": "mdi:sine-wave"
+      },
+      "dhw_pendulum": {
+        "default": "mdi:water-boiler-alert"
+      },
+      "dhw_installed": {
+        "default": "mdi:water-boiler"
+      },
+      "high_cycle_rate": {
+        "default": "mdi:speedometer"
+      },
+      "boiler_operation_demand": {
+        "default": "mdi:fire"
+      },
+      "boiler_dhw_demand": {
+        "default": "mdi:water-boiler"
+      }
+    }
+  },
+  "services": {
+    "reset_counters": {
+      "service": "mdi:counter"
+    },
+    "export_cycles": {
+      "service": "mdi:file-export-outline"
+    },
+    "label_cycle": {
+      "service": "mdi:tag-outline"
+    },
+    "recompute_baseline": {
+      "service": "mdi:chart-bell-curve"
+    },
+    "run_maintenance": {
+      "service": "mdi:broom"
+    },
+    "send_test_notification": {
+      "service": "mdi:message-alert-outline"
+    },
+    "export_cop_hourly": {
+      "service": "mdi:table-arrow-right"
+    },
+    "recompute_kmeans": {
+      "service": "mdi:scatter-plot"
+    },
+    "import_datasheet": {
+      "service": "mdi:file-import-outline"
+    },
+    "remove_user_datasheet": {
+      "service": "mdi:file-remove-outline"
+    },
+    "assign_legacy_db": {
+      "service": "mdi:database-arrow-right"
+    },
+    "archive_legacy_db": {
+      "service": "mdi:archive-outline"
+    },
+    "export_legacy_db": {
+      "service": "mdi:database-export-outline"
+    },
+    "set_model_profile": {
+      "service": "mdi:tune-variant"
+    }
+  }
+}

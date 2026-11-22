@@ -136,7 +136,7 @@ Tweakers feedback "alerts not shown in any card" is now #425.
 - Alerts: 19
 - DB: daikin_cycle_ml.db schema v16 (v1.12.0 migration, #105/#107) ·
   HA Store alerts v1 · user datasheet store v1
-- IQS: Bronze + Silver + Gold (README badge)
+- IQS: Platinum (manifest + README badge, #481; checked by tests/test_iqs_rules.py)
 - prod-1: v1.23.3 on HA 2026.11.1 (diagnostics 2026-11-19 06:42); update
   to v1.24.1 + re-paste all cards TE VERIFIEREN; then check SQL section A
   (~100 % per day), runtime_check, cop_cross_check, rescored quality

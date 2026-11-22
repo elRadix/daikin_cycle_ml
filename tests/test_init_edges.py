@@ -10,7 +10,6 @@ from custom_components.daikin_cycle_ml import (
     _async_setup_database,
     async_unload_entry,
 )
-from homeassistant.exceptions import HomeAssistantError
 
 
 async def test_setup_database_exception_sets_db_none():
@@ -31,8 +30,8 @@ async def test_unload_returns_false_when_platform_unload_fails():
     hass.config_entries.async_unload_platforms = AsyncMock(return_value=False)
     entry = MagicMock()
     entry.runtime_data = MagicMock()
-    with pytest.raises(HomeAssistantError):
-        await async_unload_entry(hass, entry)
+    # IQS config-entry-unloading: a failed unload returns False
+    assert await async_unload_entry(hass, entry) is False
 
 
 async def test_unload_db_close_error_caught():

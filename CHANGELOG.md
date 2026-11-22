@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+### Changed
+- Integration Quality Scale: Platinum (self-declared; Home Assistant grades
+  only core integrations). Every rule is now met in the code and checked by
+  tests/test_iqs_rules.py (Part of #481).
+- `aiosqlite>=0.20.0` declared in the manifest requirements: the database
+  layer needs it and Home Assistant core does not install it (Part of #481).
+- Error messages of the actions are translated (EN / NL / FR); invalid
+  input to `set_model_profile` raises a validation error (Part of #481).
+- Icons come from `icons.json` next to the manifest (it sat in
+  `translations/`, where Home Assistant never read it), for every entity and
+  the 14 actions; every entity keeps the icon it had (Part of #481).
+- New installs start with `dhw_installed`, `boiler_operation_demand` and
+  `boiler_dhw_demand` disabled (no card or alert uses them); existing
+  installs keep them enabled (Part of #481).
+
+### Fixed
+- Binary sensors: the diagnostic category set in their definitions was
+  never applied (Part of #481).
+- Unloading returns `False` when a platform does not unload instead of
+  raising; typed config entry for setup, platforms and diagnostics
+  (Part of #481).
+
+### Tests
+- test_iqs_rules: quality_scale.yaml claims checked in code (libraries,
+  icons, exception translations, disabled entities, typed entry).
+- test_v1228_compressor_runtime: native "today" tests no longer depend on
+  the time of day they run.
+
 ## [1.29.1] - 2026-11-21
 
 ### Fixed

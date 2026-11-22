@@ -196,5 +196,6 @@ def test_sensor_init_icon_none_branch():
     s = DaikinCycleMLSensor.__new__(DaikinCycleMLSensor)
     coord = MagicMock()
     with patch.object(DaikinCycleMLEntity, "__init__", return_value=None):
-        DaikinCycleMLSensor.__init__(s, coord, "k", "n", lambda snap, c: 1.0, icon=None)
+        DaikinCycleMLSensor.__init__(s, coord, "k", "n", lambda snap, c: 1.0)
+    # IQS icon-translations: icons come from icons.json, never from code
     assert getattr(s, "_attr_icon", None) is None

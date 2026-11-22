@@ -17,7 +17,7 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 [![Pylint](https://img.shields.io/badge/pylint-10.00%2F10-brightgreen.svg)](https://pylint.readthedocs.io/)
 [![mypy](https://img.shields.io/badge/mypy-strict%200%20errors-brightgreen.svg)](https://mypy-lang.org/)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.9%2B-blue.svg)](https://www.home-assistant.io/)
-[![IQS](https://img.shields.io/badge/IQS-Bronze%20%2B%20Silver%20%2B%20Gold-orange.svg)](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/DEVELOPMENT.md#8-integration-quality-scale)
+[![IQS](https://img.shields.io/badge/IQS-Platinum-blueviolet.svg)](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/DEVELOPMENT.md#8-integration-quality-scale)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/elRadix/daikin_cycle_ml/blob/main/LICENSE)
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
@@ -243,7 +243,7 @@ The new `sensor.daikin_cycle_ml_electrical_power_estimated` shows the live estim
 **Setup wizard** with smart auto-import (v1.8) that detects non-canonical attribute names via alias table + fuzzy matching. **Options menu** with grouped sections and a dedicated notifications sub-menu. **Reconfigure** flows to change source sensor or model without re-adding. **Diagnostics download** for one-click troubleshooting support.
 
 ### Production-grade quality
-**3729 tests, 100.00% coverage, mypy strict, Pylint 10/10, IQS Bronze + Silver + Gold.** 8 GitHub Actions workflows enforced on every PR. No cloud. No telemetry. No accounts. Your heat pump data stays on your HA instance.
+**3729 tests, 100.00% coverage, mypy strict, Pylint 10/10, IQS Platinum (self-declared, checked by tests).** 8 GitHub Actions workflows enforced on every PR. No cloud. No telemetry. No accounts. Your heat pump data stays on your HA instance.
 
 ---
 
@@ -783,7 +783,7 @@ Downgrading is not officially supported but is technically possible. See [docs/U
 | mypy strict | 38 files, 0 errors |
 | Pylint | 10.00/10 |
 | CI workflows | 8, all green |
-| IQS | Bronze + Silver + Gold |
+| IQS | Platinum (self-declared; every rule done or exempt, checked by tests) |
 | Entities | 63 registered |
 | Services | 13 |
 | Repairs | 9 |
