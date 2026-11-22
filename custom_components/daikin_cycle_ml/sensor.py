@@ -223,7 +223,7 @@ def _attrs_cop_normalized_a7w35(
 def _value_cop_vs_datasheet_pct(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> float | None:
-    """C3a: live COP deviation (%) vs datasheet A7/W35."""
+    """C3a: live COP deviation (%) vs the datasheet at the live point (#175)."""
     if getattr(s, "state", "running") != "running":
         return None
     return s.cop_vs_datasheet_pct
@@ -240,6 +240,7 @@ def _attrs_cop_vs_datasheet_pct(
         None,
     )
     pct = s.cop_vs_datasheet_pct
+    ref = getattr(s, "cop_datasheet_ref", None) or {}
     if pct is None:
         band = None
     elif pct >= 0:
@@ -252,6 +253,10 @@ def _attrs_cop_vs_datasheet_pct(
         "model": s.datasheet_model,
         "ref_cop_a7w35": ref_cop,
         "cop_normalized_a7w35": s.cop_normalized_a7w35,
+        # #175: datasheet COP expected at the live outdoor / water point
+        "cop_datasheet_live": ref.get("cop_datasheet_live"),
+        "reference_point": ref.get("reference_point"),
+        "reference_distance_k": ref.get("reference_distance_k"),
         "cop_measured": s.cop,
         "deviation_pct": pct,
         "band": band,

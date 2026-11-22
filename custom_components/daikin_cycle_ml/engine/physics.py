@@ -6,7 +6,7 @@ as part of #132 companion testing. Wired into thermal cascade in v1.19.9
 """
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 # v1.19.9 #123/#127-Q1: Daikin expert confirmed 0.65 as the practical
 # derating factor. Was 0.55 (R445e empirical guess) pre-RFI answer.
@@ -104,3 +104,61 @@ def classify_cop_sample(
     if cop > reject_thr:
         return "reject"
     return "flag"
+
+
+# #175: datasheet reference at the live operating point. The Carnot ratio
+# between A7/W35 and the live point assumes a constant Carnot efficiency,
+# which a real heat pump does not have: a unit exactly on its datasheet read
+# -17 % at A-7/W35 and -26 % at A-2/W45 (LT), +12..+20 % at W65 (HT). The
+# reference is now taken from the nearest datasheet points; the Carnot ratio
+# only bridges the remaining distance to each of them.
+REF_POINTS_USED = 3
+
+
+def carnot_lift_factor(t_out: float, lwt: float) -> float | None:
+    """Ideal heating COP with the same condensing / evaporating offsets as #388."""
+    t_cond = lwt + 5.0 + 273.15
+    lift = t_cond - (t_out - 8.0 + 273.15)
+    return t_cond / lift if lift > 0 else None
+
+
+def datasheet_cop_at(
+    points: list[dict[str, Any]], t_out: float, lwt: float,
+) -> dict[str, Any] | None:
+    """Datasheet COP expected at (t_out, lwt), or None without a usable point.
+
+    Each datasheet point is carried to the live point with the Carnot ratio;
+    the up to REF_POINTS_USED nearest points (distance in K over outdoor and
+    water temperature) are averaged with inverse-square-distance weights. On
+    a datasheet point the result is that point's COP; a model with only
+    A7/W35 gets exactly the previous Carnot normalisation.
+    """
+    live = carnot_lift_factor(t_out, lwt)
+    if live is None:
+        return None
+    cands: list[tuple[float, str, float]] = []
+    for p in points or []:
+        try:
+            cop, po, pw = float(p["cop"]), float(p["t_out"]), float(p["t_lwc"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        ref = carnot_lift_factor(po, pw)
+        if cop <= 0 or ref is None:
+            continue
+        dist = ((t_out - po) ** 2 + (lwt - pw) ** 2) ** 0.5
+        cands.append((dist, str(p.get("label") or f"A{po:g}/W{pw:g}"), cop * live / ref))
+    if not cands:
+        return None
+    cands.sort(key=lambda c: c[0])
+    near = cands[:REF_POINTS_USED]
+    if near[0][0] < 0.05:
+        cop_ref = near[0][2]
+    else:
+        weights = [1.0 / (d * d) for d, _, _ in near]
+        cop_ref = sum(w * c[2] for w, c in zip(weights, near)) / sum(weights)
+    return {
+        "cop": cop_ref,
+        "point": near[0][1],
+        "distance_k": round(near[0][0], 1),
+        "points_used": len(near),
+    }

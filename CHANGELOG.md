@@ -23,6 +23,14 @@
   of lines). The bug report form points to it.
 
 ### Fixed
+- COP vs datasheet (#175): the reference is the datasheet COP at the live
+  outdoor temperature and LWT, from the nearest datasheet points, instead
+  of A7/W35 carried over with a Carnot ratio. A heat pump exactly on its
+  datasheet read -13 to -32 % at LWT 45-55 °C or in frost, so
+  `cop_vs_datasheet_low` could fire on a healthy unit, and +12 to +20 % at
+  W65 on HT models, hiding a real loss. Models with only A7/W35 keep the
+  previous estimate. New sensor attributes `cop_datasheet_live`,
+  `reference_point`, `reference_distance_k`.
 - Diagnostics: six fields that were empty in every file are filled (#339):
   - `adaptive.thresholds`: the learned values per mode with their sample
     counts;

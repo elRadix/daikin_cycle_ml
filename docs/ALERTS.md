@@ -240,7 +240,7 @@ Fires when the COP is more than 10% below the datasheet value for your model, ju
 
 Only fires for bundled models (not Custom). Message includes expected vs actual. Useful as a sanity check — if you see this persistently, either the datasheet is wrong for your conditions or the pump is underperforming.
 
-The reference is the datasheet's A7/W35 point, normalised to your LWT and outdoor temperature. Models marked `verified: true` in `data/datasheets.json` use Daikin's EN14511 nominal value with a source in `ref` (#392). EVLQ hybrids used a part-load value (5.75 / 5.85) before #394, which made this alert fire too often.
+The reference is the datasheet COP at your live outdoor temperature and LWT: the up to three nearest datasheet points, each carried to the live point with the Carnot ratio and weighted by distance (#175). On a datasheet point it is that point's value. Before #175 only A7/W35 was carried over the whole distance, which assumes a constant Carnot efficiency: a heat pump exactly on its datasheet read -13 to -32 % at LWT 45-55 °C or in frost (a false alert) and +12 to +20 % at W65 on HT models (a real loss hidden). A model with only A7/W35 in its datasheet keeps that older estimate. The sensor `cop_vs_datasheet_pct` shows `cop_datasheet_live`, `reference_point` and `reference_distance_k`; `cop_normalized_a7w35` is your COP scaled by the datasheet's own ratio A7/W35 / live point. Models marked `verified: true` in `data/datasheets.json` use Daikin's EN14511 nominal value with a source in `ref` (#392). EVLQ hybrids used a part-load value (5.75 / 5.85) before #394, which made this alert fire too often.
 
 #### `defrost_excessive`
 

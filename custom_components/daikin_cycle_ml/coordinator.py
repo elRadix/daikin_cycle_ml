@@ -113,6 +113,7 @@ from .engine.attribute_reader import missing_required, read
 from .engine import defrost_limit
 from .engine import hmax_learning as _hmax_learning
 from .engine import model_profile as _model_profile
+from .engine.physics import datasheet_cop_at as _datasheet_cop_at
 from .engine.alert_texts import resolve_language
 from .engine.notify_format import escape_for_parse_mode
 from .engine.cop_degradation import (
@@ -240,6 +241,7 @@ class DataSnapshot:
     datasheet_model: str | None = None
     cop_normalized_a7w35: float | None = None
     cop_vs_datasheet_pct: float | None = None
+    cop_datasheet_ref: dict[str, Any] = field(default_factory=dict)
     cop_degradation_status: str = "none"
     cop_degradation_week_pct: float | None = None
     cop_trend_30d: float | None = None
@@ -2516,6 +2518,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap.cop_vs_datasheet_pct = self._datasheet_cache.get(
                 "cop_vs_datasheet_pct"
             )
+            snap.cop_datasheet_ref = {
+                k: self._datasheet_cache[k]
+                for k in ("cop_datasheet_live", "reference_point",
+                          "reference_distance_k", "reference_points_used")
+                if k in self._datasheet_cache
+            }
             self._track_cop_ds_pct(now, snap.cop_vs_datasheet_pct)
             self._tick_mark("datasheet")
             await self._async_dispatch_alerts(snap)
@@ -3893,25 +3901,27 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             )
             self._datasheet_cache = out
             return
-        t_cond_ref = 35.0 + 5.0 + 273.15
-        t_evap_ref = 7.0 - 8.0 + 273.15
-        dT_ref = t_cond_ref - t_evap_ref
-        t_cond_live = lwt_now + 5.0 + 273.15
-        t_evap_live = t_out - 8.0 + 273.15
-        dT_live = t_cond_live - t_evap_live
-        if dT_live <= 0:
+        # #175: datasheet COP at the live point from the nearest datasheet
+        # points (Carnot only bridges the remaining distance); a model with
+        # only A7/W35 keeps the v1.22.11 Carnot normalisation exactly.
+        live_ref = _datasheet_cop_at(ds["points"], float(t_out), float(lwt_now))
+        if live_ref is None or live_ref["cop"] <= 0:
             _LOGGER.debug(
-                "v1.22.11 #388 gate-3 dT_live=%s lwt=%s t_out=%s",
-                dT_live, lwt_now, t_out,
+                "v1.22.11 #388 gate-3 no lift: lwt=%s t_out=%s",
+                lwt_now, t_out,
             )
             self._datasheet_cache = out
             return
-        cop_norm = cop_meas * (
-            (t_cond_ref / dT_ref) / (t_cond_live / dT_live)
-        )
-        pct = ((cop_norm - float(ref["cop"])) / float(ref["cop"])) * 100.0
+        ref_cop = float(ref["cop"])
+        cop_live = float(live_ref["cop"])
+        cop_norm = cop_meas * ref_cop / cop_live
+        pct = (cop_meas - cop_live) / cop_live * 100.0
         out["cop_normalized_a7w35"] = round(cop_norm, 3)
         out["cop_vs_datasheet_pct"] = round(pct, 2)
+        out["cop_datasheet_live"] = round(cop_live, 2)
+        out["reference_point"] = live_ref["point"]
+        out["reference_distance_k"] = live_ref["distance_k"]
+        out["reference_points_used"] = live_ref["points_used"]
         self._datasheet_cache = out
 
     async def _maybe_refresh_stooklijn(
