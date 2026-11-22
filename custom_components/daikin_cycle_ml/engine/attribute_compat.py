@@ -23,6 +23,8 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
         "Outlet Water Heat Exch. Temp. (R1T)",
         "[Hydrobox] Leaving water temp. (R1T)",
         "[Hydrobox] LWT",
+        # #189: Altherma HT ERRQ + ERSQ hydrobox (no BUH on this side)
+        "Leaving water temp. (hydrobox)",
     ),
     "Leaving water temp. after BUH (R2T)": (
         "Leaving water temp.(R2T)",
@@ -41,6 +43,8 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
         # v1.20.0 #281: EPSK publishes inlet via "water heat exchanger"
         "Inlet water temp. (water heat exchanger)",
         "[Hydrobox] Inlet water temp. (R4T)",
+        # #189: Altherma HT hydrobox; "R4T (deicer)" there is refrigerant
+        "Inlet water temp. (hydrobox)",
     ),
     "Outdoor air temp.(R1T)": (
         "R1T-Outdoor air temp.",
@@ -73,6 +77,10 @@ ALIAS_GROUPS: dict[str, tuple[str, ...]] = {
         "[Hydrobox] Compressor frequency",
         "Compressor frequency",
         "Frequency (Hz)",
+        # #189: Altherma HT outdoor units (EKHBRD-ERRQ, ERRQ-ERSQ). Read as
+        # is: the start threshold (3) holds in Hz too and the compressor
+        # range is learned per install (#467), so no Hz -> rps factor.
+        "INV Comp. Frequency(Hz)",
     ),
     "Operation Mode": ("Betriebsart", "Mode de fonctionnement"),
     "Thermostat ON/OFF": ("Thermostat EIN/AUS",),

@@ -408,6 +408,8 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 first = match.key or match.candidates[0]
                 fam = family_for_model(first)
                 self._data["model"] = first
+                # #198: keep the code the user typed (diagnostics, support)
+                self._data["model_code"] = str(user_input["family"]).strip()[:64]
             self._selected_family = fam
             if fam in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
                 self._selected_model = fam

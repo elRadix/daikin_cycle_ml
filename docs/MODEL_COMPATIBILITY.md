@@ -205,9 +205,15 @@ the upstream .h file:
 - Altherma (HT EKHBRD-ERRQ 11-16kW protocol S): missing 11 of 12 required.
   HT-protocol exposes a minimal set; setup reports missing_attributes.
 - Altherma (HT EKHBRD-ERRQ 11-16kW): missing all 12. HT-protocol variant.
-- Altherma (HT ERRQ-ERSQ outdoor unit 11-16kW): missing 8 of 12. Outdoor-only
-  definition — no water-side sensors (inlet, flow, BUH, 3-way, pump).
-  Hydrobox labels live in the EKHBRD-ERRQ variants above.
+- Altherma (HT ERRQ-ERSQ outdoor unit 11-16kW): the hydrobox water
+  temperatures ("Leaving water temp. (hydrobox)", "Inlet water temp.
+  (hydrobox)") and the compressor ("INV Comp. Frequency(Hz)") are read
+  since #189, so cycles are detected. No flow, R2T, BUH, 3-way valve, pump
+  or setpoint on the wire: no thermal power or COP from flow, and the
+  missing_attributes repair lists them. "R2T (discharge)" and "R4T
+  (deicer)" are refrigerant sensors on this unit and are not read as water.
+  The compressor value is in Hz and read as is (start threshold 3; the
+  compressor range is learned per install).
 - Altherma (Hybrid): missing R2T and outdoor R1T. Hybrid uses a different
   cold-side sensor; R1T outdoor not published on the wire.
 - Altherma (LT_EBLQ-EBLQ-CA 5-7kW Monobloc): missing R2T. CA-series

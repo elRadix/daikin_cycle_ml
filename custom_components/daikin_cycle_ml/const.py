@@ -375,6 +375,9 @@ DETECTION_CRITICAL_ATTRIBUTES = [
     if a not in (
         ATTR_BUH_STEP1, ATTR_BUH_STEP2,
         ATTR_IU_OPERATION_MODE, ATTR_WATER_PUMP_OPERATION,
+        # #189: the detector never reads the setpoint (setpoint tracking
+        # does); Altherma HT outdoor definitions do not publish it
+        ATTR_LW_SETPOINT,
     )
 ]
 

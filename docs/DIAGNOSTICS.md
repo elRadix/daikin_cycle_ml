@@ -49,7 +49,7 @@ the ESPAltherma values. Read it first if that matters to you.
 | Section | What it shows | Helps to find |
 |---|---|---|
 | `meta` | integration and Home Assistant version, time of the file, UTC offset, redacted keys | which version produced it |
-| `entry` | the setup (data and options, redacted) | wrong source, model or option |
+| `entry` | the setup (data and options, redacted), with `model_code`: the model code you typed in the wizard, if any | wrong source, model or option |
 | `source` | the ESPAltherma entity and all its attributes at that moment | missing or renamed values, ESPAltherma version |
 | `source_resolution` | how the source is read: auto (with coverage of both sources), monolithic (entity, attribute count, custom map) or individual (prefix, values found) | a source that lacks required values |
 | `coordinator` | live state and mode, missing attributes, last sample, COP source, power meter, `cop_cross_check`, `runtime_check`, hot-water and boiler detection | wrong mode, COP from the wrong meter, lost runtime |

@@ -262,7 +262,8 @@ CREATE TABLE cop_samples (
     mode_original          TEXT,
     is_transition_artifact INTEGER DEFAULT 0,
     boiler_active          INTEGER DEFAULT 0,
-    boiler_mode            TEXT DEFAULT ''
+    boiler_mode            TEXT DEFAULT '',
+    buh_active             INTEGER DEFAULT 0
 
 );
 ```
@@ -284,6 +285,7 @@ CREATE TABLE cop_samples (
 | `is_transition_artifact` | 1 if the sample is flagged, else 0. Flagged = Carnot classifier `flag` (above 0.65 × Carnot × 1.05, v1.19.9) **or** heating/DHW COP below 1.0 (start-up transient, #369). Kept for audit, **excluded from every COP aggregate** (`cop_today`, hourly rollup, `cop_mean_*`, SPF, heating-curve advice) since #391. Samples above 1.5 × Carnot are rejected (not stored) |
 | `boiler_active` | 1 if the boiler was active at sample time, else 0. Only set when boiler signals are trusted (EVLQ hybrid, or `Bivalent Operation` published, #288) |
 | `boiler_mode` | Boiler operation mode (`''` when not hybrid) |
+| `buh_active` | 1 if backup heater step 1 or 2 was on at sample time (#239). Kept in the day / week / month COP means and SPF (system COP), left out of the heating-curve advice (`async_fetch_cop_samples(include_buh=False)`). Added to older databases on startup (self-healing column, no rebuild: older samples read 0) |
 
 **Indexes:** `idx_cop_samples_ts`, `idx_cop_samples_outdoor`
 
