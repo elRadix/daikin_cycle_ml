@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+### Fixed
+- Diagnostics: six fields that were empty in every file are filled (#339):
+  - `adaptive.thresholds`: the learned values per mode with their sample
+    counts;
+  - `features`: the feature vector of the last closed cycle, from the
+    database;
+  - `detector`: start time, run duration, pending mode switch, continued
+    run, defrost hold and the rps threshold;
+  - `buh.step`: the backup heater's current step from the source, plus
+    today's seconds per step;
+  - `cop_analysis.bucket_edges`: derived from the outdoor bands;
+  - `source_resolution`: also for monolithic and individual sources.
+  The helpers that were excluded from coverage are now tested.
+
+### Tests
+- test_339_diagnostics_fields: every field above, the database read of the
+  feature vector, and the formerly uncovered helpers; `diagnostics.py` has
+  no `# pragma: no cover` left.
+
 ## [1.30.1] - 2026-11-22
 
 ### Fixed

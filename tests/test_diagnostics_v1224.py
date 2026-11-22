@@ -183,7 +183,11 @@ def test_defrost_snapshot():
 
 
 def test_buh_snapshot():
-    assert _buh_snapshot(_fake_coord(buh_step=2))["step"] == 2
+    # #339 A4: the step comes from the source's BUH Step1/Step2 values (the
+    # coordinator never had a _buh_step attribute: the field was always null)
+    coord = _fake_coord()
+    coord.last_attrs = {"BUH Step1": "ON", "BUH Step2": "ON"}
+    assert _buh_snapshot(coord)["step"] == 2
 
 
 # ---------- state mapping ----------

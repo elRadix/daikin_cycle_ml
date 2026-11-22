@@ -20,9 +20,10 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from .const import DB_FILENAME, DB_FILENAME_TEMPLATE
+from .const import ATTR_BUH_STEP1, ATTR_BUH_STEP2, DB_FILENAME, DB_FILENAME_TEMPLATE
 from .coordinator import DaikinCycleMLConfigEntry
 from .engine.thermal import _flow_dt_kw, dt_from_attrs, flow_from_attrs
+from .ml.features import FEATURE_NAMES
 from .engine.thermal import boiler_signals_trusted as _boiler_signals_trusted
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,7 +72,7 @@ async def _db_counts(db: Any) -> dict[str, int]:
     return counts
 
 
-async def _db_extra(db: Any) -> dict[str, Any]:  # pragma: no cover
+async def _db_extra(db: Any) -> dict[str, Any]:
     out: dict[str, Any] = {}
     if db is None or not getattr(db, "is_open", False):
         return out
@@ -87,7 +88,7 @@ async def _db_extra(db: Any) -> dict[str, Any]:  # pragma: no cover
     return out
 
 
-def _baseline_summary(coord: Any) -> dict[str, Any]:  # pragma: no cover
+def _baseline_summary(coord: Any) -> dict[str, Any]:
     baseline = getattr(coord, "baseline", None)
     if baseline is None:
         return {}
@@ -99,28 +100,14 @@ def _baseline_summary(coord: Any) -> dict[str, Any]:  # pragma: no cover
         except Exception:
             _LOGGER.debug("diagnostics: baseline summary failed")
         return summary
-    try:
+    try:  # a baseline without summary(): only its sample count
         summary["total_samples"] = baseline.total_samples()
-        for mode in baseline.modes():  # DIAG-V1224
-            entry_d: dict[str, Any] = {
-                "sample_count": baseline.sample_count(mode),
-            }
-            try:
-                d = baseline.to_dict() if hasattr(baseline, "to_dict") else {}
-                modes_d = d.get("baselines", d.get("modes", {})) if isinstance(d, dict) else {}
-                mode_d = modes_d.get(mode, {}) if isinstance(modes_d, dict) else {}
-                for k in ("n", "mean", "m2", "alpha", "dim", "outlier_skip_z"):
-                    if isinstance(mode_d, dict) and k in mode_d:
-                        entry_d[k] = mode_d[k]
-            except Exception:
-                pass
-            summary["modes"][mode] = entry_d
     except Exception:
         _LOGGER.debug("diagnostics: baseline summary failed")
     return summary
 
 
-def _adaptive_summary(coord: Any) -> dict[str, Any]:  # pragma: no cover
+def _adaptive_summary(coord: Any) -> dict[str, Any]:
     adaptive = getattr(coord, "adaptive", None)
     if adaptive is None:
         return {}
@@ -133,17 +120,18 @@ def _adaptive_summary(coord: Any) -> dict[str, Any]:  # pragma: no cover
                 "adaptive_thresholds_enabled", False
             )
         )
-        try:  # DIAG-V1224
-            d = adaptive.to_dict() if hasattr(adaptive, "to_dict") else {}
-            out["thresholds"] = d.get("thresholds", d.get("modes", {})) if isinstance(d, dict) else {}
-        except Exception:
-            pass
+        # #339 A1: what is learned per mode, with the sample counts behind it
+        # (to_dict() holds raw samples, never per-mode thresholds)
+        out["thresholds"] = {
+            m: {**adaptive.suggest(m), "samples": adaptive.sample_count(m)}
+            for m in out["modes"]
+        }
     except Exception:
         _LOGGER.debug("diagnostics: adaptive summary failed")
     return out
 
 
-async def _cluster_summary(coord: Any) -> dict[str, Any]:  # pragma: no cover
+async def _cluster_summary(coord: Any) -> dict[str, Any]:
     out: dict[str, Any] = {"centroids": 0, "labels": {}, "counts": {}}
     try:
         centroids = getattr(coord, "_kmeans_centroids", []) or []
@@ -161,6 +149,31 @@ async def _cluster_summary(coord: Any) -> dict[str, Any]:  # pragma: no cover
     except Exception:
         _LOGGER.debug("cluster_summary failed", exc_info=True)
     return out
+
+
+def _bucket_edges(buckets: Any) -> list[float | None] | None:
+    """#339 A5: outdoor-band edges from the bucket keys ("-2-0", "20+",
+    "-10-" below -10); None marks an open end."""
+    if not isinstance(buckets, dict) or not buckets:
+        return None
+    edges: set[float] = set()
+    low = high = False
+    for key in buckets:
+        k = str(key)
+        m = re.fullmatch(r"(-?\d+)-(-?\d+)", k)
+        if m:
+            edges.update((float(m.group(1)), float(m.group(2))))
+        elif re.fullmatch(r"-?\d+\+", k):
+            edges.add(float(k[:-1]))
+            high = True
+        elif re.fullmatch(r"-?\d+-", k):
+            edges.add(float(k[:-1]))
+            low = True
+    if not edges:
+        return None
+    out: list[float | None] = [None] if low else []
+    out.extend(sorted(edges))
+    return out + ([None] if high else [])
 
 
 async def _cop_summary(coord: Any) -> dict[str, Any]:
@@ -181,7 +194,7 @@ async def _cop_summary(coord: Any) -> dict[str, Any]:
             out['buckets'] = cache.get('buckets') or {}
         out['cop_today'] = getattr(coord, '_cop_today_cache', {}) or {}
         out['state_mapped'] = _state_map(out['state'])  # DIAG-V1224
-        out['bucket_edges'] = cache.get('bucket_edges') if cache else None
+        out['bucket_edges'] = _bucket_edges(out['buckets'])
         db = getattr(coord, 'db', None)
         if db is not None and hasattr(db, 'async_count_cop_samples'):
             out['total_samples'] = await db.async_count_cop_samples()
@@ -292,20 +305,22 @@ def _detector_snapshot(coord: Any) -> dict[str, Any]:  # # DIAG-V1224
     if det is None:
         return {"missing": True, "reason": "no_detector"}
     out: dict[str, Any] = {}
-    for k in ("state", "_state", "mode", "_mode", "mode_source",
-              "_mode_source", "_run_start_ts", "run_start_ts",
-              "_rps_threshold", "_dhw_present"):
+    # #339 A3: the detector's real fields (start_ts, pending mode switch,
+    # continued run, defrost hold) and the rps threshold from its options
+    for k in ("state", "_state", "mode", "_mode", "_start_ts", "_pending_mode",
+              "_pending_mode_since", "_continued", "_defrost_hold_s",
+              "_pump_off_count", "_dhw_present"):
         if hasattr(det, k):  # MYPY-FIX-V1224
             v = getattr(det, k, None)
             if v is not None and hasattr(v, "isoformat"):
                 out[k.lstrip("_")] = v.isoformat()
             else:
                 out[k.lstrip("_")] = v
-    if out.get("run_start_ts"):
-        try:
-            out["run_duration_s"] = time.time() - float(out["run_start_ts"])
-        except (TypeError, ValueError):
-            pass
+    opts = getattr(det, "_options", None)
+    if isinstance(opts, dict) and "compressor_rps_threshold" in opts:
+        out["rps_threshold"] = opts["compressor_rps_threshold"]
+    if isinstance(out.get("start_ts"), (int, float)) and out["start_ts"]:
+        out["run_duration_s"] = round(time.time() - float(out["start_ts"]), 1)
     if not out:
         return {"missing": True, "reason": "no_known_attrs"}
     return out
@@ -322,6 +337,21 @@ def _features_snapshot(coord: Any) -> dict[str, Any]:  # # DIAG-V1224
         "last_cycle_id": last.get("id"),
         "vector": last.get("feature_vector") or last.get("features"),
     }
+
+
+async def _features_db(coord: Any) -> dict[str, Any]:
+    """#339 A2: the feature vector of the last closed cycle lives in the
+    database (features table), not in the cycle store; store as fallback."""
+    db = getattr(coord, "db", None)
+    if db is not None and getattr(db, "is_open", False):
+        try:
+            row = await db.async_get_latest_feature_vector()
+        except Exception:
+            _LOGGER.debug("diagnostics: latest feature vector failed", exc_info=True)
+            row = None
+        if row:
+            return {"last_cycle_id": row["cycle_id"], "vector": row["vector"], "names": list(FEATURE_NAMES)}
+    return _features_snapshot(coord)
 
 
 def _alerts_snapshot(coord: Any) -> dict[str, Any]:  # # DIAG-V1224
@@ -343,8 +373,25 @@ def _defrost_snapshot(coord: Any) -> dict[str, Any]:  # # DIAG-V1224
     }
 
 
+def _on(v: Any) -> bool:
+    if isinstance(v, str):
+        return v.strip().upper() in ("ON", "1", "TRUE")
+    if isinstance(v, (int, float)):
+        return v > 0
+    return False
+
+
 def _buh_snapshot(coord: Any) -> dict[str, Any]:  # # DIAG-V1224
-    return {"step": getattr(coord, "_buh_step", None)}
+    """#339 A4: the backup heater's current step from the source (0 off,
+    1 step 1, 2 step 2) and today's seconds per step."""
+    attrs = getattr(coord, "last_attrs", None)
+    attrs = attrs if isinstance(attrs, dict) else {}
+    s1, s2 = attrs.get(ATTR_BUH_STEP1), attrs.get(ATTR_BUH_STEP2)
+    step: int | None = None
+    if s1 is not None or s2 is not None:
+        step = 2 if _on(s2) else 1 if _on(s1) else 0
+    return {"step": step, "step1_s": getattr(coord, "_buh_step1_s", None),
+            "step2_s": getattr(coord, "_buh_step2_s", None)}
 
 def _notify_health_snapshot(coord: Any) -> dict[str, Any]:
     """#384: notify-dispatch health (fail-streak counters)."""
@@ -595,7 +642,7 @@ def _safe_size(path: Path) -> int:
     """Return file size or 0 if stat() fails (e.g. file just vanished)."""
     try:
         return path.stat().st_size
-    except OSError:  # pragma: no cover
+    except OSError:
         return 0
 
 
@@ -724,7 +771,7 @@ async def async_get_config_entry_diagnostics(
             "last_vacuum": dict(getattr(db, "last_vacuum", {}) or {}),
         },
         "detector": _detector_snapshot(coord),
-        "features": _features_snapshot(coord),
+        "features": await _features_db(coord),
         "alerts": _alerts_snapshot(coord),
         "bivalent": {
             "is_hybrid": bool(getattr(snap, "is_hybrid", False)),
