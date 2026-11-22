@@ -1,5 +1,13 @@
 # Changelog · Efficiency card (native)
 
+## [1.3.1] - 2026-11-22
+
+### Fixed
+
+- The defrost / backup-heater verdict said "Good: no defrost and no backup
+  heater today" when there was no data for today at all (sensors still
+  unknown, or not found); it now says there is no data yet.
+
 ## [1.3.0] - 2026-11-22
 
 ### Added

@@ -90,6 +90,11 @@ def _hass_case(doc: dict) -> dict:
 def test_corpus_live_temperatures(path):
     attrs = _doc(path)["source"]["attributes"]
     t = live_temps_from_view(build_compat_view(attrs))
+    if not attrs:
+        # diagnostics before v1.23 (#218 #311 #316 #347) carry no source
+        # attributes: nothing is invented, the cards show "—"
+        assert all(v is None for v in t.values()), t
+        return
     assert 5 <= t["lwt_c"] <= 80 and 5 <= t["return_c"] <= 80, t
     assert -30 <= t["outdoor_c"] <= 45, t
     assert abs(t["lwt_c"] - t["return_c"]) < 25, t
@@ -163,9 +168,18 @@ def _text(html: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
 
 
+# diagnostics before v1.23 (#218 #311 #316 #347) hold no entity states: the
+# cards must then show their clean "entities not found" screen
+NO_STATES = {p.stem for p in FILES if not _doc(p)["entities"]}
+
+
 @pytest.mark.parametrize("path", FILES, ids=lambda p: p.stem)
 def test_corpus_efficiency_card(replay, path):
     r = replay[path.stem]
+    if path.stem in NO_STATES:
+        assert r["ok"] is False and all(lvl == "info" for lvl, _ in r["v"].values()), r["v"]   # nothing judged
+        assert all(not re.search(r"undefined|NaN|\[object", _text(h)) for h in r["html"].values())
+        return
     assert r["ok"] is True
     # every entity of the card is found without the registry, in the install's language
     assert r["missing"] == [], r["missing"]
@@ -193,6 +207,10 @@ def test_corpus_prod1_verdicts(replay):
 @pytest.mark.parametrize("path", FILES, ids=lambda p: p.stem)
 def test_corpus_daily_summary_card(replay, path):
     r = replay[path.stem]
+    if path.stem in NO_STATES:
+        assert r["dailyOk"] is False
+        assert all(not re.search(r"undefined|NaN|\[object", _text(h)) for h in r["daily"].values())
+        return
     if not r["daily"]:
         pytest.skip("daily_summary_recent truncated in this diagnostics file")
     assert r["dailyOk"] is True

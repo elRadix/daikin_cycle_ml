@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Fixed
+- Efficiency card 1.3.1: the defrost / backup-heater verdict judged
+  "good" without any data for today; it now says there is no data yet.
+  Found by replaying the four earlier diagnostics files below.
+
+### Tests
+- Diagnostics corpus: four earlier files from issues #218 (EVLQ08 hybrid
+  with gas boiler, 1.14.0), #311 (ERGA08EVH7, 1.22.0), #316 (ERGA08, no
+  power meter, 1.22.0) and #347 (ERGA08EAV3, 1.22.3), anonymised. These
+  diagnostics carry no source attributes or entity states (added in
+  v1.23): the engine replay runs on them, and the card replay checks that
+  the cards show their "entities not found" screen and judge nothing.
+
 ## [1.30.0] - 2026-11-22
 
 ### Added
