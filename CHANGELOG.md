@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+### Added
+- Native cards (daily summary 1.2.0, efficiency 1.4.0, performance 1.3.0):
+  "Diagnostics for a bug report" with *Download* and *Copy*. The card
+  fetches Home Assistant's diagnostics file for the heat pump it shows and
+  leaves out `custom_components`, `integration_manifest` and `setup_times`
+  (on an install with many custom integrations that list runs to hundreds
+  of lines). The bug report form points to it.
+
+### Fixed
+- Diagnostics: six fields that were empty in every file are filled (#339):
+  - `adaptive.thresholds`: the learned values per mode with their sample
+    counts;
+  - `features`: the feature vector of the last closed cycle, from the
+    database;
+  - `detector`: start time, run duration, pending mode switch, continued
+    run, defrost hold and the rps threshold;
+  - `buh.step`: the backup heater's current step from the source, plus
+    today's seconds per step;
+  - `cop_analysis.bucket_edges`: derived from the outdoor bands;
+  - `source_resolution`: also for monolithic and individual sources.
+  The helpers that were excluded from coverage are now tested.
+
+### Tests
+- test_card_diagnostics_export: the same export block in every native
+  card; in Chromium, Download and Copy fetch the shown entry's file without
+  the three blocks, and the card says when the API refuses (no admin) or no
+  entry is found.
+- test_339_diagnostics_fields: every field above, the database read of the
+  feature vector, and the formerly uncovered helpers; `diagnostics.py` has
+  no `# pragma: no cover` left.
+
 ## [1.30.1] - 2026-11-22
 
 ### Fixed

@@ -2336,6 +2336,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 if result.discovered_count > 0:
                     snap.last_success_ts = now
                 _should_freeze = len(attrs) == 0
+                # #339 A6: diagnostics show the source for every source type
+                self._source_resolution = {
+                    "mode": "individual", "prefix": self.individual_prefix,
+                    "discovered": result.discovered_count,
+                    "missing_required": len(snap.missing_attrs),
+                }
             else:  # SOURCE_TYPE_MONOLITHIC
                 state = self.hass.states.get(self.source_entity)
                 if state is None:
@@ -2350,6 +2356,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 snap.missing_attrs = missing_required(attrs)
                 snap.last_success_ts = now
                 _should_freeze = _detection_blocked(snap.missing_attrs)
+                self._source_resolution = {
+                    "mode": "monolithic", "entity": self.source_entity,
+                    "attributes": len(attrs), "custom_map": bool(custom_map),
+                    "missing_required": len(snap.missing_attrs),
+                }
 
             if _should_freeze:
                 # v1.12.1 (#109): freeze detector when source publishes

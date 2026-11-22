@@ -3382,6 +3382,21 @@ class CycleDB:
             await conn.commit()
         return {"hours": len(hours), "hours_rebuilt": rebuilt, "cycles": fixed}
 
+    async def async_get_latest_feature_vector(self) -> dict[str, Any] | None:
+        """#339 A2: feature vector of the most recent closed cycle."""
+        conn = self._require()
+        cur = await conn.execute(
+            "SELECT cycle_id, vector_json FROM features ORDER BY cycle_id DESC LIMIT 1"
+        )
+        row = await cur.fetchone()
+        if row is None:
+            return None
+        try:
+            vec = json.loads(row[1])
+        except (TypeError, ValueError):
+            return None
+        return {"cycle_id": int(row[0]), "vector": vec}
+
     async def async_count_by_cluster(self) -> dict[int, int]:  # pragma: no cover
         """Return {cluster_id: count} for cycles with cluster assigned."""
         path = getattr(self, "path", None)
