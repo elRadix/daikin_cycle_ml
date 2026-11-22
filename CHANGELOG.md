@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Fixed
+- Alerts: the stored severity now follows the action level of the alert
+  text (#463 review). A short run, short off, ML anomaly or setpoint
+  oscillation ("no action needed") was stored as a warning and shown as
+  one on the Daily summary card; database retention and energy anomaly
+  ("keep an eye on it") were info. Only critical alerts pass quiet hours,
+  unchanged (Part of #483).
+- `alerts_today` keeps the whole alert text (it cut every message at 400
+  characters, mid-word); a text over 1200 characters is cut at a line or
+  word end with an ellipsis. The attribute is not recorded (Part of #483).
+
 ### Changed
 - Integration Quality Scale: Platinum (self-declared; Home Assistant grades
   only core integrations). Every rule is now met in the code and checked by
@@ -25,6 +36,10 @@
   (Part of #481).
 
 ### Tests
+- test_alert_severity_levels: severity = text level for every alert;
+  replay of the corpus file epra08eav3 v1.29.0 (short_run warning with
+  "Geen actie nodig", message cut at 400 characters).
+- Corpus: epra08eav3_1_29_0 (EPRA08EAV3, frost day, 24/7 heating + DHW).
 - test_iqs_rules: quality_scale.yaml claims checked in code (libraries,
   icons, exception translations, disabled entities, typed entry).
 - test_v1228_compressor_runtime: native "today" tests no longer depend on
