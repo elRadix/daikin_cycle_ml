@@ -49,6 +49,12 @@ def weighted_mean(values: list[float], weights: list[float]) -> float | None:
     return total_v / total_w
 
 
+# The 30-day trend compares the recent COP with the COP the fit predicts
+# for the recent weather. A fit that explains almost nothing of the COP
+# (r2 0.03 on an ERLA11 with an external COP sensor) predicts the baseline
+# mean whatever the weather, so colder recent days read as degradation.
+TREND_MIN_R2 = 0.2
+
 def weighted_linear_fit(
     xs: list[float], ys: list[float], ws: list[float],
 ) -> tuple[float, float, float] | None:
@@ -505,7 +511,7 @@ def analyze_trend(
                     (cop_observed_recent - cop_predicted_recent)
                     / cop_predicted_recent
                 ) * 100.0
-                valid = True
+                valid = r2 >= TREND_MIN_R2
 
     severity = severity_for_pct(
         trend_pct if valid else None,
@@ -533,4 +539,3 @@ def analyze_trend(
         "valid": valid,
         "updated_ts": float(now) if now is not None else None,
     }
-

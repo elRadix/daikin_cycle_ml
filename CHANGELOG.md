@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 ### Fixed
+- `runtime_compressor_today`: a run open across midnight is counted in its
+  mode (`heating_s` / `dhw_s` / `cooling_s`) like in the state; a heating
+  run open for 16 h showed 9.9 h as state and 0 s for heating (Part of #485).
+- `cop_trend_30d`: valid only when the weather fit explains at least 20 %
+  of the COP variation (r2 >= 0.2). A fit with r2 0.03 predicted the
+  baseline mean whatever the weather and showed -11.6 % on colder days as
+  degradation on the Efficiency card; the raw value stays in
+  `trend_30d_raw` (Part of #485).
 - Alerts: the stored severity now follows the action level of the alert
   text (#463 review). A short run, short off, ML anomaly or setpoint
   oscillation ("no action needed") was stored as a warning and shown as
@@ -36,6 +44,10 @@
   (Part of #481).
 
 ### Tests
+- test_erla11_open_run_and_trend: replay of the corpus file erla11dav3
+  v1.29.1 (open run across midnight, trend fit r2 0.03).
+- Corpus: erla11dav3_1_29_1 (ERLA11DAV3, 16 h run across midnight,
+  external COP sensor).
 - test_alert_severity_levels: severity = text level for every alert;
   replay of the corpus file epra08eav3 v1.29.0 (short_run warning with
   "Geen actie nodig", message cut at 400 characters).

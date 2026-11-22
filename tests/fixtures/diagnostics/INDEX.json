@@ -95,6 +95,25 @@
   "generated_at": "2026-11-19T19:34:18.477118+01:00"
  },
  {
+  "file": "erla11dav3_1_29_1_855f04b147_202611220955.json",
+  "anon_id": "855f04b147",
+  "origin": "user",
+  "note": "ERLA11DAV3 monolithic, HA 2026.11.2, v1.29.1: one heating run open for 16 h across midnight (3.5 C), duty 100 %, external COP sensor 15.6 % above flow x dT / power, BUH power meter, comfort range 21-22 against RT setpoint 20, DHW tank 25.8 C with reheat on",
+  "model": "erla11dav3",
+  "unit_model": null,
+  "integration_version": "1.29.1",
+  "ha_version": "2026.11.2",
+  "source_type": "monolithic",
+  "source_chosen": null,
+  "is_hybrid": false,
+  "is_bivalent": true,
+  "dhw_present": true,
+  "power_meter": true,
+  "cycles": 401,
+  "cop_samples": 7703,
+  "generated_at": "2026-11-22T09:55:40.819842+01:00"
+ },
+ {
   "file": "epra08eav3_1_29_0_95d43f8546_202611220929.json",
   "anon_id": "95d43f8546",
   "origin": "user",
