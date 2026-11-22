@@ -98,9 +98,11 @@ PARTIAL_MODELS: dict[str, list[str]] = {
     # HT ERRQ-ERSQ (v1.12.9, upstream beta 99ed8d19): outdoor unit only,
     # no water-side sensors on the wire (inlet/flow/BUH/3-way/water pump).
     # Hydrobox-side labels live in the EKHBRD-ERRQ variants above.
+    # #189: "Inlet water temp. (hydrobox)" now resolves R4T (and the
+    # hydrobox leaving water R1T); R2T / flow are covered by stand-ins in
+    # the detection guard, so they stay listed here as missing labels.
     "Altherma(HT ERRQ-ERSQ outdoor unit 11-16kW).h": [
         "Leaving water temp. after BUH (R2T)",
-        "Inlet water temp.(R4T)",
         "Flow sensor (l/min)",
         "Water pump operation",
         "BUH Step1",

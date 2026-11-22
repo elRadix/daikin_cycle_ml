@@ -39,6 +39,7 @@ from .const import (
     ATTR_DHW_TANK_TEMP,
     ATTR_FLOW_SENSOR,
     ATTR_INDOOR_AMBIENT_R1T,
+    ATTR_INV_FREQUENCY_RPS,
     ATTR_LEAVING_WATER_AFTER_BUH,
     ATTR_LEAVING_WATER_BEFORE_BUH,
     ATTR_LW_SETPOINT,
@@ -537,13 +538,31 @@ def _buh_time_ratio(
     return round(buh_s / run_s, 3)
 
 
-def _detection_blocked(missing: list[str]) -> bool:
+# #189: a detection-critical label the detector can do without while its
+# stand-in is published. R2T is only the fallback for the leaving water
+# (R1T first, #423); flow only starts a run when there is no compressor
+# speed. Altherma HT (ERRQ + ERSQ) publishes neither R2T nor flow.
+DETECTION_STAND_INS: dict[str, tuple[str, ...]] = {
+    ATTR_LEAVING_WATER_AFTER_BUH: (ATTR_LEAVING_WATER_BEFORE_BUH,),
+    ATTR_FLOW_SENSOR: (ATTR_INV_FREQUENCY_RPS,),
+}
+
+
+def _detection_blocked(
+    missing: list[str], attrs: Mapping[str, Any] | None = None,
+) -> bool:
     """#435: freeze the detector only when a detection-critical label is gone.
 
     The #109 guard froze on ANY missing required label, so a unit that
     structurally lacks one (no BUH steps) never detected a single cycle.
+    #189: a label whose stand-in is present in ``attrs`` does not freeze.
     """
-    return any(a in DETECTION_CRITICAL_ATTRIBUTES for a in missing)
+    view = build_compat_view(attrs) if attrs else {}
+    return any(
+        a in DETECTION_CRITICAL_ATTRIBUTES
+        and not any(view.get(s) is not None for s in DETECTION_STAND_INS.get(a, ()))
+        for a in missing
+    )
 
 
 def _open_cycle_from_detector(det: Any) -> dict[str, Any] | None:
@@ -2328,7 +2347,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     snap.attrs = attrs
                     snap.missing_attrs = list(choice.mono_missing)
                     snap.last_success_ts = now
-                    _should_freeze = _detection_blocked(snap.missing_attrs)
+                    _should_freeze = _detection_blocked(snap.missing_attrs, attrs)
             elif self.source_type == SOURCE_TYPE_INDIVIDUAL:
                 # v1.20.0 #281: ESPAltherma v2 individual entities.
                 result = resolve_attrs(self.hass, prefix=self.individual_prefix)
@@ -2357,7 +2376,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 snap.attrs = attrs
                 snap.missing_attrs = missing_required(attrs)
                 snap.last_success_ts = now
-                _should_freeze = _detection_blocked(snap.missing_attrs)
+                _should_freeze = _detection_blocked(snap.missing_attrs, attrs)
                 self._source_resolution = {
                     "mode": "monolithic", "entity": self.source_entity,
                     "attributes": len(attrs), "custom_map": bool(custom_map),
