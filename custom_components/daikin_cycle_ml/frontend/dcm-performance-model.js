@@ -170,6 +170,15 @@
 
   const zone = (p) => (p === null ? "info" : p >= BAD ? "bad" : p >= WATCH ? "watch" : "good");
 
+  /* config entry of the shown heat pump (entity -> device -> config entry), so
+     set_model_profile reaches the right one when several are set up */
+  function entryOf(hass, entityId) {
+    const e = entityId && hass && hass.entities && hass.entities[entityId];
+    const d = e && e.device_id && hass.devices && hass.devices[e.device_id];
+    const list = (d && d.config_entries) || [];
+    return list.length ? list[0] : null;
+  }
+
   function buildModel(hass, config) {
     const ids = resolveEntities(hass, config);
     const st = (role) => (ids[role] && hass.states[ids[role]]) || null;
@@ -219,7 +228,7 @@
     else if ((loads.thermal !== null && loads.thermal >= WATCH) || nearSpeed) { lvl = "watch"; key = "near_limit"; }
     else { lvl = "good"; key = copPct !== null && copPct >= 100 ? "ok_efficient" : "ok"; }
     return {
-      ids, ok, lang, live, limits: L, loads, staticLoad, copPct, headroom, lvl, key, atLimit,
+      ids, ok, lang, live, limits: L, loads, staticLoad, copPct, headroom, lvl, key, atLimit, entryId: entryOf(hass, ids.hp_specs),
       model: specs.model ? String(specs.model).toUpperCase() : "",
       meta: [specs.family, num(specs.kw) ? num(specs.kw) + " kW" : "", specs.refrigerant].filter((x) => x && String(x) !== "None").join(" · "),
       points: (Array.isArray(specs.points) ? specs.points : []).filter((p) => num(p.t_out) !== null && num(p.t_lwc) !== null),
@@ -228,6 +237,6 @@
     };
   }
 
-  Object.assign(P, { model: { DOMAIN, SUFFIX, LOADS, WATCH, BAD, TOP, LAG_K, esc, num, on, pickLang, resolveEntities, carnot, atCondition, limits, zone, buildModel } });
+  Object.assign(P, { model: { DOMAIN, SUFFIX, LOADS, WATCH, BAD, TOP, LAG_K, esc, num, on, pickLang, resolveEntities, entryOf, carnot, atCondition, limits, zone, buildModel } });
   if (window.__dcmPerfBoot) window.__dcmPerfBoot();
 })();
