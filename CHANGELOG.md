@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Fixed
+- Native cards (daily summary 1.1.2, efficiency 1.3.1, performance 1.2.2):
+  with several heat pumps on one Home Assistant and no `device_id`, every
+  sensor was looked up on its own and a card could mix two heat pumps; all
+  sensors now come from one device (or one entity-id prefix without the
+  registry).
 - Performance card 1.2.2: with several Daikin Cycle ML entries, saving the
   model profile failed ("choose one with entry_id"); the card now passes
   the entry of the heat pump it shows (entity -> device -> config entry).
@@ -11,6 +16,9 @@
   Found by replaying the four earlier diagnostics files below.
 
 ### Tests
+- test_cards_several_heat_pumps: three heat pumps, registry order mixed,
+  with and without the registry and with `device_id`; every card resolves
+  one heat pump (fails on the old cards).
 - test_performance_card_entry_id: a save names the shown entry, none
   when there is one entry (fails on the old card).
 - Diagnostics corpus: four earlier files from issues #218 (EVLQ08 hybrid

@@ -61,7 +61,14 @@
     const out = {};
     const states = (hass && hass.states) || {};
     const ents = (hass && hass.entities) || {};
-    const dev = config && config.device_id;
+    /* several heat pumps (one entry each): without device_id every role comes
+       from the same device, the first one found, never a mix */
+    let dev = config && config.device_id;
+    if (!dev) {
+      const first = Object.keys(ents).find((id) => ents[id] && ents[id].platform === DOMAIN && ents[id].device_id && states[id]);
+      dev = first ? ents[first].device_id : null;
+    }
+    let prefix = null;
     for (const role of Object.keys(SUFFIX)) {
       const pre = BINARY.includes(role) ? "binary_sensor." : "sensor.";
       let found = null;
@@ -75,8 +82,9 @@
       if (!found && !dev) {
         const ids = Object.keys(states).filter((i) => i.indexOf(pre) === 0);
         for (const sfx of SUFFIX[role]) {
-          found = ids.find((i) => i.indexOf(DOMAIN) !== -1 && i.endsWith("_" + sfx)) || ids.find((i) => i.endsWith("_" + sfx)) || null;
-          if (found) break;
+          found = (prefix && ids.find((i) => i === pre + prefix + "_" + sfx))
+            || (prefix ? null : ids.find((i) => i.indexOf(DOMAIN) !== -1 && i.endsWith("_" + sfx)) || ids.find((i) => i.endsWith("_" + sfx))) || null;
+          if (found) { if (!prefix) prefix = found.slice(pre.length, found.length - sfx.length - 1); break; }
         }
       }
       out[role] = found;

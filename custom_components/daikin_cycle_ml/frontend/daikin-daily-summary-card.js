@@ -53,7 +53,7 @@
   }
   /* DCM-PATCH:END */
 
-  const CARD_VERSION = "1.1.1";
+  const CARD_VERSION = "1.1.2";
   const TAG = "daikin-daily-summary-card";
   const EDITOR_TAG = "daikin-daily-summary-card-editor";
   const DOMAIN = "daikin_cycle_ml";
@@ -222,7 +222,14 @@
     const out = {};
     const states = (hass && hass.states) || {};
     const ents = (hass && hass.entities) || {};
-    const dev = config && config.device_id;
+    /* several heat pumps (one entry each): without device_id every role comes
+       from the same device, the first one found, never a mix */
+    let dev = config && config.device_id;
+    if (!dev) {
+      const first = Object.keys(ents).find((id) => ents[id] && ents[id].platform === DOMAIN && ents[id].device_id && states[id]);
+      dev = first ? ents[first].device_id : null;
+    }
+    let prefix = null;
     for (const role of Object.keys(SUFFIX)) {
       let found = null;
       for (const id of Object.keys(ents)) {
@@ -235,9 +242,9 @@
       if (!found && !dev) {
         const ids = Object.keys(states).filter((i) => i.indexOf("sensor.") === 0);
         for (const sfx of SUFFIX[role]) {
-          found = ids.find((i) => i.indexOf(DOMAIN) !== -1 && i.endsWith("_" + sfx))
-            || ids.find((i) => i.endsWith("_" + sfx)) || null;
-          if (found) break;
+          found = (prefix && ids.find((i) => i === "sensor." + prefix + "_" + sfx))
+            || (prefix ? null : ids.find((i) => i.indexOf(DOMAIN) !== -1 && i.endsWith("_" + sfx)) || ids.find((i) => i.endsWith("_" + sfx))) || null;
+          if (found) { if (!prefix) prefix = found.slice("sensor.".length, found.length - sfx.length - 1); break; }
         }
       }
       out[role] = found;
