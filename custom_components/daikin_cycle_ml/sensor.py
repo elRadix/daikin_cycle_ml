@@ -1123,6 +1123,11 @@ def _attrs_runtime_compressor_today_s(
                 cycle_count += 1
     except Exception:
         pass
+    # the open run counts like in the state (its row is written on close);
+    # a run open since yesterday was missing from the split (state 9.9 h,
+    # heating_s 0)
+    if s.state == "running" and s.cycle_start_ts > 0 and s.mode in by_mode:
+        by_mode[s.mode] += max(0.0, now - max(float(s.cycle_start_ts), midnight))
     total = sum(by_mode.values())
     return {
         "native_daily": _native_daily(s, c),  # #466
