@@ -1,5 +1,17 @@
 # Changelog · Efficiency card (native)
 
+## [1.3.1] - 2026-11-22
+
+### Fixed
+
+- With several heat pumps on one Home Assistant (one Daikin Cycle ML
+  entry each) and no `device_id` in the card, each sensor was looked up on
+  its own, so one card could mix two heat pumps. All sensors now come from
+  one heat pump (the first one found); `device_id` picks another.
+- The defrost / backup-heater verdict said "Good: no defrost and no backup
+  heater today" when there was no data for today at all (sensors still
+  unknown, or not found); it now says there is no data yet.
+
 ## [1.3.0] - 2026-11-22
 
 ### Added

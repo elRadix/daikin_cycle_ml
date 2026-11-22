@@ -48,7 +48,7 @@
   }
   /* DCM-PATCH:END */
 
-  const CARD_VERSION = "1.2.1";
+  const CARD_VERSION = "1.2.2";
   const TAG = "daikin-performance-card";
   const EDITOR_TAG = "daikin-performance-card-editor";
   const PARTS = ["model", "render"];
@@ -182,7 +182,8 @@
       async _save(data) {
         const t = R.I18N[this._m.lang] || R.I18N.en;
         try {
-          await this._hass.callService(M.DOMAIN, "set_model_profile", data);
+          /* several Daikin Cycle ML entries: name the one shown */
+          await this._hass.callService(M.DOMAIN, "set_model_profile", this._m.entryId ? Object.assign({ entry_id: this._m.entryId }, data) : data);
           this._ui.msg = t.saved; this._ui.msgErr = false;
         } catch (err) {
           this._ui.msg = R.makeFmt(this._m.lang).fill(t.error, { msg: (err && err.message) || String(err) });

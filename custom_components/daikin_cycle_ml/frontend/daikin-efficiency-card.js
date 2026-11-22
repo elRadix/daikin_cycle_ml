@@ -62,7 +62,7 @@
   }
   /* DCM-PATCH:END */
 
-  const CARD_VERSION = "1.3.0";
+  const CARD_VERSION = "1.3.1";
   const TAG = "daikin-efficiency-card";
   const EDITOR_TAG = "daikin-efficiency-card-editor";
   const PARTS = ["data", "assess", "charts", "verdicts", "i18n", "render"];

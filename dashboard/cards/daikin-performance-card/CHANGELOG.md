@@ -1,5 +1,17 @@
 # Changelog · Performance card (native)
 
+## [1.2.2] - 2026-11-22
+
+### Fixed
+
+- With several heat pumps on one Home Assistant (one Daikin Cycle ML
+  entry each) and no `device_id` in the card, each sensor was looked up on
+  its own, so one card could mix two heat pumps. All sensors now come from
+  one heat pump (the first one found); `device_id` picks another.
+- With more than one Daikin Cycle ML entry, saving the model profile from
+  the card failed ("3 Daikin Cycle ML integrations are set up: choose one
+  with entry_id"). The card now names the entry of the heat pump it shows.
+
 ## [1.2.1] - 2026-11-22
 
 ### Fixed

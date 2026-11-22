@@ -1,5 +1,14 @@
 # Changelog — Daily Summary Card (native)
 
+## [1.1.2] - 2026-11-22
+
+### Fixed
+
+- With several heat pumps on one Home Assistant (one Daikin Cycle ML
+  entry each) and no `device_id` in the card, each sensor was looked up on
+  its own, so one card could mix two heat pumps. All sensors now come from
+  one heat pump (the first one found); `device_id` picks another.
+
 ## [1.1.1] - 2026-11-22
 
 ### Fixed

@@ -181,6 +181,8 @@
     const T = m.today, S = m.specs;
     const share = T.runtime_s > 0 && T.defrost_s !== null ? (T.defrost_s / T.runtime_s) * 100 : null;
     const p = { n: T.defrosts || 0, pct: share === null ? null : Math.round(share), buh: T.buh_s === null ? 0 : Math.round(T.buh_s / 60), below: S.defrostBelow };
+    /* no data for today at all (sensors unknown, or none found): no verdict */
+    if (T.defrosts === null && T.defrost_s === null && T.buh_s === null && T.runtime_s === null) return v("info", "ev_none", p);
     if (share !== null && share > LIMITS.defrost_bad_pct) return v("bad", "ev_defrost_bad", p);
     if (p.buh > 0) return v("watch", "ev_buh", p);
     if (share !== null && share > LIMITS.defrost_watch_pct) return v("watch", "ev_defrost_watch", p);
