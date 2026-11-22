@@ -633,11 +633,12 @@ Update tracker (if applicable): tick the checkbox, comment with merge SHA.
 
 ## 8. Integration Quality Scale
 
-Status: **Bronze + Silver + Gold**.
-
-Partial Platinum (strict typing passes, py.typed included).
-
-Full status in `quality_scale.yaml` at repo root.
+Status: **Platinum** (declared in `manifest.json`, every rule done or
+exempt in `custom_components/daikin_cycle_ml/quality_scale.yaml`).
+Home Assistant awards IQS levels only to core integrations; for this
+custom integration the level is self-declared and checked by
+`tests/test_iqs_rules.py`, which reads `quality_scale.yaml` and checks the
+claimed rules in the code (see 8.5).
 
 ### 8.1 Bronze
 
@@ -645,55 +646,57 @@ Full status in `quality_scale.yaml` at repo root.
 |---|---|---|
 | `config-flow` | ✅ | 8-step wizard |
 | `config-flow-test-coverage` | ✅ | All steps tested |
-| `test-coverage` | ✅ | 100.00% |
-| `action-setup` | ✅ | All services validate |
-| `runtime-data` | ✅ | Coordinator-based |
+| `action-setup` | ✅ | Services registered in `async_setup` |
+| `appropriate-polling` | ✅ | 30 s coordinator |
+| `dependency-transparency` | ✅ | `aiosqlite` declared in `requirements` |
+| `runtime-data` | ✅ | Typed `DaikinCycleMLConfigEntry` (`ConfigEntry[DaikinCycleMLCoordinator]`) |
 | `entity-unique-id` | ✅ | Stable UIDs |
-| `has-entity-name` | ✅ | All entities named |
-| `brands` | ✅ | logo + icon in HACS metadata |
-| `docs-*` (10 rules) | ✅ | Full doc set |
+| `has-entity-name` | ✅ | All entities named by `translation_key` |
+| `brands` | ✅ | `brand/icon.png` + `brand/logo.png` |
+| `test-before-setup` | ✅ | Source checked in the config flow; missing at runtime: `source_stale` repair |
+| `docs-*` | ✅ | Full doc set |
 
 ### 8.2 Silver
 
 | Rule | Status | Notes |
 |---|---|---|
-| `parallel-updates` | ✅ | `PARALLEL_UPDATES = 0` (single coordinator) |
-| `integration-owner` | ✅ | `codeowners: ["elRadix"]` |
+| `parallel-updates` | ✅ | `PARALLEL_UPDATES = 0` (read-only platforms) |
+| `integration-owner` | ✅ | `codeowners: ["@elRadix"]` |
 | `test-coverage` | ✅ | 100.00% |
-| `config-entry-unloading` | ✅ | Full unload path |
-| `action-exceptions` | ✅ | All service calls raise `HomeAssistantError` on failure |
-| `reauthentication-flow` | ⚪ | Exempt — local source, no auth |
-| `entity-unavailable` | ✅ | Binary sensor when source is stale |
+| `config-entry-unloading` | ✅ | Full unload path; returns `False` when a platform does not unload |
+| `action-exceptions` | ✅ | `HomeAssistantError` / `ServiceValidationError` (invalid input) |
+| `reauthentication-flow` | ⚪ | Exempt — no credentials |
+| `entity-unavailable` / `log-when-unavailable` | ✅ | `source_stale` binary sensor + repair issue |
 
 ### 8.3 Gold
 
 | Rule | Status | Notes |
 |---|---|---|
 | `devices` | ✅ | Single device per config entry |
-| `diagnostics` | ✅ | Full diagnostics download |
-| `repair-issues` | ✅ | 8 repair issues |
-| `entity-translations` | ✅ | EN + NL for all entities |
+| `diagnostics` | ✅ | Full diagnostics download, redacted |
+| `repair-issues` | ✅ | 11 repair issues |
+| `entity-translations` | ✅ | EN / NL / FR for all entities |
+| `exception-translations` | ✅ | Every raised error has `translation_domain` + `translation_key`; `exceptions` in `strings.json` and EN / NL / FR |
+| `icon-translations` | ✅ | `icons.json` next to `manifest.json`: every entity icon and the 14 service icons; no icon is set in code |
+| `entity-disabled-by-default` | ✅ | `dhw_installed`, `boiler_operation_demand`, `boiler_dhw_demand` start disabled on new installs (no card or alert reads them) |
 | `reconfiguration-flow` | ✅ | Basic + full reconfigure |
-| `entity-device-class` | ✅ | All entities with `device_class` set appropriately |
-| `entity-category` | ✅ | Diagnostic entities marked |
-| `discovery` | ⚪ | Exempt — calculated source |
-| `dynamic-devices` | ⚪ | Exempt — fixed device |
-| `stale-devices` | ⚪ | Exempt — fixed device |
+| `entity-device-class` | ✅ | `device_class` where one fits |
+| `entity-category` | ✅ | Diagnostic entities marked (sensors and binary sensors) |
+| `discovery`, `discovery-update-info` | ⚪ | Exempt — calculated source, nothing to discover |
+| `dynamic-devices` | ⚪ | Exempt — one device per entry |
+| `stale-devices` | ⚪ | Exempt — the device is removed with its entry |
 
-### 8.4 Platinum (not targeted in full)
+### 8.4 Platinum
 
 | Rule | Status | Notes |
 |---|---|---|
-| `strict-typing` | ✅ | `mypy --strict`, 0 errors, 35 files |
-| `py.typed` | ✅ | Included in package |
-| `async-dependency` | 🟡 | `aiosqlite` is async, most dependencies are sync |
+| `strict-typing` | ✅ | `mypy --strict` in CI (HA pin), `py.typed` included |
+| `async-dependency` | ✅ | The only library, `aiosqlite`, is async |
 | `inject-websession` | ⚪ | Exempt — no HTTP calls |
-
-Full Platinum is not targeted because the integration has no HTTP dependencies to inject.
 
 ### 8.5 Maintaining IQS status
 
-Any PR that changes the entity surface, adds a service, or modifies the config flow must update `quality_scale.yaml`. Otherwise, Hassfest CI will warn (but not fail).
+Any PR that changes the entity surface, adds a service, or modifies the config flow must update `quality_scale.yaml`. `tests/test_iqs_rules.py` fails when a rule claimed as done is not met (an icon set in code, an entity or service without an icon, a raised error without translation, an undeclared library, a missing exception text).
 
 Checklist for IQS-impacting changes:
 

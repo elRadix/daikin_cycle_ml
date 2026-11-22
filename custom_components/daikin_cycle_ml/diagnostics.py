@@ -21,6 +21,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .const import DB_FILENAME, DB_FILENAME_TEMPLATE
+from .coordinator import DaikinCycleMLConfigEntry
 from .engine.thermal import _flow_dt_kw, dt_from_attrs, flow_from_attrs
 from .engine.thermal import boiler_signals_trusted as _boiler_signals_trusted
 
@@ -634,7 +635,7 @@ async def _enum_db_files(hass: HomeAssistant) -> dict[str, Any]:
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: DaikinCycleMLConfigEntry
 ) -> dict[str, Any]:
     coord = getattr(entry, "runtime_data", None)
     if coord is None:

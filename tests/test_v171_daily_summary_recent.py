@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import time
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -323,7 +325,9 @@ def test_sensor_def_has_value_and_attr_fn() -> None:
     assert callable(entry["value_fn"])
     assert entry["attr_fn"] is s_mod._attrs_daily_summary_recent
     assert entry["name"] == "Daily summary recent"
-    assert entry["icon"] == "mdi:calendar-range"
+    # IQS icon-translations: the icon lives in icons.json
+    icons = json.loads((Path(s_mod.__file__).parent / "icons.json").read_text())
+    assert icons["entity"]["sensor"]["daily_summary_recent"]["default"] == "mdi:calendar-range"
 
 
 def test_attrs_full_payload() -> None:

@@ -156,7 +156,7 @@ def test_brand_assets_present():
 def test_icons_json_present_and_parses():
     import json as _json
 
-    icons = COMPONENT_DIR / "translations" / "icons.json"
+    icons = COMPONENT_DIR / "icons.json"   # where Home Assistant reads it
     assert icons.exists()
     data = _json.loads(icons.read_text())
     assert "entity" in data

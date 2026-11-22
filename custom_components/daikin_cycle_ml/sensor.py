@@ -26,14 +26,14 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import (
     DOMAIN,
     UPDATE_INTERVAL_SECONDS,
 )
 from .const import buh_step_kw_for_model as _buh_step_kw_for_model
-from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
+from .coordinator import DaikinCycleMLConfigEntry, DaikinCycleMLCoordinator, DataSnapshot
 from .engine.runtime_source import (
     compressor_starts_today,
     daily_attrs,
@@ -764,7 +764,6 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
         device_class: SensorDeviceClass | None = None,
         state_class: SensorStateClass | None = None,
         unit: str | None = None,
-        icon: str | None = None,
         entity_category: str | None = None,
     ) -> None:
         super().__init__(coordinator, key, name)
@@ -776,8 +775,6 @@ class DaikinCycleMLSensor(DaikinCycleMLEntity, SensorEntity):
             self._attr_state_class = state_class
         if unit is not None:
             self._attr_native_unit_of_measurement = unit
-        if icon is not None:
-            self._attr_icon = icon
         if entity_category == "diagnostic":
             self._attr_entity_category = EntityCategory.DIAGNOSTIC
         elif entity_category == "config":
@@ -1340,7 +1337,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.MEASUREMENT,
         "device_class": SensorDeviceClass.POWER,
         "unit": "kW",
-        "icon": "mdi:fire",
         "value_fn": _value_thermal_power_live,
         "attr_fn": _attrs_thermal_power_live,
     },
@@ -1350,14 +1346,12 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.MEASUREMENT,
         "device_class": SensorDeviceClass.POWER,
         "unit": "W",
-        "icon": "mdi:lightning-bolt",
         "entity_category": "diagnostic",
         "value_fn": _value_electrical_power_estimated,
         "attr_fn": _attrs_electrical_power_estimated,
     },
     {
         "key": "hp_specs", "name": "HP specs",
-        "icon": "mdi:heat-pump-outline",
         "entity_category": "diagnostic",
         "value_fn": _value_hp_specs,
         "attr_fn": _attrs_hp_specs,
@@ -1366,7 +1360,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "cop_normalized_a7w35", "name": "COP normalized A7W35",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "COP",
-        "icon": "mdi:thermometer-lines",
         "value_fn": _value_cop_normalized_a7w35,
         "attr_fn": _attrs_cop_normalized_a7w35,
     },
@@ -1374,7 +1367,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "cop_vs_datasheet_pct", "name": "COP vs datasheet pct",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "%",
-        "icon": "mdi:chart-bell-curve",
         "value_fn": _value_cop_vs_datasheet_pct,
         "attr_fn": _attrs_cop_vs_datasheet_pct,
     },
@@ -1382,7 +1374,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "cop_degradation_status", "name": "COP degradation status",
         "device_class": SensorDeviceClass.ENUM,
         "options": ["none", "info", "warning", "critical"],
-        "icon": "mdi:chart-line-variant",
         "value_fn": _value_cop_degradation_status,
         "attr_fn": _attrs_cop_degradation_status,
     },
@@ -1390,7 +1381,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "cop_degradation_week_pct", "name": "COP degradation week pct",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "%",
-        "icon": "mdi:trending-down",
         "value_fn": _value_cop_degradation_week_pct,
         "attr_fn": _attrs_cop_degradation_week_pct,
     },
@@ -1398,19 +1388,16 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "cop_trend_30d", "name": "COP trend 30d",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "%",
-        "icon": "mdi:chart-timeline-variant",
         "value_fn": _value_cop_trend_30d,
         "attr_fn": _attrs_cop_trend_30d,
     },
     {
         "key": "cycle_state", "name": "Cycle state",
-        "icon": "mdi:state-machine",
         "value_fn": lambda s, c: s.state,
         "attr_fn": _attrs_cycle_state,
     },
     {
         "key": "current_cycle", "name": "Current cycle",
-        "icon": "mdi:hvac",
         "value_fn": lambda s, c: s.mode if s.state == "running" else "idle",
         "attr_fn": _attrs_current_cycle,
     },
@@ -1418,21 +1405,18 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "last_cycle", "name": "Last cycle",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "score",
-        "icon": "mdi:star-outline",
         "value_fn": lambda s, c: _last(c).get("quality_score"),
         "attr_fn": _attrs_last_cycle,
     },
     {
         "key": "alerts_today", "name": "Alerts today",
         "state_class": SensorStateClass.MEASUREMENT,
-        "icon": "mdi:alert-circle-outline",
         "value_fn": lambda s, c: (s.alerts_today or {}).get("total", 0),
         "attr_fn": _attrs_alerts_today,
     },
     {
         "key": "cycles_today", "name": "Cycles today",
         "state_class": SensorStateClass.TOTAL_INCREASING,
-        "icon": "mdi:counter",
         "value_fn": lambda s, c: len(c.store.cycles_today(_now())),
         "attr_fn": _attrs_today,
     },
@@ -1440,7 +1424,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "quality_today", "name": "Quality today",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "score",
-        "icon": "mdi:star-outline",
         "value_fn": _compute_quality_today,
         "attr_fn": _attrs_quality_today,
     },
@@ -1450,7 +1433,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.TOTAL_INCREASING,
         "device_class": SensorDeviceClass.DURATION,
         "unit": "s",
-        "icon": "mdi:timer-outline",
         "value_fn": _value_runtime_compressor_today_s,
         "attr_fn": _attrs_runtime_compressor_today_s,
     },
@@ -1460,7 +1442,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.TOTAL_INCREASING,
         "device_class": SensorDeviceClass.DURATION,
         "unit": "s",
-        "icon": "mdi:fire-alert",
         "value_fn": _value_runtime_buh_today_s,
         "attr_fn": _attrs_runtime_buh_today_s,
     },
@@ -1468,7 +1449,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "compressor_starts_today",
         "name": "Compressor starts today",
         "state_class": SensorStateClass.TOTAL_INCREASING,
-        "icon": "mdi:restart",
         "value_fn": _value_compressor_starts_today,
         "attr_fn": _attrs_compressor_starts_today,
     },
@@ -1476,7 +1456,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "defrost_count_today",
         "name": "Defrost count today",
         "state_class": SensorStateClass.TOTAL_INCREASING,
-        "icon": "mdi:snowflake-melt",
         "value_fn": _value_defrost_count_today,
         "attr_fn": _attrs_defrost_count_today,
     },
@@ -1486,7 +1465,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.TOTAL_INCREASING,
         "device_class": SensorDeviceClass.DURATION,
         "unit": "s",
-        "icon": "mdi:timer-sand",
         "value_fn": _value_defrost_duration_today_s,
         "attr_fn": _attrs_defrost_duration_today_s,
     },
@@ -1495,7 +1473,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "name": "Duty cycle today",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "%",
-        "icon": "mdi:gauge",
         "value_fn": _value_duty_cycle_today_pct,
         "attr_fn": _attrs_duty_cycle_today_pct,
     },
@@ -1505,7 +1482,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.TOTAL_INCREASING,
         "device_class": SensorDeviceClass.ENERGY,
         "unit": "kWh",
-        "icon": "mdi:lightning-bolt",
         "value_fn": _value_energy_kwh("heating", "el"),
         "attr_fn": _attrs_energy_snapshot,
     },
@@ -1515,7 +1491,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.TOTAL_INCREASING,
         "device_class": SensorDeviceClass.ENERGY,
         "unit": "kWh",
-        "icon": "mdi:lightning-bolt",
         "value_fn": _value_energy_kwh("dhw", "el"),
         "attr_fn": _attrs_energy_snapshot,
     },
@@ -1525,7 +1500,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.TOTAL_INCREASING,
         "device_class": SensorDeviceClass.ENERGY,
         "unit": "kWh",
-        "icon": "mdi:lightning-bolt",
         "value_fn": _value_energy_kwh("cooling", "el"),
         "attr_fn": _attrs_energy_snapshot,
     },
@@ -1535,7 +1509,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.TOTAL_INCREASING,
         "device_class": SensorDeviceClass.ENERGY,
         "unit": "kWh",
-        "icon": "mdi:lightning-bolt-circle",
         "value_fn": _value_energy_total_kwh("el"),
         "attr_fn": _attrs_energy_snapshot,
     },
@@ -1545,7 +1518,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.TOTAL_INCREASING,
         "device_class": SensorDeviceClass.ENERGY,
         "unit": "kWh",
-        "icon": "mdi:fire",
         "value_fn": _value_energy_kwh("heating", "th"),
         "attr_fn": _attrs_energy_snapshot,
     },
@@ -1555,7 +1527,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "state_class": SensorStateClass.TOTAL_INCREASING,
         "device_class": SensorDeviceClass.ENERGY,
         "unit": "kWh",
-        "icon": "mdi:snowflake",
         "value_fn": _value_energy_kwh("cooling", "th"),
         "attr_fn": _attrs_energy_snapshot,
     },
@@ -1564,7 +1535,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "device_class": SensorDeviceClass.DURATION,
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": UnitOfTime.SECONDS,
-        "icon": "mdi:heart-pulse",
         "value_fn": lambda s, c: (
             round(max(0.0, _now() - s.last_success_ts), 2)
             if s.last_success_ts > 0 else None
@@ -1576,7 +1546,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "device_class": SensorDeviceClass.DURATION,
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": UnitOfTime.MINUTES,
-        "icon": "mdi:brain",
         "value_fn": _value_learned,
         "attr_fn": _attrs_learned,
     },
@@ -1584,7 +1553,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "cop_today", "name": "COP today",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "COP",
-        "icon": "mdi:heat-pump",
         "value_fn": lambda s, c: None if getattr(s, "state", "running") != "running" else (s.cop_today or {}).get("cop"),
         "attr_fn": _attrs_cop_today,
     },
@@ -1592,7 +1560,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "cop_combined_today", "name": "COP combined today",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "COP",
-        "icon": "mdi:heat-pump-outline",
         "value_fn": lambda s, c: (s.cop_combined_today or {}).get("cop"),
         "attr_fn": _attrs_cop_combined_today,
     },
@@ -1600,7 +1567,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "spf_season", "name": "SPF season",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "SPF",
-        "icon": "mdi:calendar-star",
         "value_fn": lambda s, c: (s.spf_state or {}).get("spf_season"),
         "attr_fn": _attrs_spf_state,
     },
@@ -1608,7 +1574,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "spf_ytd", "name": "SPF YTD",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "SPF",
-        "icon": "mdi:calendar-today",
         "value_fn": lambda s, c: (s.spf_state or {}).get("spf_ytd"),
         "attr_fn": _attrs_spf_state,
     },
@@ -1616,13 +1581,11 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "scop_running_365d", "name": "SCOP running 365d",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "SPF",
-        "icon": "mdi:chart-timeline-variant",
         "value_fn": lambda s, c: (s.spf_state or {}).get("scop_365d"),
         "attr_fn": _attrs_spf_state,
     },
     {
         "key": "heating_curve_advice", "name": "Heating curve advice",
-        "icon": "mdi:chart-line",
         "value_fn": lambda s, c: (s.stooklijn_advies or {}).get("state", "unknown"),
         "attr_fn": _attrs_stooklijn,
     },
@@ -1630,7 +1593,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "cop_mean_day", "name": "COP mean (24h)",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "COP",
-        "icon": "mdi:calendar-today",
         "value_fn": _cop_hourly_heating_mean("day"),
         "attr_fn": _attrs_cop_hourly("day"),
     },
@@ -1638,7 +1600,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "cop_mean_week", "name": "COP mean (7d)",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "COP",
-        "icon": "mdi:calendar-week",
         "value_fn": _cop_hourly_heating_mean("week"),
         "attr_fn": _attrs_cop_hourly("week"),
     },
@@ -1646,14 +1607,12 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "cop_mean_month", "name": "COP mean (30d)",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "COP",
-        "icon": "mdi:calendar-month",
         "value_fn": _cop_hourly_heating_mean("month"),
         "attr_fn": _attrs_cop_hourly("month"),
     },
     {
         "key": "cop_curve_recent", "name": "COP curve (48h)",
         "state_class": SensorStateClass.MEASUREMENT,
-        "icon": "mdi:chart-scatter-plot",
         "value_fn": lambda s, c: (s.cop_curve_recent or {}).get(
             "n_points"
         ),
@@ -1662,70 +1621,69 @@ SENSOR_DEFS: list[dict[str, Any]] = [
     {
         "key": "cop_heating_day", "name": "COP heating (day)",
         "state_class": SensorStateClass.MEASUREMENT,
-        "unit": "COP", "icon": "mdi:radiator",
+        "unit": "COP",
         "value_fn": _cop_hourly_mode_mean("heating", "day"),
         "attr_fn": _attrs_cop_hourly_mode("heating", "day"),
     },
     {
         "key": "cop_heating_week", "name": "COP heating (week)",
         "state_class": SensorStateClass.MEASUREMENT,
-        "unit": "COP", "icon": "mdi:radiator",
+        "unit": "COP",
         "value_fn": _cop_hourly_mode_mean("heating", "week"),
         "attr_fn": _attrs_cop_hourly_mode("heating", "week"),
     },
     {
         "key": "cop_heating_month", "name": "COP heating (month)",
         "state_class": SensorStateClass.MEASUREMENT,
-        "unit": "COP", "icon": "mdi:radiator",
+        "unit": "COP",
         "value_fn": _cop_hourly_mode_mean("heating", "month"),
         "attr_fn": _attrs_cop_hourly_mode("heating", "month"),
     },
     {
         "key": "cop_dhw_day", "name": "COP DHW (day)",
         "state_class": SensorStateClass.MEASUREMENT,
-        "unit": "COP", "icon": "mdi:water-boiler",
+        "unit": "COP",
         "value_fn": _cop_hourly_mode_mean("dhw", "day"),
         "attr_fn": _attrs_cop_hourly_mode("dhw", "day"),
     },
     {
         "key": "cop_dhw_week", "name": "COP DHW (week)",
         "state_class": SensorStateClass.MEASUREMENT,
-        "unit": "COP", "icon": "mdi:water-boiler",
+        "unit": "COP",
         "value_fn": _cop_hourly_mode_mean("dhw", "week"),
         "attr_fn": _attrs_cop_hourly_mode("dhw", "week"),
     },
     {
         "key": "cop_dhw_month", "name": "COP DHW (month)",
         "state_class": SensorStateClass.MEASUREMENT,
-        "unit": "COP", "icon": "mdi:water-boiler",
+        "unit": "COP",
         "value_fn": _cop_hourly_mode_mean("dhw", "month"),
         "attr_fn": _attrs_cop_hourly_mode("dhw", "month"),
     },
     {
         "key": "cop_cooling_day", "name": "COP cooling (day)",
         "state_class": SensorStateClass.MEASUREMENT,
-        "unit": "COP", "icon": "mdi:snowflake",
+        "unit": "COP",
         "value_fn": _cop_hourly_mode_mean("cooling", "day"),
         "attr_fn": _attrs_cop_hourly_mode("cooling", "day"),
     },
     {
         "key": "cop_cooling_week", "name": "COP cooling (week)",
         "state_class": SensorStateClass.MEASUREMENT,
-        "unit": "COP", "icon": "mdi:snowflake",
+        "unit": "COP",
         "value_fn": _cop_hourly_mode_mean("cooling", "week"),
         "attr_fn": _attrs_cop_hourly_mode("cooling", "week"),
     },
     {
         "key": "cop_cooling_month", "name": "COP cooling (month)",
         "state_class": SensorStateClass.MEASUREMENT,
-        "unit": "COP", "icon": "mdi:snowflake",
+        "unit": "COP",
         "value_fn": _cop_hourly_mode_mean("cooling", "month"),
         "attr_fn": _attrs_cop_hourly_mode("cooling", "month"),
     },
     {
         "key": "daily_summary_recent", "name": "Daily summary recent",
         "state_class": SensorStateClass.MEASUREMENT,
-        "icon": "mdi:calendar-range",
         "value_fn": lambda s, c: (c.daily_summary_recent or {}).get("state"),
         "attr_fn": _attrs_daily_summary_recent,
     },
@@ -1734,7 +1692,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "requires_hybrid": True, "name": "Hybrid mode",
         "device_class": SensorDeviceClass.ENUM,
         "options": ["H/P only", "Hybrid", "Boiler only", "unknown"],
-        "icon": "mdi:heat-pump-outline",
         "entity_category": EntityCategory.DIAGNOSTIC,
         "value_fn": lambda s, c: (s.hybrid_mode or "unknown") if s.is_hybrid else None,
         "attr_fn": lambda s, c: (
@@ -1748,7 +1705,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "requires_hybrid": True, "name": "Boiler efficiency COP",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "COP",
-        "icon": "mdi:fire",
         "entity_category": EntityCategory.DIAGNOSTIC,
         "value_fn": lambda s, c: s.boiler_efficiency_cop if s.is_hybrid else None,
         "attr_fn": lambda s, c: (
@@ -1763,7 +1719,6 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "name": "Boiler contribution today pct",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "%",
-        "icon": "mdi:fire-circle",
         "entity_category": EntityCategory.DIAGNOSTIC,
         "value_fn": lambda s, c: (
             (s.cop_today or {}).get("boiler_pct") if s.is_hybrid else None
@@ -1852,8 +1807,8 @@ def _migrate_entity_ids(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: DaikinCycleMLConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     coord = getattr(entry, "runtime_data", None)
     if coord is None:
@@ -1874,7 +1829,6 @@ async def async_setup_entry(
             device_class=spec.get("device_class"),
             state_class=spec.get("state_class"),
             unit=spec.get("unit"),
-            icon=spec.get("icon"),
             entity_category=spec.get("entity_category"),
         )
         for spec in SENSOR_DEFS

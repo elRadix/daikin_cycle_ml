@@ -6488,3 +6488,6 @@ def _kmeans_advice(reason: Any, language: str) -> str:
         return table[reason]
     return table.get(None, "")
 
+
+# IQS runtime-data / strict-typing: the config entry carries its coordinator
+type DaikinCycleMLConfigEntry = ConfigEntry[DaikinCycleMLCoordinator]

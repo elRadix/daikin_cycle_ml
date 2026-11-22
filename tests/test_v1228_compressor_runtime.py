@@ -5,6 +5,8 @@ from __future__ import annotations
 import time
 from unittest.mock import MagicMock
 
+import pytest
+
 from custom_components.daikin_cycle_ml.coordinator import DataSnapshot
 from custom_components.daikin_cycle_ml.sensor import (
     _attrs_runtime_compressor_today_s,
@@ -37,14 +39,24 @@ def _mk_snap(**over):
 
 # ─── native-first ───
 
-def test_native_wins_when_stats_present():
+@pytest.fixture
+def late_clock(monkeypatch):
+    """#466 ignores a native "today" above the minutes since local midnight:
+    judge at 23:00 so these tests do not depend on the time they run."""
+    import custom_components.daikin_cycle_ml.sensor as sensor_mod
+
+    late = _local_midnight(time.time()) + 23 * 3600
+    monkeypatch.setattr(sensor_mod, "_now", lambda: late)
+
+
+def test_native_wins_when_stats_present(late_clock):
     c = _mk_coord(native_attrs={"Stats: Compressor run today (min)": 631.35})
     s = _mk_snap()
     v = _value_runtime_compressor_today_s(s, c)
     assert v == round(631.35 * 60) == 37881
 
 
-def test_native_overrides_computed_when_both_available():
+def test_native_overrides_computed_when_both_available(late_clock):
     now = time.time()
     c = _mk_coord(
         native_attrs={"Stats: Compressor run today (min)": 100.0},
@@ -130,7 +142,7 @@ def test_open_cycle_started_today_full_count():
     assert v == int(now - (midnight + 600))
 
 
-def test_attrs_has_source_and_native_min():
+def test_attrs_has_source_and_native_min(late_clock):
     c = _mk_coord(native_attrs={"Stats: Compressor run today (min)": 30.0})
     s = _mk_snap()
     a = _attrs_runtime_compressor_today_s(s, c)

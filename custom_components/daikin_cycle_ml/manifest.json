@@ -20,7 +20,9 @@
   "loggers": [
     "custom_components.daikin_cycle_ml"
   ],
-  "quality_scale": "gold",
-  "requirements": [],
+  "quality_scale": "platinum",
+  "requirements": [
+    "aiosqlite>=0.20.0"
+  ],
   "version": "1.29.1"
 }

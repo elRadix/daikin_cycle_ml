@@ -243,8 +243,11 @@ async def test_service_refuses_invalid_values(hass):
 
     c = _svc_coord()
     with patch.object(S, "_resolve_optional_coordinator", return_value=c), \
-            pytest.raises(HomeAssistantError, match="kw=0"):
+            pytest.raises(HomeAssistantError) as err:
         await S._handle_set_model_profile(hass, SimpleNamespace(data={"fields": {"kw": 0}}))
+    # IQS exception-translations: translated text, the reasons as placeholder
+    assert err.value.translation_key == "profile_not_saved"
+    assert "kw=0" in err.value.translation_placeholders["errors"]
     c.async_reload_model_profile.assert_not_awaited()
 
 

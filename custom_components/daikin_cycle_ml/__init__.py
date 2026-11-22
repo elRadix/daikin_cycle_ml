@@ -8,7 +8,6 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
 from .api import CopHourlyView
@@ -18,7 +17,7 @@ from .const import DB_FILENAME_TEMPLATE as DB_FILENAME_TEMPLATE
 from .const import DOMAIN as DOMAIN
 from .const import GOOD_CYCLE_MIN_SCORE as GOOD_CYCLE_MIN_SCORE
 from .const import VERSION as VERSION
-from .coordinator import DaikinCycleMLCoordinator
+from .coordinator import DaikinCycleMLConfigEntry, DaikinCycleMLCoordinator
 from .engine.quality_scorer import score_cycle as _score_cycle
 from .frontend import async_register_frontend
 from .repairs import (
@@ -296,7 +295,7 @@ def _maybe_register_options_listener(
     )
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: DaikinCycleMLConfigEntry) -> bool:
     """Set up Daikin Cycle ML from a config entry."""
     await _async_cleanup_orphan_dbs(hass)
     coordinator = DaikinCycleMLCoordinator(hass, entry)
@@ -366,11 +365,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: DaikinCycleMLConfigEntry) -> bool:
     """Unload a config entry."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if not unloaded:
-        raise HomeAssistantError('Unload failed')
+        return False
     coordinator = getattr(entry, "runtime_data", None)
     if coordinator is not None:
         try:

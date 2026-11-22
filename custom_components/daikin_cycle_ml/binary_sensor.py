@@ -14,10 +14,9 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import (
     ATTR_BUH_STEP1,
@@ -30,7 +29,7 @@ from .const import (
     UPDATE_INTERVAL_SECONDS,
     tolerant_on,
 )
-from .coordinator import DaikinCycleMLCoordinator, DataSnapshot
+from .coordinator import DaikinCycleMLConfigEntry, DaikinCycleMLCoordinator, DataSnapshot
 from .engine.timer_health import is_stale
 from .entity import DaikinCycleMLEntity, async_remove_stale_entities
 from .storage.store import _is_transient_int
@@ -302,15 +301,19 @@ class DaikinCycleMLBinarySensor(DaikinCycleMLEntity, BinarySensorEntity):
         *,
         attr_fn: AttrFn | None = None,
         device_class: BinarySensorDeviceClass | None = None,
-        icon: str | None = None,
+        entity_category: EntityCategory | None = None,
+        enabled_default: bool = True,
     ) -> None:
         super().__init__(coordinator, key, name)
         self._state_fn = state_fn
         self._attr_fn = attr_fn
         if device_class is not None:
             self._attr_device_class = device_class
-        if icon is not None:
-            self._attr_icon = icon
+        if entity_category is not None:
+            self._attr_entity_category = entity_category
+        # IQS entity-disabled-by-default: technical signals start disabled on
+        # new installs; entities already in the registry keep their state
+        self._attr_entity_registry_enabled_default = enabled_default
 
     @property
     def is_on(self) -> bool:
@@ -340,7 +343,6 @@ class DaikinCycleMLBinarySensor(DaikinCycleMLEntity, BinarySensorEntity):
 BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
     {"key": "compressor_running", "name": "Compressor running",
      "device_class": BinarySensorDeviceClass.RUNNING,
-     "icon": "mdi:heat-pump",
      "state_fn": lambda s, c: s.state == "running"},
     {"key": "pendulum_hourly", "name": "Pendulum hourly",
      "device_class": BinarySensorDeviceClass.PROBLEM,
@@ -350,15 +352,12 @@ BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
      "state_fn": _is_pendulum_daily},
     {"key": "short_run", "name": "Short run",
      "device_class": BinarySensorDeviceClass.PROBLEM,
-     "icon": "mdi:timer-alert-outline",
      "state_fn": _is_short_run},
     {"key": "short_off", "name": "Short off",
      "device_class": BinarySensorDeviceClass.PROBLEM,
-     "icon": "mdi:timer-alert-outline",
      "state_fn": _is_short_off},
     {"key": "short_cycling_pattern", "name": "Short cycling pattern",
      "device_class": BinarySensorDeviceClass.PROBLEM,
-     "icon": "mdi:repeat-variant",
      "state_fn": _is_short_cycling_pattern,
      "attr_fn": _short_cycling_pattern_attrs},
     {"key": "defrost_active", "name": "Defrost active",
@@ -366,11 +365,9 @@ BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
      "state_fn": lambda s, c: _attr_on(s.attrs, ATTR_DEFROST_OPERATION)},
     {"key": "buh_active", "name": "BUH active",
      "device_class": BinarySensorDeviceClass.HEAT,
-     "icon": "mdi:fire",
      "state_fn": _is_buh_active,
      "attr_fn": _buh_attrs},
     {"key": "dhw_active", "name": "DHW active",
-     "icon": "mdi:water-boiler",
      "state_fn": _is_dhw_active},
     {"key": "heating_active", "name": "Heating active",
      "device_class": BinarySensorDeviceClass.HEAT,
@@ -392,36 +389,31 @@ BINARY_SENSOR_DEFS: list[dict[str, Any]] = [
      "state_fn": lambda s, c: len(s.missing_attrs) > 0},
     {"key": "setpoint_oscillating", "name": "Setpoint oscillating",
      "device_class": BinarySensorDeviceClass.PROBLEM,
-     "icon": "mdi:sine-wave",
      "state_fn": lambda s, c: s.setpoint_oscillating},
     {"key": "dhw_pendulum", "name": "DHW pendulum",
      "device_class": BinarySensorDeviceClass.PROBLEM,
-     "icon": "mdi:water-boiler-alert",
      "state_fn": _is_dhw_pendulum},
     {"key": "dhw_installed", "name": "DHW installed",
-     "icon": "mdi:water-boiler",
+     "entity_category": EntityCategory.DIAGNOSTIC, "enabled_default": False,
      "state_fn": lambda s, c: bool(getattr(c, "dhw_present", True))},
     {"key": "high_cycle_rate", "name": "High cycle rate",
      "device_class": BinarySensorDeviceClass.PROBLEM,
-     "icon": "mdi:speedometer",
      "state_fn": _is_high_cycle_rate},
     {"key": "boiler_operation_demand", "requires_hybrid": True, "name": "Boiler operation demand",
      "device_class": BinarySensorDeviceClass.RUNNING,
-     "icon": "mdi:fire",
-     "entity_category": EntityCategory.DIAGNOSTIC,
+     "entity_category": EntityCategory.DIAGNOSTIC, "enabled_default": False,
      "state_fn": lambda s, c: s.boiler_active if s.is_hybrid else None},
     {"key": "boiler_dhw_demand", "requires_hybrid": True, "name": "Boiler DHW demand",
      "device_class": BinarySensorDeviceClass.RUNNING,
-     "icon": "mdi:water-boiler",
-     "entity_category": EntityCategory.DIAGNOSTIC,
+     "entity_category": EntityCategory.DIAGNOSTIC, "enabled_default": False,
      "state_fn": lambda s, c: s.boiler_dhw_active if s.is_hybrid else None},
 ]
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: DaikinCycleMLConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     coord = getattr(entry, "runtime_data", None)
     if coord is None:
@@ -439,7 +431,8 @@ async def async_setup_entry(
             state_fn=spec["state_fn"],
             attr_fn=spec.get("attr_fn"),
             device_class=spec.get("device_class"),
-            icon=spec.get("icon"),
+            entity_category=spec.get("entity_category"),
+            enabled_default=spec.get("enabled_default", True),
         )
         for spec in BINARY_SENSOR_DEFS
         if not (spec.get("requires_hybrid") and not is_hybrid)

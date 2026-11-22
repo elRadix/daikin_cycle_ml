@@ -19,7 +19,7 @@ from homeassistant.core import (
     ServiceCall,
     SupportsResponse,
 )
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from .const import DB_FILENAME, DB_FILENAME_TEMPLATE, DOMAIN
 from .engine import model_datasheets as md
@@ -158,10 +158,12 @@ SCHEMA_EXPORT_LEGACY_DB = vol.Schema({
 def _resolve_coordinator(hass: HomeAssistant, entry_id: str) -> Any:
     entry: ConfigEntry | None = hass.config_entries.async_get_entry(entry_id)
     if entry is None:
-        raise HomeAssistantError(f"Unknown config entry: {entry_id}")
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="unknown_entry",
+                                 translation_placeholders={"entry_id": str(entry_id)})
     coord = getattr(entry, "runtime_data", None)
     if coord is None:
-        raise HomeAssistantError(f"Coordinator not ready for entry {entry_id}")
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="entry_not_ready",
+                                 translation_placeholders={"entry_id": str(entry_id)})
     return coord
 
 
@@ -173,12 +175,10 @@ def _resolve_optional_coordinator(
         return _resolve_coordinator(hass, entry_id)
     entries = hass.config_entries.async_entries(DOMAIN)
     if not entries:
-        raise HomeAssistantError("No Daikin Cycle ML config entry loaded")
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="no_entry")
     if len(entries) > 1:
-        raise HomeAssistantError(
-            "Multiple config entries; specify entry_id "
-            f"({len(entries)} found)"
-        )
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key="multiple_entries",
+                                     translation_placeholders={"count": str(len(entries))})
     return _resolve_coordinator(hass, entries[0].entry_id)
 
 
@@ -211,7 +211,7 @@ async def _do_export_cop_hourly(
     """Export cop_hourly rows as JSON dict or CSV string."""
     db = getattr(coordinator, "db", None)
     if db is None:
-        raise HomeAssistantError("Database not available")
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="database_unavailable")
     since_ts = time.time() - float(days) * 86400.0
     rows = await db.async_query_cop_hourly(since_ts=since_ts, mode=mode)
     if fmt == "csv":
@@ -245,7 +245,7 @@ async def _handle_export_cop_hourly(
 async def _do_label_cycle(coordinator: Any, cycle_id: int, label: str) -> dict[str, Any]:
     db = getattr(coordinator, "db", None)
     if db is None:
-        raise HomeAssistantError("Database not available")
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="database_unavailable")
     ok = await db.async_label_cycle(cycle_id, label)
     return {"labeled": bool(ok), "cycle_id": cycle_id, "label": label}
 
@@ -436,7 +436,8 @@ async def _handle_set_model_profile(
     points = call.data.get("points")
     errors = mp.validate_edit(fields, points)
     if errors:
-        raise HomeAssistantError("Model profile not saved: " + "; ".join(errors))
+        raise ServiceValidationError(translation_domain=DOMAIN, translation_key="profile_not_saved",
+                                     translation_placeholders={"errors": "; ".join(errors)})
     entry = coord.entry
     model = str(entry.data.get("model") or "")
     new = mp.edit(coord.model_profile, model, fields=fields, points=points,

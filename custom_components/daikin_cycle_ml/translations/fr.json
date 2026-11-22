@@ -1198,5 +1198,25 @@
                 "auto": "Détection automatique (conseillé pour une nouvelle installation)"
             }
         }
+    },
+    "exceptions": {
+        "unknown_entry": {
+            "message": "Configuration Daikin Cycle ML inconnue : {entry_id}."
+        },
+        "entry_not_ready": {
+            "message": "La configuration Daikin Cycle ML {entry_id} est encore en cours de démarrage. Réessayez dans une minute."
+        },
+        "no_entry": {
+            "message": "Aucune intégration Daikin Cycle ML n'est configurée."
+        },
+        "multiple_entries": {
+            "message": "{count} intégrations Daikin Cycle ML sont configurées : choisissez-en une avec entry_id."
+        },
+        "database_unavailable": {
+            "message": "La base de données Daikin Cycle ML n'est pas disponible. Consultez les réparations et le journal."
+        },
+        "profile_not_saved": {
+            "message": "Profil du modèle non enregistré : {errors}"
+        }
     }
 }

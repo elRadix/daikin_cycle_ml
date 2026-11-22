@@ -31,7 +31,7 @@ rules:
   test-before-configure:
     status: done
   test-before-setup:
-    status: done
+    status: done # source checked in the config flow; a missing source at runtime raises the source_stale repair issue
   unique-config-entry:
     status: done
 
@@ -53,7 +53,8 @@ rules:
   parallel-updates:
     status: done
   reauthentication-flow:
-    status: exempt # Geen authenticatie nodig
+    status: exempt
+    comment: No credentials or login.
   test-coverage:
     status: done
 
@@ -63,9 +64,11 @@ rules:
   diagnostics:
     status: done
   discovery:
-    status: exempt # Geen zeroconf/ssdp discovery
+    status: exempt
+    comment: Calculated integration on top of another integration's entity; nothing to discover.
   discovery-update-info:
     status: exempt
+    comment: No discovery.
   docs-data-update:
     status: done
   docs-examples:
@@ -81,7 +84,8 @@ rules:
   docs-use-cases:
     status: done
   dynamic-devices:
-    status: done
+    status: exempt
+    comment: One device per config entry; no devices appear at runtime.
   entity-category:
     status: done
   entity-device-class:
@@ -99,12 +103,14 @@ rules:
   repair-issues:
     status: done
   stale-devices:
-    status: done
+    status: exempt
+    comment: The single device is removed together with its config entry.
 
   # --- PLATINUM ---
   async-dependency:
-    status: exempt # Geen externe library dependency
+    status: done # aiosqlite, declared in manifest requirements
   inject-websession:
     status: exempt
+    comment: No HTTP client; the integration reads Home Assistant entities only.
   strict-typing:
     status: done

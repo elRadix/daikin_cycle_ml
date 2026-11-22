@@ -1198,5 +1198,25 @@
         "auto": "Automatisch detecteren (aanbevolen voor nieuwe installaties)"
       }
     }
+  },
+  "exceptions": {
+    "unknown_entry": {
+      "message": "Onbekende Daikin Cycle ML-configuratie: {entry_id}."
+    },
+    "entry_not_ready": {
+      "message": "Daikin Cycle ML-configuratie {entry_id} is nog aan het opstarten. Probeer het over een minuut opnieuw."
+    },
+    "no_entry": {
+      "message": "Er is geen Daikin Cycle ML-integratie ingesteld."
+    },
+    "multiple_entries": {
+      "message": "Er zijn {count} Daikin Cycle ML-integraties ingesteld: kies er een met entry_id."
+    },
+    "database_unavailable": {
+      "message": "De Daikin Cycle ML-database is niet beschikbaar. Kijk bij de reparaties en in het logboek."
+    },
+    "profile_not_saved": {
+      "message": "Modelprofiel niet opgeslagen: {errors}"
+    }
   }
 }

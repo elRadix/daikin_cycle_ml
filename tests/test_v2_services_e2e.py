@@ -159,7 +159,7 @@ async def test_run_maintenance_via_real_entry(hass) -> None:
 async def test_unknown_entry_raises(hass) -> None:
     """Unknown entry_id -> HomeAssistantError, not silent."""
     await async_register_services(hass)
-    with pytest.raises(HomeAssistantError, match="Unknown config entry"):
+    with pytest.raises(HomeAssistantError, match="unknown_entry"):
         await hass.services.async_call(
             DOMAIN, "reset_counters",
             {"entry_id": "does-not-exist"},
@@ -181,7 +181,7 @@ async def test_missing_coordinator_raises(hass) -> None:
     entry.add_to_hass(hass)
     entry.runtime_data = None
     await async_register_services(hass)
-    with pytest.raises(HomeAssistantError, match="Coordinator not ready"):
+    with pytest.raises(HomeAssistantError, match="entry_not_ready"):
         await hass.services.async_call(
             DOMAIN, "reset_counters",
             {"entry_id": "no-coord"},
