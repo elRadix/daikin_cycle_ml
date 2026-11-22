@@ -69,6 +69,9 @@ class AlertSpec:
 
 
 # trigger binary key -> (alert_type, severity, message template)
+# The severity follows the action level of the alert text (alert_texts.LEVEL,
+# reviewed in #463): no action needed = info, keep an eye on it = warning,
+# action needed = critical (the only level that passes quiet hours).
 
 BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
     "pendulum_hourly": (
@@ -83,22 +86,22 @@ BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
     ),
     "short_run": (
         "short_run",
-        SEV_WARNING,
+        SEV_INFO,
         "Short run detected\n{duration_min} min (threshold {threshold_min} min){advice}",
     ),
     "short_off": (
         "short_off",
-        SEV_WARNING,
+        SEV_INFO,
         "Short off detected\n{off_min} min (threshold {threshold_min} min){advice}",
     ),
     "ml_anomaly": (
         "ml_anomaly",
-        SEV_WARNING,
+        SEV_INFO,
         "ML anomaly ({mode})\nz={z_max} \u00b7 top: {top_dim}{advice}",
     ),
     "setpoint_osc": (
         "setpoint_osc",
-        SEV_WARNING,
+        SEV_INFO,
         "Setpoint oscillation\n{osc_count} changes in {window_min} min{advice}",
     ),
     "cop_degradation": (
@@ -148,7 +151,7 @@ BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
     ),
     "db_retention_warning": (
         "db_retention_warning",
-        SEV_INFO,
+        SEV_WARNING,
         "Database retention warning\n{stale_alerts} stale alerts, {stale_cycles} stale cycles{advice}",
     ),
     "kmeans_retrain_stale": (
@@ -158,7 +161,7 @@ BINARY_ALERT_MAP: dict[str, tuple[str, str, str]] = {
     ),
     "energy_daily_anomaly": (
         "energy_daily_anomaly",
-        SEV_INFO,
+        SEV_WARNING,
         "Energy daily anomaly\n{mode} {today_el_kwh} kWh \u00b7 {z_score}\u03c3 (baseline {baseline_el_mean}\u00b1{baseline_el_sigma}){advice}",
     ),
     "short_cycling_pattern": (

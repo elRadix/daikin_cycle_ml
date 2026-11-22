@@ -95,6 +95,25 @@
   "generated_at": "2026-11-19T19:34:18.477118+01:00"
  },
  {
+  "file": "epra08eav3_1_29_0_95d43f8546_202611220929.json",
+  "anon_id": "95d43f8546",
+  "origin": "user",
+  "note": "EPRA08EAV3 monolithic, HA 2026.11.2, v1.29.0: frost day (-1..2 C), runs 24/7 (duty 98 %), heating + DHW, BUH step 1 27 min, 3 defrosts, power meter + indoor sensor; old EPRA rating points as max heat",
+  "model": "epra08eav3",
+  "unit_model": null,
+  "integration_version": "1.29.0",
+  "ha_version": "2026.11.2",
+  "source_type": "monolithic",
+  "source_chosen": null,
+  "is_hybrid": false,
+  "is_bivalent": true,
+  "dhw_present": true,
+  "power_meter": true,
+  "cycles": 491,
+  "cop_samples": 8235,
+  "generated_at": "2026-11-22T09:29:45.634442+01:00"
+ },
+ {
   "file": "evlq08cv3_1_22_7_d89874c2b5_202611160654.json",
   "anon_id": "d89874c2b5",
   "origin": "user",

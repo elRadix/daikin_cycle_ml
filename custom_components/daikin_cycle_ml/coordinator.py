@@ -191,6 +191,17 @@ _LOGGER = logging.getLogger(__name__)
 
 _KMEANS_STALE_THRESHOLD_S = 25 * 3600
 _ALERTS_TODAY_MAX = 30  # cap on alert list in sensor attrs
+_ALERT_MESSAGE_MAX = 1200  # alerts_today is not recorded; cards show the whole text
+
+
+def _clip_message(msg: str, limit: int = _ALERT_MESSAGE_MAX) -> str:
+    """The alert text for alerts_today, cut at a line or word end (never in
+    the middle of a word) with an ellipsis when it is longer than limit."""
+    if len(msg) <= limit:
+        return msg
+    cut = msg[:limit]
+    end = max(cut.rfind("\n"), cut.rfind(" "))
+    return (cut[:end] if end > limit // 2 else cut).rstrip() + "\u2026"
 _KMEANS_BACKFILL_DELAY_S = 300
 
 
@@ -1413,7 +1424,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     "time": ts_iso,
                     "type": atype,
                     "severity": sev,
-                    "message": (r.get("message") or "")[:400],
+                    "message": _clip_message(r.get("message") or ""),
                     "count": int(r.get("aggregated_count") or 1),
                 })
             self._alerts_today_cache = {
