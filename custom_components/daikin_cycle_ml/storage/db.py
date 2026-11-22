@@ -3470,7 +3470,8 @@ class CycleDB:
             "thermal_kw REAL,"
             "power_w REAL,"
             "rps REAL,"
-            "is_reconstructed INTEGER DEFAULT 0)"
+            "is_reconstructed INTEGER DEFAULT 0,"
+            "buh_active INTEGER DEFAULT 0)"
         )
         # Issue #218 (Block B): self-healing for pre-v22 DBs.
         # If table already existed without boiler_active, add it now.
@@ -3490,7 +3491,9 @@ class CycleDB:
             )
         # #473: heat, power and compressor speed per sample (learned max heat)
         for _col, _typ in (("thermal_kw", "REAL"), ("power_w", "REAL"), ("rps", "REAL"),
-                           ("is_reconstructed", "INTEGER DEFAULT 0")):
+                           ("is_reconstructed", "INTEGER DEFAULT 0"),
+                           # #239: backup heater on when the sample was taken
+                           ("buh_active", "INTEGER DEFAULT 0")):
             if _col not in _cols:
                 await conn.execute(f"ALTER TABLE cop_samples ADD COLUMN {_col} {_typ}")
         await conn.execute(
@@ -3670,8 +3673,8 @@ class CycleDB:
             "INSERT INTO cop_samples "
             "(ts, cop, lwt, outdoor, r1t, r4t, flow_lmin, "
             "power_stable, mode, source, boiler_active, boiler_mode, "
-            "is_transition_artifact, thermal_kw, power_w, rps) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "is_transition_artifact, thermal_kw, power_w, rps, buh_active) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 float(sample["ts"]),
                 float(sample["cop"]),
@@ -3689,12 +3692,13 @@ class CycleDB:
                 _safe_float_or_none(sample.get("thermal_kw"), lo=0.0, hi=60.0),
                 _safe_float_or_none(sample.get("power_w"), lo=0.0, hi=30000.0),
                 _safe_float_or_none(sample.get("rps"), lo=0.0, hi=250.0),
+                _safe_bool_int(sample.get("buh_active")),
             ),
         )
 
     async def async_fetch_cop_samples(
         self, days: int = 30, *, include_boiler: bool = True,
-        include_artifacts: bool = True,
+        include_artifacts: bool = True, include_buh: bool = True,
     ) -> list[dict[str, Any]]:
         """Fetch cop_samples in the last N days.
 
@@ -3702,6 +3706,8 @@ class CycleDB:
         include_boiler=False: only pure-HP samples (boiler_active=0).
         include_artifacts=False (#388): drop classifier-flagged samples
         (is_transition_artifact=1); use for every COP aggregate.
+        include_buh=False (#239): drop samples taken while the backup heater
+        ran (strict heat-pump COP: curve advice).
         """
         await self.async_ensure_cop_samples_table()
         conn = self._require()
@@ -3712,6 +3718,8 @@ class CycleDB:
             where += " AND (boiler_active IS NULL OR boiler_active = 0)"
         if not include_artifacts:
             where += " AND COALESCE(is_transition_artifact, 0) = 0"
+        if not include_buh:
+            where += " AND COALESCE(buh_active, 0) = 0"
         async with conn.execute(
             "SELECT ts, cop, lwt, outdoor, flow_lmin, power_stable, mode, "
             "boiler_active FROM cop_samples WHERE " + where + " ORDER BY ts ASC",

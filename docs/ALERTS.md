@@ -236,7 +236,7 @@ Action: keep the outdoor unit free of leaves and snow (never scrape ice off the 
 
 #### `cop_vs_datasheet_low`
 
-Fires when the COP is more than 10% below the datasheet value for your model, judged on the mean of the last hour of **steady heating** (compressor running in heating for at least 15 minutes, no defrost; at least 20 ticks). Run start and stop ramps and defrosts dip far below the datasheet and no longer trigger it (#415). The normalisation uses the live LWT, from the same moment as the COP.
+Fires when the COP is more than 10% below the datasheet value for your model, judged on the mean of the last hour of **steady heating** (compressor running in heating for at least 15 minutes, no defrost, no backup heater (#239); at least 20 ticks). Run start and stop ramps and defrosts dip far below the datasheet and no longer trigger it (#415). The normalisation uses the live LWT, from the same moment as the COP.
 
 Only fires for bundled models (not Custom). Message includes expected vs actual. Useful as a sanity check — if you see this persistently, either the datasheet is wrong for your conditions or the pump is underperforming.
 

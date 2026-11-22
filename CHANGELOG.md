@@ -28,6 +28,12 @@
   text is kept as `model_code` in the entry and shows in diagnostics.
 
 ### Fixed
+- COP samples with the backup heater on (#239): every sample now carries
+  `buh_active`. The heating-curve advice reads only samples without the BUH
+  and the COP-vs-datasheet window skips BUH ticks: with a BUH power sensor
+  the BUH's electricity counted without its heat (thermal side from R1T,
+  #423), so those samples read far too low for the heat pump. The day /
+  week / month COP means keep them (system COP). Older samples read 0.
 - Altherma HT (ERRQ + ERSQ, #189): the hydrobox water temperatures and
   `INV Comp. Frequency(Hz)` are read, so an HT unit detects cycles. The
   detection guard (#109) no longer pauses for a missing R2T while R1T is
@@ -73,6 +79,9 @@
 - test_198_model_codes: 15 typed codes (size only, shortened, three-phase,
   series mismatch, flagged datasheets) and the wizard keeping the typed
   code (fails on the old code).
+- test_239_buh_cop_samples: the sample flag from BUH Step1 / Step2, the
+  strict fetch, the heating-curve fetch and the datasheet window (fail on
+  the old code).
 
 ## [1.30.1] - 2026-11-22
 

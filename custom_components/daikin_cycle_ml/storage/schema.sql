@@ -100,7 +100,8 @@ CREATE TABLE IF NOT EXISTS cop_samples (
     thermal_kw REAL,
     power_w REAL,
     rps REAL,
-    is_reconstructed INTEGER DEFAULT 0
+    is_reconstructed INTEGER DEFAULT 0,
+    buh_active INTEGER DEFAULT 0
 );
 
 -- #473: thermal_kw / power_w / rps per sample; is_reconstructed = 1 when

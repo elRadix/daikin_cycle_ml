@@ -548,6 +548,14 @@ DETECTION_STAND_INS: dict[str, tuple[str, ...]] = {
 }
 
 
+def _buh_running(attrs: Mapping[str, Any] | None) -> bool:
+    """#239: backup heater step 1 or 2 on in the source attributes."""
+    if not attrs:
+        return False
+    view = build_compat_view(attrs)
+    return tolerant_on(view.get(ATTR_BUH_STEP1)) or tolerant_on(view.get(ATTR_BUH_STEP2))
+
+
 def _detection_blocked(
     missing: list[str], attrs: Mapping[str, Any] | None = None,
 ) -> bool:
@@ -3772,6 +3780,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         view = build_compat_view(attrs)
         if tolerant_on(view.get(ATTR_DEFROST_OPERATION)):
             return None
+        # #239: the BUH's electricity without its heat is not the heat pump
+        if _buh_running(attrs):
+            return None
         return view
 
     def _steady_live_lwt(self, now: float) -> float | None:
@@ -4013,8 +4024,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not force and (now - cache_ts) < 3600.0 and cache:
             return
         try:
+            # #239: strict heat-pump COP, no samples with the BUH running
             rows = await self.db.async_fetch_cop_samples(
-                days=30, include_artifacts=False,
+                days=30, include_artifacts=False, include_buh=False,
             )
         except Exception:
             return
@@ -4542,6 +4554,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             'source': 'interval',
             'boiler_active': 1 if _ba else 0,
             'boiler_mode': _boiler_mode,
+            # #239: kept for system COP, left out of the curve advice
+            'buh_active': 1 if _buh_running(source_attrs) else 0,
             # #473: heat, electrical input and compressor speed of the sample
             **_sample_heat_fields(
                 sample.flow_lmin, _r1t_before if source_attrs else None,
