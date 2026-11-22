@@ -465,11 +465,16 @@ Public Daikin datasheet values for the 53 technical model codes plus 1 commercia
 
 ### LT split — ERGA EAV3 (R-32)
 
-| Model | COP A7/W35 | COP A7/W55 | Max LWT |
-|---|---|---|---|
-| ERGA04EAV3 | 5.10 | 3.65 | 65 °C |
-| ERGA06EAV3 | 4.85 | 3.50 | 65 °C |
-| ERGA08EAV3 | 4.60 | 3.50 | 65 °C |
+| Model | COP A7/W35 | COP A-7/W35 | COP A7/W45 | COP A-7/W45 | COP A7/W55 | COP A-7/W55 | Max LWT |
+|---|---|---|---|---|---|---|---|
+| ERGA04EAV3 | 5.10 | 3.01 | 3.65 | 2.30 | 2.65 | 1.60 | 65 °C |
+| ERGA06EAV3 | 4.85 | 2.91 | 3.50 | 2.32 | 2.70 | 1.74 | 65 °C |
+| ERGA08EAV3 | 4.60 | 2.80 | 3.50 | 2.31 | 2.70 | 1.83 | 65 °C |
+
+A7/W35 and A7/W45: daikin.eu product table. A-7 points and A7/W55: Daikin
+Altherma 3 R W brochure (Daikin Belgium, ERGA04EV / ERGA06EVH /
+ERGA08EVH7), shared in discussion #493. The table previously listed the
+W45 values under W55.
 
 ### LT split high capacity — EPGA DAV3 (R-32)
 

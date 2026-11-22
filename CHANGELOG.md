@@ -2,7 +2,15 @@
 
 ## [Unreleased]
 
+## [1.30.0] - 2026-11-22
+
 ### Added
+- Datasheets: ERGA04/06/08 EAV3 and ERGA08EVH7 gain the COP and capacity
+  at A-7/W35, A-7/W45, A7/W55 and A-7/W55 from Daikin's Altherma 3 R W
+  brochure (6 points instead of 2), so COP against the datasheet, the
+  Performance card and the normalised COP work in frost and at high water
+  temperatures. MODEL_COMPATIBILITY listed the W45 COP as W55; corrected
+  (discussion #493).
 - Efficiency card 1.3.0: `climate_entity` (your Daikin climate entity of
   the leaving water or its offset: − / + and "Apply the advice" on the
   Advice tab) and `room_entity` (room sensor or room thermostat for the
@@ -95,6 +103,9 @@
   (Part of #481).
 
 ### Tests
+- test_493_erga_cop_points: all six brochure conditions per ERGA model,
+  labels, source reference, and COP falling with colder air and warmer
+  water.
 - test_492_target_dt: the reporter's 4 K threshold reaches `hp_specs`
   and the card's flow verdict, target line and help (fails on the old
   code); the card option still wins; out-of-range values fall back to 5.

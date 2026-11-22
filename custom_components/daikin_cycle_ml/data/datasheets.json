@@ -635,16 +635,44 @@
           "hc": 4.3
         },
         {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 3.01,
+          "hc": 5.48
+        },
+        {
           "label": "A7/W45",
           "t_out": 7,
           "t_lwc": 45,
           "cop": 3.65,
           "hc": 4.6
+        },
+        {
+          "label": "A-7/W45",
+          "t_out": -7,
+          "t_lwc": 45,
+          "cop": 2.3,
+          "hc": 5.24
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.65,
+          "hc": 4.9
+        },
+        {
+          "label": "A-7/W55",
+          "t_out": -7,
+          "t_lwc": 55,
+          "cop": 1.6,
+          "hc": 4.37
         }
       ],
       "scop_w35": 4.54,
       "scop_w55": 3.29,
-      "ref": "daikin.eu product table EHBX-E6V / ERGA04-08EVA (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "ref": "daikin.eu product table EHBX-E6V / ERGA04-08EVA (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average); A-7/W35, A-7/W45, A7/W55, A-7/W55: Daikin Altherma 3 R W brochure (Daikin Belgium), technical specifications ERGA04EV / ERGA06EVH / ERGA08EVH7 with EHBH/X04E6V-08E9W (discussion #493)",
       "verified": true
     },
     "erga06eav3": {
@@ -665,16 +693,44 @@
           "hc": 6.0
         },
         {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 2.91,
+          "hc": 6.4
+        },
+        {
           "label": "A7/W45",
           "t_out": 7,
           "t_lwc": 45,
           "cop": 3.5,
           "hc": 5.9
+        },
+        {
+          "label": "A-7/W45",
+          "t_out": -7,
+          "t_lwc": 45,
+          "cop": 2.32,
+          "hc": 6.36
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.7,
+          "hc": 5.81
+        },
+        {
+          "label": "A-7/W55",
+          "t_out": -7,
+          "t_lwc": 55,
+          "cop": 1.74,
+          "hc": 5.72
         }
       ],
       "scop_w35": 4.52,
       "scop_w55": 3.27,
-      "ref": "daikin.eu product table EHBX-E6V / ERGA04-08EVA (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "ref": "daikin.eu product table EHBX-E6V / ERGA04-08EVA (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average); A-7/W35, A-7/W45, A7/W55, A-7/W55: Daikin Altherma 3 R W brochure (Daikin Belgium), technical specifications ERGA04EV / ERGA06EVH / ERGA08EVH7 with EHBH/X04E6V-08E9W (discussion #493)",
       "verified": true
     },
     "erga08eav3": {
@@ -695,16 +751,44 @@
           "hc": 7.5
         },
         {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 2.8,
+          "hc": 7.42
+        },
+        {
           "label": "A7/W45",
           "t_out": 7,
           "t_lwc": 45,
           "cop": 3.5,
           "hc": 7.8
+        },
+        {
+          "label": "A-7/W45",
+          "t_out": -7,
+          "t_lwc": 45,
+          "cop": 2.31,
+          "hc": 7.74
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.7,
+          "hc": 7.51
+        },
+        {
+          "label": "A-7/W55",
+          "t_out": -7,
+          "t_lwc": 55,
+          "cop": 1.83,
+          "hc": 7.43
         }
       ],
       "scop_w35": 4.61,
       "scop_w55": 3.3,
-      "ref": "daikin.eu product table EHBX-E6V / ERGA04-08EVA (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "ref": "daikin.eu product table EHBX-E6V / ERGA04-08EVA (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average); A-7/W35, A-7/W45, A7/W55, A-7/W55: Daikin Altherma 3 R W brochure (Daikin Belgium), technical specifications ERGA04EV / ERGA06EVH / ERGA08EVH7 with EHBH/X04E6V-08E9W (discussion #493)",
       "verified": true
     },
     "epga10dav3": {
@@ -1940,14 +2024,42 @@
           "hc": 7.5
         },
         {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 2.8,
+          "hc": 7.42
+        },
+        {
           "label": "A7/W45",
           "t_out": 7,
           "t_lwc": 45,
           "cop": 3.5,
           "hc": 7.8
+        },
+        {
+          "label": "A-7/W45",
+          "t_out": -7,
+          "t_lwc": 45,
+          "cop": 2.31,
+          "hc": 7.74
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.7,
+          "hc": 7.51
+        },
+        {
+          "label": "A-7/W55",
+          "t_out": -7,
+          "t_lwc": 55,
+          "cop": 1.83,
+          "hc": 7.43
         }
       ],
-      "ref": "daikin.eu product table EHBX-E6V / ERGA-EVH7 (ERGA08EAV3H7) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average)",
+      "ref": "daikin.eu product table EHBX-E6V / ERGA-EVH7 (ERGA08EAV3H7) (EN14511 (1) Ta 7/6 C, LWC 35 C (dT5), (2) Ta 7/6 C, LWC 45 C (dT5); SCOP EN14825 average); A-7/W35, A-7/W45, A7/W55, A-7/W55: Daikin Altherma 3 R W brochure (Daikin Belgium), technical specifications ERGA04EV / ERGA06EVH / ERGA08EVH7 with EHBH/X04E6V-08E9W (discussion #493)",
       "verified": true
     }
   }
