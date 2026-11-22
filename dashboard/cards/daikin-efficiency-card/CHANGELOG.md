@@ -1,6 +1,20 @@
 # Changelog · Efficiency card (native)
 
-## [1.2.1] - 2026-11-22
+## [1.3.0] - 2026-11-22
+
+### Added
+
+- `climate_entity`: your Daikin climate entity of the leaving water or its
+  offset. The Advice tab shows it with − / + one step and **Apply the
+  advice**; without it the tab asks for it (#491).
+- `room_entity`: a room sensor or room thermostat (temperature and
+  setpoint) for the comfort check and the advice; the Advice tab asks for
+  a room when there is none (#491).
+- Curve tab: every dot has a pop-up in the chart, next to the dot, that
+  explains it. The live dot's pop-up is open from the start (water, heat,
+  COP and the distance to the fitted curve). The last 48 h are drawn as
+  rings, one per hour, newest darkest, with a key line under the legend
+  (#491).
 
 ### Fixed
 
@@ -8,6 +22,15 @@
   card updates only what changed instead of drawing itself again from
   scratch, so the scroll position, the focus and the open view stay
   (#488).
+- "Raise the curve: the room stays below its setpoint" next to
+  "Comfortable: room 22.5 ° for 22 °": the advice never contradicts the
+  comfort check any more, and its tiles show the advised value only when
+  the advice is to change (#491).
+- Advanced: liquid − leaving water below −3 K fell off the chart; the
+  axis follows the values with round steps, and a negative difference
+  reads "below the leaving water" (#491).
+- Curve legend: dots for the points, lines for the lines, and every point
+  colour listed (COP ≥ 5, 3.5–5, below 3.5, no COP) (#491).
 
 ## [1.2.0] - 2026-11-21
 

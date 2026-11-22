@@ -281,10 +281,25 @@
     live.cop10 = mean10(buf, now, "cop");
     live.power10 = mean10(buf, now, "power");
     live.kw10 = mean10(buf, now, "kw");
+    /* card options: a room sensor or room thermostat (room_entity) and the
+       Daikin climate entity of the leaving water or its offset (climate_entity) */
+    const ent = (id) => (typeof id === "string" && hass.states[id]) || null;
+    const roomE = ent(config && config.room_entity), clE = ent(config && config.climate_entity);
+    if (roomE) {
+      const ra = roomE.attributes || {}, th = config.room_entity.startsWith("climate.");
+      const rt = th ? num(ra.current_temperature) : num(roomE.state);
+      if (rt !== null) live.room = rt;
+      if (th && num(ra.temperature) !== null) live.roomSp = num(ra.temperature);
+    }
+    const ca = (clE && clE.attributes) || {};
+    const control = clE ? {
+      id: config.climate_entity, name: ca.friendly_name || config.climate_entity, value: num(ca.temperature),
+      min: num(ca.min_temp), max: num(ca.max_temp), step: num(ca.target_temp_step) || 1, off: clE.state === "off",
+    } : null;
     const elA = at("electrical_energy_total_today");
     const pts = bucketPoints(adv.buckets);
     return {
-      ids, ok, lang, now, range,
+      ids, ok, lang, now, range, control, roomEntity: !!roomE,
       model: specs.model ? String(specs.model).toUpperCase() : "",
       meta: [specs.family, num(specs.kw) ? num(specs.kw) + " kW" : "", specs.refrigerant]
         .filter((x) => x && String(x) !== "None").join(" · "),

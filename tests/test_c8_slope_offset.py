@@ -145,7 +145,8 @@ def test_b13_raise_fills_offset_slope():
     a = analyze_stooklijn(
         _samples(10, 35.0, 35.0, outdoor=7.0),
         comfort_min=20.0,
-        indoor_avg=22.0,
+        # #491: no room setpoint -> a raise only below comfort_min (was 22.0)
+        indoor_avg=19.5,
         setpoint_lwt=32.0,
         comfort_max=24.0,
     )

@@ -51,7 +51,7 @@ card and alert uses the same values (see [Model profile](#model-profile)).
 | Dial | Formula | Limit comes from |
 |---|---|---|
 | **Capacity used** | heat output ÷ maximum heat at (outdoor, water) | [maximum heat](#where-the-maximum-heat-comes-from), interpolated between the points |
-| **Compressor** | (speed − minimum) ÷ (maximum − minimum) | your values, or learned from your runs ("highest speed seen so far") |
+| **Compressor** | speed ÷ maximum (the dial starts at 0 rps, so a compressor below its minimum still shows; #491) | your values, or learned from your runs ("highest speed seen so far") |
 | **Electrical power** | electrical input ÷ maximum input | Daikin's maximum power input (EPRA08/10/12: 1.69 / 2.04 / 2.28 kW), else an estimate (maximum heat ÷ COP) |
 | **COP vs rating point** | live COP ÷ COP of the Daikin rating point at (outdoor, water) | datasheet COP points, Carnot-scaled outside them. A heat pump at part load is normally above its rating point |
 
@@ -87,7 +87,10 @@ Home Assistant). It starts from the datasheet of the model chosen in setup:
   weather rarely needs full speed); type your unit's top speed to confirm it.
 - **Points**: per outdoor and water temperature the **maximum heat**
   (`hmax`) and the **spec COP** at the Daikin rating point.
-- **Add point** for a condition the datasheet does not list.
+- **Add point** for a condition the datasheet does not list: on the last
+  row of the table type the outdoor and water temperature (for example
+  −7 and 35) and the maximum heat in kW and/or the COP from your
+  datasheet's capacity table at that condition, then press **Add point**.
 
 Every value shows its source: **Datasheet**, **Estimate**, **Learned** or
 **Manual**. **Remove my value** goes back to the other sources. Your

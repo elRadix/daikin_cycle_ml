@@ -261,6 +261,15 @@ class DataSnapshot:
 
 # --- FEAT-2: live thermal power helpers ---
 
+def _stooklijn_room(attrs: Any) -> dict[str, float | None]:
+    """Room temperature and room setpoint from the controller's own values."""
+    from .engine.thermal import live_temps_from_view
+    from .engine.attribute_compat import build_compat_view
+    if not isinstance(attrs, dict):
+        return {}
+    return live_temps_from_view(build_compat_view(attrs))
+
+
 def _safe_float_opt(value: Any) -> float | None:
     """Parse any value to float, or None on failure."""
     if value is None:
@@ -4011,7 +4020,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 _sp = _attrs.get(ATTR_LW_SETPOINT)
                 if isinstance(_sp, (int, float)):
                     setpoint_lwt = float(_sp)
-            indoor_avg = None
+            # Tweakers feedback: the controller's own room temperature and
+            # room setpoint feed the advice too (the card already shows them),
+            # so "raise the curve" is only advised when the room is cold.
+            _room = _stooklijn_room(_attrs)
+            indoor_avg = _room.get('room_c')
+            rt_setpoint = _room.get('room_setpoint_c')
             _ient = getattr(self, 'indoor_temp_entity', None)
             if _ient and self.hass is not None:
                 try:
@@ -4019,11 +4033,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     if _st is not None and _st.state not in ('unknown', 'unavailable', ''):
                         indoor_avg = float(_st.state)
                 except (TypeError, ValueError, AttributeError):
-                    indoor_avg = None
+                    pass
             advies = analyze_stooklijn(
                 samples,
                 comfort_min=comfort_min,
                 indoor_avg=indoor_avg,
+                rt_setpoint=rt_setpoint,
                 setpoint_lwt=setpoint_lwt,
                 comfort_max=comfort_max,
                 tracking_lwt=self._steady_live_lwt(now),

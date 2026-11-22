@@ -2,12 +2,35 @@
 
 ## [Unreleased]
 
+### Added
+- Efficiency card 1.3.0: `climate_entity` (your Daikin climate entity of
+  the leaving water or its offset: − / + and "Apply the advice" on the
+  Advice tab) and `room_entity` (room sensor or room thermostat for the
+  comfort check and the advice); the Advice tab asks for them when they
+  are missing. Every heating-curve dot has a pop-up that explains it; the
+  last 48 h are drawn as rings, one per hour, newest darkest (#491).
+
 ### Fixed
+- Heating-curve advice said "raise the curve, the room stays below its
+  setpoint" while the room was comfortable (22.5 ° for 22 °). The advice
+  now gets the room setpoint (`RT setpoint`) and the controller's room
+  temperature, raises the curve only for a room more than 0.5 K below its
+  setpoint (or below `comfort_min_c` without one) and lowers it only when
+  the room is not that cold; new reason `room_warm_enough`. The card
+  checks the same against its live room (#491).
+- Efficiency card: liquid − leaving water below −3 K fell off the
+  advanced chart (axis now follows the values, round steps, "below the
+  leaving water" text for a negative difference); curve legend shows
+  every point colour as a dot (#491).
+- Performance card 1.2.1: the compressor dial starts at 0 rps (8 rps under
+  a learned 10.4 rps minimum read 0 %); profile fields take decimals (10.4
+  failed validation); the add-point row has examples and an explanation
+  (#491).
 - Native cards: a sensor update made the page jump back to the top (phone
   and tablet), reset tables scrolled sideways and wiped a number being
   typed in the Performance card. The cards now update only the parts that
   changed instead of being redrawn from scratch (daily summary 1.1.1,
-  efficiency 1.2.1, performance 1.2.1; #488).
+  efficiency 1.3.0, performance 1.2.1; #488).
 - Hot water inside a heating run was counted as heating on a source
   without `I/U operation mode` (EDLA with an ESPAltherma v1 definition):
   its `Operation Mode` is the outdoor unit's mode and stays "Heating" while
@@ -68,6 +91,11 @@
   (Part of #481).
 
 ### Tests
+- test_491_card_feedback: the reporter's situations on the cards' code
+  (warm room with raise advice, liquid below −3 K, legend, 8 rps under a
+  10.4 rps minimum, profile inputs), the engine's raise/lower gate,
+  `climate_entity` / `room_entity` and the apply button in Chromium, and a
+  pop-up for every curve dot; fails on the old code.
 - test_488_card_patch: the three native cards carry the same patch block;
   in Chromium an update in which every entity changed keeps the nodes,
   the scroll position, the focus and a typed value, and equals a card

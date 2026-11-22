@@ -43,7 +43,13 @@
   const tile = (label, value, sub, color) => `<div class="tile"><div class="tl">${P.data.esc(label)}</div>`
     + `<div class="tv"${color ? ` style="color:${color}"` : ""}>${P.data.esc(value)}</div>${sub ? `<div class="ts">${P.data.esc(sub)}</div>` : ""}</div>`;
 
-  const legend = (items) => `<div class="legend">${items.map((i) => `<span><i style="background:${i.c}${i.dash ? ";height:2px" : ""}"></i>${P.data.esc(i.l)}</span>`).join("")}</div>`;
+  /* legend marks look like what they label: a dot for points, a line or a
+     dashed line for lines, a square for an area (Tweakers: the curve tab
+     had dot colours that the legend did not show) */
+  const legend = (items) => `<div class="legend">${items.map((i) => {
+    const st = i.s === "dash" ? `border-top:2px dashed ${i.c};background:none;height:0` : `background:${i.c}${i.dash || i.s === "line" ? ";height:2px" : ""}`;
+    return `<span><i class="${i.s || "box"}" style="${st}"></i>${P.data.esc(i.l)}</span>`;
+  }).join("")}</div>`;
 
   const sect = (title, extra) => `<div class="sect">${P.data.esc(title)}${extra ? ` <span class="muted">${P.data.esc(extra)}</span>` : ""}</div>`;
 
@@ -59,6 +65,19 @@
       + `<button class="chip ${a.overall.lvl}" data-act="todo" title="${esc(t.todo_open)}">${LVL_ICON[a.overall.lvl]} ${esc(t["lvl_" + a.overall.lvl])}`
       + `${a.actions.length ? ` · ${a.actions.length}` : ""}</button></div>`
       + `<div class="note-s">${esc(t.heat_note)}</div></div>`;
+  }
+
+  /* Liquid − LWT axis: at least −2…10 K, widened to what was measured
+     (Tweakers: values below −3 K fell off the bottom); 4 intervals of a
+     round step, so 0 is always a grid line */
+  function liquidRange(vals) {
+    const v = vals.filter((x) => x !== null && Number.isFinite(x));
+    const lo = Math.min(-2, ...v.map((x) => x - 1)), hi = Math.max(10, ...v.map((x) => x + 1));
+    for (const k of [4, 5, 10, 20, 50]) {
+      const a = Math.floor(lo / k) * k;
+      if (a + 4 * k >= hi) return { lo: a, hi: a + 4 * k };
+    }
+    return { lo: Math.floor(lo), hi: Math.ceil(hi) };
   }
 
   function renderLive(m, a, V, t, f, ui, cfg) {
@@ -98,10 +117,11 @@
       + verdict(a, "comfort", V, t, f) + verdict(a, "cop", V, t, f);
     s += `<button class="more" data-act="adv">${esc(ui.adv ? t.adv_hide : t.adv_show)}</button>`;
     if (ui.adv) {
+      const liq = (p) => (p.liquid !== null && p.lwt !== null && p.kw > 0 ? p.liquid - p.lwt : null);
       s += sect(t.ch_liquid) + P.charts.lineChart(w, {
-        title: t.ch_liquid, bands, empty: t.no_history, yL: { fixed: { lo: -2, hi: 10 } },
+        title: t.ch_liquid, bands, empty: t.no_history, yL: { fixed: liquidRange(w.samples.map(liq)), unit: "K" },
         refs: [{ y: LIM.liquid_watch_k, color: C.watch, label: LIM.liquid_watch_k + " K" }],
-        series: [{ get: (p) => (p.liquid !== null && p.lwt !== null && p.kw > 0 ? p.liquid - p.lwt : null), color: C.liquid }],
+        series: [{ get: liq, color: C.liquid }],
       }, tm) + verdict(a, "liquid", V, t, f);
     }
     return s;
@@ -144,12 +164,36 @@
     return s;
   }
 
+  /* text of the tapped heating-curve dot's pop-up: what it is and what it means */
+  function pointDetail(m, key, t, f) {
+    const esc = P.data.esc, Cv = m.curve, L = m.live;
+    const num = (v) => { const x = P.data.num(v); return x === null ? null : Math.round(x * 10) / 10; };
+    if (!key) return "";
+    let txt = null;
+    const b = Cv.pts.find((p) => p.key === key);
+    if (b) txt = f.fill(t.pt_band, { key: b.key, lwt: num(b.y), cop: num(b.cop), n: b.n });
+    else if (key === "now" && L.out !== null && L.lwt !== null) {
+      const fit = Cv.fit ? num(Cv.fit.a + Cv.fit.b * L.out) : null;
+      txt = f.fill(t.pt_now, { out: num(L.out), lwt: num(L.lwt), kw: num(L.kw), cop: num(L.cop10 !== null ? L.cop10 : L.cop) })
+        + (fit !== null ? " " + f.fill(t.pt_fit, { fit, dev: num(L.lwt - fit) }, true) : "") + " " + t.pt_close;
+    }
+    else if (/^r\d+$/.test(key)) {
+      const p = Cv.recent[Number(key.slice(1))];
+      if (p) {
+        txt = f.fill(t.pt_recent, { time: P.data.num(p.ts) !== null ? f.time(P.data.num(p.ts) * 1000) : "—", out: num(p.outdoor_mean),
+          lwt: num(p.lwt_mean), cop: num(p.cop_mean), n: num(p.n_samples) });
+      }
+    }
+    return txt;
+  }
+
   function renderCurve(m, a, V, t, f, ui) {
-    const S = m.specs, Cv = m.curve, C = P.charts.C, esc = P.data.esc, L = m.live;
-    let s = sect(t.curve_title) + P.charts.curveChart(m, ui.bucket, t, f)
-      + legend([{ c: C.cop, l: t.measured }, { c: C.buh, l: t.fitted }, { c: C.out, l: t.now }, { c: "var(--secondary-text-color)", l: t.recent_pts }, { c: C.defrost, l: t.defrost_zone }]);
-    const b = Cv.pts.find((p) => p.key === ui.bucket);
-    if (b) s += `<div class="detail"><b>${esc(t.bucket_detail)} ${esc(b.key)} °</b> · ${esc(f.n1(b.y))} ° · COP ${esc(f.n2(b.cop))} · ${esc(b.n)} ${esc(t.samples)}</div>`;
+    const S = m.specs, Cv = m.curve, C = P.charts.C, PT = P.charts.PT, esc = P.data.esc, L = m.live;
+    let s = sect(t.curve_title) + P.charts.curveChart(m, ui.bucket, t, f, pointDetail(m, ui.bucket, t, f))
+      + legend([{ c: PT.hi, l: t.pt_cop_hi, s: "dot" }, { c: PT.mid, l: t.pt_cop_mid, s: "dot" }, { c: PT.lo, l: t.pt_cop_lo, s: "dot" },
+        { c: PT.none, l: t.pt_cop_none, s: "dot" }, { c: C.cop, l: t.measured, s: "line" }, { c: C.buh, l: t.fitted, s: "dash" },
+        { c: C.out, l: t.now, s: "dot" }, { c: P.charts.RING, l: t.recent_pts, s: "ring" }, { c: C.defrost, l: t.defrost_zone }])
+      + `<div class="note-k">${esc(t.pt_key)} ${esc(t.pt_tap)}</div>`;
     s += verdict(a, "curveFit", V, t, f) + verdict(a, "curveLive", V, t, f);
     s += sect(t.strip24) + P.charts.strip24(m.day, t, (ms) => f.time(ms));
     const cop = L.cop10 !== null ? L.cop10 : L.cop, car = P.data.carnot(L.lwt, L.out);
@@ -188,15 +232,31 @@
       + (items ? `<ul>${items}</ul>` : `<div class="vd good"><span class="vi">${LVL_ICON.good}</span><span>${esc(t.todo_none)}</span></div>`) + `</div>`;
   }
 
+  /* the Daikin climate entity (card option climate_entity): − / + one step
+     and, when the advice says so, apply its step; asks for it when absent */
+  function control(m, x, t, f) {
+    const esc = P.data.esc, c = m.control;
+    if (!c) return `<div class="note">🎛️ ${esc(t.ctl_need)}</div>`;
+    const clamp = (v) => Math.min(c.max !== null ? c.max : v, Math.max(c.min !== null ? c.min : v, v));
+    const btn = (v, label, cls) => `<button type="button" class="ctl ${cls || ""}" data-act="set-lwt" data-v="${clamp(v)}"${c.value === null || c.off ? " disabled" : ""}>${esc(label)}</button>`;
+    const A = m.advice, d = !/^ad_(lower|raise)/.test(x.k) ? null : A.delta ? A.delta : (x.k === "ad_lower" ? -A.step : A.step) || null;
+    return sect(t.ctl_title, c.name) + `<div class="ctlrow">${btn(c.value - c.step, "− " + f.n1(c.step))}`
+      + `<b class="ctlv">${esc(c.value === null ? "—" : f.n1(c.value) + " °")}</b>${btn(c.value + c.step, "+ " + f.n1(c.step))}`
+      + (d ? btn(c.value + d, f.fill(t.ctl_apply, { d: (d > 0 ? "+" : "") + f.n0(d) }), "apply") : "") + `</div>`
+      + (c.off ? `<div class="note">${esc(t.ctl_off)}</div>` : "");
+  }
+
   function renderAdvice(m, a, V, t, f) {
     const A = m.advice, x = a.advice, esc = P.data.esc, L = m.live;
     let s = renderTodo(a, V, t, f) + `<div class="adv ${x.lvl}"><div class="tl">${esc(t.advice_title)}</div><div class="at">${esc(f.fill(V[x.k], x.p))}</div>`
-      + `<div class="cells">` + tile(t.setpoint_now, f.n1(A.setpoint) + " °") + tile(t.setpoint_new, f.n1(A.target !== null ? A.target : A.setpoint) + " °")
-      + tile(t.saving, f.n1(A.saving) + " %") + tile(t.confidence, f.n0(A.confidence === null ? null : A.confidence * 100) + " %") + `</div>`
+      + `<div class="cells">` + tile(t.setpoint_now, f.n1(A.setpoint) + " °") + tile(t.setpoint_new, f.n1(A.target !== null && /^ad_(lower|raise)/.test(x.k) ? A.target : A.setpoint) + " °")
+      + tile(t.saving, f.n1(x.k === "ad_lower" ? A.saving : 0) + " %") + tile(t.confidence, f.n0(A.confidence === null ? null : A.confidence * 100) + " %") + `</div>`
       + P.charts.gauge(A.confidence === null ? null : A.confidence * 100, 100, P.charts.C.info) + `</div>`;
+    s += control(m, x, t, f);
     s += sect(t.comfort_guard, L.room !== null ? f.n1(L.room) + " °" + (L.roomSp !== null ? " / " + f.n1(L.roomSp) + " °" : "") : "")
       + verdict(a, "comfort", V, t, f) + sect(t.tracker) + verdict(a, "tracker", V, t, f);
-    return s + `<div class="note">🔁 ${esc(t.when_change)}</div><div class="note">🛠️ ${esc(t.how_change)}</div>`;
+    if (L.room === null || L.roomSp === null) s += `<div class="note">🌡️ ${esc(t.room_need)}</div>`;
+    return s + `<div class="note">🔁 ${esc(t.when_change)}</div>` + (m.control ? "" : `<div class="note">🛠️ ${esc(t.how_change)}</div>`);
   }
 
   function helpVals(m) {
@@ -238,6 +298,6 @@
     return s + `</div>`;
   }
 
-  Object.assign(P, { render: { TABS, makeFmt, render, renderHelp, renderTodo, helpVals } });
+  Object.assign(P, { render: { TABS, makeFmt, render, renderHelp, renderTodo, helpVals, liquidRange } });
   if (window.__dcmEffBoot) window.__dcmEffBoot();
 })();

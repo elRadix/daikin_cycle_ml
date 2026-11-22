@@ -142,7 +142,13 @@ Reports `unknown` when compressor is off or flow/dT invalid. Normal — not an e
 | `comfort_cap` | str | `floor` / `ceiling` / `ok` / `unavailable` |
 | `reason` | str | Machine-readable reason code |
 
-**Reason codes:** `no_recent_heating`, `dhw_active`, `within_deadband`, `comfort_floor_reached`, `comfort_ceiling_reached`, `unit_tracking_behind`, `low_confidence`, `no_indoor_sensor`.
+**Reason codes:** `no_recent_heating`, `dhw_active`, `within_deadband`, `comfort_floor_reached`, `comfort_ceiling_reached`, `unit_tracking_behind`, `low_confidence`, `no_indoor_sensor`, `room_warm_enough`.
+
+The curve is only raised when the room is more than 0.5 K below its
+setpoint (or, without a room setpoint, below `comfort_min_c`), and only
+lowered when the room is not that far below it (#491). The room comes
+from `indoor_temp_sensor`, else from the controller's own room sensor and
+`RT setpoint` (ESPAltherma).
 
 ### 2.4 COP legacy & KPIs (5)
 

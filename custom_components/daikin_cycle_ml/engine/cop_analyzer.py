@@ -9,6 +9,7 @@ from typing import Any
 
 from ..const import (
     COMFORT_TOLERANCE,
+    ROOM_OK_K,
     K_EMIT_DEFAULT,
     LWT_STEP_MAX,
     LWT_STEP_MIN,
@@ -355,6 +356,25 @@ def analyze_stooklijn(
                              else 'comfort_ceiling_reached')
         else:
             advies.reason = 'low_confidence'
+        return advies
+    # A warmer curve only makes sense when the room is too cold, a cooler one
+    # only when the room is not: the advice never contradicts the comfort
+    # reading (Tweakers: "raise the curve, the room stays below its setpoint"
+    # next to "comfortable: room 22.5 for a setpoint of 22").
+    if diff_cop < 0:
+        cold = (advies.err_indoor > ROOM_OK_K if advies.err_indoor is not None
+                else indoor_avg < comfort_min)
+        if not cold:
+            advies.state = 'keep'
+            advies.step_c = 0
+            advies.delta_c = 0.0
+            advies.reason = 'room_warm_enough'
+            return advies
+    elif advies.err_indoor is not None and advies.err_indoor > ROOM_OK_K:
+        advies.state = 'keep'
+        advies.step_c = 0
+        advies.delta_c = 0.0
+        advies.reason = 'comfort_floor_reached'
         return advies
     step_c = min(int(target + 0.5), 3)
     advies.step_c = step_c

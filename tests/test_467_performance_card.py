@@ -178,7 +178,9 @@ def test_loads_against_the_profile_limits(out):
     assert r["limits"]["copSpec"] == pytest.approx(cop, abs=1e-6)
     assert r["loads"]["electrical"] == pytest.approx(0.95 / 2.28 * 100, abs=1e-6)   # Daikin max power input
     assert r["limits"]["elEst"] is False and r["limits"]["fSeen"] is False and r["atLimit"] is False
-    assert r["loads"]["compressor"] == pytest.approx((32 - 15) / 80 * 100)     # manual 15-95 beats learned 18-90
+    # manual 15-95 beats learned 18-90; Tweakers: the dial runs from 0 rps to
+    # the maximum (was (32 - 15) / 80, which read 0 % below the minimum)
+    assert r["loads"]["compressor"] == pytest.approx(32 / 95 * 100)
     assert r["copPct"] == pytest.approx(5.2874 / cop * 100, abs=1e-6)
     assert r["headroom"] == pytest.approx(th_max - 5.02, abs=1e-6)
     assert r["staticLoad"] == pytest.approx(5.02 / 12 * 100)

@@ -157,8 +157,9 @@
     const L = m.live;
     if (!heatingSteady(L, m.now) || L.liquid === null || L.lwt === null) return v("info", "liq_none");
     const d = L.liquid - L.lwt;
-    const p = { d: r1(d), liq: r1(L.liquid), lwt: r1(L.lwt) };
-    return d > LIMITS.liquid_watch_k ? v("watch", "liq_high", p) : v("good", "liq_ok", p);
+    const p = { d: r1(d), abs: r1(Math.abs(d)), liq: r1(L.liquid), lwt: r1(L.lwt) };
+    /* Tweakers: "−3 K above" read wrong; below the leaving water is normal */
+    return d > LIMITS.liquid_watch_k ? v("watch", "liq_high", p) : v("good", d < 0 ? "liq_below" : "liq_ok", p);
   }
 
   function todayCop(m) {
@@ -273,14 +274,20 @@
     const p = { step: A.step, saving: r1(A.saving), target: r1(A.target), sp: r1(A.setpoint), opt: r1(A.optimal), n: A.samples || 0, bucket: A.bucket };
     if (A.suppressed === "dhw_active") return v("info", "ad_dhw", p);
     if (A.suppressed === "buh_active") return v("info", "ad_buh", p);
+    /* never against the live comfort reading: no warmer curve for a room
+       that is warm enough, no cooler curve for a room that is cold */
+    const L = m.live, d = L.room !== null && L.roomSp !== null ? L.room - L.roomSp : null;
+    Object.assign(p, { room: r1(L.room), rsp: r1(L.roomSp) });
+    if (A.state === "lower_lwt" && d !== null && d < -LIMITS.room_ok_k) return v("good", "ad_floor", p);
+    if (A.state === "raise_lwt" && d !== null && d >= -LIMITS.room_ok_k) return v("good", "ad_room_ok", p);
     if (A.state === "lower_lwt") return v("watch", "ad_lower", p);
-    if (A.state === "raise_lwt") return v("watch", "ad_raise", p);
+    if (A.state === "raise_lwt") return v("watch", d === null ? "ad_raise" : "ad_raise_room", p);
     if (A.state === "keep") {
       const map = {
         within_deadband: ["good", "ad_keep_ok"], no_indoor_sensor: ["info", "ad_no_room"],
         unit_tracking_behind: ["watch", "ad_tracking"], comfort_floor_reached: ["good", "ad_floor"],
         comfort_ceiling_reached: ["good", "ad_ceiling"], low_confidence: ["info", "ad_low_conf"],
-        insufficient_samples: ["info", "ad_few"],
+        insufficient_samples: ["info", "ad_few"], room_warm_enough: ["good", "ad_room_ok"],
       };
       const e = map[A.reason] || ["good", "ad_keep_ok"];
       return v(e[0], e[1], p);
