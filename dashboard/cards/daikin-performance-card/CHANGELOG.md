@@ -1,5 +1,17 @@
 # Changelog · Performance card (native)
 
+## [1.2.1] - 2026-11-22
+
+### Fixed
+
+- The page no longer jumps back to the top when a sensor updates: the
+  card updates only what changed instead of drawing itself again from
+  scratch, so the scroll position, the focus and the open view stay
+  (#488).
+- A number typed in the profile table is no longer wiped by a sensor
+  update; the add-point row empties after the point is saved.
+
+
 ## [1.2.0] - 2026-11-21
 
 ### Fixed

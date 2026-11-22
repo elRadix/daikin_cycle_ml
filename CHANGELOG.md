@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Fixed
+- Native cards: a sensor update made the page jump back to the top (phone
+  and tablet), reset tables scrolled sideways and wiped a number being
+  typed in the Performance card. The cards now update only the parts that
+  changed instead of being redrawn from scratch (daily summary 1.1.1,
+  efficiency 1.2.1, performance 1.2.1; #488).
 - Hot water inside a heating run was counted as heating on a source
   without `I/U operation mode` (EDLA with an ESPAltherma v1 definition):
   its `Operation Mode` is the outdoor unit's mode and stays "Heating" while
@@ -63,6 +68,10 @@
   (Part of #481).
 
 ### Tests
+- test_488_card_patch: the three native cards carry the same patch block;
+  in Chromium an update in which every entity changed keeps the nodes,
+  the scroll position, the focus and a typed value, and equals a card
+  drawn from scratch (fails on the old cards).
 - test_487_dhw_valve_only: replay of the reporter's source (no I/U
   operation mode) with the valve pattern of the issue's history, fails on
   the old code; `dhw_active` truth table.
