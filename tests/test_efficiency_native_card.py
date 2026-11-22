@@ -362,7 +362,10 @@ const D = JSON.parse(fs.readFileSync(0, 'utf8'));
     q('[data-act="help"]').click(); out.helpClosed = !q('.hb');
     q('[data-act="help"]').click(); out.helpOpen = !!q('.hb');
     q('[data-tab="curve"]').click(); out.curve = tab();
-    q('.pt').dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true })); out.detail = !!q('.detail');
+    /* #491: the live dot's pop-up is open; tapping another dot opens its own */
+    const livePop = !!q('.pop[data-key="now"]');
+    q('.pt').dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+    out.detail = livePop && !!q('.pop') && !q('.pop[data-key="now"]');
     for (const t of ['today', 'eff', 'advice']) { q(`[data-tab="${t}"]`).click(); out[t] = R().querySelectorAll('.vd').length; }
     const before = q('#root').innerHTML;
     el.hass = Object.assign({}, el.hass);
@@ -421,6 +424,7 @@ def test_card_in_chromium():
     assert "Historie is niet beschikbaar" in r["failNote"]
     assert r["stub"] == {"default_tab": "live", "range": "3h"} and r["size"] == 12 and r["grid"]["columns"] == 12
     # #466: target_dt (the installer's ΔT) after min_flow
-    assert r["schema"] == ["device_id", "title", "default_tab", "range", "tabs", "language", "show_help", "min_flow", "target_dt"]
+    assert r["schema"] == ["device_id", "title", "default_tab", "range", "tabs", "language", "show_help", "min_flow", "target_dt",
+                           "climate_entity", "room_entity"]   # #491
     assert r["formHelp"] is True
     assert r["changed"] == {"range": "24h", "min_flow": 12}

@@ -1,5 +1,24 @@
 # Changelog · Performance card (native)
 
+## [1.2.1] - 2026-11-22
+
+### Fixed
+
+- The page no longer jumps back to the top when a sensor updates: the
+  card updates only what changed instead of drawing itself again from
+  scratch, so the scroll position, the focus and the open view stay
+  (#488).
+- A number typed in the profile table is no longer wiped by a sensor
+  update; the add-point row empties after the point is saved.
+- The compressor dial showed 0 % at 8 rps under a learned minimum of
+  10.4 rps: it now runs from 0 rps to the maximum (8 of 62 rps = 13 %)
+  (#491).
+- "Compressor minimum" only accepted 10 or 11 when its value was 10.4:
+  every profile field takes decimals (#491).
+- The add-point row has examples (−7, 35, kW, COP) and a line that says
+  what to fill in (#491).
+
+
 ## [1.2.0] - 2026-11-21
 
 ### Fixed

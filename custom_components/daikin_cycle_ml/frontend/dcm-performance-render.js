@@ -26,7 +26,7 @@
       v_ok_efficient: "Room to spare and a COP at or above the rating point: the efficient part of the curve.",
       v_ok: "Running with room to spare.",
       profile: "Model profile", profile_hint: "From the model chosen in setup. Fill in what is missing or adjust a value: your value is used by the whole integration.",
-      p_out: "Outdoor °C", p_water: "Water °C", p_hmax: "Max heat kW", p_cop: "Spec COP", p_src: "Source", add: "Add point",
+      p_out: "Outdoor °C", p_water: "Water °C", p_hmax: "Max heat kW", p_cop: "Spec COP", p_src: "Source", add: "Add point", new_hint: "Last row: add a point from your datasheet (capacity table). Fill in the outdoor and water temperature, then the maximum heat and/or the COP at that condition, and press Add point.",
       rps_min: "Compressor minimum", rps_max: "Compressor maximum", learned_from: "learned from {n} runs",
       learned_hmax: "Learned from your runs at full speed", from_samples: "from {n} samples",
       src: { datasheet: "Datasheet", learned: "Learned", manual: "Manual", estimate: "Estimate" }, missing: "Missing", reset: "Remove my value",
@@ -56,7 +56,7 @@
       v_ok_efficient: "Ruim binnen de grens en een COP op of boven het meetpunt: het zuinige deel van de curve.",
       v_ok: "Draait ruim binnen de grens.",
       profile: "Modelprofiel", profile_hint: "Uit het model van de installatie. Vul aan wat ontbreekt of pas een waarde aan: je waarde wordt door de hele integratie gebruikt.",
-      p_out: "Buiten °C", p_water: "Water °C", p_hmax: "Max. vermogen kW", p_cop: "Spec-COP", p_src: "Bron", add: "Punt toevoegen",
+      p_out: "Buiten °C", p_water: "Water °C", p_hmax: "Max. vermogen kW", p_cop: "Spec-COP", p_src: "Bron", add: "Punt toevoegen", new_hint: "Laatste regel: voeg een punt toe uit je datasheet (vermogenstabel). Vul de buiten- en watertemperatuur in, dan het maximale vermogen en/of de COP bij die condities, en druk op Punt toevoegen.",
       rps_min: "Compressor minimum", rps_max: "Compressor maximum", learned_from: "geleerd uit {n} runs",
       learned_hmax: "Geleerd uit je runs op vol toerental", from_samples: "uit {n} metingen",
       src: { datasheet: "Datasheet", learned: "Geleerd", manual: "Handmatig", estimate: "Schatting" }, missing: "Ontbreekt", reset: "Mijn waarde wissen",
@@ -86,7 +86,7 @@
       v_ok_efficient: "De la réserve et un COP égal ou supérieur au point de mesure : la partie efficace de la courbe.",
       v_ok: "Fonctionne avec de la réserve.",
       profile: "Profil du modèle", profile_hint: "Issu du modèle choisi à l'installation. Complétez ce qui manque ou ajustez une valeur : elle est utilisée par toute l'intégration.",
-      p_out: "Extérieur °C", p_water: "Eau °C", p_hmax: "Puissance max. kW", p_cop: "COP fiche", p_src: "Source", add: "Ajouter un point",
+      p_out: "Extérieur °C", p_water: "Eau °C", p_hmax: "Puissance max. kW", p_cop: "COP fiche", p_src: "Source", add: "Ajouter un point", new_hint: "Dernière ligne : ajoutez un point de votre fiche technique (tableau de puissances). Saisissez la température extérieure et de l'eau, puis la puissance max. et/ou le COP à ces conditions, et appuyez sur Ajouter un point.",
       rps_min: "Compresseur minimum", rps_max: "Compresseur maximum", learned_from: "appris sur {n} cycles",
       learned_hmax: "Appris de vos cycles à pleine vitesse", from_samples: "sur {n} mesures",
       src: { datasheet: "Fiche", learned: "Appris", manual: "Manuel", estimate: "Estimation" }, missing: "Manquant", reset: "Effacer ma valeur",
@@ -148,21 +148,22 @@
     const rpsRow = (k) => {
       const v = num(L[k === "rps_min" ? "fmin" : "fmax"]), src = m.sources[k] || null;
       const note = src === "learned" && m.learned.runs ? " · " + f.fill(t.learned_from, { n: m.learned.runs }) : "";
-      return `<div class="pf"><label for="pf-${k}">${esc(t[k])}</label><div class="pin"><input id="pf-${k}" type="number" step="1" min="1" max="200" inputmode="decimal" data-field="${k}" value="${v === null ? "" : v}"><span>rps</span></div>`
+      return `<div class="pf"><label for="pf-${k}">${esc(t[k])}</label><div class="pin"><input id="pf-${k}" type="number" step="any" min="1" max="150" inputmode="decimal" data-field="${k}" value="${v === null ? "" : v}"><span>rps</span></div>`
         + `<div class="pmeta">${srcChip(t, src)}<span class="muted">${esc(note)}</span>${src === "manual" ? `<button type="button" class="lnk" data-act="clear-field" data-k="${k}">${esc(t.reset)}</button>` : ""}</div></div>`;
     };
     const rows = m.points.map((p) => {
       const src = p.src || {}, key = `${p.t_out}|${p.t_lwc}`;
-      const cell = (c, step) => `<input type="number" step="${step}" data-pt="${esc(key)}" data-c="${c}" aria-label="${esc(t["p_" + c])} ${esc(p.label || "")}" class="${num(p[c]) === null ? "empty" : ""}" value="${num(p[c]) === null ? "" : p[c]}">`;
+      const cell = (c) => `<input type="number" step="any" data-pt="${esc(key)}" data-c="${c}" aria-label="${esc(t["p_" + c])} ${esc(p.label || "")}" class="${num(p[c]) === null ? "empty" : ""}" value="${num(p[c]) === null ? "" : p[c]}">`;
       const manual = src.hmax === "manual" || src.cop === "manual";
-      return `<tr><td>${f.n0(num(p.t_out))}</td><td>${f.n0(num(p.t_lwc))}</td><td>${cell("hmax", 0.1)}</td><td>${cell("cop", 0.01)}</td>`
+      return `<tr><td>${f.n0(num(p.t_out))}</td><td>${f.n0(num(p.t_lwc))}</td><td>${cell("hmax")}</td><td>${cell("cop")}</td>`
         + `<td>${srcChip(t, src.hmax || src.cop || null)}${src.hmax === "learned" && num(p.hmax_n) ? ` <span class="muted">${esc(f.fill(t.from_samples, { n: f.n0(num(p.hmax_n)) }))}</span>` : ""}${manual ? ` <button type="button" class="lnk" data-act="clear-point" data-pt="${esc(key)}">${esc(t.reset)}</button>` : ""}</td></tr>`;
     }).join("");
     return `<div class="prof"><div class="hint">${esc(t.profile_hint)}</div><div class="pgrid">${rpsRow("rps_min")}${rpsRow("rps_max")}</div>`
       + `<div class="tw"><table><thead><tr><th>${esc(t.p_out)}</th><th>${esc(t.p_water)}</th><th>${esc(t.p_hmax)}</th><th>${esc(t.p_cop)}</th><th>${esc(t.p_src)}</th></tr></thead><tbody>${rows}`
-      + `<tr class="new"><td><input type="number" step="1" id="new-t" aria-label="${esc(t.p_out)}"></td><td><input type="number" step="1" id="new-w" aria-label="${esc(t.p_water)}"></td>`
-      + `<td><input type="number" step="0.1" id="new-hc" aria-label="${esc(t.p_hmax)}"></td><td><input type="number" step="0.01" id="new-cop" aria-label="${esc(t.p_cop)}"></td>`
+      + `<tr class="new"><td><input type="number" step="any" id="new-t" placeholder="-7" aria-label="${esc(t.p_out)}"></td><td><input type="number" step="any" id="new-w" placeholder="35" aria-label="${esc(t.p_water)}"></td>`
+      + `<td><input type="number" step="any" id="new-hc" placeholder="kW" aria-label="${esc(t.p_hmax)}"></td><td><input type="number" step="any" id="new-cop" placeholder="COP" aria-label="${esc(t.p_cop)}"></td>`
       + `<td><button type="button" class="btn" data-act="add-point">${esc(t.add)}</button></td></tr></tbody></table></div>`
+      + `<div class="hint">${esc(t.new_hint)}</div>`
       + (ui.msg ? `<div class="pmsg ${ui.msgErr ? "err" : ""}">${esc(ui.msg)}</div>` : "") + `</div>`;
   }
 

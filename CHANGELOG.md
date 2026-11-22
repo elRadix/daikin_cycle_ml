@@ -2,7 +2,51 @@
 
 ## [Unreleased]
 
+### Added
+- Efficiency card 1.3.0: `climate_entity` (your Daikin climate entity of
+  the leaving water or its offset: − / + and "Apply the advice" on the
+  Advice tab) and `room_entity` (room sensor or room thermostat for the
+  comfort check and the advice); the Advice tab asks for them when they
+  are missing. Every heating-curve dot has a pop-up that explains it; the
+  last 48 h are drawn as rings, one per hour, newest darkest (#491).
+
 ### Fixed
+- Heating-curve advice said "raise the curve, the room stays below its
+  setpoint" while the room was comfortable (22.5 ° for 22 °). The advice
+  now gets the room setpoint (`RT setpoint`) and the controller's room
+  temperature, raises the curve only for a room more than 0.5 K below its
+  setpoint (or below `comfort_min_c` without one) and lowers it only when
+  the room is not that cold; new reason `room_warm_enough`. The card
+  checks the same against its live room (#491).
+- Efficiency card: liquid − leaving water below −3 K fell off the
+  advanced chart (axis now follows the values, round steps, "below the
+  leaving water" text for a negative difference); curve legend shows
+  every point colour as a dot (#491).
+- Efficiency card: the target ΔT ignored the integration's "Good dT
+  threshold" (set to 4 K for underfloor heating) and stayed at 5 K.
+  `hp_specs` now carries `target_dt_k`; the card uses it when its own
+  `target_dt` option is empty (#492).
+- Performance card 1.2.1: the compressor dial starts at 0 rps (8 rps under
+  a learned 10.4 rps minimum read 0 %); profile fields take decimals (10.4
+  failed validation); the add-point row has examples and an explanation
+  (#491).
+- Native cards: a sensor update made the page jump back to the top (phone
+  and tablet), reset tables scrolled sideways and wiped a number being
+  typed in the Performance card. The cards now update only the parts that
+  changed instead of being redrawn from scratch (daily summary 1.1.1,
+  efficiency 1.3.0, performance 1.2.1; #488).
+- Hot water inside a heating run was counted as heating on a source
+  without `I/U operation mode` (EDLA with an ESPAltherma v1 definition):
+  its `Operation Mode` is the outdoor unit's mode and stays "Heating" while
+  the tank is heated, so only the 3-way valve shows hot water. For such a
+  source the valve now splits a running run into hot water and back (60 s
+  debounce, only while the compressor runs; a valve resting ON after a
+  power loss has the compressor off), and `dhw_active` follows the
+  detected hot-water run. Sources with an indoor mode are unchanged
+  (Reported in #487).
+- `tools/ingest_diagnostics.py`: entity keys of a device with an area kept
+  the area name ("garden_...") and broke the card replay; keys now start
+  after `daikin_cycle_ml_` (Part of #487).
 - `runtime_compressor_today`: a run open across midnight is counted in its
   mode (`heating_s` / `dhw_s` / `cooling_s`) like in the state; a heating
   run open for 16 h showed 9.9 h as state and 0 s for heating (Part of #485).
@@ -22,6 +66,13 @@
   word end with an ellipsis. The attribute is not recorded (Part of #483).
 
 ### Changed
+- Bug report form: the version list was frozen at "1.22.1 (latest)" and
+  the form had lost its description fields, so reports arrived without a
+  description (#487). The version list is now rebuilt from the manifest
+  and CHANGELOG by `tools/sync_issue_template.py` (a test fails when a
+  release forgets it); new fields: area, what happens, what you expected,
+  when, ESPAltherma version, log lines; a privacy note on diagnostics.
+  New feature request form.
 - Integration Quality Scale: Platinum (self-declared; Home Assistant grades
   only core integrations). Every rule is now met in the code and checked by
   tests/test_iqs_rules.py (Part of #481).
@@ -44,6 +95,26 @@
   (Part of #481).
 
 ### Tests
+- test_492_target_dt: the reporter's 4 K threshold reaches `hp_specs`
+  and the card's flow verdict, target line and help (fails on the old
+  code); the card option still wins; out-of-range values fall back to 5.
+- test_491_card_feedback: the reporter's situations on the cards' code
+  (warm room with raise advice, liquid below −3 K, legend, 8 rps under a
+  10.4 rps minimum, profile inputs), the engine's raise/lower gate,
+  `climate_entity` / `room_entity` and the apply button in Chromium, and a
+  pop-up for every curve dot; fails on the old code.
+- test_488_card_patch: the three native cards carry the same patch block;
+  in Chromium an update in which every entity changed keeps the nodes,
+  the scroll position, the focus and a typed value, and equals a card
+  drawn from scratch (fails on the old cards).
+- test_487_dhw_valve_only: replay of the reporter's source (no I/U
+  operation mode) with the valve pattern of the issue's history, fails on
+  the old code; `dhw_active` truth table.
+- Corpus: edla09d3v3_1_29_1 (EDLA09D3V3, ESPAltherma v1, 32 values);
+  test_corpus_native_cards accepts a source without R3T (liquid
+  temperature) as long as the card then shows none.
+- test_issue_template: version list in sync with the manifest, required
+  description fields, feature request form.
 - test_erla11_open_run_and_trend: replay of the corpus file erla11dav3
   v1.29.1 (open run across midnight, trend fit r2 0.03).
 - Corpus: erla11dav3_1_29_1 (ERLA11DAV3, 16 h run across midnight,

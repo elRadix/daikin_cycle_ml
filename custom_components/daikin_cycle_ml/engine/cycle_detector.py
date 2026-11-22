@@ -522,19 +522,39 @@ class CycleDetector:
         self._reset_running()
         return record
 
+    def _split_mode(self, attrs: Mapping[str, Any]) -> str:
+        """Mode that decides a heating <-> DHW split of a running cycle.
+
+        The indoor mode (I/U operation mode) when the source has it. #487:
+        an EDLA ESPAltherma v1 definition has no I/U operation mode, and its
+        "Operation Mode" is the outdoor unit's refrigerant mode, which stays
+        "Heating" while the tank is heated; there the 3-way valve is the only
+        DHW signal. It is only read while the compressor runs (the valve
+        rests ON after a power loss, with the compressor off).
+        """
+        mode = classify_mode(attrs)
+        if not self._dhw_present or isinstance(attrs.get(ATTR_IU_OPERATION_MODE), str):
+            return mode
+        if _parse_valve(attrs) == "ON" and mode in ("heating", "unknown"):
+            return "dhw"
+        return mode
+
     def _should_split(self, attrs: Mapping[str, Any], now: float) -> bool:
         """Return True if RUNNING cycle should split to DHW here.
 
-        Only splits on I/U mode token transition to DHW. Valve ON
-        corroborates and shortens debounce (30s vs 60s). Valve alone
-        never splits -- Daikin 3-way valve rests ON on power-loss
-        fail-safe (tests/test_52a_dhw_dtk.py, test_31cd_coverage.py).
+        Splits on an I/U mode token transition to DHW. Valve ON
+        corroborates and shortens debounce (30s vs 60s). With an indoor
+        mode the valve alone never splits -- Daikin 3-way valve rests ON on
+        power-loss fail-safe (tests/test_52a_dhw_dtk.py,
+        test_31cd_coverage.py). Without one (#487) the valve decides, with
+        the slower 60 s debounce (_split_mode).
         """
+        valve_only = not isinstance(attrs.get(ATTR_IU_OPERATION_MODE), str)
         # R466 (v1.12.5 #144): reverse split -- DHW cycle but source
         # reports heating/cooling. Handles stuck-mode-on-restore (#144)
         # and legit DHW->heat transitions. Bounded by MAX_CYCLE_DURATION_S
         # hard-cap which fires earlier in update().
-        current = classify_mode(attrs)
+        current = self._split_mode(attrs)
         if self._mode == "dhw" and current in ("heating", "cooling"):
             if self._pending_mode != current:
                 self._pending_mode = current
@@ -545,12 +565,12 @@ class CycleDetector:
             self._pending_mode = None
             self._pending_mode_since = 0.0
             return False
-        if classify_mode(attrs) != "dhw":
+        if current != "dhw":
             self._pending_mode = None
             self._pending_mode_since = 0.0
             return False
         debounce = (
-            VALVE_DEBOUNCE_S if _parse_valve(attrs) == "ON"
+            VALVE_DEBOUNCE_S if _parse_valve(attrs) == "ON" and not valve_only
             else MODE_DEBOUNCE_S
         )
         if self._pending_mode != "dhw":

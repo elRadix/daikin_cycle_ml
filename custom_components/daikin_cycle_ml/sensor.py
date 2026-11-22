@@ -29,6 +29,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import (
+    DEFAULT_GOOD_DT_K,
     DOMAIN,
     UPDATE_INTERVAL_SECONDS,
 )
@@ -128,19 +129,33 @@ def _value_hp_specs(
     return s.datasheet_model
 
 
+def _target_dt_k(c: DaikinCycleMLCoordinator | None) -> float:
+    opts = getattr(c, "options", None)
+    raw = opts.get("good_dt_threshold_k") if isinstance(opts, dict) else None
+    val = _safe_float_text(raw) if isinstance(raw, str) else raw
+    if isinstance(val, (int, float)) and not isinstance(val, bool) and 2.0 <= val <= 15.0:
+        return float(val)
+    return DEFAULT_GOOD_DT_K
+
+
 def _attrs_hp_specs(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> dict[str, Any]:
     """C3a: full datasheet of the configured model (static specs)."""
     ds = s.datasheet
+    # #492: the ΔT target set in the integration (good_dt_threshold_k), so
+    # the efficiency card judges flow and ΔT against the same value
+    target_dt = _target_dt_k(c)
     if not ds:
         return {
             "configured": False,
             "model": s.datasheet_model,
             "reason": "no datasheet for this model",
+            "target_dt_k": target_dt,
         }
     return {
         "configured": True,
+        "target_dt_k": target_dt,
         "model": ds.get("model"),
         "source": ds.get("source"),
         "family": ds.get("family"),

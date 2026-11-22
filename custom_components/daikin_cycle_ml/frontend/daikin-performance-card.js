@@ -20,7 +20,35 @@
 (function () {
   "use strict";
 
-  const CARD_VERSION = "1.2.0";
+  /* DCM-PATCH:BEGIN (same block in every native card; tests/test_488_card_patch.py)
+   * #488: a redraw updates the nodes that changed instead of replacing the
+   * whole card (innerHTML). Replacing it made the page jump to the top on
+   * some browsers (iOS Safari has no scroll anchoring), reset scrolled
+   * tables, dropped the focus and wiped a number being typed. */
+  function dcmPatch(root, html) {
+    const tpl = document.createElement("template");
+    tpl.innerHTML = html;
+    dcmSync(root, tpl.content);
+  }
+  function dcmSync(live, next) {
+    const a = Array.from(live.childNodes), b = Array.from(next.childNodes);
+    b.forEach((y, i) => {
+      const x = a[i];
+      if (!x) { live.appendChild(y); return; }
+      if (x.nodeType !== y.nodeType || x.nodeName !== y.nodeName) { live.replaceChild(y, x); return; }
+      if (x.nodeType !== 1) { if (x.nodeValue !== y.nodeValue) x.nodeValue = y.nodeValue; return; }
+      /* an input keeps what is typed in it until its stored value changes */
+      const val = x.nodeName === "INPUT" && x.getAttribute("value") !== y.getAttribute("value");
+      for (const at of Array.from(x.attributes)) if (!y.hasAttribute(at.name)) x.removeAttribute(at.name);
+      for (const at of Array.from(y.attributes)) if (x.getAttribute(at.name) !== at.value) x.setAttribute(at.name, at.value);
+      if (val) x.value = y.getAttribute("value") || "";
+      dcmSync(x, y);
+    });
+    for (let i = a.length - 1; i >= b.length; i--) live.removeChild(a[i]);
+  }
+  /* DCM-PATCH:END */
+
+  const CARD_VERSION = "1.2.1";
   const TAG = "daikin-performance-card";
   const EDITOR_TAG = "daikin-performance-card-editor";
   const PARTS = ["model", "render"];
@@ -148,7 +176,7 @@
         this._m = M.buildModel(this._hass, this._config);
         const root = this.shadowRoot.getElementById("root");
         root.setAttribute("lang", this._m.lang);
-        root.innerHTML = R.render(this._m, this._config, this._ui);
+        dcmPatch(root, R.render(this._m, this._config, this._ui));
       }
 
       async _save(data) {
@@ -188,7 +216,9 @@
             if (q("new-hc") !== null) p.hmax = q("new-hc");
             if (q("new-cop") !== null) p.cop = q("new-cop");
             if (p.hmax === undefined && p.cop === undefined) return;
-            this._save({ points: [p] });
+            this._save({ points: [p] }).then(() => {
+              if (!this._ui.msgErr) for (const id of ["new-t", "new-w", "new-hc", "new-cop"]) this.shadowRoot.getElementById(id).value = "";
+            });
             return;
           }
         }

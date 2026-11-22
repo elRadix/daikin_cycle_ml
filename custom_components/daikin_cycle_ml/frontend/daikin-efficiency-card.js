@@ -25,12 +25,44 @@
  *   language:    '' (auto) | en | nl | fr
  *   show_help:   true | false
  *   min_flow:    minimum water flow of your unit in l/min (installation manual)
- *   target_dt:   target ΔT of the installation in K (installer setting; default 5)
+ *   target_dt:   target ΔT of the installation in K (installer setting); default
+ *                the integration's good dT threshold, else 5
+ *   climate_entity: Daikin climate entity of the leaving water or its offset;
+ *                the Advice tab can then change it (one step, or the advice)
+ *   room_entity: room sensor or room thermostat (climate: temperature + setpoint)
  */
 (function () {
   "use strict";
 
-  const CARD_VERSION = "1.2.0";
+  /* DCM-PATCH:BEGIN (same block in every native card; tests/test_488_card_patch.py)
+   * #488: a redraw updates the nodes that changed instead of replacing the
+   * whole card (innerHTML). Replacing it made the page jump to the top on
+   * some browsers (iOS Safari has no scroll anchoring), reset scrolled
+   * tables, dropped the focus and wiped a number being typed. */
+  function dcmPatch(root, html) {
+    const tpl = document.createElement("template");
+    tpl.innerHTML = html;
+    dcmSync(root, tpl.content);
+  }
+  function dcmSync(live, next) {
+    const a = Array.from(live.childNodes), b = Array.from(next.childNodes);
+    b.forEach((y, i) => {
+      const x = a[i];
+      if (!x) { live.appendChild(y); return; }
+      if (x.nodeType !== y.nodeType || x.nodeName !== y.nodeName) { live.replaceChild(y, x); return; }
+      if (x.nodeType !== 1) { if (x.nodeValue !== y.nodeValue) x.nodeValue = y.nodeValue; return; }
+      /* an input keeps what is typed in it until its stored value changes */
+      const val = x.nodeName === "INPUT" && x.getAttribute("value") !== y.getAttribute("value");
+      for (const at of Array.from(x.attributes)) if (!y.hasAttribute(at.name)) x.removeAttribute(at.name);
+      for (const at of Array.from(y.attributes)) if (x.getAttribute(at.name) !== at.value) x.setAttribute(at.name, at.value);
+      if (val) x.value = y.getAttribute("value") || "";
+      dcmSync(x, y);
+    });
+    for (let i = a.length - 1; i >= b.length; i--) live.removeChild(a[i]);
+  }
+  /* DCM-PATCH:END */
+
+  const CARD_VERSION = "1.3.0";
   const TAG = "daikin-efficiency-card";
   const EDITOR_TAG = "daikin-efficiency-card-editor";
   const PARTS = ["data", "assess", "charts", "verdicts", "i18n", "render"];
@@ -101,6 +133,16 @@
     .chart .pt { cursor: pointer; }
     .legend { display: flex; flex-wrap: wrap; gap: 3px 10px; font-size: .74em; color: var(--secondary-text-color); margin: 2px 0 4px; }
     .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+    .legend i.dot { border-radius: 50%; }
+    .legend i.ring { border-radius: 50%; background: none !important; border: 1.5px solid #5C6BC0; width: 8px; height: 8px; }
+    .cwrap { position: relative; }
+    .pop { position: absolute; max-width: min(340px, 92%); padding: 8px 24px 8px 10px; border-radius: 10px; font-size: .78em; line-height: 1.35;
+      background: var(--card-background-color, #fff); color: var(--primary-text-color); border: 1px solid #AD1457;
+      box-shadow: 0 4px 14px rgba(0,0,0,.25); cursor: pointer; z-index: 2; }
+    .pop .px { position: absolute; top: 4px; right: 8px; color: var(--secondary-text-color); }
+    .note-k { font-size: .76em; color: var(--secondary-text-color); margin: 0 0 6px; line-height: 1.35; }
+    .legend i.small { width: 6px; height: 6px; opacity: .6; vertical-align: 1px; }
+    .legend i.line, .legend i.dash { width: 14px; vertical-align: 3px; border-radius: 0; }
     .vd { display: flex; gap: 8px; align-items: flex-start; border-left: 4px solid; border-radius: 8px; padding: 7px 10px; margin: 6px 0;
       background: var(--secondary-background-color); font-size: .84em; line-height: 1.35; }
     .vd.good { border-color: #43A047; } .vd.watch { border-color: #FB8C00; } .vd.bad { border-color: #E53935; } .vd.info { border-color: #1E88E5; }
@@ -123,6 +165,11 @@
     .adv .at { font-weight: 700; margin: 4px 0 8px; line-height: 1.35; }
     .note { padding: 9px 12px; border-radius: 10px; background: var(--secondary-background-color); font-size: .84em; margin: 8px 0; line-height: 1.35; }
     .note.warn { border-left: 4px solid #E53935; }
+    .ctlrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 8px; }
+    .ctl { border: 1px solid var(--divider-color, #ccc); border-radius: 8px; background: var(--card-background-color); color: var(--primary-text-color); padding: 6px 12px; font: inherit; cursor: pointer; }
+    .ctl.apply { background: var(--primary-color, #03a9f4); color: var(--text-primary-color, #fff); border-color: transparent; }
+    .ctl:disabled { opacity: .5; cursor: default; }
+    .ctlv { font-size: 1.2em; min-width: 3.5em; text-align: center; }
     .more { border: 0; background: none; color: var(--dcm-accent, #0097E0); font: inherit; font-weight: 700; font-size: .86em; cursor: pointer; padding: 8px 0; min-height: 32px; }
     .help { margin-top: 14px; border-top: 1px dashed var(--divider-color); }
     .hh { width: 100%; display: flex; justify-content: space-between; border: 0; background: none; font: inherit; font-weight: 800;
@@ -150,7 +197,7 @@
         }
         if (config.range && !D.RANGES[config.range]) throw new Error("range must be one of: " + Object.keys(D.RANGES).join(", "));
         this._config = Object.assign({}, config);
-        this._ui = { tab: config.default_tab || "live", range: config.range || "3h", adv: false, help: true, bucket: null, historyFailed: false };
+        this._ui = { tab: config.default_tab || "live", range: config.range || "3h", adv: false, help: true, bucket: "now", historyFailed: false };
         this._buf = this._buf || { samples: [], spans: {} };
         this._sig = null;
         this._draw();
@@ -240,7 +287,7 @@
         const a = P.assess.assess(m);
         const root = this.shadowRoot.getElementById("root");
         root.setAttribute("lang", m.lang);
-        root.innerHTML = P.render.render(m, a, this._config, this._ui);
+        dcmPatch(root, P.render.render(m, a, this._config, this._ui));
       }
 
       _onClick(ev) {
@@ -252,11 +299,17 @@
           if (act === "tab") this._ui.tab = el.getAttribute("data-tab");
           else if (act === "todo") this._ui.tab = "advice";
           else if (act === "range") this._ui.range = el.getAttribute("data-range");
-          else if (act === "adv") this._ui.adv = !this._ui.adv;
+          else if (act === "set-lwt") {
+            const v = Number(el.getAttribute("data-v"));
+            if (this._config.climate_entity && Number.isFinite(v)) {
+              this._hass.callService("climate", "set_temperature", { entity_id: this._config.climate_entity, temperature: v });
+            }
+            return;
+          } else if (act === "adv") this._ui.adv = !this._ui.adv;
           else if (act === "help") this._ui.help = !this._ui.help;
           else if (act === "bucket") {
             const k = el.getAttribute("data-key");
-            this._ui.bucket = this._ui.bucket === k ? null : k;
+            this._ui.bucket = this._ui.bucket === k ? "off" : k;   /* the live dot's pop-up is open until closed */
           } else continue;
           return this._draw();
         }
@@ -267,7 +320,9 @@
       device_id: "Heat pump (when you have several)", title: "Title", default_tab: "Tab shown first",
       range: "Live graphs: time range", tabs: "Tabs", language: "Language", show_help: "Show help",
       min_flow: "Minimum flow of your unit (l/min, from the installation manual)",
-      target_dt: "Target ΔT of your installation (K, set by your installer; Daikin default 5)",
+      target_dt: "Target ΔT of your installation (K; empty = the integration's good dT threshold)",
+      climate_entity: "Daikin climate entity of the leaving water (or its offset): change the curve from the card",
+      room_entity: "Room sensor or room thermostat (sensor or climate entity)",
     };
 
     class DaikinEfficiencyCardEditor extends HTMLElement {
@@ -288,6 +343,8 @@
           { name: "show_help", selector: { boolean: {} } },
           { name: "min_flow", selector: { number: { min: 0, max: 100, step: 0.5, mode: "box", unit_of_measurement: "l/min" } } },
           { name: "target_dt", selector: { number: { min: 2, max: 15, step: 0.5, mode: "box", unit_of_measurement: "K" } } },
+          { name: "climate_entity", selector: { entity: { domain: "climate" } } },
+          { name: "room_entity", selector: { entity: { domain: ["sensor", "climate"] } } },
         ];
       }
 

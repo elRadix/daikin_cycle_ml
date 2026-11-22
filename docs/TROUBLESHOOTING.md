@@ -254,6 +254,7 @@ Without a COP sensor, `sensor.daikin_cycle_ml_cop_today` etc. will not populate.
 | `unit_tracking_behind` | Compressor lags setpoint — will resolve |
 | `low_confidence` | Not enough samples in current bucket |
 | `no_indoor_sensor` | Configure `indoor_temp_sensor` in Options |
+| `room_warm_enough` | Advice is "keep": the room is at its setpoint, a warmer curve would only cost COP (#491) |
 
 ### 4.4 `setpoint_oscillating` fires but I don't see oscillation
 

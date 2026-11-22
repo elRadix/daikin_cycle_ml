@@ -600,6 +600,8 @@ Release PR = version bump only, ONE commit, nothing else in it.
    - custom_components/daikin_cycle_ml/manifest.json  "version": "X.Y.Z"
    - pyproject.toml  version = "X.Y.Z"          (all three must match)
    - README.md badges: version-X.Y.Z and tests-<collected test count>
+   - python tools/sync_issue_template.py (bug report version list;
+     tests/test_issue_template.py fails until it has run)
    - CHANGELOG.md: insert "## [X.Y.Z] - YYYY-MM-DD" directly under
      "## [Unreleased]" (append-only; existing items move under it as-is,
      add missing ### Tests lines for new test files)

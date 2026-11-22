@@ -612,6 +612,10 @@ LWT_STEP_MIN = 1.0
 LWT_STEP_MAX = 3.0
 LWT_TRACKING_TOLERANCE = 1.5
 COMFORT_TOLERANCE = 1.0
+# Tweakers feedback: the room counts as on its setpoint within 0.5 K (the
+# efficiency card's "comfortable" band). Raising the curve is only advised
+# below that band, lowering it only when the room is not below it.
+ROOM_OK_K = 0.5
 DEFAULT_INDOOR_TEMP_SENSOR: str | None = None
 DEFAULT_COP_AVG_LOOKBACK_DAYS = 1
 

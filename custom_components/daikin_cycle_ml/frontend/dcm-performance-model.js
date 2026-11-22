@@ -194,8 +194,10 @@
     const loads = {
       thermal: pct(live.heat, L.thMax),
       electrical: live.power !== null && L.elMax ? (live.power / 1000 / L.elMax) * 100 : null,
-      compressor: live.rps !== null && L.fmin !== null && L.fmax !== null && L.fmax > L.fmin
-        ? Math.max(0, ((live.rps - L.fmin) / (L.fmax - L.fmin)) * 100) : null,
+      /* Tweakers: the dial starts at 0 rps, so a compressor running below
+         the profile minimum (8 rps under a learned 10) never reads 0 % */
+      compressor: live.rps !== null && L.fmax !== null && L.fmax > 0
+        ? Math.max(0, (live.rps / L.fmax) * 100) : null,
     };
     const staticLoad = pct(live.heat, L.kw);
     const copPct = live.cop !== null && L.copSpec ? (live.cop / L.copSpec) * 100 : null;

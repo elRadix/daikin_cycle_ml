@@ -1,0 +1,39 @@
+name: Feature Request
+description: Suggest an improvement or a new feature for Daikin Cycle ML
+title: "[Feature]: "
+labels: ["enhancement"]
+assignees: [elRadix]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Questions and setup help go to [Discussions](https://github.com/elRadix/daikin_cycle_ml/discussions).
+        Search [existing issues](https://github.com/elRadix/daikin_cycle_ml/issues) first: a +1 on an
+        existing request helps too.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to know or do?
+      description: The question about your heat pump you want answered, or what is missing today.
+      placeholder: "Example: I want to see how many minutes the backup heater ran per day this month."
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could it work?
+      description: Optional. A card, a sensor, an alert, a setting; a sketch or screenshot is welcome.
+
+  - type: input
+    id: model
+    attributes:
+      label: Heat pump model
+      placeholder: "e.g. epra12eav3"
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Optional. Links, ESPAltherma values that could feed it, a diagnostics file.

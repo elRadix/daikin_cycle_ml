@@ -96,7 +96,11 @@ def test_scenario_D_comfort_floor():
 
 
 def test_scenario_E_raise():
-    a = _call(_mk_settled(11, 32.0, 26.5), setpoint_lwt=27.0, indoor=20.5)
+    # #491: a raise only for a room more than 0.5 K below its setpoint
+    # (20.0); the room was 20.5 here, which is now "room_warm_enough"
+    warm = _call(_mk_settled(11, 32.0, 26.5), setpoint_lwt=27.0, indoor=20.5)
+    assert (warm.state, warm.reason) == ("keep", "room_warm_enough")
+    a = _call(_mk_settled(11, 32.0, 26.5), setpoint_lwt=27.0, indoor=19.3)
     assert a.state == "raise_lwt"
     assert a.delta_c > 0
     assert a.doel_setpoint is not None

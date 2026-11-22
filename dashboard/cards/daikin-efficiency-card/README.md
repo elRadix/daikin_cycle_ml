@@ -64,7 +64,15 @@ arrives.
 | `language` | auto | `en`, `nl`, `fr` | Card language; auto = Home Assistant language, then the integration language |
 | `show_help` | `true` | `true`, `false` | Help section at the bottom of each tab |
 | `min_flow` | none | l/min | Minimum water flow of your unit, from its installation manual. Shown as a line in the flow graph; a flow below it is flagged |
-| `target_dt` | 5 | K | Target ΔT of your installation (leaving minus return water), as your installer set it; 2 to 15. The flow graph's target line and the verdicts use it: below 60 % of it is "much water for little heat", above it + 3 K "too little flow" |
+| `target_dt` | the integration's **Good dT threshold**, else 5 | K | Target ΔT of your installation (leaving minus return water), as your installer set it; 2 to 15. The flow graph's target line and the verdicts use it: below 60 % of it is "much water for little heat", above it + 3 K "too little flow" |
+| `climate_entity` | none | a `climate` entity | Your Daikin climate entity of the leaving water temperature or its offset (for example from the Daikin Onecta integration). The Advice tab then shows its value with − / + one step and, when the advice says so, **Apply the advice** (for example +2 °C). Without it the Advice tab asks for it (#491) |
+| `room_entity` | none | a `sensor` or `climate` entity | Your room sensor or room thermostat. A sensor gives the room temperature; a thermostat also gives the room setpoint. The comfort check and the advice then follow your room; without a room the Advice tab asks for it (#491) |
+
+Example with both:
+
+    type: custom:daikin-efficiency-card
+    climate_entity: climate.altherma_leaving_water_offset
+    room_entity: climate.living_room
 
 ### Language and theme
 
@@ -88,8 +96,8 @@ verdict of the live graphs and today).
 | **Live** | Setpoint tracker (target, 10-min water mean, difference, compressor speed); graphs with a 30 min / 3 h / 24 h switch: **water temperatures** (leaving, return, target with ±1 K band; defrost, hot water and backup-heater bands), **compressor** (rps, power, start ▲ / stop ▲ markers), **flow and ΔT** (design 5 K, your minimum flow), **comfort · 24 h** (room, room setpoint, outdoor); advanced: refrigerant liquid (R3T) − leaving water |
 | **Today** | COP, electricity, heat, run time, starts, cycles, defrosts, backup heater, duty cycle; per mode; COP per hour (24 h) |
 | **Efficiency** | COP over 24 h / week / month against the nominal COP; per mode; COP at A7/W35 against the datasheet; season SPF against the datasheet SCOP at 35 °C and 55 °C; COP drop at the same weather and the 30-day trend |
-| **Curve** | The heating curve: best measured water temperature per outdoor band (colour = COP, tap for details), the fitted curve, the last 48 h, now; defrost zone, backup-heater, maximum and minimum lines; 24 h backup-heater and defrost strip; Carnot efficiency, heat balance, defrost today; specifications of your model; tiles |
-| **Advice** | **What needs attention** (every check of every tab that is ⚠️ or ⛔, worst first, with a link to its tab), then the heating-curve advice in plain words, target now → advised, expected COP gain, confidence, comfort guard, tracker, when the advice changes and how to change the curve |
+| **Curve** | The heating curve: best measured water temperature per outdoor band (colour = COP: dark green ≥ 5, light green 3.5–5, amber below 3.5, grey without COP), the fitted curve, the last 48 h (rings, one per hour of heating, newest darkest), now. The live dot's pop-up is open in the chart (water, heat, COP and how far it is from the fitted curve); tap any dot, rings included, for its own pop-up next to it, ✕ closes; defrost zone, backup-heater, maximum and minimum lines; 24 h backup-heater and defrost strip; Carnot efficiency, heat balance, defrost today; specifications of your model; tiles |
+| **Advice** | **What needs attention** (every check of every tab that is ⚠️ or ⛔, worst first, with a link to its tab), then the heating-curve advice in plain words, target now → advised, expected COP gain, confidence; **Change the heating curve** with your `climate_entity` (− / +, apply the advice); comfort guard, tracker, when the advice changes and how to change the curve. The advice never contradicts the comfort check: no warmer curve for a room that is warm enough, no cooler curve for a room that is cold |
 
 ---
 
@@ -154,5 +162,7 @@ ESPAltherma (v1 monolithic or v2 entities, any names).
 | Graphs empty, note "history is not available" | The recorder must record `sensor.daikin_cycle_ml_thermal_power_live` (not excluded in `recorder:`) |
 | Graphs empty right after the update | Normal: the temperatures are new attributes; the graphs fill over the next hours |
 | Comfort graph without room line | Set an indoor sensor in the integration options, or enable the room sensor in ESPAltherma |
+| "Raise the curve" while the room is comfortable | Fixed in 1.3.0 (#491): the advice now uses the room setpoint; set `room_entity` when the controller has no room sensor |
+| Advanced: liquid − leaving water below 0 | Normal: the liquid leaves the heat exchanger next to the colder return water. The axis follows the values (1.3.0) |
 | COP far above the datasheet | Check the power meter (a missing phase, kW read as W) |
 | Curve tab says "learning" | The curve needs steady heating in at least two outdoor bands 4 K apart |

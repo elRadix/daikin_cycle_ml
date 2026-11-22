@@ -281,10 +281,25 @@
     live.cop10 = mean10(buf, now, "cop");
     live.power10 = mean10(buf, now, "power");
     live.kw10 = mean10(buf, now, "kw");
+    /* card options: a room sensor or room thermostat (room_entity) and the
+       Daikin climate entity of the leaving water or its offset (climate_entity) */
+    const ent = (id) => (typeof id === "string" && hass.states[id]) || null;
+    const roomE = ent(config && config.room_entity), clE = ent(config && config.climate_entity);
+    if (roomE) {
+      const ra = roomE.attributes || {}, th = config.room_entity.startsWith("climate.");
+      const rt = th ? num(ra.current_temperature) : num(roomE.state);
+      if (rt !== null) live.room = rt;
+      if (th && num(ra.temperature) !== null) live.roomSp = num(ra.temperature);
+    }
+    const ca = (clE && clE.attributes) || {};
+    const control = clE ? {
+      id: config.climate_entity, name: ca.friendly_name || config.climate_entity, value: num(ca.temperature),
+      min: num(ca.min_temp), max: num(ca.max_temp), step: num(ca.target_temp_step) || 1, off: clE.state === "off",
+    } : null;
     const elA = at("electrical_energy_total_today");
     const pts = bucketPoints(adv.buckets);
     return {
-      ids, ok, lang, now, range,
+      ids, ok, lang, now, range, control, roomEntity: !!roomE,
       model: specs.model ? String(specs.model).toUpperCase() : "",
       meta: [specs.family, num(specs.kw) ? num(specs.kw) + " kW" : "", specs.refrigerant]
         .filter((x) => x && String(x) !== "None").join(" · "),
@@ -295,7 +310,11 @@
         offAbove: num(specs.off_above_c), kw: num(specs.kw), points: Array.isArray(specs.points) ? specs.points : [],
         minFlow: num(config && config.min_flow),
         /* #466: target ΔT of this installation (card option target_dt, 2-15 K) */
-        dtTarget: (() => { const d = num(config && config.target_dt); return d !== null && d >= 2 && d <= 15 ? d : 5; })(),
+        /* #492: else the ΔT target set in the integration (good dT threshold) */
+        dtTarget: (() => {
+          for (const d of [num(config && config.target_dt), num(specs.target_dt_k)]) if (d !== null && d >= 2 && d <= 15) return d;
+          return 5;
+        })(),
       },
       live,
       win: windowed(buf, now, range), day: windowed(buf, now, "24h"),

@@ -168,7 +168,9 @@ def _entities(ents: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for e in ents.get("entries") or []:
         eid = str(e.get("entity_id") or "")
-        key = eid.split(".", 1)[-1].replace("daikin_cycle_ml_", "", 1)
+        # everything up to "daikin_cycle_ml_" goes: HA puts the area name in
+        # front of the object id when the device has an area (#487: "garden_")
+        key = eid.split(".", 1)[-1].split("daikin_cycle_ml_", 1)[-1]
         attrs = {k: v for k, v in (e.get("attributes") or {}).items()
                  if k not in ENTITY_ATTR_DROP}
         out[f"{eid.split('.', 1)[0]}:{key}"] = {"state": e.get("state"), "attributes": attrs}

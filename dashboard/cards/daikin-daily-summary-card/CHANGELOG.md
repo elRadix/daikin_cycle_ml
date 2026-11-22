@@ -1,5 +1,14 @@
 # Changelog — Daily Summary Card (native)
 
+## [1.1.1] - 2026-11-22
+
+### Fixed
+
+- The page no longer jumps back to the top when a sensor updates: the
+  card updates only what changed instead of drawing itself again from
+  scratch, so the scroll position, the focus and the open view stay
+  (#488).
+
 ## [1.1.0] — 2026-11-21
 
 ### Fixed

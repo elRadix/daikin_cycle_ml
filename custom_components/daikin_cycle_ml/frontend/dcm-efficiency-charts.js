@@ -43,6 +43,11 @@
   }
 
   /* line chart over time: series [{get, color, axis, dash, label}] */
+  /* colour of a measured heating-curve point by its COP (legend: curveLegend) */
+  const PT = { hi: "#2E7D32", mid: "#9CCC65", lo: "#FFB300", none: "var(--secondary-text-color, #8a8a8a)" };
+  const RING = "#5C6BC0";      /* last 48 h: hourly heating points (rings) */
+  const ptColor = (cop) => (!fin(cop) ? PT.none : cop >= 5 ? PT.hi : cop >= 3.5 ? PT.mid : PT.lo);
+
   function lineChart(win0, opts, fmtTime) {
     /* #466: a little taller on wide cards; units above the axes; when the
        history starts inside the window, the time axis starts there too */
@@ -141,7 +146,8 @@
   }
 
   /* heating curve: outdoor (x) vs LWT (y) */
-  function curveChart(m, sel, t, f) {
+  function curveChart(m, sel, t, f, pop) {
+    const at = {};      /* centre of every tappable dot, for the pop-up */
     const S = m.specs, Cv = m.curve, L = m.live;
     const h = 260, top = 10, bottom = h - 22, left = 30, right = W - 6;
     const xLo = -15, xHi = 20, yLo = 15, yHi = Math.max(60, (S.lwtMax || 55) + 5);
@@ -168,11 +174,19 @@
         + `<text x="${right - 2}" y="${(y(v) - 3).toFixed(1)}" class="rl" text-anchor="end" fill="${col}">${esc(lab)} ${esc(v)}°</text>`;
     }
     /* recent hourly points (48 h, heating) */
-    for (const p of Cv.recent) {
+    /* every dot has a pop-up: a wider invisible ring makes the small grey
+       ones easy to tap; the explanation is drawn under the chart */
+    Cv.recent.forEach((p, i) => {
       const o = P.data.num(p.outdoor_mean), l = P.data.num(p.lwt_mean);
-      if (o === null || l === null) continue;
-      s += `<circle cx="${x(clampX(o)).toFixed(1)}" cy="${y(l).toFixed(1)}" r="2" fill="var(--secondary-text-color)" opacity="0.45"/>`;
-    }
+      if (o === null || l === null) return;
+      /* hollow rings (one per hour of heating), newest darkest: never
+         mistaken for the filled band averages or a band without COP */
+      const cx = x(clampX(o)).toFixed(1), cy = y(l).toFixed(1), on = sel === "r" + i;
+      at["r" + i] = [+cx, +cy];
+      const age = Cv.recent.length > 1 ? i / (Cv.recent.length - 1) : 1;
+      s += `<circle cx="${cx}" cy="${cy}" r="${on ? 5 : 3.5}" fill="none" stroke="${on ? "#AD1457" : RING}" stroke-width="${on ? 2.5 : 1.5}" opacity="${on ? 1 : (0.3 + 0.7 * age).toFixed(2)}"/>`
+        + `<circle cx="${cx}" cy="${cy}" r="7" fill="transparent" data-act="bucket" data-key="r${i}" class="pt"><title>${esc(f.n1(o))}° → ${esc(f.n1(l))}°</title></circle>`;
+    });
     if (Cv.fit) {
       const a = Cv.fit.a, b = Cv.fit.b;
       s += `<line x1="${x(xLo)}" y1="${y(a + b * xLo).toFixed(1)}" x2="${x(xHi)}" y2="${y(a + b * xHi).toFixed(1)}" stroke="${C.buh}" stroke-width="2" stroke-dasharray="6 4"/>`;
@@ -180,18 +194,27 @@
     if (Cv.pts.length > 1) s += `<polyline points="${Cv.pts.map((p) => `${x(clampX(p.x)).toFixed(1)},${y(p.y).toFixed(1)}`).join(" ")}" fill="none" stroke="${C.cop}" stroke-width="1.5" opacity="0.6"/>`;
     Cv.pts.forEach((p) => {
       const on = sel === p.key;
-      const col = !fin(p.cop) ? "var(--secondary-text-color)" : p.cop >= 5 ? C.cop : p.cop >= 3.5 ? "#9CCC65" : "#FFB300";
+      const col = ptColor(p.cop);
+      at[p.key] = [x(clampX(p.x)), y(p.y)];
       s += `<circle cx="${x(clampX(p.x)).toFixed(1)}" cy="${y(p.y).toFixed(1)}" r="${on ? 8 : 6}" fill="${col}" stroke="${on ? "#AD1457" : "var(--card-background-color, #fff)"}" stroke-width="2" data-act="bucket" data-key="${esc(p.key)}" class="pt"><title>${esc(p.key)}°: ${esc(f.n1(p.y))}° · COP ${esc(f.n2(p.cop))} · n ${esc(p.n)}</title></circle>`;
     });
     if (fin(L.out) && fin(L.lwt)) {
       const lx = x(clampX(L.out)), ly = y(L.lwt);
       const flip = lx > right - 110;
-      s += `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="6" fill="${C.out}" stroke="#fff" stroke-width="2"/>`
-        + `<rect x="${(flip ? lx - 104 : lx + 8).toFixed(1)}" y="${(ly - 34).toFixed(1)}" width="96" height="26" rx="5" class="callout"/>`
+      at.now = [lx, ly];
+      s += `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="${sel === "now" ? 8 : 6}" fill="${C.out}" stroke="${sel === "now" ? "#AD1457" : "#fff"}" stroke-width="2" data-act="bucket" data-key="now" class="pt"/>`
+        + (sel === "now" && pop ? "" : `<rect x="${(flip ? lx - 104 : lx + 8).toFixed(1)}" y="${(ly - 34).toFixed(1)}" width="96" height="26" rx="5" class="callout"/>`
         + `<text x="${(flip ? lx - 98 : lx + 14).toFixed(1)}" y="${(ly - 23).toFixed(1)}" class="ct">${esc(t.now)} · ${esc(f.n1(L.out))}° ${esc(t.out_short)}</text>`
-        + `<text x="${(flip ? lx - 98 : lx + 14).toFixed(1)}" y="${(ly - 12).toFixed(1)}" class="ct b">${esc(f.n1(L.lwt))}° · ${esc(f.n2(L.kw))} kW</text>`;
+        + `<text x="${(flip ? lx - 98 : lx + 14).toFixed(1)}" y="${(ly - 12).toFixed(1)}" class="ct b">${esc(f.n1(L.lwt))}° · ${esc(f.n2(L.kw))} kW</text>`);
     }
-    return `<svg viewBox="0 0 ${W} ${h}" class="chart" role="img" aria-label="${esc(t.curve_title)}">${s}</svg>`;
+    const svg = `<svg viewBox="0 0 ${W} ${h}" class="chart" role="img" aria-label="${esc(t.curve_title)}">${s}</svg>`;
+    const p = pop && at[sel];
+    if (!p) return svg;
+    /* the pop-up sits in the chart next to its dot, on the side with room */
+    const lx = (p[0] / W) * 100, ty = (p[1] / h) * 100;
+    const pos = (W < 520 ? "left:4%;right:4%" : lx > 50 ? `right:${(100 - lx + 2).toFixed(1)}%` : `left:${(lx + 2).toFixed(1)}%`)
+      + (ty > 45 ? `;bottom:${(100 - ty + 4).toFixed(1)}%` : `;top:${(ty + 4).toFixed(1)}%`);
+    return `<div class="cwrap">${svg}<div class="pop" style="${pos}" data-act="bucket" data-key="${esc(sel)}" role="tooltip">${esc(pop)}<span class="px">✕</span></div></div>`;
   }
 
   /* 24 h strip with backup-heater and defrost spans */
@@ -238,6 +261,6 @@
     return `<div class="gauge"><span style="width:${pct.toFixed(1)}%;background:${color}"></span>${mk}</div>`;
   }
 
-  Object.assign(P, { charts: { get W() { return W; }, setWidth, C, lineChart, curveChart, strip24, copBars, gauge, niceRange, timeTicks } });
+  Object.assign(P, { charts: { get W() { return W; }, setWidth, C, PT, RING, ptColor, lineChart, curveChart, strip24, copBars, gauge, niceRange, timeTicks } });
   if (window.__dcmEffBoot) window.__dcmEffBoot();
 })();
