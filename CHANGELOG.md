@@ -23,6 +23,12 @@
   of lines). The bug report form points to it.
 
 ### Fixed
+- Altherma HT (ERRQ + ERSQ, #189): the hydrobox water temperatures and
+  `INV Comp. Frequency(Hz)` are read, so an HT unit detects cycles. The
+  detection guard (#109) no longer pauses for a missing R2T while R1T is
+  published, for a missing flow sensor while the compressor speed is
+  published, or for a missing LW setpoint (the detector never reads it);
+  the repair still lists them.
 - COP vs datasheet (#175): the reference is the datasheet COP at the live
   outdoor temperature and LWT, from the nearest datasheet points, instead
   of A7/W35 carried over with a Carnot ratio. A heat pump exactly on its
@@ -52,6 +58,13 @@
 - test_339_diagnostics_fields: every field above, the database read of the
   feature vector, and the formerly uncovered helpers; `diagnostics.py` has
   no `# pragma: no cover` left.
+- test_175_datasheet_reference: every point of every bundled datasheet with
+  more than one point (LT, HT, hybrid) reads 0 % when the COP equals the
+  datasheet; a 15 % loss reads -15 % at A7/W55 and at HT A7/W65; one-point
+  models keep the Carnot estimate (fails on the old code).
+- test_189_ht_hydrobox: an Altherma HT source with exactly the names of
+  the ESPAltherma ERRQ-ERSQ definition detects a heating run (fails on the
+  old code); stand-ins keep the freeze for a missing R4T or start signal.
 
 ## [1.30.1] - 2026-11-22
 
