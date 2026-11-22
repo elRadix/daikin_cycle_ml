@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.30.0] - 2026-11-22
+
 ### Added
 - Efficiency card 1.3.0: `climate_entity` (your Daikin climate entity of
   the leaving water or its offset: − / + and "Apply the advice" on the
