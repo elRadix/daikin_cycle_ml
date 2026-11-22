@@ -867,7 +867,7 @@ keep the project going.
 - **Issues:** https://github.com/elRadix/daikin_cycle_ml/issues
 - **Discussions:** https://github.com/elRadix/daikin_cycle_ml/discussions
 - **Tweakers ESPAltherma topic** — largest user base, mixed NL/EN
-- **Before opening an issue:** see [docs/TROUBLESHOOTING.md](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/TROUBLESHOOTING.md) and download diagnostics (Settings → Devices & Services → Daikin Cycle ML → menu → Download diagnostics)
+- **Before opening an issue:** see [docs/TROUBLESHOOTING.md](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/TROUBLESHOOTING.md) and download diagnostics: **Download** or **Copy** at the bottom of any native card, or Settings → Devices & Services → Daikin Cycle ML → menu → Download diagnostics ([what is in it](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/DIAGNOSTICS.md))
 
 ---
 

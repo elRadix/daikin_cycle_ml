@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Documentation
+- `docs/DIAGNOSTICS.md`: how to get the file (card buttons or Home
+  Assistant), what is removed, what each section shows and helps to find,
+  and how a file you send is anonymised for the test set; linked from
+  README and TROUBLESHOOTING (#500).
+- DEVELOPMENT.md: the two local scripts, the pre-push hook as it really
+  works, and rules R813-R816 (#500).
+
+### Changed
+- `scripts/ci-fast.sh`: ruff and mypy strict on the changed files plus the
+  markdown check, in seconds; the pre-push hook runs it (#500).
+
 ### Added
 - Native cards (daily summary 1.2.0, efficiency 1.4.0, performance 1.3.0):
   "Diagnostics for a bug report" with *Download* and *Copy*. The card

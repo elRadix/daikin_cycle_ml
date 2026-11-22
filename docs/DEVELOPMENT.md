@@ -421,54 +421,36 @@ When you push and then check CI:
 
 ---
 
-## 6. Local CI script
+## 6. Local CI scripts
 
-`scripts/ci-local.sh` runs all four gates in sequence:
+Two scripts, both run from the repository root:
 
-```bash
-bash scripts/ci-local.sh
-```
+| Script | What it runs | Time |
+|---|---|---|
+| `scripts/ci-fast.sh` | ruff (CI-parity) and mypy strict on the changed files, the markdown check | seconds |
+| `scripts/ci-local.sh` | the four CI gates: full pytest with 100 % coverage, ruff, mypy strict, markdown | minutes |
 
-Output:
-
-```
-[ci-local] 1/4 pytest (full suite, 100% cov)
-6724 passed, 4 skipped in 90s
-[ci-local] 2/4 ruff (CI-parity)
-All checks passed!
-[ci-local] 3/4 mypy strict
-Success: no issues found in 35 source files
-[ci-local] 4/4 markdown
-[md] PASS
-
-[ci-local] PASS
-```
-
-This is what the pre-push hook runs. If `ci-local.sh` passes, push will succeed.
+`ci-fast.sh` checks files changed since `origin/main` (set `CI_FAST_BASE`
+to compare with another branch), uncommitted and untracked `.py` files.
+Run `ci-local.sh` before opening a PR; CI is the final gate.
 
 ### 6.1 Pre-push hook
 
-Wired by `scripts/bootstrap.sh`. Symlinked to `.git/hooks/pre-push`.
+Wired by `scripts/bootstrap.sh` (symlinked to `.git/hooks/pre-push`). On
+every `git push` it runs `scripts/ci-fast.sh` within 120 s and blocks the
+push when it fails. Pushes that only delete a branch are skipped.
 
-**What it does on every `git push`:**
+### 6.2 Session rules R813-R816
 
-1. Runs `scripts/ci-local.sh`
-2. If exit 0: pushes normally
-3. If exit 1: **blocks the push**, shows the failure output
-
-**Bypass:** `git push --no-verify`
-
-**Never use `--no-verify`** unless you are pushing a docs-only branch with a pre-approved CI failure (rare). Even then, mention it in the PR description.
-
-### 6.2 Why the pre-push hook
-
-Local `ci-local.sh` catches ~90% of CI failures before the push. Benefits:
-
-- Saves CI minutes
-- Saves the 8-minute CI round-trip
-- Forces you to see failures as they happen, not "CI failed, let me fix"
-
-**Trade-off:** every push takes ~2 minutes. This is intentional — the cost is worth it.
+- **R813**: `git push --no-verify` skips every local check, ruff and mypy
+  included. If you use it, run `bash scripts/ci-fast.sh` yourself first.
+- **R814**: `cmd | tail; echo $?` gives the exit code of `tail`, not of
+  `cmd`. Never pipe `git rebase`, `git push` or `git merge`; use
+  `cmd; RC=$?`.
+- **R815**: check the dev container's name with `docker ps` at the start
+  of a session; never take it from an old handoff.
+- **R816**: after a failing gate, either commit the fix or revert; never
+  leave written but uncommitted files behind.
 
 ---
 

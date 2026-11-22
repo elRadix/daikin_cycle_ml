@@ -55,6 +55,11 @@ The JSON file contains:
 
 **The first thing to look at** for any issue. Almost every question can be answered by inspecting the diagnostics file.
 
+**Easiest:** press **Download** or **Copy** under *Diagnostics for a bug
+report* at the bottom of any native Daikin card. That file leaves out the
+list of all your other custom integrations. What each section means:
+[DIAGNOSTICS.md](DIAGNOSTICS.md).
+
 ### 1.3 Logs
 
 Settings → System → Logs, filter `daikin_cycle_ml`.
