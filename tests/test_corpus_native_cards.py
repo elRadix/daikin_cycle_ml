@@ -88,11 +88,16 @@ def _hass_case(doc: dict) -> dict:
 
 @pytest.mark.parametrize("path", FILES, ids=lambda p: p.stem)
 def test_corpus_live_temperatures(path):
-    t = live_temps_from_view(build_compat_view(_doc(path)["source"]["attributes"]))
+    attrs = _doc(path)["source"]["attributes"]
+    t = live_temps_from_view(build_compat_view(attrs))
     assert 5 <= t["lwt_c"] <= 80 and 5 <= t["return_c"] <= 80, t
     assert -30 <= t["outdoor_c"] <= 45, t
     assert abs(t["lwt_c"] - t["return_c"]) < 25, t
-    assert t["lw_setpoint_c"] is not None and t["refrigerant_liquid_c"] is not None
+    assert t["lw_setpoint_c"] is not None
+    # the liquid temperature (R3T) only when the definition publishes it: the
+    # EDLA v1 source of #487 has 32 values and no R3T; the cards show "—"
+    has_r3t = any("R3T" in k for k in attrs)
+    assert (t["refrigerant_liquid_c"] is not None) == has_r3t, (t, has_r3t)
 
 
 def test_corpus_truncated_attributes_stay_out_of_the_recorder():

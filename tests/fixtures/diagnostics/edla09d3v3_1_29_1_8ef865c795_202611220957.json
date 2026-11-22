@@ -1,0 +1,1768 @@
+{
+ "corpus_format": 1,
+ "home_assistant": {
+  "version": "2026.11.2",
+  "installation_type": "Home Assistant OS",
+  "arch": "aarch64",
+  "python_version": "3.14.10"
+ },
+ "integration_version": "1.29.1",
+ "generated_at": "2026-11-22T09:57:10.427973+00:00",
+ "utc_offset_s": 0,
+ "entry": {
+  "data": {
+   "attribute_map": {
+    "Defrost Operation": "Defrost Operation",
+    "Flow sensor (l/min)": "Flow sensor (l/min)",
+    "Inlet water temp.(R4T)": "Inlet water temp.(R4T)",
+    "LW setpoint (main)": "LW setpoint (main)",
+    "Leaving water temp. after BUH (R2T)": "Leaving water temp. after BUH (R2T)",
+    "Operation Mode": "Operation Mode",
+    "Outdoor air temp.(R1T)": "R1T-Outdoor air temp."
+   },
+   "attribute_mode": "auto",
+   "model": "edla09d3v3",
+   "source_sensor": "sensor.user_1",
+   "source_type": "monolithic"
+  },
+  "options": {
+   "buh_penalty_legionella_waived": true,
+   "compressor_rps_threshold": 12.0,
+   "dhw_pendulum_cycles_per_hour": 3.0,
+   "fallback_power_threshold_w": 100.0,
+   "good_dt_threshold_k": 4.0,
+   "good_off_threshold_min": 20.0,
+   "good_run_threshold_min": 45.0,
+   "indoor_temp_sensor": "sensor.user_2",
+   "pendulum_cycles_per_day": 40.0,
+   "persistent_enabled": true,
+   "power_sensor_entity": "sensor.user_3",
+   "quiet_hours_enabled": false,
+   "quiet_hours_end": "07:00",
+   "quiet_hours_start": "22:00",
+   "short_cycling_min_cycles": 3.0,
+   "short_cycling_window_min": 60.0,
+   "short_off_threshold_min": 5.0,
+   "short_run_threshold_min": 20.0,
+   "target_cycles_per_day": 8.0
+  }
+ },
+ "source": {
+  "state": "Online",
+  "available": true,
+  "attribute_count": 32,
+  "age_s": 24.74569034576416,
+  "attributes": {
+   "Operation Mode": "Heating",
+   "Defrost Operation": "ON",
+   "Low noise control": "OFF",
+   "Error type": "Normal",
+   "Error Code": " 0",
+   "R1T-Outdoor air temp.": 6.1,
+   "Heat exchanger mid-temp.(R5T)": -0.3,
+   "INV primary current (A)": 4.5,
+   "INV secondary current (A)": 8.3,
+   "INV frequency (rps)": 30,
+   "Fan 1 (step)": 8,
+   "Silent Mode": "OFF",
+   "DHW setpoint": 49.3,
+   "LW setpoint (main)": 34.6,
+   "3way valve(On:DHW_Off:Space)": "OFF",
+   "Leaving water temp. before BUH (R1T)": 34,
+   "Leaving water temp. after BUH (R2T)": 34.1,
+   "Inlet water temp.(R4T)": 29.6,
+   "DHW tank temp. (R5T)": 46.3,
+   "Indoor ambient temp. (R1T)": 20.2,
+   "Reheat ON/OFF": "OFF",
+   "Powerful DHW Operation. ON/OFF": "OFF",
+   "Space heating Operation ON/OFF": "ON",
+   "LW setpoint (add)": 29.6,
+   "RT setpoint": 20.5,
+   "Flow sensor (l/min)": 21,
+   "Water pressure": 1.2,
+   "Water pump signal (0:max-100:stop)": 38
+  }
+ },
+ "source_resolution": {},
+ "coordinator": {
+  "state": "running",
+  "mode": "heating",
+  "missing_attrs": [
+   "I/U operation mode",
+   "Water pump operation",
+   "BUH Step1",
+   "BUH Step2"
+  ],
+  "last_sample_ts": 1795341412.9812117,
+  "last_success_ts": 1795341412.9812117,
+  "cycle_start_ts": 1795331504.864474,
+  "errors": 0,
+  "errors_total": 0,
+  "attrs_sample": {
+   "Operation Mode": "Heating",
+   "Defrost Operation": true,
+   "Low noise control": false,
+   "Error type": "Normal",
+   "Error Code": false,
+   "Heat exchanger mid-temp.(R5T)": -0.3,
+   "INV primary current (A)": 4.5,
+   "INV secondary current (A)": 8.3,
+   "INV frequency (rps)": 30.0,
+   "Fan 1 (step)": 8.0,
+   "Silent Mode": false,
+   "DHW setpoint": 49.3,
+   "LW setpoint (main)": 34.6,
+   "3way valve(On:DHW_Off:Space)": false,
+   "Leaving water temp. before BUH (R1T)": 34.0,
+   "Leaving water temp. after BUH (R2T)": 34.1,
+   "Inlet water temp.(R4T)": 29.6,
+   "DHW tank temp. (R5T)": 46.3,
+   "Indoor ambient temp. (R1T)": 20.2,
+   "Reheat ON/OFF": false
+  },
+  "cop_source": "defrost_active",
+  "cop_cross_check": {
+   "cop_used": null,
+   "cop_source": "defrost_active",
+   "cop_measured_flow_dt_power": 5.58,
+   "cop_espaltherma_estimate": null,
+   "used_vs_measured_pct": null
+  },
+  "power_meter": {
+   "used": true,
+   "unit": "W",
+   "reason": null
+  },
+  "runtime_check": {
+   "elapsed_min": 597.2,
+   "cycles_min": 592.2,
+   "closed_min": 426.7,
+   "open_cycle_min": 165.4,
+   "native_min": null,
+   "native_daily": true,
+   "diff_min": null,
+   "coverage_pct": null
+  },
+  "dhw_present": true,
+  "dhw_present_source": "tier1_attrs",
+  "dhw_present_resolved": true,
+  "boiler_active": false,
+  "boiler_heat_active": false,
+  "boiler_dhw_active": false,
+  "hybrid_mode": "",
+  "boiler_efficiency_cop": null,
+  "inv_freq_secondary": null
+ },
+ "detector": {
+  "state": "running",
+  "mode": "heating",
+  "dhw_present": true
+ },
+ "store": {
+  "cycle_count": 4,
+  "counters": {
+   "cycles_total": 4,
+   "cycles_heating": 4,
+   "cycles_dhw": 0,
+   "cycles_cooling": 0,
+   "_day_key": "2026-11-22",
+   "cycles_today": 0,
+   "good_cycles_today": 0,
+   "bad_cycles_today": 0
+  },
+  "last_cycle": {
+   "start_ts": 1795278614.0888543,
+   "end_ts": 1795331204.8640258,
+   "duration_s": 52590,
+   "mode": "heating",
+   "dT_max": 5.899999999999999,
+   "dT_avg": 3.8053687315634215,
+   "rps_max": 70,
+   "rps_avg": 23.513274336283185,
+   "outdoor_temp": 4.3,
+   "buh_used": 0,
+   "defrost_used": 1,
+   "quality_score": 94,
+   "label": null,
+   "cluster_id": null,
+   "cop_avg": 4.407655279503106,
+   "cop_sample_count": 161,
+   "cop_sample_stdev": null,
+   "cop_confidence": "high",
+   "thermal_kw_avg": 4.01463681612586,
+   "is_transient": 0
+  }
+ },
+ "baseline": {
+  "total_samples": 3,
+  "modes": {
+   "heating": {
+    "samples": 3,
+    "bands": {
+     "0": 1,
+     "4": 1,
+     "8": 1
+    },
+    "streak": 0,
+    "dims": {
+     "duration_s": {
+      "n": 3,
+      "mean": 122.616,
+      "std": 0.26
+     },
+     "dT_avg": {
+      "n": 3,
+      "mean": 3.124,
+      "std": 0.4
+     },
+     "rps_avg": {
+      "n": 3,
+      "mean": 25.377,
+      "std": 4.522
+     },
+     "cop_avg": {
+      "n": 3,
+      "mean": 3.884,
+      "std": 0.15
+     },
+     "lwt_avg": {
+      "n": 3,
+      "mean": 31.772,
+      "std": 1.202
+     },
+     "thermal_kw_avg": {
+      "n": 3,
+      "mean": 3.174,
+      "std": 0.509
+     }
+    }
+   }
+  },
+  "version": 2,
+  "dims": [
+   "duration_s",
+   "dT_avg",
+   "rps_avg",
+   "cop_avg",
+   "lwt_avg",
+   "thermal_kw_avg"
+  ]
+ },
+ "adaptive": {
+  "total_samples": 5,
+  "modes": [
+   "heating"
+  ],
+  "enabled": false,
+  "thresholds": {}
+ },
+ "clusters": {
+  "centroids": 0,
+  "labels": {},
+  "counts": {},
+  "centroid_vectors": [],
+  "stale": {
+   "fired": false,
+   "hours_since_ok": null,
+   "last_ok_ts": null,
+   "last_attempt_ts": 1795333455.7249546,
+   "consecutive_failures": 15,
+   "last_failure_reason": "too_few",
+   "stale_after_days": 14
+  }
+ },
+ "cop_analysis": {
+  "state": "keep",
+  "betrouwbaarheid": 1.0,
+  "bucket_current": "4-6",
+  "buckets": {
+   "2-4": {
+    "cop": 4.12,
+    "n": 24,
+    "lwt": 35.2
+   },
+   "4-6": {
+    "cop": 4.31,
+    "n": 177,
+    "lwt": 35.0
+   },
+   "6-8": {
+    "cop": 4.12,
+    "n": 15,
+    "lwt": 31.6
+   },
+   "8-10": {
+    "cop": 3.76,
+    "n": 32,
+    "lwt": 30.9
+   },
+   "10-12": {
+    "cop": 3.92,
+    "n": 4,
+    "lwt": 32.4
+   },
+   "12-14": {
+    "cop": 4.27,
+    "n": 1,
+    "lwt": 32.7
+   }
+  },
+  "cop_today": {
+   "cop": 4.22,
+   "samples_today": 105,
+   "cop_min": 2.11,
+   "cop_max": 4.94,
+   "baseline_cop_verlies_pct": 0.0
+  },
+  "total_samples": 255,
+  "state_mapped": "stable",
+  "bucket_edges": null
+ },
+ "database": {
+  "counts": {
+   "cycles": 4,
+   "features": 4,
+   "model_state": 38,
+   "alerts": 14,
+   "daily_summary": 2,
+   "cop_samples": 255
+  },
+  "integrity_ok": true,
+  "daily_summary": [
+   {
+    "day": "2026-11-21",
+    "mode": "heating",
+    "cycles": 4,
+    "total_duration_s": 49843,
+    "duration_min": 5670,
+    "duration_max": 26985,
+    "quality_sum": 313,
+    "dt_max_sum": 21.3,
+    "rps_sum": 99.64464502320943,
+    "buh_count": 0,
+    "defrost_count": 3,
+    "transient_count": 0,
+    "updated_ts": 1795333154.2324975,
+    "runs": 4,
+    "duration_avg": 12460.75,
+    "quality_avg": 78.25,
+    "dt_max_avg": 5.325,
+    "rps_avg": 24.911
+   },
+   {
+    "day": "2026-11-22",
+    "mode": "heating",
+    "cycles": 0,
+    "total_duration_s": 35482,
+    "duration_min": null,
+    "duration_max": 25604,
+    "quality_sum": 0,
+    "dt_max_sum": 0.0,
+    "rps_sum": 0.0,
+    "buh_count": 0,
+    "defrost_count": 0,
+    "transient_count": 0,
+    "updated_ts": 1795341383.0023615,
+    "runs": 2,
+    "duration_avg": null,
+    "quality_avg": null,
+    "dt_max_avg": null,
+    "rps_avg": null
+   }
+  ],
+  "model_state": {
+   "last_maintenance_ts": 1795316400.3599212,
+   "kmeans_state": {
+    "last_attempt_ts": 1795333455.7249546,
+    "consecutive_failures": 15,
+    "last_failure_reason": "too_few",
+    "last_scheduled_fire_ts": 1795320000.3236713,
+    "last_scheduled_attempt_ts": 1795320000.3236713,
+    "last_scheduled_outcome": "too_few",
+    "last_scheduled_cycles_n": 3
+   },
+   "baseline_state": {
+    "type": "behaviour",
+    "version": 2,
+    "dim": 6,
+    "dims": [
+     "duration_s",
+     "dT_avg",
+     "rps_avg",
+     "cop_avg",
+     "lwt_avg",
+     "thermal_kw_avg"
+    ],
+    "alpha": 0.02,
+    "groups": {
+     "heating": {
+      "duration_s": [
+       3,
+       4.809055,
+       0.06779096
+      ],
+      "dT_avg": [
+       3,
+       3.124185,
+       0.01993267
+      ],
+      "rps_avg": [
+       3,
+       25.377124,
+       20.45137483
+      ],
+      "cop_avg": [
+       3,
+       3.883872,
+       0.01813169
+      ],
+      "lwt_avg": [
+       3,
+       31.771948,
+       1.4437775
+      ],
+      "thermal_kw_avg": [
+       3,
+       3.174246,
+       0.25871795
+      ]
+     },
+     "heating|0": {
+      "duration_s": [
+       1,
+       4.5486,
+       0.0
+      ],
+      "dT_avg": [
+       1,
+       3.084615,
+       0.0
+      ],
+      "rps_avg": [
+       1,
+       31.769231,
+       0.0
+      ],
+      "cop_avg": [
+       1,
+       4.020137,
+       0.0
+      ],
+      "lwt_avg": [
+       1,
+       33.223077,
+       0.0
+      ],
+      "thermal_kw_avg": [
+       1,
+       3.873895,
+       0.0
+      ]
+     },
+     "heating|8": {
+      "duration_s": [
+       1,
+       4.713875,
+       0.0
+      ],
+      "dT_avg": [
+       1,
+       3.313453,
+       0.0
+      ],
+      "rps_avg": [
+       1,
+       22.0,
+       0.0
+      ],
+      "cop_avg": [
+       1,
+       3.700538,
+       0.0
+      ],
+      "lwt_avg": [
+       1,
+       31.812108,
+       0.0
+      ],
+      "thermal_kw_avg": [
+       1,
+       2.969143,
+       0.0
+      ]
+     },
+     "heating|4": {
+      "duration_s": [
+       1,
+       5.164691,
+       0.0
+      ],
+      "dT_avg": [
+       1,
+       2.974486,
+       0.0
+      ],
+      "rps_avg": [
+       1,
+       22.36214,
+       0.0
+      ],
+      "cop_avg": [
+       1,
+       3.930941,
+       0.0
+      ],
+      "lwt_avg": [
+       1,
+       30.280658,
+       0.0
+      ],
+      "thermal_kw_avg": [
+       1,
+       2.679698,
+       0.0
+      ]
+     }
+    },
+    "streak": {
+     "heating": 0
+    }
+   }
+  },
+  "per_entry_counts": [
+   {
+    "cycles": 4,
+    "features": 4,
+    "model_state": 38,
+    "alerts": 14,
+    "daily_summary": 2,
+    "cop_samples": 255
+   }
+  ]
+ },
+ "alerts": {
+  "dispatch_count": 3,
+  "dispatch_history": {
+   "missing_attributes": 1795289354.1525126,
+   "short_run": 1795255364.1299088,
+   "cop_vs_datasheet_low": 1795255124.1117952
+  }
+ },
+ "bivalent": {
+  "is_hybrid": false,
+  "is_bivalent": false,
+  "boiler_signals_trusted": false,
+  "boiler_active": false,
+  "boiler_heat_active": false,
+  "boiler_dhw_active": false,
+  "hybrid_mode": "",
+  "boiler_efficiency_cop": null
+ },
+ "defrost": {
+  "count_today": 2,
+  "start_ts": 1795341112.9793396,
+  "duration_s": 660.0021741390228,
+  "last_defrost_ts": 1795341112.9793396,
+  "limit_7d": {
+   "events_7d": 19,
+   "limit_7d": 48,
+   "run_h_7d": 23.7,
+   "warm_days": 0,
+   "excessive": false,
+   "per_day": [
+    {
+     "day": "2026-11-20",
+     "events": 3,
+     "run_h": 0.0,
+     "outdoor": null,
+     "rate": 2.0
+    },
+    {
+     "day": "2026-11-21",
+     "events": 14,
+     "run_h": 13.8,
+     "outdoor": 6.2,
+     "rate": 1.24
+    },
+    {
+     "day": "2026-11-22",
+     "events": 2,
+     "run_h": 9.9,
+     "outdoor": 4.6,
+     "rate": 1.5
+    }
+   ]
+  }
+ },
+ "buh": {
+  "step": null
+ },
+ "sampling": {
+  "samples_window": "since_start",
+  "samples_last_24h": 275,
+  "samples_since_start": 275,
+  "samples_expected_since_start": 275,
+  "sample_rate_pct": 100.0,
+  "samples_expected_24h": 2880,
+  "gap_count_24h": 1,
+  "largest_gap_s": 68.44728541374207,
+  "last_gap_s": 30.050687551498413,
+  "duplicate_ts_count": 0,
+  "non_numeric_attrs": [
+   "Operation Mode",
+   "Error type",
+   "M5BatV",
+   "WifiRSSI",
+   "friendly_name"
+  ],
+  "null_attrs_last_tick": []
+ },
+ "coordinator_timing": {
+  "tick_count": 275,
+  "tick_duration_ms_last": 96.35467606130987,
+  "tick_duration_ms_max": 165.2140070218593,
+  "tick_duration_max_ts": 1795333223.1450715,
+  "tick_duration_max_tick": 2,
+  "tick_duration_max_phases_ms": {
+   "stooklijn": 32.7,
+   "cop_hourly": 32.0,
+   "alerts_dispatch": 24.9
+  },
+  "uptime_s": 8275.857423015987,
+  "tick_duration_ms_p50": 44.55039300955832,
+  "tick_duration_ms_p95": 82.72212801966816
+ },
+ "entities": {
+  "sensor:thermal_power_live": {
+   "state": "6.45",
+   "attributes": {
+    "state_class": "measurement",
+    "input_power_w": 1153.5,
+    "input_cop": null,
+    "input_flow_lmin": 21.0,
+    "input_dt_k": 4.4,
+    "input_rps": 30.0,
+    "calculation_source": "flow_dt",
+    "lwt_c": 34.0,
+    "lwt_after_buh_c": 34.1,
+    "return_c": 29.6,
+    "outdoor_c": 6.1,
+    "lw_setpoint_c": 34.6,
+    "room_c": 20.2,
+    "room_setpoint_c": 20.5,
+    "refrigerant_liquid_c": null
+   }
+  },
+  "sensor:electrical_power_estimated": {
+   "state": "1153.5",
+   "attributes": {
+    "state_class": "measurement",
+    "source": "power_meter",
+    "supply_phases": 1,
+    "buh_step1_kw": 3.0,
+    "buh_step2_kw": 3.0,
+    "v2_stats_present": false,
+    "inv_current_a": 4.5,
+    "buh_step1_on": false,
+    "buh_step2_on": false,
+    "buh_power_sensor": null,
+    "buh_meter_w": null
+   }
+  },
+  "sensor:hp_specs": {
+   "state": "edla09d3v3",
+   "attributes": {
+    "configured": true,
+    "model": "edla09d3v3",
+    "source": "bundled",
+    "family": "Monoblock",
+    "kw": 9,
+    "lwt_min": 25,
+    "lwt_max": 60,
+    "outdoor_min_c": -25,
+    "outdoor_max_c": 35,
+    "nom_cop": 4.91,
+    "scop_w35": 4.72,
+    "scop_w55": 3.39,
+    "refrigerant": "R32",
+    "gwp": 675,
+    "charge_kg": 3.5,
+    "buh_above_c": 55,
+    "defrost_below_c": 5,
+    "off_above_c": 20,
+    "points": [
+     {
+      "label": "A7/W35",
+      "t_out": 7,
+      "t_lwc": 35,
+      "cop": 4.91,
+      "hc": 9.37,
+      "src": {
+       "cop": "datasheet",
+       "hmax": "datasheet"
+      },
+      "hmax": 9.37
+     },
+     {
+      "label": "A7/W45",
+      "t_out": 7,
+      "t_lwc": 45,
+      "cop": 3.71,
+      "hc": 9.0,
+      "src": {
+       "cop": "datasheet",
+       "hmax": "datasheet"
+      },
+      "hmax": 9.0
+     }
+    ],
+    "datasheet_sources": {
+     "epra14daw17": "bundled",
+     "epra04eav3": "bundled",
+     "epra06eav3": "bundled",
+     "epra08eav3": "bundled",
+     "epra10eav3": "bundled",
+     "epra11eav3": "bundled",
+     "epra12eav3": "bundled",
+     "epra14eav3": "bundled",
+     "epra16eav3": "bundled",
+     "erla04dav3": "bundled",
+     "erla06dav3": "bundled",
+     "erla08dav3": "bundled",
+     "erla11dav3": "bundled",
+     "erla12dav3": "bundled",
+     "erla14dav3": "bundled",
+     "erla16dav3": "bundled",
+     "erga04eav3": "bundled",
+     "erga06eav3": "bundled",
+     "erga08eav3": "bundled",
+     "epga10dav3": "bundled",
+     "epga11dav3": "bundled",
+     "epga14dav3": "bundled",
+     "epga16dav3": "bundled",
+     "edla09d3v3": "bundled",
+     "edla11d3v3": "bundled",
+     "edla14d3v3": "bundled",
+     "edla16d3v3": "bundled",
+     "ebla04ev3": "bundled",
+     "ebla06ev3": "bundled",
+     "ebla08ev3": "bundled",
+     "edlq05cv3": "bundled",
+     "edlq07cv3": "bundled",
+     "edlq11cv3": "bundled",
+     "edlq14cv3": "bundled",
+     "edlq16cv3": "bundled",
+     "epsk06aw1": "bundled",
+     "epsk08aw1": "bundled",
+     "epsk10aw1": "bundled",
+     "epsk12aw1": "bundled",
+     "epsk14aw1": "bundled",
+     "epra18eav3": "bundled",
+     "eblq05cv3": "bundled",
+     "eblq07cv3": "bundled",
+     "eblq11cv3": "bundled",
+     "eblq14cv3": "bundled",
+     "eblq16cv3": "bundled",
+     "ekhbrd011": "bundled",
+     "ekhbrd014": "bundled",
+     "ekhbrd016": "bundled",
+     "errq011": "bundled",
+     "errq014": "bundled",
+     "errq016": "bundled",
+     "evlq05cv3": "bundled",
+     "evlq08cv3": "bundled",
+     "ebla09da3w1": "bundled",
+     "epra14dav3": "bundled",
+     "epra16dav3": "bundled",
+     "epra18dav3": "bundled",
+     "erga08evh7": "bundled"
+    },
+    "rps_min": null,
+    "rps_max": null,
+    "value_sources": {
+     "kw": "datasheet",
+     "nom_cop": "datasheet",
+     "scop_w35": "datasheet",
+     "scop_w55": "datasheet",
+     "lwt_min": "datasheet",
+     "lwt_max": "datasheet"
+    },
+    "hmax_basis": "nominal",
+    "hc_max_a7": null,
+    "max_input_kw": null,
+    "hmax_anchor": 9.0,
+    "profile": {
+     "model": null,
+     "applied": false,
+     "manual_fields": [],
+     "manual_points": 0
+    },
+    "rps_learned": {
+     "runs": 4
+    },
+    "hmax_learned": {
+     "bands": [],
+     "full_speed_samples": 0,
+     "rps_threshold": null,
+     "skipped_bands": 0
+    }
+   }
+  },
+  "sensor:cop_normalized_a7w35": {
+   "state": "unknown",
+   "attributes": {
+    "state_class": "measurement",
+    "model": "edla09d3v3",
+    "family": "Monoblock",
+    "kw": 9,
+    "lwt_min": 25,
+    "lwt_max": 60,
+    "nom_cop": 4.91,
+    "scop_w35": 4.72,
+    "scop_w55": 3.39,
+    "ref_cop_a7w35": 4.91,
+    "source": "bundled",
+    "cop_normalized_a7w35": null,
+    "cop_measured": null
+   }
+  },
+  "sensor:cop_vs_datasheet_pct": {
+   "state": "unknown",
+   "attributes": {
+    "state_class": "measurement",
+    "model": "edla09d3v3",
+    "ref_cop_a7w35": 4.91,
+    "cop_normalized_a7w35": null,
+    "cop_measured": null,
+    "deviation_pct": null,
+    "band": null
+   }
+  },
+  "sensor:cop_degradation_status": {
+   "state": "none",
+   "attributes": {
+    "severity_raw": "none",
+    "severity_downgraded": false,
+    "week_pct": null,
+    "week_pct_raw": null,
+    "lwt_shift_detected": false,
+    "lwt_shift_c": 0.0,
+    "threshold_pct": -8.0,
+    "critical_pct": -15.0,
+    "valid": false,
+    "updated_ts": 1795341412.9812117
+   }
+  },
+  "sensor:cop_degradation_week_pct": {
+   "state": "unknown",
+   "attributes": {
+    "state_class": "measurement",
+    "mode": "heating",
+    "window_days": 7,
+    "n_samples_recent": 11,
+    "n_samples_prev": 0,
+    "n_days_recent": 1,
+    "n_days_prev": 0,
+    "n_bins_used": 0,
+    "dynamic_min_samples": 0,
+    "bins_used": [],
+    "excluded_hours_recent": 22,
+    "excluded_hours_prev": 0,
+    "exclusion_skew": 0.9565217391304348,
+    "lwt_mean_recent": 32.199999999999996,
+    "lwt_mean_prev": null,
+    "updated_ts": 1795341412.9812117
+   }
+  },
+  "sensor:cop_trend_30d": {
+   "state": "unknown",
+   "attributes": {
+    "state_class": "measurement",
+    "mode": "heating",
+    "window_days": 30,
+    "baseline_days": 30,
+    "recent_days": 7,
+    "n_hours_baseline": 0,
+    "n_hours_recent": 1,
+    "outdoor_spread_baseline_c": 0.0,
+    "fit_slope": null,
+    "fit_intercept": null,
+    "fit_r2": null,
+    "cop_predicted_recent": null,
+    "cop_observed_recent": null,
+    "threshold_pct": -8.0,
+    "critical_pct": -15.0,
+    "valid": false,
+    "updated_ts": 1795341412.9812117
+   }
+  },
+  "sensor:cycle_state": {
+   "state": "running",
+   "attributes": {
+    "configured_source_sensor": "sensor.user_1",
+    "configured_power_sensor": "sensor.user_3",
+    "configured_buh_power_sensor": null,
+    "configured_cop_sensor": null,
+    "configured_indoor_sensor": "sensor.user_2",
+    "configured_model": "edla09d3v3",
+    "configured_language": "en",
+    "configured_entry_id": "8ef865c795"
+   }
+  },
+  "sensor:current_cycle": {
+   "state": "heating",
+   "attributes": {
+    "duration_min": 165.14,
+    "dt_k": 4.4,
+    "rps": 30.0,
+    "started_at": 1795331504.864474
+   }
+  },
+  "sensor:last_cycle": {
+   "state": "94",
+   "attributes": {
+    "state_class": "measurement",
+    "duration_min": 876.5,
+    "mode": "heating",
+    "dt_max_k": 5.899999999999999,
+    "dt_avg_k": 3.8053687315634215,
+    "rps_max": 70.0,
+    "rps_avg": 23.513274336283185,
+    "outdoor_temp": 4.3,
+    "buh_used": false,
+    "defrost_used": true,
+    "buh_min": null,
+    "defrost_min": null,
+    "quality_penalties": null,
+    "start_ts": 1795278614.0888543,
+    "end_ts": 1795331204.8640258,
+    "cluster": null,
+    "thermal_kw_avg": 4.01463681612586
+   }
+  },
+  "sensor:alerts_today": {
+   "state": "0",
+   "attributes": {
+    "state_class": "measurement",
+    "since": "2026-11-22T00:00:00",
+    "total": 0,
+    "by_type": {},
+    "by_severity": {},
+    "alerts": [],
+    "alerts_shown": 0,
+    "alerts_total": 0,
+    "truncated": false
+   }
+  },
+  "sensor:cycles_today": {
+   "state": "0",
+   "attributes": {
+    "state_class": "total_increasing",
+    "cycles_last_hour": 0,
+    "short_runs": 0,
+    "short_offs": 0,
+    "short_ratio_pct": null,
+    "transient_cycles_today": 0,
+    "non_transient_cycles_today": 0,
+    "transient_ratio_pct": null,
+    "avg_duration_min": null,
+    "avg_off_time_min": null,
+    "longest_cycle_min": null,
+    "shortest_cycle_min": null
+   }
+  },
+  "sensor:quality_today": {
+   "state": "100.0",
+   "attributes": {
+    "state_class": "measurement",
+    "good_cycles": 0,
+    "bad_cycles": 0,
+    "good_ratio_pct": null,
+    "live_score": 100,
+    "is_cycle_open": true,
+    "live_cycle_duration_s": 9908.0
+   }
+  },
+  "sensor:runtime_compressor_today": {
+   "state": "35513",
+   "attributes": {
+    "state_class": "total_increasing",
+    "native_daily": true,
+    "source": "computed",
+    "native_min": null,
+    "heating_s": 25604,
+    "dhw_s": 0,
+    "cooling_s": 0,
+    "cycle_count": 0,
+    "avg_cycle_s": null
+   }
+  },
+  "sensor:runtime_buh_today": {
+   "state": "0",
+   "attributes": {
+    "state_class": "total_increasing",
+    "native_daily": true,
+    "source": "computed",
+    "native_min": null,
+    "total_s": 0,
+    "computed_total_s": 0,
+    "step1_s": 0,
+    "step2_s": 0,
+    "step_split_source": "computed",
+    "buh_energy_kwh_est": 0.0,
+    "buh_energy_source": "computed"
+   }
+  },
+  "sensor:compressor_starts_today": {
+   "state": "0",
+   "attributes": {
+    "state_class": "total_increasing",
+    "native_daily": true,
+    "source": "computed",
+    "native_count": null,
+    "computed_count": 0,
+    "per_mode": {
+     "heating": 0,
+     "dhw": 0,
+     "cooling": 0
+    },
+    "per_mode_source": "computed",
+    "starts_last_hour": 0,
+    "starts_last_hour_source": "computed"
+   }
+  },
+  "sensor:defrost_count_today": {
+   "state": "2",
+   "attributes": {
+    "state_class": "total_increasing",
+    "native_daily": true,
+    "source": "computed",
+    "native_count": null,
+    "computed_count": 2,
+    "avg_duration_s": 330.0,
+    "avg_duration_source": "computed",
+    "last_defrost_ts": 1795341112.9793396
+   }
+  },
+  "sensor:defrost_duration_today": {
+   "state": "660",
+   "attributes": {
+    "state_class": "total_increasing",
+    "source": "computed",
+    "native_available": false,
+    "computed_count": 2,
+    "native_count": null,
+    "defrost_count": 2,
+    "avg_duration_s": 330.0
+   }
+  },
+  "sensor:duty_cycle_today": {
+   "state": "99.16",
+   "attributes": {
+    "state_class": "measurement",
+    "runtime_s": 35513,
+    "elapsed_s": 35813,
+    "band": "saturated"
+   }
+  },
+  "sensor:electrical_energy_heating_today": {
+   "state": "10.04",
+   "attributes": {
+    "state_class": "total_increasing",
+    "heating_th_kwh": 40.644,
+    "heating_el_kwh": 10.045,
+    "dhw_th_kwh": 0.0,
+    "dhw_el_kwh": 0.0,
+    "cooling_th_kwh": 0.0,
+    "cooling_el_kwh": 0.0,
+    "total_th_kwh": 40.644,
+    "total_el_kwh": 10.045
+   }
+  },
+  "sensor:electrical_energy_dhw_today": {
+   "state": "0.0",
+   "attributes": {
+    "state_class": "total_increasing",
+    "heating_th_kwh": 40.644,
+    "heating_el_kwh": 10.045,
+    "dhw_th_kwh": 0.0,
+    "dhw_el_kwh": 0.0,
+    "cooling_th_kwh": 0.0,
+    "cooling_el_kwh": 0.0,
+    "total_th_kwh": 40.644,
+    "total_el_kwh": 10.045
+   }
+  },
+  "sensor:electrical_energy_cooling_today": {
+   "state": "0.0",
+   "attributes": {
+    "state_class": "total_increasing",
+    "heating_th_kwh": 40.644,
+    "heating_el_kwh": 10.045,
+    "dhw_th_kwh": 0.0,
+    "dhw_el_kwh": 0.0,
+    "cooling_th_kwh": 0.0,
+    "cooling_el_kwh": 0.0,
+    "total_th_kwh": 40.644,
+    "total_el_kwh": 10.045
+   }
+  },
+  "sensor:electrical_energy_total_today": {
+   "state": "10.04",
+   "attributes": {
+    "state_class": "total_increasing",
+    "heating_th_kwh": 40.644,
+    "heating_el_kwh": 10.045,
+    "dhw_th_kwh": 0.0,
+    "dhw_el_kwh": 0.0,
+    "cooling_th_kwh": 0.0,
+    "cooling_el_kwh": 0.0,
+    "total_th_kwh": 40.644,
+    "total_el_kwh": 10.045
+   }
+  },
+  "sensor:thermal_energy_heating_today": {
+   "state": "40.64",
+   "attributes": {
+    "state_class": "total_increasing",
+    "heating_th_kwh": 40.644,
+    "heating_el_kwh": 10.045,
+    "dhw_th_kwh": 0.0,
+    "dhw_el_kwh": 0.0,
+    "cooling_th_kwh": 0.0,
+    "cooling_el_kwh": 0.0,
+    "total_th_kwh": 40.644,
+    "total_el_kwh": 10.045
+   }
+  },
+  "sensor:thermal_energy_cooling_today": {
+   "state": "0.0",
+   "attributes": {
+    "state_class": "total_increasing",
+    "heating_th_kwh": 40.644,
+    "heating_el_kwh": 10.045,
+    "dhw_th_kwh": 0.0,
+    "dhw_el_kwh": 0.0,
+    "cooling_th_kwh": 0.0,
+    "cooling_el_kwh": 0.0,
+    "total_th_kwh": 40.644,
+    "total_el_kwh": 10.045
+   }
+  },
+  "sensor:source_health": {
+   "state": "0.1",
+   "attributes": {
+    "state_class": "measurement",
+    "missing_attrs_count": 4,
+    "missing_attrs_list": [
+     "I/U operation mode",
+     "Water pump operation",
+     "BUH Step1",
+     "BUH Step2"
+    ],
+    "last_sample_age_s": 0.1,
+    "coordinator_errors": 0,
+    "is_stale": false
+   }
+  },
+  "sensor:learned_thresholds": {
+   "state": "20",
+   "attributes": {
+    "state_class": "measurement",
+    "short_run_learned_min": null,
+    "good_off_min": null,
+    "target_cycles_per_day": null,
+    "adaptive_enabled": false,
+    "short_run_effective_min": 20
+   }
+  },
+  "sensor:cop_today": {
+   "state": "4.22",
+   "attributes": {
+    "state_class": "measurement",
+    "samples_today": 105,
+    "cop_min": 2.11,
+    "cop_max": 4.94,
+    "baseline_cop_verlies_pct": 0.0
+   }
+  },
+  "sensor:cop_combined_today": {
+   "state": "4.22",
+   "attributes": {
+    "state_class": "measurement",
+    "samples_today": 105,
+    "cop_min": 2.11,
+    "cop_max": 4.94,
+    "baseline_cop_verlies_pct": 0.0
+   }
+  },
+  "sensor:spf_season": {
+   "state": "4.2",
+   "attributes": {
+    "state_class": "measurement",
+    "season_start_month": 10,
+    "spf_season_n": 253,
+    "spf_ytd": 4.2,
+    "spf_ytd_n": 253,
+    "scop_365d": 4.2,
+    "scop_365d_n": 253,
+    "updated_ts": 1795340452.9809077
+   }
+  },
+  "sensor:spf_ytd": {
+   "state": "4.2",
+   "attributes": {
+    "state_class": "measurement",
+    "season_start_month": 10,
+    "spf_season_n": 253,
+    "spf_ytd": 4.2,
+    "spf_ytd_n": 253,
+    "scop_365d": 4.2,
+    "scop_365d_n": 253,
+    "updated_ts": 1795340452.9809077
+   }
+  },
+  "sensor:scop_running_365d": {
+   "state": "4.2",
+   "attributes": {
+    "state_class": "measurement",
+    "season_start_month": 10,
+    "spf_season_n": 253,
+    "spf_ytd": 4.2,
+    "spf_ytd_n": 253,
+    "scop_365d": 4.2,
+    "scop_365d_n": 253,
+    "updated_ts": 1795340452.9809077
+   }
+  },
+  "sensor:heating_curve_advice": {
+   "state": "keep",
+   "attributes": {
+    "state_label": "Keep current LWT",
+    "step_c": 0,
+    "delta_c": 0.0,
+    "huidige_setpoint": 34.8,
+    "doel_setpoint": null,
+    "tracking_error": -0.6,
+    "comfort_cap": 19.0,
+    "optimale_lwt": 35.0,
+    "reason": "within_deadband",
+    "huidige_lwt": 35.4,
+    "besparing_cop_pct": 0.0,
+    "comfort_impact": 0.0,
+    "betrouwbaarheid": 1.0,
+    "bucket": "4-6",
+    "samples": 177,
+    "buckets": {
+     "2-4": {
+      "cop": 4.12,
+      "n": 24,
+      "lwt": 35.2
+     },
+     "4-6": {
+      "cop": 4.31,
+      "n": 177,
+      "lwt": 35.0
+     },
+     "6-8": {
+      "cop": 4.12,
+      "n": 15,
+      "lwt": 31.6
+     },
+     "8-10": {
+      "cop": 3.76,
+      "n": 32,
+      "lwt": 30.9
+     },
+     "10-12": {
+      "cop": 3.92,
+      "n": 4,
+      "lwt": 32.4
+     },
+     "12-14": {
+      "cop": 4.27,
+      "n": 1,
+      "lwt": 32.7
+     }
+    },
+    "offset_delta_c": 0.0,
+    "slope_delta": null,
+    "suppressed_by": null
+   }
+  },
+  "sensor:cop_mean_day": {
+   "state": "4.23",
+   "attributes": {
+    "state_class": "measurement",
+    "period": "day",
+    "n_hours": 23,
+    "n_samples": 235,
+    "cop_p10": 3.833379234042553,
+    "cop_p90": 4.55186314893617,
+    "cop_min": 3.048916666666667,
+    "cop_max": 4.936772727272727,
+    "by_mode": {
+     "heating": {
+      "n_hours": 23,
+      "n_samples": 235,
+      "cop_mean": 4.228250638297873,
+      "cop_p10": 3.833379234042553,
+      "cop_p90": 4.55186314893617,
+      "cop_min": 3.048916666666667,
+      "cop_max": 4.936772727272727
+     }
+    }
+   }
+  },
+  "sensor:cop_mean_week": {
+   "state": "4.23",
+   "attributes": {
+    "state_class": "measurement",
+    "period": "week",
+    "n_hours": 23,
+    "n_samples": 235,
+    "cop_p10": 3.833379234042553,
+    "cop_p90": 4.55186314893617,
+    "cop_min": 3.048916666666667,
+    "cop_max": 4.936772727272727,
+    "by_mode": {
+     "heating": {
+      "n_hours": 23,
+      "n_samples": 235,
+      "cop_mean": 4.228250638297873,
+      "cop_p10": 3.833379234042553,
+      "cop_p90": 4.55186314893617,
+      "cop_min": 3.048916666666667,
+      "cop_max": 4.936772727272727
+     }
+    }
+   }
+  },
+  "sensor:cop_mean_month": {
+   "state": "4.23",
+   "attributes": {
+    "state_class": "measurement",
+    "period": "month",
+    "n_hours": 23,
+    "n_samples": 235,
+    "cop_p10": 3.833379234042553,
+    "cop_p90": 4.55186314893617,
+    "cop_min": 3.048916666666667,
+    "cop_max": 4.936772727272727,
+    "by_mode": {
+     "heating": {
+      "n_hours": 23,
+      "n_samples": 235,
+      "cop_mean": 4.228250638297873,
+      "cop_p10": 3.833379234042553,
+      "cop_p90": 4.55186314893617,
+      "cop_min": 3.048916666666667,
+      "cop_max": 4.936772727272727
+     }
+    }
+   }
+  },
+  "sensor:cop_curve_recent": {
+   "state": "23",
+   "attributes": {
+    "_truncated": true,
+    "_original_bytes": 4511
+   }
+  },
+  "sensor:cop_heating_day": {
+   "state": "4.23",
+   "attributes": {
+    "state_class": "measurement",
+    "period": "day",
+    "mode": "heating",
+    "n_hours": 23,
+    "n_samples": 235,
+    "cop_mean": 4.228250638297873,
+    "cop_p10": 3.833379234042553,
+    "cop_p90": 4.55186314893617,
+    "cop_min": 3.048916666666667,
+    "cop_max": 4.936772727272727,
+    "by_mode": {
+     "heating": {
+      "n_hours": 23,
+      "n_samples": 235,
+      "cop_mean": 4.228250638297873,
+      "cop_p10": 3.833379234042553,
+      "cop_p90": 4.55186314893617,
+      "cop_min": 3.048916666666667,
+      "cop_max": 4.936772727272727
+     }
+    }
+   }
+  },
+  "sensor:cop_heating_week": {
+   "state": "4.23",
+   "attributes": {
+    "state_class": "measurement",
+    "period": "week",
+    "mode": "heating",
+    "n_hours": 23,
+    "n_samples": 235,
+    "cop_mean": 4.228250638297873,
+    "cop_p10": 3.833379234042553,
+    "cop_p90": 4.55186314893617,
+    "cop_min": 3.048916666666667,
+    "cop_max": 4.936772727272727,
+    "by_mode": {
+     "heating": {
+      "n_hours": 23,
+      "n_samples": 235,
+      "cop_mean": 4.228250638297873,
+      "cop_p10": 3.833379234042553,
+      "cop_p90": 4.55186314893617,
+      "cop_min": 3.048916666666667,
+      "cop_max": 4.936772727272727
+     }
+    }
+   }
+  },
+  "sensor:cop_heating_month": {
+   "state": "4.23",
+   "attributes": {
+    "state_class": "measurement",
+    "period": "month",
+    "mode": "heating",
+    "n_hours": 23,
+    "n_samples": 235,
+    "cop_mean": 4.228250638297873,
+    "cop_p10": 3.833379234042553,
+    "cop_p90": 4.55186314893617,
+    "cop_min": 3.048916666666667,
+    "cop_max": 4.936772727272727,
+    "by_mode": {
+     "heating": {
+      "n_hours": 23,
+      "n_samples": 235,
+      "cop_mean": 4.228250638297873,
+      "cop_p10": 3.833379234042553,
+      "cop_p90": 4.55186314893617,
+      "cop_min": 3.048916666666667,
+      "cop_max": 4.936772727272727
+     }
+    }
+   }
+  },
+  "sensor:cop_dhw_day": {
+   "state": "unknown",
+   "attributes": {
+    "state_class": "measurement",
+    "period": "day",
+    "mode": "dhw",
+    "n_hours": null,
+    "n_samples": null,
+    "cop_mean": null,
+    "cop_p10": null,
+    "cop_p90": null,
+    "cop_min": null,
+    "cop_max": null,
+    "by_mode": {
+     "heating": {
+      "n_hours": 23,
+      "n_samples": 235,
+      "cop_mean": 4.228250638297873,
+      "cop_p10": 3.833379234042553,
+      "cop_p90": 4.55186314893617,
+      "cop_min": 3.048916666666667,
+      "cop_max": 4.936772727272727
+     }
+    }
+   }
+  },
+  "sensor:cop_dhw_week": {
+   "state": "unknown",
+   "attributes": {
+    "state_class": "measurement",
+    "period": "week",
+    "mode": "dhw",
+    "n_hours": null,
+    "n_samples": null,
+    "cop_mean": null,
+    "cop_p10": null,
+    "cop_p90": null,
+    "cop_min": null,
+    "cop_max": null,
+    "by_mode": {
+     "heating": {
+      "n_hours": 23,
+      "n_samples": 235,
+      "cop_mean": 4.228250638297873,
+      "cop_p10": 3.833379234042553,
+      "cop_p90": 4.55186314893617,
+      "cop_min": 3.048916666666667,
+      "cop_max": 4.936772727272727
+     }
+    }
+   }
+  },
+  "sensor:cop_dhw_month": {
+   "state": "unknown",
+   "attributes": {
+    "state_class": "measurement",
+    "period": "month",
+    "mode": "dhw",
+    "n_hours": null,
+    "n_samples": null,
+    "cop_mean": null,
+    "cop_p10": null,
+    "cop_p90": null,
+    "cop_min": null,
+    "cop_max": null,
+    "by_mode": {
+     "heating": {
+      "n_hours": 23,
+      "n_samples": 235,
+      "cop_mean": 4.228250638297873,
+      "cop_p10": 3.833379234042553,
+      "cop_p90": 4.55186314893617,
+      "cop_min": 3.048916666666667,
+      "cop_max": 4.936772727272727
+     }
+    }
+   }
+  },
+  "sensor:cop_cooling_day": {
+   "state": "unknown",
+   "attributes": {
+    "state_class": "measurement",
+    "period": "day",
+    "mode": "cooling",
+    "n_hours": null,
+    "n_samples": null,
+    "cop_mean": null,
+    "cop_p10": null,
+    "cop_p90": null,
+    "cop_min": null,
+    "cop_max": null,
+    "by_mode": {
+     "heating": {
+      "n_hours": 23,
+      "n_samples": 235,
+      "cop_mean": 4.228250638297873,
+      "cop_p10": 3.833379234042553,
+      "cop_p90": 4.55186314893617,
+      "cop_min": 3.048916666666667,
+      "cop_max": 4.936772727272727
+     }
+    }
+   }
+  },
+  "sensor:cop_cooling_week": {
+   "state": "unknown",
+   "attributes": {
+    "state_class": "measurement",
+    "period": "week",
+    "mode": "cooling",
+    "n_hours": null,
+    "n_samples": null,
+    "cop_mean": null,
+    "cop_p10": null,
+    "cop_p90": null,
+    "cop_min": null,
+    "cop_max": null,
+    "by_mode": {
+     "heating": {
+      "n_hours": 23,
+      "n_samples": 235,
+      "cop_mean": 4.228250638297873,
+      "cop_p10": 3.833379234042553,
+      "cop_p90": 4.55186314893617,
+      "cop_min": 3.048916666666667,
+      "cop_max": 4.936772727272727
+     }
+    }
+   }
+  },
+  "sensor:cop_cooling_month": {
+   "state": "unknown",
+   "attributes": {
+    "state_class": "measurement",
+    "period": "month",
+    "mode": "cooling",
+    "n_hours": null,
+    "n_samples": null,
+    "cop_mean": null,
+    "cop_p10": null,
+    "cop_p90": null,
+    "cop_min": null,
+    "cop_max": null,
+    "by_mode": {
+     "heating": {
+      "n_hours": 23,
+      "n_samples": 235,
+      "cop_mean": 4.228250638297873,
+      "cop_p10": 3.833379234042553,
+      "cop_p90": 4.55186314893617,
+      "cop_min": 3.048916666666667,
+      "cop_max": 4.936772727272727
+     }
+    }
+   }
+  },
+  "sensor:daily_summary_recent": {
+   "state": "4",
+   "attributes": {
+    "state_class": "measurement",
+    "days_available": 2,
+    "days_count": 2,
+    "latest_day": "2026-11-22",
+    "oldest_day": "2026-11-21",
+    "days": [
+     {
+      "day": "2026-11-22",
+      "mode": "heating",
+      "cycles": 0,
+      "runs": 2,
+      "dur_min": 591.4,
+      "dur_min_avg": 295.7,
+      "dur_max": 426.7,
+      "quality_avg": null,
+      "buh": 0,
+      "defrost": 0
+     },
+     {
+      "day": "2026-11-21",
+      "mode": "heating",
+      "cycles": 4,
+      "runs": 4,
+      "dur_min": 830.7,
+      "dur_min_avg": 207.7,
+      "dur_max": 449.8,
+      "quality_avg": 78.2,
+      "buh": 0,
+      "defrost": 3
+     }
+    ],
+    "totals_by_mode": {
+     "heating": {
+      "days": 2,
+      "cycles": 4,
+      "dur_min": 1422.1,
+      "buh": 0,
+      "defrost": 3
+     },
+     "dhw": {
+      "days": 0,
+      "cycles": 0,
+      "dur_min": 0.0,
+      "buh": 0,
+      "defrost": 0
+     },
+     "cooling": {
+      "days": 0,
+      "cycles": 0,
+      "dur_min": 0.0,
+      "buh": 0,
+      "defrost": 0
+     }
+    },
+    "events_by_day": {
+     "2026-11-21": {
+      "buh_min": 0.0,
+      "defrost_events": 14
+     },
+     "2026-11-22": {
+      "buh_min": 0.0,
+      "defrost_events": 2
+     }
+    }
+   }
+  },
+  "binary_sensor:compressor_running": {
+   "state": "on",
+   "attributes": {}
+  },
+  "binary_sensor:pendulum_hourly": {
+   "state": "off",
+   "attributes": {}
+  },
+  "binary_sensor:pendulum_daily": {
+   "state": "off",
+   "attributes": {}
+  },
+  "binary_sensor:short_run": {
+   "state": "off",
+   "attributes": {}
+  },
+  "binary_sensor:short_off": {
+   "state": "off",
+   "attributes": {}
+  },
+  "binary_sensor:short_cycling_pattern": {
+   "state": "off",
+   "attributes": {
+    "window_min": 60,
+    "min_cycles_threshold": 3,
+    "short_run_threshold_min": 20,
+    "pattern_count_60min": 0,
+    "recent_short_runs": []
+   }
+  },
+  "binary_sensor:defrost_active": {
+   "state": "on",
+   "attributes": {}
+  },
+  "binary_sensor:buh_active": {
+   "state": "off",
+   "attributes": {
+    "step": 0
+   }
+  },
+  "binary_sensor:dhw_active": {
+   "state": "off",
+   "attributes": {}
+  },
+  "binary_sensor:heating_active": {
+   "state": "on",
+   "attributes": {}
+  },
+  "binary_sensor:cooling_active": {
+   "state": "off",
+   "attributes": {}
+  },
+  "binary_sensor:source_stale": {
+   "state": "off",
+   "attributes": {}
+  },
+  "binary_sensor:cop_physically_impossible": {
+   "state": "off",
+   "attributes": {}
+  },
+  "binary_sensor:missing_attributes": {
+   "state": "on",
+   "attributes": {}
+  },
+  "binary_sensor:setpoint_oscillating": {
+   "state": "off",
+   "attributes": {}
+  },
+  "binary_sensor:dhw_pendulum": {
+   "state": "off",
+   "attributes": {}
+  },
+  "binary_sensor:dhw_installed": {
+   "state": "on",
+   "attributes": {}
+  },
+  "binary_sensor:high_cycle_rate": {
+   "state": "off",
+   "attributes": {}
+  }
+ },
+ "repairs": {
+  "active": [
+   {
+    "issue_id": "missing_attrs_8ef865c795",
+    "severity": "warning",
+    "translation_key": "missing_attrs",
+    "is_fixable": false
+   }
+  ],
+  "count": 1
+ },
+ "anon_id": "8ef865c795"
+}

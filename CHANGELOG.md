@@ -3,6 +3,18 @@
 ## [Unreleased]
 
 ### Fixed
+- Hot water inside a heating run was counted as heating on a source
+  without `I/U operation mode` (EDLA with an ESPAltherma v1 definition):
+  its `Operation Mode` is the outdoor unit's mode and stays "Heating" while
+  the tank is heated, so only the 3-way valve shows hot water. For such a
+  source the valve now splits a running run into hot water and back (60 s
+  debounce, only while the compressor runs; a valve resting ON after a
+  power loss has the compressor off), and `dhw_active` follows the
+  detected hot-water run. Sources with an indoor mode are unchanged
+  (Reported in #487).
+- `tools/ingest_diagnostics.py`: entity keys of a device with an area kept
+  the area name ("garden_...") and broke the card replay; keys now start
+  after `daikin_cycle_ml_` (Part of #487).
 - `runtime_compressor_today`: a run open across midnight is counted in its
   mode (`heating_s` / `dhw_s` / `cooling_s`) like in the state; a heating
   run open for 16 h showed 9.9 h as state and 0 s for heating (Part of #485).
@@ -22,6 +34,13 @@
   word end with an ellipsis. The attribute is not recorded (Part of #483).
 
 ### Changed
+- Bug report form: the version list was frozen at "1.22.1 (latest)" and
+  the form had lost its description fields, so reports arrived without a
+  description (#487). The version list is now rebuilt from the manifest
+  and CHANGELOG by `tools/sync_issue_template.py` (a test fails when a
+  release forgets it); new fields: area, what happens, what you expected,
+  when, ESPAltherma version, log lines; a privacy note on diagnostics.
+  New feature request form.
 - Integration Quality Scale: Platinum (self-declared; Home Assistant grades
   only core integrations). Every rule is now met in the code and checked by
   tests/test_iqs_rules.py (Part of #481).
@@ -44,6 +63,14 @@
   (Part of #481).
 
 ### Tests
+- test_487_dhw_valve_only: replay of the reporter's source (no I/U
+  operation mode) with the valve pattern of the issue's history, fails on
+  the old code; `dhw_active` truth table.
+- Corpus: edla09d3v3_1_29_1 (EDLA09D3V3, ESPAltherma v1, 32 values);
+  test_corpus_native_cards accepts a source without R3T (liquid
+  temperature) as long as the card then shows none.
+- test_issue_template: version list in sync with the manifest, required
+  description fields, feature request form.
 - test_erla11_open_run_and_trend: replay of the corpus file erla11dav3
   v1.29.1 (open run across midnight, trend fit r2 0.03).
 - Corpus: erla11dav3_1_29_1 (ERLA11DAV3, 16 h run across midnight,

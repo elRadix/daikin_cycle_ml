@@ -26,20 +26,70 @@ body:
           required: true
         - label: I will attach a diagnostics file (or a SQL extract below)
           required: true
-# PART1
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Where you see the problem (pick the closest).
+      options:
+        - "Cycle detection (runs, hot water, defrost, backup heater)"
+        - "COP, energy, SPF"
+        - "Alerts and notifications"
+        - "Native card: Daily summary"
+        - "Native card: Efficiency"
+        - "Native card: Performance / model profile"
+        - "YAML dashboard card"
+        - "Heating-curve advice"
+        - "Setup, options, model choice"
+        - "Something else"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_happens
+    attributes:
+      label: What happens
+      description: What you see, on which card or sensor, and since when.
+      placeholder: |
+        Example: the Daily summary card shows no hot-water runs since 20 November,
+        although the tank heats up every morning around 06:00.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      placeholder: "Example: one hot-water run every morning."
+    validations:
+      required: true
+
+  - type: input
+    id: when
+    attributes:
+      label: When did it last happen?
+      description: Date and time of one example, so it can be found in the diagnostics and history.
+      placeholder: "2026-11-22 06:15"
 
   - type: dropdown
     id: integration_version
     attributes:
       label: Daikin Cycle ML version
-      description: Settings -> Devices & Services -> Daikin Cycle ML (top right of the entry)
+      description: >
+        Settings -> Devices & Services -> Daikin Cycle ML (the version is
+        shown on the entry), or HACS -> Daikin Cycle ML. The list is
+        updated with every release.
       options:
-        - "1.22.1 (latest)"
-        - "1.22.0"
-        - "1.21.0"
-        - "1.20.x"
-        - "1.19.x or older"
-        - "Other (specify in what-happens)"
+        # VERSIONS:BEGIN (tools/sync_issue_template.py)
+        - "1.29.1 (latest)"
+        - "1.29.0"
+        - "1.28.1"
+        - "1.28.0"
+        - "1.27.1"
+        - "1.27.0"
+        - "Older (type the exact version under Anything else)"
+        # VERSIONS:END
     validations:
       required: true
 
@@ -47,7 +97,8 @@ body:
     id: ha_version
     attributes:
       label: Home Assistant Core version
-      placeholder: "2026.11.0"
+      description: Settings -> About
+      placeholder: "e.g. 2026.11.2"
     validations:
       required: true
 
@@ -60,18 +111,44 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: espaltherma_version
+    attributes:
+      label: ESPAltherma version
+      description: Optional. The firmware on your ESP (for example a release tag, or "beta" with its date).
+      placeholder: "e.g. v2.x / beta 2026-11"
+
   - type: dropdown
     id: source_type
     attributes:
       label: Source type
       options:
         - "Monolithic entity (sensor.althermasensors)"
-        - "Individual entities (sensor.espaltherma_*)"
+        - "Individual entities (ESPAltherma v2, sensor.espaltherma_*)"
         - "Auto-detect"
         - "Not sure"
     validations:
       required: true
-# PART2
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log lines
+      description: >
+        Optional. Lines from Settings -> System -> Logs that mention
+        daikin_cycle_ml. For more detail, add this to configuration.yaml
+        and restart:
+        logger: / default: warning / logs: / custom_components.daikin_cycle_ml: debug
+      render: shell
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: >
+        Screenshots of the card or of the Home Assistant history help a lot
+        (for example the attributes of the ESPAltherma sensor during the
+        moment it went wrong), or a SQL extract.
 
   - type: markdown
     attributes:
@@ -86,4 +163,8 @@ body:
 
         If the file is >10 MB: open it in a text editor, remove the
         `database.extra.daily_summary` block, then attach the trimmed file.
-# PART4
+
+        **Privacy:** passwords, tokens, the notify service and your
+        location are removed before download. The file still contains your
+        entity names and the ESPAltherma values: read it first if that
+        matters to you. Shared files may be kept, anonymised, as test data.

@@ -260,8 +260,12 @@ def _is_dhw_active(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> bool:
 
     The 3-way valve default-rests in DHW position on Daikin units
     (fail-safe for boiler priority on power loss). Valve state alone
-    is therefore NOT a valid DHW signal.
+    is therefore NOT a valid DHW signal. #487: a source without any I/U
+    operation mode (EDLA ESPAltherma v1) has only the valve; there the
+    detector's running DHW run (valve ON while the compressor runs) counts.
     """
+    if not isinstance((s.attrs or {}).get(ATTR_IU_OPERATION_MODE), str):
+        return s.state == "running" and s.mode == "dhw"
     if not _attr_contains_mode(s.attrs, ATTR_IU_OPERATION_MODE, MODE_DHW):
         return False
     if s.state == "running":

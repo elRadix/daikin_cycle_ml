@@ -114,6 +114,25 @@
   "generated_at": "2026-11-22T09:55:40.819842+01:00"
  },
  {
+  "file": "edla09d3v3_1_29_1_8ef865c795_202611220957.json",
+  "anon_id": "8ef865c795",
+  "origin": "user",
+  "note": "EDLA09D3V3 monolithic ESPAltherma v1 (32 attributes, no I/U operation mode, no pump state, no BUH steps), v1.29.1: hot water heated inside a 24/7 heating run is counted as heating (Operation Mode stays Heating, the 3-way valve is the only DHW signal)",
+  "model": "edla09d3v3",
+  "unit_model": null,
+  "integration_version": "1.29.1",
+  "ha_version": "2026.11.2",
+  "source_type": "monolithic",
+  "source_chosen": null,
+  "is_hybrid": false,
+  "is_bivalent": false,
+  "dhw_present": true,
+  "power_meter": true,
+  "cycles": 4,
+  "cop_samples": 255,
+  "generated_at": "2026-11-22T09:57:10.427973+00:00"
+ },
+ {
   "file": "epra08eav3_1_29_0_95d43f8546_202611220929.json",
   "anon_id": "95d43f8546",
   "origin": "user",
