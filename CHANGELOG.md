@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.30.1] - 2026-11-22
+
 ### Fixed
 - Native cards (daily summary 1.1.2, efficiency 1.3.1, performance 1.2.2):
   with several heat pumps on one Home Assistant and no `device_id`, every
