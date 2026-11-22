@@ -25,7 +25,8 @@
  *   language:    '' (auto) | en | nl | fr
  *   show_help:   true | false
  *   min_flow:    minimum water flow of your unit in l/min (installation manual)
- *   target_dt:   target ΔT of the installation in K (installer setting; default 5)
+ *   target_dt:   target ΔT of the installation in K (installer setting); default
+ *                the integration's good dT threshold, else 5
  *   climate_entity: Daikin climate entity of the leaving water or its offset;
  *                the Advice tab can then change it (one step, or the advice)
  *   room_entity: room sensor or room thermostat (climate: temperature + setpoint)
@@ -319,7 +320,7 @@
       device_id: "Heat pump (when you have several)", title: "Title", default_tab: "Tab shown first",
       range: "Live graphs: time range", tabs: "Tabs", language: "Language", show_help: "Show help",
       min_flow: "Minimum flow of your unit (l/min, from the installation manual)",
-      target_dt: "Target ΔT of your installation (K, set by your installer; Daikin default 5)",
+      target_dt: "Target ΔT of your installation (K; empty = the integration's good dT threshold)",
       climate_entity: "Daikin climate entity of the leaving water (or its offset): change the curve from the card",
       room_entity: "Room sensor or room thermostat (sensor or climate entity)",
     };

@@ -64,7 +64,7 @@ arrives.
 | `language` | auto | `en`, `nl`, `fr` | Card language; auto = Home Assistant language, then the integration language |
 | `show_help` | `true` | `true`, `false` | Help section at the bottom of each tab |
 | `min_flow` | none | l/min | Minimum water flow of your unit, from its installation manual. Shown as a line in the flow graph; a flow below it is flagged |
-| `target_dt` | 5 | K | Target ΔT of your installation (leaving minus return water), as your installer set it; 2 to 15. The flow graph's target line and the verdicts use it: below 60 % of it is "much water for little heat", above it + 3 K "too little flow" |
+| `target_dt` | the integration's **Good dT threshold**, else 5 | K | Target ΔT of your installation (leaving minus return water), as your installer set it; 2 to 15. The flow graph's target line and the verdicts use it: below 60 % of it is "much water for little heat", above it + 3 K "too little flow" |
 | `climate_entity` | none | a `climate` entity | Your Daikin climate entity of the leaving water temperature or its offset (for example from the Daikin Onecta integration). The Advice tab then shows its value with − / + one step and, when the advice says so, **Apply the advice** (for example +2 °C). Without it the Advice tab asks for it (#491) |
 | `room_entity` | none | a `sensor` or `climate` entity | Your room sensor or room thermostat. A sensor gives the room temperature; a thermostat also gives the room setpoint. The comfort check and the advice then follow your room; without a room the Advice tab asks for it (#491) |
 

@@ -22,6 +22,10 @@
   advanced chart (axis now follows the values, round steps, "below the
   leaving water" text for a negative difference); curve legend shows
   every point colour as a dot (#491).
+- Efficiency card: the target ΔT ignored the integration's "Good dT
+  threshold" (set to 4 K for underfloor heating) and stayed at 5 K.
+  `hp_specs` now carries `target_dt_k`; the card uses it when its own
+  `target_dt` option is empty (#492).
 - Performance card 1.2.1: the compressor dial starts at 0 rps (8 rps under
   a learned 10.4 rps minimum read 0 %); profile fields take decimals (10.4
   failed validation); the add-point row has examples and an explanation
@@ -91,6 +95,9 @@
   (Part of #481).
 
 ### Tests
+- test_492_target_dt: the reporter's 4 K threshold reaches `hp_specs`
+  and the card's flow verdict, target line and help (fails on the old
+  code); the card option still wins; out-of-range values fall back to 5.
 - test_491_card_feedback: the reporter's situations on the cards' code
   (warm room with raise advice, liquid below −3 K, legend, 8 rps under a
   10.4 rps minimum, profile inputs), the engine's raise/lower gate,

@@ -26,6 +26,9 @@
   "Comfortable: room 22.5 ° for 22 °": the advice never contradicts the
   comfort check any more, and its tiles show the advised value only when
   the advice is to change (#491).
+- The target ΔT stayed at 5 K although the integration was set up with
+  a good dT threshold of 4 K (underfloor heating): without the card option
+  `target_dt` the card now uses the integration's setting (#492).
 - Advanced: liquid − leaving water below −3 K fell off the chart; the
   axis follows the values with round steps, and a negative difference
   reads "below the leaving water" (#491).

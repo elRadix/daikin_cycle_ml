@@ -310,7 +310,11 @@
         offAbove: num(specs.off_above_c), kw: num(specs.kw), points: Array.isArray(specs.points) ? specs.points : [],
         minFlow: num(config && config.min_flow),
         /* #466: target ΔT of this installation (card option target_dt, 2-15 K) */
-        dtTarget: (() => { const d = num(config && config.target_dt); return d !== null && d >= 2 && d <= 15 ? d : 5; })(),
+        /* #492: else the ΔT target set in the integration (good dT threshold) */
+        dtTarget: (() => {
+          for (const d of [num(config && config.target_dt), num(specs.target_dt_k)]) if (d !== null && d >= 2 && d <= 15) return d;
+          return 5;
+        })(),
       },
       live,
       win: windowed(buf, now, range), day: windowed(buf, now, "24h"),
