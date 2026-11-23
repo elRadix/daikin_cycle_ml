@@ -1,6 +1,6 @@
-# Performance Card (native)
+# Performance — native card
 
-The third **native** Lovelace card of **Daikin Cycle ML**:
+A native card of **Daikin Cycle ML**:
 `type: custom:daikin-performance-card`. A car-style cluster that shows how
 hard your heat pump works **against what its own model can deliver** at
 today's outdoor and water temperature: capacity used, compressor speed and
@@ -9,6 +9,8 @@ heat the heat pump still has in reserve. The integration serves the card
 itself: nothing to install, no YAML to paste.
 
 **[Installation](#installation)** · **[Options](#options)** · **[What the dials show](#what-the-dials-show)** · **[Model profile](#model-profile)** · **[Where the maximum heat comes from](#where-the-maximum-heat-comes-from)** · **[Troubleshooting](#troubleshooting)**
+
+[CHANGELOG](CHANGELOG.md) · [All cards](../../README.md)
 
 | Phone | Model profile | Dark |
 |---|---|---|

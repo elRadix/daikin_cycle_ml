@@ -1,16 +1,14 @@
-# Daily Summary Tabbed Card
+# Daily summary (tabbed) — YAML card
 
-Multi-tab Lovelace dashboard card for **Daikin Cycle ML** with 5 views — Overview, Quality, Cycles, Duration, Events — interactive popups, and EN/NL auto-detection.
+Per-day data in five tabs (overview, quality, cycles, duration, events) over 7, 15 or 30 days, with pop-ups. English, Dutch and French, dark mode.
 
-**📥 [Copy the YAML](daily-summary-tabbed.yaml)** · **[Installation](#installation)** · **[Variables](#variables)** · **[Troubleshooting](#troubleshooting)**
+> **Native alternative:** the [Daily summary card](../daikin-daily-summary-card/README.md) has the same tabs and more, without YAML.
 
-![Overview tab](screenshot-overview.png)
-![Quality tab](screenshot-quality.png)
-![Cycles tab](screenshot-cycles.png)
-![Duration tab](screenshot-duration.png)
-![Events tab](screenshot-events.png)
+[CHANGELOG](CHANGELOG.md) · [All cards](../../README.md) · [YAML card guide](../README.md)
 
----
+| Overview | Quality | Cycles | Duration | Events |
+|---|---|---|---|---|
+| ![Overview](screenshot-overview.png) | ![Quality](screenshot-quality.png) | ![Cycles](screenshot-cycles.png) | ![Duration](screenshot-duration.png) | ![Events](screenshot-events.png) |
 
 ## What it shows
 
@@ -30,7 +28,7 @@ Multi-tab Lovelace dashboard card for **Daikin Cycle ML** with 5 views — Overv
 
 ### Backend
 
-- **daikin_cycle_ml** `>= v1.12.0`
+- **Daikin Cycle ML** 1.24 or newer (re-paste the YAML after an update)
 
 ### Frontend (HACS cards)
 
@@ -46,7 +44,7 @@ Install each via **HACS → Frontend → Explore & Download Repositories**. Rest
 
 ## Installation
 
-1. Install the 4 HACS frontend cards (see above).
+1. Install the three HACS frontend cards (see above).
 2. Restart Home Assistant.
 3. Hard-refresh browser (Ctrl+Shift+R).
 4. Open **Lovelace → Edit dashboard → + Add Card → Manual**.

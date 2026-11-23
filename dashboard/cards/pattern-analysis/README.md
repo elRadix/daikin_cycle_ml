@@ -1,16 +1,14 @@
-# Pattern Analysis Card
+# Pattern analysis — YAML card
 
-Multi-tab Lovelace dashboard card for **Daikin Cycle ML** with 3 views — Distribution, Scatter, and COP — interactive popups, dual-axis trends, dark-mode support, and EN/NL entity auto-detection.
+Three tabs: how long your runs last (distribution), cycles against run length per day (scatter), and COP with its trends. English, Dutch and French, dark mode.
 
-**[Copy the YAML](pattern-analysis.yaml)** · **[Installation](#installation)** · **[Variables](#variables)** · **[Troubleshooting](#troubleshooting)**
+[CHANGELOG](CHANGELOG.md) · [All cards](../../README.md) · [YAML card guide](../README.md)
 
-![Pattern Analysis showcase - animated cycling through Distribution, Scatter and COP tabs](showcase.gif)
+![Pattern analysis: Distribution, Scatter and COP tabs (animated)](showcase.gif)
 
 | Distribution | Scatter | COP |
 |---|---|---|
 | ![Distribution tab](screenshot-distribution.png) | ![Scatter tab](screenshot-scatter.png) | ![COP tab](screenshot-cop.png) |
-
----
 
 ## What it shows
 
@@ -28,7 +26,7 @@ Multi-tab Lovelace dashboard card for **Daikin Cycle ML** with 3 views — Distr
 
 ### Backend
 
-- **daikin_cycle_ml** `>= v1.21.0`
+- **Daikin Cycle ML** 1.24 or newer (re-paste the YAML after an update)
 
 ### Frontend (HACS cards)
 
@@ -44,7 +42,7 @@ Install each via **HACS → Frontend → Explore & Download Repositories**. Rest
 
 ## Installation
 
-1. Install the 4 HACS frontend cards (see above).
+1. Install the three HACS frontend cards (see above).
 2. Restart Home Assistant.
 3. Hard-refresh browser (Ctrl+Shift+R).
 4. Open **Lovelace → Edit dashboard → + Add Card → Manual**.

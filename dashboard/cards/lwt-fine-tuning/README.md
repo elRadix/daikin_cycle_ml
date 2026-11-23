@@ -1,14 +1,16 @@
-# LWT Fine-Tuning Card
+# LWT fine-tuning — YAML card
 
-Interactive Lovelace card for **heating curve optimization**, **LWT (Leaving Water Temperature) analysis**, and **COP efficiency insights** — powered by Daikin Cycle ML sensor data.
+The heating-curve advice in four tabs: advice, outdoor bands, slope / offset analysis and the live water temperature. English, Dutch and French, dark mode.
 
-![LWT Fine-Tuning — 4-tab demo (animated)](showcase.gif)
+> **Native alternative:** the [Efficiency card](../daikin-efficiency-card/README.md) shows the curve advice (*Advice* and *Curve* tabs) without YAML. This card still adds the slope / offset analysis.
+
+[CHANGELOG](CHANGELOG.md) · [All cards](../../README.md) · [YAML card guide](../README.md)
+
+![LWT fine-tuning: 4 tabs (animated)](showcase.gif)
 
 | Advice | Buckets | Analysis | Live |
 |---|---|---|---|
 | ![Advice tab](lwt_advice.png) | ![Buckets tab](lwt_bucket.png) | ![Analysis tab](lwt_analysis.png) | ![Live tab](lwt_live.png) |
-
----
 
 ## What this card does
 
@@ -329,11 +331,3 @@ See [Variables, language and theme](#variables-language-and-theme).
 - No external network calls, no template helpers — pure client-side rendering.
 
 ---
-
-## Version history
-
-See `CHANGELOG.md`.
-
-## License
-
-Same as the parent project (see repo root).

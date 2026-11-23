@@ -1,61 +1,12 @@
-# Daily Summary Card — Daikin Cycle ML
+# Summary — YAML card
 
-A powerful Lovelace card for the **Daikin Cycle ML** integration. It renders
-the full cycle history exposed by
-`sensor.daikin_cycle_ml_daily_summary_recent` as dynamic SVG charts:
-sparklines, a dynamically colored quality line chart, stacked
-cycles / duration bars, and a BUH / defrost event strip. Auto-scaling,
-HP-spec-aware hero, fully bilingual (NL / EN).
+A one-page multi-day summary: quality, cycles, run length and events over the last days. English, Dutch and French, dark mode.
 
-> **Note:** the entity_id above is the English default. The card finds
-> the entity automatically on Dutch/French installs
-> (`..._recent_dagoverzicht`, `..._resume_des_derniers_jours`) and after
-> you rename it, via the entity registry (#347, #369).
+> **Native alternative:** the [Daily summary card](../daikin-daily-summary-card/README.md) covers this card without YAML.
 
-**Requires:** Daikin Cycle ML `>= v1.7.1`
-**Frontend deps:** `stack-in-card`, `button-card`, `card_mod`
-**HA Core:** 2026.9+
+[CHANGELOG](CHANGELOG.md) · [All cards](../../README.md) · [YAML card guide](../README.md)
 
----
-
-## Table of contents
-
-- [Preview](#preview)
-- [What it shows](#what-it-shows)
-- [Color coding](#color-coding)
-- [Features](#features)
-  - [Dynamic and smart](#dynamic-and-smart)
-  - [Quality trending](#quality-trending)
-  - [Interactive](#interactive)
-  - [Robust](#robust)
-- [Language switch](#language-switch)
-- [Installation](#installation)
-  - [Requirements](#requirements)
-  - [Step 1: Install the frontend cards](#step-1-install-the-frontend-cards)
-  - [Step 2: Add the card](#step-2-add-the-card)
-  - [Step 3: Configure (optional)](#step-3-configure-optional)
-- [Entity mapping](#entity-mapping)
-- [Test scenarios](#test-scenarios)
-- [Troubleshooting](#troubleshooting)
-- [Customization](#customization)
-- [Data sources](#data-sources)
-- [Performance](#performance)
-- [License](#license)
-
----
-
-## Preview
-
-[![Daily Summary Card — full cycle history](showcase.png)](showcase.png)
-
-Rendered with real production data (8 days, 19 cycles). Click the image to
-open it full-size.
-
-- Local image: [`showcase.png`](showcase.png)
-- Raw image URL:
-  `https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daily-summary/showcase.png`
-
----
+![Summary card](showcase.png)
 
 ## What it shows
 
@@ -179,7 +130,7 @@ HACS frontend cards (install via **HACS → Frontend**):
 
 Integration:
 
-- Daikin Cycle ML **v1.7.1 or newer**
+- **Daikin Cycle ML** 1.24 or newer (re-paste the YAML after an update)
 - Sensor `sensor.daikin_cycle_ml_daily_summary_recent` must exist
 - Optional: `sensor.daikin_cycle_ml_hp_specs` for model info in the hero
 
@@ -238,21 +189,6 @@ The card is 100% read-only. It reads from:
 | `kw` | Hero: for example `12 kW` |
 
 If an attribute is missing, the card shows `—` and keeps working.
-
----
-
-## Test scenarios
-
-| Scenario | Expected behavior |
-|---|---|
-| 8 days, 2 cycles/day | Everything visible normally |
-| 30 days, 144 cycles/day | Bars ~10 px, labels every 3rd day |
-| 90 days 24/7 | Bars 3 px, labels every 7th day, big numbers |
-| DHW > 24 h outlier | Cap to 24 h, warning chip appears |
-| No cooling | Cooling tile and legend hidden |
-| 1 day of data | Best / worst are the same day, charts with 1 element |
-| All sensors `unknown` | All values render `—`, no crash |
-| JS error | Shows `Summary error: [message]` |
 
 ---
 
@@ -361,21 +297,6 @@ Daikin HP -> ESPAltherma -> sensor.althermasensors
 
 Retention: cycles 90 d (prod 365) · daily summary permanent · COP samples
 365 d.
-
----
-
-## Performance
-
-| Metric | Value |
-|---|---|
-| First render | < 100 ms |
-| Update on state change | < 20 ms |
-| DOM nodes | ~150 |
-| SVG elements | ~80 |
-| Data size | < 15 KB |
-
-The card renders only on `state_changed` events of the involved entities.
-No polling.
 
 ---
 

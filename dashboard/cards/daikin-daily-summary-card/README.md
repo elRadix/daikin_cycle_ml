@@ -1,6 +1,6 @@
-# Daily Summary Card (native)
+# Daily summary — native card
 
-The first **native** Lovelace card of **Daikin Cycle ML**:
+A native card of **Daikin Cycle ML**:
 `type: custom:daikin-daily-summary-card`. Six tabs (Today, Overview,
 Quality, Cycles, Duration, Events), today's live run and alerts, day
 details on tap, English / Dutch / French, light and dark theme. The
@@ -8,6 +8,8 @@ integration serves the card itself: **nothing to install, no YAML to
 paste**, and it updates with the integration.
 
 **[Installation](#installation)** · **[Options](#options)** · **[Tabs](#tabs-overview)** · **[Troubleshooting](#troubleshooting)**
+
+[CHANGELOG](CHANGELOG.md) · [All cards](../../README.md)
 
 ![Tab tour](showcase.gif)
 

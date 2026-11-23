@@ -1,6 +1,6 @@
-# Efficiency Card (native)
+# Efficiency — native card
 
-The second **native** Lovelace card of **Daikin Cycle ML**:
+A native card of **Daikin Cycle ML**:
 `type: custom:daikin-efficiency-card`. It merges the
 [LWT fine-tuning](../lwt-fine-tuning/README.md),
 [COP & energy](../cop-energy/README.md) and
@@ -11,6 +11,8 @@ within the datasheet limits of your model. The integration serves the
 card itself: nothing to install, no YAML to paste.
 
 **[Installation](#installation)** · **[Options](#options)** · **[Tabs](#tabs)** · **[How the verdicts work](#how-the-verdicts-work)** · **[Data](#where-the-data-comes-from)** · **[Troubleshooting](#troubleshooting)**
+
+[CHANGELOG](CHANGELOG.md) · [All cards](../../README.md)
 
 | Live | Today | Efficiency | Curve | Advice | Dark |
 |---|---|---|---|---|---|
