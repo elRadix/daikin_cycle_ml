@@ -7,7 +7,7 @@ have; every page has its own table of contents.
 
 | I want to... | Read |
 |---|---|
-| Install and set up, with screenshots | [Getting started](GETTING_STARTED.md) |
+| Install and set up, with screenshots | [Getting started](GETTING_STARTED.md) · [Nederlands](setup/nl.md) · [Français](setup/fr.md) |
 | A quick answer | [FAQ](FAQ.md) |
 | Fix something that does not work | [Troubleshooting](TROUBLESHOOTING.md) |
 | Change an option | [Configuration](CONFIGURATION.md) |

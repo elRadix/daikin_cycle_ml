@@ -980,6 +980,12 @@
         "individual": "Individual entities (ESPAltherma v2 beta, sensor.espaltherma_*)",
         "auto": "Auto-detect (recommended for new installs)"
       }
+    },
+    "attribute_mode": {
+      "options": {
+        "auto": "Automatic (canonical ESPAltherma names)",
+        "manual": "Manual (map each required attribute)"
+      }
     }
   },
   "services": {

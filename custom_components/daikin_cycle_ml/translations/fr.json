@@ -1218,6 +1218,12 @@
                 "individual": "Entités séparées (ESPAltherma v2, sensor.espaltherma_*)",
                 "auto": "Détection automatique (conseillé pour une nouvelle installation)"
             }
+        },
+        "attribute_mode": {
+            "options": {
+                "auto": "Automatique (noms ESPAltherma standard)",
+                "manual": "Manuel (associer chaque valeur obligatoire)"
+            }
         }
     },
     "exceptions": {

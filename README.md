@@ -23,6 +23,11 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=elRadix&repository=daikin_cycle_ml&category=integration)
 
+**Setup guide:**
+[![English](https://img.shields.io/badge/%F0%9F%87%AC%F0%9F%87%A7_English-Setup-0097E0?style=for-the-badge)](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/GETTING_STARTED.md)
+[![Nederlands](https://img.shields.io/badge/%F0%9F%87%B3%F0%9F%87%B1_Nederlands-Installatie-0097E0?style=for-the-badge)](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/setup/nl.md)
+[![Français](https://img.shields.io/badge/%F0%9F%87%AB%F0%9F%87%B7_Fran%C3%A7ais-Installation-0097E0?style=for-the-badge)](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/setup/fr.md)
+
 ---
 
 ## Contents
@@ -123,7 +128,9 @@ suggests sensible defaults.
 
 **[📖 Getting started](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/GETTING_STARTED.md)**:
 the ESPAltherma values to enable, every wizard screen, and what to check in
-the first hour, day and week.
+the first hour, day and week. Also in
+[🇳🇱 Nederlands](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/setup/nl.md) and
+[🇫🇷 Français](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/setup/fr.md).
 
 ---
 

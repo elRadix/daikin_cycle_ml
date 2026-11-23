@@ -4,6 +4,8 @@ From an ESPAltherma sensor to your first useful numbers: what the
 integration needs, the setup wizard screen by screen, and what to look at
 in the first hour, day and week.
 
+🇬🇧 English · 🇳🇱 [Nederlands](setup/nl.md) · 🇫🇷 [Français](setup/fr.md)
+
 ## Contents
 
 - [1. Before you start](#1-before-you-start)

@@ -54,3 +54,18 @@ async def test_empty_family_means_basic_profile_and_names_are_readable(hass):
     assert r["step_id"] == "model"
     assert flow._progress[r["flow_id"]]._data.get("model", MODEL_BASISPROFIEL) == MODEL_BASISPROFIEL
     flow.async_abort(r["flow_id"])
+
+
+@pytest.mark.parametrize("name", FILES)
+def test_attribute_mode_choices_and_first_screen_are_translated(name):
+    s = json.loads((TR / name).read_text(encoding="utf-8"))
+    opts = s["selector"]["attribute_mode"]["options"]
+    assert set(opts) == {"auto", "manual"} and all(opts.values())
+    if name.endswith("nl.json"):
+        desc = s["config"]["step"]["user"]["description"]
+        assert "Detected" not in desc and "Basic profile" not in desc
+
+
+def test_the_attribute_mode_selector_uses_the_translations():
+    from custom_components.daikin_cycle_ml.config_flow import _ATTRIBUTE_MODE_SELECTOR
+    assert _ATTRIBUTE_MODE_SELECTOR.config["translation_key"] == "attribute_mode"

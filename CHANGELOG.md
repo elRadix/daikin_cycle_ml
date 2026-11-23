@@ -14,6 +14,16 @@
   `docs/RECIPES.md` (automations) and `docs/FAQ.md` (answers and known
   limitations), linked from the README and the docs index. The COP source
   priority moved from the README into CONFIGURATION.md.
+- Setup guides in Dutch and French (`docs/setup/nl.md`, `docs/setup/fr.md`)
+  with screenshots of the wizard in that language; flag buttons in the
+  README. The rest of the documentation stays in English.
+- Every page in `docs/` rewritten for the current version: UPGRADE (how to
+  update, the three changes that ever needed action), ENTITIES (all 51 +
+  20 entities, 14 services, 11 repairs from the code), ML (ML v2),
+  ALERTS (21 alerts with level, group and repeat window), CONFIGURATION,
+  TROUBLESHOOTING, DATABASE (from the schema), DEVELOPMENT and the index;
+  stale v1.x text removed. Dashboard overview with native and YAML cards
+  apart.
 - `docs/DIAGNOSTICS.md`: how to get the file (card buttons or Home
   Assistant), what is removed, what each section shows and helps to find,
   and how a file you send is anonymised for the test set; linked from
@@ -43,7 +53,10 @@
   longer shows the raw key `basisprofiel` (empty = basic profile); labels
   and help for `short_cycling_window_min`, `short_cycling_min_cycles` and
   `buh_penalty_legionella_waived`; "12 required attributes" (11 since #435)
-  and a Dutch word in the English text removed; the confirm step, the entry
+  and a Dutch word in the English text removed;
+  the attribute-mode choices, the Dutch first screen and the attribute
+  check's "none" are translated; the Advanced option *Hot-water tank*
+  (`dhw_present`) has a label; the confirm step, the entry
   title and the device show the readable model ("Altherma 3 R - ERGA06EAV3
   (Split)") instead of the key; "Model profile" in the options menu has a
   description. English, Dutch and French.
