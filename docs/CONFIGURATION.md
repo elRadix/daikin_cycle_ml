@@ -761,7 +761,18 @@ Configures the electrical-input estimate used for COP.
 
 **When these settings apply:** only when no `power_sensor_entity` is configured AND the source sensor lacks the ESPAltherma 2.0 `Stats:` section. If either is present, the integration uses the better source automatically and these fields are ignored.
 
-**Priority order:** power meter > ESPAltherma 2.0 Stats > v1 inverter fallback (+100 W offset). See **README → COP without a power meter** for full explanation.
+**Priority order (highest wins):**
+
+1. Your configured **power sensor**: ground truth, no offset.
+2. **ESPAltherma 2.0 Stats** (`Stats: Electrical input estimated (kW)`):
+   detected automatically, no offset (ESPAltherma handles phases and BUH).
+3. **v1 inverter fallback**: `INV primary current × 230 V × supply phases`
+   plus the backup heater (both steps) plus 100 W for pump, fan and
+   electronics. Supply phases (1 or 3) and BUH kW per step are set here.
+
+`sensor.daikin_cycle_ml_electrical_power_estimated` shows the live value;
+its `source` attribute says which path was used (`power_meter`,
+`espaltherma_v2_stats`, `inverter_estimated_v1` or `none`).
 
 **Verify:** `sensor.daikin_cycle_ml_electrical_power_estimated` shows the current estimate. Its `source` attribute reveals which path was taken at any moment.
 

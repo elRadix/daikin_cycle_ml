@@ -3,6 +3,17 @@
 ## [Unreleased]
 
 ### Documentation
+- README rewritten short (915 -> about 215 lines): native cards first, what
+  it does, install, setup with wizard screenshots, supported heat pumps and
+  a documentation table. Stale figures removed (test and entity counts,
+  "12 required attributes", 51 datasheets, A7/W35 normalisation, ML v1
+  wording, the HT ERRQ-ERSQ unit listed as unsupported).
+- New `docs/GETTING_STARTED.md` (the ESPAltherma values to enable, every
+  setup-wizard screen with a screenshot from a real Home Assistant, the
+  options menu, first hour / day / week, hybrid and bivalent),
+  `docs/RECIPES.md` (automations) and `docs/FAQ.md` (answers and known
+  limitations), linked from the README and the docs index. The COP source
+  priority moved from the README into CONFIGURATION.md.
 - `docs/DIAGNOSTICS.md`: how to get the file (card buttons or Home
   Assistant), what is removed, what each section shows and helps to find,
   and how a file you send is anonymised for the test set; linked from
@@ -28,6 +39,14 @@
   text is kept as `model_code` in the entry and shows in diagnostics.
 
 ### Fixed
+- Setup wizard texts seen in a real Home Assistant: the family field no
+  longer shows the raw key `basisprofiel` (empty = basic profile); labels
+  and help for `short_cycling_window_min`, `short_cycling_min_cycles` and
+  `buh_penalty_legionella_waived`; "12 required attributes" (11 since #435)
+  and a Dutch word in the English text removed; the confirm step, the entry
+  title and the device show the readable model ("Altherma 3 R - ERGA06EAV3
+  (Split)") instead of the key; "Model profile" in the options menu has a
+  description. English, Dutch and French.
 - COP samples with the backup heater on (#239): every sample now carries
   `buh_active`. The heating-curve advice reads only samples without the BUH
   and the COP-vs-datasheet window skips BUH ticks: with a BUH power sensor
@@ -79,6 +98,9 @@
 - test_198_model_codes: 15 typed codes (size only, shortened, three-phase,
   series mismatch, flagged datasheets) and the wizard keeping the typed
   code (fails on the old code).
+- test_wizard_texts: readable model names, labels and help for every
+  wizard field in all languages, no stale counts, an empty family field
+  means the basic profile.
 - test_239_buh_cop_samples: the sample flag from BUH Step1 / Step2, the
   strict fetch, the heating-curve fetch and the datasheet window (fail on
   the old code).
