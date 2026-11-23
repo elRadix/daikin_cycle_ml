@@ -524,7 +524,7 @@ Yes, mentioned twice — it is stored under this exact key, no namespace prefix.
 }
 ```
 
-Full schema in [ALERTS.md Appendix D](ALERTS.md#appendix-d-store-file-format).
+Repeat windows per alert: [Alerts §4](ALERTS.md#4-quiet-hours-aggregation-and-repeat-windows).
 
 **Purpose:** dedup timestamps only. Deleting this file resets dedup state — every alert type can fire immediately once per day after restart.
 

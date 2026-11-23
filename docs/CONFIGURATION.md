@@ -745,7 +745,7 @@ Respects `notification_language` and `notify_emoji_enabled`.
 
 Single submit. Fires **every** alert type at once, ignoring group filters. Useful for template verification.
 
-Known limitation (v1.9): `kmeans_retrain_stale` may not appear in the HA notification panel when fired as part of this bulk test. Rendering works, dispatch works, but HA's `persistent_notification.create` with `blocking=False` sometimes silently drops one of 19 rapid calls. Verify individually via `send_test_notification`. See [ALERTS.md §10.3](ALERTS.md#103-known-limitation-v19-kmeans_retrain_stale-in-bulk-test) for details.
+Home Assistant may merge sidebar notifications sent in one burst, so the sidebar can show one fewer than were sent; the notify target receives all. See [Alerts §6](ALERTS.md#6-testing).
 
 ---
 
