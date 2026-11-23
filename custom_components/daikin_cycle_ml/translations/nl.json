@@ -455,6 +455,12 @@
               "season_start_month": "Eerste maand van het stookseizoen (1-12). Gebruikt voor SPF-berekening. Standaard: 10."
             }
           }
+        },
+        "data": {
+          "dhw_present": "Warmwaterboiler"
+        },
+        "data_description": {
+          "dhw_present": "auto: herkend uit de bron (3-wegklep, boilertemperatuur). always: je hebt een boiler. never: geen boiler, SWW-detectie en -meldingen blijven uit."
         }
       },
       "test_notification": {
@@ -949,7 +955,7 @@
     },
     "dhw_missing_suspect": {
       "title": "DHW-tank niet gedetecteerd",
-      "description": "Cycle ML heeft geen DHW-tank gedetecteerd, maar er bestaan historische DHW-cycli in de database. Heb je geen DHW-tank (bv. Bivalent Direct), kun je dit negeren. Heb je er wel een, controleer dan je ESPAltherma sensorconfiguratie of zet 'DHW Tank Present' op 'Always' in Opties → Geavanceerd."
+      "description": "Cycle ML heeft geen DHW-tank gedetecteerd, maar er bestaan historische DHW-cycli in de database. Heb je geen DHW-tank (bv. Bivalent Direct), kun je dit negeren. Heb je er wel een, controleer dan je ESPAltherma sensorconfiguratie of zet 'Warmwaterboiler' op 'always' in Configureren → Geavanceerd."
     }
   },
   "services": {

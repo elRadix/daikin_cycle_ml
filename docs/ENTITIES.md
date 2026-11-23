@@ -218,7 +218,7 @@ can be called with *Return response* in Developer tools.
 | `source_stale` | The source has not updated for 60 s | Check the ESP board, Wi-Fi and MQTT; clears by itself |
 | `missing_attrs` | Required values are missing from a v1 source | Enable them in the ESPAltherma definition ([Getting started §1](GETTING_STARTED.md#1-before-you-start)) |
 | `espaltherma_v2_missing_attrs` | Required ESPAltherma v2 entities are missing | Enable them in the ESPAltherma v2 web UI, restart ESPAltherma |
-| `dhw_missing_suspect` | No hot-water tank is detected, but the history has hot-water cycles | Ignore without a tank; otherwise check the source, or set *DHW tank present* to *Always* (Configure → Advanced) |
+| `dhw_missing_suspect` | No hot-water tank is detected, but the history has hot-water cycles | Ignore without a tank; otherwise check the source, or set *Hot-water tank* to *always* (Configure → Advanced) |
 | `notify_failed` | The notify target failed repeatedly | Check the notify entity or service |
 | `db_corrupt` | The database integrity check failed | Back up and delete `daikin_cycle_ml_<entry>.db`, restart ([Database](DATABASE.md)) |
 | `migration_failed` | A database migration failed | See [Troubleshooting §8](TROUBLESHOOTING.md#8-database) and open an issue with the log |

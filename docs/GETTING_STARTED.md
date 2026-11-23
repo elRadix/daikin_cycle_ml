@@ -188,4 +188,4 @@ automatically.
 **Any heat pump with an external boiler:** enable ESPAltherma's
 `Bivalent Operation` (plus `Boiler Operation Demand` / `Boiler DHW Demand`).
 When the source publishes it, boiler periods get the same handling. See
-[Configuration §4.8](CONFIGURATION.md#48-bivalent-systems--dhw-detection-guide).
+[Configuration §6.4](CONFIGURATION.md#64-bivalent-and-no-hot-water-tank).

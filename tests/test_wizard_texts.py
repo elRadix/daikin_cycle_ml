@@ -38,6 +38,8 @@ def test_every_wizard_field_has_a_label_and_no_stale_text(name):
         for f in fields:
             assert st["data"][f] and f not in st["data"][f], (name, step, f)
             assert st["data_description"][f], (name, step, f)
+    adv = s["options"]["step"]["advanced"]
+    assert adv["data"]["dhw_present"] != "dhw_present" and adv["data_description"]["dhw_present"], name
     text = json.dumps(s["config"]["step"], ensure_ascii=False)
     assert " 12 " not in text and "(pendelen)" not in text
 
