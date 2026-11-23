@@ -940,6 +940,15 @@ MODEL_ALIASES: dict[str, str] = {
 }
 
 
+def model_display(model: str) -> str:
+    """Readable model name (wizard, entry title, device): the label without
+    the brand ("Altherma 3 R - ERGA06EAV3"), else the key as given."""
+    label = MODEL_LABELS.get(model)
+    if not label:
+        return str(model)
+    return label[len("Daikin "):] if label.startswith("Daikin ") else label
+
+
 def resolve_model_key(model_code: str) -> str:
     """Resolve a commercial-name alias to its base technical model code."""
     return MODEL_ALIASES.get(model_code, model_code)

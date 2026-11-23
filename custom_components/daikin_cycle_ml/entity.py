@@ -7,7 +7,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, NAME, VERSION
+from .const import DOMAIN, NAME, VERSION, model_display
 from .coordinator import DaikinCycleMLCoordinator
 
 
@@ -33,7 +33,7 @@ class DaikinCycleMLEntity(CoordinatorEntity[DaikinCycleMLCoordinator]):
             identifiers={(DOMAIN, coordinator.entry.entry_id)},
             name=NAME,
             manufacturer="Daikin",
-            model=str(model),
+            model=model_display(str(model)),
             sw_version=VERSION,
         )
 

@@ -7,7 +7,9 @@ have; every page has its own table of contents at the top.
 
 | I want to... | Read |
 |---|---|
-| Install the integration and run the setup wizard | [Configuration](CONFIGURATION.md) §2–§3 |
+| Install the integration and run the setup wizard | [Getting started](GETTING_STARTED.md) (with screenshots), details in [Configuration](CONFIGURATION.md) §2–§3 |
+| Find a quick answer | [FAQ](FAQ.md) |
+| Copy an automation | [Recipes](RECIPES.md) |
 | Know what a sensor, binary sensor or service means | [Entities](ENTITIES.md) |
 | Understand why I got a notification, or tune an alert | [Alerts & Notifications](ALERTS.md) |
 | Understand the quality score, learned thresholds or the ML anomaly alert | [Machine Learning](ML.md) |
@@ -22,6 +24,10 @@ have; every page has its own table of contents at the top.
 
 | Page | Contents |
 |---|---|
+| [Getting started](GETTING_STARTED.md) | The ESPAltherma values to enable, every setup-wizard screen with a screenshot, the options menu, and what to check in the first hour, day and week; hybrid and bivalent systems. |
+| [FAQ](FAQ.md) | Short answers on setup, alerts, advice, data and the known limitations. |
+| [Recipes](RECIPES.md) | Automations ready to paste: heating-curve advice to your phone, every cycle in the logbook, a daily summary, an alert when ESPAltherma stops, the Energy dashboard. |
+| [Diagnostics](DIAGNOSTICS.md) | What the diagnostics file contains, what is removed, and how a file you send is anonymised. |
 | [Configuration](CONFIGURATION.md) | Source sensor requirements (ESPAltherma v1 single sensor or v2 entities, AUTO mode), the setup wizard step by step, the options menu (device, sensors incl. power / BUH power / COP sensor, thresholds, notifications, maintenance), reconfigure flows, bivalent / hybrid systems and DHW detection, and a cookbook of common setups. |
 | [Entities](ENTITIES.md) | Every sensor and binary sensor with its unit, state class and attributes (cycle state, last cycle with `quality_penalties`, today's runtime / starts / defrosts / BUH, COP day / week / month, SPF, heating-curve advice, learned thresholds, alerts today), the services, the repair issues, and automation examples. |
 | [Alerts & Notifications](ALERTS.md) | All alert types and what triggers each one (short run, short off, pendulum, BUH excessive, defrost excessive, COP low / below datasheet, ML anomaly, ...), delivery (persistent notification, notify service), aggregation windows, quiet hours, alert groups, per-alert toggles and message templates. |

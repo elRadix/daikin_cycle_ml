@@ -47,14 +47,18 @@
           "short_run_threshold_min": "Korte-rundrempel",
           "short_off_threshold_min": "Korte-uit-tijddrempel",
           "pendulum_cycles_per_day": "Pendelcycli per dag",
-          "dhw_pendulum_cycles_per_hour": "DHW-cycli per uur"
+          "dhw_pendulum_cycles_per_hour": "DHW-cycli per uur",
+          "short_cycling_window_min": "Venster voor pendelen",
+          "short_cycling_min_cycles": "Korte runs in het venster"
         },
-        "description": "Waarden hieronder markeren een cyclus als 'kort' (pendelen). Lager = strenger, meer waarschuwingen.\n\n- **Korte run** (standaard 20 min): cycli korter dan deze waarde worden gemarkeerd.\n- **Korte uit-tijd** (standaard 5 min): uit-tijden korter dan deze waarde worden gemarkeerd.\n- **Pendelcycli/dag** (standaard 35-40): dagelijks aantal dat een waarschuwing activeert.\n- **DHW-cycli/uur** (standaard 3): DHW-specifieke pendeltrigger.",
+        "description": "Waarden hieronder markeren een cyclus als 'kort'. Lager = strenger, meer waarschuwingen.\n\n- **Korte run** (standaard 20 min): cycli korter dan deze waarde worden gemarkeerd.\n- **Korte uit-tijd** (standaard 5 min): uit-tijden korter dan deze waarde worden gemarkeerd.\n- **Pendelcycli/dag** (standaard 35-40): dagelijks aantal dat een waarschuwing activeert.\n- **DHW-cycli/uur** (standaard 3): DHW-specifieke pendeltrigger.",
         "data_description": {
           "short_run_threshold_min": "Cycli korter dan deze waarde zijn 'korte runs'. Standaard 20 min. Lager = strenger.",
           "short_off_threshold_min": "Uit-tijden korter dan deze waarde zijn 'korte uit-tijden'. Standaard 5 min. Lager = strenger.",
           "pendulum_cycles_per_day": "Dagelijks aantal cycli dat een pendelwaarschuwing activeert. Standaard 35-40. Lager = meer waarschuwingen.",
-          "dhw_pendulum_cycles_per_hour": "DHW-cycli per uur die een DHW-pendelwaarschuwing activeren. Standaard 3."
+          "dhw_pendulum_cycles_per_hour": "DHW-cycli per uur die een DHW-pendelwaarschuwing activeren. Standaard 3.",
+          "short_cycling_window_min": "Tijdvenster (min) waarin korte runs worden geteld voor de pendelmelding. Standaard 60.",
+          "short_cycling_min_cycles": "Aantal korte runs binnen het venster dat de pendelmelding geeft. Standaard 3."
         }
       },
       "quality": {
@@ -63,14 +67,16 @@
           "good_run_threshold_min": "Goede rundrempel",
           "good_dt_threshold_k": "Goede dT-drempel",
           "good_off_threshold_min": "Goede uit-tijddrempel",
-          "target_cycles_per_day": "Doelcycli per dag"
+          "target_cycles_per_day": "Doelcycli per dag",
+          "buh_penalty_legionella_waived": "Geen BUH-strafpunten voor legionellaruns"
         },
         "description": "Drempels om een cyclus te scoren op 0-100. Het halen van een drempel voorkomt een strafpunt.\n\n- **Goede run** (standaard 45 min): looptijd ≥ deze waarde scoort volle punten. Lager: -30 punten.\n- **Goede dT** (standaard 5,0 K): minimale dT voor volle punten. Lager: -20 punten.\n- **Goede uit-tijd** (standaard 20 min): minimale uit-tijd voor volle punten. Lager: -20 punten.\n- **Doelcycli/dag** (standaard 8): efficiëntiedoel, gebruikt in ratio-gebaseerd advies.",
         "data_description": {
           "good_run_threshold_min": "Looptijd op of boven deze waarde scoort volle punten. Standaard 45 min. Lager = -30 punten.",
           "good_dt_threshold_k": "Minimale dT (K) voor volle punten. Standaard 5,0 K. Lager = -20 punten.",
           "good_off_threshold_min": "Minimale uit-tijd voor volle punten. Standaard 20 min. Lager = -20 punten.",
-          "target_cycles_per_day": "Doelaantal cycli per dag voor efficiënt bedrijf. Standaard 8. Gebruikt voor ratio-gebaseerd advies."
+          "target_cycles_per_day": "Doelaantal cycli per dag voor efficiënt bedrijf. Standaard 8. Gebruikt voor ratio-gebaseerd advies.",
+          "buh_penalty_legionella_waived": "De wekelijkse legionella-desinfectie gebruikt de backup-verwarming bewust: verlaag de kwaliteitsscore van die SWW-runs niet."
         }
       },
       "notifications": {
@@ -191,14 +197,14 @@
       },
       "model": {
         "title": "Daikin Cycle ML installatie",
-        "description": "Kies de ESPAltherma-bronsensor, je warmtepomp-model en hoe vereiste attributen worden gekoppeld.\n\n- **Bronsensor**: moet de 12 vereiste ESPAltherma-attributen leveren. Meestal: `sensor.althermasensors`.\n- **Model**: bepaalt de standaarddrempels.\n- **Attribuutmodus**: Automatisch gebruikt canonieke namen. Handmatig laat je elk attribuut zelf koppelen.",
+        "description": "Kies de ESPAltherma-bronsensor, je warmtepomp-model en hoe vereiste attributen worden gekoppeld.\n\n- **Bronsensor**: moet de vereiste ESPAltherma-attributen (het volgende scherm toont ze) leveren. Meestal: `sensor.althermasensors`.\n- **Model**: bepaalt de standaarddrempels.\n- **Attribuutmodus**: Automatisch gebruikt canonieke namen. Handmatig laat je elk attribuut zelf koppelen.",
         "data": {
           "source_sensor": "Bronsensor",
           "model": "Warmtepomp-model",
           "attribute_mode": "Attribuutmodus"
         },
         "data_description": {
-          "source_sensor": "ESPAltherma-sensor die de 12 vereiste warmtepompattributen levert. Meestal: sensor.althermasensors.",
+          "source_sensor": "ESPAltherma-sensor die de vereiste warmtepompattributen levert. Meestal: sensor.althermasensors.",
           "model": "Je Daikin-model. Bepaalt de standaarddrempels. Kies 'Custom' om je eigen attribuutkoppeling op te geven.",
           "attribute_mode": "Automatisch gebruikt de canonieke ESPAltherma-attribuutnamen. Handmatig laat je elk vereist attribuut koppelen aan de naam op je eigen sensor."
         }
@@ -271,7 +277,8 @@
           "advanced": "Retentie, dagelijkse rollup, VACUUM",
           "cop_calc": "Voedingsfasen en backup-verwarming voor COP",
           "test_notification": "Stuur één voorbeeldmelding naar het melding-doel",
-          "test_all_notifications": "Eén klik — stuurt elk alert-type in één keer (filters omzeild)"
+          "test_all_notifications": "Eén klik — stuurt elk alert-type in één keer (filters omzeild)",
+          "model_profile": "Eigen datasheetwaarden en het geleerde compressorbereik"
         }
       },
       "device": {
@@ -358,6 +365,14 @@
               "setpoint_osc_min_delta": "Minimale °C-wijziging om als setpointwijziging te tellen. Standaard 0.5 — filtert floating-point ruis."
             }
           }
+        },
+        "data": {
+          "short_cycling_window_min": "Venster voor pendelen",
+          "short_cycling_min_cycles": "Korte runs in het venster"
+        },
+        "data_description": {
+          "short_cycling_window_min": "Tijdvenster (min) waarin korte runs worden geteld voor de pendelmelding. Standaard 60.",
+          "short_cycling_min_cycles": "Aantal korte runs binnen het venster dat de pendelmelding geeft. Standaard 3."
         }
       },
       "quality_ml": {
