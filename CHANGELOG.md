@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.31.0] - 2026-11-23
+
 ### Documentation
 - README rewritten short (915 -> about 215 lines): native cards first, what
   it does, install, setup with wizard screenshots, supported heat pumps and
