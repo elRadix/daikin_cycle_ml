@@ -521,7 +521,7 @@
     },
     "dhw_missing_suspect": {
       "title": "DHW tank not detected",
-      "description": "Cycle ML has not detected a DHW tank, but historical DHW cycles exist in the database. If you do not have a DHW tank (e.g., Bivalent Direct), you can safely ignore this. If you do have one, verify your ESPAltherma sensor configuration, or set 'DHW Tank Present' to 'Always' in Options → Advanced."
+      "description": "Cycle ML has not detected a DHW tank, but historical DHW cycles exist in the database. If you do not have a DHW tank (e.g., Bivalent Direct), you can safely ignore this. If you do have one, verify your ESPAltherma sensor configuration, or set 'Hot-water tank' to 'always' in Configure → Advanced."
     }
   },
   "options": {
@@ -556,7 +556,13 @@
             "name": "Season"
           }
         },
-        "title": "Advanced"
+        "title": "Advanced",
+        "data": {
+          "dhw_present": "Hot-water tank"
+        },
+        "data_description": {
+          "dhw_present": "auto: detected from the source (3-way valve, tank temperature). always: you have a tank. never: no tank, so hot-water detection and alerts stay off."
+        }
       },
       "cop_calc": {
         "description": "Configure supply phases and backup-heater power for the electrical-input estimate.",
@@ -973,6 +979,12 @@
         "monolithic": "Monolithic entity (ESPAltherma v1, sensor.althermasensors)",
         "individual": "Individual entities (ESPAltherma v2 beta, sensor.espaltherma_*)",
         "auto": "Auto-detect (recommended for new installs)"
+      }
+    },
+    "attribute_mode": {
+      "options": {
+        "auto": "Automatic (canonical ESPAltherma names)",
+        "manual": "Manual (map each required attribute)"
       }
     }
   },

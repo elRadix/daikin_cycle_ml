@@ -1,13 +1,10 @@
-# Simple Card
+# Simple card — YAML card
 
-A compact, one-glance Lovelace card for **Daikin Cycle ML**. Daikin-blue
-theme, hydraulic diagram, phase indicator, live alerts, and stooklijn
-advice. Auto-detects the integration language (EN / NL) and supports a
-manual override.
+Live phase, hydraulic diagram, COP, quality, alerts, today, last cycle and the heating-curve advice on one compact card. English, Dutch and French, dark mode.
+
+[CHANGELOG](CHANGELOG.md) · [All cards](../../README.md) · [YAML card guide](../README.md)
 
 ![Simple card](showcase.png)
-
----
 
 ## What it shows
 
@@ -135,27 +132,6 @@ block. The `UPD` variable points to the HACS update entity.
 
 ---
 
-## i18n keys reference
-
-All user-facing strings live in the `STR` object inside the JS block,
-grouped by language (`nl`, `en`). Keys:
-
-| Key group | Purpose |
-|---|---|
-| `sub`, `phase`, `cop`, `runs`, `q`, `src` | Hero block labels |
-| `today`, `last`, `dur`, `avgDur`, `avgOff`, `longest`, `sr`, `mode` | Detail sections |
-| `dt`, `rps`, `kw`, `outdoor` | Diagram labels |
-| `stooklijn`, `state`, `bucket`, `savings`, `comfort`, `reliability` | Stooklijn section |
-| `hydKring`, `hpEmitter`, `heatPump`, `emitter`, `supplyLabel`, `returnLabel` | Hydraulic diagram section |
-| `lvlCrit`, `lvlWarn`, `lvlInfo` | Alert level headers |
-| `noAlert`, `alertOne`, `alertMore`, `explain` | Alert / footer text |
-| `phases` (nested object) | Phase names |
-
-The `phases` object is nested. When adding a new language, keep the same
-nested structure.
-
----
-
 ## Customisation tips
 
 ### Hide the diagram
@@ -207,12 +183,3 @@ container style.
 | Preview image missing | Take a fresh screenshot of the card (~800x600) and save it as `showcase.png` in this folder. |
 
 ---
-
-## Preview generation
-
-To regenerate the preview image for this README:
-
-1. Open the card in a dashboard.
-2. Take a screenshot of the card area (~800x600).
-3. Save as `showcase.png` in this folder.
-4. Optional: compress with TinyPNG or PNG-Crush before committing.

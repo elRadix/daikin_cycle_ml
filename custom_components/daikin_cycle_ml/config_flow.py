@@ -201,17 +201,9 @@ _ENTITY_SELECTOR = selector.EntitySelector(
 
 _ATTRIBUTE_MODE_SELECTOR = selector.SelectSelector(
     selector.SelectSelectorConfig(
-        options=[
-            selector.SelectOptionDict(
-                value=ATTRIBUTE_MODE_AUTO,
-                label="Automatic (canonical ESPAltherma names)",
-            ),
-            selector.SelectOptionDict(
-                value=ATTRIBUTE_MODE_MANUAL,
-                label="Manual (map each required attribute)",
-            ),
-        ],
+        options=[ATTRIBUTE_MODE_AUTO, ATTRIBUTE_MODE_MANUAL],
         mode=selector.SelectSelectorMode.DROPDOWN,
+        translation_key="attribute_mode",
     )
 )
 
@@ -630,7 +622,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             description_placeholders={
                 "missing_list": (
                     "\n".join("\u2022 " + m for m in missing_list)
-                    if missing_list else "none"
+                    if missing_list else "—"
                 ),
             },
         )
@@ -671,8 +663,8 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             kind = m.kind.upper().ljust(7)
             target = m.actual_key or "-"
             lines.append(f"{m.canonical}  [{kind}]  {target}")
-        report_text = "\n".join(lines) if lines else "none"
-        warnings_text = "\n".join(report.warnings) if report.warnings else "none"
+        report_text = "\n".join(lines) if lines else "—"
+        warnings_text = "\n".join(report.warnings) if report.warnings else "—"
         return self.async_show_form(
             step_id="diagnose",
             data_schema=vol.Schema({}),
@@ -838,10 +830,10 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 "available_count": str(len(available)),
                 "available_list": (
                     ", ".join(sorted(available)[:40])
-                    if available else "none"
+                    if available else "—"
                 ),
                 "bad_list": (
-                    ", ".join(self._data.pop("_bad_attrs", [])) or "none"
+                    ", ".join(self._data.pop("_bad_attrs", [])) or "—"
                 ),
             },
         )
@@ -913,11 +905,11 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 "total": str(len(expected)),
                 "missing_list": (
                     "\n".join(f"\u2022 {m}" for m in missing)
-                    if missing else "none"
+                    if missing else "—"
                 ),
                 "present_list": (
                     "\n".join(f"\u2022 {m}" for m in present)
-                    if present else "none"
+                    if present else "—"
                 ),
                 "hybrid_hint": hybrid_hint,
             },

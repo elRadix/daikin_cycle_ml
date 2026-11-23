@@ -211,7 +211,7 @@
       },
       "user": {
         "title": "Daikin Cycle ML - kies modelfamilie",
-        "description": "Kies de modelfamilie van je Daikin Altherma unit. De familie is de prefix van de modelcode van de buitenunit (bijv. ERGA, EPRA, EKHBRD). Op het volgende scherm kies je het exacte model.\n\n- **Basic profile**: veilige standaardwaarden als je je exacte model niet weet.\n- **Custom**: lever je eigen attribuut-mapping aan.\n\n**Ken je alleen je binnenunit?** Typ de code (op het typeplaatje of in de Daikin-app, bijv. EHBX08EF6V) in het familieveld. Wordt die met meerdere buitenunits verkocht, dan toont het volgende scherm alleen die.\n\n**Detected:** monolithic entity = {mono_found}, ESPAltherma v2 entities = {v2_count}.\n**Suggested source type:** `{suggestion}`.",
+        "description": "Kies de modelfamilie van je Daikin Altherma unit. De familie is de prefix van de modelcode van de buitenunit (bijv. ERGA, EPRA, EKHBRD). Op het volgende scherm kies je het exacte model.\n\n- **Basisprofiel**: veilige standaardwaarden als je je exacte model niet weet.\n- **Eigen warmtepomp (Custom)**: lever je eigen gegevens en attribuut-koppeling aan.\n\n**Ken je alleen je binnenunit?** Typ de code (op het typeplaatje of in de Daikin-app, bijv. EHBX08EF6V) in het familieveld. Wordt die met meerdere buitenunits verkocht, dan toont het volgende scherm alleen die.\n\n**Gevonden:** één entiteit (v1) = {mono_found}, ESPAltherma v2-entiteiten = {v2_count}.\n**Voorgesteld brontype:** `{suggestion}`.",
         "data": {
           "family": "Modelfamilie",
           "source_type": "ESPAltherma-brontype"
@@ -455,6 +455,12 @@
               "season_start_month": "Eerste maand van het stookseizoen (1-12). Gebruikt voor SPF-berekening. Standaard: 10."
             }
           }
+        },
+        "data": {
+          "dhw_present": "Warmwaterboiler"
+        },
+        "data_description": {
+          "dhw_present": "auto: herkend uit de bron (3-wegklep, boilertemperatuur). always: je hebt een boiler. never: geen boiler, SWW-detectie en -meldingen blijven uit."
         }
       },
       "test_notification": {
@@ -949,7 +955,7 @@
     },
     "dhw_missing_suspect": {
       "title": "DHW-tank niet gedetecteerd",
-      "description": "Cycle ML heeft geen DHW-tank gedetecteerd, maar er bestaan historische DHW-cycli in de database. Heb je geen DHW-tank (bv. Bivalent Direct), kun je dit negeren. Heb je er wel een, controleer dan je ESPAltherma sensorconfiguratie of zet 'DHW Tank Present' op 'Always' in Opties → Geavanceerd."
+      "description": "Cycle ML heeft geen DHW-tank gedetecteerd, maar er bestaan historische DHW-cycli in de database. Heb je geen DHW-tank (bv. Bivalent Direct), kun je dit negeren. Heb je er wel een, controleer dan je ESPAltherma sensorconfiguratie of zet 'Warmwaterboiler' op 'always' in Configureren → Geavanceerd."
     }
   },
   "services": {
@@ -1211,6 +1217,12 @@
         "monolithic": "Monolithische entiteit (ESPAltherma v1, sensor.althermasensors)",
         "individual": "Individuele entiteiten (ESPAltherma v2 bèta, sensor.espaltherma_*)",
         "auto": "Automatisch detecteren (aanbevolen voor nieuwe installaties)"
+      }
+    },
+    "attribute_mode": {
+      "options": {
+        "auto": "Automatisch (standaard ESPAltherma-namen)",
+        "manual": "Handmatig (elk vereist attribuut koppelen)"
       }
     }
   },

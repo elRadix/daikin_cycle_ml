@@ -1,1088 +1,259 @@
 # Configuration
 
-Complete user guide to every configurable option in Daikin Cycle ML.
-
-- **Covers:** source sensor requirements, setup wizard, options menu, reconfigure flows
-- **For:** end users, admins tuning alerts, developers reading the config schema
-- **Version:** v1.14.0
-
-Cross-references: [ENTITIES.md](ENTITIES.md) (sensors/services), [ALERTS.md](ALERTS.md) (alert tuning), [ML.md](ML.md) (adaptive thresholds), [DATABASE.md](DATABASE.md) (retention).
-
----
+The source, the setup wizard, every option and the reconfigure flow. For a
+first install with screenshots, start with [Getting started](GETTING_STARTED.md).
 
 ## Contents
 
-- [1. Where configuration lives](#1-where-configuration-lives)
+- [1. Where settings live](#1-where-settings-live)
 - [2. Source sensor](#2-source-sensor)
 - [3. Setup wizard](#3-setup-wizard)
 - [4. Options menu](#4-options-menu)
 - [5. Reconfigure](#5-reconfigure)
 - [6. Cookbook](#6-cookbook)
-- [7. Verification](#7-verification)
+- [7. Scheduled jobs](#7-scheduled-jobs)
 
----
+## 1. Where settings live
 
-## 1. Where configuration lives
-
-Daikin Cycle ML has three places where settings are stored:
-
-| Place | When | Saves to |
+| What | Where | Changed with |
 |---|---|---|
-| Setup wizard | One-time onboarding | Config-entry **DATA** |
-| Options menu | Tuning after install | Config-entry **OPTIONS** |
-| Reconfigure | Change source sensor or model | Config-entry **DATA** |
+| Source, model, attribute names | The config entry (data) | Reconfigure |
+| Thresholds, sensors, notifications, maintenance | The config entry (options) | Configure |
+| Your model values (`kw`, compressor range, points) | The model profile store | Configure → Model profile, Performance card, `set_model_profile` |
+| Imported datasheets | `.storage/daikin_cycle_ml.user_datasheets` | `import_datasheet` / `remove_user_datasheet` |
 
-**DATA** and **OPTIONS** are separate dictionaries inside the same config entry. That is why changing `source_sensor` or `model` requires **Reconfigure**, not Options — those two fields live in DATA.
-
-All entries persist to `/config/.storage/core.config_entries` under the integration's entry ID.
-
-### 1.1 What lives where
-
-| Field group | Location | Editable via |
-|---|---|---|
-| `source_sensor`, `model`, `attribute_mode` | DATA | Setup wizard, Reconfigure |
-| `custom_attribute_map` | DATA | Setup wizard (Custom branch) |
-| Thresholds (run/off, pendulum, quality) | OPTIONS | Setup wizard, Options |
-| Notifications (delivery, quiet hours, content, per-alert, dedup) | OPTIONS | Setup wizard (basic), Options (full) |
-| Retention, season | OPTIONS | Options |
-| Sensor entity IDs (power, COP, indoor temp) | OPTIONS | Options |
-
-### 1.2 What happens on save
-
-- **Wizard save**: creates the config entry, starts the coordinator
-- **Options save**: reloads the coordinator with new options (no cycle data loss)
-- **Reconfigure save**: reloads with new DATA (existing cycles and DB preserved for the same entity IDs)
-
----
+Saving options reloads the integration; nothing is lost (the run in
+progress and today's counters are restored).
 
 ## 2. Source sensor
 
-Daikin Cycle ML reads from **one** Home Assistant sensor entity — typically `sensor.althermasensors` published by ESPAltherma. Everything is computed from that sensor's **attributes**, not its state.
+ESPAltherma publishes the heat pump's values in one of two ways:
 
-### 2.1 Required attributes (11)
-
-Without these, cycle detection degrades or stops, and the `missing_attributes` repair is raised.
-
-| Attribute | Feeds | Why it matters |
+| Source type | What it is | Chosen in the wizard |
 |---|---|---|
-| `Operation Mode` | Mode fallback | Used only if `I/U operation mode` missing |
-| `I/U operation mode` | Mode source | Heating / Cooling / DHW |
-| `Defrost Operation` | Defrost flag | Marks cycles with defrost |
-| `Leaving water temp after BUH (R2T)` | LWT | dT and COP inputs |
-| `Inlet water temp (R4T)` | Return water temp | dT and COP inputs |
-| `Flow sensor (l/min)` | Water flow | Thermal kW calculation |
-| `Water pump operation` | Pump on/off | Cycle validity gate |
-| `Outdoor air temp (R1T)` | Outdoor temp | Heat-curve bucketing |
-| `BUH Step1` | Backup heater 1 | BUH flag on cycle record |
-| `BUH Step2` | Backup heater 2 | BUH flag on cycle record |
-| `LW setpoint (main)` | Setpoint tracking | Setpoint-oscillation alert + modern LWT advice |
+| Monolithic | ESPAltherma v1: one sensor (`sensor.althermasensors`) with every value as an attribute | *Monolithic entity* |
+| Individual | ESPAltherma v2: one entity per value (`sensor.espaltherma_*`) | *Individual entities*, with the entity prefix |
+| Auto | Uses whichever is complete, per value | *Auto-detect* |
 
-Even if you deselect these in the wizard, they are **always kept**. Cycle detection depends on them.
+The wizard detects what is there and suggests a type. The values to
+enable in ESPAltherma are listed in
+[Getting started §1](GETTING_STARTED.md#1-before-you-start).
 
-`3way valve` (DHW vs space heating) is read when present but is **not required** (#435): a unit without a hot-water tank (for example an EHBX wall unit with an ERGA) has no 3-way valve, and its absence means "no DHW". Missing `BUH Step1` / `BUH Step2` (a model without backup heater) raises the repair but does not pause cycle detection; detection only pauses when one of the other required values disappears (a partial publish after a restart, #109).
+**Names.** Spellings differ per model, firmware and language (`(R1T)`
+suffixes, `I/U` / `O/U` prefixes, German names, the hybrid and HT
+profiles). The integration knows all of these
+([Model compatibility](MODEL_COMPATIBILITY.md)). Only when your firmware
+uses a name it does not know, choose attribute mode *Manual* and map it.
 
-> ⚠️ **R1T ambiguity on some models** — up to 3 attributes can share the `(R1T)` suffix (outdoor air, LWT before BUH, indoor ambient). The alias resolver disambiguates per model. See [MODEL_COMPATIBILITY §5](MODEL_COMPATIBILITY.md#5-per-model-matrix). This was the root cause of #196.
+**Missing values.** A value the cycle detector needs stops detection
+until it is published again (a partial publish after a restart). Others
+only switch off what uses them, and the `missing_attrs` repair lists them.
+The 3-way valve, the pump state, the backup-heater steps and the setpoint
+are not needed for detection.
 
-#### 2.1.1 External sensor failure modes
+**External sensors.** Optional, under Configure → Device → Sensors:
 
-Two failure modes silently break COP/thermal calculation without raising an error:
+| Option | Use |
+|---|---|
+| `power_sensor_entity` | Electrical power of the heat pump in W (a real meter is the best COP source) |
+| `buh_power_sensor_entity` | Electrical power of the backup heater, added for COP only |
+| `cop_sensor_entity` | A COP sensor of your own (otherwise COP is computed) |
+| `indoor_temp_sensor` | Room temperature for the curve advice's comfort guard |
 
-- **`cop_sensor` returning 0.0** during compressor transitions — COP samples are skipped. Verify the sensor reports stable values during steady-state operation.
-- **`power_sensor` configured in kWh instead of W** — thermal samples are skipped. Check `unit_of_measurement` is `W`, not `kWh`.
-
-### 2.2 Recommended attributes (7)
-
-Pre-selected in the wizard. Safe to enable. Improve quality and unlock extra features.
-
-| Attribute | Feeds | When you need it |
-|---|---|---|
-| `Discharge pipe temp.` | Compressor health | ML feature vector + anomaly detection |
-| `Suction pipe temp.` | Refrigerant context | ML feature vector |
-| `INV primary current (A)` | Power proxy | Fallback when no power sensor configured |
-| `Target Cond. Temp.` | Heat-curve target | Better stooklijn comparison |
-| `DHW setpoint` | DHW context | DHW cycle annotation |
-| `INV frequency (rps)` | Compressor RPS | Refines short-cycle alerts (not required for cycle detection) |
-| `DHW tank temp (R5T)` | DHW annotation | DHW cycle record enrichment (3-way valve alone identifies DHW) |
-
-### 2.3 Optional attributes
-
-Default off. Enable only if your installation publishes them:
-
-`Heat exchanger mid-temp.`, `Liquid pipe temp. (R6T)`, `Expansion valve (pls)`, `Crank case heater 1`, `Pressure equalizing operation`, `4 Way Valve 1`, `Solenoid Valve 1`, `Target Evap. Temp.`, `RT setpoint`, `High Pressure`, `Water pressure`, `Brine inlet temp.`, `Brine outlet temp.`
-
-None of these are used for cycle detection or COP. They are stored on the cycle record for ML feature extraction and forward-compatibility.
-
-For per-model availability of these attributes across all supported Daikin families, see [MODEL_COMPATIBILITY §5](MODEL_COMPATIBILITY.md#5-per-model-matrix).
-
-### 2.4 Verify your sensor
-
-Before starting the wizard, confirm your sensor exposes the required attributes.
-
-**In Home Assistant:**
-
-1. Developer Tools, States
-2. Search `sensor.althermasensors`
-3. Expand Attributes
-4. Check each of the 12 required names is present as a key
-
-**Or via Template (Developer Tools, Template):**
-
-```jinja
-{% set attrs = state_attr('sensor.althermasensors', 'attributes') or {} %}
-{% for k in attrs.keys() %}
-{{ k }}
-{% endfor %}
-```
-
-If a required attribute is missing:
-
-1. Open ESPAltherma configuration
-2. Enable that register in the `.h` file
-3. Restart the ESP device
-4. Wait for the sensor to republish with all attributes
-5. Then run the wizard
-
-### 2.5 Custom attribute names
-
-If your firmware uses different attribute names (e.g. `lwt_after_buh` instead of `Leaving water temp after BUH (R2T)`), you have two options.
-
-**Option A: JSON attribute map** — preferred for a few renames:
-
-```json
-{
-  "Leaving water temp after BUH (R2T)": "lwt_after_buh",
-  "INV frequency (rps)": "compressor_hz"
-}
-```
-
-Left is canonical key, right is your actual attribute name. Unlisted keys use the canonical name as-is.
-
-**Option B: Manual mapping** — one field per attribute in the wizard, leave blank to auto-fill.
-
-Both options are part of the Custom model branch, see §3.3.
-
-### 2.6 JSON attribute map rules
-
-- Must be a valid JSON object
-- Values must be string attribute names, not paths
-- Empty value (`""`) means "leave original untouched"
-- Only the keys you list are renamed; others pass through
-
-Malformed JSON shows an inline error, wizard does not advance.
-
----
+Check the unit: a power sensor in kW or kWh instead of W, or a COP sensor
+that reads 0 between runs, makes samples drop silently.
 
 ## 3. Setup wizard
 
-### 3.1 Before you start
+### 3.1 Paths
 
-1. Confirm HA Core ≥ 2026.9 (required for Python 3.14)
-2. Confirm ESPAltherma sensor exists and publishes attributes (§2.4)
-3. Decide: **automatic** (auto-detect) or **manual** (map each attribute) mode
-4. Decide: bundled model (17 options) or **Custom** (you provide spec + map)
-
-**Only know your indoor unit?** The family field also accepts a typed model code (#435): the indoor unit (`EHBX08EF6V`), the outdoor unit (`ERGA06EAV3`) or both (`EHBX08EF6V + ERGA06EAV3`). An indoor size sold with several outdoor units narrows the model list to those (an `EHBX08` runs an ERGA06 or an ERGA08; the code on the outdoor unit or in the Daikin app tells which). Known units without a datasheet (ERGA D, Altherma LT, GEO, mini chiller) get a message to use the basic profile. The family and size alone also work (`ERGA06`, `Altherma 3 R ERGA06`), as do shortened or three-phase codes (`EPGA11DV`, `EPRA14DAW1`: a three-phase datasheet when there is one, otherwise the same unit's single-phase datasheet); a series letter you give must match (#198). What you typed is kept as `model_code` in the setup and shown in the diagnostics. The family and model lists also name the indoor units sold with each outdoor unit.
-
-### 3.2 Wizard paths
-
-Your wizard path depends on your model and mapping choice:
-
-| Selection | Path |
+| Your setup | Screens |
 |---|---|
-| Model ≠ Custom, automatic | user → attributes → cycle → pendulum → quality → notifications → finalize |
-| Model ≠ Custom, manual | user → map_attributes → attributes → cycle → pendulum → quality → notifications → finalize |
-| Custom, automatic, all canonicals present | user → **Page A** → **Page B** → **Page C** → attributes → cycle → pendulum → quality → notifications → finalize |
-| Custom, automatic, 3+ via alias/fuzzy | user → **diagnose** → **Page A** → **Page B** → **Page C** → attributes → cycle → pendulum → quality → notifications → finalize |
-| Custom, manual | user → **Page A** → **Page B** → **map_attributes** → attributes → cycle → pendulum → quality → notifications → finalize |
-
-**The Custom branch has 3 extra pages (A/B/C)** because a Custom model has no bundled profile — both the heat-pump spec and the attribute mapping must be collected explicitly.
-
-### 3.3 Step 1 — Source & model
-
-| Field | Code key | Type | Default |
-|---|---|---|---|
-| Source sensor | `source_sensor` | entity picker | `sensor.althermasensors` |
-| Model | `model` | dropdown | `EPRA12EAV3` |
-| Attribute mode | `attribute_mode` | dropdown (`auto` / `manual`) | `auto` |
-
-**Source sensor.** Any entity with the required attributes. Must be `sensor.*` domain.
-
-**Model.** Bundled models enable `cop_normalized_a7w35`, `cop_vs_datasheet_pct`, and `hp_specs`. Available families:
-
-- **Altherma 3 R** (ERGA/ERLA) — Split/monobloc heat pumps
-- **Altherma 3 H** (EPRA/EBLA/EDLA) — Mid-temp and high-temp
-- **Altherma Monobloc** (EDLQ/EBLQ)
-- **Altherma 4** (EPSK) — R290 models
-- **Altherma R Hybrid** (EVLQ05CV3, EVLQ08CV3) — bivalent with Intergas boiler.
-  Indoor/kit codes (EHYHBH05/08, EHYHBX08 AAV3/AFV3, RHYHBH/RHYHBX, CHYHBH05/08)
-  and EVLQ05/08CAV3 resolve to these models automatically
-- **Custom** — needs Page A HP spec
-
-**Hybrid models (EVLQ series).** Selecting an EVLQ model activates:
-
-- HP-COP isolation (co-fire samples excluded from `cop_today`) — see `MODEL_COMPATIBILITY.md` §6.6
-- 2 extra binary sensors (`boiler_operation_demand`, `boiler_dhw_demand`)
-- 3 extra sensors (`hybrid_mode`, `boiler_efficiency_cop`, `boiler_contribution_today_pct`)
-
-**⚠️ Hybrid attributes are optional.** If your ESPAltherma source exposes
-`Boiler Operation Demand`, `Boiler DHW Demand`, and `Hybrid Op. Mode`,
-leave the fields in the next step as-is (canonical names). If absent, setup
-still succeeds with a warning — boiler-cycle detection will be inactive
-until those attributes are enabled in ESPAltherma (`ALTHERMA(HYBRID).h`).
-
-**Normalization.** Hybrid Op. Mode case-insensitive; aliases hp/h-p/boiler accepted; unknown -> unknown.
-
-**None-safe hybrid_hint.** Fires on absent OR None-valued attrs.
-
-**Switching HP ↔ Hybrid later.** Use **Reconfigure → Basic** to change the
-model. Both directions are supported; existing cycle history is preserved
-unchanged, new cycles use the new detection logic. A confirmation message
-flags the transition.
-
-**Attribute mode.**
-
-- `auto` — canonical ESPAltherma names (recommended)
-- `manual` — one field per attribute in the wizard
-
-### 3.4 Custom model — Page A (HP spec)
-
-Only shown when **Model = Custom**.
-
-| Field | Code key | Type | Required |
-|---|---|---|---|
-| HP spec JSON | `custom_datasheet_json` | multiline text | No |
-
-**Required keys:** `family`, `kw`, `lwt_min`, `lwt_max`, `nom_cop`
-
-**Optional keys:** `bivalent`, `buh_kw`, `refrigerant` (`R32` / `R290` / `R410A`), `min_modulation_kw`, `max_flow_lmin`, `noise_db`, `points[]`
-
-Example:
-
-```json
-{
-  "family": "Custom Altherma",
-  "kw": 12.0,
-  "lwt_min": 25,
-  "lwt_max": 55,
-  "nom_cop": 4.2,
-  "buh_kw": 6.0,
-  "refrigerant": "R32"
-}
-```
-
-Empty = inherit Basic profile defaults. Malformed JSON shows an inline error.
-
-### 3.5 Custom model — Page B (mapping mode)
-
-| Field | Code key | Type | Default |
-|---|---|---|---|
-| Mapping mode | `mapping_mode` | dropdown (`json` / `manual`) | `json` |
-
-`json` routes to Page C. `manual` routes to `map_attributes`.
-
-### 3.6 Custom model — Page C (JSON map)
-
-| Field | Code key | Type | Required |
-|---|---|---|---|
-| Attribute map JSON | `custom_attribute_map` | multiline text | Yes |
-
-Format per §2.5. Malformed JSON shows an inline error.
-
-### 3.7 Diagnose screen (conditional)
-
-Shown only when automatic mode triggered alias/fuzzy fallback (≥ 3 canonicals resolved via alias table). Read-only.
-
-Shows per canonical:
-
-- Resolved key name
-- Match kind: `EXACT` / `ALIAS` / `FUZZY` / `MISSING`
-- Sanity warnings (e.g. hint at wrong `.h` file when a constant value looks suspicious)
-
-Unresolved attributes must be mapped later.
-
-### 3.8 Attributes screen (warning-only)
-
-Shows how many of the 12 required attributes are present on the selected source sensor. Missing ones are listed but do not block the wizard.
-
-### 3.9 Map attributes screen
-
-Only shown when `attribute_mode = manual` OR on the Custom manual branch.
-
-One text field per required (13) + optional (1) attribute. Field label = canonical key. Value = your actual attribute name.
-
-Leave blank if the canonical name exists on your sensor. The wizard auto-fills.
-
-### 3.10 Cycle screen
-
-| Field | Code key | Type | Default | Range |
-|---|---|---|---|---|
-| RPS threshold | `compressor_rps_threshold` | numeric | 3 | 0–100 |
-| Power sensor | `power_sensor_entity` | entity picker | (none) | sensor.* |
-| Fallback power threshold | `fallback_power_threshold_w` | numeric | 200 | 0–10000 W |
-| Indoor temp sensor | `indoor_temp_sensor` | entity picker | (none) | sensor.* |
-
-**`compressor_rps_threshold`** — compressor "on" when RPS exceeds this. Typical 2–5. Lower = catches brief modulation dips; higher = misses short cycles.
-
-**`power_sensor_entity`** — optional **power** sensor in W or kW (not a kWh energy counter). When set, it is the first source for electrical power and COP; the ESPAltherma estimate is used only when the meter is unavailable, reads 0, or is an energy sensor (logged once). Also the cycle fallback when `INV frequency (rps)` is missing from the firmware.
-
-**`fallback_power_threshold_w`** — power threshold when the power sensor is the cycle signal. Typical 200 W (compressor only), 500 W (whole system).
-
-**`indoor_temp_sensor`** — optional room temp. Added as `indoor_temp_avg` (dim 10) to the feature vector. Enables comfort guards.
-
-### 3.11 Pendulum screen
-
-| Field | Code key | Default | Range |
-|---|---|---|---|
-| Short run threshold | `short_run_threshold_min` | 20 | 1–240 min |
-| Short off threshold | `short_off_threshold_min` | 5 | 1–120 min |
-| Pendulum cycles/day | `pendulum_cycles_per_day` | 40 | 1–200 |
-| DHW pendulum cycles/hour | `dhw_pendulum_cycles_per_hour` | 3 | 1–20 |
-
-**`short_run_threshold_min`** — cycle shorter than this triggers `short_run`. Typical 20 min.
-
-**`short_off_threshold_min`** — off-time shorter than this triggers `short_off`. Typical 5 min.
-
-**`pendulum_cycles_per_day`** — days with more cycles than this trigger `pendulum_daily`. Typical 40 for low-mass; lower for radiators.
-
-**`dhw_pendulum_cycles_per_hour`** — DHW-mode cycles/hour threshold. Typical 3.
-
-### 3.12 Quality screen
-
-| Field | Code key | Default | Range |
-|---|---|---|---|
-| Good run threshold | `good_run_threshold_min` | 45 | 1–240 min |
-| Good dT threshold | `good_dt_threshold_k` | 5.0 | 0.1–20.0 K |
-| Good off threshold | `good_off_threshold_min` | 20 | 1–240 min |
-| Target cycles/day | `target_cycles_per_day` | 8 | 1–100 |
-
-**`good_dt_threshold_k`** — dT (LWT − RWT) for full efficiency points. Typical 5 K.
-
-**`target_cycles_per_day`** — expected good cycles. Drives `high_cycle_rate` (1.5× this).
-
-### 3.13 Notifications screen (wizard basic)
-
-| Field | Code key | Default |
-|---|---|---|
-| Persistent notifications | `persistent_enabled` | `true` |
-| Notify service | `notify_service` | (empty) |
-| Quiet hours enabled | `quiet_hours_enabled` | `false` |
-| Quiet hours start | `quiet_hours_start` | `22:00` |
-| Quiet hours end | `quiet_hours_end` | `07:00` |
-
-Full config (7 groups, 11 per-alert toggles, 19 dedup windows, language, emoji, action advice, status updates) lives in **Options → Notifications** (§4.4) and is documented in [ALERTS.md](ALERTS.md).
-
-### 3.14 Finalize screen
-
-Review-only. Submit starts the coordinator — 30 s polling, no data until first valid sample.
-
----
-
-## 3A. Onboarding troubleshooting
-
-### "Sensor mist vereiste ESPAltherma-attributen"
-
-The wizard aborts when the source sensor is missing one or more of the 12 required attributes.
-
-**Fix 1 — Manual mode:**
-
-1. Re-run **Add Integration**
-2. On step 1: set **Attribute mode** to `Manual`
-3. On the next screen, map each canonical attribute to your sensor's actual attribute name (visible in Developer Tools → States → Attributes)
-4. Leave a field empty if the canonical name already exists on your sensor
-5. If `INV frequency (rps)` is not exposed by your firmware, leave it empty — cycle detection falls back to a current-based heuristic
-
-**Fix 2 — Enable missing registers in ESPAltherma:**
-
-1. Open the ESPAltherma `.h` file
-2. Enable the missing register (see log or `missing_attrs` repair for the exact name)
-3. Restart the ESP device
-4. Wait for the sensor to republish
-5. Retry the wizard
-
-**Fix 3 — Custom branch with JSON map:** see §2.5.
-
-### Getting the exact key list from your firmware
-
-Run in **Developer Tools → Template**:
-
-```jinja
-{% for k in state_attr('sensor.althermasensors', 'attributes').keys() %}
-{{ k }}
-{% endfor %}
-```
-
-That gives the exact attribute names available on your sensor.
-
----
-
-## 3B. Smart auto-import (v1.8.0+)
-
-When the canonical attribute names are not present, the wizard falls back to smart auto-import:
-
-1. **Entity discovery** — scans all `sensor.*` entities for overlap with the 13 canonical attributes and scores candidates. Renamed entities like `sensor.altherma` are auto-detected.
-2. **Alias table** — 14+ known community firmware variants resolve automatically (benthouse, akaQ, Videopac, ...)
-3. **Fuzzy matching** — Jaccard similarity as fallback when alias table misses
-4. **Anti-alias guard** — `Leaving water temp. after BUH (R2T)` never wrongly resolves to a `R1T` variant (would corrupt COP ≈ 11 on hybrid setups)
-5. **Diagnose screen** — shown when auto-import triggers, displays per-canonical match kind (`EXACT` / `ALIAS` / `FUZZY` / `MISSING`) and sanity warnings
-
-When diagnose shows `MISSING` on a critical attribute, use the following `map_attributes` step to fix it manually.
-
----
-
-## 3C. Scheduled jobs
-
-The coordinator runs these tasks on fixed intervals. All times are local timezone.
-
-| When | What | Config key |
-|---|---|---|
-| Every 30 s | Poll source sensor, detect cycle transitions, dispatch alerts | — |
-| Every 5 min | Collect COP sample (if `cop_sensor_entity` configured) | — |
-| Every 300 s | Persist runtime + energy accumulators (independent gates — I8) | — |
-| Every 1 h | Refresh 7-day rollups + alert dispatch + energy baseline + data-quality alerts | — |
-| Every 6 h | Persist baseline + adaptive thresholds to `model_state` | — |
-| Daily 03:00 | Retention rollup + prune + optional VACUUM | `retention_enabled` |
-| Daily 04:00 | Stooklijn analysis (force refresh) | — |
-| Sunday 04:00 | K-means retrain over last 7 days | `adaptive_thresholds_enabled` independent |
-| Every N h (opt-in) | Status summary via `build_status_report` | `status_update_enabled` |
-
-### 3C.1 Manual triggers
-
-All scheduled jobs except the 30 s poll can be triggered manually:
-
-| Job | Manual trigger |
-|---|---|
-| Maintenance prune | `daikin_cycle_ml.run_maintenance` service |
-| K-means retrain | `daikin_cycle_ml.recompute_kmeans` service |
-| Baseline recompute | `daikin_cycle_ml.recompute_baseline` service |
-| Status summary | `send_test_notification` with `alert_kind: status_summary` |
-| COP hourly export | `daikin_cycle_ml.export_cop_hourly` service |
-
-### 3C.2 Backend detail — `_save()` flattening
-
-All OptionsFlow FORM steps use HA `section()` blocks internally. On save, `_save()` flattens one level (`{section_key: {field: value}}` → `{field: value}`), so the stored options schema is unchanged from pre-v1.6.0. Existing config entries keep working without migration.
----
+| Bundled model, standard names | family → sensor and model → attribute check → cycle → pendulum → quality → notifications → confirm |
+| ESPAltherma v2 entities | family → entity prefix → review → sensor and model → ... |
+| Names the integration found under another spelling | ... → sensor and model → **diagnose** → attribute check → ... |
+| Attribute mode *Manual* | ... → sensor and model → **map attributes** → attribute check → ... |
+| Model *Custom* | ... → sensor and model → **heat-pump data** → **attribute mapping** (simple or advanced JSON) → attribute check → ... |
+
+### 3.2 Screens
+
+- **Model family.** Pick the family, or type any code you know: the indoor
+  unit (`EHBX08EF6V`), the outdoor unit (`ERGA06EAV3`), both, or family and
+  size (`ERGA06`, `EPRA14DAW1`). Empty means the basic profile. What you
+  typed is kept as `model_code` (shown in diagnostics).
+- **Sensor and model.** The source sensor, the exact model (the list
+  names the indoor units sold with each) and the attribute mode.
+- **Heat-pump data** (Custom): nominal kW, water temperature range,
+  nominal COP, optional points; the same fields as `import_datasheet`.
+- **Attribute mapping** (Custom / Manual): one field per value, or a JSON
+  object `{"<name the integration uses>": "<your name>"}`.
+- **Attribute check.** What was found and what is missing.
+- **Cycle detection, Pendulum, Quality, Notifications.** The same options
+  as in [§4](#4-options-menu), with their defaults.
+- **Confirm.** Creates the entry and the device.
 
 ## 4. Options menu
 
-**Open:** Settings → Devices & Services → Daikin Cycle ML → **Configure**.
+**Settings → Devices & services → Daikin Cycle ML → Configure.**
 
-Each screen saves independently. All FORM steps use HA `section()` blocks — collapsible, independent saves.
-
-Top-level menu (7 items): device · pendulum · quality_ml · notifications (sub-menu) · advanced · test_notification · test_all_notifications.
-
-### 4.1 Screen 1 — Device
-
-Three sections: **Sensors**, **Detection**, **Comfort**.
-
-**Sensors**
-
-| Field | Code key | Type | Default |
-|---|---|---|---|
-| Power sensor | `power_sensor_entity` | entity picker | (from data, or empty) |
-| BUH power sensor | `buh_power_sensor_entity` | entity picker | (empty) |
-| COP sensor | `cop_sensor_entity` | entity picker | (empty) |
-| Indoor temp sensor | `indoor_temp_sensor` | entity picker | (empty) |
-
-- **Power sensor** — W / kW power sensor (not kWh) for electrical power, COP, energy accounting + cycle fallback
-- **BUH power sensor** — optional meter of the backup heater when it is on its own circuit (W or kW). Added to the power sensor for electrical power and COP, so BUH heat (measured after the BUH) and BUH electricity are both counted. Not used for compressor detection
-- **COP sensor** — COP sensor (`measurement` or `ratio`), enables rolling COP analysis.
-  Values above `MAX_COP` (11.0) or non-finite (`inf`) are ignored and the
-  computed COP is used instead. Leave this empty unless the sensor is
-  better than the integration's own COP (power sensor + BUH power sensor +
-  ESPAltherma heat from one snapshot). A template that mixes attributes
-  and separate entities, or a slow power meter, reads off when the values
-  were sampled at different moments; compare in diagnostics
-  `coordinator.cop_cross_check`
-- **Indoor temp sensor** — room temp, ML feature + comfort guards
-
-**Detection**
-
-| Field | Code key | Default | Range |
-|---|---|---|---|
-| RPS threshold | `compressor_rps_threshold` | 3 | 0–100 |
-| Fallback power threshold | `fallback_power_threshold_w` | 200 | 0–10000 W |
-
-**Comfort**
-
-| Field | Code key | Default | Range |
-|---|---|---|---|
-| Comfort floor | `comfort_min_c` | 20.0 | 15.0–22.0 °C |
-| Comfort ceiling | `comfort_max_c` | 24.0 | 22.0–28.0 °C |
-
-**Comfort floor** — projected indoor temp below which LWT advice never suggests lowering further.
-
-**Comfort ceiling** — projected indoor temp above which LWT advice never suggests raising further.
-
-Both are projected, not measured. They gate the LWT advice algorithm.
-
-### 4.2 Screen 2 — Pendulum
-
-Three sections: **Run/off**, **Pendulum**, **Setpoint**.
-
-**Run/off**
-
-| Field | Code key | Default | Range |
-|---|---|---|---|
-| Short run threshold | `short_run_threshold_min` | 20 | 1–240 min |
-| Short off threshold | `short_off_threshold_min` | 5 | 1–120 min |
-
-**Pendulum**
-
-| Field | Code key | Default | Range |
-|---|---|---|---|
-| Cycles per hour | `pendulum_cycles_per_hour` | 4 | 1–100 |
-| Cycles per day | `pendulum_cycles_per_day` | 40 | 1–200 |
-| DHW cycles per hour | `dhw_pendulum_cycles_per_hour` | 3 | 1–20 |
-
-**Setpoint**
-
-| Field | Code key | Default | Range |
-|---|---|---|---|
-| Oscillation threshold | `setpoint_oscillation_threshold` | 6 | 1–100 |
-| Window | `setpoint_osc_window_min` | 30 | 5–180 min |
-| Min delta | `setpoint_osc_min_delta` | 0.5 | 0.1–2.0 °C |
-
-**Oscillation alert** fires only when all three conditions are met **and** changes show a reversal (up-then-down or down-then-up). Monotonic drifts are not treated as oscillation (Q4 fix, v1.9).
-
-### 4.3 Screen 3 — Quality & ML
-
-Two sections: **Quality**, **Adaptive**.
-
-**Quality**
-
-| Field | Code key | Default | Range |
-|---|---|---|---|
-| Good run threshold | `good_run_threshold_min` | 45 | 1–240 min |
-| Good dT threshold | `good_dt_threshold_k` | 5.0 | 0.1–20.0 K |
-| Good off threshold | `good_off_threshold_min` | 20 | 1–240 min |
-| Target cycles/day | `target_cycles_per_day` | 8 | 1–100 |
-
-**Adaptive**
-
-| Field | Code key | Default | Range |
-|---|---|---|---|
-| Enabled | `adaptive_thresholds_enabled` | `false` | bool |
-| Minimum samples | `adaptive_min_samples` | 20 | 5–500 |
-
-**Adaptive thresholds** — when enabled, `short_run_threshold` and `good_off_threshold` are learned from your cycle history. Percentile-based. Needs `adaptive_min_samples` cycles before activating.
-
-`sensor.daikin_cycle_ml_learned_thresholds` exposes current learned values. Adaptive never overrides your hardcoded values as *bounds* — it refines within a safe range.
-
-### 4.4 Screen 4 — Notifications (menu)
-
-Four sub-pages + two sub-menus:
-
-```
-Notifications
-├── Delivery           (4.4a)
-├── Quiet hours        (4.4b)
-├── Content            (4.4c)
-├── Enabled            (4.4d) — v1.9
-├── Dedup              (4.4e) — v1.9
-└── Test menu          (4.4f)
-    ├── Send test notification
-    └── Send ALL test notifications
-```
-
-#### 4.4a — Delivery
-
-| Field | Code key | Default |
-|---|---|---|
-| Persistent notifications | `persistent_enabled` | `true` |
-| Notify service | `notify_service` | (empty) |
-| Emoji | `notify_emoji_enabled` | `true` |
-| Action advice | `action_advice_enabled` | `true` |
-
-- **Persistent** — HA sidebar; independent of notify service
-- **Notify service** — any `notify.*` entity. Unset = only persistent fire
-- **Emoji** — per-alert emoji prefix. Disable if your notify service mangles UTF-8
-- **Action advice** — appends `• &lt;advice&gt;` line. Disable for minimal output
-
-#### 4.4b — Quiet hours
-
-| Field | Code key | Default | Range |
-|---|---|---|---|
-| Enabled | `quiet_hours_enabled` | `false` | bool |
-| Start | `quiet_hours_start` | `22:00` | time |
-| End | `quiet_hours_end` | `07:00` | time |
-| Aggregation window | `alert_aggregation_minutes` | 30 | 1–1440 min |
-| Status updates | `status_update_enabled` | `false` | bool |
-| Status interval | `status_update_interval_hours` | 24 | 1–168 h |
-
-- **Quiet hours** — non-critical suppressed. `source_stale` bypasses
-- **Aggregation** — same-type alerts within window collapse to one
-- **Status updates** — periodic summary via `build_status_report`
-
-#### 4.4c — Content
-
-| Field | Code key | Default |
-|---|---|---|
-| Language | `notification_language` | `en`; also `nl`, `fr`, or `auto` (Home Assistant language) |
-| Pendulum group | `alert_group_pendulum` | `true` |
-| Short cycle group | `alert_group_short_cycle` | `true` |
-| ML group | `alert_group_ml` | `true` |
-| Setpoint group | `alert_group_setpoint` | `true` |
-| COP + heat-curve group | `alert_group_cop_stooklijn` | `true` |
-
-**Group mapping**
-
-| Group | Alerts |
-|---|---|
-| `pendulum` | pendulum_hourly, pendulum_daily |
-| `short_cycle` | short_run, short_off, high_cycle_rate |
-| `ml` | ml_anomaly |
-| `setpoint` | setpoint_osc, dhw_pendulum |
-| `cop_stooklijn` | cop_low, stooklijn_advies, cop_degradation, cop_vs_datasheet_low |
-
-**Always fire (no group)**: `source_stale` (critical), `missing_attributes`, `defrost_excessive`, `buh_excessive`, `db_retention_warning`, `kmeans_retrain_stale`, `energy_daily_anomaly`.
-
-#### 4.4d — Per-alert toggles (v1.9)
-
-11 boolean toggles, each gates one alert. Defaults `true`.
-
-| Field | Code key | Alert |
-|---|---|---|
-| COP degradation | `alert_enabled_cop_degradation` | `cop_degradation` |
-| Defrost excessive | `alert_enabled_defrost_excessive` | `defrost_excessive` |
-| Backup heater excessive | `alert_enabled_buh_excessive` | `buh_excessive` |
-| Source stale | `alert_enabled_source_stale` | `source_stale` |
-| Missing attributes | `alert_enabled_missing_attributes` | `missing_attributes` |
-| DHW pendulum | `alert_enabled_dhw_pendulum` | `dhw_pendulum` |
-| High cycle rate | `alert_enabled_high_cycle_rate` | `high_cycle_rate` |
-| COP below datasheet | `alert_enabled_cop_vs_datasheet_low` | `cop_vs_datasheet_low` |
-| DB retention warning | `alert_enabled_db_retention_warning` | `db_retention_warning` |
-| K-means retrain stale | `alert_enabled_kmeans_retrain_stale` | `kmeans_retrain_stale` |
-| Energy daily anomaly | `alert_enabled_energy_daily_anomaly` | `energy_daily_anomaly` |
-
-Alerts without per-alert toggle (silenced via their group): pendulum_hourly, short_run, ml_anomaly, setpoint_osc, cop_low, stooklijn_advies.
-
-An alert fires only if **both** its group toggle **and** its per-alert toggle are `true`.
-
-#### 4.4e — Dedup windows (v1.9)
-
-19 numeric fields, one per alert type, value = minutes. Range 1–10080 (1 min to 7 days). Persist across restarts.
-
-| Alert | Default |
-|---|---|
-| pendulum_hourly | 60 |
-| pendulum_daily | 1440 |
-| short_run | 30 |
-| short_off | 30 |
-| ml_anomaly | 60 |
-| setpoint_osc | 30 |
-| cop_low | 30 |
-| stooklijn_advies | 10080 |
-| cop_degradation | 1440 |
-| defrost_excessive | 1440 |
-| buh_excessive | 1440 |
-| source_stale | 60 |
-| missing_attributes | 60 |
-| dhw_pendulum | 60 |
-| high_cycle_rate | 60 |
-| cop_vs_datasheet_low | 1440 |
-| db_retention_warning | 1440 |
-| kmeans_retrain_stale | 1440 |
-| energy_daily_anomaly | 1440 |
-
-Two identical alerts of the same type within the window collapse to one. To force-fire: `send_test_notification` with `ignore_filters: true`.
-
-#### 4.4f — Test menu
-
-- **Send test notification** (§4.6) — single alert type
-- **Send ALL test notifications** (§4.7) — all types at once
-
-### 4.5 Screen 5 — Advanced
-
-Three sections: **Retention**, **Season**, **DHW detection**.
-
-**Retention**
-
-| Field | Code key | Default | Range |
-|---|---|---|---|
-| Enabled | `retention_enabled` | `true` | bool |
-| Cycle retention | `cycle_retention_days` | 90 | 7–3650 |
-| Alert retention | `alert_retention_days` | 90 | 7–3650 |
-| VACUUM | `vacuum_enabled` | `true` | bool |
-
-Rows older than retention days are deleted daily at 03:00 local. VACUUM reclaims disk space.
-
-**Season**
-
-| Field | Code key | Default | Range |
-|---|---|---|---|
-| Season start month | `season_start_month` | 10 (October) | 1–12 |
-
-Used by `spf_season`. Set to the month that starts your heating season. October is safe for Europe.
-
-**DHW Detection**
-
-| Field | Code key | Default | Range |
-|---|---|---|---|
-| DHW tank present | `dhw_present` | `auto` | `auto` / `always` / `never` |
-
-Controls whether the integration expects a DHW tank. Full decision guide in §4.8 (standard vs bivalent setups).
-
-- `auto` — 3-tier detection: 3-way valve attribute → DHW tank temp → historical DHW cycles in DB. Falls back to `False` if none found.
-- `always` — force DHW detection ON. Use when you have a DHW tank but the source sensor is missing the expected attributes.
-- `never` — force DHW detection OFF. Use for **Bivalent Direct (SH-only)** setups where no DHW tank exists and the valve sensor has been disabled.
-
-The resolved state is exposed as `binary_sensor.daikin_cycle_ml_dhw_installed`.
-
-### 4.6 Screen 6 — Test notification
-
-| Field | Code key | Type | Default |
-|---|---|---|---|
-| Alert kind | `alert_kind` | dropdown | `status_summary` |
-| Ignore group filters | `ignore_group_filters` | bool | `false` |
-
-**Alert kind** options (10): `status_summary`, `pendulum_hourly`, `pendulum_daily`, `short_run`, `short_off`, `ml_anomaly`, `setpoint_osc`, `cop_low`, `stooklijn_advies`, `all_alerts`.
-
-**Ignore group filters** — when `true`, ignores both group and per-alert toggles. Quiet hours still apply unless disabled.
-
-Respects `notification_language` and `notify_emoji_enabled`.
-
-### 4.7 Screen 7 — Test ALL notifications
-
-Single submit. Fires **every** alert type at once, ignoring group filters. Useful for template verification.
-
-Known limitation (v1.9): `kmeans_retrain_stale` may not appear in the HA notification panel when fired as part of this bulk test. Rendering works, dispatch works, but HA's `persistent_notification.create` with `blocking=False` sometimes silently drops one of 19 rapid calls. Verify individually via `send_test_notification`. See [ALERTS.md §10.3](ALERTS.md#103-known-limitation-v19-kmeans_retrain_stale-in-bulk-test) for details.
-
----
-
-### 4.10 COP calculation (v1.14.0)
-
-Configures the electrical-input estimate used for COP.
+### 4.1 Device
 
 | Option | Default | Meaning |
 |---|---|---|
-| Supply phases | 1 | 1 = single-phase (most EU homes); 3 = three-phase installations. |
-| BUH step 1 (kW) | 3.0 | Rated power of backup-heater step 1 (Daikin standard: 3 kW). |
-| BUH step 2 (kW) | 3.0 | Rated power of step 2. Some units use 6 kW — check your installation manual. |
+| `compressor_rps_threshold` | 3 | The compressor counts as running above this speed |
+| `fallback_power_threshold_w` | 200 | Running when the power sensor is above this and there is no speed |
+| `power_sensor_entity`, `buh_power_sensor_entity`, `cop_sensor_entity`, `indoor_temp_sensor` | | See [§2](#2-source-sensor) |
+| `comfort_min_c`, `comfort_max_c` | 20, 24 | Comfort guard of the curve advice |
 
-**When these settings apply:** only when no `power_sensor_entity` is configured AND the source sensor lacks the ESPAltherma 2.0 `Stats:` section. If either is present, the integration uses the better source automatically and these fields are ignored.
+### 4.2 Pendulum
 
-**Priority order (highest wins):**
-
-1. Your configured **power sensor**: ground truth, no offset.
-2. **ESPAltherma 2.0 Stats** (`Stats: Electrical input estimated (kW)`):
-   detected automatically, no offset (ESPAltherma handles phases and BUH).
-3. **v1 inverter fallback**: `INV primary current × 230 V × supply phases`
-   plus the backup heater (both steps) plus 100 W for pump, fan and
-   electronics. Supply phases (1 or 3) and BUH kW per step are set here.
-
-`sensor.daikin_cycle_ml_electrical_power_estimated` shows the live value;
-its `source` attribute says which path was used (`power_meter`,
-`espaltherma_v2_stats`, `inverter_estimated_v1` or `none`).
-
-**Verify:** `sensor.daikin_cycle_ml_electrical_power_estimated` shows the current estimate. Its `source` attribute reveals which path was taken at any moment.
-
-
-### 4.11 Model profile (#467)
-
-Your own values for the model chosen in setup. They win over the datasheet
-and are used by the whole integration: COP against the datasheet, the
-normalised A7/W35 COP, the "COP below datasheet" alert and every card.
-Leave a field empty to use the datasheet (or the learned value).
-
-| Field | Meaning | Default |
+| Option | Default | Meaning |
 |---|---|---|
-| Nominal heat output | `kw`, only when your unit differs from the datasheet | datasheet |
-| Compressor minimum / maximum speed | `rps_min` / `rps_max` | learned from your runs (5th percentile of run averages, 95th percentile of run peaks, steady heating and hot-water runs of 20 min or more over 60 days, after 20 runs). A learned maximum is the highest speed seen so far: type your unit's top speed to confirm it |
-| Datasheet points | list of `t_out` (outdoor °C), `t_lwc` (water °C), `hmax` (maximum heat kW, see below), `cop` | datasheet |
+| `short_run_threshold_min` | 20 | A run shorter than this is a short run |
+| `short_off_threshold_min` | 5 | A pause shorter than this is a short pause |
+| `short_cycling_window_min`, `short_cycling_min_cycles` | 60, 3 | That many short runs within the window raise `short_cycling_pattern` |
+| `pendulum_cycles_per_hour` | 4 | Cycles per hour for `pendulum_hourly` (`high_cycle_rate` at 1.5 ×) |
+| `pendulum_cycles_per_day` | 40 | Cycles per day for `pendulum_daily` |
+| `dhw_pendulum_cycles_per_hour` | 3 | Hot-water cycles per hour for `dhw_pendulum` |
+| `setpoint_oscillation_threshold`, `setpoint_osc_window_min`, `setpoint_osc_min_delta` | 6, 30, 0.5 °C | Setpoint changes with reversals within the window raise `setpoint_osc` |
 
-Where the maximum heat comes from, per point, the same rule for every
-model (#478, reviewed with a Daikin application engineer):
+### 4.3 Quality & ML
 
-1. **Your value** (manual) always wins.
-2. **Estimate** from the maximum at A7/W35: Daikin's product-table
-   maximum (`hc_max_a7`, EPRA12 9.97 kW) or else the nominal kW (`kw`),
-   1 % lower per K outdoor below 7 °C and 0.5 % lower per K leaving water
-   above 35 °C.
-3. **Never below what the unit is known to reach.** Daikin's EN 14511
-   capacities (`hc`) are rating points: Daikin picks the compressor speed
-   per test point, so they are a lower bound, not the maximum (EPRA08, 10
-   and 12 all list 6.17 kW at A7/W35). A rating point above the estimate
-   (source *datasheet*) and what your own heat pump delivered at high
-   speed (source *learned*: heating samples at 90 % of the maximum speed
-   or more, per 5 K outdoor and 5 K water band, 95th percentile, after 30
-   samples on 3 days) raise it; they never lower it.
-
-The Performance card raises the maximum to the live heat when the unit
-delivers more, says "at its limit" only when the water stays more than
-2 K below its target at a confirmed top speed, and shows the backup
-heater from its own signal.
-
-Example: the datasheet gives the COP at A-7/W55 but not the maximum heat.
-Add it as a point:
-
-    - t_out: -7
-      t_lwc: 55
-      hmax: 7.2
-
-Every value shows its source on the `hp_specs` sensor (`value_sources`, and
-`src` per point): `datasheet`, `learned` or `manual`. The same can be done
-with the service `daikin_cycle_ml.set_model_profile` (a value of `null`
-removes that override, `reset: true` starts again from the datasheet). A
-profile saved for another model is kept but not applied.
-
-### 4.8 Bivalent systems — DHW detection guide
-
-Bivalent setups combine a Daikin heat pump with an auxiliary boiler. The integration needs to know whether to expect a DHW tank or bypass DHW detection entirely.
-
-**Boiler signals (#288).** In ESPAltherma, uncomment `Bivalent Operation`,
-`Boiler Operation Demand` and `Boiler DHW Demand` in your definition file
-(German firmware: `Bivalenter Betrieb` is also accepted). As soon as the
-source publishes `Bivalent Operation`, the integration trusts the boiler
-signals exactly like on an EVLQ hybrid:
-
-- boiler-only periods (boiler on, compressor off) produce no HP COP samples;
-- the boiler-only cycle-close guard applies;
-- `short_run`, `short_off`, `pendulum_hourly`, `pendulum_daily` are
-  suppressed while only the boiler runs.
-
-Without `Bivalent Operation` the boiler attributes are ignored (protection
-against template drift), so monovalent installs are unaffected. The hybrid
-entities (`hybrid_mode`, `boiler_*`) remain EVLQ-only. Diagnostics show
-`bivalent.is_bivalent` and `bivalent.boiler_signals_trusted`.
-
-**Decision matrix**
-
-| Setup | Recommended `dhw_present` | Why |
+| Option | Default | Meaning |
 |---|---|---|
-| Standard (HP-only, DHW tank) | `auto` | Valve or tank sensor usually present |
-| **Bivalent Direct (SH-only)** — no DHW tank | `never` | No tank exists; disabling valve sensor prevents ghost-tank rendering artifacts |
-| Bivalent Indirect (DHW only) | `always` | Boiler heats DHW; HP sees tank via boiler circuit |
-| Bivalent Indirect (DHW + SH) | `always` | Same as above |
+| `good_run_threshold_min` | 45 | Run length for full marks |
+| `good_dt_threshold_k` | 5 | ΔT for full marks (also the Efficiency card's target, 2-15 K) |
+| `good_off_threshold_min` | 20 | Pause for full marks |
+| `target_cycles_per_day` | 8 | Used in the advice |
+| `buh_penalty_legionella_waived` | on | No backup-heater penalty on legionella runs |
+| `adaptive_thresholds_enabled` | off | Use the learned thresholds ([ML §4](ML.md#4-adaptive-thresholds)) |
+| `adaptive_min_samples` | 20 | Runs per mode before learned values are used |
 
-#### Bivalent Direct (SH-only) — step-by-step
+### 4.4 Notifications
 
-Common case: EVLQ-series HP with an auxiliary boiler and **no DHW tank**. If you disabled the `3way valve` sensor in ESPAltherma (common when it triggers ghost-tank rendering in the HA dashboard):
+A sub-menu; see [Alerts](ALERTS.md) for every alert.
 
-| Step | Action |
+| Screen | Options |
 |---|---|
-| 1 | Options → Advanced → **DHW tank present** → `never` |
-| 2 | Save |
-| 3 | Repair issue (if present) auto-clears on next coordinator tick |
-| 4 | Verify `binary_sensor.daikin_cycle_ml_dhw_installed` is `off` |
-| 5 | COP aggregation resumes as Heating-only; no missing-attribute errors |
+| Delivery | `persistent_enabled`, `notify_service` (notify entity or service), `notify_emoji_enabled`, `action_advice_enabled` |
+| Quiet hours and status | `quiet_hours_enabled`, `quiet_hours_start` / `_end` (22:00-07:00), `alert_aggregation_minutes` (30), `status_update_enabled`, `status_update_interval_hours` (24) |
+| Content and language | The seven alert groups, `notification_language` (`auto`, `en`, `nl`, `fr`) |
+| Per-alert enables | One switch per alert ([Alerts §5](ALERTS.md#5-switching-alerts-off)) |
+| Test notifications | Send one alert or all of them |
 
-#### Bivalent Indirect (DHW) — step-by-step
+### 4.5 Advanced
 
-Common case: HP handles space heating, boiler handles DHW. HP sees the DHW tank through the boiler's tank probe.
+| Option | Default | Meaning |
+|---|---|---|
+| `dhw_present` | `auto` | Hot-water tank: `auto` (detected), `always`, `never` (see [§6.4](#64-bivalent-and-no-hot-water-tank)) |
+| `retention_enabled` | on | Daily maintenance at 03:00 |
+| `cycle_retention_days` | 90 | Older cycles are rolled up and removed |
+| `alert_retention_days` | 30 | Older alert records are removed |
+| `vacuum_enabled` | on | VACUUM after pruning |
+| `daily_summary_live_enabled` | on | Update the daily summary as each cycle closes |
+| `season_start_month` | 10 | First month of the heating season (SPF) |
 
-| Step | Action |
+### 4.6 COP calculation
+
+Electrical input, highest priority first:
+
+1. your **power sensor** (`power_sensor_entity`, plus `buh_power_sensor_entity`);
+2. **ESPAltherma 2.0 Stats** (`Stats: Electrical input estimated (kW)`), detected automatically;
+3. **estimate from the inverter current**: `INV primary current × 230 V ×
+   supply_phases` + the backup heater (`buh_step1_kw`, `buh_step2_kw`,
+   default 3 kW each) + 100 W for pump, fan and electronics.
+
+`supply_phases` (1 or 3) and the backup-heater steps only matter for the
+estimate. `sensor.daikin_cycle_ml_electrical_power_estimated` shows the
+value and, in `source`, which path was used.
+
+### 4.7 Model profile
+
+Your own values for the model chosen in setup. They win over the
+datasheet everywhere (COP against the datasheet, the alert, every card).
+Empty = use the datasheet or the learned value.
+
+| Field | Meaning |
 |---|---|
-| 1 | Options → Advanced → **DHW tank present** → `always` |
-| 2 | Ensure `DHW tank temp. (R5T)` is enabled in ESPAltherma `.h` file |
-| 3 | Save |
-| 4 | Verify `binary_sensor.daikin_cycle_ml_dhw_installed` is `on` |
-| 5 | Cycles classify correctly between heating and DHW |
+| `kw` | Nominal heat output, when your unit differs from the datasheet |
+| `rps_min`, `rps_max` | Compressor speed range. Learned from steady runs of 20 min or more over 60 days (5th percentile of run means, 95th of run peaks) after 20 runs |
+| `points` | Datasheet points: `t_out`, `t_lwc`, `hmax` (maximum heat), `cop` |
 
-#### Repair issue: "DHW tank not detected"
+**Maximum heat per point:** your value wins; else an estimate from the
+A7/W35 maximum (1 % less per K outdoor below 7 °C, 0.5 % less per K water
+above 35 °C), never below a Daikin rating point or what your heat pump
+delivered at 90 % of its top speed or more.
 
-Fires when the integration resolved `dhw_present=False` but historical DHW cycles exist in the database.
-
-| Cause | Fix |
-|---|---|
-| You intended to disable DHW (Bivalent Direct) | Set `never`; issue clears on next coordinator tick |
-| You accidentally disabled a valve sensor | Re-enable in ESPAltherma, or set `always` to force detection |
-
-#### Verifying the resolved state
-
-Developer Tools → States → filter by `dhw_installed`:
-
-| Value | Meaning |
-|---|---|
-| `on` | DHW tank expected; valve/tank signals active |
-| `off` | No DHW tank; DHW detection bypassed |
+Every value shows its source on `hp_specs` (`datasheet`, `learned`,
+`manual`). The Performance card and the service `set_model_profile` edit
+the same profile (`null` removes a value, `reset: true` starts over).
 
 ## 5. Reconfigure
 
-**Open:** Settings → Devices & Services → Daikin Cycle ML → **Reconfigure**.
+**⋮ → Reconfigure** on the integration:
 
-### 5.1 Basic reconfigure
+- **Basic:** change the source sensor or the model, keep everything else.
+- **Full:** run the whole wizard again with the current values filled in.
 
-Change `source_sensor` and `model` only. Prefilled with current values.
-
-| Field | Code key |
-|---|---|
-| Source sensor | `source_sensor` |
-| Model | `model` |
-
-Saves to config-entry **DATA**. Reloads on save.
-
-### 5.2 Full reconfigure
-
-Re-runs the entire setup wizard with every step prefilled. Use to re-apply default thresholds across the board, or after hardware change.
-
-Saves to **DATA** and **OPTIONS**. Existing cycles and DB remain untouched.
-
----
+History stays; the entry id and entity ids do not change.
 
 ## 6. Cookbook
 
-### 6.1 Custom pump without datasheet
+### 6.1 Model not in the list
 
-1. Model = Custom
-2. Page A: leave `custom_datasheet_json` empty (inherit Basic profile)
-3. Page B: choose `manual`
-4. `map_attributes`: fill only attributes that differ from canonical
-5. Continue with wizard
+Type the indoor or outdoor code in the family field first. Still nothing:
+choose the basic profile, or Custom with your own data, and add points
+later in Configure → Model profile.
 
-You will not have `cop_normalized_a7w35` or `cop_vs_datasheet_pct`. Everything else works.
+### 6.2 Firmware with other attribute names
 
-### 6.2 Non-canonical attribute names
+Attribute mode *Manual* and map only the names that differ; leave the
+others empty.
 
-**Option 1** — Custom branch with JSON map (§2.5).
+### 6.3 Only the important alerts
 
-**Option 2** — Non-Custom branch + `attribute_mode = manual`, map only differing keys.
+Keep the groups `data_quality` and `component_health` on, switch the
+others off (Content and language), and turn on quiet hours.
 
-**Option 3** — Rename attributes in ESPAltherma's `.h` file. Requires ESP reflash.
+### 6.4 Bivalent and no hot-water tank
 
-### 6.3 Only critical alerts
+**Boiler signals.** In ESPAltherma enable `Bivalent Operation`,
+`Boiler Operation Demand` and `Boiler DHW Demand` (German firmware:
+`Bivalenter Betrieb`). When the source publishes `Bivalent Operation`,
+boiler-only periods give no heat-pump COP samples and no short-cycle or
+pendulum alerts, as on an EVLQ hybrid. Without it the boiler values are
+ignored.
 
-1. Notifications → Content: disable all 5 groups
-2. Notifications → Enabled: disable all 11 toggles **except** `alert_enabled_source_stale`
-3. Optionally disable `alert_enabled_missing_attributes`
-
-Result: only `source_stale` fires (critical, bypasses quiet hours).
-
-### 6.4 Fewer alerts but not zero
-
-1. Notifications → Quiet hours: enable 22:00–07:00
-2. Notifications → Quiet hours: raise `alert_aggregation_minutes` to 120
-3. Notifications → Content: disable `alert_group_pendulum` if pendelen is acceptable for your system
-4. Pendulum: raise `pendulum_cycles_per_hour` from 4 to 8
-
-Result: fewer alerts, still catches real problems.
-
-### 6.5 Heat curve advice too aggressive
-
-1. Device → Comfort: raise `comfort_min_c` from 20.0 to 21.0
-2. Device → Comfort: lower `comfort_max_c` from 24.0 to 23.0
-
-Tighter comfort band → smaller advisory steps → less aggressive LWT recommendations.
-
-### 6.6 Retrain kmeans after failures
-
-If `kmeans_retrain_stale` alert fires:
-
-1. Go to Developer Tools → Actions
-2. Find `daikin_cycle_ml.recompute_kmeans`
-3. Call it with default parameters
-4. Check for `ok: true` in the response
-
-If it fails, check the `last_failure_reason` in `sensor.daikin_cycle_ml_hp_specs` attributes or in diagnostics download.
-
----
-
-## 7. Verification
-
-### 7.1 After install / wizard
-
-Check in order:
-
-1. `sensor.daikin_cycle_ml_source_health` — should show < 30 s
-2. `binary_sensor.daikin_cycle_ml_source_stale` — should be `off`
-3. `binary_sensor.daikin_cycle_ml_missing_attributes` — should be `off`
-4. `sensor.daikin_cycle_ml_current_cycle` — appears when compressor starts
-5. After 1 hour: `sensor.daikin_cycle_ml_cycles_today` — increments
-6. After 1 hour: check diagnostics — `database.counts.cycles` should grow
-
-### 7.2 After options change
-
-- **Threshold changes**: cycle detection reflects the change immediately on next tick
-- **Notification changes**: fire a test to verify, or wait for next alert
-- **Retention changes**: prune happens at 03:00 local, not immediately
-- **Language change**: next alert is in the new language
-
-### 7.3 Diagnostics download
-
-Settings → Devices & Services → Daikin Cycle ML → menu → **Download diagnostics**.
-
-Contains:
-- HA info + Python version
-- Integration manifest
-- Config entry (redacted)
-- Coordinator state
-- Store counters + last cycle
-- Baseline summary
-- Adaptive thresholds
-- Cluster summary
-- COP analysis
-- Database counts + extra (recent daily summaries, kmeans state, baseline state)
-
-Use this file to diagnose every configuration issue before opening a GitHub issue.
-
-### 7.4 Common verification failures
-
-| Symptom | Cause | Fix |
-|---|---|---|
-| `source_health` growing | ESPAltherma not publishing | Check ESP device, Wi-Fi, `.h` file |
-| `missing_attributes` on | Attribute names differ | Use Custom map or manual mode |
-| `current_cycle` stays idle | RPS threshold too high | Lower `compressor_rps_threshold` in Options → Device |
-| No cycles detected after 1 h | Sensor missing required attributes | Check `missing_attributes` repair details |
-| Notifications silent | notify_service empty | Configure in Options → Notifications → Delivery |
-| `setpoint_osc` never fires | `LW setpoint (main)` missing | Enable in ESPAltherma |
-
----
-
-## Appendix — Default options table
-
-Complete list of every option with default, for backup and migration.
-
-```python
-DEFAULT_OPTIONS = {
-    "compressor_rps_threshold": 3,
-    "fallback_power_threshold_w": 200,
-    "indoor_temp_sensor": None,
-    "power_sensor_entity": None,
-    "cop_sensor_entity": None,
-    "comfort_min_c": 20.0,
-    "comfort_max_c": 24.0,
-    "short_run_threshold_min": 20,
-    "short_off_threshold_min": 5,
-    "pendulum_cycles_per_hour": 4,
-    "pendulum_cycles_per_day": 40,
-    "dhw_pendulum_cycles_per_hour": 3,
-    "setpoint_oscillation_threshold": 6,
-    "setpoint_osc_window_min": 30,
-    "setpoint_osc_min_delta": 0.5,
-    "good_run_threshold_min": 45,
-    "good_dt_threshold_k": 5.0,
-    "good_off_threshold_min": 20,
-    "target_cycles_per_day": 8,
-    "adaptive_thresholds_enabled": False,
-    "adaptive_min_samples": 20,
-    "persistent_enabled": True,
-    "notify_service": "",
-    "notify_emoji_enabled": True,
-    "action_advice_enabled": True,
-    "quiet_hours_enabled": False,
-    "quiet_hours_start": "22:00",
-    "quiet_hours_end": "07:00",
-    "alert_aggregation_minutes": 30,
-    "status_update_enabled": False,
-    "status_update_interval_hours": 24,
-    "notification_language": "en",
-    "alert_group_pendulum": True,
-    "alert_group_short_cycle": True,
-    "alert_group_ml": True,
-    "alert_group_setpoint": True,
-    "alert_group_cop_stooklijn": True,
-    "retention_enabled": True,
-    "cycle_retention_days": 90,
-    "alert_retention_days": 90,
-    "vacuum_enabled": True,
-    "season_start_month": 10,
-}
-```
-
-## Appendix — Related files
-
-| File | Purpose |
+| Setup | `dhw_present` |
 |---|---|
-| `config_flow.py` | All wizard, options, and reconfigure steps |
-| `const.py` | `DEFAULT_*` constants |
-| `strings.json` + `translations/*.json` | Wizard/options translations |
-| `services.yaml` | Service schemas |
+| Heat pump with a hot-water tank | `auto` |
+| No hot-water tank (for example bivalent direct, space heating only) | `never` |
+| The boiler heats the tank but the heat pump sees its sensor | `always` |
+
+`binary_sensor.daikin_cycle_ml_dhw_installed` (diagnostic) shows the
+result. The `dhw_missing_suspect` repair appears when no tank is detected
+but the history has hot-water cycles.
+
+### 6.5 Curve advice too eager
+
+Raise `comfort_min_c` so it lowers less, or lower `comfort_max_c` so it
+raises less. Link the room thermostat or a room sensor
+(`indoor_temp_sensor`) so the comfort guard works from the real room.
+
+### 6.6 Clusters keep failing
+
+`daikin_cycle_ml.recompute_kmeans` with `days: 28`; each mode needs 12
+cycles. The result is sent as a notification.
+
+## 7. Scheduled jobs
+
+| Job | When |
+|---|---|
+| Read the source | Every 30 s |
+| Save the ML state | Every 6 h and on stop |
+| Maintenance (retention, rollups, VACUUM) | Daily 03:00 |
+| Cluster retrain | Sunday 04:00 |
+| Status update | Every `status_update_interval_hours` when enabled |
+
+`run_maintenance`, `recompute_baseline` and `recompute_kmeans` run them on
+demand.

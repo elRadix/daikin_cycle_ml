@@ -455,6 +455,12 @@
                             "season_start_month": "Premier mois de la saison de chauffe (1-12), pour le rendement saisonnier (SPF). 10 par défaut."
                         }
                     }
+                },
+                "data": {
+                    "dhw_present": "Ballon d'eau chaude"
+                },
+                "data_description": {
+                    "dhw_present": "auto : détecté depuis la source (vanne 3 voies, température du ballon). always : vous avez un ballon. never : pas de ballon, la détection et les alertes ECS restent coupées."
                 }
             },
             "test_notification": {
@@ -949,7 +955,7 @@
         },
         "dhw_missing_suspect": {
             "title": "Ballon ECS non détecté",
-            "description": "Cycle ML n'a pas détecté de ballon ECS, mais des cycles ECS historiques existent dans la base de données. Si vous n'avez pas de ballon ECS (par exemple, Bivalent Direct), vous pouvez ignorer cet avertissement en toute sécurité. Si vous en avez un, vérifiez la configuration de votre capteur ESPAltherma, ou réglez « Ballon ECS présent » sur « Toujours » dans Options → Avancé."
+            "description": "Cycle ML n'a pas détecté de ballon ECS, mais des cycles ECS historiques existent dans la base de données. Si vous n'avez pas de ballon ECS (par exemple, Bivalent Direct), vous pouvez ignorer cet avertissement en toute sécurité. Si vous en avez un, vérifiez la configuration de votre capteur ESPAltherma, ou réglez « Ballon d'eau chaude » sur « always » dans Configurer → Avancé."
         }
     },
     "services": {
@@ -1211,6 +1217,12 @@
                 "monolithic": "Entité unique (ESPAltherma v1, sensor.althermasensors)",
                 "individual": "Entités séparées (ESPAltherma v2, sensor.espaltherma_*)",
                 "auto": "Détection automatique (conseillé pour une nouvelle installation)"
+            }
+        },
+        "attribute_mode": {
+            "options": {
+                "auto": "Automatique (noms ESPAltherma standard)",
+                "manual": "Manuel (associer chaque valeur obligatoire)"
             }
         }
     },

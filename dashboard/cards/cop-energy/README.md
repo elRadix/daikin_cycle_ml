@@ -1,22 +1,12 @@
-# COP & Energy Card
+# COP & energy — YAML card
 
-Live COP monitoring card for Daikin Cycle ML. Radial SPF hero gauge, per-mode COP dials, animated RPS-driven fan, and today's energy cascade. Light theme by default, dark theme opt-in, EN/NL auto-detection.
+Seasonal SPF gauge, COP per period and mode, the live power flow and today's energy. English, Dutch and French, dark mode.
 
-![Showcase](showcase.png)
+> **Native alternative:** the [Efficiency card](../daikin-efficiency-card/README.md) shows COP, SPF and energy (*Today* and *Efficiency* tabs) without YAML. This card still adds the animated power flow.
 
-**Table of Contents**
-- [What it shows](#what-it-shows)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Variables, language and theme](#variables-language-and-theme)
-- [Section breakdown](#section-breakdown)
-- [Entity reference](#entity-reference)
-- [Custom entry names](#custom-entry-names)
-- [Troubleshooting](#troubleshooting)
-- [Data & limitations](#data--limitations)
-- [Data flow](#data-flow)
+[CHANGELOG](CHANGELOG.md) · [All cards](../../README.md) · [YAML card guide](../README.md)
 
----
+![COP and energy card](showcase.png)
 
 ## What it shows
 
@@ -35,7 +25,7 @@ Live COP monitoring card for Daikin Cycle ML. Radial SPF hero gauge, per-mode CO
 ## Requirements
 
 **Backend**
-- `daikin_cycle_ml >= v1.19.0`
+- **Daikin Cycle ML** 1.24 or newer (re-paste the YAML after an update)
 
 **Frontend (HACS cards)**
 
