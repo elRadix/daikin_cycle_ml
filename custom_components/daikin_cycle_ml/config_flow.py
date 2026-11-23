@@ -104,6 +104,7 @@ from .const import (
     MODEL_EPRA12EAV3,
     MODEL_FAMILIES,
     MODEL_LABELS,
+    model_display,
     NAME,
     OPTIONAL_ATTRIBUTES,
     REQUIRED_ATTRIBUTES,
@@ -385,7 +386,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_SOURCE_TYPE, SOURCE_TYPE_MONOLITHIC
             )
             self._data[CONF_SOURCE_TYPE] = source_type
-            fam = user_input["family"]
+            fam = user_input.get("family") or MODEL_BASISPROFIEL
             self._model_candidates = []
             if isinstance(fam, str) and fam.strip().lower() in MODEL_FAMILIES:
                 fam = fam.strip().lower()  # typed family prefix ("ERGA")
@@ -409,7 +410,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 fam = family_for_model(first)
                 self._data["model"] = first
                 # #198: keep the code the user typed (diagnostics, support)
-                self._data["model_code"] = str(user_input["family"]).strip()[:64]
+                self._data["model_code"] = str(user_input.get("family", "")).strip()[:64]
             self._selected_family = fam
             if fam in (MODEL_BASISPROFIEL, MODEL_CUSTOM):
                 self._selected_model = fam
@@ -427,9 +428,14 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _show_user_form(self, errors: dict[str, str]) -> ConfigFlowResult:
         current_model = self._data.get("model", "")
-        current_family = family_for_model(current_model) if current_model else MODEL_BASISPROFIEL
+        # An empty field means the basic profile; a raw default ("basisprofiel")
+        # showed as the key itself because the field accepts typed codes.
+        family_key = (
+            vol.Optional("family", default=family_for_model(current_model))
+            if current_model else vol.Optional("family")
+        )
         schema = vol.Schema({
-            vol.Optional("family", default=current_family): _FAMILY_SELECTOR,
+            family_key: _FAMILY_SELECTOR,
             vol.Optional(
                 "source_type", default=SOURCE_TYPE_MONOLITHIC
             ): vol.In(
@@ -1117,7 +1123,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             else:
                 source = self._data.get("source_sensor", "")
             return self.async_create_entry(
-                title=f"{NAME} - {model} ({source})",
+                title=f"{NAME} - {model_display(model)} ({source})",
                 data=self._data,
                 options=self._options,
             )
@@ -1125,7 +1131,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="finalize",
             data_schema=vol.Schema({}, extra=vol.ALLOW_EXTRA),
             description_placeholders={
-                "model": str(self._data.get("model", "?")),
+                "model": model_display(str(self._data.get("model", "?"))),
                 "source": str(self._data.get("source_sensor", "?")),
             },
         )

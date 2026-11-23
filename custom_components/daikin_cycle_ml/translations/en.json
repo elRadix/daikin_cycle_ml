@@ -47,14 +47,18 @@
           "short_run_threshold_min": "Short run threshold",
           "short_off_threshold_min": "Short off threshold",
           "pendulum_cycles_per_day": "Pendulum cycles per day",
-          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour"
+          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour",
+          "short_cycling_window_min": "Short-cycling window",
+          "short_cycling_min_cycles": "Short runs in the window"
         },
-        "description": "Values below mark a cycle as 'short' (pendelen). Lower = stricter, more alerts.\n\n- **Short run** (default 20 min): cycles shorter than this are flagged.\n- **Short off** (default 5 min): off-times shorter than this are flagged.\n- **Pendulum cycles/day** (default 35-40): daily count that triggers an alert.\n- **DHW cycles/hour** (default 3): DHW-specific pendulum trigger.",
+        "description": "Values below mark a cycle as 'short'. Lower = stricter, more alerts.\n\n- **Short run** (default 20 min): cycles shorter than this are flagged.\n- **Short off** (default 5 min): off-times shorter than this are flagged.\n- **Pendulum cycles/day** (default 35-40): daily count that triggers an alert.\n- **DHW cycles/hour** (default 3): DHW-specific pendulum trigger.",
         "data_description": {
           "short_run_threshold_min": "Cycles shorter than this are 'short runs'. Default 20 min. Lower = stricter.",
           "short_off_threshold_min": "Off-times shorter than this are 'short offs'. Default 5 min. Lower = stricter.",
           "pendulum_cycles_per_day": "Daily cycle count that triggers a pendulum alert. Default 35-40. Lower = more alerts.",
-          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour that trigger a DHW pendulum alert. Default 3."
+          "dhw_pendulum_cycles_per_hour": "DHW cycles per hour that trigger a DHW pendulum alert. Default 3.",
+          "short_cycling_window_min": "Time window (min) in which short runs are counted for the short-cycling pattern alert. Default 60.",
+          "short_cycling_min_cycles": "Number of short runs within the window that raises the short-cycling pattern alert. Default 3."
         }
       },
       "quality": {
@@ -63,14 +67,16 @@
           "good_run_threshold_min": "Good run threshold",
           "good_dt_threshold_k": "Good dT threshold",
           "good_off_threshold_min": "Good off threshold",
-          "target_cycles_per_day": "Target cycles per day"
+          "target_cycles_per_day": "Target cycles per day",
+          "buh_penalty_legionella_waived": "No backup-heater penalty for legionella runs"
         },
         "description": "Thresholds used to score a cycle 0-100. Meeting a threshold avoids a penalty.\n\n- **Good run** (default 45 min): runtime ≥ this scores full marks. Below: −30 points.\n- **Good dT** (default 5.0 K): minimum dT for full marks. Below: −20 points.\n- **Good off** (default 20 min): minimum off-time for full marks. Below: −20 points.\n- **Target cycles/day** (default 8): efficiency target, used in ratio-based advice.",
         "data_description": {
           "good_run_threshold_min": "Runtime at or above this scores full marks. Default 45 min. Below = -30 points.",
           "good_dt_threshold_k": "Minimum dT (K) for full marks. Default 5.0 K. Below = -20 points.",
           "good_off_threshold_min": "Minimum off-time for full marks. Default 20 min. Below = -20 points.",
-          "target_cycles_per_day": "Target cycles per day for efficient operation. Default 8. Used for ratio-based advice."
+          "target_cycles_per_day": "Target cycles per day for efficient operation. Default 8. Used for ratio-based advice.",
+          "buh_penalty_legionella_waived": "The weekly legionella disinfection uses the backup heater on purpose: don't lower the quality score of those DHW runs."
         }
       },
       "notifications": {
@@ -191,14 +197,14 @@
       },
       "model": {
         "title": "Daikin Cycle ML setup",
-        "description": "Choose the ESPAltherma source sensor, your heat-pump model, and how required attributes are mapped.\n\n- **Source sensor**: must expose the 12 required ESPAltherma attributes. Typical: `sensor.althermasensors`.\n- **Model**: determines default thresholds.\n- **Attribute mode**: Automatic uses canonical names. Manual lets you map each attribute yourself.",
+        "description": "Choose the ESPAltherma source sensor, your heat-pump model, and how required attributes are mapped.\n\n- **Source sensor**: must expose the required ESPAltherma attributes (the next screen lists them). Typical: `sensor.althermasensors`.\n- **Model**: determines default thresholds.\n- **Attribute mode**: Automatic uses canonical names. Manual lets you map each attribute yourself.",
         "data": {
           "source_sensor": "Source sensor",
           "model": "Heat-pump model",
           "attribute_mode": "Attribute mode"
         },
         "data_description": {
-          "source_sensor": "ESPAltherma sensor that exposes the 12 required heat-pump attributes. Typical: sensor.althermasensors.",
+          "source_sensor": "ESPAltherma sensor that exposes the required heat-pump attributes. Typical: sensor.althermasensors.",
           "model": "Your Daikin model. Determines default thresholds. Pick 'Custom' to supply your own attribute map.",
           "attribute_mode": "Automatic uses the canonical ESPAltherma attribute names. Manual lets you map each required attribute to your own sensor's name."
         }
@@ -271,7 +277,8 @@
           "advanced": "Retention, daily rollup, VACUUM",
           "cop_calc": "Supply phases and backup-heater power for COP",
           "test_notification": "Send one sample alert to the notify target",
-          "test_all_notifications": "One click — sends one of each alert type (filters bypassed)"
+          "test_all_notifications": "One click — sends one of each alert type (filters bypassed)",
+          "model_profile": "Your own datasheet values and the learned compressor range"
         }
       },
       "device": {
@@ -358,6 +365,14 @@
               "setpoint_osc_min_delta": "Minimum °C change to count as a setpoint change. Default 0.5 — filters floating-point noise."
             }
           }
+        },
+        "data": {
+          "short_cycling_window_min": "Short-cycling window",
+          "short_cycling_min_cycles": "Short runs in the window"
+        },
+        "data_description": {
+          "short_cycling_window_min": "Time window (min) in which short runs are counted for the short-cycling pattern alert. Default 60.",
+          "short_cycling_min_cycles": "Number of short runs within the window that raises the short-cycling pattern alert. Default 3."
         }
       },
       "quality_ml": {

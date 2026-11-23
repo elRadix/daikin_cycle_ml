@@ -47,14 +47,18 @@
                     "short_run_threshold_min": "Seuil de marche courte",
                     "short_off_threshold_min": "Seuil d'arrêt court",
                     "pendulum_cycles_per_day": "Cycles par jour avant alerte",
-                    "dhw_pendulum_cycles_per_hour": "Cycles d'eau chaude par heure"
+                    "dhw_pendulum_cycles_per_hour": "Cycles d'eau chaude par heure",
+                    "short_cycling_window_min": "Fenêtre des cycles courts",
+                    "short_cycling_min_cycles": "Marches courtes dans la fenêtre"
                 },
                 "description": "En dessous de ces valeurs, un cycle est compté comme « court ». Plus bas = plus strict, plus d'alertes.\n\n- **Marche courte** (20 min par défaut) : cycles plus courts signalés.\n- **Arrêt court** (5 min par défaut) : arrêts plus courts signalés.\n- **Cycles par jour** (35-40 par défaut) : nombre quotidien qui déclenche une alerte.\n- **Cycles d'eau chaude par heure** (3 par défaut) : alerte propre à l'eau chaude.",
                 "data_description": {
                     "short_run_threshold_min": "Les cycles plus courts sont des « marches courtes ». 20 min par défaut. Plus bas = plus strict.",
                     "short_off_threshold_min": "Les arrêts plus courts sont des « arrêts courts ». 5 min par défaut. Plus bas = plus strict.",
                     "pendulum_cycles_per_day": "Nombre de cycles par jour qui déclenche une alerte. 35-40 par défaut. Plus bas = plus d'alertes.",
-                    "dhw_pendulum_cycles_per_hour": "Cycles d'eau chaude par heure qui déclenchent une alerte. 3 par défaut."
+                    "dhw_pendulum_cycles_per_hour": "Cycles d'eau chaude par heure qui déclenchent une alerte. 3 par défaut.",
+                    "short_cycling_window_min": "Durée (min) pendant laquelle les marches courtes sont comptées pour l'alerte de cycles courts répétés. Par défaut 60.",
+                    "short_cycling_min_cycles": "Nombre de marches courtes dans la fenêtre qui déclenche l'alerte de cycles courts répétés. Par défaut 3."
                 }
             },
             "quality": {
@@ -63,14 +67,16 @@
                     "good_run_threshold_min": "Durée de bon cycle",
                     "good_dt_threshold_k": "Écart départ/retour minimal",
                     "good_off_threshold_min": "Durée d'arrêt minimale",
-                    "target_cycles_per_day": "Objectif de cycles par jour"
+                    "target_cycles_per_day": "Objectif de cycles par jour",
+                    "buh_penalty_legionella_waived": "Pas de pénalité appoint pour la légionelle"
                 },
                 "description": "Seuils utilisés pour noter un cycle de 0 à 100. Atteindre un seuil évite une pénalité.\n\n- **Bon cycle** (45 min par défaut) : durée ≥ ce seuil = note maximale. En dessous : −30 points.\n- **Écart départ/retour** (5,0 K par défaut) : écart minimal pour la note maximale. En dessous : −20 points.\n- **Arrêt minimal** (20 min par défaut) : arrêt minimal pour la note maximale. En dessous : −20 points.\n- **Objectif de cycles/jour** (8 par défaut) : utilisé dans les conseils.",
                 "data_description": {
                     "good_run_threshold_min": "Une durée égale ou supérieure donne la note maximale. 45 min par défaut. En dessous = −30 points.",
                     "good_dt_threshold_k": "Écart départ/retour minimal (K) pour la note maximale. 5,0 K par défaut. En dessous = −20 points.",
                     "good_off_threshold_min": "Arrêt minimal pour la note maximale. 20 min par défaut. En dessous = −20 points.",
-                    "target_cycles_per_day": "Objectif de cycles par jour pour un fonctionnement efficace. 8 par défaut. Utilisé dans les conseils."
+                    "target_cycles_per_day": "Objectif de cycles par jour pour un fonctionnement efficace. 8 par défaut. Utilisé dans les conseils.",
+                    "buh_penalty_legionella_waived": "La désinfection hebdomadaire contre la légionelle utilise volontairement l'appoint électrique : ne pas baisser le score de ces cycles ECS."
                 }
             },
             "notifications": {
@@ -191,14 +197,14 @@
             },
             "model": {
                 "title": "Configuration de Daikin Cycle ML",
-                "description": "Choisir le capteur source ESPAltherma, le modèle de PAC et la façon d'associer les valeurs.\n\n- **Capteur source** : doit fournir les 12 valeurs ESPAltherma obligatoires (mode « une seule entité »). En mode entités séparées, choisir n'importe quelle entité `espaltherma_*`.\n- **Modèle** : fixe les seuils par défaut.\n- **Mode de correspondance** : Automatique utilise les noms standard, Manuel permet de les associer vous-même.",
+                "description": "Choisir le capteur source ESPAltherma, le modèle de PAC et la façon d'associer les valeurs.\n\n- **Capteur source** : doit fournir les valeurs ESPAltherma obligatoires (l'écran suivant les liste) (mode « une seule entité »). En mode entités séparées, choisir n'importe quelle entité `espaltherma_*`.\n- **Modèle** : fixe les seuils par défaut.\n- **Mode de correspondance** : Automatique utilise les noms standard, Manuel permet de les associer vous-même.",
                 "data": {
                     "source_sensor": "Capteur source",
                     "model": "Modèle de PAC",
                     "attribute_mode": "Mode de correspondance"
                 },
                 "data_description": {
-                    "source_sensor": "Capteur ESPAltherma qui fournit les 12 valeurs obligatoires. Habituellement : sensor.althermasensors.",
+                    "source_sensor": "Capteur ESPAltherma qui fournit les valeurs obligatoires. Habituellement : sensor.althermasensors.",
                     "model": "Votre modèle Daikin, qui fixe les seuils par défaut. Choisir « Personnalisé » pour fournir vos propres caractéristiques.",
                     "attribute_mode": "Automatique utilise les noms standard d'ESPAltherma. Manuel permet d'associer chaque valeur au nom de votre capteur."
                 }
@@ -271,7 +277,8 @@
                     "advanced": "Conservation, bilan quotidien, compactage",
                     "cop_calc": "Alimentation et puissance de l'appoint pour le COP",
                     "test_notification": "Envoyer un exemple d'alerte au destinataire",
-                    "test_all_notifications": "Un clic — envoie un exemple de chaque alerte (sans filtres)"
+                    "test_all_notifications": "Un clic — envoie un exemple de chaque alerte (sans filtres)",
+                    "model_profile": "Vos valeurs de fiche technique et la plage compresseur apprise"
                 }
             },
             "device": {
@@ -358,6 +365,14 @@
                             "setpoint_osc_min_delta": "Changement minimal (°C) pour compter un changement de consigne. 0,5 par défaut."
                         }
                     }
+                },
+                "data": {
+                    "short_cycling_window_min": "Fenêtre des cycles courts",
+                    "short_cycling_min_cycles": "Marches courtes dans la fenêtre"
+                },
+                "data_description": {
+                    "short_cycling_window_min": "Durée (min) pendant laquelle les marches courtes sont comptées pour l'alerte de cycles courts répétés. Par défaut 60.",
+                    "short_cycling_min_cycles": "Nombre de marches courtes dans la fenêtre qui déclenche l'alerte de cycles courts répétés. Par défaut 3."
                 }
             },
             "quality_ml": {
