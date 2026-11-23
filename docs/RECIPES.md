@@ -7,7 +7,7 @@ install the ids follow the translated names
 the end of the id (for example `heating_curve_advice`) when an example
 does not match.
 
-More examples: [Entities §9](ENTITIES.md#9-automations-quick-reference) and
+More examples:
 the [Configuration cookbook](CONFIGURATION.md#6-cookbook).
 
 ## Contents

@@ -83,7 +83,7 @@ Assistant. Backup: [Database §8](DATABASE.md#8-backup-and-recovery).
 
 **Can I export it?**
 Yes: the `export_cycles` and `export_cop_hourly` services write JSON or
-CSV. See [Entities §5](ENTITIES.md#5-services-10).
+CSV. See [Entities §5](ENTITIES.md#5-services).
 
 **What is in a diagnostics file?**
 See [Diagnostics](DIAGNOSTICS.md).
@@ -106,4 +106,4 @@ first.
 - Altherma HT units are read from their ESPAltherma definition names; no
   HT install has sent diagnostics yet, so field data is welcome.
 
-Full ML limitations: [Machine Learning §11](ML.md#11-limitations).
+Full ML limitations: [Machine Learning §9](ML.md#9-limitations).
