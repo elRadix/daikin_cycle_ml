@@ -1,59 +1,61 @@
 # Documentation
 
 Guides and reference for Daikin Cycle ML. Start with the question you
-have; every page has its own table of contents at the top.
+have; every page has its own table of contents.
 
 ## Where do I start?
 
 | I want to... | Read |
 |---|---|
-| Install the integration and run the setup wizard | [Getting started](GETTING_STARTED.md) (with screenshots), details in [Configuration](CONFIGURATION.md) §2–§3 |
-| Find a quick answer | [FAQ](FAQ.md) |
+| Install and set up, with screenshots | [Getting started](GETTING_STARTED.md) |
+| A quick answer | [FAQ](FAQ.md) |
+| Fix something that does not work | [Troubleshooting](TROUBLESHOOTING.md) |
+| Change an option | [Configuration](CONFIGURATION.md) |
+| Know what a sensor or service does | [Entities](ENTITIES.md) |
+| Understand a notification | [Alerts](ALERTS.md) |
+| Add a card to a dashboard | [Cards](../dashboard/cards/README.md) |
 | Copy an automation | [Recipes](RECIPES.md) |
-| Know what a sensor, binary sensor or service means | [Entities](ENTITIES.md) |
-| Understand why I got a notification, or tune an alert | [Alerts & Notifications](ALERTS.md) |
-| Understand the quality score, learned thresholds or the ML anomaly alert | [Machine Learning](ML.md) |
-| Check whether my heat pump model is supported | [Model Compatibility](MODEL_COMPATIBILITY.md) and [Model Coverage](MODEL_COVERAGE.md) |
-| Fix something that doesn't work (no cycles, wrong COP, empty cards) | [Troubleshooting](TROUBLESHOOTING.md) |
-| Know what changes when I update | [Upgrade Guide](UPGRADE.md) and the [CHANGELOG](../CHANGELOG.md) |
-| Query or back up the database | [Database](DATABASE.md) |
-| Add a dashboard card | [Shared card settings](../dashboard/cards/README.md) (header, language, dark mode, variables), then the card's own folder in [`dashboard/cards/`](../dashboard/cards/) (README + CHANGELOG) |
-| Contribute code or run the tests | [Development](DEVELOPMENT.md) |
+| Update, or go back a version | [Upgrade](UPGRADE.md) and the [CHANGELOG](../CHANGELOG.md) |
+| Check my heat pump model | [Model compatibility](MODEL_COMPATIBILITY.md) |
+| Send a bug report | [Diagnostics](DIAGNOSTICS.md) |
+| Contribute | [Development](DEVELOPMENT.md) |
 
 ## User guides
 
 | Page | Contents |
 |---|---|
-| [Getting started](GETTING_STARTED.md) | The ESPAltherma values to enable, every setup-wizard screen with a screenshot, the options menu, and what to check in the first hour, day and week; hybrid and bivalent systems. |
-| [FAQ](FAQ.md) | Short answers on setup, alerts, advice, data and the known limitations. |
-| [Recipes](RECIPES.md) | Automations ready to paste: heating-curve advice to your phone, every cycle in the logbook, a daily summary, an alert when ESPAltherma stops, the Energy dashboard. |
-| [Diagnostics](DIAGNOSTICS.md) | What the diagnostics file contains, what is removed, and how a file you send is anonymised. |
-| [Configuration](CONFIGURATION.md) | Source sensor requirements (ESPAltherma v1 single sensor or v2 entities, AUTO mode), the setup wizard step by step, the options menu (device, sensors incl. power / BUH power / COP sensor, thresholds, notifications, maintenance), reconfigure flows, bivalent / hybrid systems and DHW detection, and a cookbook of common setups. |
-| [Entities](ENTITIES.md) | Every sensor and binary sensor with its unit, state class and attributes (cycle state, last cycle with `quality_penalties`, today's runtime / starts / defrosts / BUH, COP day / week / month, SPF, heating-curve advice, learned thresholds, alerts today), the services, the repair issues, and automation examples. |
-| [Alerts & Notifications](ALERTS.md) | All alert types and what triggers each one (short run, short off, pendulum, BUH excessive, defrost excessive, COP low / below datasheet, ML anomaly, ...), delivery (persistent notification, notify service), aggregation windows, quiet hours, alert groups, per-alert toggles and message templates. |
-| [Machine Learning](ML.md) | The cycle feature vector, the per-mode EWMA baseline and the anomaly z-score, adaptive thresholds (short run, good off, cycles per day), k-means clustering, energy anomaly, retrain schedules, and the **quality score** with its proportional penalty table and examples. |
-| [Troubleshooting](TROUBLESHOOTING.md) | Step-by-step checks for setup problems, cycles not detected, missing attributes, alert issues, entity and dashboard problems (cards, languages), database errors, and the log messages that matter. |
-| [Upgrade Guide](UPGRADE.md) | Version-by-version breaking changes, migration paths, deprecated options, database migrations, entity renames and how to recover after a downgrade. |
+| [Getting started](GETTING_STARTED.md) | The ESPAltherma values to enable, every setup-wizard screen, the options menu, the first hour, day and week, hybrid and bivalent systems |
+| [FAQ](FAQ.md) | Short answers and the known limitations |
+| [Configuration](CONFIGURATION.md) | Source types, wizard paths, every option with its default, COP sources, model profile, reconfigure, cookbook, scheduled jobs |
+| [Alerts](ALERTS.md) | The 21 alerts with level, group, repeat window and trigger; delivery, quiet hours, switching alerts off, testing |
+| [Troubleshooting](TROUBLESHOOTING.md) | Symptom tables: setup, detection, values, COP, alerts, hybrid, database, cards, reporting |
+| [Recipes](RECIPES.md) | Automations ready to paste |
+| [Upgrade](UPGRADE.md) | Updating, what migrates on its own, the changes that needed action, going back |
 
 ## Reference
 
 | Page | Contents |
 |---|---|
-| [Database](DATABASE.md) | The SQLite file (`/config/.storage/daikin_cycle_ml_<entry>.db`): every table and column, `model_state` keys, retention and vacuum, all data migrations (v17–v32, quality rescore) with their markers, backup and recovery, disk usage. |
-| [Model Compatibility](MODEL_COMPATIBILITY.md) | Which ESPAltherma values the integration reads, the name variants per model (alias layer), the ESPAltherma v1 definition names vs the v2 catalog names (`I/U` / `O/U`, §9.1), the per-model matrix, regeneration workflow and the CI gate, plus the bundled datasheet reference. |
-| [Model Coverage](MODEL_COVERAGE.md) | Per-model coverage of the values the integration consumes on ESPAltherma 2.0 (how many resolve directly or through an alias, and what a missing one disables). |
-| [Development](DEVELOPMENT.md) | Local and cloud dev setup, running the test suite, CI workflows and quality gates (100 % coverage, ruff, mypy strict, pylint, markdown, model-compat), Integration Quality Scale status, scope boundaries and the release procedure. |
+| [Entities](ENTITIES.md) | Every sensor, binary sensor, service and repair issue |
+| [Machine learning](ML.md) | Quality score, behaviour baseline and `ml_anomaly`, adaptive thresholds, clusters, energy anomaly |
+| [Database](DATABASE.md) | Files, tables, `model_state` keys, maintenance, migrations, backup, queries |
+| [Diagnostics](DIAGNOSTICS.md) | The diagnostics file: sections, what is removed, how a sent file is anonymised |
+| [Model compatibility](MODEL_COMPATIBILITY.md) | ESPAltherma names per model, the alias layer, the per-model matrix, bundled datasheets |
+| [Model coverage](MODEL_COVERAGE.md) | Per-model coverage of the values read on ESPAltherma 2.0 |
+| [Development](DEVELOPMENT.md) | Environment, tests, quality gates, CI, workflow, quality scale, releases |
 
 ## Data files
 
 | File | Contents |
 |---|---|
-| [`cycle-thresholds.json`](cycle-thresholds.json) | All cycle-detection, pendulum and quality defaults in one place (kept in sync with the code by a drift test). |
-| [`MODEL_ATTRIBUTES.json`](MODEL_ATTRIBUTES.json) | ESPAltherma v1 definition names per model (parsed from `definitions/*.h`, pinned commit). |
-| [`ESPALTHERMA_V2_CATALOG.json`](ESPALTHERMA_V2_CATALOG.json) | ESPAltherma v2 names (MQTT keys / Home Assistant ids) per definition from `data/catalog_names.txt`, plus the firmware-computed values (pinned commit). |
+| [`cycle-thresholds.json`](cycle-thresholds.json) | Cycle, pendulum and quality defaults and the sanity gates (kept equal to the code by a test) |
+| [`MODEL_ATTRIBUTES.json`](MODEL_ATTRIBUTES.json) | ESPAltherma v1 definition names per model (pinned commit) |
+| [`ESPALTHERMA_V2_CATALOG.json`](ESPALTHERMA_V2_CATALOG.json) | ESPAltherma v2 names per definition (pinned commit) |
 
 ## Design notes
 
 | Page | Contents |
 |---|---|
-| [design/a3-tick-metrics.md](design/a3-tick-metrics.md) | Decision record for the coordinator tick metrics in diagnostics (sample rate, tick duration, slowest-tick phases). |
+| [design/ml-winter-simulation.md](design/ml-winter-simulation.md) | The 3-month winter simulation behind ML v2 |
+| [design/368-energy-balance-simulation.md](design/368-energy-balance-simulation.md) | Heat-loss and energy-balance feasibility (#368, #490) |
+| [design/a3-tick-metrics.md](design/a3-tick-metrics.md) | Coordinator tick metrics in the diagnostics |

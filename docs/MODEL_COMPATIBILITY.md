@@ -4,10 +4,6 @@ Which Daikin Altherma models work with Daikin Cycle ML, which ESPAltherma
 definition labels are required, and how the compatibility matrix is
 regenerated.
 
-- **Covers:** canonical sensors, variant unions, 40-model coverage matrix, decoy register, whitespace contract, regeneration workflow, CI gate
-- **For:** contributors adding model support, users diagnosing missing_attributes repairs, maintainers regenerating after upstream moves
-- **Version:** v1.14.0
-
 Cross-references: [DATABASE.md](DATABASE.md) (cop_samples semantics), [CONFIGURATION.md](CONFIGURATION.md) (attribute mapping), [DEVELOPMENT.md](DEVELOPMENT.md) (CI workflows).
 
 ---
@@ -401,19 +397,9 @@ edited, not duplicated. The workflow never auto-merges or auto-regenerates.
 
 ---
 
-## 11. Changelog
-
-| Version | Change |
-|---|---|
-| v1.12.9 (PR B) | First tracked MODEL_ATTRIBUTES.json + parser + 130 tests + CI gate + weekly drift |
-| Unreleased (#413) | v2 catalog snapshot ESPALTHERMA_V2_CATALOG.json + tool + contract tests + drift diff |
-| (pre-v1.12.9) | Untracked manual extraction, no CI coverage |
-
----
-
 ## Bundled model datasheet reference
 
-Public Daikin datasheet values for the 53 technical model codes plus 1 commercial alias (ERGA08EVH7 -> ERGA08EAV3). COP values are nominal (EN 14511). Where a value is not cleanly published across regional datasheets it is marked `—`.
+Public Daikin datasheet values per model family (the bundled file covers 61 models; codes and indoor units resolve to them, see [Getting started](GETTING_STARTED.md)). COP values are nominal (EN 14511). Where a value is not cleanly published across regional datasheets it is marked `—`.
 
 ### LT monobloc — EBLQ CV3 (R-410A)
 
@@ -513,18 +499,18 @@ Chillers (EWAA/EWYA/EWAQ/EWYQ), Hybrid, Multi, DHW tanks and PROTOCOL_S template
 
 The `data/datasheets.json` file drives the `cop_vs_datasheet_low` alert and the `cop_vs_datasheet_pct` sensor. Coverage per model:
 
-| Curve status | Models | Behavior |
+| Curve status | Models | Reference for `cop_vs_datasheet_pct` |
 |---|---|---|
-| **multi-point** (3+ points) | `ebla09da3w1`, `ekhbrd011`, `ekhbrd014`, `ekhbrd016`, `epra08eav3`, `epra10eav3`, `epra12eav3`, `erla11dav3`, `erla14dav3`, `erla16dav3`, `errq011`, `errq014`, `errq016`, `evlq05cv3`, `evlq08cv3` | T_out-aware: interpolates COP at actual outdoor temp |
-| **two-point** (A7/W35 + A7/W45 or W55) | `ebla04ev3`, `ebla06ev3`, `ebla08ev3`, `eblq05cv3`, `eblq07cv3`, `eblq11cv3`, `eblq14cv3`, `eblq16cv3`, `edla09d3v3`, `edla11d3v3`, `edla14d3v3`, `edla16d3v3`, `edlq05cv3`, `edlq07cv3`, `edlq11cv3`, `edlq14cv3`, `edlq16cv3`, `epga11dav3`, `epga14dav3`, `epga16dav3`, `erga04eav3`, `erga06eav3`, `erga08eav3`, `erga08evh7` | Linear interpolation between the two points |
-| **A7/W35 / nom_cop only** | `epra14dav3`, `epra14daw17`, `epra16dav3`, `epra18dav3`, `epsk06aw1`, `epsk08aw1`, `epsk10aw1`, `epsk12aw1`, `epsk14aw1` | Falls back to A7/W35 comparison — alert may false-positive below 0 °C |
-| **not in Daikin/ESPAltherma catalogue** (`verified: false`) | `epga10dav3`, `epra04eav3`, `epra06eav3`, `epra11eav3`, `epra14eav3`, `epra16eav3`, `epra18eav3`, `erla04dav3`, `erla06dav3`, `erla08dav3`, `erla12dav3` | Kept so existing config entries load; values unverified |
+| **3 or more points** | `ebla09da3w1`, `ekhbrd011`, `ekhbrd014`, `ekhbrd016`, `epra08eav3`, `epra10eav3`, `epra12eav3`, `erga04eav3`, `erga06eav3`, `erga08eav3`, `erga08evh7`, `erla11dav3`, `erla14dav3`, `erla16dav3`, `errq011`, `errq014`, `errq016`, `evlq05cv3`, `evlq08cv3` | The nearest datasheet points at the live outdoor and water temperature, bridged with the Carnot ratio (#175) |
+| **two points** | `ebla04ev3`, `ebla06ev3`, `ebla08ev3`, `eblq05cv3`, `eblq07cv3`, `eblq11cv3`, `eblq14cv3`, `eblq16cv3`, `edla09d3v3`, `edla11d3v3`, `edla14d3v3`, `edla16d3v3`, `edlq05cv3`, `edlq07cv3`, `edlq11cv3`, `edlq14cv3`, `edlq16cv3`, `epga11dav3`, `epga14dav3`, `epga16dav3` | The same, from two points |
+| **A7/W35 only** | `epra14dav3`, `epra14daw17`, `epra16dav3`, `epra18dav3`, `epsk06aw1`, `epsk08aw1`, `epsk10aw1`, `epsk12aw1`, `epsk14aw1` | A7/W35 carried to the live point with the Carnot ratio (less accurate far from A7/W35) |
+| **not in Daikin's catalogue** (`verified: false`) | `epga10dav3`, `epra04eav3`, `epra06eav3`, `epra11eav3`, `epra14eav3`, `epra16eav3`, `epra18eav3`, `erla04dav3`, `erla06dav3`, `erla08dav3`, `erla12dav3` | Kept so existing setups load; values unverified |
 
 **Verification (#392).** Models with `verified: true` carry Daikin product-table values (EN14511 nominal, EN14825 SCOP average climate) and a source in `ref`: `ebla04ev3`, `ebla06ev3`, `ebla08ev3`, `eblq05cv3`, `eblq07cv3`, `eblq11cv3`, `eblq14cv3`, `eblq16cv3`, `edla09d3v3`, `edla11d3v3`, `edla14d3v3`, `edla16d3v3`, `edlq05cv3`, `edlq07cv3`, `edlq11cv3`, `edlq14cv3`, `edlq16cv3`, `ekhbrd011`, `ekhbrd014`, `ekhbrd016`, `epra08eav3`, `epra10eav3`, `epra12eav3`, `epra14dav3`, `epra16dav3`, `epra18dav3`, `epsk12aw1`, `epsk14aw1`, `erga04eav3`, `erga06eav3`, `erga08eav3`, `erga08evh7`, `erla11dav3`, `erla14dav3`, `erla16dav3`, `evlq05cv3`, `evlq08cv3`. Values without a source are left unchanged and are not marked verified. Every `hc` in a point is a Daikin EN 14511 heating capacity at that condition: a rating point, used as a lower bound of the maximum heat; the maximum itself is estimated from `hc_max_a7` (Daikin product-table maximum at A7/W35, where published) or the nominal kW (#478, see CONFIGURATION). EPRA08/10/12 EAV3 points follow Daikin certification sheet 4D133543C. Capacities that could not be confirmed for the exact model are still used and named in the entry's `note`: `epsk06aw1`, `epsk08aw1`, `epsk10aw1` (single-phase ARV3 table), `epga11dav3`, `epga14dav3`, `epga16dav3` (brochure, A7/W35), `errq011`, `errq014`, `errq016` (ERRQ-ERSQ table above, A7/W65).
 
 ### Supplying your own datasheet
 
-For `nom_cop only` models the alert uses A7/W35 as reference regardless of outdoor temperature. To make it T_out-aware, supply your model's COP table via the `daikin_cycle_ml.upload_datasheet` service (see `services.yaml`). User-supplied data overrides bundled data.
+Add the datasheet points of your model (outdoor temperature, water temperature, COP, maximum heat) in **Configure → Model profile**, on the Performance card, or with `daikin_cycle_ml.set_model_profile`; `import_datasheet` imports a whole datasheet. Your values win over the bundled ones.
 
 
 ## Changing your model

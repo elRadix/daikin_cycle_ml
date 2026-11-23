@@ -79,7 +79,7 @@ notifications all arrive.
 In `/config/.storage/` on your Home Assistant: a SQLite database per heat
 pump (`daikin_cycle_ml_<entry>.db`, typically 10-40 MB after a year) and
 two small stores (alerts, your datasheets). Nothing leaves your Home
-Assistant. Backup: [Database §8](DATABASE.md#8-backup-and-recovery).
+Assistant. Backup: [Database §7](DATABASE.md#7-backup-recovery-and-reset).
 
 **Can I export it?**
 Yes: the `export_cycles` and `export_cop_hourly` services write JSON or
