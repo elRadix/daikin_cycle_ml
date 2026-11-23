@@ -1,17 +1,8 @@
-# Shared card settings (YAML cards)
+# YAML cards: install and shared settings
 
-**Start with the native cards.** [Efficiency](daikin-efficiency-card/README.md)
-(`type: custom:daikin-efficiency-card`) and
-[Daily summary](daikin-daily-summary-card/README.md)
-(`type: custom:daikin-daily-summary-card`) are served by the integration:
-add them from the card picker, no HACS frontend cards, no YAML, and they
-update by themselves. Their options are set in the visual editor; the
-settings below do not apply to them. Overview and comparison:
-[dashboard README](../README.md).
-
-This page is for the seven YAML cards. Each card is one YAML file:
-paste it in **Edit dashboard → Add card → Manual**. All cards share the
-same header, variables, language rule and theme (#427).
+How to install the seven YAML cards, and the header, variables, language
+and theme they share. The three **native cards** need none of this: see
+the [dashboard overview](../README.md).
 
 | Card | File | Shows |
 |---|---|---|
@@ -19,12 +10,18 @@ same header, variables, language rule and theme (#427).
 | [COP & energy](cop-energy/README.md) | `cop-energy/cop-energy.yaml` | SPF gauge, COP per period and mode, live power flow, energy today |
 | [Summary](daily-summary/README.md) | `daily-summary/daily-summary.yaml` | One-page multi-day summary: quality, cycles, duration, events |
 | [Daily summary (tabbed)](daily-summary-tabbed/README.md) | `daily-summary-tabbed/daily-summary-tabbed.yaml` | The same per-day data in five tabs with 7 / 15 / 30 day windows and pop-ups |
-| [Heating curve](heating-curve/README.md) | `heating-curve/heating-curve.yaml` | LWT vs outdoor temperature with the measured points, live point, modes, balance |
+| [Heating curve](heating-curve/README.md) | `heating-curve/heating-curve.yaml` | Water temperature against outdoor with the measured points, live point, modes, balance |
 | [LWT fine-tuning](lwt-fine-tuning/README.md) | `lwt-fine-tuning/card.yaml` | Heating-curve advice, buckets, slope / offset analysis, live LWT |
-| [Pattern analysis](pattern-analysis/README.md) | `pattern-analysis/pattern-analysis.yaml` | Cycle duration distribution, cycles vs duration, COP efficiency |
+| [Pattern analysis](pattern-analysis/README.md) | `pattern-analysis/pattern-analysis.yaml` | Run-length distribution, cycles against run length, COP |
 
-Each card folder has a README (what the card shows, its data) and a
-CHANGELOG.
+## Install
+
+1. Install the three frontend cards below (HACS → Frontend), restart Home
+   Assistant and refresh the browser (`Ctrl`+`Shift`+`R`).
+2. Open the card's folder and copy the whole YAML file.
+3. **Edit dashboard → + Add card → Manual**, paste, **Save**.
+4. After an integration update, re-paste the YAML when the release notes
+   list the card (HACS does not update pasted cards).
 
 ## Requirements
 

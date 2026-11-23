@@ -13,7 +13,7 @@ have; every page has its own table of contents.
 | Change an option | [Configuration](CONFIGURATION.md) |
 | Know what a sensor or service does | [Entities](ENTITIES.md) |
 | Understand a notification | [Alerts](ALERTS.md) |
-| Add a card to a dashboard | [Cards](../dashboard/cards/README.md) |
+| Add a card to a dashboard | [Cards](../dashboard/README.md) |
 | Copy an automation | [Recipes](RECIPES.md) |
 | Update, or go back a version | [Upgrade](UPGRADE.md) and the [CHANGELOG](../CHANGELOG.md) |
 | Check my heat pump model | [Model compatibility](MODEL_COMPATIBILITY.md) |

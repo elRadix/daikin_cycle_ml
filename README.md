@@ -57,7 +57,7 @@ when you have several.
 **YAML cards** (button-card based) are still available for custom
 dashboards: Daily Summary Tabbed, COP & Energy, Pattern Analysis, LWT
 Fine-Tuning, Heating Curve and more. See the
-[card gallery](https://github.com/elRadix/daikin_cycle_ml/blob/main/dashboard/cards/README.md);
+[card overview](https://github.com/elRadix/daikin_cycle_ml/blob/main/dashboard/README.md);
 re-paste them after an update.
 
 ---
