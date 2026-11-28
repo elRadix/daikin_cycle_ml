@@ -30,7 +30,7 @@ from tests.test_native_cards_responsive import _playwright
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONT = ROOT / "custom_components/daikin_cycle_ml/frontend"
-CARDS = ["daikin-daily-summary-card.js", "daikin-efficiency-card.js", "daikin-performance-card.js"]
+CARDS = ["daikin-daily-summary-card.js", "daikin-efficiency-card.js", "daikin-performance-card.js", "daikin-reports-card.js"]
 BLOCK = re.compile(r"  /\* DCM-PATCH:BEGIN.*?/\* DCM-PATCH:END \*/\n", re.S)
 
 BROWSER = r"""

@@ -3,6 +3,15 @@
 ## [Unreleased]
 
 ### Added
+- Native card `custom:daikin-reports-card` 1.0.0 (#508): week, month, year
+  and heating-season reports per mode with drop-downs (period type, period
+  with ‹ ›, mode, compare with previous period / last year / none) and six
+  tabs (Overview, Energy & COP, Temperatures, Cycling, Events & ML,
+  Compare); verdict per metric; EN / NL / FR, dark mode, visual editor,
+  several heat pumps, Diagnostics footer. Reads through `get_report`.
+- Whole-day report rows carry quality, run length, compressor speed,
+  leaving / return water, ΔT and flow (weighted over the modes), so mode
+  *All* shows them too.
 - Period reports, part 2: comparison and services (#508).
   - Every week / month / year / season is compared with the previous period
     or the same period a year earlier: change per metric, energy per degree
@@ -61,6 +70,9 @@
   write paths, frozen rows never rewritten, rebuild, DST day length,
   maintenance never pruning the report tables, accumulator persist /
   restore / reset, the backfill marker.
+- `test_508_reports_card.py`: every tab in EN / NL / FR on `get_report`
+  responses from the real builder; Chromium: the service call, ‹ › stepping,
+  drop-downs, tabs, phone and desktop width, dark mode, editor.
 - `test_508_report_compare.py`, `test_508_report_services.py`: deltas, the
   weather-matched COP (a colder month is not worse), every verdict grade,
   incomplete periods, trends, previous / last-year keys (ISO week 53), the

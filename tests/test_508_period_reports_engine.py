@@ -210,6 +210,9 @@ def test_build_all_row():
     assert row["cop"] == 4.0                     # the failing DHW day is left out
     assert row["cop_el_kwh"] == 2.0 and row["cop_th_kwh"] == 8.0
     assert row["duty_pct"] == 16.7 and row["runs"] == 4
+    # whole-day means over the modes: quality by cycles, water by runtime
+    assert row["quality_mean"] == 80.0 and row["run_mean_min"] == 60.0
+    assert row["lwt_mean"] == 32.0 and row["return_mean"] == 28.0 and row["rps_mean"] == 40.0
     assert row["outdoor_mean"] == 3.0 and row["outdoor_source"] == "all_day"
     assert row["degree_days"]["nl18"] == 15.0
     assert row["buh_min"] == 15.0 and row["defrost_count"] == 3 and row["defrost_min"] == 10.0
@@ -221,6 +224,7 @@ def test_build_all_row():
 def test_all_row_clock_and_duty_checks():
     row = pr.build_all_row("2026-01-15", {}, {}, {}, 0)
     assert row["duty_pct"] is None and row["coverage"] is None and row["degree_days"] is None
+    assert row["quality_mean"] is None and row["run_mean_min"] is None
     assert pr.check_all_row(row, {}) == ["clock"]
     row = pr.build_all_row("2026-01-15", {"heating": {"runtime_s": 90000}}, {}, {}, 86400)
     assert pr.check_all_row(row, {}) == ["runtime_bounds"]
