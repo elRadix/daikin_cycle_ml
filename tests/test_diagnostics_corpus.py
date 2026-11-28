@@ -49,6 +49,13 @@ _PII = {
 }
 
 
+# Corpus files whose entry was set up on a model that does not match the
+# unit's own code; the catalogue now offers the right one.
+WRONG_MODEL = {
+    # #522: ELVX12S23EJ6V + ERRA08EAV37 set up as EPRA08 (no ERRA datasheet then)
+    "epra08eav3_1_31_0_b63203fae1_": "erra08eav3",
+}
+
 def _load(p: Path) -> dict:
     return json.loads(p.read_text())
 
@@ -82,7 +89,12 @@ def test_replay(path):
     if unit:
         match = resolve_model_text(unit)
         if match.kind in ("exact", "alias", "indoor", "ambiguous"):
-            assert model in match.candidates or model == match.key, (unit, match)
+            ok = model in match.candidates or model == match.key
+            # an install set up on the wrong model: listed, and still wrong
+            wrong = next((v for k, v in WRONG_MODEL.items() if path.stem.startswith(k)), None)
+            assert ok != bool(wrong), (unit, match, wrong)
+            if wrong:
+                assert wrong in match.candidates or wrong == match.key, (unit, match)
 
     last = (doc.get("store") or {}).get("last_cycle")
     if last:

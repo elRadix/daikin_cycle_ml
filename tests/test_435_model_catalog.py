@@ -51,8 +51,14 @@ def test_flagged_set_matches_datasheets():
         # EPRA E 8-12 kW: flagged epra11eav3 never offered
         ("ETVX12S23EA9W", "ambiguous", None,
          ["epra08eav3", "epra10eav3", "epra12eav3"]),
+        # #522: EL* indoor units pair with ERRA (Altherma 3 R MT), not EPRA
         ("ELBX12EF6V", "ambiguous", None,
-         ["epra08eav3", "epra10eav3", "epra12eav3"]),
+         ["erra08eav3", "erra10eav3", "erra12eav3"]),
+        ("ELVX12S23EJ6V", "ambiguous", None,
+         ["erra08eav3", "erra10eav3", "erra12eav3"]),
+        ("ERRA08EAV37", "alias", "erra08eav3", ["erra08eav3"]),
+        ("ELVX12S23EJ6V + ERRA08EAV37", "alias", "erra08eav3", ["erra08eav3"]),
+        ("ERRA12EV3", "alias", "erra12eav3", ["erra12eav3"]),
         # EPRA 14-18 kW (D + E indoor series)
         ("ETVX16E6V", "ambiguous", None,
          ["epra14dav3", "epra16dav3", "epra18dav3"]),
@@ -120,8 +126,10 @@ def test_indoor_units_for_labels():
         "EHBH/EHBX, EHVH/EHVX/EHVZ, EHSH/EHSX 04"
     ]
     assert indoor_units_for("edla09d3v3") == []
+    assert indoor_units_for("erra10eav3") == ["ELBH/ELBX, ELVH/ELVX/ELVZ, ELSH/ELSX 12"]
+    assert all(not s.startswith("EL") for s in indoor_units_for("epra10eav3")[0].split(", "))
     assert set(INDOOR_HINT_BY_FAMILY) <= {
-        "erga", "epra", "epga", "erla", "evlq", "ekhbrd",
+        "erga", "epra", "epga", "erla", "evlq", "ekhbrd", "erra",
     }
 
 

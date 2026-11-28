@@ -400,7 +400,7 @@ async def test_reconfigure_basic_switch_to_auto_skips_prefix_default(
     flow._get_reconfigure_entry = MagicMock(return_value=entry)
     captured: dict = {}
 
-    def fake_abort(entry_arg, data_updates=None, reason=None):
+    def fake_abort(entry_arg, data_updates=None, reason=None, title=None):  # #522: title kwarg
         captured["data_updates"] = dict(data_updates or {})
         return {"type": "abort", "reason": reason}
 
@@ -428,7 +428,7 @@ async def test_reconfigure_basic_switch_to_individual_sets_prefix_default(
     flow._get_reconfigure_entry = MagicMock(return_value=entry)
     captured: dict = {}
 
-    def fake_abort(entry_arg, data_updates=None, reason=None):
+    def fake_abort(entry_arg, data_updates=None, reason=None, title=None):  # #522: title kwarg
         captured["data_updates"] = dict(data_updates or {})
         return {"type": "abort", "reason": reason}
 

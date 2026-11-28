@@ -8,7 +8,8 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
-from .const import DOMAIN, UPDATE_INTERVAL_SECONDS
+from .const import DOMAIN, MODEL_CUSTOM, UPDATE_INTERVAL_SECONDS, model_display
+from .engine.model_catalog import model_check
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,6 +26,8 @@ ISSUE_DATASHEET_LOAD_FAILED = "datasheet_load_failed"
 ISSUE_LEGACY_DB_MULTI_ENTRY = "legacy_db_multi_entry"
 ISSUE_V2_MISSING_ATTRS = "espaltherma_v2_missing_attrs"
 ISSUE_DHW_MISSING_SUSPECT = "dhw_missing_suspect"
+ISSUE_MODEL_MISMATCH = "model_mismatch"
+MODEL_CHECK_INTERVAL_S = 3600.0
 
 
 async def _check_dhw_missing_suspect(
@@ -65,6 +68,7 @@ async def async_check_repairs(
             _check_notify_failed(hass, entry_id, coordinator)
             _check_migration_failed(hass, entry_id, coordinator)
             await _check_dhw_missing_suspect(hass, entry_id, coordinator)
+            _check_model_mismatch(hass, entry_id, coordinator)
     except Exception:
         _LOGGER.exception("Repairs check failed for %s", entry_id)
 
@@ -284,4 +288,35 @@ def clear_legacy_db_multi_entry(
 ) -> None:
     ir.async_delete_issue(
         hass, DOMAIN, f"{ISSUE_LEGACY_DB_MULTI_ENTRY}_{entry_id}"
+    )
+
+
+def _check_model_mismatch(hass: HomeAssistant, entry_id: str, coord: Any) -> None:
+    """#522: the unit code ESPAltherma reports does not fit the configured
+    model (an EL* indoor unit set up as EPRA, a basic profile on a unit with
+    a datasheet). Checked once an hour; cleared when the model fits."""
+    now = time.monotonic()
+    last = float(getattr(coord, "_model_check_ts", 0.0) or 0.0)
+    if last and now - last < MODEL_CHECK_INTERVAL_S:
+        return
+    coord._model_check_ts = now
+    issue_id = f"{ISSUE_MODEL_MISMATCH}_{entry_id}"
+    entry = getattr(coord, "entry", None)
+    model = str((getattr(entry, "data", None) or {}).get("model") or "")
+    check = model_check(hass, model)
+    if model == MODEL_CUSTOM or not check["unit_model"] or check["matches"]:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+        return
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=ISSUE_MODEL_MISMATCH,
+        translation_placeholders={
+            "unit_model": check["unit_model"],
+            "configured": model_display(model),
+            "candidates": ", ".join(model_display(m) for m in check["candidates"]),
+        },
     )

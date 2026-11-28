@@ -1583,7 +1583,9 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "key": "cop_today", "name": "COP today",
         "state_class": SensorStateClass.MEASUREMENT,
         "unit": "COP",
-        "value_fn": lambda s, c: None if getattr(s, "state", "running") != "running" else (s.cop_today or {}).get("cop"),
+        # #523: a day value: it stays when the compressor stops (the running
+        # gate of #285 is for live values only: thermal power, vs datasheet)
+        "value_fn": lambda s, c: (s.cop_today or {}).get("cop"),
         "attr_fn": _attrs_cop_today,
     },
     {

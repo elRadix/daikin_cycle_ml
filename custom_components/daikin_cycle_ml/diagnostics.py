@@ -24,6 +24,7 @@ from .const import (
     ATTR_BUH_STEP1, ATTR_BUH_STEP2, DB_FILENAME, DB_FILENAME_TEMPLATE, REPORTS_BACKFILL_MARKER,
 )
 from .coordinator import DaikinCycleMLConfigEntry
+from .engine.model_catalog import model_check
 from .engine.thermal import _flow_dt_kw, dt_from_attrs, flow_from_attrs
 from .ml.features import FEATURE_NAMES
 from .storage import reports as _report_store
@@ -770,6 +771,8 @@ async def async_get_config_entry_diagnostics(
             "inv_freq_secondary": getattr(snap, "inv_freq_secondary", None),
         },
         "source_resolution": dict(getattr(coord, "_source_resolution", {}) or {}),
+        # #522: the configured model against the unit code ESPAltherma reports
+        "model_check": model_check(hass, dict(entry.data or {}).get("model")),
         "store": {
             "cycle_count": store.count(),
             "counters": counters,

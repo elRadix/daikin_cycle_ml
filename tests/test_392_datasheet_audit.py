@@ -34,6 +34,9 @@ PINNED = {
     "epra12eav3": (4.92, 4.82, 3.48),
     "erga04eav3": (5.10, 4.54, 3.29), "erga06eav3": (4.85, 4.52, 3.27),
     "erga08eav3": (4.60, 4.61, 3.30), "erga08evh7": (4.60, 4.61, 3.35),
+    # #522: Daikin catalogue ELVX + ERRA08-12EV3, daikin.eu ELBH + ERRA table
+    "erra08eav3": (4.92, 4.79, 3.37), "erra10eav3": (4.92, 4.79, 3.38),
+    "erra12eav3": (4.92, 4.82, 3.47),
     "erla11dav3": (4.83, 4.72, 3.27), "erla14dav3": (4.87, 4.68, 3.26),
     "ebla04ev3": (5.10, 4.54, 3.29), "ebla06ev3": (4.85, 4.52, 3.28),
     "ebla08ev3": (4.60, 4.61, 3.35),
@@ -50,6 +53,8 @@ NOT_IN_CATALOGUE = {
 # model key prefix -> substring of the ESPAltherma beta definition file name
 ESPA_FAMILY = (
     (r"^epra\d+e", "EPRA E "), (r"^epra\d+d", "EPRA D"),
+    # #522: ERRA (Altherma 3 R MT) has no own definition; it runs the EPRA E 8-12 kW one
+    (r"^erra\d+e", "EPRA E "),
     (r"^erga", "ERGA "), (r"^erla", "ERLA D "), (r"^epga", "EPGA D"),
     (r"^ebla0[468]e", "EBLA-EDLA D series 4-8kW"),
     (r"^(ebla09|edla)", "EBLA-EDLA D series 9-16kW"),
