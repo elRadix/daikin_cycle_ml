@@ -48,6 +48,7 @@ EXCLUDED_FROM_MATRIX = frozenset({
     "Altherma(HT ERRQ-ERSQ outdoor unit 11-16kW).h",
     "Altherma(HT EKHBRD-ERRQ series 11-16kW).h",
     "Altherma(HT EKHBRD-ERRQ series 11-16kW protocol S).h",
+    "Altherma(HT EKHBRD-ERRQ series 11-16kW protocols I and S).h",  # #511
 })
 
 
@@ -99,9 +100,9 @@ def test_operational_attributes_count() -> None:
 
 
 def test_all_models_loaded(model_data) -> None:
-    """40 models in upstream, 34 in scope (minus 3 placeholders, 3 HT)."""
+    """41 models in upstream (#511), 34 in scope (minus 3 placeholders, 4 HT)."""
     total = len(model_data["models"])
-    assert total == 40, f"expected 40 upstream models, got {total}"
+    assert total == 41, f"expected 41 upstream models, got {total}"
     in_scope = [m for m in model_data["models"] if m not in EXCLUDED_FROM_MATRIX]
     assert len(in_scope) == 34, f"expected 34 in-scope models, got {len(in_scope)}"
 
@@ -247,6 +248,7 @@ def test_ht_models_correctly_excluded_from_stats(model_data) -> None:
         "Altherma(HT ERRQ-ERSQ outdoor unit 11-16kW).h",
         "Altherma(HT EKHBRD-ERRQ series 11-16kW).h",
         "Altherma(HT EKHBRD-ERRQ series 11-16kW protocol S).h",
+        "Altherma(HT EKHBRD-ERRQ series 11-16kW protocols I and S).h",  # #511
     }
     for m in HT_MODELS:
         slugs = model_data["model_slugs"].get(m)

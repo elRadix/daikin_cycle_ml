@@ -82,6 +82,20 @@ PARTIAL_MODELS: dict[str, list[str]] = {
         "BUH Step2",
         "LW setpoint (main)",
     ],
+    # #511 (beta dcf3b48): protocol I below 0x50 + protocol S from 0x50 in one
+    # pass; the union of the two HT variants, no new labels.
+    "Altherma(HT EKHBRD-ERRQ series 11-16kW protocols I and S).h": [
+        "I/U operation mode",
+        "Defrost Operation",
+        "Leaving water temp. after BUH (R2T)",
+        "Inlet water temp.(R4T)",
+        "Outdoor air temp.(R1T)",
+        "Flow sensor (l/min)",
+        "Water pump operation",
+        "BUH Step1",
+        "BUH Step2",
+        "LW setpoint (main)",
+    ],
     "Altherma(HT EKHBRD-ERRQ series 11-16kW).h": [
         "Operation Mode",
         "I/U operation mode",
@@ -122,7 +136,7 @@ _FULL_COVERAGE_MODELS: list[str] = [m for m in _HEATING_MODELS if m not in PARTI
 
 # ── Structure invariants ────────────────────────────────────────────────────
 
-EXPECTED_MODEL_COUNT = 40
+EXPECTED_MODEL_COUNT = 41  # #511: HT protocols I and S
 # 16 original canonical labels + v1.20.0 #281 "BE COP" (ESPAltherma publishes
 # BE_COP on some firmware — added as new canonical with alias group).
 # + #288 "Bivalent Operation" (German firmware: "Bivalenter Betrieb").
