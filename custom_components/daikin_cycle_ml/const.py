@@ -664,6 +664,10 @@ DETECTOR_STATE_KEY = "cycle_detector_state"
 DETECTOR_PERSIST_S = 900.0
 # #423: longest the tick waits for the accumulator write (rest in background)
 PERSIST_TICK_BUDGET_S = 2.0
+# #515: ticks the read-only DB refreshes may skip while that write is pending
+DB_BUSY_MAX_SKIPS = 10
+# #515: longest one database refresh may hold the tick (rest in background)
+REFRESH_TICK_BUDGET_S = 2.0
 
 DEFAULT_SETPOINT_OSC_WINDOW_MIN = 30
 

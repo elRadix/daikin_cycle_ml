@@ -19,6 +19,25 @@
   "generated_at": null
  },
  {
+  "file": "erga08evh7_1_31_0_1c75d1de16_202611261526.json",
+  "anon_id": "1c75d1de16",
+  "origin": "user",
+  "note": "ERGA08EVH7 split, ESPAltherma v2 individual, power from one P1 meter phase (backup heater on the same phase), v1.31.0: heating curve at the LWT floor (savings 0, #514); backup heater alone opened a 2 min hot-water run at 0 rps",
+  "model": "erga08evh7",
+  "unit_model": null,
+  "integration_version": "1.31.0",
+  "ha_version": "2026.11.3",
+  "source_type": "individual",
+  "source_chosen": null,
+  "is_hybrid": false,
+  "is_bivalent": false,
+  "dhw_present": true,
+  "power_meter": true,
+  "cycles": 127,
+  "cop_samples": 4940,
+  "generated_at": "2026-11-26T15:26:28.399437+01:00"
+ },
+ {
   "file": "erga08evh7_1_22_0_1c75d1de16_undated.json",
   "anon_id": "1c75d1de16",
   "origin": "user",
@@ -114,6 +133,25 @@
   "generated_at": "2026-11-20T06:41:30.039428+01:00"
  },
  {
+  "file": "epra12eav3_1_31_0_441e207ca5_202611281225.json",
+  "anon_id": "441e207ca5",
+  "origin": "maintainer",
+  "note": "maintainer prod install, 24/7 heating, v1.31.0: BUH meter, ml_anomaly mode, by_mode, hmax threshold (#515)",
+  "model": "epra12eav3",
+  "unit_model": "ETVX12S23EJ6V",
+  "integration_version": "1.31.0",
+  "ha_version": "2026.11.3",
+  "source_type": "auto",
+  "source_chosen": "individual",
+  "is_hybrid": false,
+  "is_bivalent": false,
+  "dhw_present": true,
+  "power_meter": true,
+  "cycles": 326,
+  "cop_samples": 11134,
+  "generated_at": "2026-11-28T12:25:11.890017+01:00"
+ },
+ {
   "file": "erga08evh7_1_24_0_79d6c70b01_202611191934.json",
   "anon_id": "79d6c70b01",
   "origin": "user",
@@ -150,6 +188,25 @@
   "cycles": 401,
   "cop_samples": 7703,
   "generated_at": "2026-11-22T09:55:40.819842+01:00"
+ },
+ {
+  "file": "erla11dav3_1_31_0_855f04b147_202611281233.json",
+  "anon_id": "855f04b147",
+  "origin": "user",
+  "note": "ERLA11DAV3 monolithic ESPAltherma v1, BUH meter, v1.31.0, 3.8 days up: 26 s tick (cop_hourly 11 s), sample rate 26.5 % reported at 100 %, COP vs datasheet -48 % during hot water (#515)",
+  "model": "erla11dav3",
+  "unit_model": null,
+  "integration_version": "1.31.0",
+  "ha_version": "2026.11.2",
+  "source_type": "monolithic",
+  "source_chosen": null,
+  "is_hybrid": false,
+  "is_bivalent": true,
+  "dhw_present": true,
+  "power_meter": true,
+  "cycles": 429,
+  "cop_samples": 9215,
+  "generated_at": "2026-11-28T12:33:22.824002+01:00"
  },
  {
   "file": "edla09d3v3_1_29_1_8ef865c795_202611220957.json",

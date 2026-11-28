@@ -228,8 +228,17 @@ def _attrs_cop_normalized_a7w35(
 def _value_cop_vs_datasheet_pct(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> float | None:
-    """C3a: live COP deviation (%) vs the datasheet at the live point (#175)."""
+    """C3a: live COP deviation (%) vs the datasheet at the live point (#175).
+
+    #515: space heating only. The datasheet points are space-heating points;
+    hot water compared with them read -48 % "critical" on a sound unit."""
     if getattr(s, "state", "running") != "running":
+        return None
+    return _ds_pct_space_heating(s)
+
+
+def _ds_pct_space_heating(s: DataSnapshot) -> float | None:
+    if str(getattr(s, "mode", "heating") or "heating") not in ("heating", "unknown"):
         return None
     return s.cop_vs_datasheet_pct
 
@@ -244,7 +253,7 @@ def _attrs_cop_vs_datasheet_pct(
          if pt.get("label") == "A7/W35"),
         None,
     )
-    pct = s.cop_vs_datasheet_pct
+    pct = _ds_pct_space_heating(s)
     ref = getattr(s, "cop_datasheet_ref", None) or {}
     if pct is None:
         band = None
@@ -674,7 +683,11 @@ def _attrs_cop_hourly(
             "cop_p90": data.get("cop_p90"),
             "cop_min": data.get("cop_min"),
             "cop_max": data.get("cop_max"),
-            "by_mode": data.get("by_mode") or {},
+            # #515: samples taken before the mode was known (startup) count in
+            # the totals above but are not a mode of their own
+            "by_mode": {
+                m: v for m, v in (data.get("by_mode") or {}).items() if m != "unknown"
+            },
         }
     return _fn
 
@@ -695,7 +708,7 @@ def _attrs_cop_hourly_mode(
             "cop_p90": bm.get("cop_p90"),
             "cop_min": bm.get("cop_min"),
             "cop_max": bm.get("cop_max"),
-            "by_mode": data.get("by_mode") or {},
+            # #515: no other modes on a mode's own sensor (cop_mean_* has them)
         }
     return _fn
 
@@ -1062,6 +1075,11 @@ def _buh_energy_kwh_est(
     try:
         model = c.entry.data.get("model") if c.entry else None
         s1_kw, s2_kw = _buh_step_kw_for_model(model)
+        # #515: the step powers set in Configure win over the model's default
+        opts = getattr(c, "options", None)
+        if isinstance(opts, dict):
+            s1_kw = float(opts.get("buh_step1_kw") or s1_kw)
+            s2_kw = float(opts.get("buh_step2_kw") or s2_kw)
         return round(step1_s * s1_kw / 3600.0 + step2_s * s2_kw / 3600.0, 3)
     except Exception:
         return None
@@ -1192,9 +1210,20 @@ def _attrs_runtime_buh_today_s(
         "step1_s": int(s1),
         "step2_s": int(s2),
         "step_split_source": "computed",
-        "buh_energy_kwh_est": _buh_energy_kwh_est(c, s1, s2),
-        "buh_energy_source": "computed",
+        **_buh_energy(c, _snap, s1, s2),
     }
+
+
+def _buh_energy(
+    c: DaikinCycleMLCoordinator, snap: dict[str, Any], s1: float, s2: float
+) -> dict[str, Any]:
+    """#515: the backup heater's own meter when one is set, else step time x kW."""
+    if getattr(c, "buh_power_sensor", None) and "buh_meter_kwh" in snap:
+        return {
+            "buh_energy_kwh_est": round(float(snap.get("buh_meter_kwh") or 0.0), 3),
+            "buh_energy_source": "power_meter",
+        }
+    return {"buh_energy_kwh_est": _buh_energy_kwh_est(c, s1, s2), "buh_energy_source": "computed"}
 
 
 def _attrs_compressor_starts_today(
