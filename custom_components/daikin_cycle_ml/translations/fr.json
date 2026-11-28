@@ -900,6 +900,21 @@
             },
             "last_month_report": {
                 "name": "Rapport du mois dernier"
+            },
+            "degree_days_today": {
+                "name": "Degrés-jours aujourd'hui"
+            },
+            "heat_per_degree_day": {
+                "name": "Chaleur par degré-jour"
+            },
+            "building_heat_loss": {
+                "name": "Déperditions du logement"
+            },
+            "building_peak_load": {
+                "name": "Puissance de pointe du logement"
+            },
+            "building_specific_load": {
+                "name": "Puissance spécifique du logement"
             }
         },
         "binary_sensor": {

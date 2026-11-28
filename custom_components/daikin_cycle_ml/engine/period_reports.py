@@ -15,6 +15,7 @@ import statistics
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
+from .building_day import day_fields as building_day_fields
 from .physics import CARNOT_EFFICIENCY_FACTOR, carnot_lift_factor
 
 MODES: tuple[str, ...] = ("heating", "dhw", "cooling")
@@ -287,6 +288,8 @@ def build_all_row(day: str, modes: Mapping[str, Mapping[str, Any]], day_src: Map
         "ml_anomalies": int((day_src.get("alerts") or {}).get("ml_anomaly", 0)),
         "coverage": _r(min(1.0, fresh / day_len_s), 3) if fresh is not None and day_len_s else None,
         "day_len_s": int(day_len_s),
+        # #495: room, signed space heat and sun of the day (building engine)
+        **building_day_fields(rt),
     }
     return row
 
@@ -374,6 +377,7 @@ def aggregate(days: Sequence[Mapping[str, Any]], *, n_days_in_period: int) -> di
         "flow_mean": _r(wmean("flow_mean", "runtime_s"), 1),
         "rps_mean": _r(wmean("rps_mean", "cycles"), 1),
         "outdoor_mean": _r(mean("outdoor_mean"), 1),
+        "indoor_mean": _r(mean("indoor_mean"), 1),  # #495
         "outdoor_min": min(mins) if mins else None,
         "outdoor_max": max(maxs) if maxs else None,
         "degree_days": dd,

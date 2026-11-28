@@ -900,6 +900,21 @@
       },
       "last_month_report": {
         "name": "Rapport vorige maand"
+      },
+      "degree_days_today": {
+        "name": "Graaddagen vandaag"
+      },
+      "heat_per_degree_day": {
+        "name": "Warmte per graaddag"
+      },
+      "building_heat_loss": {
+        "name": "Warmteverlies woning"
+      },
+      "building_peak_load": {
+        "name": "Piekvermogen woning"
+      },
+      "building_specific_load": {
+        "name": "Specifiek vermogen woning"
       }
     },
     "binary_sensor": {

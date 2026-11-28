@@ -91,6 +91,10 @@ from .const import (
     MODE_HEATING,
     MODEL_BASISPROFIEL,
     ML_V2_RELEARN_MARKER,
+    BUILDING_REBUILD_MARKER,
+    CONF_DESIGN_TEMP_C,
+    CONF_FLOOR_AREA_M2,
+    CONF_REF_INDOOR_C,
     REPORTS_BACKFILL_MARKER,
     COP_SAMPLE_INTERVAL_S,
     OFF_RELEARN_MARKER,
@@ -136,6 +140,10 @@ from .engine.cop_degradation import (
     analyze_trend,
     build_dirty_hours,
 )
+from .engine import building_day as _building_day
+from .engine import heat_loss as _heat_loss_engine
+from .storage import building_history as _building_history
+from .storage import building_query as _building_query
 from .engine.cycle_detector import CycleDetector
 from .engine.espaltherma_v2.resolver import resolve_attrs
 from .engine.model_datasheets import (
@@ -852,6 +860,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _outdoor_max: float | None = None
     _source_fresh_s: float = 0.0
     _last_month_report: dict[str, Any] | None = None  # #508
+    _degree_day_summary: dict[str, Any] | None = None  # #495
+    _heat_loss: dict[str, Any] | None = None  # #495
     _energy_day_key: str = ""
     _last_energy_tick_ts: float = 0.0
     _last_quality_live_ts: float = 0.0
@@ -1072,6 +1082,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._last_defrost_ts: float = 0.0
         self._last_runtime_tick_ts: float = 0.0
         self._outdoor_sum: float = 0.0  # #508
+        self._building_acc: dict[str, Any] = _building_day.new_acc()  # #495
         self._outdoor_s: float = 0.0
         self._outdoor_min: float | None = None
         self._outdoor_max: float | None = None
@@ -1295,6 +1306,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._restore_energy_acc()
             await self._maybe_backfill_daily_summary()
             await self._maybe_backfill_reports()
+            await self._maybe_rebuild_building()  # #495
             try:
                 if self.db is not None and hasattr(
                     self.db, "async_ensure_cluster_column"
@@ -2719,6 +2731,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._defrost_duration_s = 0.0
             self._defrost_prior_s = None  # v1.20.0 #280
             self._outdoor_sum = 0.0  # #508
+            self._building_acc = _building_day.new_acc()  # #495
             self._outdoor_s = 0.0
             self._outdoor_min = None
             self._outdoor_max = None
@@ -3143,13 +3156,39 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not attrs:
             return
         self._source_fresh_s += dt_s
-        t_out = _safe_float_opt(build_compat_view(attrs).get(ATTR_OUTDOOR_AIR_R1T))
+        view = build_compat_view(attrs)
+        self._tick_building(view, dt_s)  # #495
+        t_out = _safe_float_opt(view.get(ATTR_OUTDOOR_AIR_R1T))
         if t_out is None or not -50.0 <= t_out <= 60.0:
             return
         self._outdoor_sum += t_out * dt_s
         self._outdoor_s += dt_s
         self._outdoor_min = t_out if self._outdoor_min is None else min(self._outdoor_min, t_out)
         self._outdoor_max = t_out if self._outdoor_max is None else max(self._outdoor_max, t_out)
+
+    def _tick_building(self, view: Mapping[str, Any], dt_s: float) -> None:
+        """#495: room, signed space heat and sun for the building's day row,
+        from what the integration already reads: the configured room sensor
+        (else the indoor unit's own reading), the source values and ``sun.sun``."""
+        hass = getattr(self, "hass", None)
+        indoor: float | None = None
+        src: str | None = None
+        ent = getattr(self, "indoor_temp_entity", None)
+        if ent and hass is not None:
+            indoor = _safe_float_opt(getattr(hass.states.get(ent), "state", None))
+            src = "sensor" if indoor is not None else None
+        if indoor is None:
+            indoor = _safe_float_opt(view.get(ATTR_INDOOR_AMBIENT_R1T))
+            src = "controller" if indoor is not None else None
+        sun = hass.states.get("sun.sun") if hass is not None else None
+        elev = (getattr(sun, "attributes", None) or {}).get("elevation")
+        snap = getattr(self, "data", None)
+        boiler = bool(getattr(snap, "boiler_heat_active", False)) and _boiler_signals_trusted(snap)
+        acc = getattr(self, "_building_acc", None)
+        if acc is None:
+            acc = self._building_acc = _building_day.new_acc()
+        _building_day.tick(acc, view, dt_s=dt_s, indoor=indoor, indoor_src=src,
+                           sun_elevation=elev, boiler=boiler)
 
     def _report_acc_payload(self) -> dict[str, Any]:
         return {
@@ -3158,6 +3197,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "outdoor_min": self._outdoor_min,
             "outdoor_max": self._outdoor_max,
             "source_fresh_s": self._source_fresh_s,
+            "building": dict(getattr(self, "_building_acc", None) or _building_day.new_acc()),  # #495
         }
 
     def _restore_report_acc(self, payload: Mapping[str, Any]) -> None:
@@ -3166,6 +3206,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._outdoor_min = _safe_float_opt(payload.get("outdoor_min"))
         self._outdoor_max = _safe_float_opt(payload.get("outdoor_max"))
         self._source_fresh_s = float(payload.get("source_fresh_s") or 0.0)
+        self._building_acc = _building_day.restore(payload)  # #495
 
     async def async_build_reports(self, full: bool = False) -> dict[str, Any] | None:
         """#508: build the day / week / month / year / season reports. Never raises."""
@@ -3198,15 +3239,50 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     def last_month_report(self) -> dict[str, Any] | None:
         return self._last_month_report
 
+    @property
+    def heat_loss(self) -> dict[str, Any]:
+        """#495 PR 4: UA fit, peak load and specific load (home profile)."""
+        res = dict(self._heat_loss or {})
+        opts = self.options or {}
+        design = _safe_float_opt(opts.get(CONF_DESIGN_TEMP_C))
+        ref = _safe_float_opt(opts.get(CONF_REF_INDOOR_C))
+        peak = _heat_loss_engine.peak_load(
+            res, design_c=design if design is not None else _heat_loss_engine.DEFAULT_DESIGN_C,
+            ref_indoor_c=ref if ref is not None else _heat_loss_engine.DEFAULT_REF_INDOOR_C)
+        res["peak"] = peak
+        res["specific"] = _heat_loss_engine.specific_load(res, peak, _safe_float_opt(opts.get(CONF_FLOOR_AREA_M2)))
+        return res
+
+    @property
+    def degree_days(self) -> dict[str, Any]:
+        """#495: today's degree days (live) next to the stored summary."""
+        out = dict(self._degree_day_summary or {})
+        out["scheme"] = self.degree_day_scheme
+        s = float(getattr(self, "_outdoor_s", 0.0) or 0.0)
+        mean = float(getattr(self, "_outdoor_sum", 0.0)) / s if s else None
+        today = time.strftime("%Y-%m-%d", time.localtime(time.time()))
+        all_dd = _building_query.today_dd(
+            today, mean, getattr(self, "_outdoor_min", None),
+            getattr(self, "_outdoor_max", None), out.pop("prev_means", None))
+        out["today_all"] = all_dd
+        out["today"] = (all_dd or {}).get(out["scheme"])
+        out["outdoor_mean_today"] = round(mean, 1) if mean is not None else None
+        return out
+
     async def async_refresh_report_summary(self) -> None:
         """#508: headline of the last finished month (sensor). Never raises."""
         if self.db is None:
             return
         try:
+            today = time.strftime("%Y-%m-%d", time.localtime(time.time()))
             self._last_month_report = await _report_query.last_month_summary(
-                self.db._require(), self.degree_day_scheme,
-                time.strftime("%Y-%m-%d", time.localtime(time.time())),
+                self.db._require(), self.degree_day_scheme, today,
             )
+            self._degree_day_summary = await _building_query.summary(  # #495
+                self.db._require(), self.degree_day_scheme, today,
+                _period_reports.season_start_month(self.options),
+            )
+            self._heat_loss = await _building_query.heat_loss(self.db._require(), today)
         except Exception:
             _LOGGER.exception("period report summary failed")
 
@@ -3229,6 +3305,27 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             REPORTS_BACKFILL_MARKER, {"completed": True, **stats}
         )
         _LOGGER.info("Period reports backfilled (#508): %s", stats)
+        return True
+
+    async def _maybe_rebuild_building(self) -> bool:
+        """#495 PR 2: room and signed space heat for days before the live
+        accumulator, rebuilt once from cop_samples and cycle features."""
+        if self.db is None:
+            return False
+        try:
+            marker = await self.db.async_get_model_state(BUILDING_REBUILD_MARKER)
+            if isinstance(marker, dict) and marker.get("completed"):
+                return False
+            conn = self.db._require()
+            if asyncio.iscoroutine(conn):  # a mocked database (tests)
+                conn.close()
+                return False
+            stats = await _building_history.rebuild(conn)
+            await self.db.async_set_model_state(BUILDING_REBUILD_MARKER, {"completed": True, **stats})
+        except Exception:
+            _LOGGER.exception("building history rebuild failed")
+            return False
+        _LOGGER.info("Building day values rebuilt (#495): %s", stats)
         return True
 
     def _tick_buh_and_defrost(self, attrs: dict[str, Any], now: float) -> None:

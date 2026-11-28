@@ -150,7 +150,7 @@ def test_sensor_defs_no_duplicate_keys():
 
 def test_sensor_defs_count():
     assert (
-        len(sensor.SENSOR_DEFS) == 52
+        len(sensor.SENSOR_DEFS) == 57  # #495: +degree days (2), +building heat loss / peak / specific (3)
     )  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop, +boiler_contribution_today_pct
 
 

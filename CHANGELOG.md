@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+### Added
+- Building data per day, part 1 of the heat-loss tracker (#495): the day
+  report now also holds the room temperature (time-weighted, with its
+  drift and source: your room sensor, else the unit's own reading), the
+  space heat as signed flow x dT (a defrost counts negative; hot water,
+  cooling and boiler time left out) and the sun (hours at full height, from
+  Home Assistant's `sun`). All from values the integration already reads;
+  diagnostics `period_reports.building_day_last7`.
+- Building data for earlier days, part 2 (#495): on the first start, the
+  days recorded before part 1 get their space heat rebuilt from the COP
+  samples (flow x dT, heating only) and their room temperature from each
+  run's mean, spread over the days the run covers. Marked
+  `building_reconstructed`; days with live values are left alone. Runs once
+  (marker `data_migration_building_v1_completed`).
+- Degree-day sensors, part 3 (#495): `degree_days_today` (so far today,
+  live, in the scheme set for the reports; every scheme, yesterday and the
+  season as attributes) and `heat_per_degree_day` (heating kWh per degree
+  day over the last 7 complete days, plus 30 days and the season). Both
+  read the period-report day data, nothing new is recorded.
+- Heat-loss engine, part 4 (#495): the house's heat-loss coefficient UA
+  (W/K) fitted from the day rows (mean space-heat power against indoor -
+  outdoor difference, internal gains and sun; recent days weigh more).
+  Days with little measured heat, a drifting room, much defrost or no
+  heating need are left out. Published after 14 valid days with 6 K of
+  outdoor spread and a fit that explains the data; before that the
+  provisional value is an attribute. New sensors `building_heat_loss`
+  (W/K), `building_peak_load` (kW at the design temperature, option
+  `design_temp_c`, default -7 °C) and `building_specific_load` (W/m², only
+  with the option `floor_area_m2`; the class is shown once the fit is
+  precise enough).
+
 ### Changed
 - ESPAltherma pin moved from beta 3548ea2 to dcf3b48 (#511): the v1
   definitions and the v2 catalog snapshot are regenerated. New upstream
@@ -9,6 +40,21 @@
   HT protocols in one pass): the same labels as the two HT variants, with
   the same documented gaps. New v2 name `Boiler water pressure (bar)` (not
   read by the integration). No name the integration reads was removed.
+
+### Tests
+- `test_495_building_day.py`: signed flow x dT (defrost, R1T fallback, hot
+  water / cooling / bad readings left out), room source and drift, sun
+  hours, persistence across a restart, the day row and diagnostics.
+- `test_495_building_history.py`: the rebuild on a real database (finalised
+  days filled, live days kept, hot water / boiler / bad samples left out,
+  runs spread over midnight), once only, never raises.
+- `test_495_degree_days.py`: week / 30-day / season windows on a real
+  database, today's degree days with the Belgian two-day weighting, the
+  sensors and the summary refresh.
+- `test_495_heat_loss.py`: two simulated houses (UA, gains and sun
+  recovered), every reason a day is left out, the publication gate, peak
+  and specific load with the class, the fit on a real database and the
+  sensors.
 
 ## [1.32.0] - 2026-11-28
 

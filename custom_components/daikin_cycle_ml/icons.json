@@ -156,6 +156,21 @@
       },
       "last_month_report": {
         "default": "mdi:calendar-month-outline"
+      },
+      "degree_days_today": {
+        "default": "mdi:thermometer-minus"
+      },
+      "heat_per_degree_day": {
+        "default": "mdi:home-thermometer-outline"
+      },
+      "building_heat_loss": {
+        "default": "mdi:home-export-outline"
+      },
+      "building_peak_load": {
+        "default": "mdi:home-lightning-bolt-outline"
+      },
+      "building_specific_load": {
+        "default": "mdi:home-analytics"
       }
     },
     "binary_sensor": {

@@ -93,6 +93,19 @@ async def _db_extra(db: Any) -> dict[str, Any]:
     return out
 
 
+_BUILDING_KEYS = ("outdoor_mean", "indoor_mean", "indoor_source", "indoor_drift",
+                  "heat_sh_signed_kwh", "heat_sh_s", "sun_h", "coverage", "degree_days")
+
+
+async def _building_last7(conn: Any) -> list[dict[str, Any]]:
+    """#495: the building's day values of the last seven days (all modes)."""
+    today = time.strftime("%Y-%m-%d")
+    first = time.strftime("%Y-%m-%d", time.localtime(time.time() - 7 * 86400))
+    rows = await _report_store.fetch_days(conn, first, today, mode="all")
+    return [{"day": r["day"], **{k: (r.get("data") or {}).get(k) for k in _BUILDING_KEYS}}
+            for r in rows]
+
+
 async def _reports_summary(coord: Any) -> dict[str, Any]:
     """#508: period-report counts, the last build and the last month."""
     db = getattr(coord, "db", None)
@@ -106,6 +119,7 @@ async def _reports_summary(coord: Any) -> dict[str, Any]:
         out["state"] = await db.async_get_model_state(REPORTS_STATE_KEY)
         out["backfill"] = await db.async_get_model_state(REPORTS_BACKFILL_MARKER)
         out["counts"] = await _report_store.counts(db._require())
+        out["building_day_last7"] = await _building_last7(db._require())  # #495
     except Exception:
         _LOGGER.debug("diagnostics: period reports failed")
     return out
