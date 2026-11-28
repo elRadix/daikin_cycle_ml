@@ -128,3 +128,26 @@ CREATE TABLE IF NOT EXISTS cop_hourly (
 );
 
 CREATE INDEX IF NOT EXISTS idx_cop_hourly_ts ON cop_hourly(ts_hour);
+
+-- #508 period reports: kept forever (never pruned by maintenance)
+CREATE TABLE IF NOT EXISTS daily_stats (
+    day TEXT NOT NULL,
+    mode TEXT NOT NULL,
+    data_json TEXT NOT NULL,
+    checks TEXT NOT NULL DEFAULT '',
+    finalised INTEGER NOT NULL DEFAULT 0,
+    updated_ts REAL NOT NULL,
+    PRIMARY KEY (day, mode)
+);
+
+CREATE TABLE IF NOT EXISTS period_reports (
+    period_type TEXT NOT NULL,
+    period_key TEXT NOT NULL,
+    mode TEXT NOT NULL,
+    first_day TEXT NOT NULL,
+    last_day TEXT NOT NULL,
+    data_json TEXT NOT NULL,
+    finalised INTEGER NOT NULL DEFAULT 0,
+    updated_ts REAL NOT NULL,
+    PRIMARY KEY (period_type, period_key, mode)
+);

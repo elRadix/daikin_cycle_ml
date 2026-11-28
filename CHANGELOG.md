@@ -2,6 +2,43 @@
 
 ## [Unreleased]
 
+### Added
+- Period reports, part 1: storage (#508). Every local day gets one row per
+  mode (heating, DHW, cooling) and one for the whole day in the new table
+  `daily_stats`; weeks (ISO, Monday-Sunday), months, years and heating
+  seasons are aggregated from them into `period_reports`. Both are kept
+  forever (maintenance never prunes them). A day holds energy, COP,
+  runtime, starts and runs, quality, leaving / return water, ΔT, flow,
+  compressor speed, outdoor mean / min / max, degree days in every NL / BE /
+  FR scheme, backup heater, defrosts, alerts, ML anomalies and data
+  coverage. Built after the 03:00 maintenance; on the first start after the
+  update, once from all history still kept (marker
+  `data_migration_reports_v1_completed`). A day is final two days after it
+  ended and is not rewritten after that.
+- Day checks (#508): `no_energy`, `cop_out_of_range` (below 1 or above the
+  physics limit at the day's temperatures), `heat_mismatch` /
+  `power_mismatch` (meter against the COP samples), `outlier` (against 30+
+  days in the same outdoor band), `runtime_bounds`, `low_coverage`, `clock`.
+  Failing days are stored with their checks; the first four keep the day's
+  COP out of the week / month / year COP.
+- Whole-day outdoor temperature (time-weighted mean, min, max) and the
+  seconds with source data, tracked every tick and saved with the day's
+  runtime data (`runtime_acc.<day>`); days from before the update use the
+  running hours from `cop_hourly`.
+
+### Fixed
+- `docs/DATABASE.md`: COP samples are taken every 5 minutes (the code's
+  cadence, now `const.COP_SAMPLE_INTERVAL_S`), not every 10; the default
+  alert retention is 90 days, not 30.
+
+### Tests
+- `test_508_period_reports_engine.py`, `test_508_period_reports_store.py`,
+  `test_508_period_reports_coordinator.py`: ISO week / season edges, every
+  degree-day scheme, every check, aggregation, sources read through the real
+  write paths, frozen rows never rewritten, rebuild, DST day length,
+  maintenance never pruning the report tables, accumulator persist /
+  restore / reset, the backfill marker.
+
 ## [1.31.0] - 2026-11-23
 
 ### Documentation

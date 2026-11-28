@@ -89,6 +89,8 @@ from .const import (
     MODE_HEATING,
     MODEL_BASISPROFIEL,
     ML_V2_RELEARN_MARKER,
+    REPORTS_BACKFILL_MARKER,
+    COP_SAMPLE_INTERVAL_S,
     OFF_RELEARN_MARKER,
     OPTION_DAILY_SUMMARY_LIVE_ENABLED,
     REQUIRED_ATTRIBUTES,
@@ -117,6 +119,7 @@ from .engine import model_profile as _model_profile
 from .engine.physics import datasheet_cop_at as _datasheet_cop_at
 from .engine.alert_texts import resolve_language
 from .engine.notify_format import escape_for_parse_mode
+from .storage import report_builder as _report_builder
 from .engine.cop_degradation import (
     analyze_degradation,
     analyze_trend,
@@ -281,6 +284,15 @@ def _safe_float_opt(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _season_start_month(opts: Mapping[str, Any] | None) -> int:
+    """#508: heating-season start month from the options (1-12, else 10)."""
+    try:
+        month = int((opts or {}).get("season_start_month", 10))
+    except (TypeError, ValueError):
+        return 10
+    return month if 1 <= month <= 12 else 10
 
 
 # #435: units of a cumulative energy meter, never a power reading
@@ -824,6 +836,12 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _defrost_prior_s: float | None = None  # v1.20.0 #280
     _last_defrost_ts: float = 0.0
     _last_runtime_tick_ts: float = 0.0
+    # #508: whole-day outdoor temperature (time-weighted) + data coverage
+    _outdoor_sum: float = 0.0
+    _outdoor_s: float = 0.0
+    _outdoor_min: float | None = None
+    _outdoor_max: float | None = None
+    _source_fresh_s: float = 0.0
     _energy_day_key: str = ""
     _last_energy_tick_ts: float = 0.0
     _last_quality_live_ts: float = 0.0
@@ -1033,6 +1051,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._defrost_prior_s: float | None = None  # v1.20.0 #280
         self._last_defrost_ts: float = 0.0
         self._last_runtime_tick_ts: float = 0.0
+        self._outdoor_sum: float = 0.0  # #508
+        self._outdoor_s: float = 0.0
+        self._outdoor_min: float | None = None
+        self._outdoor_max: float | None = None
+        self._source_fresh_s: float = 0.0
         # ---------- v1.6.0-C6a: energy accumulators ----------
         self._energy_day_key: str = ""
         self._energy_acc: dict[str, dict[str, float]] = {
@@ -1117,6 +1140,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self.async_run_maintenance()
         except Exception:
             _LOGGER.exception('Scheduled maintenance failed')
+        await self.async_build_reports()  # #508: yesterday's day + its periods
         # v1.19.3: feed adaptive daily-cycle-count for yesterday
         try:
             if self.db is not None:
@@ -1250,6 +1274,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._restore_runtime_acc()
             await self._restore_energy_acc()
             await self._maybe_backfill_daily_summary()
+            await self._maybe_backfill_reports()
             try:
                 if self.db is not None and hasattr(
                     self.db, "async_ensure_cluster_column"
@@ -2671,6 +2696,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._defrost_count_today = 0
             self._defrost_duration_s = 0.0
             self._defrost_prior_s = None  # v1.20.0 #280
+            self._outdoor_sum = 0.0  # #508
+            self._outdoor_s = 0.0
+            self._outdoor_min = None
+            self._outdoor_max = None
+            self._source_fresh_s = 0.0
         if self._energy_day_key != day:
             self._energy_day_key = day
             self._energy_acc = {
@@ -2728,6 +2758,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     self._last_defrost_ts = float(
                         existing.get("last_defrost_ts", 0.0)
                     )
+                    self._restore_report_acc(existing)  # #508
                     return
             await self.db.async_set_model_state(
                 f"runtime_acc.{self._runtime_day_key}",
@@ -2739,6 +2770,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     "defrost_count": self._defrost_count_today,
                     "defrost_duration_s": self._defrost_duration_s,
                     "last_defrost_ts": self._last_defrost_ts,
+                    **self._report_acc_payload(),  # #508
                 },
             )
         except Exception:
@@ -2846,6 +2878,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._defrost_start_ts = payload.get("defrost_start_ts")  # v1.20.0 #280
             self._prev_defrost = bool(payload.get("prev_defrost", False))  # v1.20.0 #280
             self._defrost_prior_s = payload.get("defrost_prior_s")  # v1.20.0 #280
+            self._restore_report_acc(payload)  # #508
             self._runtime_day_key = today
             _LOGGER.info(
                 "runtime_acc restored: day=%s buh_s1=%.1f buh_s2=%.1f defrost_n=%d",
@@ -2978,6 +3011,71 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._persist_energy_acc()
             self._last_energy_persist_ts = now
 
+    def _tick_report_acc(self, attrs: dict[str, Any], dt_s: float) -> None:
+        """#508: whole-day outdoor mean / min / max and seconds with data."""
+        if not attrs:
+            return
+        self._source_fresh_s += dt_s
+        t_out = _safe_float_opt(build_compat_view(attrs).get(ATTR_OUTDOOR_AIR_R1T))
+        if t_out is None or not -50.0 <= t_out <= 60.0:
+            return
+        self._outdoor_sum += t_out * dt_s
+        self._outdoor_s += dt_s
+        self._outdoor_min = t_out if self._outdoor_min is None else min(self._outdoor_min, t_out)
+        self._outdoor_max = t_out if self._outdoor_max is None else max(self._outdoor_max, t_out)
+
+    def _report_acc_payload(self) -> dict[str, Any]:
+        return {
+            "outdoor_sum": self._outdoor_sum,
+            "outdoor_s": self._outdoor_s,
+            "outdoor_min": self._outdoor_min,
+            "outdoor_max": self._outdoor_max,
+            "source_fresh_s": self._source_fresh_s,
+        }
+
+    def _restore_report_acc(self, payload: Mapping[str, Any]) -> None:
+        self._outdoor_sum = float(payload.get("outdoor_sum") or 0.0)
+        self._outdoor_s = float(payload.get("outdoor_s") or 0.0)
+        self._outdoor_min = _safe_float_opt(payload.get("outdoor_min"))
+        self._outdoor_max = _safe_float_opt(payload.get("outdoor_max"))
+        self._source_fresh_s = float(payload.get("source_fresh_s") or 0.0)
+
+    async def async_build_reports(self, full: bool = False) -> dict[str, Any] | None:
+        """#508: build the day / week / month / year / season reports. Never raises."""
+        if self.db is None:
+            return None
+        try:
+            return await _report_builder.build_reports(
+                self.db,
+                today=time.strftime("%Y-%m-%d", time.localtime(time.time())),
+                full=full,
+                season_start_month=_season_start_month(self.options),
+                sample_interval_s=COP_SAMPLE_INTERVAL_S,
+            )
+        except Exception:
+            _LOGGER.exception("period reports build failed")
+            return None
+
+    async def _maybe_backfill_reports(self) -> bool:
+        """#508: build the reports once from all history kept so far."""
+        if self.db is None:
+            return False
+        try:
+            marker = await self.db.async_get_model_state(REPORTS_BACKFILL_MARKER)
+            if isinstance(marker, dict) and marker.get("completed"):
+                return False
+        except Exception:
+            _LOGGER.exception("period reports marker read failed")
+            return False
+        stats = await self.async_build_reports(full=True)
+        if stats is None:
+            return False
+        await self.db.async_set_model_state(
+            REPORTS_BACKFILL_MARKER, {"completed": True, **stats}
+        )
+        _LOGGER.info("Period reports backfilled (#508): %s", stats)
+        return True
+
     def _tick_buh_and_defrost(self, attrs: dict[str, Any], now: float) -> None:
         """Accumulate BUH-runtime + defrost-events for one tick. Never raises."""
         try:
@@ -2992,6 +3090,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 )
             if dt_s <= 0.0:
                 return
+            self._tick_report_acc(attrs, dt_s)  # #508
             def _is_valid_state(val: Any) -> bool:
                 if val is None:
                     return False
@@ -4385,7 +4484,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 _LOGGER.debug(
                     "cop_sample seed failed (non-fatal): %s", err
                 )
-        interval = 300.0
+        interval = COP_SAMPLE_INTERVAL_S
         if (now - self._last_cop_sample_ts) < interval:
             return
         # v1.19.9 #122/#127-Q3: settle window after mode transition.

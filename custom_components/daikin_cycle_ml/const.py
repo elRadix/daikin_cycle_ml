@@ -572,6 +572,8 @@ ADAPTIVE_MIN_SAMPLES_UPPER_BOUND = 500
 # --- COP analysis (batch 14b) ---
 COP_SENSOR_ENTITY = "sensor.altherma_global_cop"
 DEFAULT_COP_SAMPLE_INTERVAL_SECONDS = 600
+# Real cadence of cop_samples rows while the compressor runs (#508 energy estimates)
+COP_SAMPLE_INTERVAL_S = 300.0
 DEFAULT_COP_RETENTION_DAYS = 365
 DEFAULT_MODEL_STATE_RETENTION_DAYS = 400
 
@@ -645,6 +647,8 @@ OFF_RELEARN_MARKER = "data_migration_off_s_relearn_completed"
 # #443: ML v2 relearn (baseline replay, adaptive runs, k-means retrain,
 # co-fire COP repair) done once; rerun when the stored ML version differs.
 ML_V2_RELEARN_MARKER = "data_migration_ml_v2_completed"
+# #508: period reports built once from all history kept so far
+REPORTS_BACKFILL_MARKER = "data_migration_reports_v1_completed"
 DETECTOR_STATE_KEY = "cycle_detector_state"
 # #417: persist a running cycle at least this often (restore keeps samples)
 DETECTOR_PERSIST_S = 900.0

@@ -36,6 +36,7 @@ def _patch_baseline_deps(c):
         patch.object(c, "_restore_runtime_acc", new=AsyncMock()),
         patch.object(c, "_restore_energy_acc", new=AsyncMock()),
         patch.object(c, "_maybe_backfill_daily_summary", new=AsyncMock()),
+        patch.object(c, "_maybe_backfill_reports", new=AsyncMock()),  # #508
         patch.object(c, "_load_kmeans_state", new=AsyncMock()),
         patch(
             "custom_components.daikin_cycle_ml.coordinator.async_track_time_interval",
