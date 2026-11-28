@@ -91,6 +91,7 @@ from .const import (
     MODE_HEATING,
     MODEL_BASISPROFIEL,
     ML_V2_RELEARN_MARKER,
+    BUILDING_REBUILD_MARKER,
     REPORTS_BACKFILL_MARKER,
     COP_SAMPLE_INTERVAL_S,
     OFF_RELEARN_MARKER,
@@ -137,6 +138,7 @@ from .engine.cop_degradation import (
     build_dirty_hours,
 )
 from .engine import building_day as _building_day
+from .storage import building_history as _building_history
 from .engine.cycle_detector import CycleDetector
 from .engine.espaltherma_v2.resolver import resolve_attrs
 from .engine.model_datasheets import (
@@ -1297,6 +1299,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             await self._restore_energy_acc()
             await self._maybe_backfill_daily_summary()
             await self._maybe_backfill_reports()
+            await self._maybe_rebuild_building()  # #495
             try:
                 if self.db is not None and hasattr(
                     self.db, "async_ensure_cluster_column"
@@ -3260,6 +3263,27 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             REPORTS_BACKFILL_MARKER, {"completed": True, **stats}
         )
         _LOGGER.info("Period reports backfilled (#508): %s", stats)
+        return True
+
+    async def _maybe_rebuild_building(self) -> bool:
+        """#495 PR 2: room and signed space heat for days before the live
+        accumulator, rebuilt once from cop_samples and cycle features."""
+        if self.db is None:
+            return False
+        try:
+            marker = await self.db.async_get_model_state(BUILDING_REBUILD_MARKER)
+            if isinstance(marker, dict) and marker.get("completed"):
+                return False
+            conn = self.db._require()
+            if asyncio.iscoroutine(conn):  # a mocked database (tests)
+                conn.close()
+                return False
+            stats = await _building_history.rebuild(conn)
+            await self.db.async_set_model_state(BUILDING_REBUILD_MARKER, {"completed": True, **stats})
+        except Exception:
+            _LOGGER.exception("building history rebuild failed")
+            return False
+        _LOGGER.info("Building day values rebuilt (#495): %s", stats)
         return True
 
     def _tick_buh_and_defrost(self, attrs: dict[str, Any], now: float) -> None:

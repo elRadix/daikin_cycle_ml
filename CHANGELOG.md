@@ -10,11 +10,20 @@
   cooling and boiler time left out) and the sun (hours at full height, from
   Home Assistant's `sun`). All from values the integration already reads;
   diagnostics `period_reports.building_day_last7`.
+- Building data for earlier days, part 2 (#495): on the first start, the
+  days recorded before part 1 get their space heat rebuilt from the COP
+  samples (flow x dT, heating only) and their room temperature from each
+  run's mean, spread over the days the run covers. Marked
+  `building_reconstructed`; days with live values are left alone. Runs once
+  (marker `data_migration_building_v1_completed`).
 
 ### Tests
 - `test_495_building_day.py`: signed flow x dT (defrost, R1T fallback, hot
   water / cooling / bad readings left out), room source and drift, sun
   hours, persistence across a restart, the day row and diagnostics.
+- `test_495_building_history.py`: the rebuild on a real database (finalised
+  days filled, live days kept, hot water / boiler / bad samples left out,
+  runs spread over midnight), once only, never raises.
 
 ## [1.32.0] - 2026-11-28
 

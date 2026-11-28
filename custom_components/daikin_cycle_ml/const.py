@@ -659,6 +659,8 @@ OFF_RELEARN_MARKER = "data_migration_off_s_relearn_completed"
 ML_V2_RELEARN_MARKER = "data_migration_ml_v2_completed"
 # #508: period reports built once from all history kept so far
 REPORTS_BACKFILL_MARKER = "data_migration_reports_v1_completed"
+# #495 PR 2: building day values rebuilt from history once
+BUILDING_REBUILD_MARKER = "data_migration_building_v1_completed"
 DETECTOR_STATE_KEY = "cycle_detector_state"
 # #417: persist a running cycle at least this often (restore keeps samples)
 DETECTOR_PERSIST_S = 900.0
