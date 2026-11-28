@@ -98,7 +98,7 @@ def test_restore_old_payload_without_report_keys():
     ({"season_start_month": 13}, 10), ({"season_start_month": "x"}, 10),
 ])
 def test_season_start_month(opts, month):
-    assert coord_mod._season_start_month(opts) == month
+    assert coord_mod._period_reports.season_start_month(opts) == month
 
 
 async def test_build_reports_and_backfill_once(tmp_path):

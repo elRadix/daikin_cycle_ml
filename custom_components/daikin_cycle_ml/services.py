@@ -24,6 +24,7 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from .const import DB_FILENAME, DB_FILENAME_TEMPLATE, DOMAIN
 from .engine import model_datasheets as md
 from .engine import model_profile as mp
+from .services_reports import async_register_report_services
 from .repairs import (
     clear_datasheet_import_invalid,
     clear_datasheet_schema_unknown,
@@ -773,4 +774,5 @@ async def async_register_services(hass: HomeAssistant) -> None:
         schema=SCHEMA_EXPORT_LEGACY_DB,
         supports_response=SupportsResponse.ONLY,
     )
+    async_register_report_services(hass)  # #508
     _LOGGER.info("Daikin Cycle ML services registered")

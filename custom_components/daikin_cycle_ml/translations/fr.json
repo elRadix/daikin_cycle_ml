@@ -441,7 +441,7 @@
                         "data_description": {
                             "retention_enabled": "Lancer l'entretien chaque jour à 3 h.",
                             "cycle_retention_days": "Les cycles plus anciens sont résumés puis supprimés. 90 par défaut.",
-                            "alert_retention_days": "Les alertes plus anciennes sont supprimées. 30 par défaut.",
+                            "alert_retention_days": "Les alertes plus anciennes sont supprimées. 90 par défaut.",
                             "vacuum_enabled": "Compacter la base SQLite (VACUUM) après la purge pour libérer de la place.",
                             "daily_summary_live_enabled": "Mettre à jour le bilan quotidien à la fin de chaque cycle. La reprise et l'entretien tournent toujours."
                         }
@@ -449,10 +449,12 @@
                     "season": {
                         "name": "Saison",
                         "data": {
-                            "season_start_month": "Mois de début de saison"
+                            "season_start_month": "Mois de début de saison",
+                            "degree_day_scheme": "Degrés-jours"
                         },
                         "data_description": {
-                            "season_start_month": "Premier mois de la saison de chauffe (1-12), pour le rendement saisonnier (SPF). 10 par défaut."
+                            "season_start_month": "Premier mois de la saison de chauffe (1-12), pour le rendement saisonnier (SPF). 10 par défaut.",
+                            "degree_day_scheme": "Méthode de degrés-jours pour comparer l'énergie entre périodes. Automatique suit le pays de Home Assistant (NL, BE, FR)."
                         }
                     }
                 },
@@ -847,6 +849,9 @@
             },
             "alerts_today": {
                 "name": "Alertes aujourd'hui"
+            },
+            "last_month_report": {
+                "name": "Rapport du mois dernier"
             }
         },
         "binary_sensor": {
@@ -1194,6 +1199,88 @@
                     "description": "Supprimer d'abord toutes vos valeurs (retour à la fiche)."
                 }
             }
+        },
+        "get_report": {
+            "name": "Obtenir le rapport de période",
+            "description": "Renvoie une semaine, un mois, une année ou une saison de chauffe avec sa comparaison, sa tendance et son historique. Utilisé par la carte Reports.",
+            "fields": {
+                "entry_id": {
+                    "name": "Entrée de configuration",
+                    "description": "ID de l'entrée. Facultatif avec une seule pompe à chaleur."
+                },
+                "period_type": {
+                    "name": "Type de période",
+                    "description": "week, month, year ou season."
+                },
+                "period": {
+                    "name": "Période",
+                    "description": "2026-W48, 2026-11, 2026 ou 2026/27. Vide : la plus récente."
+                },
+                "mode": {
+                    "name": "Mode",
+                    "description": "all, heating, dhw ou cooling."
+                },
+                "compare": {
+                    "name": "Comparer avec",
+                    "description": "previous, last_year ou none."
+                },
+                "history": {
+                    "name": "Historique",
+                    "description": "Nombre de périodes dans l'historique et la tendance."
+                },
+                "include_days": {
+                    "name": "Inclure les jours",
+                    "description": "Ajoute les lignes journalières de la période."
+                }
+            }
+        },
+        "export_reports": {
+            "name": "Exporter les rapports de période",
+            "description": "Exporte les jours ou rapports de période enregistrés en JSON ou CSV.",
+            "fields": {
+                "entry_id": {
+                    "name": "Entrée de configuration",
+                    "description": "ID de l'entrée. Facultatif avec une seule pompe à chaleur."
+                },
+                "table": {
+                    "name": "Table",
+                    "description": "periods (semaines, mois, années, saisons) ou days."
+                },
+                "period_type": {
+                    "name": "Type de période",
+                    "description": "Seulement ce type de période (periods)."
+                },
+                "mode": {
+                    "name": "Mode",
+                    "description": "Seulement ce mode."
+                },
+                "first_day": {
+                    "name": "Du",
+                    "description": "Premier jour, AAAA-MM-JJ."
+                },
+                "last_day": {
+                    "name": "Au",
+                    "description": "Dernier jour, AAAA-MM-JJ."
+                },
+                "format": {
+                    "name": "Format",
+                    "description": "Format de sortie."
+                }
+            }
+        },
+        "rebuild_reports": {
+            "name": "Reconstruire les rapports de période",
+            "description": "Construit maintenant les jours et périodes depuis la dernière construction. Complète : efface tous les rapports et reconstruit depuis tout l'historique conservé.",
+            "fields": {
+                "entry_id": {
+                    "name": "Entrée de configuration",
+                    "description": "ID de l'entrée. Facultatif avec une seule pompe à chaleur."
+                },
+                "full": {
+                    "name": "Reconstruction complète",
+                    "description": "Réécrit aussi les jours et périodes clôturés. Les jours plus anciens que l'historique conservé sont perdus."
+                }
+            }
         }
     },
     "selector": {
@@ -1224,6 +1311,18 @@
                 "auto": "Automatique (noms ESPAltherma standard)",
                 "manual": "Manuel (associer chaque valeur obligatoire)"
             }
+        },
+        "degree_day_scheme": {
+            "options": {
+                "auto": "Automatique (pays)",
+                "nl18": "Pays-Bas : base 18 °C",
+                "nl18w": "Pays-Bas : base 18 °C, pondérée",
+                "be1515": "Belgique : température équivalente, base 15 °C",
+                "be165": "Belgique : température équivalente, base 16,5 °C (Synergrid)",
+                "fr18": "France : DJU base 18 °C",
+                "fr17": "France : base 17 °C",
+                "fr15": "France : base 15 °C"
+            }
         }
     },
     "exceptions": {
@@ -1244,6 +1343,9 @@
         },
         "profile_not_saved": {
             "message": "Profil du modèle non enregistré : {errors}"
+        },
+        "reports_build_failed": {
+            "message": "Les rapports de période n'ont pas pu être construits. Consultez le journal."
         }
     }
 }

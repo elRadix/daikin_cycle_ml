@@ -3,6 +3,27 @@
 ## [Unreleased]
 
 ### Added
+- Period reports, part 2: comparison and services (#508).
+  - Every week / month / year / season is compared with the previous period
+    or the same period a year earlier: change per metric, energy per degree
+    day, and the COP over the outdoor bands both periods share, so a colder
+    month does not read as a worse heat pump.
+  - Trend (slope per period) of COP, kWh per degree day, quality, run length
+    and starts per hour; a verdict per metric (good / watch / act) and
+    overall; a period with under 80 % of its days recorded says
+    `incomplete`.
+  - Services `get_report` (one period with comparison, trend, history, the
+    split per mode and optionally its days; used by the Reports card),
+    `export_reports` (days or periods as JSON / CSV) and `rebuild_reports`
+    (now, or a full rebuild).
+  - Sensor `last_month_report`: the COP of the last finished month, with
+    kWh, kWh per degree day and the change against the month before and
+    the same month last year in its attributes.
+  - Option Configure → Advanced → Season → *Degree days*: the scheme for the
+    comparisons; *Automatic* follows the country of Home Assistant (NL, BE,
+    FR presets).
+  - Diagnostics: `period_reports` (counts, last build, backfill, last month,
+    scheme).
 - Period reports, part 1: storage (#508). Every local day gets one row per
   mode (heating, DHW, cooling) and one for the whole day in the new table
   `daily_stats`; weeks (ISO, Monday-Sunday), months, years and heating
@@ -27,6 +48,8 @@
   running hours from `cop_hourly`.
 
 ### Fixed
+- Configure → Advanced: the alert retention default reads 90 days (was 30
+  in the help text; the default has been 90).
 - `docs/DATABASE.md`: COP samples are taken every 5 minutes (the code's
   cadence, now `const.COP_SAMPLE_INTERVAL_S`), not every 10; the default
   alert retention is 90 days, not 30.
@@ -38,6 +61,11 @@
   write paths, frozen rows never rewritten, rebuild, DST day length,
   maintenance never pruning the report tables, accumulator persist /
   restore / reset, the backfill marker.
+- `test_508_report_compare.py`, `test_508_report_services.py`: deltas, the
+  weather-matched COP (a colder month is not worse), every verdict grade,
+  incomplete periods, trends, previous / last-year keys (ISO week 53), the
+  services, export JSON / CSV, the sensor and the diagnostics section, on
+  reports built by the real builder.
 
 ## [1.31.0] - 2026-11-23
 

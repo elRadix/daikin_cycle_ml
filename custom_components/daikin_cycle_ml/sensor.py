@@ -1610,6 +1610,14 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "attr_fn": _attrs_spf_state,
     },
     {
+        # #508: headline of the last finished month (COP, kWh, change)
+        "key": "last_month_report", "name": "Last month report",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "COP",
+        "value_fn": lambda s, c: (getattr(c, "last_month_report", None) or {}).get("cop"),
+        "attr_fn": lambda s, c: dict(getattr(c, "last_month_report", None) or {}),
+    },
+    {
         "key": "heating_curve_advice", "name": "Heating curve advice",
         "value_fn": lambda s, c: (s.stooklijn_advies or {}).get("state", "unknown"),
         "attr_fn": _attrs_stooklijn,

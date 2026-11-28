@@ -87,7 +87,7 @@ def test_icon_translations_every_entity_and_service_no_icon_in_code():
     for f in ("sensor.py", "binary_sensor.py", "entity.py"):
         assert "_attr_icon" not in (COMP / f).read_text(), f
     services = re.findall(r"^([a-z_]+):\s*$", (COMP / "services.yaml").read_text(), re.M)
-    assert len(services) == 14 and set(services) == set(ICONS["services"])
+    assert len(services) == 17 and set(services) == set(ICONS["services"])
 
 
 def test_exception_translations_every_raised_error():
@@ -103,7 +103,7 @@ def test_exception_translations_every_raised_error():
             assert not n.exc.args and "translation_key" in kw and "translation_domain" in kw, f"{f.name}:{n.lineno}"
             ph = kw.get("translation_placeholders")
             used[kw["translation_key"].value] = {k.value for k in ph.keys} if isinstance(ph, ast.Dict) else set()
-    assert len(used) == 6
+    assert len(used) == 7  # #508 reports_build_failed
     for lang in ("en", "nl", "fr"):
         tr = json.loads((COMP / f"translations/{lang}.json").read_text())["exceptions"]
         for key, ph in used.items():

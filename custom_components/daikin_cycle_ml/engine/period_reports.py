@@ -54,6 +54,15 @@ def default_scheme(country: str | None) -> str:
     return COUNTRY_SCHEME.get((country or "").upper(), "nl18")
 
 
+def season_start_month(opts: Mapping[str, Any] | None) -> int:
+    """Heating-season start month from the options (1-12, else 10)."""
+    try:
+        month = int((opts or {}).get("season_start_month", 10))
+    except (TypeError, ValueError):
+        return 10
+    return month if 1 <= month <= 12 else 10
+
+
 # ---------- periods ----------
 
 def _date(day: str) -> dt.date:
@@ -302,14 +311,24 @@ def aggregate(days: Sequence[Mapping[str, Any]], *, n_days_in_period: int) -> di
         return sum(vals) / len(vals) if vals else None
 
     v_el = v_th = 0.0
+    bands: dict[str, list[float]] = {}
     for r in with_data:
         data = r.get("data") or {}
         if "cop_el_kwh" in data:  # whole-day row: the valid modes of the day
-            v_el += float(data.get("cop_el_kwh") or 0)
-            v_th += float(data.get("cop_th_kwh") or 0)
+            d_el, d_th = float(data.get("cop_el_kwh") or 0), float(data.get("cop_th_kwh") or 0)
         elif r in valid:
-            v_el += float(data.get("el_kwh") or 0)
-            v_th += float(data.get("th_kwh") or 0)
+            d_el, d_th = float(data.get("el_kwh") or 0), float(data.get("th_kwh") or 0)
+        else:
+            continue
+        v_el += d_el
+        v_th += d_th
+        t_band = _num(data.get("outdoor_run_mean"))
+        t_band = t_band if t_band is not None else _num(data.get("outdoor_mean"))
+        if t_band is not None and d_el > 0:
+            b = bands.setdefault(str(int(math.floor(t_band / BAND_K) * BAND_K)), [0.0, 0.0, 0])
+            b[0] = round(b[0] + d_th, 3)
+            b[1] = round(b[1] + d_el, 3)
+            b[2] += 1
     runtime, runs = s(with_data, "runtime_s"), s(with_data, "runs")
     dd: dict[str, float] = {}
     for r in days:
@@ -349,4 +368,5 @@ def aggregate(days: Sequence[Mapping[str, Any]], *, n_days_in_period: int) -> di
         "n_days": n_days_in_period, "n_days_recorded": len(days), "n_days_data": len(with_data), "n_days_valid": len(valid),
         "coverage_days": _r(len(with_data) / n_days_in_period, 3) if n_days_in_period else None,
         "checks": flags,
+        "cop_bands": bands,  # outdoor band (2 K, lower edge) -> [th kWh, el kWh, days]
     }

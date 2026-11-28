@@ -119,7 +119,9 @@ from .engine import model_profile as _model_profile
 from .engine.physics import datasheet_cop_at as _datasheet_cop_at
 from .engine.alert_texts import resolve_language
 from .engine.notify_format import escape_for_parse_mode
+from .engine import period_reports as _period_reports
 from .storage import report_builder as _report_builder
+from .storage import report_query as _report_query
 from .engine.cop_degradation import (
     analyze_degradation,
     analyze_trend,
@@ -284,15 +286,6 @@ def _safe_float_opt(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
-
-
-def _season_start_month(opts: Mapping[str, Any] | None) -> int:
-    """#508: heating-season start month from the options (1-12, else 10)."""
-    try:
-        month = int((opts or {}).get("season_start_month", 10))
-    except (TypeError, ValueError):
-        return 10
-    return month if 1 <= month <= 12 else 10
 
 
 # #435: units of a cumulative energy meter, never a power reading
@@ -842,6 +835,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _outdoor_min: float | None = None
     _outdoor_max: float | None = None
     _source_fresh_s: float = 0.0
+    _last_month_report: dict[str, Any] | None = None  # #508
     _energy_day_key: str = ""
     _last_energy_tick_ts: float = 0.0
     _last_quality_live_ts: float = 0.0
@@ -3045,16 +3039,43 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if self.db is None:
             return None
         try:
-            return await _report_builder.build_reports(
+            stats = await _report_builder.build_reports(
                 self.db,
                 today=time.strftime("%Y-%m-%d", time.localtime(time.time())),
                 full=full,
-                season_start_month=_season_start_month(self.options),
+                season_start_month=_period_reports.season_start_month(self.options),
                 sample_interval_s=COP_SAMPLE_INTERVAL_S,
             )
         except Exception:
             _LOGGER.exception("period reports build failed")
             return None
+        await self.async_refresh_report_summary()
+        return stats
+
+    @property
+    def degree_day_scheme(self) -> str:
+        """#508: the option, or the preset of the Home Assistant country."""
+        chosen = str((self.options or {}).get("degree_day_scheme") or "auto")
+        if chosen in _period_reports.DD_SCHEMES:
+            return chosen
+        hass = getattr(self, "hass", None)
+        return _period_reports.default_scheme(getattr(getattr(hass, "config", None), "country", None))
+
+    @property
+    def last_month_report(self) -> dict[str, Any] | None:
+        return self._last_month_report
+
+    async def async_refresh_report_summary(self) -> None:
+        """#508: headline of the last finished month (sensor). Never raises."""
+        if self.db is None:
+            return
+        try:
+            self._last_month_report = await _report_query.last_month_summary(
+                self.db._require(), self.degree_day_scheme,
+                time.strftime("%Y-%m-%d", time.localtime(time.time())),
+            )
+        except Exception:
+            _LOGGER.exception("period report summary failed")
 
     async def _maybe_backfill_reports(self) -> bool:
         """#508: build the reports once from all history kept so far."""
@@ -3063,6 +3084,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         try:
             marker = await self.db.async_get_model_state(REPORTS_BACKFILL_MARKER)
             if isinstance(marker, dict) and marker.get("completed"):
+                await self.async_refresh_report_summary()
                 return False
         except Exception:
             _LOGGER.exception("period reports marker read failed")
