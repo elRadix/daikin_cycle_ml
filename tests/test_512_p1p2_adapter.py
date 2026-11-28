@@ -65,7 +65,8 @@ def test_monobloc_maps_every_role_and_matches_the_bridge_cop():
 def test_hybrid_with_three_prefixes():
     det = p1p2.detect(HYBRID)
     assert det.prefix == "hc_" and det.missing_required == []
-    assert det.prefixes == {"hc_": 31, "warmtepomp_": 4, "wamtepomp_": 1}
+    # 33 = 31 value roles + the field settings E-06 and C-02 (PR3)
+    assert det.prefixes == {"hc_": 33, "warmtepomp_": 4, "wamtepomp_": 1}
     assert det.mapping["compressor_hz"] == "sensor.wamtepomp_mode_compressor_rpm"
     assert det.mapping["outdoor"] == "sensor.hc_sensors_temperature_outside_unit"
     res = _resolve(HYBRID)

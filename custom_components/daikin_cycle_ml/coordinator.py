@@ -884,6 +884,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     p1p2_prefix: str | None = None
     _p1p2_detected: dict[str, str] | None = None
     _p1p2_detected_ts: float = 0.0
+    _p1p2_fields: dict[str, dict[str, Any]] = {}
+    _p1p2_fields_ts: float = 0.0
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.entry = entry
@@ -3038,6 +3040,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._p1p2_detected_ts = now
         return self._p1p2_detected or {}
 
+    @property
+    def installer_settings(self) -> dict[str, Any]:
+        """#512: field settings read from the P1/P2 bridge (empty otherwise)."""
+        return _p1p2.field_summary(self._p1p2_fields) if self.source_type == SOURCE_TYPE_P1P2 else {}
+
     def _read_p1p2(self, now: float) -> _p1p2.Resolved:
         """#512: read the bridge's entities as ESPAltherma attributes. Never raises."""
         mapping = self._p1p2_mapping(now)
@@ -3047,6 +3054,14 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             return st.state if st is not None else None
 
         res = _p1p2.resolve(mapping, state_of)
+        if not self._p1p2_fields_ts or now - self._p1p2_fields_ts >= P1P2_REDETECT_S:
+            # the installer's field settings change rarely: read every 10 min
+            self._p1p2_fields = _p1p2.field_settings(
+                {eid: state_of(eid) for eid in self.hass.states.async_entity_ids()
+                 if "fieldsettings_" in eid},
+                self.p1p2_prefix,
+            )
+            self._p1p2_fields_ts = now
         heat = res.attrs.get(V2_STATS_HEAT_KEY)
         el = res.attrs.get(V2_STATS_KEY)
         own = res.values.get("cop_realtime")
@@ -3060,6 +3075,9 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             # the bridge computes its own COP: shown next to heat / electrical
             "cop_bridge": own,
             "cop_from_power": round(heat / el, 2) if heat and el else None,
+            # #512 PR3: the installer's settings as the bridge reads them
+            "field_settings_read": len(self._p1p2_fields),
+            "field_settings": _p1p2.field_summary(self._p1p2_fields),
         }
         return res
 
