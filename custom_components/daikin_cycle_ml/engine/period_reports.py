@@ -249,6 +249,16 @@ def build_all_row(day: str, modes: Mapping[str, Mapping[str, Any]], day_src: Map
     v_el = sum(float(m.get("el_kwh") or 0) for m in valid)
     v_th = sum(float(m.get("th_kwh") or 0) for m in valid)
     runtime = tot("runtime_s")
+
+    def wavg(k: str, w: str) -> float | None:
+        """Mean of the modes weighted by cycles or runtime (the whole day)."""
+        num = den = 0.0
+        for m in modes.values():
+            v, wt = _num(m.get(k)), float(m.get(w) or 0)
+            if v is not None and wt > 0:
+                num += v * wt
+                den += wt
+        return num / den if den else None
     t = temps.get(day) or {}
     rt = day_src.get("runtime_acc") or {}
     fresh = _num(rt.get("source_fresh_s"))
@@ -258,6 +268,13 @@ def build_all_row(day: str, modes: Mapping[str, Mapping[str, Any]], day_src: Map
         "cop_el_kwh": _r(v_el, 3), "cop_th_kwh": _r(v_th, 3),
         "runtime_s": int(runtime), "cycles": int(tot("cycles")), "runs": int(tot("runs")),
         "duty_pct": _r(100.0 * runtime / day_len_s, 1) if day_len_s else None,
+        "run_mean_min": _r(_div(runtime / 60.0, tot("runs")), 1),
+        "quality_mean": _r(wavg("quality_mean", "cycles"), 1),
+        "rps_mean": _r(wavg("rps_mean", "cycles"), 1),
+        "lwt_mean": _r(wavg("lwt_mean", "runtime_s"), 1),
+        "return_mean": _r(wavg("return_mean", "runtime_s"), 1),
+        "dt_mean": _r(wavg("dt_mean", "runtime_s"), 2),
+        "flow_mean": _r(wavg("flow_mean", "runtime_s"), 1),
         "outdoor_mean": _r(_num(t.get("mean")), 1),
         "outdoor_min": _r(_num(t.get("min")), 1),
         "outdoor_max": _r(_num(t.get("max")), 1),

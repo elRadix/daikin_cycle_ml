@@ -24,7 +24,7 @@ from tests.test_efficiency_native_card import _case as eff_case
 from tests.test_native_cards_responsive import _playwright
 
 FRONT = Path(__file__).resolve().parent.parent / "custom_components/daikin_cycle_ml/frontend"
-CARDS = ["daikin-daily-summary-card.js", "daikin-efficiency-card.js", "daikin-performance-card.js"]
+CARDS = ["daikin-daily-summary-card.js", "daikin-efficiency-card.js", "daikin-performance-card.js", "daikin-reports-card.js"]
 BLOCK = re.compile(r"  /\* DCM-DIAG:BEGIN.*?/\* DCM-DIAG:END \*/\n", re.S)
 
 BROWSER = r"""

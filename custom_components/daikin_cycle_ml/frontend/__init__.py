@@ -4,7 +4,8 @@ The cards are served from the integration folder and added to every
 dashboard with ``add_extra_js_url``: users add
 ``type: custom:daikin-daily-summary-card`` or
 ``type: custom:daikin-efficiency-card`` or
-``type: custom:daikin-performance-card`` without installing anything
+``type: custom:daikin-performance-card`` or
+``type: custom:daikin-reports-card`` without installing anything
 or adding a Lovelace resource. The URL carries the integration version,
 so browsers fetch the new card after every update instead of a cached one.
 """
@@ -37,6 +38,11 @@ CARD_FILES = (
     "dcm-performance-model.js",
     "dcm-performance-render.js",
     "daikin-performance-card.js",
+    # reports card (#508): three parts + element
+    "dcm-reports-model.js",
+    "dcm-reports-i18n.js",
+    "dcm-reports-render.js",
+    "daikin-reports-card.js",
 )
 _REGISTERED = f"{DOMAIN}_frontend_registered"
 

@@ -19,14 +19,14 @@ dashboards and for the few things only they show.
 
 ## Native cards
 
-| Daily summary | Efficiency | Performance |
-|---|---|---|
-| [<img src="cards/daikin-daily-summary-card/showcase.gif" width="260" alt="Daily summary card">](cards/daikin-daily-summary-card/README.md) | [<img src="cards/daikin-efficiency-card/preview.png" width="260" alt="Efficiency card">](cards/daikin-efficiency-card/README.md) | [<img src="cards/daikin-performance-card/preview.png" width="260" alt="Performance card">](cards/daikin-performance-card/README.md) |
-| `custom:daikin-daily-summary-card` | `custom:daikin-efficiency-card` | `custom:daikin-performance-card` |
-| Today's run, cycles, quality, COP, backup heater, defrosts and alerts; 7 / 15 / 30-day tabs; tap a day for details | Live COP, water temperatures, compressor, flow and ΔT; COP per hour and against the datasheet; SPF; heating curve and advice; every graph says good / watch / act | Heat output, compressor speed and power against your model's limits at today's conditions; your model profile |
-| [Documentation](cards/daikin-daily-summary-card/README.md) · [Changelog](cards/daikin-daily-summary-card/CHANGELOG.md) | [Documentation](cards/daikin-efficiency-card/README.md) · [Changelog](cards/daikin-efficiency-card/CHANGELOG.md) | [Documentation](cards/daikin-performance-card/README.md) · [Changelog](cards/daikin-performance-card/CHANGELOG.md) |
+| Daily summary | Efficiency | Performance | Reports |
+|---|---|---|---|
+| [<img src="cards/daikin-daily-summary-card/showcase.gif" width="200" alt="Daily summary card">](cards/daikin-daily-summary-card/README.md) | [<img src="cards/daikin-efficiency-card/preview.png" width="200" alt="Efficiency card">](cards/daikin-efficiency-card/README.md) | [<img src="cards/daikin-performance-card/preview.png" width="200" alt="Performance card">](cards/daikin-performance-card/README.md) | [<img src="cards/daikin-reports-card/preview.png" width="200" alt="Reports card">](cards/daikin-reports-card/README.md) |
+| `custom:daikin-daily-summary-card` | `custom:daikin-efficiency-card` | `custom:daikin-performance-card` | `custom:daikin-reports-card` |
+| Today's run, cycles, quality, COP, backup heater, defrosts and alerts; 7 / 15 / 30-day tabs; tap a day for details | Live COP, water temperatures, compressor, flow and ΔT; COP per hour and against the datasheet; SPF; heating curve and advice; every graph says good / watch / act | Heat output, compressor speed and power against your model's limits at today's conditions; your model profile | Week, month, year and heating-season reports per mode, compared with the previous period or last year at the same weather; a verdict per metric |
+| [Documentation](cards/daikin-daily-summary-card/README.md) · [Changelog](cards/daikin-daily-summary-card/CHANGELOG.md) | [Documentation](cards/daikin-efficiency-card/README.md) · [Changelog](cards/daikin-efficiency-card/CHANGELOG.md) | [Documentation](cards/daikin-performance-card/README.md) · [Changelog](cards/daikin-performance-card/CHANGELOG.md) | [Documentation](cards/daikin-reports-card/README.md) · [Changelog](cards/daikin-reports-card/CHANGELOG.md) |
 
-All three:
+All four:
 
 - appear in the **card picker** and have a **visual editor**;
 - follow the Home Assistant language (or a forced one) and theme, dark
