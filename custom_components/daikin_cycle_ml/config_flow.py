@@ -112,10 +112,16 @@ from .const import (
     SOURCE_TYPE_AUTO,
     SOURCE_TYPE_INDIVIDUAL,
     SOURCE_TYPE_MONOLITHIC,
+    SOURCE_TYPE_P1P2,
+    CONF_P1P2_MAP,
+    CONF_P1P2_PREFIX,
     family_for_model,
     models_in_family,
 )
+from . import config_flow_p1p2 as _p1
 from .engine.attribute_compat import build_compat_view
+from .engine.p1p2 import NOT_PUBLISHED as P1P2_NOT_PUBLISHED
+from .engine.p1p2 import resolve as p1p2_resolve
 from .engine.attribute_reader import missing_required
 from .engine.model_catalog import (
     INDOOR_HINT_BY_FAMILY,
@@ -205,6 +211,15 @@ _DEGREE_DAY_SELECTOR = selector.SelectSelector(
         options=["auto", "nl18", "nl18w", "be1515", "be165", "fr18", "fr17", "fr15"],
         mode=selector.SelectSelectorMode.DROPDOWN,
         translation_key="degree_day_scheme",
+    )
+)
+
+# #512: where the data comes from (translated labels)
+_SOURCE_TYPE_SELECTOR = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=[SOURCE_TYPE_MONOLITHIC, SOURCE_TYPE_INDIVIDUAL, SOURCE_TYPE_AUTO, SOURCE_TYPE_P1P2],
+        mode=selector.SelectSelectorMode.DROPDOWN,
+        translation_key="source_type",
     )
 )
 
@@ -424,8 +439,45 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                     self._selected_model = fam_models[0] if fam_models else MODEL_BASISPROFIEL
             if source_type == SOURCE_TYPE_INDIVIDUAL:
                 return await self.async_step_individual_prefix()
+            if source_type == SOURCE_TYPE_P1P2:
+                return await self.async_step_p1p2_map()
             return await self.async_step_model()
         return self._show_user_form({})
+
+    def _suggested_source(self) -> str:
+        """#512: a bridge and no ESPAltherma -> suggest the bridge."""
+        if self.hass.states.get(SOURCE_SENSOR_ENTITY) is not None:
+            return SOURCE_TYPE_MONOLITHIC
+        if len(_p1.detect(self.hass).mapping) >= len(_p1.CRITICAL_ROLES):
+            return SOURCE_TYPE_P1P2
+        return SOURCE_TYPE_MONOLITHIC
+
+    async def async_step_p1p2_map(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """#512: which bridge entity holds which value (detected, editable)."""
+        errors: dict[str, str] = {}
+        det = _p1.detect(self.hass, self._data.get(CONF_P1P2_PREFIX))
+        current = dict(self._data.get(CONF_P1P2_MAP) or det.mapping)
+        if user_input is not None:
+            mapping, errors = _p1.validate(self.hass, user_input)
+            if not errors:
+                # roles the form does not ask for keep their detected entity
+                extra = {k: v for k, v in det.mapping.items() if k not in _p1.FORM_ROLES}
+                self._data[CONF_P1P2_MAP] = {**extra, **mapping}
+                self._data[CONF_P1P2_PREFIX] = det.prefix
+                return await self.async_step_model()
+            current = {k: str(v) for k, v in user_input.items() if v}
+        return self.async_show_form(
+            step_id="p1p2_map",
+            data_schema=_p1.schema(current),
+            errors=errors,
+            description_placeholders={
+                "prefix": det.prefix or "—",
+                "found": str(len(det.mapping)),
+                "preview": _p1.preview(self.hass, current),
+            },
+        )
 
     def _show_user_form(self, errors: dict[str, str]) -> ConfigFlowResult:
         current_model = self._data.get("model", "")
@@ -438,14 +490,9 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         schema = vol.Schema({
             family_key: _FAMILY_SELECTOR,
             vol.Optional(
-                "source_type", default=SOURCE_TYPE_MONOLITHIC
-            ): vol.In(
-                [
-                    SOURCE_TYPE_MONOLITHIC,
-                    SOURCE_TYPE_INDIVIDUAL,
-                    SOURCE_TYPE_AUTO,
-                ]
-            ),
+                "source_type",
+                default=self._data.get(CONF_SOURCE_TYPE) or self._suggested_source(),
+            ): _SOURCE_TYPE_SELECTOR,
         }, extra=vol.ALLOW_EXTRA)
         # v1.20.0 #281 GAP-7: show what ESPAltherma sources are detected.
         _mono = self.hass.states.get(SOURCE_SENSOR_ENTITY)
@@ -467,8 +514,11 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 type(_disc_exc).__name__, _disc_exc,
             )
             _v2_count = 0
+        _p1p2_count = len(_p1.detect(self.hass).mapping)
         _suggest = "monolithic" if _mono_found == "yes" else (
-            "individual" if _v2_count > 0 else "auto"
+            "individual" if _v2_count > 0 else (
+                SOURCE_TYPE_P1P2 if _p1p2_count >= len(_p1.CRITICAL_ROLES) else "auto"
+            )
         )
         return self.async_show_form(
             step_id="user",
@@ -479,6 +529,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 "series": self._model_hint.get("series", ""),
                 "mono_found": _mono_found,
                 "v2_count": str(_v2_count),
+                "p1p2_count": str(_p1p2_count),
                 "suggestion": _suggest,
             },
         )
@@ -546,7 +597,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         # v1.20.0 (#281): skip monolithic probe for individual mode AND
         # auto mode when no monolithic entity exists (GAP-1).
         _st = self._data.get(CONF_SOURCE_TYPE, SOURCE_TYPE_MONOLITHIC)
-        _is_individual = _st == SOURCE_TYPE_INDIVIDUAL
+        _is_individual = _st in (SOURCE_TYPE_INDIVIDUAL, SOURCE_TYPE_P1P2)
         if not _is_individual and _st == SOURCE_TYPE_AUTO:
             # Runtime check: does the monolithic source exist?
             _mono_eid = (
@@ -598,7 +649,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.warning("Missing required attrs: %s", missing_exact)
                 errors["source_sensor"] = "missing_attributes"
                 missing_list = missing_exact
-        schema_dict: dict[Any, Any] = {
+        schema_dict: dict[Any, Any] = {} if _st == SOURCE_TYPE_P1P2 else {
             vol.Required(
                 "source_sensor",
                 default=self._data.get("source_sensor", SOURCE_SENSOR_ENTITY),
@@ -619,10 +670,11 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             schema_dict[vol.Required("model", default=default_model)] = _build_model_selector(
                 self._selected_family, only=only or None,
             )
-        schema_dict[vol.Required(
-            "attribute_mode",
-            default=self._data.get("attribute_mode", ATTRIBUTE_MODE_AUTO),
-        )] = _ATTRIBUTE_MODE_SELECTOR
+        if _st != SOURCE_TYPE_P1P2:  # the bridge map replaces attribute mapping
+            schema_dict[vol.Required(
+                "attribute_mode",
+                default=self._data.get("attribute_mode", ATTRIBUTE_MODE_AUTO),
+            )] = _ATTRIBUTE_MODE_SELECTOR
         schema = vol.Schema(schema_dict, extra=vol.ALLOW_EXTRA)
         return self.async_show_form(
             step_id="model",
@@ -858,14 +910,26 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         model = self._data.get("model") or MODEL_BASISPROFIEL
 
         present: list[str] = []
+        hint_attrs: dict[str, Any] = {}   # what the hybrid hint looks at
         missing: list[str] = []
-        if _is_individual:
+        if self._data.get(CONF_SOURCE_TYPE) == SOURCE_TYPE_P1P2:
+            # #512: the saved bridge map, translated like every tick
+            _p = p1p2_resolve(
+                self._data.get(CONF_P1P2_MAP) or {},
+                lambda eid: getattr(self.hass.states.get(eid), "state", None),
+            )
+            expected = [a for a in REQUIRED_ATTRIBUTES if a not in P1P2_NOT_PUBLISHED]
+            missing = list(_p.missing_required)
+            present = [a for a in expected if a not in missing]
+            hint_attrs = dict(_p.attrs)
+        elif _is_individual:
             # v1.20.0 (#281): resolver guarantees the canonical REQUIRED set.
             _prefix = self._data.get(
                 CONF_INDIVIDUAL_PREFIX, DEFAULT_INDIVIDUAL_PREFIX
             )
             _res = resolve_attrs(self.hass, prefix=_prefix)
             normalized = dict(_res.attrs)
+            hint_attrs = normalized
             expected = list(REQUIRED_ATTRIBUTES)
             for key in expected:
                 if normalized.get(key) is None:
@@ -884,6 +948,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 missing = list(expected)
             else:
                 compat_attrs = build_compat_view(state.attributes)
+                hint_attrs = dict(compat_attrs)
                 normalized = {cmap.get(k, k): v for k, v in compat_attrs.items()}
                 for key in expected:
                     if normalized.get(key) is None:
@@ -894,10 +959,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
         # Hybrid (EVLQ) hint — issue #218 (Block 3B)
         hybrid_hint = ""
         if _is_hybrid_model(model):
-            compat_for_hint = (
-                build_compat_view(state.attributes) if state is not None else {}
-            )
-            if not _hybrid_attrs_present(compat_for_hint):
+            if not _hybrid_attrs_present(hint_attrs):
                 hybrid_hint = (
                     "\u26a0\ufe0f Hybrid model detected, but neither "
                     "'Boiler Operation Demand' nor 'Boiler DHW Demand' was found "
@@ -1121,6 +1183,8 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 source = f"v2 {_prefix}"
             elif _st == SOURCE_TYPE_AUTO:
                 source = "auto"
+            elif _st == SOURCE_TYPE_P1P2:
+                source = f"P1/P2 {self._data.get(CONF_P1P2_PREFIX) or ''}".strip()
             else:
                 source = self._data.get("source_sensor", "")
             return self.async_create_entry(
@@ -1160,7 +1224,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             else _cur_st
         )
         _skip_source_probe = _new_st in (
-            SOURCE_TYPE_INDIVIDUAL, SOURCE_TYPE_AUTO
+            SOURCE_TYPE_INDIVIDUAL, SOURCE_TYPE_AUTO, SOURCE_TYPE_P1P2,
         )
         if user_input is not None and _skip_source_probe:
             # individual / auto: no source_sensor validation required.

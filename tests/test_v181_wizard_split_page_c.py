@@ -66,7 +66,7 @@ def test_advanced_direct_no_input():
 def test_i18n_parity_16_steps():
     for rel in ("strings.json", "translations/en.json", "translations/nl.json"):
         d = json.loads((_root() / rel).read_text(encoding="utf-8"))
-        assert len(d["config"]["step"]) == 19, rel
+        assert len(d["config"]["step"]) == 20, rel  # #512 p1p2_map
 
 
 def test_i18n_attribute_mapping_advanced_key_present():

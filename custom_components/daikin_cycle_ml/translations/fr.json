@@ -211,14 +211,14 @@
             },
             "user": {
                 "title": "Daikin Cycle ML — famille de modèle",
-                "description": "Choisir la famille de votre Daikin Altherma : c'est le début de la référence du groupe extérieur (ex. ERGA, EPRA, EKHBRD). Le modèle exact se choisit à l'écran suivant.\n\n- **Profil de base** : réglages sûrs quand le modèle exact est inconnu.\n- **Personnalisé** : vous fournissez vos propres caractéristiques.\n\n**Vous ne connaissez que l'unité intérieure ?** Saisissez sa référence (plaque signalétique ou application Daikin, ex. EHBX08EF6V) dans le champ famille. Si elle est vendue avec plusieurs groupes extérieurs, l'écran suivant ne propose que ceux-là.\n\n**Détecté :** entité unique = {mono_found}, entités ESPAltherma v2 = {v2_count}.\n**Type de source conseillé :** `{suggestion}`.",
+                "description": "Choisir la famille de votre Daikin Altherma : c'est le début de la référence du groupe extérieur (ex. ERGA, EPRA, EKHBRD). Le modèle exact se choisit à l'écran suivant.\n\n- **Profil de base** : réglages sûrs quand le modèle exact est inconnu.\n- **Personnalisé** : vous fournissez vos propres caractéristiques.\n\n**Vous ne connaissez que l'unité intérieure ?** Saisissez sa référence (plaque signalétique ou application Daikin, ex. EHBX08EF6V) dans le champ famille. Si elle est vendue avec plusieurs groupes extérieurs, l'écran suivant ne propose que ceux-là.\n\n**Détecté :** entité unique = {mono_found}, entités ESPAltherma v2 = {v2_count}, valeurs d'un pont P1/P2 = {p1p2_count}.\n**Type de source conseillé :** `{suggestion}`.",
                 "data": {
                     "family": "Famille de modèle",
-                    "source_type": "Type de source ESPAltherma"
+                    "source_type": "Source des données"
                 },
                 "data_description": {
                     "family": "Choisir la famille du groupe extérieur (ERGA, EPRA, ...), ou saisir la référence connue : l'unité intérieure (ex. EHBX08EF6V), le groupe extérieur (ex. ERGA06EAV3) ou les deux.",
-                    "source_type": "Façon dont ESPAltherma envoie ses données. « Entité unique » pour le capteur classique, « Entités séparées » pour ESPAltherma v2 (une entité par valeur). « Auto » détecte au démarrage."
+                    "source_type": "Façon dont ESPAltherma envoie ses données. « Entité unique » pour le capteur classique, « Entités séparées » pour ESPAltherma v2 (une entité par valeur). « Auto » détecte au démarrage. Avec le pont MQTT P1/P2 (sans ESPAltherma) : choisissez Pont MQTT P1/P2."
                 }
             },
             "individual_prefix": {
@@ -234,6 +234,52 @@
             "individual_review": {
                 "title": "Vérification des valeurs ESPAltherma v2",
                 "description": "**{matched}/{total}** valeurs obligatoires trouvées. Entités découvertes : {discovered}.{missing_block}{collision_block}\n\nContinuer pour choisir le modèle Daikin. La correspondance reste modifiable dans les options."
+            },
+            "p1p2_map": {
+                "title": "Pont MQTT P1/P2",
+                "description": "Quelle entité du pont contient quelle valeur. Rempli d'après les noms des entités (préfixe **{prefix}**, {found} valeurs trouvées) ; modifiez si besoin. Les unités sont fixées par valeur : le pont laisse la plupart des unités vides.\n\n- La température extérieure vient de l'unité extérieure, jamais de `..._r1t_hp2gas_water` (c'est de l'eau).\n- L'eau chaude est lue sur la vanne 3 voies ; `dhw_dhw` indique seulement que la fonction eau chaude est active.\n- Laissez un champ vide si votre unité n'a pas cet élément (refroidissement, appoint, ballon, chaudière gaz).\n\n**Lu maintenant :**\n{preview}",
+                "data": {
+                    "op_heating": "Mode chauffage (marche/arrêt)",
+                    "op_cooling": "Mode refroidissement (marche/arrêt)",
+                    "threeway_valve": "Vanne 3 voies vers le ballon (marche = eau chaude)",
+                    "defrost": "Dégivrage",
+                    "compressor_hz": "Fréquence du compresseur (le pont l'appelle rpm, c'est en Hz)",
+                    "leaving_r2t": "Départ d'eau R2T",
+                    "leaving_r1t": "Départ avant l'appoint (R1T, eau)",
+                    "inlet_r4t": "Retour d'eau R4T",
+                    "outdoor": "Température extérieure (unité extérieure)",
+                    "flow": "Débit d'eau",
+                    "pump": "Circulateur",
+                    "buh1": "Appoint étage 1",
+                    "buh2": "Appoint étage 2",
+                    "lw_setpoint": "Consigne de départ",
+                    "dhw_tank": "Ballon d'eau chaude R5T",
+                    "heat_power": "Chaleur produite (W)",
+                    "hp_power": "Puissance électrique pompe à chaleur (W)",
+                    "buh_power": "Puissance électrique appoint (W)",
+                    "gasboiler_active": "Chaudière gaz active (hybride)"
+                },
+                "data_description": {
+                    "op_heating": "Habituellement `…_mode_climate_heating`.",
+                    "op_cooling": "Habituellement `…_mode_climate_cooling`. Vide sans refroidissement.",
+                    "threeway_valve": "Habituellement `…_dhw_valve_dhw_tank`. Vide sans ballon d'eau chaude.",
+                    "defrost": "Habituellement `…_mode_defrost_active`.",
+                    "compressor_hz": "Habituellement `…_mode_compressor_rpm`.",
+                    "leaving_r2t": "Habituellement `…_sensors_temperature_r2t_leaving_water`.",
+                    "leaving_r1t": "Habituellement `…_sensors_temperature_r1t_hp2gas_water`.",
+                    "inlet_r4t": "Habituellement `…_sensors_temperature_r4t_return_water`.",
+                    "outdoor": "Habituellement `…_sensors_temperature_outside_unit`.",
+                    "flow": "Habituellement `…_sensors_flow`.",
+                    "pump": "Habituellement `…_mode_circulation_pump`.",
+                    "buh1": "Habituellement `…_mode_buh`. Vide sans appoint.",
+                    "buh2": "Habituellement `…_mode_buh_2`. Vide sans appoint.",
+                    "lw_setpoint": "Habituellement `…_lwt_lwt_setpoint`.",
+                    "dhw_tank": "Habituellement `…_dhw_temperature_r5t_dhw_tank`. Vide sans ballon (il lit alors environ -40 °C).",
+                    "heat_power": "Habituellement `…_power_production_heatpump`. Utilisé pour le COP.",
+                    "hp_power": "Habituellement `…_power_consumption_heatpump`. Utilisé pour le COP, avec la puissance de l'appoint ajoutée.",
+                    "buh_power": "Habituellement `…_power_consumption_buh`.",
+                    "gasboiler_active": "Habituellement `…_mode_gasboiler_active`. Uniquement pour un hybride avec chaudière gaz."
+                }
             }
         },
         "error": {
@@ -245,7 +291,9 @@
             "source_offline": "Le capteur ESPAltherma est indisponible. Attendre 30 à 60 s qu'il revienne puis réessayer.",
             "source_empty": "Le capteur ESPAltherma n'a pas encore de données. Attendre la prochaine mise à jour puis réessayer.",
             "model_unknown": "Référence « {code} » inconnue. Choisir une famille dans la liste, saisir la référence du groupe extérieur (ex. ERGA06EAV3) ou choisir le profil de base.",
-            "model_no_datasheet": "« {code} » est une unité {series}. Il n'existe pas encore de fiche technique : choisir le profil de base. L'analyse des cycles fonctionne ; la comparaison avec le COP de la fiche reste désactivée."
+            "model_no_datasheet": "« {code} » est une unité {series}. Il n'existe pas encore de fiche technique : choisir le profil de base. L'analyse des cycles fonctionne ; la comparaison avec le COP de la fiche reste désactivée.",
+            "p1p2_role_required": "Nécessaire pour suivre les cycles : choisissez l'entité du pont.",
+            "p1p2_r1t_is_water": "R1T sur le pont est une température d'eau : choisissez la température de l'unité extérieure."
         },
         "abort": {
             "already_configured": "Déjà configuré",
@@ -1303,7 +1351,8 @@
             "options": {
                 "monolithic": "Entité unique (ESPAltherma v1, sensor.althermasensors)",
                 "individual": "Entités séparées (ESPAltherma v2, sensor.espaltherma_*)",
-                "auto": "Détection automatique (conseillé pour une nouvelle installation)"
+                "auto": "Détection automatique (conseillé pour une nouvelle installation)",
+                "p1p2": "Pont MQTT P1/P2 (Arnold Niessen, sans ESPAltherma)"
             }
         },
         "attribute_mode": {

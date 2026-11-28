@@ -1,0 +1,1925 @@
+{
+ "note": "#512 Altherma hybrid EVLQ08CV3 + EHYHBX08AV3 + gas boiler NHYKOMB33AA (no DHW tank), P1/P2 MQTT bridge, prefixes hc_ / wamtepomp_ / warmtepomp_; from the reporter's spreadsheet (sheet Attributen, 2026-11-10 snapshot): space heating at 18 Hz. Units are the spreadsheet's (partly derived from names).",
+ "states": {
+  "binary_sensor.hc_bridge_esp_eeprom_saved": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_bridge_esp_factory_reset_scheduled": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_bridge_esp_throttling": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_bridge_esp_waiting_for_counters_d13": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_dhw_dhw": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.hc_dhw_dhw_demand": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_dhw_dhw_related_q": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_dhw_valve_dhw_tank": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_fieldsettings_e_05_a221_dhw_operation": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.hc_fieldsettings_e_06_a222_dhw_tank_installed": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_buh": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_buh_2": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_buh_on": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_circulation_pump": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_climate_cooling": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_climate_hc_auto": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_climate_heating": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_compressor": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_defrost_active": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_external_thermostat_cooling": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_external_thermostat_cooling_add": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_external_thermostat_heating": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_external_thermostat_heating_add": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_gasboiler_active": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_heating_only": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_preferential_mode": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_mode_shc_tank": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_ui_aux_f0_advanced": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.hc_ui_aux_f0_installer": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_ui_aux_f0_lcd_light": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_ui_main_advanced": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_ui_main_installer": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_ui_main_lcd_light": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_unknown_buh1_q": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_unknown_climate_active_q4": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.hc_unknown_climate_mode_q": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_unknown_climate_on_q": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.hc_unknown_climate_q_1": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_unknown_climate_q_2": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_unknown_climate_related_q": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.hc_unknown_dhw_related_q": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.wamtepomp_mode_compressor2_q": {
+   "state": "on",
+   "unit": null
+  },
+  "button.hc_bridge_eeprom_esp_save_changes": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_bridge_eeprom_esp_set_cons_prod_counters": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_bridge_eeprom_esp_undo_changes": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_bridge_mqtt_rebuild": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_bridge_restart_p1p2monitor_atmega": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_bridge_restart_p1p2mqtt_esp": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_fieldsettings_daikin_restart_careful": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_mode_daikin_defrost_request": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_setup_factory_reset_esp_after_restart": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_setup_factory_reset_esp_cancel": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_setup_mqtt_delete_all_rebuild": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_setup_mqtt_delete_own_rebuild": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_ui_bridge_lcd_fake_off": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_ui_bridge_lcd_fake_on": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_ui_bridge_mode_0_normal_user": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_ui_bridge_mode_1_advanced_user": {
+   "state": "–",
+   "unit": null
+  },
+  "button.hc_ui_bridge_mode_2_installer": {
+   "state": "–",
+   "unit": null
+  },
+  "climate.hc_dhw_dhw_setpoint": {
+   "state": "heat",
+   "unit": "°C"
+  },
+  "climate.hc_lwt2_abs_cooling_add": {
+   "state": "unavailable",
+   "unit": "°C"
+  },
+  "climate.hc_lwt2_abs_heating_add": {
+   "state": "unavailable",
+   "unit": "°C"
+  },
+  "climate.hc_lwt_abs_cooling": {
+   "state": "cool",
+   "unit": "°C"
+  },
+  "climate.hc_lwt_abs_heating": {
+   "state": "heat",
+   "unit": "°C"
+  },
+  "climate.hc_room_room_cooling": {
+   "state": "unavailable",
+   "unit": "°C"
+  },
+  "climate.hc_room_room_heating": {
+   "state": "unavailable",
+   "unit": "°C"
+  },
+  "number.hc_bridge_r1toffset_mid": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "number.hc_bridge_r2toffset_lwt": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "number.hc_bridge_r4toffset_rwt": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "number.hc_bridge_rtoffset_room": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "number.hc_bridge_write_budget": {
+   "state": "99",
+   "unit": "aantal schrijfacties"
+  },
+  "number.hc_bridge_write_budget_period": {
+   "state": "60",
+   "unit": null
+  },
+  "number.hc_fieldsettings_overshoot": {
+   "state": "1",
+   "unit": "°C"
+  },
+  "number.hc_fieldsettings_rt_modulation_max": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "number.hc_mode_preset_cooling_comfort": {
+   "state": "24",
+   "unit": "°C"
+  },
+  "number.hc_mode_preset_cooling_eco": {
+   "state": "26",
+   "unit": "°C"
+  },
+  "number.hc_mode_preset_heating_comfort": {
+   "state": "20",
+   "unit": "°C"
+  },
+  "number.hc_mode_preset_heating_eco": {
+   "state": "20",
+   "unit": "°C"
+  },
+  "number.hc_prices_gas": {
+   "state": "15",
+   "unit": null
+  },
+  "select.hc_fieldsettings_number_of_zones": {
+   "state": "1 LWT zone",
+   "unit": null
+  },
+  "select.hc_fieldsettings_rt_lwt": {
+   "state": "LWT",
+   "unit": null
+  },
+  "select.hc_fieldsettings_rt_modulation": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "select.hc_mode_heating_cooling_auto": {
+   "state": "Heating",
+   "unit": null
+  },
+  "select.hc_mode_preset_mode": {
+   "state": "Schedule",
+   "unit": null
+  },
+  "select.hc_mode_program_wd_abs": {
+   "state": "WD",
+   "unit": null
+  },
+  "select.hc_quiet_quiet_level": {
+   "state": "Quiet Level 0",
+   "unit": null
+  },
+  "select.hc_quiet_quiet_level_when_on": {
+   "state": "Level 1",
+   "unit": null
+  },
+  "select.hc_quiet_quiet_mode": {
+   "state": "Always off",
+   "unit": null
+  },
+  "switch.hc_bridge_control_function": {
+   "state": "on",
+   "unit": null
+  },
+  "switch.hc_bridge_counter_request_function": {
+   "state": "on",
+   "unit": null
+  },
+  "switch.hc_dhw_dhw_boost": {
+   "state": "off",
+   "unit": null
+  },
+  "switch.hc_mode_altherma_on": {
+   "state": "on",
+   "unit": null
+  },
+  "switch.hc_setup_ha_setup": {
+   "state": "on",
+   "unit": null
+  },
+  "sensor.hc_15_param_param15_temperature_00": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_01": {
+   "state": "0.1",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_02": {
+   "state": "5.2",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_03": {
+   "state": "8.3",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_04": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_05": {
+   "state": "35.9",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_06": {
+   "state": "12.8",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_07": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_08": {
+   "state": "12.5",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_09": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_0a": {
+   "state": "32.5",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_0b": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_0c": {
+   "state": "7",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_0d": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_0e": {
+   "state": "17.5",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_0f": {
+   "state": "16.9",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_10": {
+   "state": "4",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_11": {
+   "state": "4.3",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_12": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_13": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_14": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_15": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_16": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_17": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_18": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_15_param_param15_temperature_19": {
+   "state": "0.1",
+   "unit": "°C"
+  },
+  "sensor.hc_bridge_control_id": {
+   "state": "0xF0",
+   "unit": null
+  },
+  "sensor.hc_bridge_error_budget": {
+   "state": "20",
+   "unit": null
+  },
+  "sensor.hc_bridge_v_interface": {
+   "state": "11.9",
+   "unit": "V"
+  },
+  "sensor.hc_bridge_wifi_rssi": {
+   "state": "31",
+   "unit": null
+  },
+  "sensor.hc_bridge_writes_refused_budget": {
+   "state": "255",
+   "unit": null
+  },
+  "sensor.hc_bridge_writes_refused_busy": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_cop_cop_after_bridge": {
+   "state": "5.242",
+   "unit": null
+  },
+  "sensor.hc_cop_cop_before_bridge": {
+   "state": "3.806",
+   "unit": null
+  },
+  "sensor.hc_cop_cop_lifetime": {
+   "state": "3.882",
+   "unit": null
+  },
+  "sensor.hc_cop_cop_realtime": {
+   "state": "4.576",
+   "unit": null
+  },
+  "sensor.hc_dhw_dhw_setpoint": {
+   "state": "60",
+   "unit": "°C"
+  },
+  "sensor.hc_dhw_temperature_r5t_dhw_tank": {
+   "state": "-40.742",
+   "unit": "°C"
+  },
+  "sensor.hc_lwt2_abs_cooling_add": {
+   "state": "7",
+   "unit": "°C"
+  },
+  "sensor.hc_lwt2_abs_heating_add": {
+   "state": "45",
+   "unit": "°C"
+  },
+  "sensor.hc_lwt2_deviation_cooling_add": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_lwt2_deviation_heating_add": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_lwt2_lwt_setpoint_add": {
+   "state": "42.5",
+   "unit": "°C"
+  },
+  "sensor.hc_lwt_abs_cooling": {
+   "state": "18",
+   "unit": "°C"
+  },
+  "sensor.hc_lwt_abs_heating": {
+   "state": "43",
+   "unit": "°C"
+  },
+  "sensor.hc_lwt_deviation_cooling": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_lwt_deviation_heating": {
+   "state": "-2",
+   "unit": "°C"
+  },
+  "sensor.hc_lwt_lwt_setpoint": {
+   "state": "25.4",
+   "unit": "°C"
+  },
+  "sensor.hc_meters_counter_gasboiler_dhw": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_meters_counter_gasboiler_heating": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_meters_counter_gasboiler_total": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_meters_counter_unknown_00": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_meters_counter_unknown_01": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_meters_counter_unknown_02": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_meters_electricity_consumed_backup_dhw": {
+   "state": "0",
+   "unit": "kWh"
+  },
+  "sensor.hc_meters_electricity_consumed_backup_heating": {
+   "state": "0",
+   "unit": "kWh"
+  },
+  "sensor.hc_meters_electricity_consumed_compressor_cooling": {
+   "state": "417",
+   "unit": "kWh"
+  },
+  "sensor.hc_meters_electricity_consumed_compressor_dhw": {
+   "state": "0",
+   "unit": "kWh"
+  },
+  "sensor.hc_meters_electricity_consumed_compressor_heating": {
+   "state": "10453",
+   "unit": "kWh"
+  },
+  "sensor.hc_meters_electricity_consumed_heatpump_external": {
+   "state": "0",
+   "unit": "kWh"
+  },
+  "sensor.hc_meters_electricity_consumed_total": {
+   "state": "11008",
+   "unit": "kWh"
+  },
+  "sensor.hc_meters_energy_produced_compressor_cooling": {
+   "state": "1796",
+   "unit": "kWh"
+  },
+  "sensor.hc_meters_energy_produced_compressor_dhw": {
+   "state": "0",
+   "unit": "kWh"
+  },
+  "sensor.hc_meters_energy_produced_compressor_heating": {
+   "state": "40582",
+   "unit": "kWh"
+  },
+  "sensor.hc_meters_energy_produced_compressor_total": {
+   "state": "42378",
+   "unit": "kWh"
+  },
+  "sensor.hc_meters_gas_consumed": {
+   "state": "0",
+   "unit": "kWh"
+  },
+  "sensor.hc_meters_hours_backup1_dhw": {
+   "state": "0",
+   "unit": "h"
+  },
+  "sensor.hc_meters_hours_backup1_heating": {
+   "state": "0",
+   "unit": "h"
+  },
+  "sensor.hc_meters_hours_backup2_dhw": {
+   "state": "0",
+   "unit": "h"
+  },
+  "sensor.hc_meters_hours_backup2_heating": {
+   "state": "0",
+   "unit": "h"
+  },
+  "sensor.hc_meters_hours_booster": {
+   "state": "0",
+   "unit": "h"
+  },
+  "sensor.hc_meters_hours_circulation_pump": {
+   "state": "11798",
+   "unit": "h"
+  },
+  "sensor.hc_meters_hours_compressor_cooling": {
+   "state": "933",
+   "unit": "h"
+  },
+  "sensor.hc_meters_hours_compressor_dhw": {
+   "state": "0",
+   "unit": "h"
+  },
+  "sensor.hc_meters_hours_compressor_heating": {
+   "state": "9362",
+   "unit": "h"
+  },
+  "sensor.hc_meters_hours_drain_pan_heater": {
+   "state": "0",
+   "unit": "h"
+  },
+  "sensor.hc_meters_hours_gasboiler_dhw": {
+   "state": "172",
+   "unit": "h"
+  },
+  "sensor.hc_meters_hours_gasboiler_heating": {
+   "state": "1453",
+   "unit": "h"
+  },
+  "sensor.hc_meters_starts_compressor": {
+   "state": "12831",
+   "unit": null
+  },
+  "sensor.hc_meters_starts_gasboiler": {
+   "state": "29572",
+   "unit": null
+  },
+  "sensor.hc_mode_errorcode1": {
+   "state": "0x00",
+   "unit": null
+  },
+  "sensor.hc_mode_errorcode2": {
+   "state": "0x00",
+   "unit": null
+  },
+  "sensor.hc_mode_errorsubcode": {
+   "state": "0x00",
+   "unit": null
+  },
+  "sensor.hc_power_consumption_buh": {
+   "state": "0",
+   "unit": "W"
+  },
+  "sensor.hc_power_consumption_heatpump": {
+   "state": "460",
+   "unit": "W"
+  },
+  "sensor.hc_power_production_gasboiler": {
+   "state": "-97",
+   "unit": "W"
+  },
+  "sensor.hc_power_production_heatpump": {
+   "state": "2027",
+   "unit": "W"
+  },
+  "sensor.hc_prices_electricity": {
+   "state": "12",
+   "unit": "€/kWh"
+  },
+  "sensor.hc_prices_gas": {
+   "state": "15",
+   "unit": "€/kWh"
+  },
+  "sensor.hc_quiet_quiet_mode_active": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_room_room_cooling_setpoint": {
+   "state": "24",
+   "unit": "°C"
+  },
+  "sensor.hc_room_room_heating_setpoint": {
+   "state": "19",
+   "unit": "°C"
+  },
+  "sensor.hc_sensors_flow": {
+   "state": "18",
+   "unit": "L/min"
+  },
+  "sensor.hc_sensors_temperature_outside": {
+   "state": "7.531",
+   "unit": "°C"
+  },
+  "sensor.hc_sensors_temperature_outside_unit": {
+   "state": "8",
+   "unit": "°C"
+  },
+  "sensor.hc_sensors_temperature_r1t_hp2gas_water": {
+   "state": "26.516",
+   "unit": "°C"
+  },
+  "sensor.hc_sensors_temperature_r2t_leaving_water": {
+   "state": "26.516",
+   "unit": "°C"
+  },
+  "sensor.hc_sensors_temperature_r3t_refrigerant": {
+   "state": "25.375",
+   "unit": "°C"
+  },
+  "sensor.hc_sensors_temperature_r4t_return_water": {
+   "state": "24.891",
+   "unit": "°C"
+  },
+  "sensor.hc_sensors_temperature_refrigerant_2": {
+   "state": "5.5",
+   "unit": "°C"
+  },
+  "sensor.hc_sensors_temperature_room": {
+   "state": "21.797",
+   "unit": "°C"
+  },
+  "sensor.hc_sensors_temperature_room_wall": {
+   "state": "21.797",
+   "unit": "°C"
+  },
+  "sensor.hc_sensors_water_pressure": {
+   "state": "0",
+   "unit": "bar"
+  },
+  "sensor.hc_sg_sg_35_005c_general_power_limit_q_2": {
+   "state": "127",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_35_0093_general_power_limit_active_q": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_35_0094_general_power_limit_kw": {
+   "state": "10",
+   "unit": "kW"
+  },
+  "sensor.hc_sg_sg_general_power_limit_2": {
+   "state": "127",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_q_35_0095": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_q_35_0096": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_q_35_0097": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_q_35_0098": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_q_35_0099": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_q_35_009a": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_q_35_009b": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_q_35_009c": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_q_35_009d": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_q_35_009e": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_q_35_009f": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_sg_sg_q_35_00a0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_unknown_setpoint_room_q": {
+   "state": "30",
+   "unit": "°C"
+  },
+  "sensor.hc_unknown_temperature_refrigerant_3_q": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_unknown_temperature_unused_11_16": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_unknown_temperature_unused_11_18": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_unknown_temperature_unused_15_0": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.wamtepomp_mode_compressor_rpm": {
+   "state": "18",
+   "unit": "Hz"
+  },
+  "sensor.wamtepomp_mode_fan_rpm": {
+   "state": "2475",
+   "unit": "rpm"
+  },
+  "sensor.warmtepomp_parameters_param15_00": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_01": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_04": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_07": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_09": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_0b": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_0d": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_0e": {
+   "state": "135",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_0f": {
+   "state": "167",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_11_fan2_q": {
+   "state": "38",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_12": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_13": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_14": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_15": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_16": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.warmtepomp_parameters_param15_17": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.warmtepomp_power_inverter_primary_current": {
+   "state": "2",
+   "unit": "A"
+  },
+  "sensor.warmtepomp_sensors_temperature_outside_param15": {
+   "state": "8",
+   "unit": "°C"
+  },
+  "sensor.warmtepomp_sensors_temperature_r9t_return_water": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.warmtepomp_sensors_temperature_refrigerant_2_param15": {
+   "state": "5.5",
+   "unit": "°C"
+  },
+  "sensor.warmtepomp_sensors_temperature_refrigerant_after_heat_exchanger": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.warmtepomp_sensors_temperature_refrigerant_discharge": {
+   "state": "41",
+   "unit": "°C"
+  },
+  "sensor.warmtepomp_sensors_temperature_refrigerant_q_param15": {
+   "state": "15.3",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_0_00_a3123_lwt_heating_add_wd_curve_high_amb_lwt": {
+   "state": "35",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_0_01_a3123_lwt_heating_add_wd_curve_low_amb_lwt": {
+   "state": "60",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_0_02_a3123_lwt_heating_add_wd_curve_high_amb": {
+   "state": "15",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_0_03_a3123_lwt_heating_add_wd_curve_low_amb": {
+   "state": "-10",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_0_04_a3124_lwt_cooling_add_wd_curve_high_amb_lwt": {
+   "state": "8",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_0_05_a3124_lwt_cooling_add_wd_curve_low_amb_lwt": {
+   "state": "12",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_0_06_a3124_lwt_cooling_add_wd_curve_high_amb": {
+   "state": "35",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_0_07_a3124_lwt_cooling_add_wd_curve_low_amb": {
+   "state": "20",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_0_08_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_0_09_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_0_0a_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_0_0b_a47_dhw_wd_curve_high_amb_setpoint": {
+   "state": "55",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_0_0c_a47_dhw_wd_curve_low_amb_setpoint": {
+   "state": "60",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_0_0d_a47_dhw_wd_curve_high_amb": {
+   "state": "15",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_0_0e_a47_dhw_wd_curve_low_amb": {
+   "state": "-10",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_1_00_a3113_lwt_heating_main_wd_curve_low_amb": {
+   "state": "-10",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_1_01_a3113_lwt_heating_main_wd_curve_high_amb": {
+   "state": "15",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_1_02_a3113_lwt_heating_main_wd_curve_low_amb_lwt": {
+   "state": "33",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_1_03_a3113_lwt_heating_main_wd_curve_high_amb_lwt": {
+   "state": "25",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_1_04_lwt_cooling_main_wd_enabled": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_1_05_lwt_cooling_add_wd_enabled": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_1_06_a3114_lwt_cooling_main_wd_curve_low_amb": {
+   "state": "25",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_1_07_a3114_lwt_cooling_main_wd_curve_high_amb": {
+   "state": "30",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_1_08_a3114_lwt_cooling_main_wd_curve_low_amb_lwt": {
+   "state": "19",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_1_09_a3114_lwt_cooling_main_wd_curve_high_amb_lwt": {
+   "state": "18",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_1_0a_a64_averaging_time": {
+   "state": "0",
+   "unit": "h"
+  },
+  "sensor.hc_fieldsettings_1_0b_9i_delta_t_heating_main": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_1_0c_9i_delta_t_heating_add": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_1_0d_9i_delta_t_cooling_main": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_1_0e_9i_delta_t_cooling_add": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_2_00_a442_dhw_disinfection_operation_day": {
+   "state": "5",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_2_01_a441_dhw_disinfection": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_2_02_a443_dhw_disinfection_start_time": {
+   "state": "23",
+   "unit": "h"
+  },
+  "sensor.hc_fieldsettings_2_03_a444_dhw_disinfection_setpoint": {
+   "state": "60",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_2_04_a445_dhw_disinfection_duration": {
+   "state": "40",
+   "unit": "min"
+  },
+  "sensor.hc_fieldsettings_2_05_room_antifrost_temperature": {
+   "state": "8",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_2_06_room_antifrost_protection": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_2_07_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_2_08_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_2_09_a323_ext_room_sensor_offset": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_2_0a_a322_room_temperature_offset": {
+   "state": "-1",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_2_0b_a65_ext_amb_sensor_offset": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_2_0c_9i_emitter_type_main": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_2_0d_9i_emitter_type_add": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_2_0e_9i_maximum_current": {
+   "state": "0",
+   "unit": "A"
+  },
+  "sensor.hc_fieldsettings_3_00_a61_auto_restart_allowed": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_3_01_unspecified_3_01_rw_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_3_02_unspecified_3_02_rw_1": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_3_03_unspecified_3_03_rw_4": {
+   "state": "4",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_3_04_unspecified_3_04_rw_2": {
+   "state": "2",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_3_05_unspecified_3_05_rw_1": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_3_06_a3212_temp_range_room_heating_max": {
+   "state": "30",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_3_07_a3211_temp_range_room_heating_min": {
+   "state": "12",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_3_08_a3214_temp_range_room_cooling_max": {
+   "state": "35",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_3_09_a3213_temp_range_room_cooling_min": {
+   "state": "15",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_3_0a_9i_pump_model": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_3_0b_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_3_0c_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_3_0d_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_3_0e_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_4_00_unspecified_4_00_ro_1": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_4_01_unspecified_4_01_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_4_02_a331_heating_amb_temperature_max": {
+   "state": "17",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_4_03_unspecified_4_03_ro_3": {
+   "state": "3",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_4_04_water_pipe_antifrost_protection": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_4_05_unspecified_4_05_rw_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_4_06_unspecified_4_06_rw_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_4_07_unspecified_4_07_ro_1": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_4_08_a631_power_consumption_control_mode": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_4_09_a632_power_consumption_control_type": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_4_0a_unspecified_4_0a_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_4_0b_auto_cooling_heating_changeover_hysteresis": {
+   "state": "1",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_4_0c_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_4_0d_auto_cooling_heating_changeover_offset": {
+   "state": "3",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_4_0e_unspecified_4_0e_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_5_00_equilibrium_enabled": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_5_01_a522_equilibrium_temp": {
+   "state": "5",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_5_02_unspecified_5_02_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_5_03_unspecified_5_03_rw_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_5_04_unspecified_5_04_rw_10": {
+   "state": "10",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_5_05_a633_a6351_power_consumption_control_amp_value_1": {
+   "state": "50",
+   "unit": "A"
+  },
+  "sensor.hc_fieldsettings_5_06_a6351_power_consumption_control_amp_value_2": {
+   "state": "50",
+   "unit": "A"
+  },
+  "sensor.hc_fieldsettings_5_07_a6351_power_consumption_control_amp_value_3": {
+   "state": "50",
+   "unit": "A"
+  },
+  "sensor.hc_fieldsettings_5_08_a6351_power_consumption_control_amp_value_4": {
+   "state": "50",
+   "unit": "A"
+  },
+  "sensor.hc_fieldsettings_5_09_a634_a6361_power_consumption_control_kw_value_1": {
+   "state": "20",
+   "unit": "kW"
+  },
+  "sensor.hc_fieldsettings_5_0a_a6361_power_consumption_control_kw_value_2": {
+   "state": "20",
+   "unit": "kW"
+  },
+  "sensor.hc_fieldsettings_5_0b_a6361_power_consumption_control_kw_value_3": {
+   "state": "20",
+   "unit": "kW"
+  },
+  "sensor.hc_fieldsettings_5_0c_a6361_power_consumption_control_kw_value_4": {
+   "state": "20",
+   "unit": "kW"
+  },
+  "sensor.hc_fieldsettings_5_0d_unspecified_5_0d_ro_1": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_5_0e_unspecified_5_0e_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_6_00_temp_diff_determining_on": {
+   "state": "2",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_6_01_temp_diff_determining_off": {
+   "state": "2",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_6_02_unspecified_6_02_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_6_03_unspecified_6_03_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_6_04_unspecified_6_04_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_6_05_unspecified_6_05_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_6_06_unspecified_6_06_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_6_07_unspecified_6_07_rw_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_6_08_unspecified_6_08_rw_5": {
+   "state": "5",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_6_09_unspecified_6_09_rw_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_6_0a_7431_tank_storage_comfort": {
+   "state": "60",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_6_0b_7432_tank_storage_eco": {
+   "state": "50",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_6_0c_7433_tank_reheat": {
+   "state": "50",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_6_0d_a41_dhw_reheat": {
+   "state": "2",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_6_0e_a45_dhw_setpoint_max": {
+   "state": "65",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_7_00_unspecified_7_00_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_7_01_unspecified_7_01_ro_2": {
+   "state": "2",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_7_02_a218_number_of_lwt_zones": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_7_03_pe_factor": {
+   "state": "2.5",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_7_04_a67_savings_mode_ecological": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_7_05_unspecified_7_05_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_7_06_9i_compressor_forced_off": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_7_07_9i_bbr16_activation": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_7_08_9i_unspecified_rw_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_7_09_9i_pump_minimum_pwm_value": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_7_0a_9i_pump_fixed_add_zone_bizonekit": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_7_0b_9i_pump_fixed_main_zone_bizonekit": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_7_0c_9i_mixing_valve_time_bizonekit": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_7_0d_9i_bivalent_hysteresis_heating": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_7_0e_9i_setpoint_offset_excess_state": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_8_00_dhw_running_time_min": {
+   "state": "1",
+   "unit": "min"
+  },
+  "sensor.hc_fieldsettings_8_01_dhw_running_time_max": {
+   "state": "30",
+   "unit": "min"
+  },
+  "sensor.hc_fieldsettings_8_02_anti_recycling_time": {
+   "state": "1.5",
+   "unit": "h"
+  },
+  "sensor.hc_fieldsettings_8_03_unspecified_8_03_ro_50": {
+   "state": "50",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_8_04_unspecified_8_04_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_8_05_a3115_lwt_modulation_allow": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_8_06_lwt_modulation_max": {
+   "state": "5",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_8_07_7423_lwt_main_cooling_comfort": {
+   "state": "18",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_8_08_7424_lwt_main_cooling_eco": {
+   "state": "20",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_8_09_7421_lwt_main_heating_comfort": {
+   "state": "45",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_8_0a_7422_lwt_main_heating_eco": {
+   "state": "40",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_8_0b_flow_target_heatpump": {
+   "state": "18",
+   "unit": "L/min"
+  },
+  "sensor.hc_fieldsettings_8_0c_flow_target_hybrid": {
+   "state": "18",
+   "unit": "L/min"
+  },
+  "sensor.hc_fieldsettings_8_0d_flow_target_gasboiler": {
+   "state": "17",
+   "unit": "L/min"
+  },
+  "sensor.hc_fieldsettings_8_0e_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_9_00_a31122_temp_heating_main_max": {
+   "state": "45",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_9_01_a31121_temp_heating_main_min": {
+   "state": "25",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_9_02_a31124_temp_cooling_main_max": {
+   "state": "22",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_9_03_a31123_temp_cooling_main_min": {
+   "state": "18",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_9_04_unspecified_9_04_ro_1": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_9_05_a31221_temp_heating_add_min": {
+   "state": "25",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_9_06_a31222_temp_heating_add_max": {
+   "state": "80",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_9_07_a31223_temp_cooling_add_min": {
+   "state": "5",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_9_08_a31224_temp_cooling_add_max": {
+   "state": "22",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_9_09_delta_t": {
+   "state": "5",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_9_0a_unspecified_9_0a_rw_5": {
+   "state": "5",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_9_0b_a3117_emitter_slow": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_9_0c_room_temperature_hysteresis": {
+   "state": "1",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_9_0d_pump_speed_limitation": {
+   "state": "6",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_9_0e_unknown": {
+   "state": "6",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_00_unspecified_a_00_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_01_unspecified_a_01_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_02_unspecified_a_02_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_03_unspecified_a_03_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_04_unspecified_a_04_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_05_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_06_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_07_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_08_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_09_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_0a_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_0b_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_0c_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_0d_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_a_0e_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_00_unspecified_b_00_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_01_unspecified_b_01_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_02_unspecified_b_02_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_03_unspecified_b_03_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_04_unspecified_b_04_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_05_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_06_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_07_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_08_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_09_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_0a_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_0b_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_0c_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_0d_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_b_0e_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_c_00_dhw_priority": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_c_01_unspecified_c_01_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_c_02_external_backup": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_c_03_bivalent_activation_temperature": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_c_04_bivalent_hysteresis_temperature": {
+   "state": "3",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_c_05_a224_contact_type_main": {
+   "state": "2",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_c_06_a225_contact_type_add": {
+   "state": "2",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_c_07_a217_unit_control_method": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_c_08_a22b_external_sensor": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_c_09_a2263_digital_io_pcb_alarm_output": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_c_0a_indoor_quick_heatup_enable": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_c_0b_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_c_0c_7451_electricity_price_high": {
+   "state": "4",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_c_0d_7452_electricity_price_medium": {
+   "state": "4",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_c_0e_7453_electricity_price_low": {
+   "state": "4",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_00_unspecified_d_00_rw_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_01_a216_preferential_kwh_rate": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_02_a22a_dhw_pump": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_03_lwt_0c_compensation_shift": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_d_04_a227_demand_pcb": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_05_unspecified_d_05_ro_0": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_06_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_07_a2262_digital_io_pcb_solar_kit": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_08_a228_external_kwh_meter_1": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_09_unspecified_d_09_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_0a_a22c_external_gas_meter_1": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_0b_unspecified_d_0b_rw_2": {
+   "state": "2",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_0c_7451_electricity_price_high_do_not_use": {
+   "state": "12",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_0d_7452_electricity_price_medium_do_not_use": {
+   "state": "11",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_d_0e_7453_electricity_price_low_do_not_use": {
+   "state": "10",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_e_00_a211_ro_unit_type": {
+   "state": "3",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_e_01_a212_ro_compressor_type": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_e_02_a213_ro_indoor_software_type": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_e_03_unspecified_e_03_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_e_04_a21a_ro_power_saving_available": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_e_07_a223_dhw_tank_type": {
+   "state": "4",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_e_08_power_saving_enabled": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_e_09_unspecified_e_09_rw_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_e_0a_unspecified_e_0a_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_e_0b_unspecified_e_0b_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_e_0c_unspecified_e_0c_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_e_0d_unspecified_e_0d_ro_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_e_0e_unspecified_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_00_pump_operation_outside_range_allowed": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_01_a332_cooling_amb_temperature_min": {
+   "state": "23",
+   "unit": "°C"
+  },
+  "sensor.hc_fieldsettings_f_02_unspecified_f_02_rw_3": {
+   "state": "3",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_03_unspecified_f_03_rw_5": {
+   "state": "5",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_04_unspecified_f_04_rw_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_05_unspecified_f_05_rw_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_06_unspecified_f_06_rw_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_07_efficiency_calculation_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_08_continuous_heating_defrost_enable": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_09_pump_operation_during_flow_abnormality": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_0a_unspecified_f_0a_rw_0": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_0b_a31161_shutoff_valve_closed_during_thermo_off": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_0c_a31162_shutoff_valve_closed_during_cooling": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_0d_a219_pump_operation_mode": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.hc_fieldsettings_f_oe_max_power_tank_heating_support": {
+   "state": "0",
+   "unit": "°C"
+  }
+ }
+}

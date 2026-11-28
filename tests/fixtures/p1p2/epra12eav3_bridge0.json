@@ -1,0 +1,993 @@
+{
+ "note": "#512 Altherma 3 R monobloc EPRA12EAV3 (DHW tank), P1/P2 MQTT bridge, prefix bridge0_; HA template-editor dump 2026-11-28, heating with compressor at 41 Hz, outdoor -3 C. Counter requests were off: meters and field settings unavailable.",
+ "states": {
+  "sensor.bridge0_15_param_param15_00": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_01": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_04": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_07": {
+   "state": "1",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_09": {
+   "state": "4294967250",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_0b": {
+   "state": "-7.6",
+   "unit": "°C"
+  },
+  "sensor.bridge0_15_param_param15_0d": {
+   "state": "253",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_0e": {
+   "state": "220",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_0f": {
+   "state": "54",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_11_fan2_q": {
+   "state": "69",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_12": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_13": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_14": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_15": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_16": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_17": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.bridge0_15_param_param15_temperature_18": {
+   "state": "0.0",
+   "unit": "°C"
+  },
+  "sensor.bridge0_15_param_param15_temperature_19": {
+   "state": "0.1",
+   "unit": "°C"
+  },
+  "sensor.bridge0_bridge_control_id": {
+   "state": "0x00",
+   "unit": null
+  },
+  "sensor.bridge0_bridge_error_budget": {
+   "state": "12",
+   "unit": null
+  },
+  "sensor.bridge0_bridge_v_interface": {
+   "state": "15.4",
+   "unit": "V"
+  },
+  "sensor.bridge0_bridge_wifi_rssi": {
+   "state": "-48",
+   "unit": null
+  },
+  "sensor.bridge0_bridge_writes_refused_budget": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.bridge0_bridge_writes_refused_busy": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.bridge0_cop_cop_after_bridge": {
+   "state": "5.222",
+   "unit": null
+  },
+  "sensor.bridge0_cop_cop_before_bridge": {
+   "state": "6.107",
+   "unit": null
+  },
+  "sensor.bridge0_cop_cop_lifetime": {
+   "state": "6.102",
+   "unit": null
+  },
+  "sensor.bridge0_cop_cop_realtime": {
+   "state": "6.136",
+   "unit": null
+  },
+  "sensor.bridge0_dhw_dhw_setpoint": {
+   "state": "57.0",
+   "unit": "°C"
+  },
+  "sensor.bridge0_dhw_temperature_r5t_dhw_tank": {
+   "state": "53.984",
+   "unit": "°C"
+  },
+  "sensor.bridge0_fieldsettings_1_04_lwt_cooling_main_wd_enabled": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_2_0a_a322_room_temperature_offset": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_3_06_a3212_temp_range_room_heating_max": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_3_07_a3211_temp_range_room_heating_min": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_3_08_a3214_temp_range_room_cooling_max": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_3_09_a3213_temp_range_room_cooling_min": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_4_02_a331_heating_amb_temperature_max": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_6_0c_7433_tank_reheat": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_6_0d_a41_dhw_reheat": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_6_0e_a45_dhw_setpoint_max": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_7_02_a218_number_of_lwt_zones": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_9_00_a31122_temp_heating_main_max": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_9_01_a31121_temp_heating_main_min": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_9_02_a31124_temp_cooling_main_max": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_9_03_a31123_temp_cooling_main_min": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_9_05_a31221_temp_heating_add_min": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_9_06_a31222_temp_heating_add_max": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_9_07_a31223_temp_cooling_add_min": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_9_08_a31224_temp_cooling_add_max": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_9_0c_room_temperature_hysteresis": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_c_05_a224_contact_type_main": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_c_06_a225_contact_type_add": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_c_07_a217_unit_control_method": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_e_00_a211_ro_unit_type": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_e_01_a212_ro_compressor_type": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_e_07_a223_dhw_tank_type": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_f_01_a332_cooling_amb_temperature_min": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_f_0c_a31162_shutoff_valve_closed_during_cooling": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_fieldsettings_f_oe_max_power_tank_heating_support": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_lwt2_abs_cooling_add": {
+   "state": "20.000",
+   "unit": "°C"
+  },
+  "sensor.bridge0_lwt2_abs_heating_add": {
+   "state": "25.000",
+   "unit": "°C"
+  },
+  "sensor.bridge0_lwt2_deviation_cooling_add": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.bridge0_lwt2_deviation_heating_add": {
+   "state": "0",
+   "unit": "°C"
+  },
+  "sensor.bridge0_lwt2_lwt_setpoint_add": {
+   "state": "53.0",
+   "unit": "°C"
+  },
+  "sensor.bridge0_lwt_abs_cooling": {
+   "state": "13.000",
+   "unit": "°C"
+  },
+  "sensor.bridge0_lwt_abs_heating": {
+   "state": "29.000",
+   "unit": "°C"
+  },
+  "sensor.bridge0_lwt_deviation_cooling": {
+   "state": "3",
+   "unit": "°C"
+  },
+  "sensor.bridge0_lwt_deviation_heating": {
+   "state": "-1",
+   "unit": "°C"
+  },
+  "sensor.bridge0_lwt_lwt_setpoint": {
+   "state": "33.0",
+   "unit": "°C"
+  },
+  "sensor.bridge0_meters_counter_gasboiler_dhw": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_meters_counter_gasboiler_heating": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_meters_counter_gasboiler_total": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_meters_counter_q_1_4": {
+   "state": "unavailable",
+   "unit": "h"
+  },
+  "sensor.bridge0_meters_counter_unknown_00": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_meters_counter_unknown_01": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_meters_counter_unknown_02": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_meters_electricity_consumed_backup_dhw": {
+   "state": "unavailable",
+   "unit": "kWh"
+  },
+  "sensor.bridge0_meters_electricity_consumed_backup_heating": {
+   "state": "unavailable",
+   "unit": "kWh"
+  },
+  "sensor.bridge0_meters_electricity_consumed_compressor_cooling": {
+   "state": "unavailable",
+   "unit": "kWh"
+  },
+  "sensor.bridge0_meters_electricity_consumed_compressor_dhw": {
+   "state": "unavailable",
+   "unit": "kWh"
+  },
+  "sensor.bridge0_meters_electricity_consumed_compressor_heating": {
+   "state": "unavailable",
+   "unit": "kWh"
+  },
+  "sensor.bridge0_meters_electricity_consumed_heatpump_external": {
+   "state": "0.000",
+   "unit": "kWh"
+  },
+  "sensor.bridge0_meters_electricity_consumed_total": {
+   "state": "unavailable",
+   "unit": "kWh"
+  },
+  "sensor.bridge0_meters_energy_produced_compressor_cooling": {
+   "state": "unavailable",
+   "unit": "kWh"
+  },
+  "sensor.bridge0_meters_energy_produced_compressor_dhw": {
+   "state": "unavailable",
+   "unit": "kWh"
+  },
+  "sensor.bridge0_meters_energy_produced_compressor_heating": {
+   "state": "unavailable",
+   "unit": "kWh"
+  },
+  "sensor.bridge0_meters_energy_produced_compressor_total": {
+   "state": "unavailable",
+   "unit": "kWh"
+  },
+  "sensor.bridge0_meters_gas_consumed": {
+   "state": "0.000",
+   "unit": "kWh"
+  },
+  "sensor.bridge0_meters_hours_backup1_dhw": {
+   "state": "unavailable",
+   "unit": "h"
+  },
+  "sensor.bridge0_meters_hours_backup1_heating": {
+   "state": "unavailable",
+   "unit": "h"
+  },
+  "sensor.bridge0_meters_hours_backup2_dhw": {
+   "state": "unavailable",
+   "unit": "h"
+  },
+  "sensor.bridge0_meters_hours_backup2_heating": {
+   "state": "unavailable",
+   "unit": "h"
+  },
+  "sensor.bridge0_meters_hours_booster": {
+   "state": "unavailable",
+   "unit": "h"
+  },
+  "sensor.bridge0_meters_hours_circulation_pump": {
+   "state": "unavailable",
+   "unit": "h"
+  },
+  "sensor.bridge0_meters_hours_compressor_cooling": {
+   "state": "unavailable",
+   "unit": "h"
+  },
+  "sensor.bridge0_meters_hours_compressor_dhw": {
+   "state": "unavailable",
+   "unit": "h"
+  },
+  "sensor.bridge0_meters_hours_compressor_heating": {
+   "state": "unavailable",
+   "unit": "h"
+  },
+  "sensor.bridge0_meters_hours_drain_pan_heater": {
+   "state": "unavailable",
+   "unit": "h"
+  },
+  "sensor.bridge0_meters_hours_gasboiler_dhw": {
+   "state": "unavailable",
+   "unit": "h"
+  },
+  "sensor.bridge0_meters_hours_gasboiler_heating": {
+   "state": "unavailable",
+   "unit": "h"
+  },
+  "sensor.bridge0_meters_starts_compressor": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_meters_starts_gasboiler": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_mode_compressor_rpm": {
+   "state": "41",
+   "unit": "Hz"
+  },
+  "sensor.bridge0_mode_date_time_daikin": {
+   "state": "Sa 2026-11-28 07:49",
+   "unit": null
+  },
+  "sensor.bridge0_mode_errorcode1": {
+   "state": "0x02",
+   "unit": null
+  },
+  "sensor.bridge0_mode_errorcode2": {
+   "state": "0x98",
+   "unit": null
+  },
+  "sensor.bridge0_mode_errorsubcode": {
+   "state": "0x04",
+   "unit": null
+  },
+  "sensor.bridge0_mode_fan_rpm": {
+   "state": "650",
+   "unit": null
+  },
+  "sensor.bridge0_power_consumption_buh": {
+   "state": "0",
+   "unit": "W"
+  },
+  "sensor.bridge0_power_consumption_heatpump": {
+   "state": "1242",
+   "unit": "W"
+  },
+  "sensor.bridge0_power_inverter_primary_current": {
+   "state": "5.4",
+   "unit": "A"
+  },
+  "sensor.bridge0_power_production_gasboiler": {
+   "state": "158",
+   "unit": "W"
+  },
+  "sensor.bridge0_power_production_heatpump": {
+   "state": "7621",
+   "unit": "W"
+  },
+  "sensor.bridge0_prices_electricity": {
+   "state": "1.00",
+   "unit": "€/kWh"
+  },
+  "sensor.bridge0_prices_gas": {
+   "state": "1.00",
+   "unit": "€/kWh"
+  },
+  "sensor.bridge0_quiet_quiet_mode_active": {
+   "state": "0",
+   "unit": null
+  },
+  "sensor.bridge0_room_room_cooling_setpoint": {
+   "state": "20.0",
+   "unit": "°C"
+  },
+  "sensor.bridge0_room_room_heating_setpoint": {
+   "state": "20.0",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_flow": {
+   "state": "24.0",
+   "unit": "L/min"
+  },
+  "sensor.bridge0_sensors_temperature_outside": {
+   "state": "-3.176",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_outside_param15": {
+   "state": "-3.1",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_outside_unit": {
+   "state": "-3.266",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_r10t_after_heat_exchanger": {
+   "state": "29.500",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_r1t_hp2gas_water": {
+   "state": "29.5",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_r2t_leaving_water": {
+   "state": "29.6",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_r3t_refrigerant": {
+   "state": "25.000",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_r4t_return_water": {
+   "state": "25.0",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_r9t_return_water": {
+   "state": "0.000",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_refrigerant_2": {
+   "state": "-7.297",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_refrigerant_2_param15": {
+   "state": "-7.3",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_refrigerant_after_heat_exchanger": {
+   "state": "25.297",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_refrigerant_discharge": {
+   "state": "51.5",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_refrigerant_q_param15": {
+   "state": "18.4",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_room": {
+   "state": "22.0",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_temperature_room_wall": {
+   "state": "22.0",
+   "unit": "°C"
+  },
+  "sensor.bridge0_sensors_water_pressure": {
+   "state": "1.6",
+   "unit": "bar"
+  },
+  "sensor.bridge0_sg_sg_35_0093_general_power_limit_active_q": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_35_0094_general_power_limit_kw": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_general_power_limit_2": {
+   "state": "127",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_q_35_0095": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_q_35_0096": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_q_35_0097": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_q_35_0098": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_q_35_0099": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_q_35_009a": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_q_35_009b": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_q_35_009c": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_q_35_009d": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_q_35_009e": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_q_35_009f": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_sg_sg_q_35_00a0": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "sensor.bridge0_unknown_temperature_unused_11_16": {
+   "state": "0.000",
+   "unit": "°C"
+  },
+  "sensor.bridge0_unknown_temperature_unused_11_18": {
+   "state": "0.000",
+   "unit": "°C"
+  },
+  "binary_sensor.bridge0_15_param_defrost_active_param15": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.bridge0_bridge_esp_eeprom_saved": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.bridge0_bridge_esp_factory_reset_scheduled": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_bridge_esp_throttling": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_bridge_esp_waiting_for_counters_d13": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_dhw_dhw": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.bridge0_dhw_dhw_demand": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_dhw_dhw_related_q": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_dhw_valve_dhw_tank": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_fieldsettings_e_05_a221_dhw_operation": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "binary_sensor.bridge0_fieldsettings_e_06_a222_dhw_tank_installed": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_buh": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_buh_2": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_circulation_pump": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_climate_cooling": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_climate_hc_auto": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_climate_heating": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_compressor": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_compressor_climate": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_defrost_active": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_external_thermostat_cooling": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_external_thermostat_cooling_add": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_external_thermostat_heating": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_external_thermostat_heating_add": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_gasboiler_active": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_heating_only": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_preferential_mode": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_shc_tank": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_valve_zone_add": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_mode_valve_zone_main": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.bridge0_ui_aux_f0_advanced": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "binary_sensor.bridge0_ui_aux_f0_installer": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "binary_sensor.bridge0_ui_aux_f0_lcd_light": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "binary_sensor.bridge0_ui_aux_ff_advanced": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.bridge0_ui_aux_ff_installer": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_ui_aux_ff_lcd_light": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_ui_main_advanced": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_ui_main_installer": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_ui_main_lcd_light": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_unknown_buh1_q": {
+   "state": "off",
+   "unit": null
+  },
+  "binary_sensor.bridge0_unknown_climate_active_q4": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.bridge0_unknown_climate_on_q": {
+   "state": "on",
+   "unit": null
+  },
+  "binary_sensor.bridge0_unknown_climate_related_q": {
+   "state": "off",
+   "unit": null
+  },
+  "button.bridge0_bridge_eeprom_esp_save_changes": {
+   "state": "2026-11-27T20:08:10.973643+00:00",
+   "unit": null
+  },
+  "button.bridge0_bridge_eeprom_esp_set_cons_prod_counters": {
+   "state": "unknown",
+   "unit": null
+  },
+  "button.bridge0_bridge_eeprom_esp_undo_changes": {
+   "state": "unknown",
+   "unit": null
+  },
+  "button.bridge0_bridge_mqtt_rebuild": {
+   "state": "2026-11-23T18:56:54.452123+00:00",
+   "unit": null
+  },
+  "button.bridge0_bridge_restart_p1p2monitor_atmega": {
+   "state": "unknown",
+   "unit": null
+  },
+  "button.bridge0_bridge_restart_p1p2mqtt_esp": {
+   "state": "unknown",
+   "unit": null
+  },
+  "button.bridge0_fieldsettings_daikin_restart_careful": {
+   "state": "unknown",
+   "unit": null
+  },
+  "button.bridge0_mode_daikin_defrost_request": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "button.bridge0_setup_factory_reset_esp_after_restart": {
+   "state": "unknown",
+   "unit": null
+  },
+  "button.bridge0_setup_factory_reset_esp_cancel": {
+   "state": "unknown",
+   "unit": null
+  },
+  "button.bridge0_setup_mqtt_delete_all_rebuild": {
+   "state": "unknown",
+   "unit": null
+  },
+  "button.bridge0_setup_mqtt_delete_own_rebuild": {
+   "state": "unknown",
+   "unit": null
+  },
+  "button.bridge0_ui_bridge_lcd_fake_off": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "button.bridge0_ui_bridge_lcd_fake_on": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "button.bridge0_ui_bridge_mode_0_normal_user": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "button.bridge0_ui_bridge_mode_1_advanced_user": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "button.bridge0_ui_bridge_mode_2_installer": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "climate.bridge0_dhw_dhw_setpoint": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "climate.bridge0_lwt2_deviation_cooling_add": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "climate.bridge0_lwt2_deviation_heating_add": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "climate.bridge0_lwt_deviation_cooling": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "climate.bridge0_lwt_deviation_heating": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "climate.bridge0_room_room_cooling": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "climate.bridge0_room_room_heating": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "number.bridge0_bridge_r1toffset_mid": {
+   "state": "0.0",
+   "unit": "°C"
+  },
+  "number.bridge0_bridge_r2toffset_lwt": {
+   "state": "0.0",
+   "unit": "°C"
+  },
+  "number.bridge0_bridge_r4toffset_rwt": {
+   "state": "0.0",
+   "unit": "°C"
+  },
+  "number.bridge0_bridge_rtoffset_room": {
+   "state": "2.0",
+   "unit": "°C"
+  },
+  "number.bridge0_bridge_write_budget": {
+   "state": "100",
+   "unit": null
+  },
+  "number.bridge0_bridge_write_budget_period": {
+   "state": "60",
+   "unit": null
+  },
+  "number.bridge0_fieldsettings_overshoot": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "number.bridge0_fieldsettings_rt_modulation_max": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "number.bridge0_mode_preset_cooling_comfort": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "number.bridge0_mode_preset_cooling_eco": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "number.bridge0_mode_preset_heating_comfort": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "number.bridge0_mode_preset_heating_eco": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "number.bridge0_prices_gas": {
+   "state": "unavailable",
+   "unit": "€/kWh"
+  },
+  "select.bridge0_fieldsettings_number_of_zones": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "select.bridge0_fieldsettings_rt_lwt": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "select.bridge0_fieldsettings_rt_modulation": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "select.bridge0_mode_heating_cooling_auto": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "select.bridge0_mode_preset_mode": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "select.bridge0_mode_program_wd_abs": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "select.bridge0_quiet_quiet_level": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "select.bridge0_quiet_quiet_level_when_on": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "select.bridge0_quiet_quiet_mode": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "switch.bridge0_bridge_control_function": {
+   "state": "off",
+   "unit": null
+  },
+  "switch.bridge0_bridge_counter_request_function": {
+   "state": "off",
+   "unit": null
+  },
+  "switch.bridge0_dhw_dhw_boost": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "switch.bridge0_mode_altherma_on": {
+   "state": "unavailable",
+   "unit": null
+  },
+  "switch.bridge0_setup_ha_setup": {
+   "state": "on",
+   "unit": null
+  }
+ }
+}

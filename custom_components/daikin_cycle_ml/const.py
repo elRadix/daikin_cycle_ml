@@ -823,6 +823,11 @@ OPTION_DAILY_SUMMARY_LIVE_ENABLED = "daily_summary_live_enabled"
 SOURCE_TYPE_MONOLITHIC = "monolithic"
 SOURCE_TYPE_INDIVIDUAL = "individual"
 SOURCE_TYPE_AUTO = "auto"
+# #512: P1/P2 MQTT bridge (no ESPAltherma): one entity per value
+SOURCE_TYPE_P1P2 = "p1p2"
+CONF_P1P2_MAP = "p1p2_map"          # role -> entity_id (engine/p1p2.py ROLES)
+CONF_P1P2_PREFIX = "p1p2_prefix"    # preferred prefix when several bridges
+P1P2_REDETECT_S = 600.0             # without a saved map: detect again every 10 min
 SOURCE_TYPE_DEFAULT = SOURCE_TYPE_MONOLITHIC
 
 CONF_SOURCE_TYPE = "source_type"

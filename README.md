@@ -4,9 +4,11 @@
   <img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/logo.png" width="350" alt="Daikin Cycle ML Logo">
 </p>
 
-Home Assistant integration that turns your ESPAltherma sensor into a **complete heat pump intelligence platform** — cycle detection, per-mode COP, seasonal SPF, weather-normalized degradation, runtime + energy accounting, installer-grade curve advice, and 19 ML-powered alerts.
+Home Assistant integration that turns your ESPAltherma sensor or P1/P2 MQTT bridge into a **complete heat pump intelligence platform** — cycle detection, per-mode COP, seasonal SPF, weather-normalized degradation, runtime + energy accounting, installer-grade curve advice, and 19 ML-powered alerts.
 
-> **Data source:** [ESPAltherma](https://github.com/raomin/ESPAltherma) by [@raomin](https://github.com/raomin) - reads your Daikin Altherma X10A port via ESP32 and exposes the attributes this integration consumes.
+> **Data source**, one of:
+> - [ESPAltherma](https://github.com/raomin/ESPAltherma) by [@raomin](https://github.com/raomin): reads the Daikin Altherma X10A port with an ESP32;
+> - the [P1/P2 MQTT bridge](https://github.com/Arnold-n/P1P2MQTT) by [Arnold Niessen](https://github.com/Arnold-n): reads the Daikin P1/P2 room-thermostat bus. No ESPAltherma needed. See [Data sources](#data-sources).
 
 **Local-only. No cloud. No accounts.** Everything runs inside your Home Assistant box.
 
@@ -34,6 +36,7 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 - [Native cards](#native-cards)
 - [What it does](#what-it-does)
+- [Data sources](#data-sources)
 - [Installation](#installation)
 - [Setup](#setup)
 - [Supported heat pumps](#supported-heat-pumps)
@@ -105,6 +108,25 @@ It only reads: no setpoint writes, no cloud, no telemetry.
 
 ---
 
+## Data sources
+
+Daikin Cycle ML reads one of two devices. Both give the same features:
+cycles, COP, alerts, ML, cards and reports.
+
+| | ESPAltherma | P1/P2 MQTT bridge |
+|---|---|---|
+| Hardware | ESP32 on the X10A connector of the indoor unit | [P1P2MQTT](https://github.com/Arnold-n/P1P2MQTT) bridge on the P1/P2 bus (room-thermostat wires) |
+| In Home Assistant | One sensor with attributes (v1) or one entity per value (v2) | One entity per value (`bridge0_…`, `hc_…`, any prefix) |
+| Setup | Source *ESPAltherma*: the wizard checks the attributes | Source *P1/P2 MQTT bridge*: the wizard finds every value by name and shows a map to check |
+| Electrical power and heat | Estimated by ESPAltherma, or your own power meter | Measured by the bridge (and its own COP for comparison), or your own power meter |
+| Hybrid (EVLQ + gas boiler) | Boiler signals from the hybrid definition | Boiler from `mode_gasboiler_active` |
+
+With the bridge, turn on its counter requests (`switch.…_bridge_counter_request_function`) to also get the energy and running-hour counters. A heat pump with both devices uses one of them, chosen in the setup.
+
+**Thanks to [Arnold Niessen](https://github.com/Arnold-n)**, author of the P1/P2 MQTT bridge, for providing a bridge to develop and test this support, and to the users who shared the entity lists of their monobloc and hybrid installations ([#309](https://github.com/elRadix/daikin_cycle_ml/issues/309), [#512](https://github.com/elRadix/daikin_cycle_ml/issues/512)).
+
+---
+
 ## Installation
 
 **HACS (recommended):** HACS → Integrations → search **Daikin Cycle ML** →
@@ -124,8 +146,10 @@ and the [upgrade guide](https://github.com/elRadix/daikin_cycle_ml/blob/main/doc
 
 **Settings → Devices & services → Add integration → Daikin Cycle ML.**
 Type any model code you know (indoor unit, outdoor unit, or family and
-size); the wizard finds the datasheet, checks your ESPAltherma values and
-suggests sensible defaults.
+size); the wizard finds the datasheet, checks your ESPAltherma or P1/P2
+bridge values and suggests sensible defaults. With the P1/P2 MQTT bridge,
+pick that source on the first screen: the next one lists which bridge
+entity holds which value, filled in for you.
 
 | Model family | Attribute check | Thresholds |
 |---|---|---|
