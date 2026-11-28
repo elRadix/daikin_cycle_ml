@@ -661,6 +661,10 @@ ML_V2_RELEARN_MARKER = "data_migration_ml_v2_completed"
 REPORTS_BACKFILL_MARKER = "data_migration_reports_v1_completed"
 # #495 PR 2: building day values rebuilt from history once
 BUILDING_REBUILD_MARKER = "data_migration_building_v1_completed"
+# #495 home profile (Configure -> Home profile, PR 5)
+CONF_FLOOR_AREA_M2 = "floor_area_m2"
+CONF_DESIGN_TEMP_C = "design_temp_c"
+CONF_REF_INDOOR_C = "ref_indoor_c"
 DETECTOR_STATE_KEY = "cycle_detector_state"
 # #417: persist a running cycle at least this often (restore keeps samples)
 DETECTOR_PERSIST_S = 900.0

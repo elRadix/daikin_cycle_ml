@@ -225,6 +225,21 @@ def _attrs_cop_normalized_a7w35(
     }
 
 
+def _hl_value(c: DaikinCycleMLCoordinator, key: str) -> Any:
+    """#495: a heat-loss value, only once the fit passed its gate."""
+    res = getattr(c, "heat_loss", None) or {}
+    return res.get(key) if res.get("published") else None
+
+
+def _attrs_heat_loss(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
+    res = getattr(c, "heat_loss", None) or {}
+    keys = ("published", "reason", "sigma_w_k", "gains_w", "solar_w", "r2", "balance_point_c",
+            "t_in_mean", "t_out_range", "valid_days", "reconstructed_days", "rejected", "method")
+    out = {k: res.get(k) for k in keys}
+    out["ua_w_k_learning"] = None if res.get("published") else res.get("ua_w_k")
+    return out
+
+
 def _attrs_degree_days(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
     """#495: every scheme today, yesterday and the season (degree days)."""
     d = getattr(c, "degree_days", None) or {}
@@ -1676,6 +1691,30 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "unit": "DD",
         "value_fn": lambda s, c: (getattr(c, "degree_days", None) or {}).get("today"),
         "attr_fn": _attrs_degree_days,
+    },
+    {
+        # #495 PR 4: heat-loss coefficient of the house (published when confident)
+        "key": "building_heat_loss", "name": "Building heat loss",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "W/K",
+        "value_fn": lambda s, c: _hl_value(c, "ua_w_k"),
+        "attr_fn": _attrs_heat_loss,
+    },
+    {
+        # #495 PR 4: heat needed at the design temperature
+        "key": "building_peak_load", "name": "Building peak load",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "kW",
+        "value_fn": lambda s, c: ((getattr(c, "heat_loss", None) or {}).get("peak") or {}).get("kw"),
+        "attr_fn": lambda s, c: dict((getattr(c, "heat_loss", None) or {}).get("peak") or {}),
+    },
+    {
+        # #495 PR 4: W/m² and class (needs the floor area, home profile)
+        "key": "building_specific_load", "name": "Building specific load",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "W/m²",
+        "value_fn": lambda s, c: ((getattr(c, "heat_loss", None) or {}).get("specific") or {}).get("w_m2"),
+        "attr_fn": lambda s, c: dict((getattr(c, "heat_loss", None) or {}).get("specific") or {}),
     },
     {
         # #495: heating kWh per degree day, last 7 complete days

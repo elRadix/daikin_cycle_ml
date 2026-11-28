@@ -21,6 +21,17 @@
   season as attributes) and `heat_per_degree_day` (heating kWh per degree
   day over the last 7 complete days, plus 30 days and the season). Both
   read the period-report day data, nothing new is recorded.
+- Heat-loss engine, part 4 (#495): the house's heat-loss coefficient UA
+  (W/K) fitted from the day rows (mean space-heat power against indoor -
+  outdoor difference, internal gains and sun; recent days weigh more).
+  Days with little measured heat, a drifting room, much defrost or no
+  heating need are left out. Published after 14 valid days with 6 K of
+  outdoor spread and a fit that explains the data; before that the
+  provisional value is an attribute. New sensors `building_heat_loss`
+  (W/K), `building_peak_load` (kW at the design temperature, option
+  `design_temp_c`, default -7 °C) and `building_specific_load` (W/m², only
+  with the option `floor_area_m2`; the class is shown once the fit is
+  precise enough).
 
 ### Changed
 - ESPAltherma pin moved from beta 3548ea2 to dcf3b48 (#511): the v1
@@ -40,6 +51,10 @@
 - `test_495_degree_days.py`: week / 30-day / season windows on a real
   database, today's degree days with the Belgian two-day weighting, the
   sensors and the summary refresh.
+- `test_495_heat_loss.py`: two simulated houses (UA, gains and sun
+  recovered), every reason a day is left out, the publication gate, peak
+  and specific load with the class, the fit on a real database and the
+  sensors.
 
 ## [1.32.0] - 2026-11-28
 

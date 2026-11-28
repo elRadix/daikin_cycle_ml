@@ -99,6 +99,9 @@ Energy dashboard reads them directly.
 | `last_month_report` | COP | COP of the last finished month; attributes `period`, `el_kwh`, `th_kwh`, `el_per_dd`, `cop_vs_previous_pct`, `cop_vs_last_year_pct`, `verdict_vs_previous`, `verdict_vs_last_year`, `coverage_days` ([Reports](REPORTS.md)) |
 | `degree_days_today` | DD | Degree days so far today in your scheme (Configure → Advanced → Season); attributes `today_all` (every scheme), `yesterday`, `season_dd`, `season_since`, `outdoor_mean_today` |
 | `heat_per_degree_day` | kWh/DD | Space-heating heat per degree day over the last 7 complete days; attributes `week`, `month` (30 days), `season`, each with `kwh`, `dd`, `days` |
+| `building_heat_loss` | W/K | Heat-loss coefficient UA of the house, fitted from the day rows; unknown until 14 valid days with 6 K outdoor spread; attributes `ua_w_k_learning`, `sigma_w_k`, `gains_w`, `solar_w`, `r2`, `valid_days`, `rejected`, `balance_point_c`, `reason` |
+| `building_peak_load` | kW | Heat needed at the design temperature (option `design_temp_c`, default -7 °C) and 20 °C indoor (`ref_indoor_c`); attribute `at_comfort_kw` at your measured room temperature |
+| `building_specific_load` | W/m² | Peak load per m² (needs the option `floor_area_m2`); attribute `class` (passive / very_good / good / moderate / poor) once the fit is precise |
 
 COP values leave out samples flagged by the physics checks, start-up
 transients and boiler periods (hybrid / bivalent). Day, week and month

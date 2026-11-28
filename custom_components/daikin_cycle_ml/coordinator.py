@@ -92,6 +92,9 @@ from .const import (
     MODEL_BASISPROFIEL,
     ML_V2_RELEARN_MARKER,
     BUILDING_REBUILD_MARKER,
+    CONF_DESIGN_TEMP_C,
+    CONF_FLOOR_AREA_M2,
+    CONF_REF_INDOOR_C,
     REPORTS_BACKFILL_MARKER,
     COP_SAMPLE_INTERVAL_S,
     OFF_RELEARN_MARKER,
@@ -138,6 +141,7 @@ from .engine.cop_degradation import (
     build_dirty_hours,
 )
 from .engine import building_day as _building_day
+from .engine import heat_loss as _heat_loss_engine
 from .storage import building_history as _building_history
 from .storage import building_query as _building_query
 from .engine.cycle_detector import CycleDetector
@@ -857,6 +861,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _source_fresh_s: float = 0.0
     _last_month_report: dict[str, Any] | None = None  # #508
     _degree_day_summary: dict[str, Any] | None = None  # #495
+    _heat_loss: dict[str, Any] | None = None  # #495
     _energy_day_key: str = ""
     _last_energy_tick_ts: float = 0.0
     _last_quality_live_ts: float = 0.0
@@ -3235,6 +3240,20 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         return self._last_month_report
 
     @property
+    def heat_loss(self) -> dict[str, Any]:
+        """#495 PR 4: UA fit, peak load and specific load (home profile)."""
+        res = dict(self._heat_loss or {})
+        opts = self.options or {}
+        design = _safe_float_opt(opts.get(CONF_DESIGN_TEMP_C))
+        ref = _safe_float_opt(opts.get(CONF_REF_INDOOR_C))
+        peak = _heat_loss_engine.peak_load(
+            res, design_c=design if design is not None else _heat_loss_engine.DEFAULT_DESIGN_C,
+            ref_indoor_c=ref if ref is not None else _heat_loss_engine.DEFAULT_REF_INDOOR_C)
+        res["peak"] = peak
+        res["specific"] = _heat_loss_engine.specific_load(res, peak, _safe_float_opt(opts.get(CONF_FLOOR_AREA_M2)))
+        return res
+
+    @property
     def degree_days(self) -> dict[str, Any]:
         """#495: today's degree days (live) next to the stored summary."""
         out = dict(self._degree_day_summary or {})
@@ -3263,6 +3282,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 self.db._require(), self.degree_day_scheme, today,
                 _period_reports.season_start_month(self.options),
             )
+            self._heat_loss = await _building_query.heat_loss(self.db._require(), today)
         except Exception:
             _LOGGER.exception("period report summary failed")
 

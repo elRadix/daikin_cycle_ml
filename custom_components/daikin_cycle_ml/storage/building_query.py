@@ -11,6 +11,7 @@ import datetime as dt
 from collections.abc import Mapping
 from typing import Any
 
+from ..engine import heat_loss as hl
 from ..engine import period_reports as pr
 from . import reports as store
 
@@ -69,3 +70,14 @@ def today_dd(today: str, mean: float | None, tmin: float | None, tmax: float | N
     for day, m in (prev_means or {}).items():
         temps[day] = {"mean": m}
     return pr.degree_days(today, temps)
+
+
+HEAT_LOSS_DAYS = 120
+
+
+async def heat_loss(conn: Any, today: str, days: int = HEAT_LOSS_DAYS) -> dict[str, Any]:
+    """#495 PR 4: the UA fit over the "all" day rows of the last ``days`` days."""
+    t = dt.date.fromisoformat(today)
+    first = (t - dt.timedelta(days=days)).isoformat()
+    rows = await store.fetch_days(conn, first, (t - dt.timedelta(days=1)).isoformat(), mode=pr.ALL)
+    return hl.fit(((t - dt.date.fromisoformat(r["day"])).days, r["data"]) for r in rows)

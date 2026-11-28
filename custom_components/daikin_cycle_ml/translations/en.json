@@ -906,6 +906,15 @@
       },
       "heat_per_degree_day": {
         "name": "Heat per degree day"
+      },
+      "building_heat_loss": {
+        "name": "Building heat loss"
+      },
+      "building_peak_load": {
+        "name": "Building peak load"
+      },
+      "building_specific_load": {
+        "name": "Building specific load"
       }
     },
     "binary_sensor": {

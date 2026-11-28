@@ -99,7 +99,7 @@ def test_per_mode_have_unit_and_class():
 
 def test_sensor_defs_total_27():
     assert (
-        len(SENSOR_DEFS) == 54  # #495: +degree_days_today, +heat_per_degree_day
+        len(SENSOR_DEFS) == 57  # #495: +degree days (2), +building heat loss / peak / specific (3)
     )  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop, +boiler_contribution_today_pct
 
 
@@ -148,7 +148,7 @@ def test_c1a_runtime_count_27():
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
 
     assert (
-        len(SENSOR_DEFS) == 54  # #495: +degree_days_today, +heat_per_degree_day
+        len(SENSOR_DEFS) == 57  # #495: +degree days (2), +building heat loss / peak / specific (3)
     )  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop, +boiler_contribution_today_pct
 
 
