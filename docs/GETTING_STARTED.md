@@ -23,7 +23,10 @@ You need:
 - **Home Assistant** 2026.9 or newer;
 - **ESPAltherma** reading your heat pump, either the classic single sensor
   (v1, typically `sensor.althermasensors` with all values as attributes) or
-  the separate entities of ESPAltherma v2 (`sensor.espaltherma_*`).
+  the separate entities of ESPAltherma v2 (`sensor.espaltherma_*`);
+- **or** the [P1/P2 MQTT bridge](https://github.com/Arnold-n/P1P2MQTT) on the
+  P1/P2 bus, without ESPAltherma: see [P1/P2 MQTT bridge](P1P2.md) (the
+  table below is for ESPAltherma only).
 
 ESPAltherma's definition files are templates: most values are commented
 out. Enable at least these, then reboot the ESP board.

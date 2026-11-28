@@ -96,6 +96,12 @@
   running hours from `cop_hourly`.
 
 ### Documentation
+- New `docs/P1P2.md` (#512): what you need, setup with a screenshot of the
+  map step, which bridge entity is which value, hybrid and bivalent, field
+  settings, troubleshooting, thanks. P1/P2 sections with screenshots in the
+  Dutch and French setup guides; Getting started, CONFIGURATION (source
+  type), ENTITIES (`hp_specs` installer settings), FAQ ("Does it work
+  without ESPAltherma?" now yes), docs index and README link to it.
 - New `docs/REPORTS.md` (#508): what a report holds, periods, the day
   checks, comparison and verdict thresholds, degree-day schemes, when
   reports are built, sensor / services, limits. Reports added to the README,

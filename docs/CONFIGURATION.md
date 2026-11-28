@@ -27,13 +27,15 @@ progress and today's counters are restored).
 
 ## 2. Source sensor
 
-ESPAltherma publishes the heat pump's values in one of two ways:
+The heat pump's values come from ESPAltherma (published in one of two
+ways) or from the P1/P2 MQTT bridge:
 
 | Source type | What it is | Chosen in the wizard |
 |---|---|---|
 | Monolithic | ESPAltherma v1: one sensor (`sensor.althermasensors`) with every value as an attribute | *Monolithic entity* |
 | Individual | ESPAltherma v2: one entity per value (`sensor.espaltherma_*`) | *Individual entities*, with the entity prefix |
-| Auto | Uses whichever is complete, per value | *Auto-detect* |
+| Auto | Uses whichever ESPAltherma source is complete, per value | *Auto-detect* |
+| P1/P2 | [P1/P2 MQTT bridge](P1P2.md), no ESPAltherma: one entity per value, any prefix | *P1/P2 MQTT bridge*, then the map of bridge entities (stored as `p1p2_map`, prefix `p1p2_prefix`) |
 
 The wizard detects what is there and suggests a type. The values to
 enable in ESPAltherma are listed in

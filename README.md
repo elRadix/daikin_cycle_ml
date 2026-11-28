@@ -117,7 +117,7 @@ cycles, COP, alerts, ML, cards and reports.
 |---|---|---|
 | Hardware | ESP32 on the X10A connector of the indoor unit | [P1P2MQTT](https://github.com/Arnold-n/P1P2MQTT) bridge on the P1/P2 bus (room-thermostat wires) |
 | In Home Assistant | One sensor with attributes (v1) or one entity per value (v2) | One entity per value (`bridge0_…`, `hc_…`, any prefix) |
-| Setup | Source *ESPAltherma*: the wizard checks the attributes | Source *P1/P2 MQTT bridge*: the wizard finds every value by name and shows a map to check |
+| Setup | Source *ESPAltherma*: the wizard checks the attributes | Source *P1/P2 MQTT bridge*: the wizard finds every value by name and shows a map to check ([guide](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/P1P2.md)) |
 | Electrical power and heat | Estimated by ESPAltherma, or your own power meter | Measured by the bridge (and its own COP for comparison), or your own power meter |
 | Hybrid (EVLQ + gas boiler) | Boiler signals from the hybrid definition | Boiler from `mode_gasboiler_active` |
 
@@ -191,6 +191,7 @@ Start at the [documentation index](https://github.com/elRadix/daikin_cycle_ml/bl
 | [Recipes](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/RECIPES.md) | Automations: advice to your phone, cycle log, daily summary, energy dashboard |
 | [Configuration](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/CONFIGURATION.md) | Every wizard screen and option, reconfigure, bivalent / hybrid, cookbook |
 | [Entities](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ENTITIES.md) | Sensors, binary sensors, services, repairs |
+| [P1/P2 MQTT bridge](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/P1P2.md) | Setup with the bridge instead of ESPAltherma, entity map, hybrid, field settings |
 | [Reports](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/REPORTS.md) | Week / month / year / season reports, comparisons, degree days |
 | [Alerts](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ALERTS.md) | Every alert, delivery, quiet hours, templates |
 | [Machine learning](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ML.md) | Quality score, baseline, adaptive thresholds, clustering |
