@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.32.0] - 2026-11-28
+
 ### Added
 - P1/P2 MQTT bridge as a source, part 1: the adapter (#512, #309). A heat
   pump read through Arnold Niessen's P1/P2 MQTT bridge, without
