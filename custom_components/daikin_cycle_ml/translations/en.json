@@ -441,7 +441,7 @@
             "data_description": {
               "retention_enabled": "Run daily maintenance at 03:00 local time.",
               "cycle_retention_days": "Cycles older than N days are rolled up and pruned. Default 90.",
-              "alert_retention_days": "Alerts older than N days are deleted. Default 30.",
+              "alert_retention_days": "Alerts older than N days are deleted. Default 90.",
               "vacuum_enabled": "Run SQLite VACUUM to reclaim space after pruning.",
               "daily_summary_live_enabled": "Update daily summary as each cycle closes. Backfill and maintenance always run."
             }
@@ -449,10 +449,12 @@
           "season": {
             "name": "Season",
             "data": {
-              "season_start_month": "Season start month"
+              "season_start_month": "Season start month",
+              "degree_day_scheme": "Degree days"
             },
             "data_description": {
-              "season_start_month": "First month of the heating season (1-12). Used for SPF calculation. Default: 10."
+              "season_start_month": "First month of the heating season (1-12). Used for SPF calculation. Default: 10.",
+              "degree_day_scheme": "Degree-day scheme used to compare energy between periods. Automatic follows the country of Home Assistant (NL, BE, FR)."
             }
           }
         },
@@ -847,6 +849,9 @@
       },
       "alerts_today": {
         "name": "Alerts today"
+      },
+      "last_month_report": {
+        "name": "Last month report"
       }
     },
     "binary_sensor": {
@@ -1194,6 +1199,88 @@
           "description": "Remove all your values first (back to the datasheet)."
         }
       }
+    },
+    "get_report": {
+      "name": "Get period report",
+      "description": "Return one week, month, year or heating season with its comparison, trend and history. Used by the Reports card.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID. Optional with one heat pump."
+        },
+        "period_type": {
+          "name": "Period type",
+          "description": "week, month, year or season."
+        },
+        "period": {
+          "name": "Period",
+          "description": "2026-W48, 2026-11, 2026 or 2026/27. Empty: the newest."
+        },
+        "mode": {
+          "name": "Mode",
+          "description": "all, heating, dhw or cooling."
+        },
+        "compare": {
+          "name": "Compare with",
+          "description": "previous, last_year or none."
+        },
+        "history": {
+          "name": "History",
+          "description": "Number of periods in the history and trend."
+        },
+        "include_days": {
+          "name": "Include days",
+          "description": "Add the period's day rows."
+        }
+      }
+    },
+    "export_reports": {
+      "name": "Export period reports",
+      "description": "Export the stored days or period reports as JSON or CSV.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID. Optional with one heat pump."
+        },
+        "table": {
+          "name": "Table",
+          "description": "periods (weeks, months, years, seasons) or days."
+        },
+        "period_type": {
+          "name": "Period type",
+          "description": "Only this period type (periods)."
+        },
+        "mode": {
+          "name": "Mode",
+          "description": "Only this mode."
+        },
+        "first_day": {
+          "name": "From",
+          "description": "First day, YYYY-MM-DD."
+        },
+        "last_day": {
+          "name": "To",
+          "description": "Last day, YYYY-MM-DD."
+        },
+        "format": {
+          "name": "Format",
+          "description": "Output format."
+        }
+      }
+    },
+    "rebuild_reports": {
+      "name": "Rebuild period reports",
+      "description": "Build the days and periods since the last build now. Full: clear every report and rebuild from all history still kept.",
+      "fields": {
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Config entry ID. Optional with one heat pump."
+        },
+        "full": {
+          "name": "Full rebuild",
+          "description": "Also rewrite finished days and periods. Days older than the kept history are lost."
+        }
+      }
     }
   },
   "selector": {
@@ -1224,6 +1311,18 @@
         "auto": "Automatic (canonical ESPAltherma names)",
         "manual": "Manual (map each required attribute)"
       }
+    },
+    "degree_day_scheme": {
+      "options": {
+        "auto": "Automatic (country)",
+        "nl18": "Netherlands: base 18 °C",
+        "nl18w": "Netherlands: base 18 °C, weighted",
+        "be1515": "Belgium: equivalent temperature, base 15 °C",
+        "be165": "Belgium: equivalent temperature, base 16.5 °C (Synergrid)",
+        "fr18": "France: DJU base 18 °C",
+        "fr17": "France: base 17 °C",
+        "fr15": "France: base 15 °C"
+      }
     }
   },
   "exceptions": {
@@ -1244,6 +1343,9 @@
     },
     "profile_not_saved": {
       "message": "Model profile not saved: {errors}"
+    },
+    "reports_build_failed": {
+      "message": "The period reports could not be built. See the log."
     }
   }
 }

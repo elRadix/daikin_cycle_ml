@@ -20,10 +20,14 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from .const import ATTR_BUH_STEP1, ATTR_BUH_STEP2, DB_FILENAME, DB_FILENAME_TEMPLATE
+from .const import (
+    ATTR_BUH_STEP1, ATTR_BUH_STEP2, DB_FILENAME, DB_FILENAME_TEMPLATE, REPORTS_BACKFILL_MARKER,
+)
 from .coordinator import DaikinCycleMLConfigEntry
 from .engine.thermal import _flow_dt_kw, dt_from_attrs, flow_from_attrs
 from .ml.features import FEATURE_NAMES
+from .storage import reports as _report_store
+from .storage.report_builder import REPORTS_STATE_KEY
 from .engine.thermal import boiler_signals_trusted as _boiler_signals_trusted
 
 _LOGGER = logging.getLogger(__name__)
@@ -85,6 +89,24 @@ async def _db_extra(db: Any) -> dict[str, Any]:
             out[key] = await db.async_get_model_state(key)
         except Exception:
             _LOGGER.debug("diagnostics: get_model_state(%s) failed", key)
+    return out
+
+
+async def _reports_summary(coord: Any) -> dict[str, Any]:
+    """#508: period-report counts, the last build and the last month."""
+    db = getattr(coord, "db", None)
+    out: dict[str, Any] = {
+        "degree_day_scheme": getattr(coord, "degree_day_scheme", None),
+        "last_month": getattr(coord, "last_month_report", None),
+    }
+    if db is None or not getattr(db, "is_open", False):
+        return out
+    try:
+        out["state"] = await db.async_get_model_state(REPORTS_STATE_KEY)
+        out["backfill"] = await db.async_get_model_state(REPORTS_BACKFILL_MARKER)
+        out["counts"] = await _report_store.counts(db._require())
+    except Exception:
+        _LOGGER.debug("diagnostics: period reports failed")
     return out
 
 
@@ -757,6 +779,7 @@ async def async_get_config_entry_diagnostics(
         "adaptive": _adaptive_summary(coord),
         "clusters": await _cluster_summary(coord),
         "cop_analysis": await _cop_summary(coord),
+        "period_reports": await _reports_summary(coord),
         "database": {
             "path": getattr(db, "path", None),
             "is_open": bool(getattr(db, "is_open", False)),

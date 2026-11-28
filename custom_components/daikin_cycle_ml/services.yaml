@@ -337,3 +337,155 @@ set_model_profile:
       default: false
       selector:
         boolean: null
+get_report:
+  name: Get period report
+  description: Return one week, month, year or heating season with its comparison, trend and history. Used by the Reports card.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID. Optional with one heat pump.
+      required: false
+      selector:
+        config_entry:
+          integration: daikin_cycle_ml
+    period_type:
+      name: Period type
+      description: week, month, year or season.
+      required: false
+      default: month
+      selector:
+        select:
+          options:
+            - week
+            - month
+            - year
+            - season
+    period:
+      name: Period
+      description: 2026-W48, 2026-11, 2026 or 2026/27. Empty for the newest.
+      required: false
+      selector:
+        text: null
+    mode:
+      name: Mode
+      description: all, heating, dhw or cooling.
+      required: false
+      default: all
+      selector:
+        select:
+          options:
+            - all
+            - heating
+            - dhw
+            - cooling
+    compare:
+      name: Compare with
+      description: previous, last_year or none.
+      required: false
+      default: previous
+      selector:
+        select:
+          options:
+            - previous
+            - last_year
+            - none
+    history:
+      name: History
+      description: Number of periods in the history and trend.
+      required: false
+      default: 12
+      selector:
+        number:
+          min: 1
+          max: 120
+          mode: box
+    include_days:
+      name: Include days
+      description: Add the period's day rows.
+      required: false
+      default: false
+      selector:
+        boolean: null
+export_reports:
+  name: Export period reports
+  description: Export the stored days or period reports as JSON or CSV.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID. Optional with one heat pump.
+      required: false
+      selector:
+        config_entry:
+          integration: daikin_cycle_ml
+    table:
+      name: Table
+      description: periods (weeks, months, years, seasons) or days.
+      required: false
+      default: periods
+      selector:
+        select:
+          options:
+            - periods
+            - days
+    period_type:
+      name: Period type
+      description: Only this period type (periods).
+      required: false
+      selector:
+        select:
+          options:
+            - week
+            - month
+            - year
+            - season
+    mode:
+      name: Mode
+      description: Only this mode.
+      required: false
+      selector:
+        select:
+          options:
+            - all
+            - heating
+            - dhw
+            - cooling
+    first_day:
+      name: From
+      description: First day, YYYY-MM-DD.
+      required: false
+      selector:
+        text: null
+    last_day:
+      name: To
+      description: Last day, YYYY-MM-DD.
+      required: false
+      selector:
+        text: null
+    format:
+      name: Format
+      description: Output format.
+      required: false
+      default: json
+      selector:
+        select:
+          options:
+            - json
+            - csv
+rebuild_reports:
+  name: Rebuild period reports
+  description: Build the days and periods since the last build now. Full clears every report and rebuilds from all history still kept.
+  fields:
+    entry_id:
+      name: Config entry
+      description: Config entry ID. Optional with one heat pump.
+      required: false
+      selector:
+        config_entry:
+          integration: daikin_cycle_ml
+    full:
+      name: Full rebuild
+      description: Also rewrite finished days and periods. Days older than the kept history are lost.
+      required: false
+      default: false
+      selector:
+        boolean: null

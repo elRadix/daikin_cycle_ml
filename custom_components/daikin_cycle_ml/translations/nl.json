@@ -441,7 +441,7 @@
             "data_description": {
               "retention_enabled": "Dagelijks onderhoud om 03:00 lokale tijd.",
               "cycle_retention_days": "Cycli ouder dan N dagen worden gerold. Standaard 90.",
-              "alert_retention_days": "Meldingen ouder dan N dagen verwijderd. Standaard 30.",
+              "alert_retention_days": "Meldingen ouder dan N dagen verwijderd. Standaard 90.",
               "vacuum_enabled": "SQLite VACUUM om ruimte vrij te maken.",
               "daily_summary_live_enabled": "Werk de dagelijkse samenvatting bij zodra een cyclus eindigt. Backfill en onderhoud blijven altijd lopen."
             }
@@ -449,10 +449,12 @@
           "season": {
             "name": "Seizoen",
             "data": {
-              "season_start_month": "Startmaand stookseizoen"
+              "season_start_month": "Startmaand stookseizoen",
+              "degree_day_scheme": "Graaddagen"
             },
             "data_description": {
-              "season_start_month": "Eerste maand van het stookseizoen (1-12). Gebruikt voor SPF-berekening. Standaard: 10."
+              "season_start_month": "Eerste maand van het stookseizoen (1-12). Gebruikt voor SPF-berekening. Standaard: 10.",
+              "degree_day_scheme": "Graaddagenmethode om energie tussen perioden te vergelijken. Automatisch volgt het land van Home Assistant (NL, BE, FR)."
             }
           }
         },
@@ -847,6 +849,9 @@
       },
       "alerts_today": {
         "name": "Alerts vandaag"
+      },
+      "last_month_report": {
+        "name": "Rapport vorige maand"
       }
     },
     "binary_sensor": {
@@ -1194,6 +1199,88 @@
           "description": "Eerst al je eigen waarden verwijderen (terug naar de datasheet)."
         }
       }
+    },
+    "get_report": {
+      "name": "Periodeoverzicht ophalen",
+      "description": "Geeft één week, maand, jaar of stookseizoen met vergelijking, trend en historie. Gebruikt door de Reports-kaart.",
+      "fields": {
+        "entry_id": {
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID. Optioneel bij één warmtepomp."
+        },
+        "period_type": {
+          "name": "Periodetype",
+          "description": "week, month, year of season."
+        },
+        "period": {
+          "name": "Periode",
+          "description": "2026-W48, 2026-11, 2026 of 2026/27. Leeg: de nieuwste."
+        },
+        "mode": {
+          "name": "Modus",
+          "description": "all, heating, dhw of cooling."
+        },
+        "compare": {
+          "name": "Vergelijken met",
+          "description": "previous, last_year of none."
+        },
+        "history": {
+          "name": "Historie",
+          "description": "Aantal perioden in de historie en trend."
+        },
+        "include_days": {
+          "name": "Dagen meegeven",
+          "description": "Voeg de dagrijen van de periode toe."
+        }
+      }
+    },
+    "export_reports": {
+      "name": "Periodeoverzichten exporteren",
+      "description": "Exporteer de opgeslagen dagen of periodeoverzichten als JSON of CSV.",
+      "fields": {
+        "entry_id": {
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID. Optioneel bij één warmtepomp."
+        },
+        "table": {
+          "name": "Tabel",
+          "description": "periods (weken, maanden, jaren, seizoenen) of days."
+        },
+        "period_type": {
+          "name": "Periodetype",
+          "description": "Alleen dit periodetype (periods)."
+        },
+        "mode": {
+          "name": "Modus",
+          "description": "Alleen deze modus."
+        },
+        "first_day": {
+          "name": "Van",
+          "description": "Eerste dag, JJJJ-MM-DD."
+        },
+        "last_day": {
+          "name": "Tot",
+          "description": "Laatste dag, JJJJ-MM-DD."
+        },
+        "format": {
+          "name": "Formaat",
+          "description": "Uitvoerformaat."
+        }
+      }
+    },
+    "rebuild_reports": {
+      "name": "Periodeoverzichten opnieuw opbouwen",
+      "description": "Bouw de dagen en perioden sinds de vorige opbouw nu. Volledig: wis alle overzichten en bouw opnieuw uit alle bewaarde historie.",
+      "fields": {
+        "entry_id": {
+          "name": "Configuratie-item",
+          "description": "Configuratie-item-ID. Optioneel bij één warmtepomp."
+        },
+        "full": {
+          "name": "Volledig opnieuw",
+          "description": "Herschrijf ook afgesloten dagen en perioden. Dagen ouder dan de bewaarde historie gaan verloren."
+        }
+      }
     }
   },
   "selector": {
@@ -1224,6 +1311,18 @@
         "auto": "Automatisch (standaard ESPAltherma-namen)",
         "manual": "Handmatig (elk vereist attribuut koppelen)"
       }
+    },
+    "degree_day_scheme": {
+      "options": {
+        "auto": "Automatisch (land)",
+        "nl18": "Nederland: basis 18 °C",
+        "nl18w": "Nederland: basis 18 °C, gewogen",
+        "be1515": "België: equivalente temperatuur, basis 15 °C",
+        "be165": "België: equivalente temperatuur, basis 16,5 °C (Synergrid)",
+        "fr18": "Frankrijk: DJU basis 18 °C",
+        "fr17": "Frankrijk: basis 17 °C",
+        "fr15": "Frankrijk: basis 15 °C"
+      }
     }
   },
   "exceptions": {
@@ -1244,6 +1343,9 @@
     },
     "profile_not_saved": {
       "message": "Modelprofiel niet opgeslagen: {errors}"
+    },
+    "reports_build_failed": {
+      "message": "De periodeoverzichten konden niet worden opgebouwd. Zie het logboek."
     }
   }
 }

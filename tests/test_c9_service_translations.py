@@ -22,6 +22,9 @@ EXPECTED_SERVICES = {
     "assign_legacy_db",
     "archive_legacy_db",
     "export_legacy_db",
+    "get_report",  # #508
+    "export_reports",
+    "rebuild_reports",
 }
 
 

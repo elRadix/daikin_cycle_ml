@@ -199,6 +199,15 @@ _ENTITY_SELECTOR = selector.EntitySelector(
     selector.EntitySelectorConfig(domain="sensor")
 )
 
+# #508: degree-day scheme of the period reports ("auto" = the HA country)
+_DEGREE_DAY_SELECTOR = selector.SelectSelector(
+    selector.SelectSelectorConfig(
+        options=["auto", "nl18", "nl18w", "be1515", "be165", "fr18", "fr17", "fr15"],
+        mode=selector.SelectSelectorMode.DROPDOWN,
+        translation_key="degree_day_scheme",
+    )
+)
+
 _ATTRIBUTE_MODE_SELECTOR = selector.SelectSelector(
     selector.SelectSelectorConfig(
         options=[ATTRIBUTE_MODE_AUTO, ATTRIBUTE_MODE_MANUAL],
@@ -1900,6 +1909,9 @@ class DaikinCycleMLOptionsFlow(_OPTIONS_FLOW_BASE):
                             7: "July", 8: "August", 9: "September",
                             10: "October", 11: "November", 12: "December"}),
                 ),
+                vol.Required("degree_day_scheme",
+                    default=c.get("degree_day_scheme", "auto")
+                ): _DEGREE_DAY_SELECTOR,
             })),
         })
         return self.async_show_form(step_id="advanced", data_schema=schema)
