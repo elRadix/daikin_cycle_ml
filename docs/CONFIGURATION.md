@@ -148,10 +148,11 @@ A sub-menu; see [Alerts](ALERTS.md) for every alert.
 | `dhw_present` | `auto` | Hot-water tank: `auto` (detected), `always`, `never` (see [§6.4](#64-bivalent-and-no-hot-water-tank)) |
 | `retention_enabled` | on | Daily maintenance at 03:00 |
 | `cycle_retention_days` | 90 | Older cycles are rolled up and removed |
-| `alert_retention_days` | 30 | Older alert records are removed |
+| `alert_retention_days` | 90 | Older alert records are removed |
 | `vacuum_enabled` | on | VACUUM after pruning |
 | `daily_summary_live_enabled` | on | Update the daily summary as each cycle closes |
-| `season_start_month` | 10 | First month of the heating season (SPF) |
+| `season_start_month` | 10 | First month of the heating season (SPF, season reports) |
+| `degree_day_scheme` | `auto` | Degree days used to compare report periods: `auto` (country of Home Assistant), `nl18`, `nl18w`, `be1515`, `be165`, `fr18`, `fr17`, `fr15` ([Reports](REPORTS.md#5-degree-days)) |
 
 ### 4.6 COP calculation
 

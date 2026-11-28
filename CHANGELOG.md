@@ -56,6 +56,15 @@
   runtime data (`runtime_acc.<day>`); days from before the update use the
   running hours from `cop_hourly`.
 
+### Documentation
+- New `docs/REPORTS.md` (#508): what a report holds, periods, the day
+  checks, comparison and verdict thresholds, degree-day schemes, when
+  reports are built, sensor / services, limits. Reports added to the README,
+  the documentation index, ENTITIES (sensor `last_month_report`, services
+  `get_report`, `export_reports`, `rebuild_reports`), CONFIGURATION (option
+  `degree_day_scheme`; alert retention default 90) and RECIPES (monthly
+  report to your phone).
+
 ### Fixed
 - Configure → Advanced: the alert retention default reads 90 days (was 30
   in the help text; the default has been 90).

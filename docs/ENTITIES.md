@@ -96,6 +96,7 @@ Energy dashboard reads them directly.
 | `spf_season` | SPF | Seasonal performance factor since the season start month (option) |
 | `spf_ytd` | SPF | Since 1 January |
 | `scop_running_365d` | SPF | Rolling 365 days |
+| `last_month_report` | COP | COP of the last finished month; attributes `period`, `el_kwh`, `th_kwh`, `el_per_dd`, `cop_vs_previous_pct`, `cop_vs_last_year_pct`, `verdict_vs_previous`, `verdict_vs_last_year`, `coverage_days` ([Reports](REPORTS.md)) |
 
 COP values leave out samples flagged by the physics checks, start-up
 transients and boiler periods (hybrid / bivalent). Day, week and month
@@ -207,8 +208,11 @@ the UI).
 | `assign_legacy_db` | `target_entry_id` | Moves a database to another heat pump (several heat pumps from before v1.10) |
 | `archive_legacy_db` | | Renames the database to `.legacy-<time>` and starts a new one |
 | `export_legacy_db` | | Exports every table to CSV in `/config/daikin_cycle_ml_export_<entry>_<time>/` |
+| `get_report` | `period_type` (`month`), `period`, `mode` (`all`), `compare` (`previous` / `last_year` / `none`), `history` (12), `include_days` | Returns one week / month / year / season with its comparison, trend and history (the Reports card uses it; [Reports](REPORTS.md)) |
+| `export_reports` | `table` (`periods` / `days`), `period_type`, `mode`, `first_day`, `last_day`, `format` | Returns the stored reports as JSON or CSV |
+| `rebuild_reports` | `full` | Builds the reports now; `full` clears and rebuilds them from the kept history |
 
-Services that return data (`export_*`, `recompute_*`, `set_model_profile`)
+Services that return data (`export_*`, `recompute_*`, `set_model_profile`, `get_report`, `rebuild_reports`)
 can be called with *Return response* in Developer tools.
 
 ## 6. Repair issues

@@ -47,15 +47,15 @@ Home Assistant integration that turns your ESPAltherma sensor into a **complete 
 
 ## Native cards
 
-Three cards served by the integration itself: nothing to install, nothing
+Four cards served by the integration itself: nothing to install, nothing
 to paste, updated with every release. **Add card → search *Daikin***.
 English, Dutch and French, light and dark theme, one heat pump per card
 when you have several.
 
-| Daily summary | Efficiency | Performance |
-|---|---|---|
-| [<img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daikin-daily-summary-card/showcase.gif" width="260" alt="Daily summary card">](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-daily-summary-card) | [<img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daikin-efficiency-card/preview.png" width="260" alt="Efficiency card">](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-efficiency-card) | [<img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daikin-performance-card/preview.png" width="260" alt="Performance card">](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-performance-card) |
-| Today's run, cycles, quality, COP, backup heater, defrosts and alerts; 7 / 15 / 30-day tabs; tap a day for details | Live COP and water temperatures, COP per hour and against the datasheet, SPF, heating curve and advice: every graph says good / watch / act | Your heat pump against its datasheet limits (compressor, heat output), with your own model profile |
+| Daily summary | Efficiency | Performance | Reports |
+|---|---|---|---|
+| [<img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daikin-daily-summary-card/showcase.gif" width="200" alt="Daily summary card">](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-daily-summary-card) | [<img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daikin-efficiency-card/preview.png" width="200" alt="Efficiency card">](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-efficiency-card) | [<img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daikin-performance-card/preview.png" width="200" alt="Performance card">](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-performance-card) | [<img src="https://raw.githubusercontent.com/elRadix/daikin_cycle_ml/main/dashboard/cards/daikin-reports-card/preview.png" width="200" alt="Reports card">](https://github.com/elRadix/daikin_cycle_ml/tree/main/dashboard/cards/daikin-reports-card) |
+| Today's run, cycles, quality, COP, backup heater, defrosts and alerts; 7 / 15 / 30-day tabs; tap a day for details | Live COP and water temperatures, COP per hour and against the datasheet, SPF, heating curve and advice: every graph says good / watch / act | Your heat pump against its datasheet limits (compressor, heat output), with your own model profile | Week, month, year and season reports per mode, compared with the previous period or last year at the same weather |
 
 <sub>Tap a card for its manual. At the bottom of each card: **Download** / **Copy** the diagnostics for a bug report.</sub>
 
@@ -95,6 +95,11 @@ re-paste them after an update.
 - **Runtime and energy.** Compressor and backup-heater runtime, defrosts,
   electrical and thermal kWh per mode for the Energy dashboard; kept across
   restarts.
+- **Week, month and year reports.** Stored for good and compared with the
+  previous period or last year: kWh per degree day and the COP at the same
+  outdoor temperature, so a cold month is not a worse heat pump; a verdict
+  per metric.
+  [Reports](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/REPORTS.md)
 
 It only reads: no setpoint writes, no cloud, no telemetry.
 
@@ -162,6 +167,7 @@ Start at the [documentation index](https://github.com/elRadix/daikin_cycle_ml/bl
 | [Recipes](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/RECIPES.md) | Automations: advice to your phone, cycle log, daily summary, energy dashboard |
 | [Configuration](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/CONFIGURATION.md) | Every wizard screen and option, reconfigure, bivalent / hybrid, cookbook |
 | [Entities](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ENTITIES.md) | Sensors, binary sensors, services, repairs |
+| [Reports](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/REPORTS.md) | Week / month / year / season reports, comparisons, degree days |
 | [Alerts](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ALERTS.md) | Every alert, delivery, quiet hours, templates |
 | [Machine learning](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/ML.md) | Quality score, baseline, adaptive thresholds, clustering |
 | [Troubleshooting](https://github.com/elRadix/daikin_cycle_ml/blob/main/docs/TROUBLESHOOTING.md) | No cycles, wrong COP, empty cards, logs |
