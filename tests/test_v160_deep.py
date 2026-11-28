@@ -97,7 +97,7 @@ def test_contract_unit_implies_state_class():
 
 def test_contract_count_27():
     assert (
-        len(SENSOR_DEFS) == 52
+        len(SENSOR_DEFS) == 54  # #495: +degree_days_today, +heat_per_degree_day
     )  # v1.15.0 #218: +hybrid_mode, +boiler_efficiency_cop, +boiler_contribution_today_pct
 
 

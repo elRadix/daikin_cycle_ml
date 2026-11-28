@@ -900,6 +900,12 @@
       },
       "last_month_report": {
         "name": "Rapport vorige maand"
+      },
+      "degree_days_today": {
+        "name": "Graaddagen vandaag"
+      },
+      "heat_per_degree_day": {
+        "name": "Warmte per graaddag"
       }
     },
     "binary_sensor": {

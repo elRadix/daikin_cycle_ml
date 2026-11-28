@@ -16,6 +16,11 @@
   run's mean, spread over the days the run covers. Marked
   `building_reconstructed`; days with live values are left alone. Runs once
   (marker `data_migration_building_v1_completed`).
+- Degree-day sensors, part 3 (#495): `degree_days_today` (so far today,
+  live, in the scheme set for the reports; every scheme, yesterday and the
+  season as attributes) and `heat_per_degree_day` (heating kWh per degree
+  day over the last 7 complete days, plus 30 days and the season). Both
+  read the period-report day data, nothing new is recorded.
 
 ### Changed
 - ESPAltherma pin moved from beta 3548ea2 to dcf3b48 (#511): the v1
@@ -32,6 +37,9 @@
 - `test_495_building_history.py`: the rebuild on a real database (finalised
   days filled, live days kept, hot water / boiler / bad samples left out,
   runs spread over midnight), once only, never raises.
+- `test_495_degree_days.py`: week / 30-day / season windows on a real
+  database, today's degree days with the Belgian two-day weighting, the
+  sensors and the summary refresh.
 
 ## [1.32.0] - 2026-11-28
 

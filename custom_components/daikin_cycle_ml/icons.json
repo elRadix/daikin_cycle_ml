@@ -156,6 +156,12 @@
       },
       "last_month_report": {
         "default": "mdi:calendar-month-outline"
+      },
+      "degree_days_today": {
+        "default": "mdi:thermometer-minus"
+      },
+      "heat_per_degree_day": {
+        "default": "mdi:home-thermometer-outline"
       }
     },
     "binary_sensor": {

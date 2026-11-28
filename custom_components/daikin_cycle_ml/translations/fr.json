@@ -900,6 +900,12 @@
             },
             "last_month_report": {
                 "name": "Rapport du mois dernier"
+            },
+            "degree_days_today": {
+                "name": "Degrés-jours aujourd'hui"
+            },
+            "heat_per_degree_day": {
+                "name": "Chaleur par degré-jour"
             }
         },
         "binary_sensor": {

@@ -139,6 +139,7 @@ from .engine.cop_degradation import (
 )
 from .engine import building_day as _building_day
 from .storage import building_history as _building_history
+from .storage import building_query as _building_query
 from .engine.cycle_detector import CycleDetector
 from .engine.espaltherma_v2.resolver import resolve_attrs
 from .engine.model_datasheets import (
@@ -855,6 +856,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     _outdoor_max: float | None = None
     _source_fresh_s: float = 0.0
     _last_month_report: dict[str, Any] | None = None  # #508
+    _degree_day_summary: dict[str, Any] | None = None  # #495
     _energy_day_key: str = ""
     _last_energy_tick_ts: float = 0.0
     _last_quality_live_ts: float = 0.0
@@ -3232,14 +3234,34 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     def last_month_report(self) -> dict[str, Any] | None:
         return self._last_month_report
 
+    @property
+    def degree_days(self) -> dict[str, Any]:
+        """#495: today's degree days (live) next to the stored summary."""
+        out = dict(self._degree_day_summary or {})
+        out["scheme"] = self.degree_day_scheme
+        s = float(getattr(self, "_outdoor_s", 0.0) or 0.0)
+        mean = float(getattr(self, "_outdoor_sum", 0.0)) / s if s else None
+        today = time.strftime("%Y-%m-%d", time.localtime(time.time()))
+        all_dd = _building_query.today_dd(
+            today, mean, getattr(self, "_outdoor_min", None),
+            getattr(self, "_outdoor_max", None), out.pop("prev_means", None))
+        out["today_all"] = all_dd
+        out["today"] = (all_dd or {}).get(out["scheme"])
+        out["outdoor_mean_today"] = round(mean, 1) if mean is not None else None
+        return out
+
     async def async_refresh_report_summary(self) -> None:
         """#508: headline of the last finished month (sensor). Never raises."""
         if self.db is None:
             return
         try:
+            today = time.strftime("%Y-%m-%d", time.localtime(time.time()))
             self._last_month_report = await _report_query.last_month_summary(
-                self.db._require(), self.degree_day_scheme,
-                time.strftime("%Y-%m-%d", time.localtime(time.time())),
+                self.db._require(), self.degree_day_scheme, today,
+            )
+            self._degree_day_summary = await _building_query.summary(  # #495
+                self.db._require(), self.degree_day_scheme, today,
+                _period_reports.season_start_month(self.options),
             )
         except Exception:
             _LOGGER.exception("period report summary failed")

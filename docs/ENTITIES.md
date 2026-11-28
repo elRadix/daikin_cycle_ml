@@ -97,6 +97,8 @@ Energy dashboard reads them directly.
 | `spf_ytd` | SPF | Since 1 January |
 | `scop_running_365d` | SPF | Rolling 365 days |
 | `last_month_report` | COP | COP of the last finished month; attributes `period`, `el_kwh`, `th_kwh`, `el_per_dd`, `cop_vs_previous_pct`, `cop_vs_last_year_pct`, `verdict_vs_previous`, `verdict_vs_last_year`, `coverage_days` ([Reports](REPORTS.md)) |
+| `degree_days_today` | DD | Degree days so far today in your scheme (Configure → Advanced → Season); attributes `today_all` (every scheme), `yesterday`, `season_dd`, `season_since`, `outdoor_mean_today` |
+| `heat_per_degree_day` | kWh/DD | Space-heating heat per degree day over the last 7 complete days; attributes `week`, `month` (30 days), `season`, each with `kwh`, `dd`, `days` |
 
 COP values leave out samples flagged by the physics checks, start-up
 transients and boiler periods (hybrid / bivalent). Day, week and month

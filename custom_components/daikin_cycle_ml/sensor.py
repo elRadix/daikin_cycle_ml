@@ -225,6 +225,22 @@ def _attrs_cop_normalized_a7w35(
     }
 
 
+def _attrs_degree_days(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
+    """#495: every scheme today, yesterday and the season (degree days)."""
+    d = getattr(c, "degree_days", None) or {}
+    return {
+        "scheme": d.get("scheme"), "today_all": d.get("today_all"),
+        "outdoor_mean_today": d.get("outdoor_mean_today"), "yesterday": d.get("yesterday"),
+        "season_dd": (d.get("season") or {}).get("dd"), "season_since": d.get("season_since"),
+    }
+
+
+def _attrs_heat_per_dd(s: DataSnapshot, c: DaikinCycleMLCoordinator) -> dict[str, Any]:
+    """#495: heating kWh per degree day over 7 / 30 days and the season."""
+    d = getattr(c, "degree_days", None) or {}
+    return {"scheme": d.get("scheme"), **{k: d.get(k) for k in ("week", "month", "season")}}
+
+
 def _value_cop_vs_datasheet_pct(
     s: DataSnapshot, c: DaikinCycleMLCoordinator
 ) -> float | None:
@@ -1652,6 +1668,22 @@ SENSOR_DEFS: list[dict[str, Any]] = [
         "unit": "COP",
         "value_fn": lambda s, c: (getattr(c, "last_month_report", None) or {}).get("cop"),
         "attr_fn": lambda s, c: dict(getattr(c, "last_month_report", None) or {}),
+    },
+    {
+        # #495: degree days so far today (configured scheme), season and yesterday
+        "key": "degree_days_today", "name": "Degree days today",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "DD",
+        "value_fn": lambda s, c: (getattr(c, "degree_days", None) or {}).get("today"),
+        "attr_fn": _attrs_degree_days,
+    },
+    {
+        # #495: heating kWh per degree day, last 7 complete days
+        "key": "heat_per_degree_day", "name": "Heat per degree day",
+        "state_class": SensorStateClass.MEASUREMENT,
+        "unit": "kWh/DD",
+        "value_fn": lambda s, c: ((getattr(c, "degree_days", None) or {}).get("week") or {}).get("kwh_per_dd"),
+        "attr_fn": _attrs_heat_per_dd,
     },
     {
         "key": "heating_curve_advice", "name": "Heating curve advice",
