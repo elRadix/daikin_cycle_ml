@@ -57,7 +57,10 @@ def test_erra_is_a_full_model(key):
     assert ds["verified"] is True and "Daikin" in ds["ref"]
     assert (ds["refrigerant"], ds["gwp"], ds["charge_kg"]) == ("R32", 675, 3.25)
     assert (ds["lwt_min"], ds["lwt_max"]) == (15, 65)
-    a7 = ds["points"] == [{"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 4.92, "hc": 6.17}]
+    a7 = ds["points"] == [
+        {"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 4.92, "hc": 6.17},
+        {"label": "A7/W55", "t_out": 7, "t_lwc": 55, "cop": 2.94, "hc": 7.72},
+    ]
     assert a7 and ds["nom_cop"] == 4.92
     assert MODEL_ALIASES[key.replace("eav3", "ev3")] == key
 

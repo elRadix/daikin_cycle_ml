@@ -2080,12 +2080,19 @@
           "t_lwc": 35,
           "cop": 4.92,
           "hc": 6.17
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.94,
+          "hc": 7.72
         }
       ],
       "hc_max_a7": 7.95,
       "max_input_kw": 1.69,
       "power_supply": "1~ 230V",
-      "ref": "Daikin CE catalogue 'Daikin Altherma 3 R MT' ELVX-E6V/9W + ERRA08-12EV3 (EN14825 SCOP average climate, operation range, refrigerant) + daikin.eu product table ELBH-E6V / ERRA08-12EV3 (EN14511 Ta 7/6 C LWC 35 C nominal; min / max capacity and power input at Ta 7 C). SCOP depends on the indoor unit: ELVX values (ELBH reads 4.69-4.71 / 3.34-3.44)",
+      "ref": "Daikin CE catalogue 'Daikin Altherma 3 R MT' ELVX-E6V/9W + ERRA08-12EV3 (EN14825 SCOP average climate, operation range, refrigerant) + daikin.eu product table ELBH-E6V / ERRA08-12EV3 (EN14511 Ta 7/6 C LWC 35 C nominal; min / max capacity and power input at Ta 7 C). SCOP depends on the indoor unit: ELVX values (ELBH reads 4.69-4.71 / 3.34-3.44). A7/W55 (7.72 kW, COP 2.94): Daikin Keymark point of the EPRA08-12 platform (certification sheet 4D133543C), confirmed for ERRA08EV3 by the #522 reporter's EN 14511 table",
       "verified": true
     },
     "erra10eav3": {
@@ -2106,12 +2113,19 @@
           "t_lwc": 35,
           "cop": 4.92,
           "hc": 6.17
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.94,
+          "hc": 7.72
         }
       ],
       "hc_max_a7": 9.25,
       "max_input_kw": 2.04,
       "power_supply": "1~ 230V",
-      "ref": "Daikin CE catalogue 'Daikin Altherma 3 R MT' ELVX-E6V/9W + ERRA08-12EV3 (EN14825 SCOP average climate, operation range, refrigerant) + daikin.eu product table ELBH-E6V / ERRA08-12EV3 (EN14511 Ta 7/6 C LWC 35 C nominal; min / max capacity and power input at Ta 7 C). SCOP depends on the indoor unit: ELVX values (ELBH reads 4.69-4.71 / 3.34-3.44)",
+      "ref": "Daikin CE catalogue 'Daikin Altherma 3 R MT' ELVX-E6V/9W + ERRA08-12EV3 (EN14825 SCOP average climate, operation range, refrigerant) + daikin.eu product table ELBH-E6V / ERRA08-12EV3 (EN14511 Ta 7/6 C LWC 35 C nominal; min / max capacity and power input at Ta 7 C). SCOP depends on the indoor unit: ELVX values (ELBH reads 4.69-4.71 / 3.34-3.44). A7/W55 (7.72 kW, COP 2.94): Daikin Keymark point of the EPRA08-12 platform (certification sheet 4D133543C), confirmed for ERRA08EV3 by the #522 reporter's EN 14511 table",
       "verified": true
     },
     "erra12eav3": {
@@ -2132,12 +2146,19 @@
           "t_lwc": 35,
           "cop": 4.92,
           "hc": 6.17
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.94,
+          "hc": 7.72
         }
       ],
       "hc_max_a7": 9.97,
       "max_input_kw": 2.28,
       "power_supply": "1~ 230V",
-      "ref": "Daikin CE catalogue 'Daikin Altherma 3 R MT' ELVX-E6V/9W + ERRA08-12EV3 (EN14825 SCOP average climate, operation range, refrigerant) + daikin.eu product table ELBH-E6V / ERRA08-12EV3 (EN14511 Ta 7/6 C LWC 35 C nominal; min / max capacity and power input at Ta 7 C). SCOP depends on the indoor unit: ELVX values (ELBH reads 4.69-4.71 / 3.34-3.44)",
+      "ref": "Daikin CE catalogue 'Daikin Altherma 3 R MT' ELVX-E6V/9W + ERRA08-12EV3 (EN14825 SCOP average climate, operation range, refrigerant) + daikin.eu product table ELBH-E6V / ERRA08-12EV3 (EN14511 Ta 7/6 C LWC 35 C nominal; min / max capacity and power input at Ta 7 C). SCOP depends on the indoor unit: ELVX values (ELBH reads 4.69-4.71 / 3.34-3.44). A7/W55 (7.72 kW, COP 2.94): Daikin Keymark point of the EPRA08-12 platform (certification sheet 4D133543C), confirmed for ERRA08EV3 by the #522 reporter's EN 14511 table",
       "verified": true
     }
   }
