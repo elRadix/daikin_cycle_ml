@@ -211,14 +211,14 @@
       },
       "user": {
         "title": "Daikin Cycle ML - kies modelfamilie",
-        "description": "Kies de modelfamilie van je Daikin Altherma unit. De familie is de prefix van de modelcode van de buitenunit (bijv. ERGA, EPRA, EKHBRD). Op het volgende scherm kies je het exacte model.\n\n- **Basisprofiel**: veilige standaardwaarden als je je exacte model niet weet.\n- **Eigen warmtepomp (Custom)**: lever je eigen gegevens en attribuut-koppeling aan.\n\n**Ken je alleen je binnenunit?** Typ de code (op het typeplaatje of in de Daikin-app, bijv. EHBX08EF6V) in het familieveld. Wordt die met meerdere buitenunits verkocht, dan toont het volgende scherm alleen die.\n\n**Gevonden:** één entiteit (v1) = {mono_found}, ESPAltherma v2-entiteiten = {v2_count}.\n**Voorgesteld brontype:** `{suggestion}`.",
+        "description": "Kies de modelfamilie van je Daikin Altherma unit. De familie is de prefix van de modelcode van de buitenunit (bijv. ERGA, EPRA, EKHBRD). Op het volgende scherm kies je het exacte model.\n\n- **Basisprofiel**: veilige standaardwaarden als je je exacte model niet weet.\n- **Eigen warmtepomp (Custom)**: lever je eigen gegevens en attribuut-koppeling aan.\n\n**Ken je alleen je binnenunit?** Typ de code (op het typeplaatje of in de Daikin-app, bijv. EHBX08EF6V) in het familieveld. Wordt die met meerdere buitenunits verkocht, dan toont het volgende scherm alleen die.\n\n**Gevonden:** één entiteit (v1) = {mono_found}, ESPAltherma v2-entiteiten = {v2_count}, waarden van een P1/P2-bridge = {p1p2_count}.\n**Voorgesteld brontype:** `{suggestion}`.",
         "data": {
           "family": "Modelfamilie",
-          "source_type": "ESPAltherma-brontype"
+          "source_type": "Gegevensbron"
         },
         "data_description": {
           "family": "Kies de familie van je buitenunit (ERGA, EPRA, ...), of typ de modelcode die je kent: de binnenunit (bijv. EHBX08EF6V), de buitenunit (bijv. ERGA06EAV3) of allebei.",
-          "source_type": "Hoe ESPAltherma gegevens naar Home Assistant publiceert. Kies Monolithic als je de klassieke enkele sensorentiteit gebruikt, of Individual als je ESPAltherma v2 bèta gebruikt (veel afzonderlijke entiteiten). Auto detecteert tijdens runtime."
+          "source_type": "Hoe ESPAltherma gegevens naar Home Assistant publiceert. Kies Monolithic als je de klassieke enkele sensorentiteit gebruikt, of Individual als je ESPAltherma v2 bèta gebruikt (veel afzonderlijke entiteiten). Auto detecteert tijdens runtime. Met de P1/P2 MQTT-bridge (zonder ESPAltherma): kies P1/P2 MQTT-bridge."
         }
       },
       "individual_prefix": {
@@ -234,6 +234,52 @@
       "individual_review": {
         "title": "ESPAltherma v2-attributen controleren",
         "description": "**{matched}/{total}** vereiste attributen gekoppeld. Gevonden entiteiten: {discovered}.{missing_block}{collision_block}\n\nGa verder om je Daikin-model te kiezen. Je kunt de koppeling later aanpassen via de integratie-opties."
+      },
+      "p1p2_map": {
+        "title": "P1/P2 MQTT-bridge",
+        "description": "Welke entiteit van de bridge welke waarde bevat. Ingevuld op basis van de entiteitnamen (prefix **{prefix}**, {found} waarden gevonden); pas aan waar nodig. De eenheden liggen per waarde vast: de bridge laat de meeste eenheden leeg.\n\n- De buitentemperatuur komt van de buitenunit, nooit van `..._r1t_hp2gas_water` (dat is water).\n- Warm water wordt gelezen van de 3-wegklep; `dhw_dhw` zegt alleen dat de warmwaterfunctie aan staat.\n- Laat een veld leeg als je unit dat onderdeel niet heeft (koeling, bijverwarming, vat, gasketel).\n\n**Nu gelezen:**\n{preview}",
+        "data": {
+          "op_heating": "Verwarmingsmodus (aan/uit)",
+          "op_cooling": "Koelmodus (aan/uit)",
+          "threeway_valve": "3-wegklep naar het vat (aan = warm water)",
+          "defrost": "Ontdooien",
+          "compressor_hz": "Compressorfrequentie (de bridge noemt het rpm, het is Hz)",
+          "leaving_r2t": "Aanvoer R2T",
+          "leaving_r1t": "Aanvoer vóór de bijverwarming (R1T, water)",
+          "inlet_r4t": "Retour R4T",
+          "outdoor": "Buitentemperatuur (buitenunit)",
+          "flow": "Waterdebiet",
+          "pump": "Circulatiepomp",
+          "buh1": "Bijverwarming trap 1",
+          "buh2": "Bijverwarming trap 2",
+          "lw_setpoint": "Aanvoersetpoint",
+          "dhw_tank": "Warmwatervat R5T",
+          "heat_power": "Geproduceerde warmte (W)",
+          "hp_power": "Elektrisch vermogen warmtepomp (W)",
+          "buh_power": "Elektrisch vermogen bijverwarming (W)",
+          "gasboiler_active": "Gasketel actief (hybride)"
+        },
+        "data_description": {
+          "op_heating": "Meestal `…_mode_climate_heating`.",
+          "op_cooling": "Meestal `…_mode_climate_cooling`. Leeg zonder koeling.",
+          "threeway_valve": "Meestal `…_dhw_valve_dhw_tank`. Leeg zonder warmwatervat.",
+          "defrost": "Meestal `…_mode_defrost_active`.",
+          "compressor_hz": "Meestal `…_mode_compressor_rpm`.",
+          "leaving_r2t": "Meestal `…_sensors_temperature_r2t_leaving_water`.",
+          "leaving_r1t": "Meestal `…_sensors_temperature_r1t_hp2gas_water`.",
+          "inlet_r4t": "Meestal `…_sensors_temperature_r4t_return_water`.",
+          "outdoor": "Meestal `…_sensors_temperature_outside_unit`.",
+          "flow": "Meestal `…_sensors_flow`.",
+          "pump": "Meestal `…_mode_circulation_pump`.",
+          "buh1": "Meestal `…_mode_buh`. Leeg zonder bijverwarming.",
+          "buh2": "Meestal `…_mode_buh_2`. Leeg zonder bijverwarming.",
+          "lw_setpoint": "Meestal `…_lwt_lwt_setpoint`.",
+          "dhw_tank": "Meestal `…_dhw_temperature_r5t_dhw_tank`. Leeg zonder vat (het leest dan ongeveer -40 °C).",
+          "heat_power": "Meestal `…_power_production_heatpump`. Gebruikt voor de COP.",
+          "hp_power": "Meestal `…_power_consumption_heatpump`. Gebruikt voor de COP, met het vermogen van de bijverwarming erbij.",
+          "buh_power": "Meestal `…_power_consumption_buh`.",
+          "gasboiler_active": "Meestal `…_mode_gasboiler_active`. Alleen bij een hybride met gasketel."
+        }
       }
     },
     "error": {
@@ -245,7 +291,9 @@
       "source_offline": "ESPAltherma sensor is momenteel niet beschikbaar. Wacht 30-60s tot deze weer online is en probeer opnieuw.",
       "source_empty": "ESPAltherma sensor heeft nog geen data. Wacht op de volgende update en probeer opnieuw.",
       "model_unknown": "Modelcode \"{code}\" niet herkend. Kies een familie uit de lijst, typ de code van de buitenunit (bijv. ERGA06EAV3) of kies Basic profile.",
-      "model_no_datasheet": "\"{code}\" is een {series}-unit. Daarvoor is nog geen datasheet: kies Basic profile. De cyclusanalyse werkt; vergelijkingen met de datasheet-COP blijven uit."
+      "model_no_datasheet": "\"{code}\" is een {series}-unit. Daarvoor is nog geen datasheet: kies Basic profile. De cyclusanalyse werkt; vergelijkingen met de datasheet-COP blijven uit.",
+      "p1p2_role_required": "Nodig om de draaiperiodes te volgen: kies de entiteit van de bridge.",
+      "p1p2_r1t_is_water": "R1T op de bridge is watertemperatuur: kies de temperatuur van de buitenunit."
     },
     "abort": {
       "already_configured": "Al geconfigureerd",
@@ -1303,7 +1351,8 @@
       "options": {
         "monolithic": "Monolithische entiteit (ESPAltherma v1, sensor.althermasensors)",
         "individual": "Individuele entiteiten (ESPAltherma v2 bèta, sensor.espaltherma_*)",
-        "auto": "Automatisch detecteren (aanbevolen voor nieuwe installaties)"
+        "auto": "Automatisch detecteren (aanbevolen voor nieuwe installaties)",
+        "p1p2": "P1/P2 MQTT-bridge (Arnold Niessen, zonder ESPAltherma)"
       }
     },
     "attribute_mode": {

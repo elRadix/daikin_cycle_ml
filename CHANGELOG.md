@@ -18,7 +18,16 @@
   every role is fixed instead of read from the entity. The gas boiler is
   read from `mode_gasboiler_active`, not from its power. Diagnostics:
   `source_resolution` shows the map, rejected values and the bridge's own
-  COP next to the one from power. The setup wizard follows in part 2.
+  COP next to the one from power.
+- P1/P2 MQTT bridge, part 2: setup (#512). The first screen offers *P1/P2
+  MQTT bridge* as data source (and suggests it when a bridge and no
+  ESPAltherma is found); the next screen lists which bridge entity holds
+  which value, filled in from the names, with the value read now and its
+  fixed unit. Outdoor temperature from R1T (water) is refused, values the
+  runs depend on are required, and the model screen asks no ESPAltherma
+  sensor. Reconfigure accepts the bridge as well. README: data sources
+  (ESPAltherma or the bridge) with thanks to Arnold Niessen for the test
+  bridge.
 - Native card `custom:daikin-reports-card` 1.0.0 (#508): week, month, year
   and heating-season reports per mode with drop-downs (period type, period
   with ‹ ›, mode, compare with previous period / last year / none) and six
@@ -101,6 +110,10 @@
   `tests/fixtures/p1p2`: every role detected, COP from the bridge's power
   equal to its COP_Realtime, R1T / R5T / R9T guards, two bridges, a saved
   map, the bridge going offline, the hybrid boiler flag.
+- `test_512_p1p2_config_flow.py`: the wizard through Home Assistant's flow
+  manager on both dumps without any ESPAltherma entity (suggestion, filled-in
+  map with preview, no ESPAltherma field, entry data, hybrid with three
+  prefixes, R1T / missing role / vanished entity refused).
 - `test_508_reports_card.py`: every tab in EN / NL / FR on `get_report`
   responses from the real builder; Chromium: the service call, ‹ › stepping,
   drop-downs, tabs, phone and desktop width, dark mode, editor.

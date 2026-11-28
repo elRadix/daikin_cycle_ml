@@ -211,14 +211,14 @@
       },
       "user": {
         "title": "Daikin Cycle ML - select model family",
-        "description": "Select the model family of your Daikin Altherma unit. The family is the prefix of the outdoor unit model code (e.g. ERGA, EPRA, EKHBRD). You will pick the exact model on the next screen.\n\n- **Basic profile**: safe defaults when the exact model is unknown.\n- **Custom**: supply your own attribute map.\n\n**Only know your indoor unit?** Type its code (on the unit's label or in the Daikin app, e.g. EHBX08EF6V) in the family field. If it is sold with several outdoor sizes, the next screen lists only those.\n\n**Detected:** monolithic entity = {mono_found}, ESPAltherma v2 entities = {v2_count}.\n**Suggested source type:** `{suggestion}`.",
+        "description": "Select the model family of your Daikin Altherma unit. The family is the prefix of the outdoor unit model code (e.g. ERGA, EPRA, EKHBRD). You will pick the exact model on the next screen.\n\n- **Basic profile**: safe defaults when the exact model is unknown.\n- **Custom**: supply your own attribute map.\n\n**Only know your indoor unit?** Type its code (on the unit's label or in the Daikin app, e.g. EHBX08EF6V) in the family field. If it is sold with several outdoor sizes, the next screen lists only those.\n\n**Detected:** monolithic entity = {mono_found}, ESPAltherma v2 entities = {v2_count}, P1/P2 bridge values = {p1p2_count}.\n**Suggested source type:** `{suggestion}`.",
         "data": {
           "family": "Model family",
-          "source_type": "ESPAltherma source type"
+          "source_type": "Data source"
         },
         "data_description": {
           "family": "Pick the family of your outdoor unit (ERGA, EPRA, ...), or type the model code you know: the indoor unit (e.g. EHBX08EF6V), the outdoor unit (e.g. ERGA06EAV3) or both.",
-          "source_type": "How ESPAltherma publishes data to Home Assistant. Choose Monolithic if you use the classic single sensor entity, or Individual if you use ESPAltherma v2 beta (many separate entities). Auto detects at runtime."
+          "source_type": "How ESPAltherma publishes data to Home Assistant. Choose Monolithic if you use the classic single sensor entity, or Individual if you use ESPAltherma v2 beta (many separate entities). Auto detects at runtime. With the P1/P2 MQTT bridge (no ESPAltherma), choose P1/P2 MQTT bridge."
         }
       },
       "individual_prefix": {
@@ -234,6 +234,52 @@
       "individual_review": {
         "title": "Review ESPAltherma v2 attributes",
         "description": "Matched **{matched}/{total}** required attributes. Discovered entities: {discovered}.{missing_block}{collision_block}\n\nContinue to select your Daikin model. You can adjust the mapping later via the integration options."
+      },
+      "p1p2_map": {
+        "title": "P1/P2 MQTT bridge",
+        "description": "Which bridge entity holds which value. Filled in from the entity names (prefix **{prefix}**, {found} values found); change any of them. Units are fixed per value: the bridge leaves most units empty.\n\n- The outdoor temperature comes from the outdoor unit, never from `..._r1t_hp2gas_water` (that is water).\n- Hot water is read from the 3-way valve; `dhw_dhw` only says the hot-water function is on.\n- Leave a field empty when your unit has no such part (cooling, backup heater, tank, gas boiler).\n\n**Read now:**\n{preview}",
+        "data": {
+          "op_heating": "Heating mode (on/off)",
+          "op_cooling": "Cooling mode (on/off)",
+          "threeway_valve": "3-way valve to the tank (on = hot water)",
+          "defrost": "Defrost",
+          "compressor_hz": "Compressor frequency (the bridge calls it rpm, it is Hz)",
+          "leaving_r2t": "Leaving water R2T",
+          "leaving_r1t": "Leaving water before the backup heater (R1T, water)",
+          "inlet_r4t": "Return water R4T",
+          "outdoor": "Outdoor temperature (outdoor unit)",
+          "flow": "Water flow",
+          "pump": "Circulation pump",
+          "buh1": "Backup heater step 1",
+          "buh2": "Backup heater step 2",
+          "lw_setpoint": "Leaving water setpoint",
+          "dhw_tank": "Hot-water tank R5T",
+          "heat_power": "Heat produced (W)",
+          "hp_power": "Electrical power heat pump (W)",
+          "buh_power": "Electrical power backup heater (W)",
+          "gasboiler_active": "Gas boiler active (hybrid)"
+        },
+        "data_description": {
+          "op_heating": "Usually `…_mode_climate_heating`.",
+          "op_cooling": "Usually `…_mode_climate_cooling`. Empty without cooling.",
+          "threeway_valve": "Usually `…_dhw_valve_dhw_tank`. Empty without a hot-water tank.",
+          "defrost": "Usually `…_mode_defrost_active`.",
+          "compressor_hz": "Usually `…_mode_compressor_rpm`.",
+          "leaving_r2t": "Usually `…_sensors_temperature_r2t_leaving_water`.",
+          "leaving_r1t": "Usually `…_sensors_temperature_r1t_hp2gas_water`.",
+          "inlet_r4t": "Usually `…_sensors_temperature_r4t_return_water`.",
+          "outdoor": "Usually `…_sensors_temperature_outside_unit`.",
+          "flow": "Usually `…_sensors_flow`.",
+          "pump": "Usually `…_mode_circulation_pump`.",
+          "buh1": "Usually `…_mode_buh`. Empty without a backup heater.",
+          "buh2": "Usually `…_mode_buh_2`. Empty without a backup heater.",
+          "lw_setpoint": "Usually `…_lwt_lwt_setpoint`.",
+          "dhw_tank": "Usually `…_dhw_temperature_r5t_dhw_tank`. Empty without a tank (it then reads about -40 °C).",
+          "heat_power": "Usually `…_power_production_heatpump`. Used for the COP.",
+          "hp_power": "Usually `…_power_consumption_heatpump`. Used for the COP, with the backup heater's power added.",
+          "buh_power": "Usually `…_power_consumption_buh`.",
+          "gasboiler_active": "Usually `…_mode_gasboiler_active`. Hybrid with a gas boiler only."
+        }
       }
     },
     "error": {
@@ -245,7 +291,9 @@
       "source_offline": "ESPAltherma sensor is currently unavailable. Wait 30-60s for it to come back online and try again.",
       "source_empty": "ESPAltherma sensor has no data yet. Wait for the next update and try again.",
       "model_unknown": "Model code \"{code}\" not recognised. Pick a family from the list, type the outdoor unit code (e.g. ERGA06EAV3), or choose Basic profile.",
-      "model_no_datasheet": "\"{code}\" is a {series} unit. There is no datasheet for it yet: choose Basic profile. Cycle analytics work; datasheet COP comparisons stay off."
+      "model_no_datasheet": "\"{code}\" is a {series} unit. There is no datasheet for it yet: choose Basic profile. Cycle analytics work; datasheet COP comparisons stay off.",
+      "p1p2_role_required": "Needed to follow the heat pump's runs: pick the bridge entity.",
+      "p1p2_r1t_is_water": "R1T on the bridge is water temperature: pick the outdoor unit's temperature."
     },
     "abort": {
       "already_configured": "Already configured",
@@ -1303,7 +1351,8 @@
       "options": {
         "monolithic": "Monolithic entity (ESPAltherma v1, sensor.althermasensors)",
         "individual": "Individual entities (ESPAltherma v2 beta, sensor.espaltherma_*)",
-        "auto": "Auto-detect (recommended for new installs)"
+        "auto": "Auto-detect (recommended for new installs)",
+        "p1p2": "P1/P2 MQTT bridge (Arnold Niessen, no ESPAltherma)"
       }
     },
     "attribute_mode": {
