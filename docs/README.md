@@ -8,6 +8,7 @@ have; every page has its own table of contents.
 | I want to... | Read |
 |---|---|
 | Install and set up, with screenshots | [Getting started](GETTING_STARTED.md) · [Nederlands](setup/nl.md) · [Français](setup/fr.md) |
+| Use the P1/P2 MQTT bridge instead of ESPAltherma | [P1/P2 MQTT bridge](P1P2.md) |
 | A quick answer | [FAQ](FAQ.md) |
 | Fix something that does not work | [Troubleshooting](TROUBLESHOOTING.md) |
 | Change an option | [Configuration](CONFIGURATION.md) |
@@ -30,6 +31,7 @@ have; every page has its own table of contents.
 | [Configuration](CONFIGURATION.md) | Source types, wizard paths, every option with its default, COP sources, model profile, reconfigure, cookbook, scheduled jobs |
 | [Alerts](ALERTS.md) | The 21 alerts with level, group, repeat window and trigger; delivery, quiet hours, switching alerts off, testing |
 | [Troubleshooting](TROUBLESHOOTING.md) | Symptom tables: setup, detection, values, COP, alerts, hybrid, database, cards, reporting |
+| [P1/P2 MQTT bridge](P1P2.md) | Setup with the bridge, which entity is which value, hybrid and bivalent, field settings, troubleshooting |
 | [Reports](REPORTS.md) | Week / month / year / season reports: contents, day checks, comparison and verdicts, degree days, when they are built |
 | [Recipes](RECIPES.md) | Automations ready to paste |
 | [Upgrade](UPGRADE.md) | Updating, what migrates on its own, the changes that needed action, going back |

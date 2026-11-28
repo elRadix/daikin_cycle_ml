@@ -108,7 +108,7 @@ means and SPF include backup-heater time: that is what you pay for.
 |---|---|---|
 | `cop_vs_datasheet_pct` | % | Live COP against the datasheet COP at the same outdoor and water temperature; 0 = on spec. Attributes `cop_datasheet_live`, `reference_point`, `reference_distance_k`, `band` (`on_spec`, `below_spec`, `critical`) |
 | `cop_normalized_a7w35` | COP | Your COP scaled to A7/W35 with the datasheet's own ratio |
-| `hp_specs` | | Model data in use (diagnostic): datasheet values with their source, your model profile, learned compressor range and maximum heat, `target_dt_k` |
+| `hp_specs` | | Model data in use (diagnostic): datasheet values with their source, your model profile, learned compressor range and maximum heat, `target_dt_k`; with the [P1/P2 bridge](P1P2.md#5-field-settings) also `installer_settings` and `installer_target_dt_k` |
 | `cop_degradation_status` | | `none`, `info`, `warning` or `critical` |
 | `cop_degradation_week_pct` | % | This week against last week at matching outdoor temperatures; negative = worse |
 | `cop_trend_30d` | % | 30-day regression trend |

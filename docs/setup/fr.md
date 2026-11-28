@@ -21,7 +21,10 @@ existent aussi en français.
 - **ESPAltherma** qui lit votre pompe à chaleur : le capteur unique
   classique (v1, en général `sensor.althermasensors` avec toutes les valeurs
   en attributs) ou les entités séparées d'ESPAltherma v2
-  (`sensor.espaltherma_*`).
+  (`sensor.espaltherma_*`) ;
+- **ou** le [pont MQTT P1/P2](https://github.com/Arnold-n/P1P2MQTT) sur le
+  bus P1/P2, sans ESPAltherma : voir [Pont MQTT P1/P2](#pont-mqtt-p1p2)
+  (le tableau ci-dessous ne concerne qu'ESPAltherma).
 
 Les fichiers de définition d'ESPAltherma sont des modèles : la plupart des
 valeurs sont en commentaire. Activez au moins celles-ci, puis redémarrez la
@@ -101,6 +104,25 @@ Les valeurs par défaut conviennent à la plupart des installations : ajustez
 après une semaine de données. Plus tard : **Paramètres → Appareils et
 services → Daikin Cycle ML → Configurer**. Chaque écran et chaque option :
 [Configuration](../CONFIGURATION.md) (en anglais).
+
+### Pont MQTT P1/P2
+
+Avec le pont MQTT P1/P2 d'Arnold Niessen (sans ESPAltherma) :
+
+1. Sur le premier écran, choisissez votre modèle et la source **Pont MQTT
+   P1/P2**. Si un pont est trouvé et pas d'ESPAltherma, elle est déjà
+   sélectionnée.
+2. L'écran suivant montre quelle entité du pont contient quelle valeur,
+   rempli d'après les noms, avec la valeur actuelle. Vérifiez, modifiez si
+   besoin et laissez un champ vide si votre unité n'a pas cet élément
+   (refroidissement, appoint, ballon, chaudière gaz).
+3. L'assistant continue ensuite comme ci-dessus, sans capteur ESPAltherma.
+
+![Étape pont MQTT P1/P2](../images/setup/fr/11-p1p2-map.png)
+
+Activez les compteurs du pont (`switch.<préfixe>_bridge_counter_request_function`)
+pour recevoir aussi les compteurs d'énergie et les réglages sur site. Tout
+sur le pont : [P1/P2 MQTT bridge](../P1P2.md) (en anglais).
 
 ## 4. La première heure
 

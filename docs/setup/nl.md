@@ -20,7 +20,10 @@ zijn ook in het Nederlands.
 - **Home Assistant** 2026.9 of nieuwer, met **HACS**;
 - **ESPAltherma** die je warmtepomp uitleest: de klassieke ene sensor
   (v1, meestal `sensor.althermasensors` met alle waarden als attributen)
-  of de losse entiteiten van ESPAltherma v2 (`sensor.espaltherma_*`).
+  of de losse entiteiten van ESPAltherma v2 (`sensor.espaltherma_*`);
+- **of** de [P1/P2 MQTT-bridge](https://github.com/Arnold-n/P1P2MQTT) op de
+  P1/P2-bus, zonder ESPAltherma: zie [P1/P2 MQTT-bridge](#p1p2-mqtt-bridge)
+  (de tabel hieronder geldt alleen voor ESPAltherma).
 
 De definitiebestanden van ESPAltherma zijn sjablonen: de meeste waarden
 staan uitgecommentarieerd. Zet minstens deze aan en herstart het ESP-bord:
@@ -98,6 +101,25 @@ De standaardwaarden passen bij de meeste installaties: stel ze bij na een
 week met gegevens. Later aanpassen: **Instellingen → Apparaten & diensten →
 Daikin Cycle ML → Configureren**. Elk scherm en elke optie:
 [Configuration](../CONFIGURATION.md) (Engels).
+
+### P1/P2 MQTT-bridge
+
+Met de P1/P2 MQTT-bridge van Arnold Niessen (geen ESPAltherma nodig):
+
+1. Kies op het eerste scherm je model en als gegevensbron **P1/P2
+   MQTT-bridge**. Wordt er een bridge gevonden en geen ESPAltherma, dan
+   staat die al geselecteerd.
+2. Het volgende scherm toont welke entiteit van de bridge welke waarde
+   bevat, ingevuld op basis van de namen, met de waarde van nu. Controleer,
+   pas aan waar nodig en laat een veld leeg als je unit dat onderdeel niet
+   heeft (koeling, bijverwarming, vat, gasketel).
+3. Daarna gaat de wizard verder zoals hierboven, zonder ESPAltherma-sensor.
+
+![Stap P1/P2 MQTT-bridge](../images/setup/nl/11-p1p2-map.png)
+
+Zet in de bridge de tellers aan (`switch.<prefix>_bridge_counter_request_function`),
+dan komen ook de energietellers en de veldinstellingen binnen. Alles over
+de bridge: [P1/P2 MQTT bridge](../P1P2.md) (Engels).
 
 ## 4. Het eerste uur
 

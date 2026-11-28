@@ -11,8 +11,14 @@
 ## General
 
 **Does it work without ESPAltherma?**
-No. Every value comes from ESPAltherma reading the heat pump's X10A port.
-There is no cloud client.
+Yes, with the [P1/P2 MQTT bridge](P1P2.md) by Arnold Niessen on the P1/P2
+bus instead. One of the two is needed: there is no cloud client.
+
+**ESPAltherma or the P1/P2 bridge?**
+Both give every feature. ESPAltherma reads the X10A port (ESP32 on the
+indoor unit board); the bridge reads the room-thermostat bus and also
+measures electrical power and heat itself. With both on one heat pump,
+choose one in the setup.
 
 **Does it change settings on my heat pump?**
 No, it only reads. The Efficiency card can change the setpoint of a climate
