@@ -83,6 +83,7 @@ type: custom:daikin-efficiency-card
 | Symptom | Check |
 |---|---|
 | Native card not in the card picker, or an old version | Update and restart Home Assistant, then refresh the browser once |
+| Native card: `Custom element doesn't exist: daikin-efficiency-card` (or another `daikin-*-card`) | The integration serves these cards itself, once it is set up: Settings → Devices & services must list Daikin Cycle ML (not only installed in HACS). Then restart Home Assistant and refresh; in the Companion App: Settings → Companion App → Troubleshooting → Reset frontend cache. No other custom card is needed |
 | Native card says "entities not found" | Integration loaded? With several heat pumps, choose one in the editor |
 | Efficiency graphs empty | Normal for the first hours; keep `thermal_power_live` and the binary sensors in the recorder |
 | YAML card shows as text or `Custom element doesn't exist` | Install the three HACS frontend cards, restart, refresh ([YAML card guide](cards/README.md)) |

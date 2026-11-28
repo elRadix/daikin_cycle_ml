@@ -126,6 +126,7 @@ pump. See [Database](DATABASE.md).
 | Symptom | Check |
 |---|---|
 | A native card shows an old version | Refresh the browser once (`Ctrl`+`Shift`+`R`; in the app, pull down) |
+| `Custom element doesn't exist: daikin-…-card` | The integration serves the native cards once it is set up (Settings → Devices & services lists Daikin Cycle ML). Restart, refresh; Companion App: Settings → Companion App → Troubleshooting → Reset frontend cache. No other custom card is needed |
 | Native card shows "entities not found" | Several heat pumps: choose one in the card editor. Otherwise check the integration is loaded |
 | Values from two heat pumps mixed | Choose the heat pump in the card editor |
 | YAML card empty or "—" | Re-paste the latest YAML from `dashboard/cards/`; check the custom cards it needs are installed ([Cards](../dashboard/cards/README.md)) |

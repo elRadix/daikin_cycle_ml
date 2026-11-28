@@ -57,6 +57,8 @@ from .const import (
     COP_SENSOR_ENTITY,
     COP_DS_MIN_SAMPLES,
     DETECTOR_PERSIST_S,
+    DB_BUSY_MAX_SKIPS,
+    REFRESH_TICK_BUDGET_S,
     PERSIST_TICK_BUDGET_S,
     COP_DS_WINDOW_S,
     COP_VS_DATASHEET_LOW_PCT,
@@ -810,6 +812,12 @@ P = ParamSpec("P")  # MYPY-FIX-V1224
 R = TypeVar("R")
 
 
+
+def _log_late_refresh(task: asyncio.Future[None]) -> None:
+    """A refresh that finished after its tick: log a failure, never raise."""
+    if not task.cancelled() and task.exception() is not None:
+        _LOGGER.warning("background refresh failed: %s", task.exception())
+
 class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     """Reads the source sensor every UPDATE_INTERVAL_SECONDS."""
 
@@ -827,6 +835,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     # ---------- v1.6.0-C5/C6: class-level defaults for __new__ tests ----------
     _runtime_day_key: str = ""
     _buh_step1_s: float = 0.0
+    _buh_meter_kwh: float = 0.0  # #515
     _buh_step2_s: float = 0.0
     _buh_total_s: float = 0.0  # v1.22.7: wall-time (max 1x per tick regardless of step1/step2)
     _prev_defrost: bool = False
@@ -1052,6 +1061,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         # ---------- v1.6.0-C5: runtime/BUH/defrost accumulators ----------
         self._runtime_day_key: str = ""
         self._buh_step1_s: float = 0.0
+        self._buh_meter_kwh: float = 0.0  # #515
         self._buh_step2_s: float = 0.0
         self._buh_total_s: float = 0.0  # v1.22.7: wall-time
         self._prev_defrost: bool = False
@@ -2540,22 +2550,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._tick_mark("persist_acc")
             await self._maybe_collect_cop_sample(now)
             self._tick_mark("cop_sample")
-            await self._refresh_cop_today(now)
-            self._tick_mark("cop_today")
-            await self._maybe_refresh_stooklijn(now)
-            self._tick_mark("stooklijn")
-            await self._maybe_refresh_cop_hourly(now)
-            self._tick_mark("cop_hourly")
-            await self._maybe_refresh_cop_degradation(now)
-            self._tick_mark("cop_degradation")
+            await self._refresh_db_views(now)
             await self._maybe_refresh_quality_live(now, snap)
             self._tick_mark("quality_live")
             await self._maybe_rollup_today_live(time.time())
             self._tick_mark("rollup_today")
             await self._refresh_alerts_today(now)
             self._tick_mark("alerts_today")
-            await self._maybe_refresh_spf(now)
-            self._tick_mark("spf")
             snap.cop_today = self._cop_today_heating_cache
             snap.cop_combined_today = self._cop_today_cache
             snap.spf_state = self._spf_state_cache
@@ -2642,6 +2643,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "buh_step1_s": self._buh_step1_s,
             "buh_step2_s": self._buh_step2_s,
             "buh_total_s": self._buh_total_s,  # v1.22.7: wall-time
+            "buh_meter_kwh": self._buh_meter_kwh,  # #515
             "defrost_count": float(self._defrost_count_today),
             "defrost_duration_s": self._defrost_duration_s,
             "last_defrost_ts": self._last_defrost_ts,
@@ -2710,6 +2712,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._buh_step1_s = 0.0
             self._buh_step2_s = 0.0
             self._buh_total_s = 0.0  # v1.22.7
+            self._buh_meter_kwh = 0.0  # #515
             self._prev_defrost = False
             self._defrost_start_ts = None
             self._defrost_count_today = 0
@@ -2770,6 +2773,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                         "buh_total_s",
                         max(self._buh_step1_s, self._buh_step2_s),
                     ))
+                    self._buh_meter_kwh = float(existing.get("buh_meter_kwh", 0.0))
                     self._defrost_count_today = int(existing.get("defrost_count", 0))
                     self._defrost_duration_s = float(
                         existing.get("defrost_duration_s", 0.0)
@@ -2786,6 +2790,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     "buh_step1_s": self._buh_step1_s,
                     "buh_step2_s": self._buh_step2_s,
                     "buh_total_s": self._buh_total_s,  # v1.22.7
+                    "buh_meter_kwh": self._buh_meter_kwh,  # #515
                     "defrost_count": self._defrost_count_today,
                     "defrost_duration_s": self._defrost_duration_s,
                     "last_defrost_ts": self._last_defrost_ts,
@@ -2887,6 +2892,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "buh_total_s",
                 max(self._buh_step1_s, self._buh_step2_s),
             ))  # v1.22.7: wall-time counter; migration backfills via max()
+            self._buh_meter_kwh = float(payload.get("buh_meter_kwh", 0.0))  # #515
             self._defrost_count_today = int(payload.get("defrost_count", 0))
             self._defrost_duration_s = float(
                 payload.get("defrost_duration_s", 0.0)
@@ -2993,6 +2999,57 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         except Exception:
             _LOGGER.exception("energy_acc restore failed")
             return False
+
+    async def _refresh_db_views(self, now: float) -> None:
+        """#515: the database reads of a tick (COP today, heating curve,
+        hourly COP, degradation, SPF). Skipped while the accumulator write
+        still holds the database; each may hold the tick REFRESH_TICK_BUDGET_S,
+        a slower one finishes in the background (prod: 4-17 s ticks)."""
+        if self._db_write_pending():
+            self._tick_mark("db_busy")
+            return
+        for phase, fn in (
+            ("cop_today", self._refresh_cop_today),
+            ("stooklijn", self._maybe_refresh_stooklijn),
+            ("cop_hourly", self._maybe_refresh_cop_hourly),
+            ("cop_degradation", self._maybe_refresh_cop_degradation),
+            ("spf", self._maybe_refresh_spf),
+        ):
+            await self._bounded_refresh(phase, fn(now))
+            self._tick_mark(phase)
+
+    async def _bounded_refresh(self, name: str, coro: Coroutine[Any, Any, None]) -> None:
+        """Run one refresh; past the budget it goes on in the background and
+        the same refresh is not started again until it is done."""
+        tasks: dict[str, asyncio.Future[None]] | None = getattr(self, "_refresh_tasks", None)
+        if tasks is None:
+            tasks = {}
+            self._refresh_tasks = tasks
+        pending = tasks.get(name)
+        if pending is not None and not pending.done():
+            coro.close()
+            return
+        task = asyncio.ensure_future(coro)
+        tasks[name] = task
+        try:
+            await asyncio.wait_for(asyncio.shield(task), REFRESH_TICK_BUDGET_S)
+        except TimeoutError:
+            task.add_done_callback(_log_late_refresh)
+            _LOGGER.debug("%s slower than %.0fs; tick continues", name, REFRESH_TICK_BUDGET_S)
+
+    def _db_write_pending(self) -> bool:
+        """#515: the accumulator write still holds the database. After
+        DB_BUSY_MAX_SKIPS ticks in a row the refreshes run anyway."""
+        pending = getattr(self, "_persist_task", None)
+        if pending is None or pending.done():
+            self._db_busy_skips = 0
+            return False
+        skips = int(getattr(self, "_db_busy_skips", 0)) + 1
+        if skips > DB_BUSY_MAX_SKIPS:
+            self._db_busy_skips = 0
+            return False
+        self._db_busy_skips = skips
+        return True
 
     async def _persist_accumulators_bounded(self, now: float) -> None:
         """#423: the accumulator write may hold the tick PERSIST_TICK_BUDGET_S.
@@ -3206,6 +3263,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             # step1+step2 both ON. Fixes 2x inflation (60s per 30s wall-time).
             if step1_on or step2_on:
                 self._buh_total_s += dt_s
+            # #515: energy from the backup heater's own meter, when set
+            meter_w = getattr(self, "_last_buh_meter_w", None)
+            if getattr(self, "buh_power_sensor", None) and isinstance(meter_w, (int, float)) and meter_w > 0:
+                self._buh_meter_kwh += float(meter_w) * dt_s / 3_600_000.0
 
             defrost_raw = attrs.get(ATTR_DEFROST_OPERATION)
             if not _is_valid_state(defrost_raw):
@@ -4518,6 +4579,10 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             _iv = _ui.total_seconds() if _ui else 30.0
             _up = _t.monotonic() - getattr(self, '_uptime_start_monotonic', _t.monotonic())
             self._samples_expected_since_start = int(_up / _iv)
+            # #515: after a day the 24 h buffer no longer holds every sample
+            # since the start (prod: 26.5 % reported while 2878 / 2880)
+            if _up >= 86400:
+                self._samples_window_primed = True
         attrs = getattr(getattr(self, "data", None), "attrs", {}) or {}
         non_num: list[str] = []
         nulls: list[str] = []
@@ -6113,6 +6178,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             snap, "flow_lmin", "flow", ATTR_FLOW_SENSOR
         )
         avg_dur = self._last_duration_min()
+        # #515: the anomaly scores the run that just closed; its mode, not the
+        # live one (a heating run closed by a switch to hot water read "DHW")
+        ml_mode = mode_str
+        with contextlib.suppress(Exception):
+            _closed = self.store.last_cycle()
+            if isinstance(_closed, dict) and str(_closed.get("mode") or "") not in ("", "unknown"):
+                ml_mode = str(_closed["mode"])
 
         def _f(v: Any, digits: int = 1) -> str | None:
             if v is None:
@@ -6177,7 +6249,7 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                 "advice": advice_text,
             },
             "ml_anomaly": {
-                "mode": mode_str, "z_max": None, "top_dim": None,
+                "mode": ml_mode, "z_max": None, "top_dim": None,
                 "last_duration_min": avg_dur,
                 "avg_duration_7d_min": _ad,
                 "outdoor": _f(out_t), "advice": advice_text,

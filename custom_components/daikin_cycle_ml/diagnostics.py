@@ -445,9 +445,11 @@ def _sampling_snapshot(coord: Any) -> dict[str, Any]:  # DIAG-V1224B / A3a
     primed = bool(getattr(coord, "_samples_window_primed", False))
     last = getattr(coord, "_samples_last_24h", None)
     expected_since = getattr(coord, "_samples_expected_since_start", 0)
+    # #515: past a day the rate is the last 24 h against what 24 h expects
+    expected = getattr(coord, "_samples_expected_24h", None) if primed else expected_since
     rate_pct = (
-        round(last / expected_since * 100.0, 1)
-        if primed is False and expected_since > 0 and isinstance(last, int)
+        round(min(100.0, last / expected * 100.0), 1)
+        if isinstance(expected, int) and expected > 0 and isinstance(last, int)
         else None
     )
     return {

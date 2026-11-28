@@ -99,7 +99,9 @@
   ERRA12EAV3 (ELVX / ELVH / ELVZ / ELBH / ELBX / ELSX indoor units),
   with Daikin values: A7/W35 6.17 kW, COP 4.92, maximum 7.95 / 9.25 /
   9.97 kW, SCOP 4.79 / 4.79 / 4.82 (35 °C) and 3.37 / 3.38 / 3.47 (55 °C),
-  leaving water 15-65 °C, R-32 3.25 kg. ERRA08EAV37 and ERRA08EV3 resolve
+  leaving water 15-65 °C, R-32 3.25 kg; all seven EN 14511 points (A7 /
+  A2 / A-7 at W35, A7 / A-2 at W45, A7 / A-7 at W55) from Daikin's
+  ERRA08-12EV3 databook, shared by the reporter. ERRA08EAV37 and ERRA08EV3 resolve
   to it. Before, an ELVX12S23EJ6V unit was offered the EPRA sizes only.
 - The setup fills in the model from the unit code ESPAltherma reports
   (#522): the v2 entity `sensor.espaltherma_unit_model` (any prefix) or the
@@ -148,7 +150,47 @@
 - Reconfigure that changes the model or the source now renames the entry
   ("Daikin Cycle ML - model (source)"), unless you gave it a name of
   your own (#522: the entry kept the first model in its title).
+- Prod audit (#515) and two more installs' diagnostics:
+  - The ML anomaly alert named the live mode with the closed run's
+    duration ("Mode: DHW, Last run: 918 min" for a heating run closed by
+    the switch to hot water); it now names the scored run's mode.
+  - Ticks of 4-26 s: the database reads of a tick (COP today, heating
+    curve, hourly COP, degradation, SPF) waited behind the accumulator
+    write or each other. They are skipped while that write runs (at most
+    10 ticks), and each may hold the tick 2 s; a slower one finishes in
+    the background.
+  - Backup-heater energy came from step time x the model's 3 kW, ignoring
+    the backup-heater meter and the step powers set in Configure. It is
+    now read from the meter when one is set (`buh_energy_source:
+    power_meter`, kept per day across restarts), else step time x the
+    configured kW.
+  - The mode COP sensors (`cop_heating_*`, `cop_dhw_*`, `cop_cooling_*`)
+    no longer repeat every mode's `by_mode`; `cop_mean_*` leaves out the
+    `unknown` bucket (samples from before the mode was known; still in
+    the totals).
+  - COP vs datasheet read -48 % "critical" while making hot water: the
+    datasheet points are space-heating points, so the sensor and its band
+    are space heating only.
+  - Diagnostics `sampling.sample_rate_pct` fell after the first day (26.5 %
+    reported for 2878 of 2880 samples): past a day it is the last 24 h
+    against what 24 h expects.
+  - The backup heater alone opened a 2 min "hot-water run" at 0 rps when
+    the power meter also carries the heater (one P1 phase): power is no
+    longer compressor evidence while the unit reports its speed at or
+    below the threshold and a backup-heater step is on.
+- Docs: native card "Custom element doesn't exist" in the dashboard and
+  troubleshooting tables (the integration must be set up; Companion App
+  frontend cache) (#356); ENTITIES: what `cycles_today`, `runs`, native
+  starts, `cop_today` and `cop_mean_*` count.
+
 ### Tests
+- `test_515_prod1_audit.py`: three new corpus files (prod-1 EPRA12EAV3
+  v1.31.0; ERLA11DAV3 monolithic after 3.8 days; ERGA08EVH7 v2 with the
+  backup heater on the power meter, #514): mode COP attributes, backup
+  heater energy from meter and configured kW, the ML anomaly mode,
+  database refreshes skipped / bounded / finishing in the background, the
+  24 h sample rate, COP vs datasheet in hot water, the heater-only run;
+  every test fails on the old code.
 - `test_510_v2_stats_unit.py`: a real v2 entry with the Stats electrical
   input in W and heat in kW gives COP 3.88 and 1780 W; kW, MW, Wh and °F
   conversions; fails on the old code (1,780,000 W).

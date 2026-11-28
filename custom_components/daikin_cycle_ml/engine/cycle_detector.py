@@ -156,7 +156,11 @@ def detect_compressor_on(
     rps = _safe_float(attrs.get(ATTR_INV_FREQUENCY_RPS))
     if rps is not None and rps > rps_thr:
         return True
-    if power_w is not None and power_w > pwr_thr:
+    # #514: power is evidence only while the unit's speed is unknown, or no
+    # backup heater runs: a meter that carries the backup heater (P1 phase)
+    # read 3 kW at a valid 0 rps and opened a 2 min "hot-water run"
+    buh_on = _is_on(attrs, ATTR_BUH_STEP1) or _is_on(attrs, ATTR_BUH_STEP2)
+    if power_w is not None and power_w > pwr_thr and not (rps is not None and buh_on):
         return True
     flow = _safe_float(attrs.get(ATTR_FLOW_SENSOR))
     cop = _safe_float(attrs.get(ATTR_COP))

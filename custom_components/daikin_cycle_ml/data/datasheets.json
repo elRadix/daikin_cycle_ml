@@ -2080,12 +2080,54 @@
           "t_lwc": 35,
           "cop": 4.92,
           "hc": 6.17
+        },
+        {
+          "label": "A2/W35",
+          "t_out": 2,
+          "t_lwc": 35,
+          "cop": 4.08,
+          "hc": 5.74
+        },
+        {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 3.04,
+          "hc": 7.49
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.57,
+          "hc": 7.73
+        },
+        {
+          "label": "A-2/W45",
+          "t_out": -2,
+          "t_lwc": 45,
+          "cop": 2.83,
+          "hc": 8.58
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.94,
+          "hc": 7.72
+        },
+        {
+          "label": "A-7/W55",
+          "t_out": -7,
+          "t_lwc": 55,
+          "cop": 2.05,
+          "hc": 7.55
         }
       ],
       "hc_max_a7": 7.95,
       "max_input_kw": 1.69,
       "power_supply": "1~ 230V",
-      "ref": "Daikin CE catalogue 'Daikin Altherma 3 R MT' ELVX-E6V/9W + ERRA08-12EV3 (EN14825 SCOP average climate, operation range, refrigerant) + daikin.eu product table ELBH-E6V / ERRA08-12EV3 (EN14511 Ta 7/6 C LWC 35 C nominal; min / max capacity and power input at Ta 7 C). SCOP depends on the indoor unit: ELVX values (ELBH reads 4.69-4.71 / 3.34-3.44)",
+      "ref": "Daikin Europe databook ERRA08-12EV3 (Systeme Daikin Altherma split temperature moyenne), section 4-1 'Donnees nominales pour les programmes de certification - mode de chauffage' (EN 14511, Keymark): all points; max capacity / max power input at Ta 7 C from the same databook and daikin.eu ELBH / ERRA08-12EV3; SCOP EN14825 average climate for the X indoor units (ELBX / ELVX: 4.79-4.82 / 3.37-3.47; ELBH / ELVH read 4.69-4.71 / 3.34-3.44); Daikin CE catalogue 'Daikin Altherma 3 R MT' for operation range and refrigerant",
       "verified": true
     },
     "erra10eav3": {
@@ -2106,12 +2148,54 @@
           "t_lwc": 35,
           "cop": 4.92,
           "hc": 6.17
+        },
+        {
+          "label": "A2/W35",
+          "t_out": 2,
+          "t_lwc": 35,
+          "cop": 4.08,
+          "hc": 5.74
+        },
+        {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 3.04,
+          "hc": 7.49
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.57,
+          "hc": 7.73
+        },
+        {
+          "label": "A-2/W45",
+          "t_out": -2,
+          "t_lwc": 45,
+          "cop": 2.59,
+          "hc": 8.66
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.94,
+          "hc": 7.72
+        },
+        {
+          "label": "A-7/W55",
+          "t_out": -7,
+          "t_lwc": 55,
+          "cop": 2.11,
+          "hc": 9.02
         }
       ],
       "hc_max_a7": 9.25,
       "max_input_kw": 2.04,
       "power_supply": "1~ 230V",
-      "ref": "Daikin CE catalogue 'Daikin Altherma 3 R MT' ELVX-E6V/9W + ERRA08-12EV3 (EN14825 SCOP average climate, operation range, refrigerant) + daikin.eu product table ELBH-E6V / ERRA08-12EV3 (EN14511 Ta 7/6 C LWC 35 C nominal; min / max capacity and power input at Ta 7 C). SCOP depends on the indoor unit: ELVX values (ELBH reads 4.69-4.71 / 3.34-3.44)",
+      "ref": "Daikin Europe databook ERRA08-12EV3 (Systeme Daikin Altherma split temperature moyenne), section 4-1 'Donnees nominales pour les programmes de certification - mode de chauffage' (EN 14511, Keymark): all points; max capacity / max power input at Ta 7 C from the same databook and daikin.eu ELBH / ERRA08-12EV3; SCOP EN14825 average climate for the X indoor units (ELBX / ELVX: 4.79-4.82 / 3.37-3.47; ELBH / ELVH read 4.69-4.71 / 3.34-3.44); Daikin CE catalogue 'Daikin Altherma 3 R MT' for operation range and refrigerant",
       "verified": true
     },
     "erra12eav3": {
@@ -2132,12 +2216,54 @@
           "t_lwc": 35,
           "cop": 4.92,
           "hc": 6.17
+        },
+        {
+          "label": "A2/W35",
+          "t_out": 2,
+          "t_lwc": 35,
+          "cop": 4.08,
+          "hc": 5.74
+        },
+        {
+          "label": "A-7/W35",
+          "t_out": -7,
+          "t_lwc": 35,
+          "cop": 3.04,
+          "hc": 7.49
+        },
+        {
+          "label": "A7/W45",
+          "t_out": 7,
+          "t_lwc": 45,
+          "cop": 3.57,
+          "hc": 7.73
+        },
+        {
+          "label": "A-2/W45",
+          "t_out": -2,
+          "t_lwc": 45,
+          "cop": 2.54,
+          "hc": 9.36
+        },
+        {
+          "label": "A7/W55",
+          "t_out": 7,
+          "t_lwc": 55,
+          "cop": 2.94,
+          "hc": 7.72
+        },
+        {
+          "label": "A-7/W55",
+          "t_out": -7,
+          "t_lwc": 55,
+          "cop": 2.11,
+          "hc": 9.02
         }
       ],
       "hc_max_a7": 9.97,
       "max_input_kw": 2.28,
       "power_supply": "1~ 230V",
-      "ref": "Daikin CE catalogue 'Daikin Altherma 3 R MT' ELVX-E6V/9W + ERRA08-12EV3 (EN14825 SCOP average climate, operation range, refrigerant) + daikin.eu product table ELBH-E6V / ERRA08-12EV3 (EN14511 Ta 7/6 C LWC 35 C nominal; min / max capacity and power input at Ta 7 C). SCOP depends on the indoor unit: ELVX values (ELBH reads 4.69-4.71 / 3.34-3.44)",
+      "ref": "Daikin Europe databook ERRA08-12EV3 (Systeme Daikin Altherma split temperature moyenne), section 4-1 'Donnees nominales pour les programmes de certification - mode de chauffage' (EN 14511, Keymark): all points; max capacity / max power input at Ta 7 C from the same databook and daikin.eu ELBH / ERRA08-12EV3; SCOP EN14825 average climate for the X indoor units (ELBX / ELVX: 4.79-4.82 / 3.37-3.47; ELBH / ELVH read 4.69-4.71 / 3.34-3.44); Daikin CE catalogue 'Daikin Altherma 3 R MT' for operation range and refrigerant",
       "verified": true
     }
   }

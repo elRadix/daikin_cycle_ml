@@ -43,7 +43,7 @@ Entity ids are shown for an English install
 | `cycle_state` | | `idle` or `running` |
 | `current_cycle` | | The run in progress: mode, start, duration, live score |
 | `last_cycle` | score | Quality (0-100) of the last closed cycle; attributes below |
-| `cycles_today` | | Cycles started today |
+| `cycles_today` | | Cycles started today, short transient runs included (`non_transient_cycles_today` without them). The daily summary's `runs` also counts a run carried over from yesterday; `compressor_starts_today` (native) counts every start the unit reports, restarts inside a run included |
 | `quality_today` | score | Mean quality of today's cycles |
 | `compressor_starts_today` | | Compressor starts today |
 | `learned_thresholds` | min | The short-run threshold in use (learned, never below half the configured value); attributes `short_run_learned_min`, `good_off_min`, `target_cycles_per_day` |
@@ -61,7 +61,7 @@ Entity ids are shown for an English install
 | Key | Unit | Meaning |
 |---|---|---|
 | `runtime_compressor_today` | s | Compressor runtime |
-| `runtime_buh_today` | s | Backup-heater runtime |
+| `runtime_buh_today` | s | Backup-heater runtime. `buh_energy_kwh_est`: from the backup-heater meter when one is set (`buh_energy_source: power_meter`), else step time × the step powers in Configure (`computed`) |
 | `defrost_count_today` | | Defrosts |
 | `defrost_duration_today` | s | Time in defrost |
 | `duty_cycle_today` | % | Share of the day the compressor ran |
@@ -86,10 +86,10 @@ Energy dashboard reads them directly.
 
 | Key | Unit | Meaning |
 |---|---|---|
-| `cop_today` | COP | Heating COP today |
+| `cop_today` | COP | Heating COP today, from every COP sample since midnight |
 | `cop_combined_today` | COP | Heating, hot water and cooling together today |
-| `cop_mean_day`, `cop_mean_week`, `cop_mean_month` | COP | Mean COP over 24 h, 7 and 30 days |
-| `cop_heating_day` / `_week` / `_month` | COP | Heating COP per period |
+| `cop_mean_day`, `cop_mean_week`, `cop_mean_month` | COP | Mean COP over 24 h, 7 and 30 days, from the hourly table (incomplete and outlier hours left out, so the counts differ from `cop_today`); `by_mode` per mode |
+| `cop_heating_day` / `_week` / `_month` | COP | Heating COP per period (own mode only) |
 | `cop_dhw_day` / `_week` / `_month` | COP | Hot-water COP per period |
 | `cop_cooling_day` / `_week` / `_month` | COP | Cooling COP per period |
 | `cop_curve_recent` | | Hourly COP points of the last 48 h (attribute `points`) |

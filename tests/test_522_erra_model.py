@@ -57,7 +57,15 @@ def test_erra_is_a_full_model(key):
     assert ds["verified"] is True and "Daikin" in ds["ref"]
     assert (ds["refrigerant"], ds["gwp"], ds["charge_kg"]) == ("R32", 675, 3.25)
     assert (ds["lwt_min"], ds["lwt_max"]) == (15, 65)
-    a7 = ds["points"] == [{"label": "A7/W35", "t_out": 7, "t_lwc": 35, "cop": 4.92, "hc": 6.17}]
+    pts = {p["label"]: (p["cop"], p["hc"]) for p in ds["points"]}
+    # Daikin databook ERRA08-12EV3 section 4-1 (EN 14511, Keymark)
+    a7 = pts["A7/W35"] == (4.92, 6.17) and pts["A7/W55"] == (2.94, 7.72) and len(pts) == 7
+    assert pts["A2/W35"] == (4.08, 5.74) and pts["A-7/W35"] == (3.04, 7.49) and pts["A7/W45"] == (3.57, 7.73)
+    assert (pts["A-2/W45"], pts["A-7/W55"]) == {
+        "erra08eav3": ((2.83, 8.58), (2.05, 7.55)),
+        "erra10eav3": ((2.59, 8.66), (2.11, 9.02)),
+        "erra12eav3": ((2.54, 9.36), (2.11, 9.02)),
+    }[key]
     assert a7 and ds["nom_cop"] == 4.92
     assert MODEL_ALIASES[key.replace("eav3", "ev3")] == key
 

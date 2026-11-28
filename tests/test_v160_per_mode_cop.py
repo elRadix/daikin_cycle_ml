@@ -66,7 +66,8 @@ def test_attrs_all_fields(period, mode):
     a = _attrs_cop_hourly_mode(mode, period)(snap, _coord())
     assert a["period"] == period and a["mode"] == mode
     assert a["n_hours"] == 8 and a["cop_mean"] == 4.2
-    assert a["by_mode"] == {mode: bm}
+    # #515: a mode's own sensor no longer repeats every mode's breakdown
+    assert "by_mode" not in a
 
 
 def test_attrs_missing_mode():
@@ -77,7 +78,7 @@ def test_attrs_missing_mode():
 
 def test_attrs_empty():
     a = _attrs_cop_hourly_mode("dhw", "day")(_snap(), _coord())
-    assert a["by_mode"] == {} and a["cop_mean"] is None
+    assert "by_mode" not in a and a["cop_mean"] is None  # #515
 
 
 def test_sensor_defs_has_all_9_keys():
