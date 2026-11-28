@@ -60,7 +60,7 @@ One row per compressor run (or run segment).
 
 ### 2.3 `cop_samples`
 
-One row per COP sample, every 10 minutes while the compressor runs.
+One row per COP sample, every 5 minutes while the compressor runs.
 
 | Column | Meaning |
 |---|---|
@@ -100,6 +100,55 @@ sent, pruned after `alert_retention_days`.
 `key`, `value_json`, `updated_ts`: learned models, accumulators and
 migration markers ([§3](#3-model_state-keys)).
 
+### 2.8 `daily_stats`
+
+The period reports ([#508](https://github.com/elRadix/daikin_cycle_ml/issues/508)),
+one row per local day and mode (`heating`, `dhw`, `cooling`, plus `all` for
+the whole day). Primary key `(day, mode)`; `data_json` holds the day's
+figures, `checks` the checks it failed (comma separated), `finalised` is
+set two days after the day ended. **Kept forever**: maintenance never
+prunes it.
+
+- Per mode: electrical and heat energy and the COP, runtime, starts, runs
+  (mean / longest / shortest), quality, ΔT, compressor speed, backup-heater
+  and defrost cycles, leaving / return water, flow, outdoor temperature
+  while running, and the COP-sample estimates of heat and power.
+- `all`: the sums of the modes, the COP of the modes that passed their
+  checks, duty cycle, whole-day outdoor mean / min / max (and where it came
+  from: `all_day` or `running_hours` for days from before the accumulator
+  existed), degree days in every scheme, backup-heater minutes, defrosts,
+  alerts per type, ML anomalies and data coverage.
+
+The checks:
+
+| Check | Fails when | Day's COP used |
+|---|---|---|
+| `no_energy` | more than 10 min runtime with under 0.05 kWh electrical | no |
+| `cop_out_of_range` | COP below 1, or above 0.65 × Carnot × 1.05 at the day's outdoor and water temperature | no |
+| `heat_mismatch` / `power_mismatch` | the COP samples cover 70 % of the runtime and their heat / power differs more than 15 % from the meter | no |
+| `outlier` | COP more than 3 MAD from the median of 30+ earlier days in the same 2 K outdoor band | no |
+| `runtime_bounds` | runtime longer than the day | yes |
+| `low_coverage` | source data for less than 80 % of the day | yes |
+| `clock` | the day is not 23, 24 or 25 h long | yes |
+
+Degree-day schemes (`degree_days`): `nl18` and `nl18w` (Netherlands, base
+18 °C, weighted ×1.1 November-February and ×0.8 April-September),
+`be1515` and `be165` (Belgium, equivalent temperature 0.6 · today + 0.3 ·
+yesterday + 0.1 · the day before, base 15 °C or 16.5 °C), `fr18`, `fr17`,
+`fr15` (France, (Tmin + Tmax) / 2) and `cdd18` (cooling).
+
+### 2.9 `period_reports`
+
+Weeks (ISO, Monday to Sunday, key `2026-W48`), months (`2026-11`), years
+(`2026`) and heating seasons (`2026/27`, from `season_start_month`), per
+mode and `all`. Primary key `(period_type, period_key, mode)`, with
+`first_day`, `last_day`, `data_json` and `finalised` (once the period has
+ended and all its days are final). Energy, COP over the valid days only,
+runtime-weighted temperatures and flow, cycle-weighted quality, outdoor
+mean / min / max, degree-day sums, events, `n_days` / `n_days_recorded` /
+`n_days_data` / `n_days_valid` and the number of days per failed check.
+**Kept forever.**
+
 ## 3. model_state keys
 
 | Key | Contents |
@@ -110,11 +159,12 @@ migration markers ([§3](#3-model_state-keys)).
 | `ml_version` | ML version the models were built with |
 | `thermal_daily_baseline` | Energy-anomaly baseline per mode |
 | `cycle_detector_state` | The run in progress, restored on start |
-| `runtime_acc.<day>` | Today's runtime, starts, backup-heater minutes, defrosts |
+| `runtime_acc.<day>` | Today's runtime, starts, backup-heater minutes, defrosts, whole-day outdoor temperature and data coverage |
 | `energy_acc.<day>` | Today's electrical and thermal energy per mode |
 | `spf_state` | Season / year SPF cache |
 | `rps_learned`, `hmax_learned` | Learned compressor range and maximum heat |
 | `last_maintenance_ts` | Last maintenance run |
+| `reports_state` | Last period-reports build (days, periods, last final day) |
 | `data_migration_*` | One marker per data migration ([§5](#5-migrations)) |
 
 ## 4. Retention and maintenance
@@ -123,9 +173,12 @@ Daily at 03:00 (when `retention_enabled` is on, Configure → Advanced):
 
 1. cycles older than `cycle_retention_days` (90) are rolled up into
    `daily_summary` and removed, with their features;
-2. alerts older than `alert_retention_days` (30) are removed;
+2. alerts older than `alert_retention_days` (90) are removed;
 3. old `runtime_acc` / `energy_acc` days are pruned;
-4. VACUUM when `vacuum_enabled` is on.
+4. VACUUM when `vacuum_enabled` is on;
+5. after maintenance (also with retention off), the period reports are
+   built for the days since the last build. `daily_stats` and
+   `period_reports` are never pruned.
 
 `daikin_cycle_ml.run_maintenance` runs it now. `db_retention_warning` fires
 when more than 100 rows are past their retention (maintenance not running).
@@ -212,7 +265,7 @@ FROM cop_hourly WHERE ts_hour >= strftime('%s', 'now', 'start of day') ORDER BY 
 
 - **Size:** typically 10-40 MB after a year with the default retention;
   `cop_samples` is the largest table.
-- **Writes:** a COP sample every 10 minutes while running, a cycle row on
+- **Writes:** a COP sample every 5 minutes while running, a cycle row on
   close, the accumulators every 15 minutes and on change of day.
 - **Reads:** the cards and sensors read cached values; heavy queries run
   on a schedule, not every tick.
