@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added
+- Building data per day, part 1 of the heat-loss tracker (#495): the day
+  report now also holds the room temperature (time-weighted, with its
+  drift and source: your room sensor, else the unit's own reading), the
+  space heat as signed flow x dT (a defrost counts negative; hot water,
+  cooling and boiler time left out) and the sun (hours at full height, from
+  Home Assistant's `sun`). All from values the integration already reads;
+  diagnostics `period_reports.building_day_last7`.
+
+### Tests
+- `test_495_building_day.py`: signed flow x dT (defrost, R1T fallback, hot
+  water / cooling / bad readings left out), room source and drift, sun
+  hours, persistence across a restart, the day row and diagnostics.
+
 ## [1.32.0] - 2026-11-28
 
 ### Added
