@@ -20,7 +20,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-EXPECTED_MODEL_COUNT = 40
+EXPECTED_MODEL_COUNT = 41  # #511: HT protocols I and S (beta dcf3b48)
 
 # Attributes that LOOK canonical but are not. Mirrors DECOYS in
 # tests/test_model_compat.py.

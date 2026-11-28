@@ -17,6 +17,14 @@
   `building_reconstructed`; days with live values are left alone. Runs once
   (marker `data_migration_building_v1_completed`).
 
+### Changed
+- ESPAltherma pin moved from beta 3548ea2 to dcf3b48 (#511): the v1
+  definitions and the v2 catalog snapshot are regenerated. New upstream
+  definition *Altherma HT EKHBRD-ERRQ 11-16 kW, protocols I and S* (both
+  HT protocols in one pass): the same labels as the two HT variants, with
+  the same documented gaps. New v2 name `Boiler water pressure (bar)` (not
+  read by the integration). No name the integration reads was removed.
+
 ### Tests
 - `test_495_building_day.py`: signed flow x dT (defrost, R1T fallback, hot
   water / cooling / bad readings left out), room source and drift, sun

@@ -48,6 +48,7 @@ ALL_KEYS = {make_json_key(n) for n in tool.all_names(CATALOG)}
 KNOWN_GAPS = frozenset({
     "Altherma(HT EKHBRD-ERRQ series 11-16kW)",
     "Altherma(HT EKHBRD-ERRQ series 11-16kW protocol S)",
+    "Altherma(HT EKHBRD-ERRQ series 11-16kW protocols I and S)",  # #511
     "Altherma(HT ERRQ-ERSQ outdoor unit 11-16kW)",
     "PROTOCOL_S",
     "PROTOCOL_S_ROTEX",
