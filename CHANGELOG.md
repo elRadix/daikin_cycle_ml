@@ -99,9 +99,9 @@
   ERRA12EAV3 (ELVX / ELVH / ELVZ / ELBH / ELBX / ELSX indoor units),
   with Daikin values: A7/W35 6.17 kW, COP 4.92, maximum 7.95 / 9.25 /
   9.97 kW, SCOP 4.79 / 4.79 / 4.82 (35 °C) and 3.37 / 3.38 / 3.47 (55 °C),
-  leaving water 15-65 °C, R-32 3.25 kg; A7/W55 7.72 kW, COP 2.94 (Daikin
-  Keymark point of the platform, confirmed by the reporter's EN 14511
-  table). ERRA08EAV37 and ERRA08EV3 resolve
+  leaving water 15-65 °C, R-32 3.25 kg; all seven EN 14511 points (A7 /
+  A2 / A-7 at W35, A7 / A-2 at W45, A7 / A-7 at W55) from Daikin's
+  ERRA08-12EV3 databook, shared by the reporter. ERRA08EAV37 and ERRA08EV3 resolve
   to it. Before, an ELVX12S23EJ6V unit was offered the EPRA sizes only.
 - The setup fills in the model from the unit code ESPAltherma reports
   (#522): the v2 entity `sensor.espaltherma_unit_model` (any prefix) or the
