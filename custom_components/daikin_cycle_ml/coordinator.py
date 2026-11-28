@@ -136,7 +136,6 @@ from .engine.cop_degradation import (
     analyze_trend,
     build_dirty_hours,
 )
-from .engine import building_day as _building_day
 from .engine.cycle_detector import CycleDetector
 from .engine.espaltherma_v2.resolver import resolve_attrs
 from .engine.model_datasheets import (
@@ -1073,7 +1072,6 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._last_defrost_ts: float = 0.0
         self._last_runtime_tick_ts: float = 0.0
         self._outdoor_sum: float = 0.0  # #508
-        self._building_acc: dict[str, Any] = _building_day.new_acc()  # #495
         self._outdoor_s: float = 0.0
         self._outdoor_min: float | None = None
         self._outdoor_max: float | None = None
@@ -2721,7 +2719,6 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             self._defrost_duration_s = 0.0
             self._defrost_prior_s = None  # v1.20.0 #280
             self._outdoor_sum = 0.0  # #508
-            self._building_acc = _building_day.new_acc()  # #495
             self._outdoor_s = 0.0
             self._outdoor_min = None
             self._outdoor_max = None
@@ -3146,39 +3143,13 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if not attrs:
             return
         self._source_fresh_s += dt_s
-        view = build_compat_view(attrs)
-        self._tick_building(view, dt_s)  # #495
-        t_out = _safe_float_opt(view.get(ATTR_OUTDOOR_AIR_R1T))
+        t_out = _safe_float_opt(build_compat_view(attrs).get(ATTR_OUTDOOR_AIR_R1T))
         if t_out is None or not -50.0 <= t_out <= 60.0:
             return
         self._outdoor_sum += t_out * dt_s
         self._outdoor_s += dt_s
         self._outdoor_min = t_out if self._outdoor_min is None else min(self._outdoor_min, t_out)
         self._outdoor_max = t_out if self._outdoor_max is None else max(self._outdoor_max, t_out)
-
-    def _tick_building(self, view: Mapping[str, Any], dt_s: float) -> None:
-        """#495: room, signed space heat and sun for the building's day row,
-        from what the integration already reads: the configured room sensor
-        (else the indoor unit's own reading), the source values and ``sun.sun``."""
-        hass = getattr(self, "hass", None)
-        indoor: float | None = None
-        src: str | None = None
-        ent = getattr(self, "indoor_temp_entity", None)
-        if ent and hass is not None:
-            indoor = _safe_float_opt(getattr(hass.states.get(ent), "state", None))
-            src = "sensor" if indoor is not None else None
-        if indoor is None:
-            indoor = _safe_float_opt(view.get(ATTR_INDOOR_AMBIENT_R1T))
-            src = "controller" if indoor is not None else None
-        sun = hass.states.get("sun.sun") if hass is not None else None
-        elev = (getattr(sun, "attributes", None) or {}).get("elevation")
-        snap = getattr(self, "data", None)
-        boiler = bool(getattr(snap, "boiler_heat_active", False)) and _boiler_signals_trusted(snap)
-        acc = getattr(self, "_building_acc", None)
-        if acc is None:
-            acc = self._building_acc = _building_day.new_acc()
-        _building_day.tick(acc, view, dt_s=dt_s, indoor=indoor, indoor_src=src,
-                           sun_elevation=elev, boiler=boiler)
 
     def _report_acc_payload(self) -> dict[str, Any]:
         return {
@@ -3187,7 +3158,6 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
             "outdoor_min": self._outdoor_min,
             "outdoor_max": self._outdoor_max,
             "source_fresh_s": self._source_fresh_s,
-            "building": dict(getattr(self, "_building_acc", None) or _building_day.new_acc()),  # #495
         }
 
     def _restore_report_acc(self, payload: Mapping[str, Any]) -> None:
@@ -3196,7 +3166,6 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self._outdoor_min = _safe_float_opt(payload.get("outdoor_min"))
         self._outdoor_max = _safe_float_opt(payload.get("outdoor_max"))
         self._source_fresh_s = float(payload.get("source_fresh_s") or 0.0)
-        self._building_acc = _building_day.restore(payload)  # #495
 
     async def async_build_reports(self, full: bool = False) -> dict[str, Any] | None:
         """#508: build the day / week / month / year / season reports. Never raises."""

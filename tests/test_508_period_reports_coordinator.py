@@ -57,8 +57,7 @@ def test_day_reset_clears_report_accumulators():
     c._runtime_day_key = "2000-01-01"
     c._maybe_reset_daily_accumulators(time.time())
     assert c._report_acc_payload() == {"outdoor_sum": 0.0, "outdoor_s": 0.0, "outdoor_min": None,
-                                       "outdoor_max": None, "source_fresh_s": 0.0,
-                                       "building": coord_mod._building_day.new_acc()}  # #495
+                                       "outdoor_max": None, "source_fresh_s": 0.0}
 
 
 async def test_persist_and_restore_report_accumulators(tmp_path):
@@ -91,8 +90,7 @@ def test_restore_old_payload_without_report_keys():
     c = _coord()
     c._restore_report_acc({"buh_step1_s": 1.0, "outdoor_min": "bad"})
     assert c._report_acc_payload() == {"outdoor_sum": 0.0, "outdoor_s": 0.0, "outdoor_min": None,
-                                       "outdoor_max": None, "source_fresh_s": 0.0,
-                                       "building": coord_mod._building_day.new_acc()}  # #495
+                                       "outdoor_max": None, "source_fresh_s": 0.0}
 
 
 @pytest.mark.parametrize(("opts", "month"), [
