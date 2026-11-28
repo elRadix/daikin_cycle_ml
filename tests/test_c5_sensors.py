@@ -429,13 +429,20 @@ def test_idle_state_cop_none() -> None:
     assert _value_cop_vs_datasheet_pct(s, None) is None
 
 
-def test_idle_state_cop_today_none() -> None:
-    """cop_today should be None when state is idle."""
+def test_idle_state_cop_today_keeps_the_day_value() -> None:
+    """#523: cop_today is the day's COP: it stays while idle.
+
+    Contract changed: #285 (#310) blanked it with the live values when the
+    compressor stopped, so "COP heating today" read unknown between runs
+    (reported with 50 samples, COP 2.83). Live values still blank (above).
+    """
     from custom_components.daikin_cycle_ml.sensor import SENSOR_DEFS
 
     s = _mk_snap(state="idle")
     s.cop_today = {"cop": 6.55}
     fn = next(d["value_fn"] for d in SENSOR_DEFS if d["key"] == "cop_today")
+    assert fn(s, None) == 6.55
+    s.cop_today = None
     assert fn(s, None) is None
 
 

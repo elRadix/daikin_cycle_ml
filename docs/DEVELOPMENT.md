@@ -174,7 +174,7 @@ claimed rules in the code (see 8.5).
 |---|---|---|
 | `devices` | ✅ | Single device per config entry |
 | `diagnostics` | ✅ | Full diagnostics download, redacted |
-| `repair-issues` | ✅ | 11 repair issues |
+| `repair-issues` | ✅ | 12 repair issues |
 | `entity-translations` | ✅ | EN / NL / FR for all entities |
 | `exception-translations` | ✅ | Every raised error has `translation_domain` + `translation_key`; `exceptions` in `strings.json` and EN / NL / FR |
 | `icon-translations` | ✅ | `icons.json` next to `manifest.json`: every entity icon and the 14 service icons; no icon is set in code |

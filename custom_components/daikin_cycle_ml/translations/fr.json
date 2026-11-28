@@ -211,7 +211,7 @@
             },
             "user": {
                 "title": "Daikin Cycle ML — famille de modèle",
-                "description": "Choisir la famille de votre Daikin Altherma : c'est le début de la référence du groupe extérieur (ex. ERGA, EPRA, EKHBRD). Le modèle exact se choisit à l'écran suivant.\n\n- **Profil de base** : réglages sûrs quand le modèle exact est inconnu.\n- **Personnalisé** : vous fournissez vos propres caractéristiques.\n\n**Vous ne connaissez que l'unité intérieure ?** Saisissez sa référence (plaque signalétique ou application Daikin, ex. EHBX08EF6V) dans le champ famille. Si elle est vendue avec plusieurs groupes extérieurs, l'écran suivant ne propose que ceux-là.\n\n**Détecté :** entité unique = {mono_found}, entités ESPAltherma v2 = {v2_count}, valeurs d'un pont P1/P2 = {p1p2_count}.\n**Type de source conseillé :** `{suggestion}`.",
+                "description": "Choisir la famille de votre Daikin Altherma : c'est le début de la référence du groupe extérieur (ex. ERGA, EPRA, EKHBRD). Le modèle exact se choisit à l'écran suivant.\n\n- **Profil de base** : réglages sûrs quand le modèle exact est inconnu.\n- **Personnalisé** : vous fournissez vos propres caractéristiques.\n\n**Vous ne connaissez que l'unité intérieure ?** Saisissez sa référence (plaque signalétique ou application Daikin, ex. EHBX08EF6V) dans le champ famille. Si elle est vendue avec plusieurs groupes extérieurs, l'écran suivant ne propose que ceux-là.\n\n**Détecté :** entité unique = {mono_found}, entités ESPAltherma v2 = {v2_count}, valeurs d'un pont P1/P2 = {p1p2_count}.\n**Type de source conseillé :** `{suggestion}`.\n**Modèle signalé par ESPAltherma :** `{unit_model}` (rempli ci-dessus).",
                 "data": {
                     "family": "Famille de modèle",
                     "source_type": "Source des données"
@@ -1009,6 +1009,10 @@
         "dhw_missing_suspect": {
             "title": "Ballon ECS non détecté",
             "description": "Cycle ML n'a pas détecté de ballon ECS, mais des cycles ECS historiques existent dans la base de données. Si vous n'avez pas de ballon ECS (par exemple, Bivalent Direct), vous pouvez ignorer cet avertissement en toute sécurité. Si vous en avez un, vérifiez la configuration de votre capteur ESPAltherma, ou réglez « Ballon d'eau chaude » sur « always » dans Configurer → Avancé."
+        },
+        "model_mismatch": {
+            "title": "Le modèle de la pompe à chaleur ne correspond pas à votre unité",
+            "description": "ESPAltherma signale l'unité **{unit_model}**, mais Daikin Cycle ML est configuré en **{configured}**. Les valeurs de la fiche technique (COP, chaleur maximale, limites) et les conseils suivent le modèle configuré.\n\nModèles qui correspondent à votre unité : **{candidates}**.\n\nPour corriger : Paramètres → Appareils et services → Daikin Cycle ML → ⋮ → **Reconfigurer**, puis choisissez le modèle. Votre historique est conservé. Ce message disparaît de lui-même dès que le modèle correspond."
         }
     },
     "services": {

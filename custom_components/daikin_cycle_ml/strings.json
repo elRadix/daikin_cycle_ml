@@ -236,7 +236,7 @@
           "family": "Pick the family of your outdoor unit (ERGA, EPRA, ...), or type the model code you know: the indoor unit (e.g. EHBX08EF6V), the outdoor unit (e.g. ERGA06EAV3) or both.",
           "source_type": "How ESPAltherma publishes data to Home Assistant. Choose Monolithic if you use the classic single sensor entity, or Individual if you use ESPAltherma v2 beta (many separate entities). Auto detects at runtime. With the P1/P2 MQTT bridge (no ESPAltherma), choose P1/P2 MQTT bridge."
         },
-        "description": "Select the model family of your Daikin Altherma unit. The family is the prefix of the outdoor unit model code (e.g. ERGA, EPRA, EKHBRD). You will pick the exact model on the next screen.\n\n- **Basic profile**: safe defaults when the exact model is unknown.\n- **Custom**: supply your own attribute map.\n\n**Only know your indoor unit?** Type its code (on the unit's label or in the Daikin app, e.g. EHBX08EF6V) in the family field. If it is sold with several outdoor sizes, the next screen lists only those.\n\n**Detected:** monolithic entity = {mono_found}, ESPAltherma v2 entities = {v2_count}, P1/P2 bridge values = {p1p2_count}.\n**Suggested source type:** `{suggestion}`.",
+        "description": "Select the model family of your Daikin Altherma unit. The family is the prefix of the outdoor unit model code (e.g. ERGA, EPRA, EKHBRD). You will pick the exact model on the next screen.\n\n- **Basic profile**: safe defaults when the exact model is unknown.\n- **Custom**: supply your own attribute map.\n\n**Only know your indoor unit?** Type its code (on the unit's label or in the Daikin app, e.g. EHBX08EF6V) in the family field. If it is sold with several outdoor sizes, the next screen lists only those.\n\n**Detected:** monolithic entity = {mono_found}, ESPAltherma v2 entities = {v2_count}, P1/P2 bridge values = {p1p2_count}.\n**Suggested source type:** `{suggestion}`.\n**Unit model reported by ESPAltherma:** `{unit_model}` (filled in above).",
         "title": "Daikin Cycle ML - select model family"
       },
       "individual_prefix": {
@@ -573,6 +573,10 @@
     "dhw_missing_suspect": {
       "title": "DHW tank not detected",
       "description": "Cycle ML has not detected a DHW tank, but historical DHW cycles exist in the database. If you do not have a DHW tank (e.g., Bivalent Direct), you can safely ignore this. If you do have one, verify your ESPAltherma sensor configuration, or set 'Hot-water tank' to 'always' in Configure → Advanced."
+    },
+    "model_mismatch": {
+      "title": "Heat pump model does not match your unit",
+      "description": "ESPAltherma reports the unit **{unit_model}**, but Daikin Cycle ML is set up as **{configured}**. The datasheet values (COP, maximum heat, limits) and the advice follow the configured model.\n\nModels that fit your unit: **{candidates}**.\n\nTo correct it: Settings → Devices & services → Daikin Cycle ML → ⋮ → **Reconfigure**, then pick the model. Your history is kept. This message goes away by itself once the model fits."
     }
   },
   "options": {

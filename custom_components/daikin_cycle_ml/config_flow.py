@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
@@ -45,6 +46,7 @@ else:
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
+from homeassistant.helpers.typing import UNDEFINED, UndefinedType
 
 from .const import (
     ALERT_DEDUP_DEFAULTS,
@@ -126,6 +128,7 @@ from .engine.attribute_reader import missing_required
 from .engine.model_catalog import (
     INDOOR_HINT_BY_FAMILY,
     indoor_units_for,
+    detected_unit_model,
     resolve_model_text,
 )
 from .engine.model_datasheets import validate_spec
@@ -372,6 +375,32 @@ def _hybrid_attrs_present(compat_attrs: dict[str, Any]) -> bool:
     )
 
 
+
+def entry_title(data: Mapping[str, Any], *, raw_model: bool = False) -> str:
+    """The entry title: model and source (v1.20.0 #281 GAP-5). ``raw_model``
+    gives the title of entries made before #504 (model key, not its name)."""
+    st = data.get(CONF_SOURCE_TYPE, SOURCE_TYPE_MONOLITHIC)
+    if st == SOURCE_TYPE_INDIVIDUAL:
+        source = f"v2 {data.get(CONF_INDIVIDUAL_PREFIX, DEFAULT_INDIVIDUAL_PREFIX)}"
+    elif st == SOURCE_TYPE_AUTO:
+        source = "auto"
+    elif st == SOURCE_TYPE_P1P2:
+        source = f"P1/P2 {data.get(CONF_P1P2_PREFIX) or ''}".strip()
+    else:
+        source = str(data.get("source_sensor", ""))
+    model = str(data.get("model", ""))
+    return f"{NAME} - {model if raw_model else model_display(model)} ({source})"
+
+
+def _title_update(entry: ConfigEntry, new_data: Mapping[str, Any]) -> str | UndefinedType:
+    """#522: a reconfigure that changes the model or source renames the entry,
+    unless the user gave it a name of their own."""
+    old = dict(entry.data or {})
+    if entry.title not in (entry_title(old), entry_title(old, raw_model=True)):
+        return UNDEFINED
+    return entry_title({**old, **new_data})
+
+
 class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
     """8-step config wizard. Supports fresh setup + full reconfigure."""
 
@@ -481,12 +510,16 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _show_user_form(self, errors: dict[str, str]) -> ConfigFlowResult:
         current_model = self._data.get("model", "")
+        unit_code = detected_unit_model(self.hass)
         # An empty field means the basic profile; a raw default ("basisprofiel")
         # showed as the key itself because the field accepts typed codes.
-        family_key = (
-            vol.Optional("family", default=family_for_model(current_model))
-            if current_model else vol.Optional("family")
-        )
+        # #522: the code ESPAltherma reports fills the field (resolved on submit).
+        if current_model:
+            family_key = vol.Optional("family", default=family_for_model(current_model))
+        elif unit_code:
+            family_key = vol.Optional("family", default=unit_code)
+        else:
+            family_key = vol.Optional("family")
         schema = vol.Schema({
             family_key: _FAMILY_SELECTOR,
             vol.Optional(
@@ -531,6 +564,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 "v2_count": str(_v2_count),
                 "p1p2_count": str(_p1p2_count),
                 "suggestion": _suggest,
+                "unit_model": unit_code or "—",
             },
         )
 
@@ -1170,25 +1204,12 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_update_and_abort(
                     self._reconfigure_entry,
                     data_updates=self._data,
+                    title=_title_update(self._reconfigure_entry, self._data),
                     options=self._options,
                     reason="reconfigure_successful",
                 )
-            model = self._data.get("model", "")
-            # v1.20.0 #281 GAP-5: title must signal source mode
-            _st = self._data.get(CONF_SOURCE_TYPE, SOURCE_TYPE_MONOLITHIC)
-            if _st == SOURCE_TYPE_INDIVIDUAL:
-                _prefix = self._data.get(
-                    CONF_INDIVIDUAL_PREFIX, DEFAULT_INDIVIDUAL_PREFIX
-                )
-                source = f"v2 {_prefix}"
-            elif _st == SOURCE_TYPE_AUTO:
-                source = "auto"
-            elif _st == SOURCE_TYPE_P1P2:
-                source = f"P1/P2 {self._data.get(CONF_P1P2_PREFIX) or ''}".strip()
-            else:
-                source = self._data.get("source_sensor", "")
             return self.async_create_entry(
-                title=f"{NAME} - {model_display(model)} ({source})",
+                title=entry_title(self._data),
                 data=self._data,
                 options=self._options,
             )
@@ -1242,6 +1263,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
             return self.async_update_and_abort(
                 entry,
                 data_updates=merged,
+                title=_title_update(entry, merged),
                 reason="reconfigure_successful",
             )
         if user_input is not None:
@@ -1284,6 +1306,7 @@ class DaikinCycleMLConfigFlow(ConfigFlow, domain=DOMAIN):
                     return self.async_update_and_abort(
                         entry,
                         data_updates=dict(user_input),
+                        title=_title_update(entry, {**_entry_data, **user_input}),
                         reason=_reason,
                     )
         current: dict[str, Any] = dict(entry.data or {})

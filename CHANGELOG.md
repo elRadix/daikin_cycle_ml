@@ -95,6 +95,23 @@
   runtime data (`runtime_acc.<day>`); days from before the update use the
   running hours from `cop_hourly`.
 
+- Altherma 3 R MT split as a model (#522): ERRA08EAV3, ERRA10EAV3 and
+  ERRA12EAV3 (ELVX / ELVH / ELVZ / ELBH / ELBX / ELSX indoor units),
+  with Daikin values: A7/W35 6.17 kW, COP 4.92, maximum 7.95 / 9.25 /
+  9.97 kW, SCOP 4.79 / 4.79 / 4.82 (35 °C) and 3.37 / 3.38 / 3.47 (55 °C),
+  leaving water 15-65 °C, R-32 3.25 kg. ERRA08EAV37 and ERRA08EV3 resolve
+  to it. Before, an ELVX12S23EJ6V unit was offered the EPRA sizes only.
+- The setup fills in the model from the unit code ESPAltherma reports
+  (#522): the v2 entity `sensor.espaltherma_unit_model` (any prefix) or the
+  `Unit model` attribute of the v1 sensor. A code that names one model
+  selects it; an indoor code sold with several outdoor sizes narrows the
+  next screen to those sizes.
+- Repair issue `model_mismatch` (#522): when the unit code ESPAltherma
+  reports does not fit the configured model (or a basic profile runs on a
+  unit with a datasheet), Home Assistant asks to correct the model, names
+  the models that fit and how to change it (Reconfigure). Checked once an
+  hour; it clears by itself once the model fits. Diagnostics show the same
+  check under `model_check`.
 ### Documentation
 - New `docs/P1P2.md` (#512): what you need, setup with a screenshot of the
   map step, which bridge entity is which value, hybrid and bivalent, field
@@ -117,7 +134,35 @@
   cadence, now `const.COP_SAMPLE_INTERVAL_S`), not every 10; the default
   alert retention is 90 days, not 30.
 
+- COP heating today (`cop_today`) showed *unknown* whenever the
+  compressor was idle (#523): the live-value gate of #285 was applied to a
+  day value. It now keeps the day's COP between runs, like the other day
+  sensors.
+- ESPAltherma v2: a Stats sensor whose display unit was changed in Home
+  Assistant (electrical input in W instead of kW) was multiplied by 1000
+  again, so the COP read about 0.004 and electrical power 1,780,000 W
+  (#510). v2 values are now converted from the entity's own unit (W / kW /
+  MW, Wh / kWh / MWh, °F) to the unit the value expects.
+- Indoor units ELB / ELV / ELS (12 E) were paired with EPRA; Daikin sells
+  them with ERRA only (#522). ETB / ETV / ETS stay with EPRA.
+- Reconfigure that changes the model or the source now renames the entry
+  ("Daikin Cycle ML - model (source)"), unless you gave it a name of
+  your own (#522: the entry kept the first model in its title).
 ### Tests
+- `test_510_v2_stats_unit.py`: a real v2 entry with the Stats electrical
+  input in W and heat in kW gives COP 3.88 and 1780 W; kW, MW, Wh and °F
+  conversions; fails on the old code (1,780,000 W).
+- `test_523_cop_today_idle.py`: the reporter's two diagnostics files
+  (idle, 50 samples today, COP 2.83 while the sensor read unknown); fails
+  on the old code. Corpus: two new files (ERRA08EAV37 + ELVX12S23EJ6V on
+  the EPRA08 profile, v1.31.0).
+- `test_522_erra_model.py`: the reporter's unit code resolves to the ERRA
+  sizes, the bundled ERRA values, title on reconfigure (automatic and
+  pre-#504 titles renamed, own names kept), the model filled in from the v2
+  entity / v1 attribute in the real setup flow, `model_check` in
+  diagnostics and the `model_mismatch` repair on the real issue registry
+  in EN / NL / FR. The corpus check lists the #522 files as set up on the
+  wrong model.
 - `test_508_period_reports_engine.py`, `test_508_period_reports_store.py`,
   `test_508_period_reports_coordinator.py`: ISO week / season edges, every
   degree-day scheme, every check, aggregation, sources read through the real

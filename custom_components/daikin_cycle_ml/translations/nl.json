@@ -211,7 +211,7 @@
       },
       "user": {
         "title": "Daikin Cycle ML - kies modelfamilie",
-        "description": "Kies de modelfamilie van je Daikin Altherma unit. De familie is de prefix van de modelcode van de buitenunit (bijv. ERGA, EPRA, EKHBRD). Op het volgende scherm kies je het exacte model.\n\n- **Basisprofiel**: veilige standaardwaarden als je je exacte model niet weet.\n- **Eigen warmtepomp (Custom)**: lever je eigen gegevens en attribuut-koppeling aan.\n\n**Ken je alleen je binnenunit?** Typ de code (op het typeplaatje of in de Daikin-app, bijv. EHBX08EF6V) in het familieveld. Wordt die met meerdere buitenunits verkocht, dan toont het volgende scherm alleen die.\n\n**Gevonden:** één entiteit (v1) = {mono_found}, ESPAltherma v2-entiteiten = {v2_count}, waarden van een P1/P2-bridge = {p1p2_count}.\n**Voorgesteld brontype:** `{suggestion}`.",
+        "description": "Kies de modelfamilie van je Daikin Altherma unit. De familie is de prefix van de modelcode van de buitenunit (bijv. ERGA, EPRA, EKHBRD). Op het volgende scherm kies je het exacte model.\n\n- **Basisprofiel**: veilige standaardwaarden als je je exacte model niet weet.\n- **Eigen warmtepomp (Custom)**: lever je eigen gegevens en attribuut-koppeling aan.\n\n**Ken je alleen je binnenunit?** Typ de code (op het typeplaatje of in de Daikin-app, bijv. EHBX08EF6V) in het familieveld. Wordt die met meerdere buitenunits verkocht, dan toont het volgende scherm alleen die.\n\n**Gevonden:** één entiteit (v1) = {mono_found}, ESPAltherma v2-entiteiten = {v2_count}, waarden van een P1/P2-bridge = {p1p2_count}.\n**Voorgesteld brontype:** `{suggestion}`.\n**Unitmodel volgens ESPAltherma:** `{unit_model}` (hierboven ingevuld).",
         "data": {
           "family": "Modelfamilie",
           "source_type": "Gegevensbron"
@@ -1009,6 +1009,10 @@
     "dhw_missing_suspect": {
       "title": "DHW-tank niet gedetecteerd",
       "description": "Cycle ML heeft geen DHW-tank gedetecteerd, maar er bestaan historische DHW-cycli in de database. Heb je geen DHW-tank (bv. Bivalent Direct), kun je dit negeren. Heb je er wel een, controleer dan je ESPAltherma sensorconfiguratie of zet 'Warmwaterboiler' op 'always' in Configureren → Geavanceerd."
+    },
+    "model_mismatch": {
+      "title": "Model van de warmtepomp past niet bij je unit",
+      "description": "ESPAltherma meldt de unit **{unit_model}**, maar Daikin Cycle ML is ingesteld als **{configured}**. De datasheetwaarden (COP, maximale warmte, grenzen) en het advies volgen het ingestelde model.\n\nModellen die bij je unit passen: **{candidates}**.\n\nCorrigeren: Instellingen → Apparaten en diensten → Daikin Cycle ML → ⋮ → **Opnieuw configureren**, en kies het model. Je geschiedenis blijft bewaard. Deze melding verdwijnt vanzelf zodra het model klopt."
     }
   },
   "services": {

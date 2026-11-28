@@ -22,12 +22,15 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from typing import Any
 
 from ..const import (
+    DEFAULT_INDIVIDUAL_PREFIX,
     MODEL_ALIASES,
     MODEL_BASISPROFIEL,
     MODEL_CHOICES,
     MODEL_CUSTOM,
+    SOURCE_SENSOR_ENTITY,
 )
 
 # (indoor-code pattern, {size: candidate model keys}, series label)
@@ -42,11 +45,18 @@ _INDOOR_RULES: list[tuple[re.Pattern[str], dict[str, list[str]], str]] = [
         {"04": ["erga04eav3"], "08": ["erga06eav3", "erga08eav3"]},
         "Altherma 3 R (ERGA E)",
     ),
-    # Altherma 3 H MT, E series 8-12 kW: ETB/ETV/ETVZ/ETS, ELB/ELV/ELS
+    # Altherma 3 H MT, E series 8-12 kW: ETB/ETV/ETVZ/ETS + EPRA
     (
-        re.compile(r"^E[TL][BVS][HXZ]B?(12)" + _TANK + r"E"),
+        re.compile(r"^ET[BVS][HXZ]B?(12)" + _TANK + r"E"),
         {"12": ["epra08eav3", "epra10eav3", "epra12eav3"]},
         "Altherma 3 H MT (EPRA E 8-12 kW)",
+    ),
+    # #522: Altherma 3 R MT, E series 8-12 kW: ELB/ELV/ELVZ/ELS + ERRA
+    # (Daikin catalogue: every ELxx 12 E table is "+ ERRA08-12EV3/EW1")
+    (
+        re.compile(r"^EL[BVS][HXZ]B?(12)" + _TANK + r"E"),
+        {"12": ["erra08eav3", "erra10eav3", "erra12eav3"]},
+        "Altherma 3 R MT (ERRA E 8-12 kW)",
     ),
     # Altherma 3 H HT, 14-18 kW (D and E indoor series): ETB/ETV/ETVZ/ETS 16
     (
@@ -204,7 +214,8 @@ def resolve_model_text(text: str) -> ModelMatch:
 # family, so a user who only knows the indoor code finds the family.
 INDOOR_HINT_BY_FAMILY: dict[str, str] = {
     "erga": "EHB/EHV/EHVZ/EHS (E series)",
-    "epra": "ETB/ETV/ETVZ/ETS, ELB/ELV/ELS",
+    "epra": "ETB/ETV/ETVZ/ETS",
+    "erra": "ELB/ELV/ELVZ/ELS (E series)",
     "epga": "EAB/EAV/EAVZ",
     "erla": "EBB/EBV/EBVZ/EBS",
     "evlq": "EHYHBH/EHYHBX",
@@ -217,7 +228,8 @@ def indoor_units_for(model_key: str) -> list[str]:
     out: list[str] = []
     stems = {
         "Altherma 3 R (ERGA E)": "EHBH/EHBX, EHVH/EHVX/EHVZ, EHSH/EHSX",
-        "Altherma 3 H MT (EPRA E 8-12 kW)": "ETBH/ETBX, ETVH/ETVX/ETVZ, ETSH/ETSX, ELBH/ELBX, ELVH/ELVX/ELVZ",
+        "Altherma 3 H MT (EPRA E 8-12 kW)": "ETBH/ETBX, ETVH/ETVX/ETVZ, ETSH/ETSX",
+        "Altherma 3 R MT (ERRA E 8-12 kW)": "ELBH/ELBX, ELVH/ELVX/ELVZ, ELSH/ELSX",
         "Altherma 3 H HT (EPRA 14-18 kW)": "ETBH/ETBX, ETVH/ETVX/ETVZ, ETSH/ETSX",
         "Altherma 3 R (EPGA D 11-16 kW)": "EABH/EABX, EAVH/EAVX/EAVZ",
         "Altherma 3 R (ERLA D 11-16 kW)": "EBBH/EBBX, EBVH/EBVX/EBVZ, EBSH/EBSX",
@@ -227,3 +239,34 @@ def indoor_units_for(model_key: str) -> list[str]:
             if model_key in keys:
                 out.append(f"{stems[series]} {size}")
     return out
+
+
+def detected_unit_model(hass: Any) -> str:
+    """#522: the unit code ESPAltherma reports ("Unit model"), when the model
+    catalogue knows it: the v2 entity ``sensor.<prefix>unit_model`` or the
+    attribute of the monolithic sensor. Empty when there is none."""
+    codes: list[Any] = [
+        getattr(hass.states.get(f"{DEFAULT_INDIVIDUAL_PREFIX}unit_model"), "state", None),
+        (getattr(hass.states.get(SOURCE_SENSOR_ENTITY), "attributes", None) or {}).get("Unit model"),
+    ]
+    codes += [st.state for st in hass.states.async_all("sensor") if st.entity_id.endswith("_unit_model")]
+    for code in codes:
+        if isinstance(code, str) and resolve_model_text(code).kind in (
+            "exact", "alias", "indoor", "ambiguous",
+        ):
+            return code.strip()[:64]
+    return ""
+
+
+def model_check(hass: Any, model: str | None) -> dict[str, Any]:
+    """#522 diagnostics: does the configured model fit the reported unit code?"""
+    code = detected_unit_model(hass)
+    if not code:
+        return {"unit_model": None}
+    match = resolve_model_text(code)
+    return {
+        "unit_model": code,
+        "configured": model,
+        "candidates": list(match.candidates),
+        "matches": model in match.candidates or model == match.key,
+    }

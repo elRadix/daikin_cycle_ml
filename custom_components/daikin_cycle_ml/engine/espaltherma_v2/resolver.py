@@ -125,7 +125,27 @@ def _read_entity_state(
     raw = state.state
     if raw is None:
         return None
-    return _normalize(raw, label)
+    value = _normalize(raw, label)
+    unit = (getattr(state, "attributes", None) or {}).get("unit_of_measurement")
+    return to_label_unit(value, unit, label)
+
+
+# #510: Home Assistant lets a user show a sensor in another unit (kW as W,
+# °C as °F); the entity's state is then in that unit. ESPAltherma's labels
+# name the unit the integration expects, so the value is converted back.
+_SCALE = {("kW", "W"): 0.001, ("kW", "MW"): 1000.0, ("kWh", "Wh"): 0.001, ("kWh", "MWh"): 1000.0}
+
+
+def to_label_unit(value: Any, unit: Any, label: str | None) -> Any:
+    """``value`` in the unit the label expects, given the entity's unit."""
+    if isinstance(value, bool) or not isinstance(value, float) or not isinstance(unit, str):
+        return value
+    u = unit.strip()
+    if u == "°F":
+        return round((value - 32.0) * 5.0 / 9.0, 3)
+    want = "kWh" if (label or "").endswith("(kWh)") else "kW" if (label or "").endswith("(kW)") else None
+    factor = _SCALE.get((want, u)) if want else None
+    return value * factor if factor else value
 
 
 def resolve_attrs(

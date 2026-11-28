@@ -115,6 +115,10 @@ MODEL_ERGA04EAV3 = "erga04eav3"
 MODEL_ERGA06EAV3 = "erga06eav3"
 MODEL_ERGA08EAV3 = "erga08eav3"
 MODEL_ERGA08EVH7 = "erga08evh7"
+# #522: Altherma 3 R MT split (ELV/ELB/ELS indoor + ERRA08-12EV3 outdoor)
+MODEL_ERRA08EAV3 = "erra08eav3"
+MODEL_ERRA10EAV3 = "erra10eav3"
+MODEL_ERRA12EAV3 = "erra12eav3"
 MODEL_EPGA10DAV3 = "epga10dav3"
 MODEL_EPGA11DAV3 = "epga11dav3"
 MODEL_EPGA14DAV3 = "epga14dav3"
@@ -184,6 +188,9 @@ MODEL_CHOICES = [
     MODEL_ERGA06EAV3,
     MODEL_ERGA08EAV3,
     MODEL_ERGA08EVH7,
+    MODEL_ERRA08EAV3,
+    MODEL_ERRA10EAV3,
+    MODEL_ERRA12EAV3,
     MODEL_EPGA10DAV3,
     MODEL_EPGA11DAV3,
     MODEL_EPGA14DAV3,
@@ -248,6 +255,9 @@ MODEL_LABELS = {
     MODEL_ERGA06EAV3: "Daikin Altherma 3 R - ERGA06EAV3 (Split)",
     MODEL_ERGA08EAV3: "Daikin Altherma 3 R - ERGA08EAV3 (Split)",
     MODEL_ERGA08EVH7: "Daikin Altherma 3 R - ERGA08EVH7 (Split)",
+    MODEL_ERRA08EAV3: "Daikin Altherma 3 R MT - ERRA08EAV3 (Split)",
+    MODEL_ERRA10EAV3: "Daikin Altherma 3 R MT - ERRA10EAV3 (Split)",
+    MODEL_ERRA12EAV3: "Daikin Altherma 3 R MT - ERRA12EAV3 (Split)",
     MODEL_EPGA10DAV3: "Daikin Altherma 3 R - EPGA10DAV3 (Split high capacity)",
     MODEL_EPGA11DAV3: "Daikin Altherma 3 R - EPGA11DAV3 (Split high capacity)",
     MODEL_EPGA14DAV3: "Daikin Altherma 3 R - EPGA14DAV3 (Split high capacity)",
@@ -901,6 +911,7 @@ MODEL_FAMILIES: dict[str, str] = {
     "epra": "Altherma 3 H MT / HT",
     "erla": "Altherma 3 R",
     "erga": "Altherma 3 R Split",
+    "erra": "Altherma 3 R MT (Split)",
     "epga": "Altherma 3 H",
     "edla": "Altherma 3 R (Monobloc)",
     "ebla": "Altherma 3 M",
@@ -946,6 +957,10 @@ MODEL_ALIASES: dict[str, str] = {
     "erg04eav3": MODEL_ERGA04EAV3,
     "erg06eav3": MODEL_ERGA06EAV3,
     "erg08eav3": MODEL_ERGA08EAV3,
+    # #522: catalogue name ERRA08-12EV3 (ERRA08EAV37 resolves by prefix)
+    "erra08ev3": MODEL_ERRA08EAV3,
+    "erra10ev3": MODEL_ERRA10EAV3,
+    "erra12ev3": MODEL_ERRA12EAV3,
 }
 
 
