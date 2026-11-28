@@ -153,9 +153,14 @@ def _attrs_hp_specs(
             "reason": "no datasheet for this model",
             "target_dt_k": target_dt,
         }
+    installer = dict(getattr(c, "installer_settings", None) or {})
     return {
         "configured": True,
         "target_dt_k": target_dt,
+        # #512: the ΔT the installer set on the unit ([9-09]), read by the
+        # P1/P2 bridge, shown next to the integration's own target
+        "installer_target_dt_k": installer.get("target_dt"),
+        "installer_settings": installer,
         "model": ds.get("model"),
         "source": ds.get("source"),
         "family": ds.get("family"),

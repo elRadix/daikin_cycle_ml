@@ -28,6 +28,20 @@
   sensor. Reconfigure accepts the bridge as well. README: data sources
   (ESPAltherma or the bridge) with thanks to Arnold Niessen for the test
   bridge.
+- P1/P2 MQTT bridge, part 3: hybrid and field settings (#512).
+  - No Daikin hot-water tank (tank sensor about −40 °C, or field setting
+    E-06 off): the 3-way valve on the bus is no longer taken as a
+    hot-water signal, so the EVLQ hybrid with an Intergas combi boiler is
+    recognised as having no tank.
+  - The gas boiler flag is split into heating and hot water by the 3-way
+    valve; on a non-hybrid unit with an external boiler (field setting
+    C-02 ≥ 1) it turns on the bivalent handling of #288.
+  - The installer's field settings read by the bridge (heating curve,
+    leaving-water limits, target ΔT, tank, bivalent temperatures, unit and
+    compressor type, …) are shown in diagnostics and in the `hp_specs`
+    attributes (`installer_settings`, `installer_target_dt_k` next to the
+    integration's own ΔT target). They are read every 10 minutes and never
+    change your settings.
 - Native card `custom:daikin-reports-card` 1.0.0 (#508): week, month, year
   and heating-season reports per mode with drop-downs (period type, period
   with ‹ ›, mode, compare with previous period / last year / none) and six
@@ -114,6 +128,10 @@
   manager on both dumps without any ESPAltherma entity (suggestion, filled-in
   map with preview, no ESPAltherma field, entry data, hybrid with three
   prefixes, R1T / missing role / vanished entity refused).
+- `test_512_p1p2_fieldsettings.py`: the hybrid without tank (valve dropped,
+  no-tank detection), boiler heat / hot water and bivalent via C-02, the
+  239 field settings of the hybrid and their summary in diagnostics and
+  `hp_specs`.
 - `test_508_reports_card.py`: every tab in EN / NL / FR on `get_report`
   responses from the real builder; Chromium: the service call, ‹ › stepping,
   drop-downs, tabs, phone and desktop width, dark mode, editor.

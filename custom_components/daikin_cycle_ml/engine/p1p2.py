@@ -29,6 +29,7 @@ Facts from the two reference dumps (EPRA12EAV3 monobloc, EVLQ08CV3 hybrid):
 from __future__ import annotations
 
 import math
+import re
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
@@ -36,6 +37,8 @@ from typing import Any
 
 from ..const import (
     ATTR_3WAY_VALVE,
+    ATTR_BIVALENT_OPERATION,
+    ATTR_BOILER_DHW_DEMAND,
     ATTR_BOILER_OPERATION_DEMAND,
     ATTR_BUH_STEP1,
     ATTR_BUH_STEP2,
@@ -131,6 +134,9 @@ ROLES: tuple[Role, ...] = (
     Role("refrigerant_r3t", SENSOR, ("sensors_temperature_r3t_refrigerant",), "temp"),
     Role("discharge", SENSOR, ("sensors_temperature_refrigerant_discharge",), "temp"),
     Role("water_pressure", SENSOR, ("sensors_water_pressure",), "count"),
+    # field settings that change how values are read (PR3)
+    Role("dhw_tank_installed", BINARY, ("fieldsettings_e_06_a222_dhw_tank_installed",), "binary"),
+    Role("external_backup", SENSOR, ("fieldsettings_c_02_external_backup",), "count"),
 )
 ROLE_BY_KEY = {r.key: r for r in ROLES}
 REQUIRED_ROLES = tuple(r.key for r in ROLES if r.required)
@@ -248,6 +254,13 @@ def resolve(mapping: Mapping[str, str], get_state: Callable[[str], Any]) -> Reso
     if "r9t" in inlet_eid and v.get("inlet_r4t") == 0.0:
         out.rejected["inlet_r4t"] = "R9T reads 0.000: not connected"
         v.pop("inlet_r4t")
+    # no tank (R5T about -40 °C, or field setting E-06 off): a 3-way valve on
+    # the bus is not a hot-water signal (the hybrid's Intergas makes the
+    # hot water itself)
+    no_tank = "no tank" in out.rejected.get("dhw_tank", "") or v.get("dhw_tank_installed") == "OFF"
+    if no_tank and v.get("threeway_valve") is not None:
+        v.pop("threeway_valve")
+        out.rejected["threeway_valve"] = "no hot-water tank"
     if "r1t" in mapping.get("outdoor", "") and "outside" not in mapping.get("outdoor", ""):
         out.rejected["outdoor"] = "R1T on the bridge is water, not outdoor air"
         v.pop("outdoor", None)
@@ -270,8 +283,16 @@ def resolve(mapping: Mapping[str, str], get_state: Callable[[str], Any]) -> Reso
     if v.get("hp_power") is not None:
         el = max(0.0, float(v["hp_power"])) + max(0.0, float(v.get("buh_power") or 0.0))
         out.attrs[V2_STATS_KEY] = round(el / 1000.0, 3)
-    if v.get("gasboiler_active") is not None:
-        out.attrs[ATTR_BOILER_OPERATION_DEMAND] = v["gasboiler_active"]
+    boiler = v.get("gasboiler_active")
+    if boiler is not None:
+        # with the valve on the tank, the boiler heats hot water, else space
+        dhw = boiler == "ON" and v.get("threeway_valve") == "ON"
+        out.attrs[ATTR_BOILER_OPERATION_DEMAND] = "OFF" if dhw else boiler
+        out.attrs[ATTR_BOILER_DHW_DEMAND] = "ON" if dhw else "OFF"
+        # #288: a non-hybrid unit with an external boiler (C-02 >= 1) is
+        # bivalent: its boiler flag then counts like a hybrid's
+        if (v.get("external_backup") or 0) >= 1:
+            out.attrs[ATTR_BIVALENT_OPERATION] = boiler
 
     out.missing_required = [a for a in REQUIRED_ATTRIBUTES if a not in out.attrs and a not in NOT_PUBLISHED]
     out.unmapped = [k for k in REQUIRED_ROLES if not mapping.get(k)]
@@ -281,3 +302,51 @@ def resolve(mapping: Mapping[str, str], get_state: Callable[[str], Any]) -> Reso
 def expected_units() -> dict[str, str]:
     """Role -> the unit it is read in (shown in the setup, never read)."""
     return {r.key: r.unit for r in ROLES}
+
+
+# ---------- field settings (the installer's settings, read-only) ----------
+
+_FIELD = re.compile(r"fieldsettings_([0-9a-f])_([0-9a-f]{2})_(.+)$")
+
+# Daikin code -> name used in the summary (diagnostics, model profile hints)
+FIELD_SUMMARY: dict[str, str] = {
+    "1-00": "curve_heating_low_outdoor", "1-01": "curve_heating_high_outdoor",
+    "1-02": "curve_heating_low_outdoor_lwt", "1-03": "curve_heating_high_outdoor_lwt",
+    "9-00": "lwt_heating_max", "9-01": "lwt_heating_min", "9-09": "target_dt",
+    "9-0B": "emitter_slow", "4-02": "heating_outdoor_max", "5-01": "equilibrium_temp",
+    "C-02": "external_backup", "C-03": "bivalent_activation_temp", "C-04": "bivalent_hysteresis",
+    "E-00": "unit_type", "E-01": "compressor_type", "E-05": "dhw_operation", "E-06": "dhw_tank_installed",
+    "6-0E": "dhw_setpoint_max", "8-0B": "flow_target_heatpump", "8-02": "anti_recycling_time",
+}
+
+
+def field_settings(entities: Mapping[str, Any], prefix: str | None = None) -> dict[str, dict[str, Any]]:
+    """Every readable field setting: ``{"9-09": {"name": "delta_t", "value": 5.0}}``.
+
+    ``entities`` maps entity_id -> state. With several bridges only the
+    given prefix is read. Unavailable settings (the bridge has not read
+    them yet) are left out.
+    """
+    want = prefix.split(".", 1)[-1] if prefix else None
+    out: dict[str, dict[str, Any]] = {}
+    for eid, raw in entities.items():
+        obj = _object_id(eid)[1]
+        m = _FIELD.search(obj)
+        if not m or (want is not None and not obj.startswith(want)):
+            continue
+        if raw in (None, "unavailable", "unknown", ""):
+            continue
+        code = f"{m.group(1)}-{m.group(2)}".upper()
+        val: Any = _onoff(raw) if eid.startswith("binary_sensor.") else _num(raw, "energy")
+        if val is None and not eid.startswith("binary_sensor."):
+            try:
+                val = float(str(raw))
+            except ValueError:
+                val = str(raw)
+        out[code] = {"name": m.group(3), "value": val}
+    return dict(sorted(out.items()))
+
+
+def field_summary(settings: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    """The settings the integration uses or shows, by readable name."""
+    return {name: settings[code]["value"] for code, name in FIELD_SUMMARY.items() if code in settings}
