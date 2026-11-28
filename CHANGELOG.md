@@ -3,6 +3,22 @@
 ## [Unreleased]
 
 ### Added
+- P1/P2 MQTT bridge as a source, part 1: the adapter (#512, #309). A heat
+  pump read through Arnold Niessen's P1/P2 MQTT bridge, without
+  ESPAltherma, works like any other source: cycle detection, COP, alerts,
+  ML, cards and reports. Entities are matched on their name ending, so any
+  prefix works (`bridge0_`, `hc_`, several prefixes on one bridge); the
+  role map can be saved per heat pump, otherwise it is detected again every
+  10 minutes. The bridge's own heat and electrical power (heat pump +
+  backup heater, W → kW) feed the COP chain; its compressor value is Hz
+  although the entity is called `rpm`. Guards: the outdoor temperature
+  never comes from R1T (water on the bridge), a tank reading below −20 °C
+  (no tank) and an R9T of 0.000 (not connected) are left out, values
+  outside the plausible range of their role are rejected, and the unit of
+  every role is fixed instead of read from the entity. The gas boiler is
+  read from `mode_gasboiler_active`, not from its power. Diagnostics:
+  `source_resolution` shows the map, rejected values and the bridge's own
+  COP next to the one from power. The setup wizard follows in part 2.
 - Native card `custom:daikin-reports-card` 1.0.0 (#508): week, month, year
   and heating-season reports per mode with drop-downs (period type, period
   with ‹ ›, mode, compare with previous period / last year / none) and six
@@ -79,6 +95,12 @@
   write paths, frozen rows never rewritten, rebuild, DST day length,
   maintenance never pruning the report tables, accumulator persist /
   restore / reset, the backfill marker.
+- `test_512_p1p2_adapter.py`, `test_512_p1p2_e2e.py`: the two real bridge
+  dumps (EPRA12EAV3 monobloc with tank, `bridge0_`; EVLQ08CV3 hybrid with an
+  Intergas boiler and no tank, `hc_` / `wamtepomp_` / `warmtepomp_`) in
+  `tests/fixtures/p1p2`: every role detected, COP from the bridge's power
+  equal to its COP_Realtime, R1T / R5T / R9T guards, two bridges, a saved
+  map, the bridge going offline, the hybrid boiler flag.
 - `test_508_reports_card.py`: every tab in EN / NL / FR on `get_report`
   responses from the real builder; Chromium: the service call, ‹ › stepping,
   drop-downs, tabs, phone and desktop width, dark mode, editor.

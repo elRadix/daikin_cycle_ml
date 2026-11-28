@@ -97,6 +97,12 @@ from .const import (
     SOURCE_SENSOR_ENTITY,
     SOURCE_TYPE_AUTO,
     SOURCE_TYPE_INDIVIDUAL,
+    SOURCE_TYPE_P1P2,
+    CONF_P1P2_MAP,
+    CONF_P1P2_PREFIX,
+    P1P2_REDETECT_S,
+    V2_STATS_HEAT_KEY,
+    V2_STATS_KEY,
     SOURCE_TYPE_MONOLITHIC,
     STEADY_RUN_S,
     STOOKLIJN_MIN_CONFIDENCE,
@@ -119,6 +125,7 @@ from .engine import model_profile as _model_profile
 from .engine.physics import datasheet_cop_at as _datasheet_cop_at
 from .engine.alert_texts import resolve_language
 from .engine.notify_format import escape_for_parse_mode
+from .engine import p1p2 as _p1p2
 from .engine import period_reports as _period_reports
 from .storage import report_builder as _report_builder
 from .storage import report_query as _report_query
@@ -872,6 +879,11 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
     # work without AttributeError on _async_update_data.
     source_type: str = SOURCE_TYPE_MONOLITHIC
     individual_prefix: str = DEFAULT_INDIVIDUAL_PREFIX
+    # #512: P1/P2 MQTT bridge source
+    p1p2_map: dict[str, str] = {}
+    p1p2_prefix: str | None = None
+    _p1p2_detected: dict[str, str] | None = None
+    _p1p2_detected_ts: float = 0.0
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.entry = entry
@@ -884,6 +896,8 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         self.individual_prefix = entry.data.get(
             CONF_INDIVIDUAL_PREFIX, DEFAULT_INDIVIDUAL_PREFIX
         )
+        self.p1p2_map = dict(entry.data.get(CONF_P1P2_MAP) or {})
+        self.p1p2_prefix = entry.data.get(CONF_P1P2_PREFIX)
         model = entry.data.get("model", MODEL_BASISPROFIEL)
         # v1.19.0 (#241): uppercase model-SKU voor notificatie-subtitle.
         _m_norm = str(model).strip().lower()
@@ -2390,6 +2404,15 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
                     "discovered": result.discovered_count,
                     "missing_required": len(snap.missing_attrs),
                 }
+            elif self.source_type == SOURCE_TYPE_P1P2:
+                # #512: P1/P2 MQTT bridge entities, translated per role
+                p1 = self._read_p1p2(now)
+                attrs = dict(p1.attrs)
+                snap.attrs = attrs
+                snap.missing_attrs = list(p1.missing_required)
+                if attrs:
+                    snap.last_success_ts = now
+                _should_freeze = _detection_blocked(snap.missing_attrs, attrs)
             else:  # SOURCE_TYPE_MONOLITHIC
                 state = self.hass.states.get(self.source_entity)
                 if state is None:
@@ -3004,6 +3027,41 @@ class DaikinCycleMLCoordinator(DataUpdateCoordinator[DataSnapshot]):
         if (now - self._last_energy_persist_ts) >= interval:
             await self._persist_energy_acc()
             self._last_energy_persist_ts = now
+
+    def _p1p2_mapping(self, now: float) -> dict[str, str]:
+        """#512: the saved role map, else the detected one (refreshed every 10 min)."""
+        if self.p1p2_map:
+            return self.p1p2_map
+        if self._p1p2_detected is None or now - self._p1p2_detected_ts >= P1P2_REDETECT_S:
+            det = _p1p2.detect(self.hass.states.async_entity_ids(), self.p1p2_prefix)
+            self._p1p2_detected = det.mapping
+            self._p1p2_detected_ts = now
+        return self._p1p2_detected or {}
+
+    def _read_p1p2(self, now: float) -> _p1p2.Resolved:
+        """#512: read the bridge's entities as ESPAltherma attributes. Never raises."""
+        mapping = self._p1p2_mapping(now)
+
+        def state_of(eid: str) -> Any:
+            st = self.hass.states.get(eid)
+            return st.state if st is not None else None
+
+        res = _p1p2.resolve(mapping, state_of)
+        heat = res.attrs.get(V2_STATS_HEAT_KEY)
+        el = res.attrs.get(V2_STATS_KEY)
+        own = res.values.get("cop_realtime")
+        self._source_resolution = {
+            "mode": "p1p2", "saved_map": bool(self.p1p2_map), "prefix": self.p1p2_prefix,
+            "roles": len(mapping), "read": len(res.values),
+            "unmapped_required": list(res.unmapped),
+            "missing_required": list(res.missing_required),
+            "rejected": dict(res.rejected),
+            "mapping": dict(mapping),
+            # the bridge computes its own COP: shown next to heat / electrical
+            "cop_bridge": own,
+            "cop_from_power": round(heat / el, 2) if heat and el else None,
+        }
+        return res
 
     def _tick_report_acc(self, attrs: dict[str, Any], dt_s: float) -> None:
         """#508: whole-day outdoor mean / min / max and seconds with data."""
