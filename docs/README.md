@@ -12,6 +12,7 @@ have; every page has its own table of contents.
 | Fix something that does not work | [Troubleshooting](TROUBLESHOOTING.md) |
 | Change an option | [Configuration](CONFIGURATION.md) |
 | Know what a sensor or service does | [Entities](ENTITIES.md) |
+| Compare weeks, months and years | [Reports](REPORTS.md) |
 | Understand a notification | [Alerts](ALERTS.md) |
 | Add a card to a dashboard | [Cards](../dashboard/README.md) |
 | Copy an automation | [Recipes](RECIPES.md) |
@@ -29,6 +30,7 @@ have; every page has its own table of contents.
 | [Configuration](CONFIGURATION.md) | Source types, wizard paths, every option with its default, COP sources, model profile, reconfigure, cookbook, scheduled jobs |
 | [Alerts](ALERTS.md) | The 21 alerts with level, group, repeat window and trigger; delivery, quiet hours, switching alerts off, testing |
 | [Troubleshooting](TROUBLESHOOTING.md) | Symptom tables: setup, detection, values, COP, alerts, hybrid, database, cards, reporting |
+| [Reports](REPORTS.md) | Week / month / year / season reports: contents, day checks, comparison and verdicts, degree days, when they are built |
 | [Recipes](RECIPES.md) | Automations ready to paste |
 | [Upgrade](UPGRADE.md) | Updating, what migrates on its own, the changes that needed action, going back |
 
