@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Added
+- Building data per day, part 1 of the heat-loss tracker (#495): the day
+  report now also holds the room temperature (time-weighted, with its
+  drift and source: your room sensor, else the unit's own reading), the
+  space heat as signed flow x dT (a defrost counts negative; hot water,
+  cooling and boiler time left out) and the sun (hours at full height, from
+  Home Assistant's `sun`). All from values the integration already reads;
+  diagnostics `period_reports.building_day_last7`.
+
 ### Changed
 - ESPAltherma pin moved from beta 3548ea2 to dcf3b48 (#511): the v1
   definitions and the v2 catalog snapshot are regenerated. New upstream
@@ -9,6 +18,11 @@
   HT protocols in one pass): the same labels as the two HT variants, with
   the same documented gaps. New v2 name `Boiler water pressure (bar)` (not
   read by the integration). No name the integration reads was removed.
+
+### Tests
+- `test_495_building_day.py`: signed flow x dT (defrost, R1T fallback, hot
+  water / cooling / bad readings left out), room source and drift, sun
+  hours, persistence across a restart, the day row and diagnostics.
 
 ## [1.32.0] - 2026-11-28
 
